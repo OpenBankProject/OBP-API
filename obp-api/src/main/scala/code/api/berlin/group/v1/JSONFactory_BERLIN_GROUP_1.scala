@@ -44,11 +44,11 @@ object JSONFactory_BERLIN_GROUP_1 extends CustomJsonFormats {
     amount : AmountOfMoneyV1,
     lastActionDateTime: Date
   )
-  case class AccountBalance(
+  case class AccountBalanceV1(
     closingBooked: ClosingBookedBody,
     expected: ExpectedBody
   )
-  case class AccountBalances(`balances`: List[AccountBalance])
+  case class AccountBalances(`balances`: List[AccountBalanceV1])
   
   case class TransactionsJsonV1(
     transactions_booked: List[TransactionJsonV1],
@@ -93,7 +93,7 @@ object JSONFactory_BERLIN_GROUP_1 extends CustomJsonFormats {
     val sumOfAll = (BigDecimal(moderatedAccount.balance) + sumOfAllUncompletedTransactionrequests).toString()
 
     AccountBalances(
-      AccountBalance(
+      AccountBalanceV1(
         closingBooked = ClosingBookedBody(
           amount = AmountOfMoneyV1(currency = moderatedAccount.currency.getOrElse(""), content = moderatedAccount.balance),
           date = APIUtil.DateWithDayFormat.format(latestCompletedEndDate)

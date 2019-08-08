@@ -184,6 +184,7 @@ trait BankAccount{
   def iban : Option[String]
   def number : String
   def bankId : BankId
+  //It means last transaction refresh date only used for HBCI now.
   def lastUpdate : Date
   def branchId: String
   def accountRoutingScheme: String
@@ -296,6 +297,20 @@ case class CoreAccount(
   bankId: String,
   accountType: String,
   accountRoutings: List[AccountRouting]
+)
+
+case class AccountBalance(
+  id: String,
+  label: String,
+  bankId: String,
+  accountRoutings: List[AccountRouting],
+  balance: AmountOfMoney
+)
+
+case class AccountsBalances(
+  accounts: List[AccountBalance],
+  overallBalance: AmountOfMoney,
+  overallBalanceDate: Date
 )
 
 case class AccountHeld(

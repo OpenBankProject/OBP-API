@@ -222,10 +222,10 @@ object APIMethods_BalancesApi extends RestHelper {
 
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           
-            accounts <- {Connector.connector.vend.getBankAccounts(availablePrivateAccounts, callContext)}
+            (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
           
           } yield {
-            (JSONFactory_UKOpenBanking_310.createBalancesJSON(accounts.getOrElse(Nil)), callContext)
+            (JSONFactory_UKOpenBanking_310.createBalancesJSON(accounts), callContext)
           }
          }
        }

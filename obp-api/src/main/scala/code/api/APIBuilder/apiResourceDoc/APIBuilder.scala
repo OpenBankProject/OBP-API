@@ -36,7 +36,7 @@ object APIBuilder
 {
   def main(args: Array[String]): Unit = overwriteApiCode(apiSource,jsonFactorySource)
 
-  val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("src/main/scala/code/api/APIBuilder/apiResourceDoc/apisResource.json")
+  val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("obp-api/src/main/scala/code/api/APIBuilder/apiResourceDoc/apisResource.json")
 
   val resourceDocsJObject= jsonJValueFromFile.\("resource_docs").children.asInstanceOf[List[JObject]]
     
@@ -210,7 +210,7 @@ object APIBuilder
         cc => {
           for {
             u <- $getMultipleAuthenticationStatement
-            jsonStringFromFile = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/apisResource.json").mkString 
+            jsonStringFromFile = scala.io.Source.fromFile("obp-api/src/main/scala/code/api/APIBuilder/apisResource.json").mkString 
             jsonJValueFromFile = json.parse(jsonStringFromFile)
             resourceDocsJObject= jsonJValueFromFile.\("resource_docs").children.asInstanceOf[List[JObject]]
             getMethodJValue = resourceDocsJObject.filter(jObject => jObject.\("request_verb") == JString("GET")&& !jObject.\("request_url").asInstanceOf[JString].values.contains("_ID")).head
@@ -380,7 +380,7 @@ trait APIMethods_APIBuilder
   
   val ImplementationsBuilderAPI = new Object()
   {
-    val apiVersion: ApiVersion = ApiVersion.apiBuilder
+    val apiVersion = ApiVersion.apiBuilder
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)

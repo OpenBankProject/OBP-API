@@ -28,14 +28,13 @@ import java.util.UUID.randomUUID
 import java.util.Date
 
 import akka.http.scaladsl.model.{HttpProtocol, _}
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.util.ByteString
 import code.api.APIFailureNewStyle
-import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.inboundStatus
 import code.api.cache.Caching
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric}
 import code.api.util.ErrorMessages._
-import code.api.util.ExampleValue._
-import code.api.util.{CallContext, OBPQueryParam}
+import code.api.util.{CallContext, NewStyle, OBPQueryParam}
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
 import code.kafka.{KafkaHelper, Topics}
@@ -43,9 +42,8 @@ import code.util.AkkaHttpClient._
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model._
-import com.tesobe.CacheKeyFromArguments
+import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, _}
-import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
@@ -54,10 +52,11 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
-
 import code.api.util.ExampleValue._
-
 import code.api.util.APIUtil._
+import code.methodrouting.MethodRoutingParam
+import org.apache.commons.lang3.StringUtils
+import net.liftweb.json._
 
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
   //this one import is for implicit convert, don't delete
@@ -79,6 +78,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   val authInfoExample = AuthInfo(userId = "userId", username = "username", cbsToken = "cbsToken")
   val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: ..."
 
+  val connectorName = "rest_vMar2019"
 
   /*
     All the following code is created automatclly. 
@@ -166,16 +166,16 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Thu Jun 13 11:07:28 CST 2019
+// ---------- create on Tue Jul 23 18:38:46 CEST 2019
 
 messageDocs += MessageDoc(
-    process = "obp.createCustomer",
+    process = "obp.getBankAccountsBalances",
     messageFormat = messageFormat,
-    description = "Create Customer",
-    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateCustomer.getClass.getSimpleName).request),
-    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateCustomer.getClass.getSimpleName).response),
+    description = "Get Bank Accounts Balances",
+    outboundTopic = None,
+    inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundCreateCustomer(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
+     OutBoundGetBankAccountsBalances(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
       sessionId=Some(sessionIdExample.value),
       consumerId=Some(consumerIdExample.value),
       generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
@@ -201,30 +201,11 @@ messageDocs += MessageDoc(
       userOwners=List( InternalBasicUser(userId=userIdExample.value,
       emailAddress=emailExample.value,
       name=usernameExample.value))))))))),
-      bankId=BankId(bankIdExample.value),
-      legalName=legalNameExample.value,
-      mobileNumber=mobileNumberExample.value,
-      email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
-      url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
-      relationshipStatus=relationshipStatusExample.value,
-      dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
-      highestEducationAttained=highestEducationAttainedExample.value,
-      employmentStatus=employmentStatusExample.value,
-      kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(outBoundCreateCustomerLastOkDateExample.value).getOrElse(sys.error("outBoundCreateCustomerLastOkDateExample.value is not validate date format.")),
-      creditRating=Some( CreditRating(rating=ratingExample.value,
-      source=sourceExample.value)),
-      creditLimit=Some( AmountOfMoney(currency=currencyExample.value,
-      amount=creditLimitAmountExample.value)),
-      title=titleExample.value,
-      branchId=branchIdExample.value,
-      nameSuffix=nameSuffixExample.value)
+      bankIdAccountIds=List( BankIdAccountId(bankId=BankId(bankIdExample.value),
+      accountId=AccountId(accountIdExample.value))))
     ),
     exampleInboundMessage = (
-     InBoundCreateCustomer(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
+     InBoundGetBankAccountsBalances(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
       sessionId=Some(sessionIdExample.value),
       generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
       value=valueExample.value)))),
@@ -233,50 +214,45 @@ messageDocs += MessageDoc(
       status=inboundStatusMessageStatusExample.value,
       errorCode=inboundStatusMessageErrorCodeExample.value,
       text=inboundStatusMessageTextExample.value))),
-      data= CustomerCommons(customerId=customerIdExample.value,
+      data= AccountsBalances(accounts=List( AccountBalance(id=accountIdExample.value,
+      label=labelExample.value,
       bankId=bankIdExample.value,
-      number=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      mobileNumber=mobileNumberExample.value,
-      email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
-      url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
-      relationshipStatus=relationshipStatusExample.value,
-      dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
-      highestEducationAttained=highestEducationAttainedExample.value,
-      employmentStatus=employmentStatusExample.value,
-      creditRating= CreditRating(rating=ratingExample.value,
-      source=sourceExample.value),
-      creditLimit= CreditLimit(currency=currencyExample.value,
-      amount=creditLimitAmountExample.value),
-      kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
-      title=customerTitleExample.value,
-      branchId=branchIdExample.value,
-      nameSuffix=nameSuffixExample.value))
+      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)),
+      balance= AmountOfMoney(currency=balanceCurrencyExample.value,
+      amount=balanceAmountExample.value))),
+      overallBalance= AmountOfMoney(currency=currencyExample.value,
+      amount="string"),
+      overallBalanceDate=new Date()))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
-  // url example: /createCustomer
-  override def createCustomer(bankId: BankId, legalName: String, mobileNumber: String, email: String, faceImage: CustomerFaceImageTrait, dateOfBirth: Date, relationshipStatus: String, dependents: Int, dobOfDependents: List[Date], highestEducationAttained: String, employmentStatus: String, kycStatus: Boolean, lastOkDate: Date, creditRating: Option[CreditRatingTrait], creditLimit: Option[AmountOfMoneyTrait], title: String, branchId: String, nameSuffix: String, callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
-    import net.liftweb.json.Serialization.write
-
-    val url = getUrl("createCustomer")
-    val outboundAdapterCallContext = Box(callContext.map(_.toOutboundAdapterCallContext)).openOrThrowException(NoCallContext)
-    val jsonStr = write(OutBoundCreateCustomer(outboundAdapterCallContext , bankId, legalName, mobileNumber, email, faceImage, dateOfBirth, relationshipStatus, dependents, dobOfDependents, highestEducationAttained, employmentStatus, kycStatus, lastOkDate, creditRating, creditLimit, title, branchId, nameSuffix))
-    sendPostRequest[InBoundCreateCustomer](url, callContext, jsonStr)
-      .map{ boxedResult =>
-      boxedResult match {
-        case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
-        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
-      }
+  // url example: /getBankAccountsBalances/bankIdAccountIds/{bankIdAccountIds}
+  override def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]): OBPReturnType[Box[AccountsBalances]] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
+        val url = getUrl("getBankAccountsBalances" , ("bankIdAccountIds", bankIdAccountIds))
+        sendGetRequest[InBoundGetBankAccountsBalances](url, callContext)
+          .map { boxedResult =>
+                                 boxedResult match {
+                        case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
+                        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
+                    }
     
+          }
+      }
     }
-  }
+  }("getBankAccountsBalances")
     
 //---------------- dynamic end ---------------------please don't modify this line
+    
     
     
     
@@ -296,8 +272,12 @@ messageDocs += MessageDoc(
   private[this] def sendDelteRequest[T: TypeTag : Manifest](url: String, callContext: Option[CallContext]) =
     sendRequest[T](url, callContext, HttpMethods.DELETE)
 
-  //TODO every connector should implement this method to build authorization headers with callContext
-  private[this] implicit def buildHeaders(callContext: Option[CallContext]): List[HttpHeader] = Nil
+  //In RestConnector, we use the headers to propagate the parameters to Adapter. The parameters come from the CallContext.outboundAdapterAuthInfo.userAuthContext
+  //We can set them from UserOauthContext or the http request headers.
+  private[this] implicit def buildHeaders(callContext: Option[CallContext]): List[HttpHeader] = {
+    val generalContext = callContext.flatMap(_.toOutboundAdapterCallContext.generalContext).getOrElse(List.empty[BasicGeneralContext])
+    generalContext.map(generalContext => RawHeader(generalContext.key,generalContext.value))
+  }
 
   private[this] def buildAdapterCallContext(callContext: Option[CallContext]): OutboundAdapterCallContext = callContext.map(_.toOutboundAdapterCallContext).orNull
 
@@ -314,6 +294,17 @@ messageDocs += MessageDoc(
   private[this] val baseUrl = "http://localhost:8080/restConnector"
 
   private[this] def getUrl(methodName: String, variables: (String, Any)*): String = {
+    // rest connector can have url value in the parameters, key is url
+     val urlInMethodRouting = NewStyle.function.getMethodRoutings(Some(methodName))
+       .flatMap(_.parameters).flatten
+       .find(_.key == "url")
+       .map(_.value)
+
+
+    if(urlInMethodRouting.isDefined) {
+      return urlInMethodRouting.get
+    }
+
     // convert any type value to string, to fill in the url
     def urlValueConverter(obj: Any):String = {
       val value = obj match {
@@ -341,6 +332,7 @@ messageDocs += MessageDoc(
 
   private[this] def sendRequest[T: TypeTag : Manifest](url: String, callContext: Option[CallContext], method: HttpMethod, entityJsonString: String = ""): Future[Box[T]] = {
     val request = prepareHttpRequest(url, method, HttpProtocol("HTTP/1.1"), entityJsonString).withHeaders(callContext)
+    logger.debug(s"RestConnector_vMar2019 request is : $request")
     val responseFuture = makeHttpRequest(request)
     val jsonType = typeOf[T]
     responseFuture.map {

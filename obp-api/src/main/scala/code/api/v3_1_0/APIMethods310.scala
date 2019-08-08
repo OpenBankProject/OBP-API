@@ -1,11 +1,9 @@
 package code.api.v3_1_0
 
 import java.text.SimpleDateFormat
-import java.util.{Date, UUID}
+import java.util.UUID
 import java.util.regex.Pattern
 
-import code.accountholders.AccountHolders
-import code.api.{APIFailureNewStyle, ChargePolicy}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, SwaggerDefinitionsJSON, SwaggerJSONFactory}
 import code.api.util.APIUtil._
@@ -16,16 +14,13 @@ import code.api.util.ExampleValue._
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
-import code.api.v1_3_0.{JSONFactory1_3_0, PostPhysicalCardJSON}
-import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0._
 import code.api.v2_2_0.{CreateAccountJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_0_0.JSONFactory300.{createAdapterInfoJson, createCoreBankAccountJSON}
+import code.api.v3_0_0.JSONFactory300.{createAdapterInfoJson}
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
-import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.consent.{ConsentStatus, Consents}
 import code.consumer.Consumers
@@ -33,31 +28,29 @@ import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
 import code.entitlement.Entitlement
 import code.kafka.KafkaHelper
 import code.loginattempts.LoginAttempt
-import code.methodrouting.MethodRoutingCommons
+import code.methodrouting.{MethodRoutingCommons, MethodRoutingParam}
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{COUNTERPARTY, FREE_FORM, SANDBOX_TAN, SEPA}
 import com.openbankproject.commons.model.Product
 import code.users.Users
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
-import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons, WebUiPropsProvider}
+import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.model.{CreditLimit, _}
-import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.Serialization.write
+
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
-import net.liftweb.util.{Helpers, Mailer, Props}
-import org.apache.commons.lang3.Validate
+import net.liftweb.util.{Helpers, Mailer}
+import org.apache.commons.lang3.{StringUtils, Validate}
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -3930,7 +3923,7 @@ trait APIMethods310 {
       emptyObjectJson,
       ListResult(
         "method_routings",
-        (List(MethodRoutingCommons("getBanks", "rest_vMar2019", false, Some("some_bank_.*"), Some("method-routing-id"))))
+        (List(MethodRoutingCommons("getBanks", "rest_vMar2019", false, Some("some_bank_.*"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))), Some("method-routing-id"))))
       )
     ,
       List(
@@ -3976,12 +3969,17 @@ trait APIMethods310 {
         |* connector_name is required String value
         |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
+        |* parameters is optional array of key value pairs. You can set some paremeters for this method
         |
-        |note: if bank_id_pattern is regex, special characters need to do escape, for example:
-        |bank_id_pattern = "some\\-id_pattern_\\d+"
+        |note:
+        |
+        |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
         |""",
-      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*")),
-      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), Some("this-method-routing-Id")),
+      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx")))),
+      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), 
+        Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))), 
+        Some("this-method-routing-Id")
+      ),
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -4036,13 +4034,13 @@ trait APIMethods310 {
         |* connector_name is required String value
         |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
+        |* parameters is optional array of key value pairs. You can set some paremeters for this method
+        |note:
         |
-        |note: if bank_id_pattern is regex, special characters need to do escape, for example:
-        |bank_id_pattern = "some\\-id_pattern_\\d+"
-        |
+        |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
         |""",
-      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), None),
-      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), None),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx")))),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"),Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))), Some("this-method-routing-Id")),
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -4061,21 +4059,21 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", u.userId, canUpdateMethodRouting, callContext)
 
             failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[MethodRoutingCommons]} "
-            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+            putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[MethodRoutingCommons].copy(methodRoutingId = Some(methodRoutingId))
             }
 
             (_, _) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)
 
-            invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
+            invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${putData.bankIdPattern.orNull} "
             _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
               // if do fuzzy match and bankIdPattern not empty, do check the regex is valid
-              if(!postedData.isBankIdExactMatch && postedData.bankIdPattern.isDefined) {
-                Pattern.compile(postedData.bankIdPattern.get)
+              if(!putData.isBankIdExactMatch && putData.bankIdPattern.isDefined) {
+                Pattern.compile(putData.bankIdPattern.get)
               }
             }
 
-            Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(postedData)
+            Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(putData)
           } yield {
             val commonsData: MethodRoutingCommons = methodRouting
             (commonsData, HttpCode.`200`(callContext))
@@ -5446,6 +5444,35 @@ trait APIMethods310 {
             deleted: Box[Boolean] <- Future {MappedWebUiPropsProvider.delete(webUiPropsId)}
           } yield {
             (deleted, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getBankAccountsBalances,
+      implementedInApiVersion,
+      nameOf(getBankAccountsBalances),
+      "GET",
+      "/banks/BANK_ID/balances",
+      "Get Accounts Balances",
+      """Get the Balances for the Accounts of the current User at one bank.""",
+      emptyObjectJson,
+      accountBalancesV310Json,
+      List(UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
+    )
+
+    lazy val getBankAccountsBalances : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "balances" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
+            (accountsBalances, callContext)<- NewStyle.function.getBankAccountsBalances(availablePrivateAccounts, callContext)
+          } yield{
+            (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
           }
       }
     }

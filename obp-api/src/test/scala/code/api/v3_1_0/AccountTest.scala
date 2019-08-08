@@ -20,6 +20,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.updateAccount))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.createAccount))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getBankAccountsBalances))
 
   lazy val testBankId = testBankId1
   lazy val putCreateAccountJSONV310 = SwaggerDefinitionsJSON.createAccountJSONV220.copy(user_id = resourceUser1.userId)
@@ -117,6 +118,21 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
 
     }
     
+  }
+
+  feature(s"test ${ApiEndpoint3.name}") {
+    scenario("We will test ${ApiEndpoint3.name}", ApiEndpoint3, VersionOfApi) {
+      Given("The test bank and test accounts")
+      val requestGet = (v3_1_0_Request / "banks" / testBankId.value / "balances").GET <@ (user1)
+      
+      val responseGet = makeGetRequest(requestGet)
+      responseGet.code should equal(200)
+      responseGet.body.extract[AccountsBalancesV310Json].accounts.size > 0 should be (true)
+      responseGet.body.extract[AccountsBalancesV310Json].overall_balance.currency.nonEmpty should be (true) 
+      responseGet.body.extract[AccountsBalancesV310Json].overall_balance.amount.nonEmpty should be (true)
+      responseGet.body.extract[AccountsBalancesV310Json].overall_balance_date.getTime >0 should be (true) 
+
+    }
   }
 
 } 

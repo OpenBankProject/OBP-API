@@ -34,7 +34,7 @@ import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
 import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
-import code.api.v1_2_1.{RateLimiting, UserJSONV121, ViewJSONV121}
+import code.api.v1_2_1.{BankJSON, RateLimiting, UserJSONV121, ViewJSONV121}
 import code.api.v1_3_0.JSONFactory1_3_0._
 import code.api.v1_3_0.{PinResetJSON, ReplacementJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140, TransactionRequestAccountJsonV140}
@@ -42,7 +42,7 @@ import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
 import code.api.v2_1_0.JSONFactory210.createLicenseJson
 import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
-import code.api.v3_0_0.AccountRuleJsonV300
+import code.api.v3_0_0.{AccountRuleJsonV300, ViewBasicV300}
 import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
 import code.consent.MappedConsent
 import code.context.UserAuthContextUpdate
@@ -701,6 +701,24 @@ case class PostHistoricalTransactionResponseJson(
   charge_policy: String
 )
 
+case class AccountsBalancesV310Json(
+  accounts:List[AccountBalanceV310],
+  overall_balance: AmountOfMoney,
+  overall_balance_date: Date
+)
+case class AccountBalanceV310(
+  id: String,
+  label: String,
+  bank_id: String,
+  account_routings: List[AccountRouting],
+  balance: AmountOfMoney
+)
+
+case class AccountBalancesJson(
+  accounts: List[AccountBalanceV310],
+  overall_balance: AmountOfMoney,
+  overall_balance_date: Date
+)
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -1306,6 +1324,20 @@ object JSONFactory310{
       completed: Date,
       transaction_request_type = transactionRequestType,
       chargePolicy: String
+    )
+  }
+
+  def createBalancesJson(accountsBalances: AccountsBalances) = {
+    AccountsBalancesV310Json(
+      accounts = accountsBalances.accounts.map(account => AccountBalanceV310(
+        account.id,
+        account.label,
+        account.bankId,
+        account.accountRoutings, 
+        account.balance)
+      ),
+      overall_balance = accountsBalances.overallBalance,
+      overall_balance_date = accountsBalances.overallBalanceDate
     )
   }
 
