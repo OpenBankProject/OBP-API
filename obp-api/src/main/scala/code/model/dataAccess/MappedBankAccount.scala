@@ -31,7 +31,8 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
 
   object accountLabel extends MappedString(this, 255)
 
-  //the last time this account was updated via hbci
+  //the last time this account was updated via hbci [when transaction data was refreshed from the bank.]
+  //It means last transaction refresh date only used for HBCI now.
   object accountLastUpdate extends MappedDateTime(this)
   
   object mAccountRoutingScheme extends MappedString(this, 32)

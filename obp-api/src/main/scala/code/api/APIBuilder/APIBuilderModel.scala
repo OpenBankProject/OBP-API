@@ -257,15 +257,15 @@ object APIBuilderModel
   
   def overwriteApiCode(apiSource: Source, jsonFactorySource:Source =jsonFactorySource) = {
     //APIMethods_APIBuilder.scala
-    overwriteCurrentFile(apiSource,"src/main/scala/code/api/builder/APIMethods_APIBuilder.scala")
+    overwriteCurrentFile(apiSource,"obp-api/src/main/scala/code/api/builder/APIMethods_APIBuilder.scala")
     
     //JsonFactory_APIBuilder.scala
-    overwriteCurrentFile(jsonFactorySource, "src/main/scala/code/api/builder/JsonFactory_APIBuilder.scala")
+    overwriteCurrentFile(jsonFactorySource, "obp-api/src/main/scala/code/api/builder/JsonFactory_APIBuilder.scala")
     
     println("Congratulations! You make the new APIs. Please restart OBP-API server!")
   }
   
-  val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("src/main/scala/code/api/APIBuilder/APIModelSource.json")
+  val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("obp-api/src/main/scala/code/api/APIBuilder/APIModelSource.json")
   
   //"/templates"
   val apiUrl= getApiUrl(jsonJValueFromFile)

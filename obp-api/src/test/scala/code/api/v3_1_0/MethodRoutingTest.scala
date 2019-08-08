@@ -32,10 +32,12 @@ import code.api.util.ApiVersion
 import code.api.util.ErrorMessages._
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
-import code.methodrouting.MethodRoutingCommons
+import code.methodrouting.{MethodRoutingCommons, MethodRoutingParam}
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
+
+import scala.collection.immutable.List
 
 class MethodRoutingTest extends V310ServerSetup {
 
@@ -52,7 +54,7 @@ class MethodRoutingTest extends V310ServerSetup {
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getMethodRoutings))
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.deleteMethodRouting))
 
-  val rightEntity = MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"))
+  val rightEntity = MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))))
   val wrongEntity = MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_([")) // wrong regex
 
 

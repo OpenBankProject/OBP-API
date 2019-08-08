@@ -11,6 +11,7 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
 import code.api.util._
+import code.api.v3_1_0.AccountBalanceV310
 import code.atms.Atms.Atm
 import code.atms.MappedAtm
 import code.bankconnectors.vJune2017.InboundAccountJune2017
@@ -437,18 +438,60 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       ).map(bankAccount => (bankAccount, callContext))
   }
 
-  override def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[BankAccount]]] = {
+  override def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) = {
     Future {
-      Full(
+      (Full(
         bankIdAccountIds.map(
           bankIdAccountId =>
             getBankAccount(
               bankIdAccountId.bankId,
               bankIdAccountId.accountId
             ).openOrThrowException(s"${ErrorMessages.BankAccountNotFound} current BANK_ID(${bankIdAccountId.bankId}) and ACCOUNT_ID(${bankIdAccountId.accountId})"))
-      )
+      ),callContext)
     }
   }
+  
+  override def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) = 
+    Future {
+      val accountsBalances = for{
+        bankIdAccountId <- bankIdAccountIds
+        bankAccount <- getBankAccount(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"${ErrorMessages.BankAccountNotFound} current BANK_ID(${bankIdAccountId.bankId}) and ACCOUNT_ID(${bankIdAccountId.accountId})"
+        accountBalance = AccountBalance(
+          id = bankAccount.accountId.value,
+          label = bankAccount.label,
+          bankId = bankAccount.bankId.value,
+          accountRoutings = bankAccount.accountRoutings.map(accountRounting => AccountRouting(accountRounting.scheme, accountRounting.address)),
+          balance = AmountOfMoney(bankAccount.currency, bankAccount.balance.toString())
+        )
+      } yield {
+        (accountBalance)
+      }
+      
+      val allCurrencies = accountsBalances.map(_.balance.currency)
+      val mostCommonCurrency = if (allCurrencies.isEmpty) "EUR" else allCurrencies.groupBy(identity).mapValues(_.size).maxBy(_._2)._1
+      
+      val allCommonCurrencyBalances = for {
+        accountBalance <- accountsBalances
+        requestAccountCurrency = accountBalance.balance.currency
+        requestAccountAmount = BigDecimal(accountBalance.balance.amount)
+        //From change from requestAccount Currency to mostCommon Currency
+        rate <- fx.exchangeRate(requestAccountCurrency, mostCommonCurrency)
+        requestChangedCurrencyAmount = fx.convert(requestAccountAmount, Some(rate))
+      }yield {
+        requestChangedCurrencyAmount 
+      }
+
+      val overallBalance = allCommonCurrencyBalances.sum
+
+      (Full(AccountsBalances(
+        accounts = accountsBalances,
+        overallBalance = AmountOfMoney(
+          mostCommonCurrency,
+          overallBalance.toString
+        ),
+        overallBalanceDate = now
+      )), callContext)
+    }
   
   override def checkBankAccountExistsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
     getBankAccountLegacy(bankId: BankId, accountId: AccountId, callContext)

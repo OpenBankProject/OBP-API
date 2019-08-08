@@ -2506,6 +2506,18 @@ Returns a string showed to the developer
   def createBasicUserAuthContextJson(userAuthContexts : List[UserAuthContext]) : List[BasicUserAuthContext] = {
     userAuthContexts.map(createBasicUserAuthContext)
   }
+
+  def createBasicUserAuthContextJsonFromCallContext(callContext : CallContext) : List[BasicGeneralContext] = {
+    val requestHeaders: List[HTTPParam] = callContext.requestHeaders
+    
+    //Only these Pass-Through headers can be propagated to Adapter side. 
+    val passThroughHeaders: List[HTTPParam] = requestHeaders
+      .filter(requestHeader => requestHeader.name.startsWith("Pass-Through"))
+
+    passThroughHeaders.map(header => BasicGeneralContext(
+      key = header.name,
+      value = if (header.values.isEmpty) "" else header.values.head))
+  }
   
   def createAuthInfoCustomerJson(customer : Customer) : InternalBasicCustomer = {
     InternalBasicCustomer(
