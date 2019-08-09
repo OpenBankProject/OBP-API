@@ -636,3 +636,9 @@ database_messages_scheduler_interval=3600
 # In case isn't defined default value is "false"
 # requirePsd2Certificates=false
 # -----------------------------------------------
+
+# -- OBP-API mode -------------------------------
+# In case isn't defined default value is "apis,portal"
+# Possible cases: portal, api
+# server_mode=apis,portal
+# -----------------------------------------------

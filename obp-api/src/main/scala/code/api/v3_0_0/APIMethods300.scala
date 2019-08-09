@@ -30,7 +30,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.grum.geocalc.{Coordinate, EarthCalc, Point}
 import com.openbankproject.commons.model._
 import net.liftweb.common._
-import net.liftweb.http.{Req, S}
+import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, compactRender}
@@ -2366,5 +2366,17 @@ trait APIMethods300 {
 
 
 
+  }
+}
+object APIMethods300 extends RestHelper with APIMethods300 {
+  lazy val newStyleEndpoints: List[(String, String)] = Implementations3_0_0.resourceDocs.map {
+    rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
+  }.toList.filterNot{
+    rd => 
+      List(
+        nameOf(Implementations3_0_0.createBranch), 
+        nameOf(Implementations3_0_0.updateBranch), 
+        nameOf(Implementations3_0_0.createAtm)
+      ).contains(rd._1)
   }
 }

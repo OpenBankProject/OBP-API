@@ -2,7 +2,7 @@ package code.transactionChallenge
 
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.By
-import net.liftweb.util.BCrypt
+import org.mindrot.jbcrypt.BCrypt
 import net.liftweb.util.Helpers.tryo
 
 object MappedExpectedChallengeAnswerProvider extends ExpectedChallengeAnswerProvider {

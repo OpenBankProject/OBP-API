@@ -3,7 +3,7 @@ package code.transactionrequests
 
 import code.api.util.APIUtil
 import code.remotedata.RemotedataTransactionRequests
-import com.openbankproject.commons.model.{TransactionRequest,TransactionRequestChallenge, TransactionRequestCharge, _}
+import com.openbankproject.commons.model.{TransactionRequest, TransactionRequestChallenge, TransactionRequestCharge, _}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
@@ -22,12 +22,12 @@ object TransactionRequests extends SimpleInjector {
   
   object TransactionChallengeTypes extends Enumeration {
     type TransactionChallengeTypes = Value
-    val SANDBOX_TAN = Value
+    val OTP_VIA_API, OTP_VIA_WEB_FORM = Value
   }
   
   object TransactionRequestTypes extends Enumeration {
     type TransactionRequestTypes = Value
-    val SANDBOX_TAN, COUNTERPARTY, SEPA, FREE_FORM, TRANSFER_TO_PHONE, TRANSFER_TO_ATM, TRANSFER_TO_ACCOUNT, TRANSFER_TO_REFERENCE_ACCOUNT,
+    val SANDBOX_TAN, ACCOUNT, ACCOUNT_OTP, COUNTERPARTY, SEPA, FREE_FORM, TRANSFER_TO_PHONE, TRANSFER_TO_ATM, TRANSFER_TO_ACCOUNT, TRANSFER_TO_REFERENCE_ACCOUNT,
     //The following are BerlinGroup Standard 
     sepa_credit_transfers, instant_sepa_credit_transfers, target_2_payments, cross_border_credit_transfers= Value
   }

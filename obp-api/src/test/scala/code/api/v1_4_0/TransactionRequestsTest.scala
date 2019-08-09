@@ -198,7 +198,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
         //amount over 100 €, so should trigger challenge request
         val amt = BigDecimal("1250.00")
         val bodyValue = AmountOfMoneyJsonV121("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestBodyJsonV140(toAccountJson, bodyValue, "Test Transaction Request description", TransactionChallengeTypes.SANDBOX_TAN.toString)
+        val transactionRequestBody = TransactionRequestBodyJsonV140(toAccountJson, bodyValue, "Test Transaction Request description", TransactionChallengeTypes.OTP_VIA_API.toString)
 
         //call createTransactionRequest API method
         var request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /

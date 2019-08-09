@@ -151,6 +151,11 @@ class WebUI extends MdcLoggable{
   def sofiLink: CssSel = {
     ".sofi-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_sofi_url", ""))
   }
+  
+  // Terms&Conditions
+  def termsAndConditions: CssSel = {
+    ".termsAndConditions-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_agree_terms_url", ""))
+  }
 
   def sandboxIntroductionLink: CssSel = {
     "#sandbox-introduction-link [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_documentation_url",s"${getServerUrl}/introduction"))
@@ -193,6 +198,12 @@ class WebUI extends MdcLoggable{
   // Text about data in FAQ
   def faqDataText: CssSel = {
     ".faq-data-text *" #> scala.xml.Unparsed(getWebUiPropsValue("webui_faq_data_text", "This depends on the end point and/or OBP instance you are using. A combination of synthetic, anonymised and real data may be available. Please ask support for more information."))
+  }
+  
+  def currentYearText: CssSel = {
+    import java.util.Calendar
+    val year = Calendar.getInstance.get(Calendar.YEAR).toString
+    "#copyright-year *" #> scala.xml.Unparsed(year)
   }
 
   // Link to FAQ

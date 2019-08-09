@@ -18,7 +18,7 @@ import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0._
 import code.api.v2_2_0.{CreateAccountJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_0_0.JSONFactory300.{createAdapterInfoJson}
+import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
 import code.bankconnectors.rest.RestConnector_vMar2019
@@ -5480,5 +5480,8 @@ trait APIMethods310 {
   }
 }
 
-object APIMethods310 {
+object APIMethods310 extends RestHelper with APIMethods310 {
+  lazy val newStyleEndpoints: List[(String, String)] = Implementations3_1_0.resourceDocs.map {
+    rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
+  }.toList
 }

@@ -518,7 +518,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     //set initial status
     //for sandbox / testing: depending on amount, we ask for challenge or not
     val status =
-    if (transactionRequestType.value == TransactionChallengeTypes.SANDBOX_TAN.toString && BigDecimal(body.value.amount) < 100) {
+    if (transactionRequestType.value == TransactionRequestTypes.SANDBOX_TAN.toString && BigDecimal(body.value.amount) < 100) {
       TransactionRequestStatus.COMPLETED
     } else {
       TransactionRequestStatus.INITIATED
@@ -566,7 +566,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = TransactionChallengeTypes.SANDBOX_TAN.toString)
+      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = TransactionChallengeTypes.OTP_VIA_API.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -579,7 +579,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     //set initial status
     //for sandbox / testing: depending on amount, we ask for challenge or not
     val status =
-    if (transactionRequestType.value == TransactionChallengeTypes.SANDBOX_TAN.toString && BigDecimal(body.value.amount) < 1000) {
+    if (transactionRequestType.value == TransactionRequestTypes.SANDBOX_TAN.toString && BigDecimal(body.value.amount) < 1000) {
       TransactionRequestStatus.COMPLETED
     } else {
       TransactionRequestStatus.INITIATED
@@ -634,7 +634,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = TransactionChallengeTypes.SANDBOX_TAN.toString)
+      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = TransactionChallengeTypes.OTP_VIA_API.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -688,7 +688,6 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     */
 
 
-  // TODO Add challengeType as a parameter to this function
   def createTransactionRequestv210(initiator: User,
                                    viewId: ViewId,
                                    fromAccount: BankAccount,
@@ -697,6 +696,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                                    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                    detailsPlain: String,
                                    chargePolicy: String,
+                                   challengeType: Option[String],
                                    callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
 
     for{
@@ -763,9 +763,8 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
             _ <- Future {ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed)} map {
               unboxFullOrFail(_, callContext, s"$UnknownError ")
             }
-
-            // TODO: challenge_type should not be hard coded here. Rather it should be sent as a parameter to this function createTransactionRequestv300
-            newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = TransactionChallengeTypes.SANDBOX_TAN.toString)
+            
+            newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
             _ <- Future (saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
             transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
           } yield {
@@ -923,7 +922,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     tr.map(_._1) match {
       case Full(tr: TransactionRequest) =>
         if (tr.challenge.allowed_attempts > 0) {
-          if (tr.challenge.challenge_type == TransactionChallengeTypes.SANDBOX_TAN.toString) {
+          if (tr.challenge.challenge_type == TransactionChallengeTypes.OTP_VIA_API.toString) {
             //check if answer supplied is correct (i.e. for now, TAN -> some number and not empty)
             for {
               nonEmpty <- booleanToBox(answer.nonEmpty) ?~ "Need a non-empty answer"
@@ -987,7 +986,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
       transactionRequestType = transactionRequest.`type`
       transactionRequestId=transactionRequest.id
       (transactionId, callContext) <- TransactionRequestTypes.withName(transactionRequestType) match {
-        case SANDBOX_TAN =>
+        case SANDBOX_TAN | ACCOUNT | ACCOUNT_OTP =>
           for{
             toSandboxTan <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySandBoxTanJSON ", 400, callContext){
               body.to_sandbox_tan.get
