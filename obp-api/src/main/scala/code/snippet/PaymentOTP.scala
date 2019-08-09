@@ -70,45 +70,45 @@ class PaymentOTP extends MdcLoggable with RestHelper with APIMethods400 {
     def PaymentOTP = {
       val result = S.param("flow") match {
         case Full("payment") => processPaymentOTP
-        case Full(notSupportFlow) => Left((s"flow $notSupportFlow is not correct.", 500))
+        case Full(unSupportedFlow) => Left((s"flow $unSupportedFlow is not correct.", 500))
         case _ => Left(("request parameter [flow] is mandatory, please add this parameter in url.", 500))
       }
 
       result.map(json.parse(_).extract[StartPaymentAuthorisationJson]) match {
         case Right(v) if (v.scaStatus == "finalised") => {
           "#form_otp" #> "" &
-            "#otp-validate-success p *" #> "OTP validate success." &
-            "#otp-validate-errors" #> ""
+            "#otp-validation-success p *" #> "OTP validation success." &
+            "#otp-validation-errors" #> ""
         }
         case Right(v) => {
           form &
             "#otp-validate-success" #> "" &
-            "#otp-validate-errors .errorContent *" #> s"Otp validate fail! ${v.psuMessage}"
+            "#otp-validate-errors .errorContent *" #> s"Otp validation fail! ${v.psuMessage}"
         }
         case Left((msg, _)) => {
           form &
-            "#otp-validate-success" #> "" &
-            "#otp-validate-errors .errorContent *" #> s"Otp validate fail! $msg"
+            "#otp-validation-success" #> "" &
+            "#otp-validation-errors .errorContent *" #> s"Otp validation fail! $msg"
         }
       }
     }
     def transactionRequestOTP = {
       val result = S.param("flow") match {
         case Full("transaction_request") => processTransactionRequestOTP
-        case Full(notSupportFlow) => Left((s"flow $notSupportFlow is not correct.", 500))
+        case Full(unSupportedFlow) => Left((s"flow $unSupportedFlow is not correct.", 500))
         case _ => Left(("request parameter [flow] is mandatory, please add this parameter in url.", 500))
       }
 
       result.map(json.parse(_).extract[TransactionRequestWithChargeJSON210]) match {
         case Right(v) => {
           "#form_otp" #> "" &
-            "#otp-validate-success p *" #> "OTP validate success." &
-            "#otp-validate-errors" #> ""
+            "#otp-validation-success p *" #> "OTP validation success." &
+            "#otp-validation-errors" #> ""
         }
         case Left((msg, _)) => {
           form &
-            "#otp-validate-success" #> "" &
-            "#otp-validate-errors .errorContent *" #> s"Otp validate fail! $msg"
+            "#otp-validation-success" #> "" &
+            "#otp-validation-errors .errorContent *" #> s"Otp validation fail! $msg"
         }
       }
     }
