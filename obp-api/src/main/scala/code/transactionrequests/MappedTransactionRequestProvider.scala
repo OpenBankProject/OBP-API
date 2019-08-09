@@ -229,7 +229,10 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
       amount = mBody_Value_Amount.get
     )
     
-    val t_to_sandbox_tan = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.SANDBOX_TAN)
+    val t_to_sandbox_tan = if (
+      TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.SANDBOX_TAN || 
+      TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.ACCOUNT_OTP || 
+      TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.ACCOUNT)
       Some(TransactionRequestAccount (bank_id = mTo_BankId.get, account_id = mTo_AccountId.get))
     else
       None

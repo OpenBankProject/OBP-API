@@ -468,6 +468,7 @@ trait APIMethods210 {
                                                                                                      transactionRequestBodySandboxTan,
                                                                                                      transDetailsSerialized,
                                                                                                      sharedChargePolicy.toString,
+                                                                                                     None,
                                                                                                      callContext) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -497,6 +498,7 @@ trait APIMethods210 {
                                                                                                      transactionRequestBodyCounterparty,
                                                                                                      transDetailsSerialized,
                                                                                                      chargePolicy,
+                                                                                                     None,
                                                                                                      callContext)
                 } yield (createdTransactionRequest, callContext)
 
@@ -526,6 +528,7 @@ trait APIMethods210 {
                                                                                                      transDetailsSEPAJson,
                                                                                                      transDetailsSerialized,
                                                                                                      chargePolicy,
+                                                                                                     None,
                                                                                                      callContext)
                 } yield (createdTransactionRequest, callContext)
               }
@@ -545,6 +548,7 @@ trait APIMethods210 {
                                                                                                      transactionRequestBodyFreeForm,
                                                                                                      transDetailsSerialized,
                                                                                                      sharedChargePolicy.toString,
+                                                                                                     None,
                                                                                                      callContext)
                 } yield
                   (createdTransactionRequest, callContext)
@@ -629,7 +633,7 @@ trait APIMethods210 {
               
               // Check the input transactionRequestType is the same as when the user created the TransactionRequest
               existingTransactionRequestType = existingTransactionRequest.`type`
-              _ <- Helper.booleanToFuture(s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType', but current value (${existingTransactionRequest.`type`}) ") {
+              _ <- Helper.booleanToFuture(s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType', but current value (${transactionRequestType.value}) ") {
                 existingTransactionRequestType.equals(transactionRequestType.value)
               }
               
@@ -645,7 +649,7 @@ trait APIMethods210 {
 
               //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
               _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ") {
-                existingTransactionRequest.challenge.challenge_type == TransactionChallengeTypes.SANDBOX_TAN.toString
+                existingTransactionRequest.challenge.challenge_type == TransactionChallengeTypes.OTP_VIA_API.toString
               }
             
               challengeAnswerOBP <- NewStyle.function.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)

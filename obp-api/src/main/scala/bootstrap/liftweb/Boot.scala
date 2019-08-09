@@ -99,6 +99,7 @@ import code.webuiprops.WebUiProps
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
+import net.liftweb.http.LiftRules.DispatchPF
 import net.liftweb.http._
 import net.liftweb.json.Extraction
 import net.liftweb.mapper._
@@ -253,13 +254,7 @@ class Boot extends MdcLoggable {
     // where to search snippets
     LiftRules.addToPackages("code")
 
-    //OAuth API call
-    LiftRules.statelessDispatch.append(OAuthHandshake)
-
-    // JWT auth endpoints
-    if(APIUtil.getPropsAsBoolValue("allow_direct_login", true)) {
-      LiftRules.statelessDispatch.append(DirectLogin)
-    }
+    
 
 
     /**
@@ -275,10 +270,7 @@ class Boot extends MdcLoggable {
 
 
 
-    //  OpenIdConnect endpoint and validator
-    if(APIUtil.getPropsAsBoolValue("allow_openidconnect", false)) {
-      LiftRules.dispatch.append(OpenIdConnect)
-    }
+    
 
     // Add the various API versions
     ScannedApis.versionMapScannedApis.keys.foreach(enableVersionIfAllowed) // process all scanned apis versions
@@ -293,9 +285,33 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v4_0_0)
     enableVersionIfAllowed(ApiVersion.apiBuilder)
 
-    // TODO Wrap these with enableVersionIfAllowed as well
-    //add management apis
-    LiftRules.statelessDispatch.append(ImporterAPI)
+    
+    def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
+      //  OpenIdConnect endpoint and validator
+      if(APIUtil.getPropsAsBoolValue("allow_openidconnect", false)) {
+        LiftRules.dispatch.append(OpenIdConnect)
+      }
+      
+      //OAuth API call
+      LiftRules.statelessDispatch.append(OAuthHandshake)
+
+      // JWT auth endpoints
+      if (APIUtil.getPropsAsBoolValue("allow_direct_login", true)) {
+        LiftRules.statelessDispatch.append(DirectLogin)
+      }
+      
+      // TODO Wrap these with enableVersionIfAllowed as well
+      //add management apis
+      LiftRules.statelessDispatch.append(ImporterAPI)
+    }
+
+    APIUtil.getPropsValue("server_mode", "apis,portal") match {
+      case mode if mode == "portal" => 
+      case mode if mode == "apis" => enableAPIs
+      case mode if mode.contains("apis") && mode.contains("portal") => enableAPIs
+      case _ => enableAPIs
+    }
+    
 
     //LiftRules.statelessDispatch.append(AccountsAPI)
 
@@ -318,7 +334,7 @@ class Boot extends MdcLoggable {
 
     //add sandbox api calls only if we're running in sandbox mode
     if(APIUtil.getPropsAsBoolValue("allow_sandbox_data_import", false)) {
-      LiftRules.statelessDispatch.append(SandboxApiCalls)
+      enableVersionIfAllowed(ApiVersion.sandbox)
     } else {
       logger.info("Not adding sandbox api calls")
     }
@@ -376,8 +392,13 @@ class Boot extends MdcLoggable {
 
 
     // Build SiteMap
-    val sitemap = List(
-          Menu.i("Home") / "index",
+    val indexPage = APIUtil.getPropsValue("server_mode", "apis,portal") match {
+      case mode if mode == "portal" => List(Menu.i("Home") / "index")
+      case mode if mode == "apis" => List()
+      case mode if mode.contains("apis") && mode.contains("portal") => List(Menu.i("Home") / "index")
+      case _ => List(Menu.i("Home") / "index")
+    }
+    val sitemap = indexPage ::: List(
           Menu.i("Plain") / "plain",
           Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
           	submenus(Consumer.menus : _*),

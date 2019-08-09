@@ -55,7 +55,9 @@ object APIMethods_AccountInformationServiceAISApi extends RestHelper {
       startConsentAuthorisation ::
       updateConsentsPsuData ::
       Nil
-
+    lazy val newStyleEndpoints: List[(String, String)] = resourceDocs.map {
+      rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
+    }.toList
             
      resourceDocs += ResourceDoc(
        createConsent,
