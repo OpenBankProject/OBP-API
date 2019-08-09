@@ -199,6 +199,12 @@ class WebUI extends MdcLoggable{
   def faqDataText: CssSel = {
     ".faq-data-text *" #> scala.xml.Unparsed(getWebUiPropsValue("webui_faq_data_text", "This depends on the end point and/or OBP instance you are using. A combination of synthetic, anonymised and real data may be available. Please ask support for more information."))
   }
+  
+  def currentYearText: CssSel = {
+    import java.util.Calendar
+    val year = Calendar.getInstance.get(Calendar.YEAR).toString
+    "#copyright-year *" #> scala.xml.Unparsed(year)
+  }
 
   // Link to FAQ
   def faqLink: CssSel = {
