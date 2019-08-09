@@ -15,10 +15,6 @@ import net.liftweb.util.Helpers.tryo
 import scala.collection.immutable.List
 
 
-/**
-  * Created by markom on 11/10/16.
-  */
-
 object MappedPhysicalCardProvider extends PhysicalCardProvider {
   override def updatePhysicalCard(
     cardId: String, 

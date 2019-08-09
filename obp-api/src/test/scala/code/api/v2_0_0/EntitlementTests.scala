@@ -8,9 +8,6 @@ import code.api.util.{ApiRole, ErrorMessages}
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 
-/**
-  * Created by markom on 10/14/16.
-  */
 class EntitlementTests extends V200ServerSetup with DefaultUsers {
 
    override def beforeAll() {
