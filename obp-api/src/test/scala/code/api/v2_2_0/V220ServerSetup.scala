@@ -7,9 +7,6 @@ import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData, User1AllP
 
 import scala.util.Random.nextInt
 
-/**
- * Created by markom on 10/14/16.
- */
 trait V220ServerSetup extends ServerSetupWithTestData with User1AllPrivileges with DefaultUsers{
 
   def v1_2_1Request = baseRequest / "obp" / "v1.2.1"

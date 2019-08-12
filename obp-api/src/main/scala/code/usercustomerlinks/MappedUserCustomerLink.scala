@@ -5,9 +5,6 @@ import code.util.{UUIDString, MappedUUID}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 
-/**
- * Created by markom on 5/30/16.
- */
 
 object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
   override def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] = {

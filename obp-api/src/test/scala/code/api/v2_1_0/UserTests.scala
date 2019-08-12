@@ -9,10 +9,6 @@ import code.api.v2_0_0.JSONFactory200.UsersJsonV200
 import code.entitlement.Entitlement
 import code.setup.User1AllPrivileges
 
-
-/**
- * Created by markom on 10/14/16.
- */
 class UserTests extends V210ServerSetup with User1AllPrivileges {
 
   feature("Assuring that endpoint Get all Users works as expected - v2.1.0") 

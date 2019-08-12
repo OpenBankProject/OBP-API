@@ -15,9 +15,6 @@ import org.scalatest.Tag
 
 import scala.concurrent.Future
 
-/**
-  * Created by Marko Milić on 09/04/18.
-  */
 class WarehouseTestAsync extends V300ServerSetupAsync with DefaultUsers {
   /**
     * Test tags
