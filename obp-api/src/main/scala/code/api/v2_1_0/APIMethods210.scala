@@ -414,7 +414,7 @@ trait APIMethods210 {
             }
             
             _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'") {
-              Props.get("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value)
+              APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value)
             }
 
             // Check the input JSON format, here is just check the common parts of all four types
