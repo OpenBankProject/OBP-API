@@ -2678,5 +2678,34 @@ Returns a string showed to the developer
       (customer.legalName, customer.mobileNumber)
     }
   }
+
+  /**
+    * This function finds the phone numbers of an Customer in accordance to next rule:
+    * - User -> User Customer Links -> Customer.phone_number
+    * @param bankId The USER_ID
+    * @return The phone numbers of a Customer
+    */
+  def getPhoneNumbersByUserId(userId: String): List[(String, String)] = {
+    for{
+      userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(userId)
+      customer <- CustomerX.customerProvider.vend.getCustomerByCustomerId(userCustomerLink.customerId)
+    } yield {
+      (customer.legalName, customer.mobileNumber)
+    }
+  }
+  /**
+    * This function finds the emails of an Customer in accordance to next rule:
+    * - User -> User Customer Links -> Customer.email
+    * @param bankId The USER_ID
+    * @return The phone numbers of a Customer
+    */
+  def getEmailsByUserId(userId: String): List[(String, String)] = {
+    for{
+      userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(userId)
+      customer <- CustomerX.customerProvider.vend.getCustomerByCustomerId(userCustomerLink.customerId)
+    } yield {
+      (customer.legalName, customer.email)
+    }
+  }
   
 }

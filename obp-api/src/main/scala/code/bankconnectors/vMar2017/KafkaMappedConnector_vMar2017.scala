@@ -27,6 +27,7 @@ import java.util.Date
 
 import code.api.util.APIUtil.MessageDoc
 import code.api.util.ErrorMessages._
+import code.api.util.StrongCustomerAuthentication.SCA
 import code.api.util._
 import code.api.v2_1_0._
 import code.bankconnectors._
@@ -412,7 +413,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     )
   )
 
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = Future {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, scaMethod: Option[SCA], callContext: Option[CallContext]) = Future {
     // Create argument list
     val req = OutboundChallengeBase(
       messageFormat = messageFormat,

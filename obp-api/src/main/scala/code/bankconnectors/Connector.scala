@@ -8,6 +8,7 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
+import code.api.util.StrongCustomerAuthentication.SCA
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
@@ -208,7 +209,13 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     )
 
   // Initiate creating a challenge for transaction request and returns an id of the challenge
-  def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) : OBPReturnType[Box[String]]= Future{(Failure(setUnimplementedError), callContext)}
+  def createChallenge(bankId: BankId, 
+                      accountId: AccountId, 
+                      userId: String, 
+                      transactionRequestType: TransactionRequestType, 
+                      transactionRequestId: String,
+                      scaMethod: Option[SCA], 
+                      callContext: Option[CallContext]) : OBPReturnType[Box[String]]= Future{(Failure(setUnimplementedError), callContext)}
   // Validates an answer for a challenge and returns if the answer is correct or not
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Full(true), callContext)}
 
@@ -751,17 +758,16 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
         case TransactionRequestStatus.INITIATED =>
           for {
             //if challenge necessary, create a new one
-            (challengeAnswer, callContext) <- createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value, callContext) map { i =>
+            (challengeId, callContext) <- createChallenge(
+              fromAccount.bankId, 
+              fromAccount.accountId, 
+              initiator.userId, 
+              transactionRequestType: TransactionRequestType, 
+              transactionRequest.id.value,
+              None,
+              callContext
+            ) map { i =>
               (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
-            }
-
-            challengeId = generateUUID()
-            salt = BCrypt.gensalt()
-            challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
-
-            //Save the challengeAnswer in OBP side, will check it in `Answer Transaction Request` endpoint.
-            _ <- Future {ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed)} map {
-              unboxFullOrFail(_, callContext, s"$UnknownError ")
             }
             
             newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
