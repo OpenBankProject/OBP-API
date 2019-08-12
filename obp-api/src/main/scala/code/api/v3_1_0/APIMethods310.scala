@@ -1362,7 +1362,7 @@ trait APIMethods310 {
       getCustomerByCustomerNumber,
       implementedInApiVersion,
       nameOf(getCustomerByCustomerNumber),
-      "GET",
+      "POST",
       "/banks/BANK_ID/customers/customer-number",
       "Get Customer by CUSTOMER_NUMBER",
       s"""Gets the Customer specified by CUSTOMER_NUMBER.
@@ -1382,15 +1382,19 @@ trait APIMethods310 {
       List(apiTagCustomer, apiTagKyc ,apiTagNewStyle))
 
     lazy val getCustomerByCustomerNumber : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customers" :: "customer-number" :: customerNumber ::  Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: "customer-number" ::  Nil JsonPost  json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetCustomer, callContext)
-            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(customerNumber, bank.bankId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerNumberJsonV310 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostCustomerNumberJsonV310]
+            }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bank.bankId, callContext)
           } yield {
-            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
           }
       }
     }
