@@ -154,8 +154,8 @@ class CustomerTest extends V310ServerSetup {
   feature("Get Customer by customer number v3.1.0 - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "customer-number").POST
-      val response310 = makePostRequest(request310, write(customerNumberJson))
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "customer-number" / customerNumberJson.customer_number).GET
+      val response310 = makeGetRequest(request310)
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
@@ -166,8 +166,8 @@ class CustomerTest extends V310ServerSetup {
   feature("Get Customer by customer number v3.1.0 - Authorized access") {
     scenario("We will call the endpoint without the proper Role " + canGetCustomer, ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canGetCustomer)
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "customer-number").POST <@(user1)
-      val response310 = makePostRequest(request310, write(customerNumberJson))
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "customer-number" / customerNumberJson.customer_number).GET <@(user1)
+      val response310 = makeGetRequest(request310)
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanGetCustomer)
@@ -176,8 +176,8 @@ class CustomerTest extends V310ServerSetup {
     scenario("We will call the endpoint with the proper Role " + canGetCustomer, ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
       When("We make a request v3.1.0 with the Role " + canGetCustomer + " but with non existing customer number")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "customer-number").POST <@(user1)
-      val response310 = makePostRequest(request310, write(customerNumberJson))
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "customer-number" / customerNumberJson.customer_number).GET <@(user1)
+      val response310 = makeGetRequest(request310)
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + CustomerNotFound)
