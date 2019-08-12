@@ -82,8 +82,8 @@ class PaymentOTP extends MdcLoggable with RestHelper with APIMethods400 {
         }
         case Right(v) => {
           form &
-            "#otp-validate-success" #> "" &
-            "#otp-validate-errors .errorContent *" #> s"Otp validation fail! ${v.psuMessage}"
+            "#otp-validation-success" #> "" &
+            "#otp-validation-errors .errorContent *" #> s"Otp validation fail! ${v.psuMessage}"
         }
         case Left((msg, _)) => {
           form &
@@ -116,8 +116,8 @@ class PaymentOTP extends MdcLoggable with RestHelper with APIMethods400 {
     val page = if(S.post_?) {
       if(StringUtils.isBlank(otpVar.get)) {
         form &
-          "#otp-validate-success" #> "" &
-          "#otp-validate-errors .errorContent *" #> "please input OTP value"
+          "#otp-validation-success" #> "" &
+          "#otp-validation-errors .errorContent *" #> "please input OTP value"
       } else {
         S.param("flow") match {
           case Full("payment") => PaymentOTP
@@ -128,8 +128,8 @@ class PaymentOTP extends MdcLoggable with RestHelper with APIMethods400 {
     }
     else {
       form &
-        "#otp-validate-errors" #> "" &
-        "#otp-validate-success" #> ""
+        "#otp-validation-errors" #> "" &
+        "#otp-validation-success" #> ""
     }
     page(in)
   }

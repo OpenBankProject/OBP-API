@@ -9,9 +9,6 @@ import dispatch.Req
 
 import scala.util.Random.nextInt
 
-/**
-  * Created by Marko Milić
-  */
 trait V400ServerSetup extends ServerSetupWithTestData with User1AllPrivileges with DefaultUsers {
 
   def v4_0_0_Request: Req = baseRequest / "obp" / "v4.0.0"

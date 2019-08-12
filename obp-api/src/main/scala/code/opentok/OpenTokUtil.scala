@@ -4,9 +4,6 @@ import code.api.util.APIUtil
 import com.opentok._
 import com.opentok.exception.OpenTokException
 
-/**
-  * Created by markom on 5/22/16.
-  */
 object OpenTokUtil {
   private var session: Session = null
 

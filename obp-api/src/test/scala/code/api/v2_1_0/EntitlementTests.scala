@@ -9,10 +9,6 @@ import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 
 
-
-/**
- * Created by markom on 10/14/16.
- */
 class EntitlementTests extends V210ServerSetup with DefaultUsers {
 
   feature("Assuring that endpoint getRoles works as expected - v2.1.0") {
