@@ -704,6 +704,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                                    detailsPlain: String,
                                    chargePolicy: String,
                                    challengeType: Option[String],
+                                   scaMethod: Option[SCA],
                                    callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
 
     for{
@@ -764,7 +765,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
               initiator.userId, 
               transactionRequestType: TransactionRequestType, 
               transactionRequest.id.value,
-              None,
+              scaMethod,
               callContext
             ) map { i =>
               (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)

@@ -152,9 +152,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (Full(challengeId), callContext)
     }
     scaMethod match {
-      case StrongCustomerAuthentication.DUMMY => 
+      case Some(StrongCustomerAuthentication.DUMMY) => 
         createHashedPassword("123")
-      case StrongCustomerAuthentication.EMAIL =>
+      case Some(StrongCustomerAuthentication.EMAIL) =>
         val challengeAnswer = Random.nextInt(99999999).toString()
         val hashedPassword = createHashedPassword(challengeAnswer)
         APIUtil.getEmailsByUserId(userId) map {
@@ -163,15 +163,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             Mailer.sendMail(From("challenge@tesobe.com"), Subject("Challenge"), params :_*)
         }
         hashedPassword
-      case StrongCustomerAuthentication.SMS =>
+      case Some(StrongCustomerAuthentication.SMS) =>
         val challengeAnswer = Random.nextInt(99999999).toString()
         val hashedPassword = createHashedPassword(challengeAnswer)
         APIUtil.getEmailsByUserId(userId) map {
           pair => // TODO Implement SMS
         }
         hashedPassword
-        (Failure(NotImplemented), callContext)
-      case _ =>
+        (Failure(NotImplemented + "sending OTP via SMS."), callContext)
+      case None => // All versions which precede v4.0.0 i.e. to keep backward compatibility 
         createHashedPassword("123")
     }
   }

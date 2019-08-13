@@ -7,6 +7,7 @@ import code.api.APIFailureNewStyle
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
+import code.api.util.StrongCustomerAuthentication.SCA
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
@@ -494,6 +495,7 @@ object NewStyle {
       detailsPlain: String,
       chargePolicy: String,
       challengeType: Option[String],
+      scaMethod: Option[SCA],
       callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
     {
       Connector.connector.vend.createTransactionRequestv210(
@@ -506,6 +508,7 @@ object NewStyle {
         detailsPlain: String,
         chargePolicy: String,
         challengeType: Option[String],
+        scaMethod: Option[SCA],
         callContext: Option[CallContext]
       ) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400), i._2)
