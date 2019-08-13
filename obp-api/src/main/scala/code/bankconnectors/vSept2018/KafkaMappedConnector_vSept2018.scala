@@ -33,6 +33,7 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric, _}
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
+import code.api.util.StrongCustomerAuthentication.SCA
 import code.api.util._
 import code.api.v2_1_0.TransactionRequestBodyCommonJSON
 import code.bankconnectors._
@@ -966,7 +967,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     inboundAvroSchema = Some(parse(SchemaFor[InboundCreateChallengeSept2018]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("Payments", 20))
   )
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, scaMethod: Option[SCA], callContext: Option[CallContext]) = {
     val authInfo = getAuthInfo(callContext).openOrThrowException(attemptedToOpenAnEmptyBox)
     val req = OutboundCreateChallengeSept2018(
       authInfo = authInfo, 

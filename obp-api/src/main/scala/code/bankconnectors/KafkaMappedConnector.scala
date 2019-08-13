@@ -26,6 +26,7 @@ Berlin 13359, Germany
 import java.util.Date
 
 import code.api.util.ErrorMessages._
+import code.api.util.StrongCustomerAuthentication.SCA
 import code.api.util._
 import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.branches.Branches.Branch
@@ -248,7 +249,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     (Full(chargeValue), callContext)
   }
 
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = Future {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, scaMethod: Option[SCA], callContext: Option[CallContext]) = Future {
     // Create argument list
     val req = Map(
       "north" -> "createChallenge",

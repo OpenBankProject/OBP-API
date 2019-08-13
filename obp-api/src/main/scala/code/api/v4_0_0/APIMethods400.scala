@@ -363,7 +363,7 @@ trait APIMethods400 {
             }
 
             _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'") {
-              Props.get("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value)
+              APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value)
             }
 
             // Check the input JSON format, here is just check the common parts of all four types
@@ -415,6 +415,7 @@ trait APIMethods400 {
                     transDetailsSerialized,
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
+                    getScaMethodAtInstance(transactionRequestType.value).toOption,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -439,6 +440,7 @@ trait APIMethods400 {
                     transDetailsSerialized,
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_WEB_FORM.toString),
+                    getScaMethodAtInstance(transactionRequestType.value).toOption,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -469,6 +471,7 @@ trait APIMethods400 {
                     transDetailsSerialized,
                     chargePolicy,
                     Some(OTP_VIA_API.toString),
+                    getScaMethodAtInstance(transactionRequestType.value).toOption,
                     callContext)
                 } yield (createdTransactionRequest, callContext)
 
@@ -499,6 +502,7 @@ trait APIMethods400 {
                     transDetailsSerialized,
                     chargePolicy,
                     Some(OTP_VIA_API.toString),
+                    getScaMethodAtInstance(transactionRequestType.value).toOption,
                     callContext)
                 } yield (createdTransactionRequest, callContext)
               }
@@ -519,6 +523,7 @@ trait APIMethods400 {
                     transDetailsSerialized,
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
+                    getScaMethodAtInstance(transactionRequestType.value).toOption,
                     callContext)
                 } yield
                   (createdTransactionRequest, callContext)

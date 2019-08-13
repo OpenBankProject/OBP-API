@@ -4,17 +4,16 @@ import java.util.Date
 import java.util.UUID.randomUUID
 
 import code.accountapplication.AccountApplicationX
-import code.accountattribute.{AccountAttributeX, MappedAccountAttribute}
+import code.accountattribute.AccountAttributeX
 import code.accountholders.AccountHolders
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
+import code.api.util.StrongCustomerAuthentication.SCA
 import code.api.util._
-import code.api.v3_1_0.AccountBalanceV310
 import code.atms.Atms.Atm
 import code.atms.MappedAtm
-import code.bankconnectors.vJune2017.InboundAccountJune2017
 import code.branches.Branches.Branch
 import code.branches.MappedBranch
 import code.cardattribute.CardAttributeX
@@ -41,22 +40,26 @@ import code.productattribute.ProductAttributeX
 import code.productcollection.ProductCollectionX
 import code.productcollectionitem.ProductCollectionItems
 import code.products.MappedProduct
-import com.openbankproject.commons.model.Product
 import code.taxresidence.TaxResidenceX
 import code.transaction.MappedTransaction
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.TransactionRequestTypes
+import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests._
 import code.users.Users
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, _}
 import code.views.Views
 import com.google.common.cache.CacheBuilder
-import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, ProductAttribute, ProductCollectionItem, TaxResidence, _}
+import com.nexmo.client.NexmoClient
+import com.nexmo.client.sms.messages.TextMessage
+import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, Product, ProductAttribute, ProductCollectionItem, TaxResidence, _}
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{tryo, _}
+import net.liftweb.util.Mailer
+import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
+import org.mindrot.jbcrypt.BCrypt
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 
@@ -134,18 +137,45 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * 5. Send the challenge over an separate communication channel.
     */
   // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = Future {
-//    val challengeId = UUID.randomUUID().toString
-//    val challenge = StringHelpers.randomString(6)
-//    // Random string. For instance: EONXOA
-//    val salt = BCrypt.gensalt()
-//    val hash = BCrypt.hashpw(challenge, salt).substring(0, 44)
-//    // TODO Extend database model in order to store users salt and hash
-//    // Store salt and hash and bind to challengeId
-//    // TODO Send challenge to the user over an separate communication channel
-//    //Return id of challenge
-//    Full(challengeId)
-    (Full("123"), callContext)
+  override def createChallenge(bankId: BankId, 
+                               accountId: AccountId, 
+                               userId: String, 
+                               transactionRequestType: TransactionRequestType, 
+                               transactionRequestId: String,
+                               scaMethod: Option[SCA], 
+                               callContext: Option[CallContext]) = Future {
+    def createHashedPassword(challengeAnswer: String) = {
+      val challengeId = APIUtil.generateUUID()
+      val salt = BCrypt.gensalt()
+      val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
+      ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed)
+      (Full(challengeId), callContext)
+    }
+    scaMethod match {
+      case Some(StrongCustomerAuthentication.UNDEFINED) =>
+        (Failure(ScaMethodNotDefined), callContext)
+      case Some(StrongCustomerAuthentication.DUMMY) => 
+        createHashedPassword("123")
+      case Some(StrongCustomerAuthentication.EMAIL) =>
+        val challengeAnswer = Random.nextInt(99999999).toString()
+        val hashedPassword = createHashedPassword(challengeAnswer)
+        APIUtil.getEmailsByUserId(userId) map {
+          pair =>
+            val params = PlainMailBodyType(s"Your OTP challenge : ${challengeAnswer}") :: List(To(pair._2))
+            Mailer.sendMail(From("challenge@tesobe.com"), Subject("Challenge"), params :_*)
+        }
+        hashedPassword
+      case Some(StrongCustomerAuthentication.SMS) =>
+        val challengeAnswer = Random.nextInt(99999999).toString()
+        val hashedPassword = createHashedPassword(challengeAnswer)
+        APIUtil.getEmailsByUserId(userId) map {
+          pair => // TODO Implement SMS
+        }
+        hashedPassword
+        (Failure(NotImplemented + "sending OTP via SMS."), callContext)
+      case None => // All versions which precede v4.0.0 i.e. to keep backward compatibility 
+        createHashedPassword("123")
+    }
   }
 
   /**

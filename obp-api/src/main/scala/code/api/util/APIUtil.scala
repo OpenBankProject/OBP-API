@@ -42,6 +42,7 @@ import code.api.oauth1a.OauthParams._
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
 import code.api.util.Glossary.GlossaryItem
+import code.api.util.StrongCustomerAuthentication.SCA
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, util, _}
 import code.bankconnectors.Connector
@@ -75,6 +76,7 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.io.BufferedSource
 import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable with CustomJsonFormats{
@@ -2457,8 +2459,30 @@ Returns a string showed to the developer
       
   
   def getJValueFromFile (path: String) = {
-    val jsonStringFromFile: String = scala.io.Source.fromFile(path).mkString 
-    json.parse(jsonStringFromFile)
+    val bufferedSource: BufferedSource = scala.io.Source.fromFile(path)
+    val jsonStringFromFile =  bufferedSource.mkString 
+    val Jvalue = json.parse(jsonStringFromFile)
+    bufferedSource.close() //close the source manually
+    Jvalue
+  }
+
+  //This method will read sample.props.template file, and get all the fields which start with the webui_
+  //it will return the webui_ props paris: 
+  //eg: List(("webui_get_started_text","Get started building your application using this sandbox now"),
+  // ("webui_post_consumer_registration_more_info_text"," Please tell us more your Application and / or Startup using this link"))
+  def getWebUIPropsPairs: List[(String, String)] = {
+
+    val bufferedSource = scala.io.Source.fromFile("obp-api/src/main/resources/props/sample.props.template")
+    val proPairs: List[(String, String)] = for{
+      line <- bufferedSource.getLines.toList if(line.startsWith("webui_"))
+      webuiProps = line.toString.split("=", 2)
+    } yield {
+      val webuiProsKey = webuiProps(0)
+      val webuiProsValue = if (webuiProps.length > 1) webuiProps(1) else ""
+      (webuiProsKey, webuiProsValue)
+    }
+    bufferedSource.close()
+    proPairs
   }
 
   /**
@@ -2676,6 +2700,45 @@ Returns a string showed to the developer
       customer <- CustomerX.customerProvider.vend.getCustomerByCustomerId(userCustomerLink.customerId)
     } yield {
       (customer.legalName, customer.mobileNumber)
+    }
+  }
+
+  /**
+    * This function finds the phone numbers of an Customer in accordance to next rule:
+    * - User -> User Customer Links -> Customer.phone_number
+    * @param bankId The USER_ID
+    * @return The phone numbers of a Customer
+    */
+  def getPhoneNumbersByUserId(userId: String): List[(String, String)] = {
+    for{
+      userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(userId)
+      customer <- CustomerX.customerProvider.vend.getCustomerByCustomerId(userCustomerLink.customerId)
+    } yield {
+      (customer.legalName, customer.mobileNumber)
+    }
+  }
+  /**
+    * This function finds the emails of an Customer in accordance to next rule:
+    * - User -> User Customer Links -> Customer.email
+    * @param bankId The USER_ID
+    * @return The phone numbers of a Customer
+    */
+  def getEmailsByUserId(userId: String): List[(String, String)] = {
+    for{
+      userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(userId)
+      customer <- CustomerX.customerProvider.vend.getCustomerByCustomerId(userCustomerLink.customerId)
+    } yield {
+      (customer.legalName, customer.email)
+    }
+  }
+  
+  def getScaMethodAtInstance(transactionType: String): Full[SCA] = {
+    val propsName = transactionType + "_OTP_INSTRUCTION_TRANSPORT"
+    APIUtil.getPropsValue(propsName).map(_.toUpperCase()) match {
+      case Full(sca) if sca == StrongCustomerAuthentication.DUMMY.toString() => Full(StrongCustomerAuthentication.DUMMY)
+      case Full(sca) if sca == StrongCustomerAuthentication.SMS.toString() => Full(StrongCustomerAuthentication.SMS)
+      case Full(sca) if sca == StrongCustomerAuthentication.EMAIL.toString() => Full(StrongCustomerAuthentication.EMAIL)
+      case _ => Full(StrongCustomerAuthentication.UNDEFINED)
     }
   }
   

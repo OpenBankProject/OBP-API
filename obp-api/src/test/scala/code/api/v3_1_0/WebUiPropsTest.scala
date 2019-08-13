@@ -122,7 +122,7 @@ class WebUiPropsTest extends V310ServerSetup {
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetWebUiProps.toString)
       When("We make a request v3.1.0 with the Role " + canGetWebUiProps)
-      val requestGet310 = (v3_1_0_Request / "management" / "webui_props").GET <@(user1)
+      val requestGet310 = ((v3_1_0_Request / "management" / "webui_props").GET <@(user1))
       val responseGet310 = makeGetRequest(requestGet310)
       Then("We should get a 200")
       responseGet310.code should equal(200)
@@ -130,6 +130,14 @@ class WebUiPropsTest extends V310ServerSetup {
       val webUiPropssGetJson = json.extract[List[WebUiPropsCommons]]
 
       webUiPropssGetJson.size should be (1)
+
+//      val requestGet310AddedQueryParameter =  requestGet310.addQueryParameter("active", "true")
+//      val responseGet310AddedQueryParameter = makeGetRequest(requestGet310AddedQueryParameter)
+//      Then("We should get a 200")
+//      responseGet310AddedQueryParameter.code should equal(200)
+//      val responseJson = responseGet310AddedQueryParameter.body \ "webui_props"
+//      val responseGet310AddedQueryParameterJson = responseJson.extract[List[WebUiPropsCommons]]
+//      responseGet310AddedQueryParameterJson.size >1 should be (true)
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteWebUiProps.toString)
       When("We make a request v3.1.0 with the Role " + canDeleteWebUiProps)

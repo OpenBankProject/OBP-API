@@ -33,10 +33,10 @@ import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.util.APIUtil._
+import code.api.util.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.{AccountV310Json, CardObjectJson, CheckbookOrdersJson}
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
-
 import code.customer._
 import code.kafka.KafkaHelper
 import code.model._
@@ -1076,7 +1076,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     outboundAvroSchema = Some(parse(SchemaFor[OutboundCreateChallengeJune2017]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundCreateChallengeJune2017]().toString(true)))
   )
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, scaMethod: Option[SCA], callContext: Option[CallContext]) = {
     
     val authInfo = getAuthInfo(callContext).openOrThrowException(attemptedToOpenAnEmptyBox)
     val req = OutboundCreateChallengeJune2017(

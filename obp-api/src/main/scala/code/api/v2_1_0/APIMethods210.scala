@@ -414,7 +414,7 @@ trait APIMethods210 {
             }
             
             _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'") {
-              Props.get("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value)
+              APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value)
             }
 
             // Check the input JSON format, here is just check the common parts of all four types
@@ -469,6 +469,7 @@ trait APIMethods210 {
                                                                                                      transDetailsSerialized,
                                                                                                      sharedChargePolicy.toString,
                                                                                                      None,
+                                                                                                     None,
                                                                                                      callContext) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -498,6 +499,7 @@ trait APIMethods210 {
                                                                                                      transactionRequestBodyCounterparty,
                                                                                                      transDetailsSerialized,
                                                                                                      chargePolicy,
+                                                                                                     None,
                                                                                                      None,
                                                                                                      callContext)
                 } yield (createdTransactionRequest, callContext)
@@ -529,6 +531,7 @@ trait APIMethods210 {
                                                                                                      transDetailsSerialized,
                                                                                                      chargePolicy,
                                                                                                      None,
+                                                                                                     None,
                                                                                                      callContext)
                 } yield (createdTransactionRequest, callContext)
               }
@@ -548,6 +551,7 @@ trait APIMethods210 {
                                                                                                      transactionRequestBodyFreeForm,
                                                                                                      transDetailsSerialized,
                                                                                                      sharedChargePolicy.toString,
+                                                                                                     None,
                                                                                                      None,
                                                                                                      callContext)
                 } yield
