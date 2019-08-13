@@ -20,7 +20,7 @@ import code.api.v2_2_0.{CreateAccountJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.consent.{ConsentStatus, Consents}
 import code.consumer.Consumers
@@ -28,7 +28,7 @@ import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
 import code.entitlement.Entitlement
 import code.kafka.KafkaHelper
 import code.loginattempts.LoginAttempt
-import code.methodrouting.{MethodRoutingCommons, MethodRoutingParam}
+import code.methodrouting.{MethodRoutingCommons, MethodRoutingParam, MethodRoutingT}
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -42,10 +42,10 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.model.{CreditLimit, _}
+import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
@@ -3945,10 +3945,33 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetMethodRoutings, callContext)
             methodRoutings <- NewStyle.function.getMethodRoutingsByMethdName(req.param("method_name"))
           } yield {
-            val listCommons: List[MethodRoutingCommons] = methodRoutings
+            val listCommons: List[MethodRoutingCommons] = req.param("active") match {
+              case Full("true") =>  methodRoutings ++ getDefaultMethodRountings(methodRoutings )
+              case _ => methodRoutings
+            }
             (ListResult("method_routings", listCommons), HttpCode.`200`(callContext))
           }
       }
+    }
+
+    /**
+      * get all methodRountings exception saved in DB
+      * @param methodRoutingsInDB saved in DB methodRouting#methodName
+      * @return all default methodRounting#methodName, those just in mapped connector
+      */
+    private def getDefaultMethodRountings(methodRoutingsInDB: List[MethodRoutingT]) = {
+      val methodRountingNamesInDB = methodRoutingsInDB.map(_.methodName).toSet
+
+      val methodRegex = """method \S+(?<!\$default\$\d{0,10})""".r.pattern
+
+      ReflectUtils.getType(LocalMappedConnector)
+        .decls
+        .filter(it => methodRegex.matcher(it.toString).matches())
+        .filter(_.asMethod.isPublic)
+        .map(_.asMethod)
+        .filter(it => !methodRountingNamesInDB.contains(it.name.toString) && it.overrides.size > 0)
+        .map(it => MethodRoutingCommons(it.name.toString, "mapped", false, None))
+        .toList
     }
 
     resourceDocs += ResourceDoc(
@@ -5478,6 +5501,7 @@ trait APIMethods310 {
     }
 
   }
+
 }
 
 object APIMethods310 extends RestHelper with APIMethods310 {
