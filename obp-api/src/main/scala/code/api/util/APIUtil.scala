@@ -75,6 +75,7 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.io.BufferedSource
 import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable with CustomJsonFormats{
@@ -2457,8 +2458,30 @@ Returns a string showed to the developer
       
   
   def getJValueFromFile (path: String) = {
-    val jsonStringFromFile: String = scala.io.Source.fromFile(path).mkString 
-    json.parse(jsonStringFromFile)
+    val bufferedSource: BufferedSource = scala.io.Source.fromFile(path)
+    val jsonStringFromFile =  bufferedSource.mkString 
+    val Jvalue = json.parse(jsonStringFromFile)
+    bufferedSource.close() //close the source manually
+    Jvalue
+  }
+
+  //This method will read sample.props.template file, and get all the fields which start with the webui_
+  //it will return the webui_ props paris: 
+  //eg: List(("webui_get_started_text","Get started building your application using this sandbox now"),
+  // ("webui_post_consumer_registration_more_info_text"," Please tell us more your Application and / or Startup using this link"))
+  def getWebUIPropsPairs: List[(String, String)] = {
+
+    val bufferedSource = scala.io.Source.fromFile("obp-api/src/main/resources/props/sample.props.template")
+    val proPairs: List[(String, String)] = for{
+      line <- bufferedSource.getLines.toList if(line.startsWith("webui_"))
+      webuiProps = line.toString.split("=", 2)
+    } yield {
+      val webuiProsKey = webuiProps(0)
+      val webuiProsValue = if (webuiProps.length > 1) webuiProps(1) else ""
+      (webuiProsKey, webuiProsValue)
+    }
+    bufferedSource.close()
+    proPairs
   }
 
   /**

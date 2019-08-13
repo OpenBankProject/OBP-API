@@ -6,7 +6,7 @@ import java.util.regex.Pattern
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, SwaggerDefinitionsJSON, SwaggerJSONFactory}
-import code.api.util.APIUtil._
+import code.api.util.APIUtil.{getWebUIPropsPairs, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
@@ -43,9 +43,9 @@ import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.model.{CreditLimit, _}
 import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.http.S
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
@@ -5297,6 +5297,8 @@ trait APIMethods310 {
       |
       |Get the all WebUiProps key values, those props key with "webui_" can be stored in DB, this endpoint get all from DB.
       |
+      |You can use the url query parameter: *active*. It must be a boolean string. and If active == true, it will show
+      |combination of explicit (inserted) + implicit (default)  method_routings.
       |""",
       emptyObjectJson,
       ListResult(
@@ -5318,12 +5320,23 @@ trait APIMethods310 {
     lazy val getWebUiProps: OBPEndpoint = {
       case "management" :: "webui_props":: Nil JsonGet req => {
         cc =>
+          val active = S.param("active").getOrElse("false")
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            invalidMsg = s"""$InvalidFilterParameterFormat `active` must be a boolean, but current `active` value is: ${active} """
+            isActived <- NewStyle.function.tryons(invalidMsg, 400, callContext) {
+              active.toBoolean
+            }
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetWebUiProps, callContext)
-            webUiPropss <- Future{ MappedWebUiPropsProvider.getAll() }
+            explicitWebUiProps <- Future{ MappedWebUiPropsProvider.getAll() }
+            implicitWebUiPropsRemovedDuplicated = if(isActived){
+              val implicitWebUiProps = getWebUIPropsPairs.map(webUIPropsPairs=>WebUiPropsCommons(webUIPropsPairs._1, webUIPropsPairs._2, webUiPropsId= Some("default")))
+              explicitWebUiProps.map(abck =>implicitWebUiProps.filterNot(_.name==abck.name)).flatten
+            } else {
+              List.empty[WebUiPropsCommons]
+            }
           } yield {
-            val listCommons: List[WebUiPropsCommons] = webUiPropss
+            val listCommons: List[WebUiPropsCommons] = explicitWebUiProps ++ implicitWebUiPropsRemovedDuplicated
             (ListResult("webui_props", listCommons), HttpCode.`200`(callContext))
           }
       }
