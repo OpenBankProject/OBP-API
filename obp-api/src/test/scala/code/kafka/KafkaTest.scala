@@ -331,6 +331,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
           "",
           TransactionRequestType("SANDBOX_TAN"),
           "",
+          None,
           callContext)
 
         val result = future.getContent

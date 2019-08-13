@@ -42,6 +42,7 @@ import code.api.oauth1a.OauthParams._
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
 import code.api.util.Glossary.GlossaryItem
+import code.api.util.StrongCustomerAuthentication.SCA
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, util, _}
 import code.bankconnectors.Connector
@@ -2699,6 +2700,45 @@ Returns a string showed to the developer
       customer <- CustomerX.customerProvider.vend.getCustomerByCustomerId(userCustomerLink.customerId)
     } yield {
       (customer.legalName, customer.mobileNumber)
+    }
+  }
+
+  /**
+    * This function finds the phone numbers of an Customer in accordance to next rule:
+    * - User -> User Customer Links -> Customer.phone_number
+    * @param bankId The USER_ID
+    * @return The phone numbers of a Customer
+    */
+  def getPhoneNumbersByUserId(userId: String): List[(String, String)] = {
+    for{
+      userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(userId)
+      customer <- CustomerX.customerProvider.vend.getCustomerByCustomerId(userCustomerLink.customerId)
+    } yield {
+      (customer.legalName, customer.mobileNumber)
+    }
+  }
+  /**
+    * This function finds the emails of an Customer in accordance to next rule:
+    * - User -> User Customer Links -> Customer.email
+    * @param bankId The USER_ID
+    * @return The phone numbers of a Customer
+    */
+  def getEmailsByUserId(userId: String): List[(String, String)] = {
+    for{
+      userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(userId)
+      customer <- CustomerX.customerProvider.vend.getCustomerByCustomerId(userCustomerLink.customerId)
+    } yield {
+      (customer.legalName, customer.email)
+    }
+  }
+  
+  def getScaMethodAtInstance(transactionType: String): Full[SCA] = {
+    val propsName = transactionType + "_OTP_INSTRUCTION_TRANSPORT"
+    APIUtil.getPropsValue(propsName).map(_.toUpperCase()) match {
+      case Full(sca) if sca == StrongCustomerAuthentication.DUMMY.toString() => Full(StrongCustomerAuthentication.DUMMY)
+      case Full(sca) if sca == StrongCustomerAuthentication.SMS.toString() => Full(StrongCustomerAuthentication.SMS)
+      case Full(sca) if sca == StrongCustomerAuthentication.EMAIL.toString() => Full(StrongCustomerAuthentication.EMAIL)
+      case _ => Full(StrongCustomerAuthentication.UNDEFINED)
     }
   }
   

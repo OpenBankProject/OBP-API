@@ -642,3 +642,11 @@ database_messages_scheduler_interval=3600
 # Possible cases: portal, api
 # server_mode=apis,portal
 # -----------------------------------------------
+
+# -- SCA (Strong Customer Authentication) method for OTP challenge-------
+# ACCOUNT_OTP_INSTRUCTION_TRANSPORT=dummy
+# SEPA_OTP_INSTRUCTION_TRANSPORT=dummy
+# FREE_FORM_OTP_INSTRUCTION_TRANSPORT=dummy
+# COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=dummy
+# Possible values: dummy,email,sms
+# -----------------------------------------------------------------------

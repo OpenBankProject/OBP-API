@@ -4,6 +4,8 @@ object StrongCustomerAuthentication extends Enumeration {
   type SCA = Value
   val SMS = Value
   val EMAIL = Value
+  val DUMMY = Value
+  val UNDEFINED = Value
 }
 
 object PemCertificateRole extends Enumeration {
