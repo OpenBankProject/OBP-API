@@ -5,6 +5,7 @@ object StrongCustomerAuthentication extends Enumeration {
   val SMS = Value
   val EMAIL = Value
   val DUMMY = Value
+  val UNDEFINED = Value
 }
 
 object PemCertificateRole extends Enumeration {

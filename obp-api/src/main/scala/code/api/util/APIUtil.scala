@@ -2709,13 +2709,13 @@ Returns a string showed to the developer
     }
   }
   
-  def getScaMethodAtInstance(transactionType: String): Box[SCA] = {
+  def getScaMethodAtInstance(transactionType: String): Full[SCA] = {
     val propsName = transactionType + "_OTP_INSTRUCTION_TRANSPORT"
     APIUtil.getPropsValue(propsName).map(_.toUpperCase()) match {
       case Full(sca) if sca == StrongCustomerAuthentication.DUMMY.toString() => Full(StrongCustomerAuthentication.DUMMY)
       case Full(sca) if sca == StrongCustomerAuthentication.SMS.toString() => Full(StrongCustomerAuthentication.SMS)
       case Full(sca) if sca == StrongCustomerAuthentication.EMAIL.toString() => Full(StrongCustomerAuthentication.EMAIL)
-      case _ => Empty
+      case _ => Full(StrongCustomerAuthentication.UNDEFINED)
     }
   }
   

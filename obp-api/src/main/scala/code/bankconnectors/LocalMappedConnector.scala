@@ -152,6 +152,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (Full(challengeId), callContext)
     }
     scaMethod match {
+      case Some(StrongCustomerAuthentication.UNDEFINED) =>
+        (Failure(ScaMethodNotDefined), callContext)
       case Some(StrongCustomerAuthentication.DUMMY) => 
         createHashedPassword("123")
       case Some(StrongCustomerAuthentication.EMAIL) =>
