@@ -52,6 +52,7 @@ import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 import net.liftweb.util.{Helpers, Mailer}
 import org.apache.commons.lang3.{StringUtils, Validate}
 
+import scala.collection.immutable
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -668,10 +669,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canReadCallLimits, callContext)
-            consumerIdToLong <- NewStyle.function.tryons(s"$InvalidConsumerId", 400, callContext) {
-              consumerId.toLong
-            }
-            consumer <- NewStyle.function.getConsumerByPrimaryId(consumerIdToLong, callContext)
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
             rateLimit <- Future(RateLimitUtil.consumerRateLimitState(consumer.key.get).toList)
           } yield {
             (createCallLimitJson(consumer, rateLimit), HttpCode.`200`(callContext))

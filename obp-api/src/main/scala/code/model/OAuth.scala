@@ -69,6 +69,11 @@ object TokenType {
 
 object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
 
+  override def getConsumerByCustomerIdFuture(consumerId: String): Future[Box[Consumer]] = {
+    Future(
+      Consumer.find(By(Consumer.consumerId, consumerId))
+    )
+  }
   override def getConsumerByPrimaryIdFuture(id: Long): Future[Box[Consumer]] = {
     Future(
       Consumer.find(By(Consumer.id, id))

@@ -244,6 +244,11 @@ object NewStyle {
         unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId)
       }
     }
+    def getConsumerByCustomerIdFuture(customerId: String, callContext: Option[CallContext]): Future[Consumer] = {
+      Consumers.consumers.vend.getConsumerByCustomerIdFuture(customerId) map {
+        unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId)
+      }
+    }
     def getCustomers(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[List[Customer]] = {
       Connector.connector.vend.getCustomers(bankId, callContext, queryParams) map {
         connectorEmptyResponse(_, callContext)
