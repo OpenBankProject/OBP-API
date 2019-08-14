@@ -3971,7 +3971,14 @@ trait APIMethods310 {
         .filter(_.asMethod.isPublic)
         .map(_.asMethod)
         .filter(it => !methodRountingNamesInDB.contains(it.name.toString) && it.overrides.size > 0)
-        .map(it => MethodRoutingCommons(it.name.toString, "mapped", false, None))
+        .map(it => MethodRoutingCommons(
+          methodName = it.name.toString,
+          connectorName = "mapped",
+          isBankIdExactMatch = false,
+          bankIdPattern = Some("*"),
+          parameters= Some(List.empty[MethodRoutingParam]),
+          methodRoutingId  = Some(""),
+      ))
         .toList
     }
 
