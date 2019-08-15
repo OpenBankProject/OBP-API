@@ -46,7 +46,7 @@ object MappedMethodRoutingProvider extends MethodRoutingProvider with CustomJson
     val isExactMatch = if(bankIdPattern.isDefined) methodRouting.isBankIdExactMatch else false
 
     val existsMethodRoutingParameters = methodRouting.parameters match {
-      case Some(parameters) if (parameters.nonEmpty) => parameters
+      case parameters if (parameters.nonEmpty) => parameters
       case _ => List.empty[MethodRoutingParam]
     }
     

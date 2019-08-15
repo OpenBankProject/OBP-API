@@ -3946,7 +3946,7 @@ trait APIMethods310 {
             methodRoutings <- NewStyle.function.getMethodRoutingsByMethdName(req.param("method_name"))
           } yield {
             val listCommons: List[MethodRoutingCommons] = methodRoutings
-            (ListResult("method_routings", listCommons), HttpCode.`200`(callContext))
+            (ListResult("method_routings", listCommons.map(_.toJson)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -4010,7 +4010,7 @@ trait APIMethods310 {
             Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(postedData)
           } yield {
             val commonsData: MethodRoutingCommons = methodRouting
-            (commonsData, HttpCode.`201`(callContext))
+            (commonsData.toJson, HttpCode.`201`(callContext))
           }
       }
     }
@@ -4076,7 +4076,7 @@ trait APIMethods310 {
             Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(putData)
           } yield {
             val commonsData: MethodRoutingCommons = methodRouting
-            (commonsData, HttpCode.`200`(callContext))
+            (commonsData.toJson, HttpCode.`200`(callContext))
           }
       }
     }

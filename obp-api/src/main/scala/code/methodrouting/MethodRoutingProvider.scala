@@ -4,6 +4,7 @@ package code.methodrouting
 
 import com.openbankproject.commons.model.{Converter, JsonFieldReName, ProductCollection, ProductCollectionCommons}
 import net.liftweb.common.Box
+import net.liftweb.json.JsonAST.{JArray, JBool, JField, JNull, JObject, JString}
 import net.liftweb.util.SimpleInjector
 
 object MethodRoutingProvider extends SimpleInjector {
@@ -24,16 +25,33 @@ trait MethodRoutingT {
     */
   def isBankIdExactMatch: Boolean
   def connectorName: String
-  def parameters: Option[List[MethodRoutingParam]]
+  def parameters: List[MethodRoutingParam]
 }
 
 case class MethodRoutingCommons(methodName: String,
                                 connectorName: String,
                                 isBankIdExactMatch: Boolean,
                                 bankIdPattern: Option[String],
-                                parameters: Option[List[MethodRoutingParam]] = None,
+                                parameters: List[MethodRoutingParam] = Nil,
                                 methodRoutingId: Option[String] = None,
-                               ) extends MethodRoutingT with JsonFieldReName
+                               ) extends MethodRoutingT with JsonFieldReName {
+  /**
+    * when serialized to json, the  Option filed will be not shown, this method just generate a full fields json, include all None value fields
+    * @return JObject include all fields
+    */
+  def toJson = {
+    val paramsJson: List[JObject] = this.parameters.map(param => JObject(List(JField("key", JString(param.key)), JField("value", JString(param.value)))))
+
+    JObject(List(
+      JField("methodName", JString(this.methodName)),
+      JField("connectorName", JString(this.connectorName)),
+      JField("isBankIdExactMatch", JBool(this.isBankIdExactMatch)),
+      JField("bankIdPattern", this.bankIdPattern.map(JString(_)).getOrElse(JNull)),
+      JField("parameters", JArray(paramsJson)),
+      JField("methodRoutingId", this.bankIdPattern.map(JString(_)).getOrElse(JNull))
+    ))
+  }
+}
 
 object MethodRoutingCommons extends Converter[MethodRoutingT, MethodRoutingCommons]
 
