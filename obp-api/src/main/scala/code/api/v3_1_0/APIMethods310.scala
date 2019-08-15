@@ -609,7 +609,7 @@ trait APIMethods310 {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CallLimitPostJson ", 400, callContext) {
               json.extract[CallLimitPostJson]
             }
-            consumer <- NewStyle.function.getConsumerByCustomerIdFuture(consumerId, callContext)
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
             updatedConsumer <- Consumers.consumers.vend.updateConsumerCallLimits(
               consumer.id.get,
               Some(postJson.per_second_call_limit),

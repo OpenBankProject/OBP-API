@@ -23,7 +23,6 @@ object Consumers extends SimpleInjector {
 
 // Question: This should never be the entry point?
 trait ConsumersProvider {
-  def getConsumerByCustomerIdFuture(consumerId: String): Future[Box[Consumer]]
   def getConsumerByPrimaryIdFuture(id: Long): Future[Box[Consumer]]
   def getConsumerByPrimaryId(id: Long): Box[Consumer]
   def getConsumerByConsumerKey(consumerKey: String): Box[Consumer]
@@ -41,7 +40,6 @@ trait ConsumersProvider {
 
 // Question: This should always be the entry point?
 class RemotedataConsumersCaseClasses {
-  case class getConsumerByCustomerIdFuture(consumerId: String)
   case class getConsumerByPrimaryIdFuture(id: Long)
   case class getConsumerByPrimaryId(id: Long)
   case class getConsumerByConsumerKey(consumerKey: String)
