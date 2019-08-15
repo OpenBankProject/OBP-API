@@ -46,7 +46,7 @@ object MappedMethodRoutingProvider extends MethodRoutingProvider with CustomJson
     val isExactMatch = if(bankIdPattern.isDefined) methodRouting.isBankIdExactMatch else false
 
     val existsMethodRoutingParameters = methodRouting.parameters match {
-      case Some(parameters) if (parameters.nonEmpty) => parameters
+      case parameters if (parameters.nonEmpty) => parameters
       case _ => List.empty[MethodRoutingParam]
     }
     
@@ -88,7 +88,7 @@ class MethodRouting extends MethodRoutingT with LongKeyedMapper[MethodRouting] w
   override def connectorName: String = ConnectorName.get
 
   //Here we store all the key-value paris in one big String filed in database. 
-  override def parameters: Option[List[MethodRoutingParam]] = Option(json.parse(if (Parameters.get != null) Parameters.get else "[]").extract[List[MethodRoutingParam]])
+  override def parameters: List[MethodRoutingParam] = json.parse(if (Parameters.get != null) Parameters.get else "[]").extract[List[MethodRoutingParam]]
 }
 
 object MethodRouting extends MethodRouting with LongKeyedMetaMapper[MethodRouting] {

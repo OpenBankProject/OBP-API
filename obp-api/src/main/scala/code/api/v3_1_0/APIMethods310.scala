@@ -3924,7 +3924,7 @@ trait APIMethods310 {
       emptyObjectJson,
       ListResult(
         "method_routings",
-        (List(MethodRoutingCommons("getBanks", "rest_vMar2019", false, Some("some_bank_.*"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))), Some("method-routing-id"))))
+        (List(MethodRoutingCommons("getBanks", "rest_vMar2019", false, Some("some_bank_.*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")), Some("method-routing-id"))))
       )
     ,
       List(
@@ -3950,7 +3950,7 @@ trait APIMethods310 {
               case Full("true") =>  methodRoutings ++ getDefaultMethodRountings(methodRoutings )
               case _ => methodRoutings
             }
-            (ListResult("method_routings", listCommons), HttpCode.`200`(callContext))
+            (ListResult("method_routings", listCommons.map(_.toJson)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3976,7 +3976,7 @@ trait APIMethods310 {
           connectorName = "mapped",
           isBankIdExactMatch = false,
           bankIdPattern = Some("*"),
-          parameters= Some(List.empty[MethodRoutingParam]),
+          parameters= List.empty[MethodRoutingParam],
           methodRoutingId  = Some(""),
       ))
         .toList
@@ -4006,9 +4006,9 @@ trait APIMethods310 {
         |
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
         |""",
-      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx")))),
+      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx"))),
       MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), 
-        Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))), 
+        List(MethodRoutingParam("url", "http://mydomain.com/xxx")),
         Some("this-method-routing-Id")
       ),
       List(
@@ -4041,7 +4041,7 @@ trait APIMethods310 {
             Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(postedData)
           } yield {
             val commonsData: MethodRoutingCommons = methodRouting
-            (commonsData, HttpCode.`201`(callContext))
+            (commonsData.toJson, HttpCode.`201`(callContext))
           }
       }
     }
@@ -4070,8 +4070,8 @@ trait APIMethods310 {
         |
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
         |""",
-      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx")))),
-      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"),Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))), Some("this-method-routing-Id")),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), List(MethodRoutingParam("url", "http://mydomain.com/xxx"))),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")), Some("this-method-routing-Id")),
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -4107,7 +4107,7 @@ trait APIMethods310 {
             Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(putData)
           } yield {
             val commonsData: MethodRoutingCommons = methodRouting
-            (commonsData, HttpCode.`200`(callContext))
+            (commonsData.toJson, HttpCode.`200`(callContext))
           }
       }
     }
@@ -5522,7 +5522,6 @@ trait APIMethods310 {
     }
 
   }
-
 }
 
 object APIMethods310 extends RestHelper with APIMethods310 {
