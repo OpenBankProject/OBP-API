@@ -88,7 +88,7 @@ class MethodRouting extends MethodRoutingT with LongKeyedMapper[MethodRouting] w
   override def connectorName: String = ConnectorName.get
 
   //Here we store all the key-value paris in one big String filed in database. 
-  override def parameters: Option[List[MethodRoutingParam]] = Option(json.parse(if (Parameters.get != null) Parameters.get else "[]").extract[List[MethodRoutingParam]])
+  override def parameters: List[MethodRoutingParam] = json.parse(if (Parameters.get != null) Parameters.get else "[]").extract[List[MethodRoutingParam]]
 }
 
 object MethodRouting extends MethodRouting with LongKeyedMetaMapper[MethodRouting] {

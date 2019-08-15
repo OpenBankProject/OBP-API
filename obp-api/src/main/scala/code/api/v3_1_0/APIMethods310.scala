@@ -3923,7 +3923,7 @@ trait APIMethods310 {
       emptyObjectJson,
       ListResult(
         "method_routings",
-        (List(MethodRoutingCommons("getBanks", "rest_vMar2019", false, Some("some_bank_.*"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))), Some("method-routing-id"))))
+        (List(MethodRoutingCommons("getBanks", "rest_vMar2019", false, Some("some_bank_.*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")), Some("method-routing-id"))))
       )
     ,
       List(
@@ -3975,9 +3975,9 @@ trait APIMethods310 {
         |
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
         |""",
-      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx")))),
+      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx"))),
       MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), 
-        Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))), 
+        List(MethodRoutingParam("url", "http://mydomain.com/xxx")),
         Some("this-method-routing-Id")
       ),
       List(
@@ -4039,8 +4039,8 @@ trait APIMethods310 {
         |
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
         |""",
-      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx")))),
-      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"),Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))), Some("this-method-routing-Id")),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), List(MethodRoutingParam("url", "http://mydomain.com/xxx"))),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")), Some("this-method-routing-Id")),
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
