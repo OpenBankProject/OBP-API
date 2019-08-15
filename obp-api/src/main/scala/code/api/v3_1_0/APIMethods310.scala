@@ -600,9 +600,6 @@ trait APIMethods310 {
       List(apiTagConsumer, apiTagNewStyle),
       Some(List(canSetCallLimits)))
 
-
-    // TODO change URL to /../call-limits
-
     lazy val callsLimit : OBPEndpoint = {
       case "management" :: "consumers" :: consumerId :: "consumer" :: "call-limits" :: Nil JsonPut json -> _ => {
         cc =>
@@ -612,10 +609,7 @@ trait APIMethods310 {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CallLimitPostJson ", 400, callContext) {
               json.extract[CallLimitPostJson]
             }
-            consumerIdToLong <- NewStyle.function.tryons(s"$InvalidConsumerId", 400, callContext) {
-              consumerId.toLong
-            }
-            consumer <- NewStyle.function.getConsumerByPrimaryId(consumerIdToLong, callContext)
+            consumer <- NewStyle.function.getConsumerByCustomerIdFuture(consumerId, callContext)
             updatedConsumer <- Consumers.consumers.vend.updateConsumerCallLimits(
               consumer.id.get,
               Some(postJson.per_second_call_limit),
