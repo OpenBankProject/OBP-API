@@ -48,7 +48,7 @@ case class MethodRoutingCommons(methodName: String,
       JField("isBankIdExactMatch", JBool(this.isBankIdExactMatch)),
       JField("bankIdPattern", this.bankIdPattern.map(JString(_)).getOrElse(JNull)),
       JField("parameters", JArray(paramsJson)),
-      JField("methodRoutingId", this.bankIdPattern.map(JString(_)).getOrElse(JNull))
+      JField("methodRoutingId", this.methodRoutingId.map(JString(_)).getOrElse(JNull))
     ))
   }
 }
