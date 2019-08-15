@@ -3409,16 +3409,16 @@ trait APIMethods310 {
                 }
                 phoneNumber = postConsentPhoneJson.phone_number
                 failMsg =s"$MissingPropsValueAtThisInstance sca_phone_api_key"
-                nexmoApiKey <- NewStyle.function.tryons(failMsg, 400, callContext) {
+                smsProviderApiKey <- NewStyle.function.tryons(failMsg, 400, callContext) {
                   APIUtil.getPropsValue("sca_phone_api_key").openOrThrowException(s"")
                 }
                 failMsg = s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
-                nexmoApiSecret <- NewStyle.function.tryons(failMsg, 400, callContext) {
+                smsProviderApiSecret <- NewStyle.function.tryons(failMsg, 400, callContext) {
                    APIUtil.getPropsValue("sca_phone_api_secret").openOrThrowException(s"")
                 }
                 client = new NexmoClient.Builder()
-                  .apiKey(nexmoApiKey)
-                  .apiSecret(nexmoApiSecret)
+                  .apiKey(smsProviderApiKey)
+                  .apiSecret(smsProviderApiSecret)
                   .build();
                 messageText = s"Your consent challenge : ${createdConsent.challenge}";
                 message = new TextMessage("OBP-API", phoneNumber, messageText);

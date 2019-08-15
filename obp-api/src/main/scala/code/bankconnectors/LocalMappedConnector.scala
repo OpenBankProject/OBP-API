@@ -171,11 +171,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         val sendingResult: Seq[Box[Boolean]] = APIUtil.getPhoneNumbersByUserId(userId) map {
           tuple =>
             for {
-              nexmoApiKey <- APIUtil.getPropsValue("sca_phone_api_key") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_key"
-              nexmoApiSecret <- APIUtil.getPropsValue("sca_phone_api_secret") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
+              smsProviderApiKey <- APIUtil.getPropsValue("sca_phone_api_key") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_key"
+              smsProviderApiSecret <- APIUtil.getPropsValue("sca_phone_api_secret") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
               client = new NexmoClient.Builder()
-                .apiKey(nexmoApiKey)
-                .apiSecret(nexmoApiSecret)
+                .apiKey(smsProviderApiKey)
+                .apiSecret(smsProviderApiSecret)
                 .build();
               phoneNumber = tuple._2
               messageText = s"Your consent challenge : ${challengeAnswer}";
