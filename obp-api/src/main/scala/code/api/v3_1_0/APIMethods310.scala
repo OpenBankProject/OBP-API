@@ -52,6 +52,7 @@ import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 import net.liftweb.util.{Helpers, Mailer}
 import org.apache.commons.lang3.{StringUtils, Validate}
 
+import scala.collection.immutable
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -599,9 +600,6 @@ trait APIMethods310 {
       List(apiTagConsumer, apiTagNewStyle),
       Some(List(canSetCallLimits)))
 
-
-    // TODO change URL to /../call-limits
-
     lazy val callsLimit : OBPEndpoint = {
       case "management" :: "consumers" :: consumerId :: "consumer" :: "call-limits" :: Nil JsonPut json -> _ => {
         cc =>
@@ -611,10 +609,7 @@ trait APIMethods310 {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CallLimitPostJson ", 400, callContext) {
               json.extract[CallLimitPostJson]
             }
-            consumerIdToLong <- NewStyle.function.tryons(s"$InvalidConsumerId", 400, callContext) {
-              consumerId.toLong
-            }
-            consumer <- NewStyle.function.getConsumerByPrimaryId(consumerIdToLong, callContext)
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
             updatedConsumer <- Consumers.consumers.vend.updateConsumerCallLimits(
               consumer.id.get,
               Some(postJson.per_second_call_limit),
@@ -668,10 +663,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canReadCallLimits, callContext)
-            consumerIdToLong <- NewStyle.function.tryons(s"$InvalidConsumerId", 400, callContext) {
-              consumerId.toLong
-            }
-            consumer <- NewStyle.function.getConsumerByPrimaryId(consumerIdToLong, callContext)
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
             rateLimit <- Future(RateLimitUtil.consumerRateLimitState(consumer.key.get).toList)
           } yield {
             (createCallLimitJson(consumer, rateLimit), HttpCode.`200`(callContext))
@@ -3417,16 +3409,16 @@ trait APIMethods310 {
                 }
                 phoneNumber = postConsentPhoneJson.phone_number
                 failMsg =s"$MissingPropsValueAtThisInstance sca_phone_api_key"
-                nexmoApiKey <- NewStyle.function.tryons(failMsg, 400, callContext) {
+                smsProviderApiKey <- NewStyle.function.tryons(failMsg, 400, callContext) {
                   APIUtil.getPropsValue("sca_phone_api_key").openOrThrowException(s"")
                 }
                 failMsg = s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
-                nexmoApiSecret <- NewStyle.function.tryons(failMsg, 400, callContext) {
+                smsProviderApiSecret <- NewStyle.function.tryons(failMsg, 400, callContext) {
                    APIUtil.getPropsValue("sca_phone_api_secret").openOrThrowException(s"")
                 }
                 client = new NexmoClient.Builder()
-                  .apiKey(nexmoApiKey)
-                  .apiSecret(nexmoApiSecret)
+                  .apiKey(smsProviderApiKey)
+                  .apiSecret(smsProviderApiSecret)
                   .build();
                 messageText = s"Your consent challenge : ${createdConsent.challenge}";
                 message = new TextMessage("OBP-API", phoneNumber, messageText);

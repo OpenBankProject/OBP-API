@@ -2001,6 +2001,7 @@ Returns a string showed to the developer
     import util.RateLimitUtil._
     val perHourLimitAnonymous = APIUtil.getPropsAsIntValue("user_consumer_limit_anonymous_access", 60)
     def composeMsg(period: LimitCallPeriod, limit: Long): String = TooManyRequests + s" We only allow $limit requests ${RateLimitPeriod.humanReadable(period)} for this Consumer."
+    def composeMsgAnonymousAccess(period: LimitCallPeriod, limit: Long): String = TooManyRequests + s" We only allow $limit requests ${RateLimitPeriod.humanReadable(period)} for anonymous access."
 
     def setXRateLimits(c: Consumer, z: (Long, Long), period: LimitCallPeriod): Option[CallContext] = {
       val limit = period match {
@@ -2125,7 +2126,7 @@ Returns a string showed to the developer
             )
             checkLimits match {
               case x1 :: Nil if x1 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_HOUR, perHourLimitAnonymous), 429, exceededRateLimitAnonymous(consumerId, PER_HOUR))), userAndCallContext._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAnonymousAccess(PER_HOUR, perHourLimitAnonymous), 429, exceededRateLimitAnonymous(consumerId, PER_HOUR))), userAndCallContext._2)
               case _ =>
                 val incrementCounters = List (
                     incrementConsumerCounters(consumerId, PER_HOUR, perHourLimitAnonymous),  // Responses other than the 429 status code MUST be stored by a cache.

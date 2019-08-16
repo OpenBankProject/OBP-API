@@ -168,11 +168,31 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       case Some(StrongCustomerAuthentication.SMS) =>
         val challengeAnswer = Random.nextInt(99999999).toString()
         val hashedPassword = createHashedPassword(challengeAnswer)
-        APIUtil.getEmailsByUserId(userId) map {
-          pair => // TODO Implement SMS
+        val sendingResult: Seq[Box[Boolean]] = APIUtil.getPhoneNumbersByUserId(userId) map {
+          tuple =>
+            for {
+              smsProviderApiKey <- APIUtil.getPropsValue("sca_phone_api_key") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_key"
+              smsProviderApiSecret <- APIUtil.getPropsValue("sca_phone_api_secret") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
+              client = new NexmoClient.Builder()
+                .apiKey(smsProviderApiKey)
+                .apiSecret(smsProviderApiSecret)
+                .build();
+              phoneNumber = tuple._2
+              messageText = s"Your consent challenge : ${challengeAnswer}";
+              message = new TextMessage("OBP-API", phoneNumber, messageText);
+              response <- tryo(client.getSmsClient().submitMessage(message))
+              failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first."
+              _ <- Helper.booleanToBox (
+                response.getMessages.get(0).getStatus == com.nexmo.client.sms.MessageStatus.OK,
+                failMsg
+              )
+            } yield true
         }
-        hashedPassword
-        (Failure(NotImplemented + "sending OTP via SMS."), callContext)
+        val errorMessage = sendingResult map {
+          case f: Failure => f.msg
+          case Empty => ""
+        }
+        if(sendingResult.forall(_ == Full(true))) hashedPassword else (Failure(errorMessage.toSet.mkString(" <- ")), callContext)
       case None => // All versions which precede v4.0.0 i.e. to keep backward compatibility 
         createHashedPassword("123")
     }
