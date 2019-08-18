@@ -12,7 +12,7 @@ class RemotedataConsumersActor extends Actor with ObpActorHelper with MdcLoggabl
   val cc = RemotedataConsumersCaseClasses
 
   def receive: PartialFunction[Any, Unit] = {
-
+      
     case cc.getConsumerByPrimaryIdFuture(id: Long) =>
       logger.debug("getConsumerByPrimaryIdFuture(" + id +")")
       sender ! (mapper.getConsumerByPrimaryId(id))
