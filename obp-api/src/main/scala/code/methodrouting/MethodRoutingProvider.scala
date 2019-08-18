@@ -43,12 +43,12 @@ case class MethodRoutingCommons(methodName: String,
     val paramsJson: List[JObject] = this.parameters.map(param => JObject(List(JField("key", JString(param.key)), JField("value", JString(param.value)))))
 
     JObject(List(
-      JField("methodName", JString(this.methodName)),
-      JField("connectorName", JString(this.connectorName)),
-      JField("isBankIdExactMatch", JBool(this.isBankIdExactMatch)),
-      JField("bankIdPattern", this.bankIdPattern.map(JString(_)).getOrElse(JNull)),
+      JField("method_name", JString(this.methodName)),
+      JField("connector_name", JString(this.connectorName)),
+      JField("is_bank_id_exact_match", JBool(this.isBankIdExactMatch)),
+      JField("bank_id_pattern", this.bankIdPattern.map(JString(_)).getOrElse(JString("*"))),
       JField("parameters", JArray(paramsJson)),
-      JField("methodRoutingId", this.methodRoutingId.map(JString(_)).getOrElse(JNull))
+      JField("method_routing_id", this.methodRoutingId.map(JString(_)).getOrElse(JNull))
     ))
   }
 }
