@@ -3908,9 +3908,14 @@ trait APIMethods310 {
       "Get MethodRoutings",
       s"""Get the all MethodRoutings.
       |
-      |optional request parameters:
+      |Query url parameters:
       |
-      |* method_name: filter with method_name, url example: /management/method_routings?method_name=getBank
+      |* method_name: filter with method_name
+      |* active: if active = true, it will show all the webui_ props. Even if they are set yet, we will retrun all the default webui_ props
+      |
+      |eg: 
+      |${getObpApiRoot}/v3.1.0/management/method_routings?active=true
+      |${getObpApiRoot}/v3.1.0/management/method_routings?method_name=getBank
       |
       |""",
       emptyObjectJson,
@@ -5320,8 +5325,14 @@ trait APIMethods310 {
       |
       |Get the all WebUiProps key values, those props key with "webui_" can be stored in DB, this endpoint get all from DB.
       |
-      |You can use the url query parameter: *active*. It must be a boolean string. and If active == true, it will show
-      |combination of explicit (inserted) + implicit (default)  method_routings.
+      |url query parameter: 
+      |active: It must be a boolean string. and If active = true, it will show
+      |          combination of explicit (inserted) + implicit (default)  method_routings.
+      |
+      |eg:  
+      |${getObpApiRoot}/v3.1.0/management/webui_props
+      |${getObpApiRoot}/v3.1.0/management/webui_props?active=true
+      |
       |""",
       emptyObjectJson,
       ListResult(
