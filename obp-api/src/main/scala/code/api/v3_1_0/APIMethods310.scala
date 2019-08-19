@@ -5354,7 +5354,10 @@ trait APIMethods310 {
             explicitWebUiProps <- Future{ MappedWebUiPropsProvider.getAll() }
             implicitWebUiPropsRemovedDuplicated = if(isActived){
               val implicitWebUiProps = getWebUIPropsPairs.map(webUIPropsPairs=>WebUiPropsCommons(webUIPropsPairs._1, webUIPropsPairs._2, webUiPropsId= Some("default")))
-              explicitWebUiProps.map(abck =>implicitWebUiProps.filterNot(_.name==abck.name)).flatten
+              if(explicitWebUiProps.nonEmpty)
+                //remove the depulicated fields in the webui fileds.
+                explicitWebUiProps.map(webUiProp =>implicitWebUiProps.filterNot(_.name==webUiProp.name)).flatten
+              else implicitWebUiProps
             } else {
               List.empty[WebUiPropsCommons]
             }
