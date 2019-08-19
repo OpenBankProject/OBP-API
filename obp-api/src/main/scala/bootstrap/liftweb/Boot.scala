@@ -54,6 +54,7 @@ import code.customer.internalMapping.MappedCustomerIDMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraddress.MappedCustomerAddress
 import code.database.authorisation.Authorisation
+import code.dynamicEntity.DynamicEntity
 import code.entitlement.MappedEntitlement
 import code.entitlementrequest.MappedEntitlementRequest
 import code.fx.{MappedCurrency, MappedFXRate}
@@ -655,5 +656,6 @@ object ToSchemify {
     MethodRouting,
     WebUiProps,
     Authorisation,
+    DynamicEntity,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }

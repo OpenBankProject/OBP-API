@@ -402,6 +402,9 @@ object ErrorMessages {
   // WebUiProps Exceptions (OBP-8XXXX)
   val InvalidWebUiProps = "OBP-80001: Incorrect format of name."
 
+  // DynamicEntity Exceptions (OBP-9XXXX)
+  val DynamicEntityNotFoundByDynamicEntityId = "OBP-90001: DynamicEntity not found. Please specify a valid value for dynamic_entity_id."
+
   ///////////
 
 

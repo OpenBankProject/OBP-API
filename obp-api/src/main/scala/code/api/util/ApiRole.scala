@@ -351,6 +351,18 @@ object ApiRole {
   case class CanDeleteWebUiProps(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteWebUiProps = CanDeleteWebUiProps()
 
+  case class CanGetDynamicEntities(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetDynamicEntities = CanGetDynamicEntities()
+
+  case class CanCreateDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateDynamicEntity = CanCreateDynamicEntity()
+
+  case class CanUpdateDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateDynamicEntity = CanUpdateDynamicEntity()
+
+  case class CanDeleteDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteDynamicEntity = CanDeleteDynamicEntity()
+
   private val roles =
       canSearchAllTransactions ::
       canSearchAllAccounts ::
@@ -390,7 +402,7 @@ object ApiRole {
       canUpdateCardsForBank ::
       canGetCardsForBank ::
       canCreateBranch ::
-      canCreateBranchAtAnyBank :: 
+      canCreateBranchAtAnyBank ::
       canUpdateBranch ::
       canCreateAtm ::
       canCreateAtmAtAnyBank ::
@@ -454,12 +466,16 @@ object ApiRole {
       canGetMethodRoutings ::
       canCreateMethodRouting ::
       canUpdateMethodRouting ::
-      canDeleteMethodRouting :: 
+      canDeleteMethodRouting ::
       canUpdateCustomerNumber ::
       canCreateHistoricalTransaction ::
       canGetWebUiProps ::
       canCreateWebUiProps ::
       canDeleteWebUiProps ::
+      canGetDynamicEntities ::
+      canCreateDynamicEntity ::
+      canUpdateDynamicEntity ::
+      canDeleteDynamicEntity ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)
