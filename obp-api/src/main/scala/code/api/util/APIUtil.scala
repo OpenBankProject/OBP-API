@@ -2479,8 +2479,8 @@ Returns a string showed to the developer
       line <- bufferedSource.getLines.toList if(line.startsWith("webui_"))
       webuiProps = line.toString.split("=", 2)
     } yield {
-      val webuiPropsKey = webuiProps(0)
-      val webuiPropsValue = if (webuiProps.length > 1) webuiProps(1) else ""
+      val webuiPropsKey = webuiProps(0).trim //Remove the whitespace 
+      val webuiPropsValue = if (webuiProps.length > 1) webuiProps(1).trim else ""
       (webuiPropsKey, webuiPropsValue)
     }
     bufferedSource.close()
