@@ -760,7 +760,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Explaination of Fields:
+         |Explanation of Fields:
          |
          |* method_name is required String value
          |* connector_name is required String value

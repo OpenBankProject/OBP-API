@@ -390,9 +390,11 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations4_0_0.createDynamicEntity ::
     Implementations4_0_0.updateDynamicEntity ::
     Implementations4_0_0.deleteDynamicEntity ::
+    Implementations4_0_0.genericEndpoint ::
     Nil
   
-  val allResourceDocs = Implementations4_0_0.resourceDocs ++
+  def allResourceDocs = MockerConnector.doc ++
+                        Implementations4_0_0.resourceDocs ++
                         Implementations3_1_0.resourceDocs ++
                         Implementations3_0_0.resourceDocs ++
                         ImplementationsCustom3_0_0.resourceDocs ++
@@ -409,6 +411,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
+    Implementations4_0_0.genericEndpoint ::
     List(Implementations1_2_1.root(version, versionStatus)) ::: // For now we make this mandatory
   getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
   getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
@@ -424,6 +427,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Make them available for use!
   routes.foreach(route => {
+    if(route != Implementations4_0_0.genericEndpoint)
     oauthServe(apiPrefix{route}, findResourceDoc(route))
   })
   oauthServe(apiPrefix{Implementations4_0_0.genericEndpoint}, None)

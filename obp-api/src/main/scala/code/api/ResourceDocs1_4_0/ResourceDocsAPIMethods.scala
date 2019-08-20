@@ -201,7 +201,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
 
     //implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
-    val getResourceDocsTTL : Int = 1000 * 60 * 60 * 24
+    // because currently we can upload dynamic entity, need show new corresponding endpoints,
+    // so here cache timeout must not be to long
+    val getResourceDocsTTL : Int = 2 * 1000
 
     private def getResourceDocsObpCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : ApiVersion, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       /**
