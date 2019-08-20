@@ -238,7 +238,7 @@ messageDocs += MessageDoc(
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
-        val url = getUrl("getBankAccountsBalances" , ("bankIdAccountIds", bankIdAccountIds))
+        val url = getUrl(callContext,"getBankAccountsBalances" , ("bankIdAccountIds", bankIdAccountIds))
         sendGetRequest[InBoundGetBankAccountsBalances](url, callContext)
           .map { boxedResult =>
                                  boxedResult match {
@@ -293,16 +293,24 @@ messageDocs += MessageDoc(
   //TODO please modify this baseUrl to your remote api server base url of this connector
   private[this] val baseUrl = "http://localhost:8080/restConnector"
 
-  private[this] def getUrl(methodName: String, variables: (String, Any)*): String = {
+  private[this] def getUrl(callContext: Option[CallContext], methodName: String, variables: (String, Any)*): String = {
     // rest connector can have url value in the parameters, key is url
+     
+    //Temporary solution:
+    val basicUserAuthContext: List[BasicUserAuthContext] = callContext.map(_.toOutboundAdapterCallContext.outboundAdapterAuthInfo.map(_.userAuthContext)).flatten.flatten.getOrElse(List.empty[BasicUserAuthContext])
+    val bankId = basicUserAuthContext.find(_.key=="bank-id").map(_.value)
+    val accountId = basicUserAuthContext.find(_.key=="account-id").map(_.value)
+    val parameterUrl = if (bankId.isDefined &&accountId.isDefined)  s"/${bankId.get},${accountId.get}" else ""
+    
+     //http://127.0.0.1:8080/restConnector/getBankAccountsBalances/bankIdAccountIds
      val urlInMethodRouting = NewStyle.function.getMethodRoutings(Some(methodName))
        .flatMap(_.parameters)
        .find(_.key == "url")
        .map(_.value)
 
-
+    // http://127.0.0.1:8080/restConnector/getBankAccountsBalances/bankIdAccountIds/dmo.02.de.de,60e65f3f-0743-41f5-9efd-3c6f0438aa42
     if(urlInMethodRouting.isDefined) {
-      return urlInMethodRouting.get
+      return urlInMethodRouting.get + parameterUrl
     }
 
     // convert any type value to string, to fill in the url
