@@ -89,7 +89,11 @@ class ConsumerRegistration extends MdcLoggable {
       val urlOAuthEndpoint = APIUtil.getPropsValue("hostname", "") + "/oauth/initiate"
       val urlDirectLoginEndpoint = APIUtil.getPropsValue("hostname", "") + "/my/logins/direct"
       val createDirectLoginToken = getWebUiPropsValue("webui_create_directlogin_token_url", "")
+      val registerConsumerSuccessMessageWebpage = getWebUiPropsValue(
+        "webui_register_consumer_success_message_webpage", 
+        "Thanks for registering your consumer with the Open Bank API! Here is your developer information. Please save it in a secure location.")
       //thanks for registering, here's your key, etc.
+      "#register-consumer-success-message *" #> registerConsumerSuccessMessageWebpage &
       "#app-consumer_id *" #> consumer.id.get &
       "#app-name *" #> consumer.name.get &
       "#app-redirect-url *" #> consumer.redirectURL &
@@ -228,14 +232,14 @@ class ConsumerRegistration extends MdcLoggable {
 
       val params = PlainMailBodyType(registrationMessage) :: List(To(registered.developerEmail.get))
 
-      val subject1 : String = "Thank you for registering to use the Open Bank Project API."
-      val subject2 : String = if (sendSensitive) "This email contains your API keys." else "This email does NOT contain your API keys."
-      val subject : String = s"$subject1 $subject2"
+      val webuiRegisterConsumerSuccessMssageEmail : String = getWebUiPropsValue(
+        "webui_register_consumer_success_message_email", 
+        "Thank you for registering to use the Open Bank Project API.") 
 
       //this is an async call
       Mailer.sendMail(
         From(from),
-        Subject(subject1),
+        Subject(webuiRegisterConsumerSuccessMssageEmail),
         params :_*
       )
     }
