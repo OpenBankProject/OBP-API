@@ -22,6 +22,7 @@ import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.consent.ConsentStatus
 import code.context.UserAuthContextUpdateStatus
+import code.dynamicEntity.DynamicEntityCommons
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
@@ -3432,6 +3433,29 @@ object SwaggerDefinitionsJSON {
     overall_balance = amountOfMoney,
     overall_balance_date = DateWithMsExampleObject
   )
+
+  val dynamicEntityCommons = DynamicEntityCommons(entityName = "FooBar", metadataJson =
+    """
+      |{
+      |    \"definitions\": {
+      |        \"FooBar\": {
+      |            \"required\": [
+      |                \"name\"
+      |            ],
+      |            \"properties\": {
+      |                \"name\": {
+      |                    \"type\": \"string\",
+      |                    \"example\": \"James Brown\"
+      |                },
+      |                \"number\": {
+      |                    \"type\": \"integer\",
+      |                    \"example\": \"698761728934\"
+      |                }
+      |            }
+      |        }
+      |    }
+      |}
+      |""".stripMargin, dynamicEntityId = Some("dynamic-entity-id"))
     
   //The common error or success format.
   //Just some helper format to use in Json 
