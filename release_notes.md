@@ -3,6 +3,8 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+21/08/2019    4ac93f1c      Added props: webui_register_consumer_success_message_webpage and webui_register_consumer_success_message_email.
+                            These  messages will be shown to developers on the webpage or email, when they register the consumer successfully. 
 05/07/2019    7032ce3       Added props: webui_sandbox_introduction, To display the introduction page for sandbox.
                             It supports the markdown format.It will show the introduction OBP-API home page `INTRODUCTION` 
                             page and also for Glossary `Sandbox Introduction`. 

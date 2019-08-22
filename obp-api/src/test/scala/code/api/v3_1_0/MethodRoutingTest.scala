@@ -54,7 +54,7 @@ class MethodRoutingTest extends V310ServerSetup {
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getMethodRoutings))
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.deleteMethodRouting))
 
-  val rightEntity = MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))))
+  val rightEntity = MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")))
   val wrongEntity = MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_([")) // wrong regex
 
 

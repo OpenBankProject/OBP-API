@@ -512,7 +512,7 @@ object SwaggerDefinitionsJSON {
   )
   val userJSONV121 = UserJSONV121(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
-    provider = "OBP",
+    provider = providerValueExample.value,
     display_name = "OBP"
   )
 
@@ -1569,8 +1569,8 @@ object SwaggerDefinitionsJSON {
   val userJsonV200 = UserJsonV200(
     user_id = ExampleValue.userIdExample.value,
     email = ExampleValue.emailExample.value,
-    provider_id = "OBP",
-    provider = "OBP",
+    provider_id = providerIdValueExample.value,
+    provider = providerValueExample.value,
     username = "robert.x.0.gh",
     entitlements = entitlementJSONs
   )
@@ -1690,7 +1690,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val createMeetingJson = CreateMeetingJson(
-    provider_id = "String",
+    provider_id = providerIdValueExample.value,
     purpose_id = "String"
   )
 
@@ -1707,7 +1707,7 @@ object SwaggerDefinitionsJSON {
 
   val meetingJson = MeetingJson(
     meeting_id = "String",
-    provider_id = "String",
+    provider_id = providerIdValueExample.value,
     purpose_id = "String",
     bank_id = bankIdExample.value,
     present = meetingPresentJSON,
@@ -1852,9 +1852,9 @@ object SwaggerDefinitionsJSON {
   val resourceUserJSON = ResourceUserJSON(
     user_id = ExampleValue.userIdExample.value,
     email = ExampleValue.emailExample.value,
-    provider_id = "obp",
-    provider = "obp",
-    username = "TESOBE"
+    provider_id = providerIdValueExample.value,
+    provider = providerValueExample.value,
+    username = usernameExample.value
   )
 
   val availableRoleJSON = AvailableRoleJSON(
@@ -1919,7 +1919,7 @@ object SwaggerDefinitionsJSON {
 
   val userJSONV210 = UserJSONV210(
     id = "123",
-    provider = "OBP",
+    provider = providerValueExample.value,
     username = "OBP"
   )
 
@@ -3184,7 +3184,7 @@ object SwaggerDefinitionsJSON {
   )
   
   val createMeetingJsonV310 = CreateMeetingJsonV310(
-    provider_id = "String, eg: tokbox",
+    provider_id = providerIdValueExample.value,
     purpose_id = "String, eg: onboarding",
     date = DateWithMsExampleObject,
     creator = contactDetailsJson,
@@ -3193,7 +3193,7 @@ object SwaggerDefinitionsJSON {
   
   val meetingJsonV310 = MeetingJsonV310(
     meeting_id = "UUID-String",
-    provider_id = "String, eg: tokbox",
+    provider_id = providerIdValueExample.value,
     purpose_id = "String, eg: onboarding",
     bank_id = bankIdExample.value,
     present = meetingPresentJSON,

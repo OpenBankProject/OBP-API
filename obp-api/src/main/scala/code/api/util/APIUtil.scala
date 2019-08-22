@@ -2472,15 +2472,16 @@ Returns a string showed to the developer
   //eg: List(("webui_get_started_text","Get started building your application using this sandbox now"),
   // ("webui_post_consumer_registration_more_info_text"," Please tell us more your Application and / or Startup using this link"))
   def getWebUIPropsPairs: List[(String, String)] = {
+    val filepath = this.getClass.getResource("/props/sample.props.template").getPath
+    val bufferedSource: BufferedSource = scala.io.Source.fromFile(filepath)
 
-    val bufferedSource = scala.io.Source.fromFile("obp-api/src/main/resources/props/sample.props.template")
     val proPairs: List[(String, String)] = for{
       line <- bufferedSource.getLines.toList if(line.startsWith("webui_"))
       webuiProps = line.toString.split("=", 2)
     } yield {
-      val webuiProsKey = webuiProps(0)
-      val webuiProsValue = if (webuiProps.length > 1) webuiProps(1) else ""
-      (webuiProsKey, webuiProsValue)
+      val webuiPropsKey = webuiProps(0).trim //Remove the whitespace 
+      val webuiPropsValue = if (webuiProps.length > 1) webuiProps(1).trim else ""
+      (webuiPropsKey, webuiPropsValue)
     }
     bufferedSource.close()
     proPairs

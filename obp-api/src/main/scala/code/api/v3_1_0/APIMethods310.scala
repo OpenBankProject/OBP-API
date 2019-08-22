@@ -20,7 +20,7 @@ import code.api.v2_2_0.{CreateAccountJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.consent.{ConsentStatus, Consents}
 import code.consumer.Consumers
@@ -28,7 +28,7 @@ import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
 import code.entitlement.Entitlement
 import code.kafka.KafkaHelper
 import code.loginattempts.LoginAttempt
-import code.methodrouting.{MethodRoutingCommons, MethodRoutingParam}
+import code.methodrouting.{MethodRoutingCommons, MethodRoutingParam, MethodRoutingT}
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -42,6 +42,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.model.{CreditLimit, _}
+import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.S
 import net.liftweb.http.provider.HTTPParam
@@ -3907,15 +3908,20 @@ trait APIMethods310 {
       "Get MethodRoutings",
       s"""Get the all MethodRoutings.
       |
-      |optional request parameters:
+      |Query url parameters:
       |
-      |* method_name: filter with method_name, url example: /management/method_routings?method_name=getBank
+      |* method_name: filter with method_name
+      |* active: if active = true, it will show all the webui_ props. Even if they are set yet, we will retrun all the default webui_ props
+      |
+      |eg: 
+      |${getObpApiRoot}/v3.1.0/management/method_routings?active=true
+      |${getObpApiRoot}/v3.1.0/management/method_routings?method_name=getBank
       |
       |""",
       emptyObjectJson,
       ListResult(
         "method_routings",
-        (List(MethodRoutingCommons("getBanks", "rest_vMar2019", false, Some("some_bank_.*"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))), Some("method-routing-id"))))
+        (List(MethodRoutingCommons("getBanks", "rest_vMar2019", false, Some("some_bank_.*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")), Some("method-routing-id"))))
       )
     ,
       List(
@@ -3937,10 +3943,40 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetMethodRoutings, callContext)
             methodRoutings <- NewStyle.function.getMethodRoutingsByMethdName(req.param("method_name"))
           } yield {
-            val listCommons: List[MethodRoutingCommons] = methodRoutings
-            (ListResult("method_routings", listCommons), HttpCode.`200`(callContext))
+            val listCommons: List[MethodRoutingCommons] = req.param("active") match {
+              case Full("true") =>  methodRoutings ++ getDefaultMethodRountings(methodRoutings )
+              case _ => methodRoutings
+            }
+            (ListResult("method_routings", listCommons.map(_.toJson)), HttpCode.`200`(callContext))
           }
       }
+    }
+
+    /**
+      * get all methodRountings exception saved in DB
+      * @param methodRoutingsInDB saved in DB methodRouting#methodName
+      * @return all default methodRounting#methodName, those just in mapped connector
+      */
+    private def getDefaultMethodRountings(methodRoutingsInDB: List[MethodRoutingT]) = {
+      val methodRountingNamesInDB = methodRoutingsInDB.map(_.methodName).toSet
+
+      val methodRegex = """method \S+(?<!\$default\$\d{0,10})""".r.pattern
+
+      ReflectUtils.getType(LocalMappedConnector)
+        .decls
+        .filter(it => methodRegex.matcher(it.toString).matches())
+        .filter(_.asMethod.isPublic)
+        .map(_.asMethod)
+        .filter(it => !methodRountingNamesInDB.contains(it.name.toString) && it.overrides.size > 0)
+        .map(it => MethodRoutingCommons(
+          methodName = it.name.toString,
+          connectorName = "mapped",
+          isBankIdExactMatch = false,
+          bankIdPattern = Some("*"),
+          parameters= List.empty[MethodRoutingParam],
+          methodRoutingId  = Some(""),
+      ))
+        .toList
     }
 
     resourceDocs += ResourceDoc(
@@ -3967,9 +4003,9 @@ trait APIMethods310 {
         |
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
         |""",
-      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx")))),
+      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx"))),
       MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), 
-        Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))), 
+        List(MethodRoutingParam("url", "http://mydomain.com/xxx")),
         Some("this-method-routing-Id")
       ),
       List(
@@ -4002,7 +4038,7 @@ trait APIMethods310 {
             Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(postedData)
           } yield {
             val commonsData: MethodRoutingCommons = methodRouting
-            (commonsData, HttpCode.`201`(callContext))
+            (commonsData.toJson, HttpCode.`201`(callContext))
           }
       }
     }
@@ -4031,8 +4067,8 @@ trait APIMethods310 {
         |
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
         |""",
-      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx")))),
-      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"),Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))), Some("this-method-routing-Id")),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), List(MethodRoutingParam("url", "http://mydomain.com/xxx"))),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")), Some("this-method-routing-Id")),
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -4068,7 +4104,7 @@ trait APIMethods310 {
             Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(putData)
           } yield {
             val commonsData: MethodRoutingCommons = methodRouting
-            (commonsData, HttpCode.`200`(callContext))
+            (commonsData.toJson, HttpCode.`200`(callContext))
           }
       }
     }
@@ -5289,8 +5325,14 @@ trait APIMethods310 {
       |
       |Get the all WebUiProps key values, those props key with "webui_" can be stored in DB, this endpoint get all from DB.
       |
-      |You can use the url query parameter: *active*. It must be a boolean string. and If active == true, it will show
-      |combination of explicit (inserted) + implicit (default)  method_routings.
+      |url query parameter: 
+      |active: It must be a boolean string. and If active = true, it will show
+      |          combination of explicit (inserted) + implicit (default)  method_routings.
+      |
+      |eg:  
+      |${getObpApiRoot}/v3.1.0/management/webui_props
+      |${getObpApiRoot}/v3.1.0/management/webui_props?active=true
+      |
       |""",
       emptyObjectJson,
       ListResult(
@@ -5323,7 +5365,10 @@ trait APIMethods310 {
             explicitWebUiProps <- Future{ MappedWebUiPropsProvider.getAll() }
             implicitWebUiPropsRemovedDuplicated = if(isActived){
               val implicitWebUiProps = getWebUIPropsPairs.map(webUIPropsPairs=>WebUiPropsCommons(webUIPropsPairs._1, webUIPropsPairs._2, webUiPropsId= Some("default")))
-              explicitWebUiProps.map(abck =>implicitWebUiProps.filterNot(_.name==abck.name)).flatten
+              if(explicitWebUiProps.nonEmpty)
+                //remove the depulicated fields in the webui fileds.
+                explicitWebUiProps.map(webUiProp =>implicitWebUiProps.filterNot(_.name==webUiProp.name)).flatten
+              else implicitWebUiProps
             } else {
               List.empty[WebUiPropsCommons]
             }
