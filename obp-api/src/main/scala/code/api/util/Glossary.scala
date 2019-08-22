@@ -1830,11 +1830,29 @@ object Glossary {
     description =
       s"""
           ${getWebUiPropsValue("webui_sandbox_introduction", "")}
- """)  
+ """)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Data Model Overview",
+		description =
+			s"""
+|
+|An overview of the Open Bank Project Data Model.
+|
+|This model may help understand Open Bank Project. However it is subject to change. If we change the data model, we release migration scripts.
+|
+|
+|<img width="468" alt="obp-data-model-overview" src="https://user-images.githubusercontent.com/485218/63519307-04e93480-c4f3-11e9-8bfc-b64096d2f034.png"></img>
+|
+|
+|
+ """)
 
 
 
-///////////////////////////////////////////////////////////////////
+
+	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala
 //////////////////////////////////////////////////////////////////
 

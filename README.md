@@ -82,6 +82,10 @@ To compile and run jetty, install Maven 3, create your configuration in obp-api/
     Package: Select code
     Add the absolute /path-to-your-OBP-API in the "working directory" field
     You might need to assign more memory via VM Options: e.g. -Xmx1512M -XX:MaxPermSize=512M
+
+    or
+
+    -Xmx2048m -Xms1024m -Xss2048k -XX:MaxPermSize=1024m
     
     Make sure your test.default.props has the minimum settings (see test.default.props.template)
 
