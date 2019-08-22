@@ -31,6 +31,12 @@ object ErrorMessages {
   val MissingPropsValueAtThisInstance = "OBP-00010: Missing props value at this API instance - "
   val NoValidElasticsearchIndicesConfigured = "OBP-00011: No elasticsearch indices are allowed on this instance. Please set es.warehouse.allowed.indices = index1,index2 (or = ALL for all). "
 
+  // WebUiProps Exceptions (OBP-08XXX)
+  val InvalidWebUiProps = "OBP-08001: Incorrect format of name."
+
+  // DynamicEntity Exceptions (OBP-09XXX)
+  val DynamicEntityNotFoundByDynamicEntityId = "OBP-09001: DynamicEntity not found. Please specify a valid value for dynamic_entity_id."
+
   // General messages (OBP-10XXX)
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
   val InvalidNumber = "OBP-10002: Invalid Number. Could not convert value to a number."
@@ -398,9 +404,6 @@ object ErrorMessages {
   // MethodRouting Exceptions (OBP-7XXXX)
   val InvalidBankIdRegex = "OBP-70001: Incorrect regex for bankIdPattern."
   val MethodRoutingNotFoundByMethodRoutingId = "OBP-70002: MethodRouting not found. Please specify a valid value for method_routing_id."
-
-  // WebUiProps Exceptions (OBP-8XXXX)
-  val InvalidWebUiProps = "OBP-80001: Incorrect format of name."
 
   ///////////
 

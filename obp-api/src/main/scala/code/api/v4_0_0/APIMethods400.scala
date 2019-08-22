@@ -3,13 +3,15 @@ package code.api.v4_0_0
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.canCreateAnyTransactionRequest
+import code.api.util.ApiRole._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankNotFound, CounterpartyBeneficiaryPermit, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
+import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankNotFound, CounterpartyBeneficiaryPermit, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_1_0._
+import code.api.v3_1_0.ListResult
+import code.dynamicEntity.DynamicEntityCommons
 import code.model.toUserExtended
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
@@ -17,15 +19,17 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{app
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
-import net.liftweb.common.Full
+import net.liftweb.common.{Box, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
-import net.liftweb.util.Props
+import net.liftweb.util.StringHelpers
+import org.atteo.evo.inflector.English
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait APIMethods400 {
   self: RestHelper =>
@@ -60,76 +64,74 @@ trait APIMethods400 {
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil)
-    
-    lazy val getBanks : OBPEndpoint = {
+
+    lazy val getBanks: OBPEndpoint = {
       case "banks" :: Nil JsonGet _ => {
         cc =>
           for {
             (_, callContext) <- anonymousAccess(cc)
             (banks, callContext) <- NewStyle.function.getBanks(callContext)
-          } yield{
+          } yield {
             (JSONFactory400.createBanksJson(banks), HttpCode.`200`(callContext))
           }
-          
+
       }
     }
-    
-    val exchangeRates = 
+
+    val exchangeRates =
       APIUtil.getPropsValue("webui_api_explorer_url", "") +
-      "/more?version=OBPv4.0.0&list-all-banks=false&core=&psd2=&obwg=#OBPv2_2_0-getCurrentFxRate"
+        "/more?version=OBPv4.0.0&list-all-banks=false&core=&psd2=&obwg=#OBPv2_2_0-getCurrentFxRate"
 
 
     // This text is used in the various Create Transaction Request resource docs
     val transactionRequestGeneralText =
       s"""Initiate a Payment via creating a Transaction Request.
          |
-          |In OBP, a `transaction request` may or may not result in a `transaction`. However, a `transaction` only has one possible state: completed.
+         |In OBP, a `transaction request` may or may not result in a `transaction`. However, a `transaction` only has one possible state: completed.
          |
-          |A `Transaction Request` can have one of several states.
+         |A `Transaction Request` can have one of several states.
          |
-          |`Transactions` are modeled on items in a bank statement that represent the movement of money.
+         |`Transactions` are modeled on items in a bank statement that represent the movement of money.
          |
-          |`Transaction Requests` are requests to move money which may or may not succeeed and thus result in a `Transaction`.
+         |`Transaction Requests` are requests to move money which may or may not succeeed and thus result in a `Transaction`.
          |
-          |A `Transaction Request` might create a security challenge that needs to be answered before the `Transaction Request` proceeds.
+         |A `Transaction Request` might create a security challenge that needs to be answered before the `Transaction Request` proceeds.
          |
-          |Transaction Requests contain charge information giving the client the opportunity to proceed or not (as long as the challenge level is appropriate).
+         |Transaction Requests contain charge information giving the client the opportunity to proceed or not (as long as the challenge level is appropriate).
          |
-          |Transaction Requests can have one of several Transaction Request Types which expect different bodies. The escaped body is returned in the details key of the GET response.
+         |Transaction Requests can have one of several Transaction Request Types which expect different bodies. The escaped body is returned in the details key of the GET response.
          |This provides some commonality and one URL for many different payment or transfer types with enough flexibility to validate them differently.
          |
-          |The payer is set in the URL. Money comes out of the BANK_ID and ACCOUNT_ID specified in the URL.
+         |The payer is set in the URL. Money comes out of the BANK_ID and ACCOUNT_ID specified in the URL.
          |
-          |In sandbox mode, TRANSACTION_REQUEST_TYPE is commonly set to ACCOUNT. See getTransactionRequestTypesSupportedByBank for all supported types.
+         |In sandbox mode, TRANSACTION_REQUEST_TYPE is commonly set to ACCOUNT. See getTransactionRequestTypesSupportedByBank for all supported types.
          |
-          |In sandbox mode, if the amount is less than 1000 EUR (any currency, unless it is set differently on this server), the transaction request will create a transaction without a challenge, else the Transaction Request will be set to INITIALISED and a challenge will need to be answered.
+         |In sandbox mode, if the amount is less than 1000 EUR (any currency, unless it is set differently on this server), the transaction request will create a transaction without a challenge, else the Transaction Request will be set to INITIALISED and a challenge will need to be answered.
          |
-          |If a challenge is created you must answer it using Answer Transaction Request Challenge before the Transaction is created.
+         |If a challenge is created you must answer it using Answer Transaction Request Challenge before the Transaction is created.
          |
-          |You can transfer between different currency accounts. (new in 2.0.0). The currency in body must match the sending account.
+         |You can transfer between different currency accounts. (new in 2.0.0). The currency in body must match the sending account.
          |
-          |The following static FX rates are available in sandbox mode:
+         |The following static FX rates are available in sandbox mode:
          |
-          |${exchangeRates}
+         |${exchangeRates}
          |
-          |
-          |Transaction Requests satisfy PSD2 requirements thus:
          |
-          |1) A transaction can be initiated by a third party application.
+         |Transaction Requests satisfy PSD2 requirements thus:
          |
-          |2) The customer is informed of the charge that will incurred.
+         |1) A transaction can be initiated by a third party application.
          |
-          |3) The call supports delegated authentication (OAuth)
+         |2) The customer is informed of the charge that will incurred.
          |
-          |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
+         |3) The call supports delegated authentication (OAuth)
          |
-          |There is further documentation [here](https://github.com/OpenBankProject/OBP-API/wiki/Transaction-Requests)
+         |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
          |
-          |${authenticationRequiredMessage(true)}
+         |There is further documentation [here](https://github.com/OpenBankProject/OBP-API/wiki/Transaction-Requests)
          |
-          |"""
-
-
+         |${authenticationRequiredMessage(true)}
+         |
+         |"""
 
 
     // ACCOUNT. (we no longer create a resource doc for the general case)
@@ -170,7 +172,7 @@ trait APIMethods400 {
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
-    
+
     // ACCOUNT_OTP. (we no longer create a resource doc for the general case)
     resourceDocs += ResourceDoc(
       createTransactionRequestAccountOtp,
@@ -252,7 +254,7 @@ trait APIMethods400 {
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
 
 
-    val lowAmount  = AmountOfMoneyJsonV121("EUR", "12.50")
+    val lowAmount = AmountOfMoneyJsonV121("EUR", "12.50")
     val sharedChargePolicy = ChargePolicy.withName("SHARED")
 
     // Transaction Request (SEPA)
@@ -334,8 +336,6 @@ trait APIMethods400 {
       Some(List(canCreateAnyTransactionRequest)))
 
 
-
-
     // Different Transaction Request approaches:
     lazy val createTransactionRequestAccount = createTransactionRequest
     lazy val createTransactionRequestAccountOtp = createTransactionRequest
@@ -351,14 +351,18 @@ trait APIMethods400 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.isEnabledTransactionRequests()
-            _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {isValidID(accountId.value)}
-            _ <- Helper.booleanToFuture(InvalidBankIdFormat) {isValidID(bankId.value)}
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {
+              isValidID(accountId.value)
+            }
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat) {
+              isValidID(bankId.value)
+            }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             _ <- NewStyle.function.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext)
 
             _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
-              u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
+              u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId)) == true ||
                 hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest) == true
             }
 
@@ -393,7 +397,7 @@ trait APIMethods400 {
               transDetailsJson.value.currency == fromAccount.currency
             }
 
-            (createdTransactionRequest,callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+            (createdTransactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
               case ACCOUNT | SANDBOX_TAN => {
                 for {
                   transactionRequestBodySandboxTan <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $ACCOUNT json format", 400, callContext) {
@@ -404,7 +408,9 @@ trait APIMethods400 {
                   toAccountId = AccountId(transactionRequestBodySandboxTan.to.account_id)
                   (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(toBankId, toAccountId, callContext)
 
-                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))}
+                  transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+                    write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))
+                  }
 
                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                     viewId,
@@ -429,7 +435,9 @@ trait APIMethods400 {
                   toAccountId = AccountId(transactionRequestBodySandboxTan.to.account_id)
                   (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(toBankId, toAccountId, callContext)
 
-                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))}
+                  transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+                    write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))
+                  }
 
                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                     viewId,
@@ -453,7 +461,7 @@ trait APIMethods400 {
                   toCounterpartyId = transactionRequestBodyCounterparty.to.counterparty_id
                   (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), callContext)
                   toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
-                  // Check we can send money to it. 
+                  // Check we can send money to it.
                   _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
                     toCounterparty.isBeneficiary == true
                   }
@@ -461,7 +469,9 @@ trait APIMethods400 {
                   _ <- Helper.booleanToFuture(s"$InvalidChargePolicy") {
                     ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))
                   }
-                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transactionRequestBodyCounterparty)(Serialization.formats(NoTypeHints))}
+                  transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+                    write(transactionRequestBodyCounterparty)(Serialization.formats(NoTypeHints))
+                  }
                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                     viewId,
                     fromAccount,
@@ -492,7 +502,9 @@ trait APIMethods400 {
                   _ <- Helper.booleanToFuture(s"$InvalidChargePolicy") {
                     ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))
                   }
-                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transDetailsSEPAJson)(Serialization.formats(NoTypeHints))}
+                  transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+                    write(transDetailsSEPAJson)(Serialization.formats(NoTypeHints))
+                  }
                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                     viewId,
                     fromAccount,
@@ -513,7 +525,9 @@ trait APIMethods400 {
                   }
                   // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
                   transactionRequestAccountJSON = TransactionRequestAccountJsonV140(fromAccount.bankId.value, fromAccount.accountId.value)
-                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transactionRequestBodyFreeForm)(Serialization.formats(NoTypeHints))}
+                  transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+                    write(transactionRequestBodyFreeForm)(Serialization.formats(NoTypeHints))
+                  }
                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                     viewId,
                     fromAccount,
@@ -547,11 +561,11 @@ trait APIMethods400 {
         |
         |This endpoint totally depends on createTransactionRequest, it need get the following data from createTransactionRequest response body.
         |
-        |1)`TRANSACTION_REQUEST_TYPE` : is the same as createTransactionRequest request URL . 
+        |1)`TRANSACTION_REQUEST_TYPE` : is the same as createTransactionRequest request URL .
         |
         |2)`TRANSACTION_REQUEST_ID` : is the `id` field in createTransactionRequest response body.
         |
-        |3) `id` :  is `challenge.id` field in createTransactionRequest response body. 
+        |3) `id` :  is `challenge.id` field in createTransactionRequest response body.
         |
         |4) `answer` : must be `123`. if it is in sandbox mode. If it kafka mode, the answer can be got by phone message or other security ways.
         |
@@ -583,8 +597,12 @@ trait APIMethods400 {
             // Check we have a User
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.isEnabledTransactionRequests()
-            _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {isValidID(accountId.value)}
-            _ <- Helper.booleanToFuture(InvalidBankIdFormat) {isValidID(bankId.value)}
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {
+              isValidID(accountId.value)
+            }
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat) {
+              isValidID(bankId.value)
+            }
             challengeAnswerJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ChallengeAnswerJSON ", 400, callContext) {
               json.extract[ChallengeAnswerJSON]
             }
@@ -594,7 +612,7 @@ trait APIMethods400 {
             _ <- NewStyle.function.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext)
 
             _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
-              u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
+              u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId)) == true ||
                 hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest) == true
             }
 
@@ -627,7 +645,7 @@ trait APIMethods400 {
               List(
                 OTP_VIA_API.toString,
                 OTP_VIA_WEB_FORM.toString
-              ).exists(_ == existingTransactionRequest.challenge.challenge_type)       
+              ).exists(_ == existingTransactionRequest.challenge.challenge_type)
             }
 
             challengeAnswerOBP <- NewStyle.function.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
@@ -644,7 +662,7 @@ trait APIMethods400 {
 
             // All Good, proceed with the Transaction creation...
             (transactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
-              case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT=>
+              case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT =>
                 NewStyle.function.createTransactionAfterChallengeV300(u, fromAccount, transReqId, transactionRequestType, callContext)
               case _ =>
                 NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
@@ -655,8 +673,361 @@ trait APIMethods400 {
           }
       }
     }
-    
+
+    resourceDocs += ResourceDoc(
+      getDynamicEntities,
+      implementedInApiVersion,
+      nameOf(getDynamicEntities),
+      "GET",
+      "/management/dynamic_entities",
+      "Get DynamicEntities",
+      s"""Get the all DynamicEntities.""",
+      emptyObjectJson,
+      ListResult(
+        "dynamic_entities",
+        (List(DynamicEntityCommons(entityName = "FooBar", metadataJson =
+          """
+            |{
+            |    "definitions": {
+            |        "FooBar": {
+            |            "required": [
+            |                "name"
+            |            ],
+            |            "properties": {
+            |                "name": {
+            |                    "type": "string",
+            |                    "example": "James Brown"
+            |                },
+            |                "number": {
+            |                    "type": "integer",
+            |                    "example": "698761728934"
+            |                }
+            |            }
+            |        }
+            |    }
+            |}
+            |""".stripMargin)))
+      )
+      ,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
+      Some(List(canGetDynamicEntities))
+    )
+
+
+    lazy val getDynamicEntities: OBPEndpoint = {
+      case "management" :: "dynamic_entities" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetDynamicEntities, callContext)
+            dynamicEntities <- Future(NewStyle.function.getDynamicEntities())
+          } yield {
+            val listCommons: List[DynamicEntityCommons] = dynamicEntities
+            (ListResult("dynamic_entities", listCommons), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    private def validateDynamicEntityJson(data: DynamicEntityCommons) = {
+      val metadataJson = net.liftweb.json.parse(data.metadataJson)
+
+      val rqs = (metadataJson \ "definitions" \ data.entityName \ "required").extract[Array[String]]
+
+      val propertiesFields = (metadataJson \ "definitions" \ data.entityName \ "properties").asInstanceOf[JObject].values
+      require(rqs.toSet.diff(propertiesFields.keySet).isEmpty)
+      propertiesFields.values.foreach(pair => {
+        val map = pair.asInstanceOf[Map[String, _]]
+        require(map("type").isInstanceOf[String])
+        require(map("example") != null)
+      })
+    }
+
+    resourceDocs += ResourceDoc(
+      createDynamicEntity,
+      implementedInApiVersion,
+      nameOf(createDynamicEntity),
+      "POST",
+      "/management/dynamic_entities",
+      "Add DynamicEntity",
+      s"""Add a DynamicEntity.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Explanation of Fields:
+         |
+         |* method_name is required String value
+         |* connector_name is required String value
+         |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
+         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
+         |* parameters is optional array of key value pairs. You can set some paremeters for this method
+         |
+         |note:
+         |
+         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
+         |""",
+      DynamicEntityCommons(entityName = "FooBar", metadataJson =
+        """
+          |{
+          |    "definitions": {
+          |        "FooBar": {
+          |            "required": [
+          |                "name"
+          |            ],
+          |            "properties": {
+          |                "name": {
+          |                    "type": "string",
+          |                    "example": "James Brown"
+          |                },
+          |                "number": {
+          |                    "type": "integer",
+          |                    "example": "698761728934"
+          |                }
+          |            }
+          |        }
+          |    }
+          |}
+          |""".stripMargin),
+      DynamicEntityCommons(entityName = "FooBar", metadataJson =
+        """
+          |{
+          |    "definitions": {
+          |        "FooBar": {
+          |            "required": [
+          |                "name"
+          |            ],
+          |            "properties": {
+          |                "name": {
+          |                    "type": "string",
+          |                    "example": "James Brown"
+          |                },
+          |                "number": {
+          |                    "type": "integer",
+          |                    "example": "698761728934"
+          |                }
+          |            }
+          |        }
+          |    }
+          |}
+          |""".stripMargin, dynamicEntityId = Some("dynamic-entity-id")),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateDynamicEntity)))
+
+    lazy val createDynamicEntity: OBPEndpoint = {
+      case "management" :: "dynamic_entities" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateDynamicEntity, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[DynamicEntityCommons]}, and metadataJson should be the same structure as document example."
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              val data = json.extract[DynamicEntityCommons]
+              validateDynamicEntityJson(data)
+              data
+            }
+
+            Full(dynamicEntity) <- NewStyle.function.createOrUpdateDynamicEntity(postedData)
+          } yield {
+            val commonsData: DynamicEntityCommons = dynamicEntity
+            (commonsData, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      updateDynamicEntity,
+      implementedInApiVersion,
+      nameOf(updateDynamicEntity),
+      "PUT",
+      "/management/dynamic_entities/DYNAMIC_ENTITY_ID",
+      "Update DynamicEntity",
+      s"""Update a DynamicEntity.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Explanations of Fields:
+         |
+         |* method_name is required String value
+         |* connector_name is required String value
+         |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
+         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
+         |* parameters is optional array of key value pairs. You can set some paremeters for this method
+         |note:
+         |
+         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
+         |""",
+      DynamicEntityCommons(entityName = "FooBar", metadataJson =
+        """
+          |{
+          |    "definitions": {
+          |        "FooBar": {
+          |            "required": [
+          |                "name"
+          |            ],
+          |            "properties": {
+          |                "name": {
+          |                    "type": "string",
+          |                    "example": "James Brown"
+          |                },
+          |                "number": {
+          |                    "type": "integer",
+          |                    "example": "698761728934"
+          |                }
+          |            }
+          |        }
+          |    }
+          |}
+          |""".stripMargin),
+      DynamicEntityCommons(entityName = "FooBar", metadataJson =
+        """
+          |{
+          |    "definitions": {
+          |        "FooBar": {
+          |            "required": [
+          |                "name"
+          |            ],
+          |            "properties": {
+          |                "name": {
+          |                    "type": "string",
+          |                    "example": "James Brown"
+          |                },
+          |                "number": {
+          |                    "type": "integer",
+          |                    "example": "698761728934"
+          |                }
+          |            }
+          |        }
+          |    }
+          |}
+          |""".stripMargin, dynamicEntityId = Some("dynamic-entity-id")),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
+      Some(List(canUpdateDynamicEntity)))
+
+    lazy val updateDynamicEntity: OBPEndpoint = {
+      case "management" :: "dynamic_entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canUpdateDynamicEntity, callContext)
+
+            failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[DynamicEntityCommons]}, and metadataJson should be the same structure as document example."
+            putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              val data = json.extract[DynamicEntityCommons].copy(dynamicEntityId = Some(dynamicEntityId))
+              validateDynamicEntityJson(data)
+              data
+            }
+
+            (_, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, callContext)
+
+            Full(dynamicEntity) <- NewStyle.function.createOrUpdateDynamicEntity(putData)
+          } yield {
+            val commonsData: DynamicEntityCommons = dynamicEntity
+            (commonsData, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      deleteDynamicEntity,
+      implementedInApiVersion,
+      nameOf(deleteDynamicEntity),
+      "DELETE",
+      "/management/dynamic_entities/DYNAMIC_ENTITY_ID",
+      "Delete DynamicEntity",
+      s"""Delete a DynamicEntity specified by DYNAMIC_ENTITY_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteDynamicEntity)))
+
+    lazy val deleteDynamicEntity: OBPEndpoint = {
+      case "management" :: "dynamic_entities" :: dynamicEntityId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteDynamicEntity, callContext)
+            deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
+          } yield {
+            (deleted, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    lazy val genericEndpoint: OBPEndpoint = {
+      case EntityName(entityName) :: Nil JsonGet req => {
+        cc =>
+          Future {
+            import net.liftweb.json.JsonDSL._
+            val listName = StringHelpers.snakify(English.plural(entityName))
+            val resultList = MockerConnector.getAll(entityName)
+
+            val jValue: JValue = listName -> resultList
+
+            (jValue, HttpCode.`200`(Some(cc)))
+          }
+      }
+      case EntityName(entityName, id) JsonGet req => {
+        cc =>
+          Future {
+            (MockerConnector.getSingle(entityName, id), HttpCode.`200`(Some(cc)))
+          }
+      }
+      case EntityName(entityName) :: Nil JsonPost json -> _ => {
+        cc =>
+          Future {
+            (MockerConnector.persist(entityName, json.asInstanceOf[JObject]), HttpCode.`201`(Some(cc)))
+          }
+      }
+      case EntityName(entityName, id) JsonPut json -> _ => {
+        cc =>
+          Future {
+            (MockerConnector.persist(entityName, json.asInstanceOf[JObject], Some(id)), HttpCode.`200`(Some(cc)))
+          }
+      }
+      case EntityName(entityName, id) JsonDelete req => {
+        cc =>
+          Future {
+            (MockerConnector.delete(entityName, id), HttpCode.`200`(Some(cc)))
+          }
+      }
+    }
+
   }
+
 }
 
 object APIMethods400 extends RestHelper with APIMethods400 {

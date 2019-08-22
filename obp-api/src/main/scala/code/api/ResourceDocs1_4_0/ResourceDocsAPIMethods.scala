@@ -201,7 +201,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
 
     //implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
-    val getResourceDocsTTL : Int = 1000 * 60 * 60 * 24
+    // if upload DynamicEntity, will generate corresponding endpoints, when current cache timeout, the new endpoints will be shown.
+    // so if you want the new generated endpoints shown timely, set this value to a small number, or set to a big number
+    val getResourceDocsTTL : Int = APIUtil.getPropsValue(s"resourceDocsObp.cache.ttl.seconds", "5").toInt
 
     private def getResourceDocsObpCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : ApiVersion, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       /**
@@ -212,7 +214,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         */
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL millisecond) {
+        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL second) {
           logger.debug(s"Generating OBP Resource Docs showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersion")
           val obpResourceDocJson = for {
             resourceDocs <- getResourceDocsList(requestedApiVersion)

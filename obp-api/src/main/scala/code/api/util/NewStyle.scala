@@ -16,6 +16,7 @@ import code.bankconnectors.Connector
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
 import code.context.UserAuthContextUpdate
+import code.dynamicEntity.{DynamicEntityProvider, DynamicEntityT}
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
@@ -84,6 +85,7 @@ object NewStyle {
 
 
   object function {
+
     import scala.concurrent.ExecutionContext.Implicits.global
 
     def getBranch(bankId : BankId, branchId : BranchId, callContext: Option[CallContext]): OBPReturnType[BranchT] = {
@@ -1392,6 +1394,35 @@ object NewStyle {
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(methodRoutingTTL second) {
           MethodRoutingProvider.connectorMethodProvider.vend.getMethodRoutings(methodName, isBankIdExactMatch, bankIdPattern)
+        }
+      }
+    }
+
+    def createOrUpdateDynamicEntity(dynamicEntity: DynamicEntityT): Future[Box[DynamicEntityT]] = Future {
+      DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
+    }
+
+    def deleteDynamicEntity(dynamicEntityId: String): Future[Box[Boolean]] = Future {
+      DynamicEntityProvider.connectorMethodProvider.vend.delete(dynamicEntityId)
+    }
+
+    def getDynamicEntityById(dynamicEntityId : String, callContext: Option[CallContext]): OBPReturnType[DynamicEntityT] = {
+      val dynamicEntityBox: Box[DynamicEntityT] = DynamicEntityProvider.connectorMethodProvider.vend.getById(dynamicEntityId)
+      val dynamicEntity = unboxFullOrFail(dynamicEntityBox, callContext, DynamicEntityNotFoundByDynamicEntityId)
+      Future{
+        (dynamicEntity, callContext)
+      }
+    }
+
+    private[this] val dynamicEntityTTL = APIUtil.getPropsValue(s"dynamicEntity.cache.ttl.seconds", "0").toInt
+
+    def getDynamicEntities(): List[DynamicEntityT] = {
+      import scala.concurrent.duration._
+
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL second) {
+          DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities()
         }
       }
     }
