@@ -412,7 +412,7 @@ webui_dummy_customer_logins = Customer Logins\
                               Please ask a member of the Open Bank Project team for more logins if you require. You can use this [application](https://sofit.openbankproject.com) which also uses OAuth to browse your transaction data (use the above username/password).\
 
 # when developer register the consumer successfully, it will show this message to developer on the webpage or email. 
-webui_register_consumer_success_message_webpage = Thanks for registering your consumer with the Open Bank API! Here is your developer information. Please save it in a secure location.
+webui_register_consumer_success_message_webpage = Thanks for registering your consumer with the Open Bank Project API! Here is your developer information. Please save it in a secure location.
 webui_register_consumer_success_message_email = Thank you for registering to use the Open Bank Project API.
 
 ## End of webui_ section ########
