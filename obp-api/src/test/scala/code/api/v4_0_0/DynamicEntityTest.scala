@@ -148,7 +148,7 @@ class DynamicEntityTest extends V400ServerSetup {
 
   feature("Add a DynamicEntity v4.0.4- Unauthorized access - Authorized access") {
     scenario("We will call the endpoint without the proper Role " + canCreateDynamicEntity, ApiEndpoint1, VersionOfApi) {
-      When("We make a request v4.0.4without a Role " + canCreateTaxResidence)
+      When("We make a request v4.0.0 without a Role " + canCreateTaxResidence)
       val request400 = (v4_0_0_Request / "management" / "dynamic_entities").POST <@(user1)
       val response400 = makePostRequest(request400, write(rightEntity))
       Then("We should get a 403")
@@ -167,7 +167,7 @@ class DynamicEntityTest extends V400ServerSetup {
       val customerJson = response400.body.extract[DynamicEntityCommons]
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUpdateDynamicEntity.toString)
-      When("We make a request v4.0.4with the Role " + canUpdateDynamicEntity)
+      When("We make a request v4.0.0 with the Role " + canUpdateDynamicEntity)
 
       {
         // update success
@@ -200,7 +200,7 @@ class DynamicEntityTest extends V400ServerSetup {
       }
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetDynamicEntities.toString)
-      When("We make a request v4.0.4with the Role " + canGetDynamicEntities)
+      When("We make a request v4.0.0 with the Role " + canGetDynamicEntities)
       val requestGet400 = (v4_0_0_Request / "management" / "dynamic_entities").GET <@(user1)
       val responseGet400 = makeGetRequest(requestGet400)
       Then("We should get a 200")
@@ -211,7 +211,7 @@ class DynamicEntityTest extends V400ServerSetup {
       dynamicEntitiesGetJson.size should be (1)
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteDynamicEntity.toString)
-      When("We make a request v4.0.4with the Role " + canDeleteDynamicEntity)
+      When("We make a request v4.0.0 with the Role " + canDeleteDynamicEntity)
       val requestDelete400 = (v4_0_0_Request / "management" / "dynamic_entities" / dynamicEntitiesGetJson.head.dynamicEntityId.get).DELETE <@(user1)
       val responseDelete400 = makeDeleteRequest(requestDelete400)
       Then("We should get a 200")
