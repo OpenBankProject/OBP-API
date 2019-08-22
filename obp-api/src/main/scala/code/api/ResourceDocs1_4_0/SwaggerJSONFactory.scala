@@ -20,9 +20,12 @@ import net.liftweb.util.StringHelpers
 
 import scala.collection.mutable.ListBuffer
 import code.api.v3_1_0.ListResult
+import code.dynamicEntity.DynamicEntityCommons
 import net.liftweb.common.{EmptyBox, Full}
+import org.apache.commons.lang3.StringUtils
 
 import scala.reflect.runtime.universe
+import scala.tools.scalap.scalax.util.StringUtil
 
 object SwaggerJSONFactory {
   //Info Object
@@ -695,11 +698,27 @@ object SwaggerJSONFactory {
         |  }
          }""".stripMargin
       })
-    
+
+    // extract uploaded DynamicEntities definitions, only when processing resourceDocList have DynamicEntity
+    val dynamicEntityDefinitions = resourceDocList
+      .find(_.exampleRequestBody.isInstanceOf[DynamicEntityCommons])
+      .map(_ => {
+        val definitionsOfDynamicEntities = NewStyle.function.getDynamicEntities()
+          .map(it => parse(it.metadataJson) \ "definitions")
+          .reduce((a, b) => {
+            a merge b
+          })
+
+        val definitionsContent = compactRender(definitionsOfDynamicEntities)
+        // delete the first and last curly braces
+        StringUtils.substring(definitionsContent, 1, -1)
+      }).toList
+
     //Add a comma between elements of a list and make a string 
     val particularDefinitionsPart = (
         errorDefinitions :::
-        translatedEntities
+        translatedEntities :::
+        dynamicEntityDefinitions
       ) mkString (",")
   
     //Make a final string
