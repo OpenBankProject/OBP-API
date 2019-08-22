@@ -87,7 +87,7 @@ class MethodRouting extends MethodRoutingT with LongKeyedMapper[MethodRouting] w
   override def isBankIdExactMatch: Boolean = IsBankIdExactMatch.get
   override def connectorName: String = ConnectorName.get
 
-  //Here we store all the key-value paris in one big String filed in database. 
+  //Here we store all the key-value pairs in one big String fields in database.
   override def parameters: List[MethodRoutingParam] = json.parse(if (Parameters.get != null) Parameters.get else "[]").extract[List[MethodRoutingParam]]
 }
 

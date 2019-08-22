@@ -209,10 +209,10 @@ object ExampleValue {
   val cardAttributeValueExample = ConnectorField("2012-04-23", s"The card attribute values")
   glossaryItems += makeGlossaryItem("Adapter.card_attribute_value", cardAttributeValueExample)
 
-  val providerValueExample = ConnectorField("http://127.0.0.1:8080", s"The provider for current user.")
-  glossaryItems += makeGlossaryItem("Adapter.provider", providerValueExample)
+  val providerValueExample = ConnectorField("http://127.0.0.1:8080", s"The Provider authenticating this User")
+  glossaryItems += makeGlossaryItem("Authentication.provider", providerValueExample)
 
-  val providerIdValueExample = ConnectorField("Chris", s"The provider id of the current user. ")
+  val providerIdValueExample = ConnectorField("Chris", s"The provider id of the user which is equivalent to the username.")
   glossaryItems += makeGlossaryItem("Adapter.provider_id", providerIdValueExample)
   
   val cbsErrorCodeExample = ConnectorField("500-OFFLINE", "An error code returned by the CBS")

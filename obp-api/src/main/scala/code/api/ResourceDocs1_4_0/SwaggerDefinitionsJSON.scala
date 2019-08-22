@@ -1571,7 +1571,7 @@ object SwaggerDefinitionsJSON {
     email = ExampleValue.emailExample.value,
     provider_id = providerIdValueExample.value,
     provider = providerValueExample.value,
-    username = "robert.x.0.gh",
+    username = usernameExample.value,
     entitlements = entitlementJSONs
   )
 
@@ -1678,11 +1678,11 @@ object SwaggerDefinitionsJSON {
   )
 
   val createUserJson = CreateUserJson(
-    email = "String",
-    username = "String",
+    email = emailExample.value,
+    username = usernameExample.value,
     password = "String",
-    first_name = "String",
-    last_name = "String"
+    first_name = "Simon",
+    last_name = "Redfern"
   )
 
   val createUserJSONs = CreateUsersJson(
@@ -1763,7 +1763,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val postKycCheckJSON = PostKycCheckJSON(
-    customer_number = "1239879",
+    customer_number = customerNumberExample.value,
     date = DateWithDayExampleObject,
     how = "online_meeting",
     staff_user_id = "67876",
@@ -1773,7 +1773,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val postKycStatusJSON = PostKycStatusJSON(
-    customer_number = "String",
+    customer_number = customerNumberExample.value,
     ok = true,
     date = DateWithDayExampleObject
   )
@@ -1920,7 +1920,7 @@ object SwaggerDefinitionsJSON {
   val userJSONV210 = UserJSONV210(
     id = "123",
     provider = providerValueExample.value,
-    username = "OBP"
+    username = usernameExample.value
   )
 
   val locationJsonV210 =
@@ -2968,9 +2968,9 @@ object SwaggerDefinitionsJSON {
   
   val topConsumerJson = TopConsumerJson(
     count = 7076,
-    consumer_id = "12312312",
+    consumer_id = consumerIdExample.value,
     app_name = "Api Explorer",
-    developer_email = "tesobe@tesobe.com"
+    developer_email = emailExample.value,
   )
   
   val topConsumersJson = TopConsumersJson(List(topConsumerJson))
@@ -2985,7 +2985,7 @@ object SwaggerDefinitionsJSON {
   val glossaryItemsJsonV300 = GlossaryItemsJsonV300 (glossary_items = List(glossaryItemJsonV300))
   
   val badLoginStatusJson = BadLoginStatusJson(
-    username = "tesobe",
+    username = usernameExample.value,
     bad_attempts_since_last_success_or_reset = 0,
     last_failure_date = DateWithMsExampleObject
   )
