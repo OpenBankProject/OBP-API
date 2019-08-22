@@ -703,16 +703,13 @@ object SwaggerJSONFactory {
     val dynamicEntityDefinitions = resourceDocList
       .find(_.exampleRequestBody.isInstanceOf[DynamicEntityCommons])
       .map(_ => {
-        val definitionsOfDynamicEntities = NewStyle.function.getDynamicEntities()
+        NewStyle.function.getDynamicEntities()
           .map(it => parse(it.metadataJson) \ "definitions")
-          .reduce((a, b) => {
-            a merge b
-          })
+          .map(compactRender(_))
+          .map(StringUtils.substring(_, 1, -1))
+      })
+      .toList.flatten
 
-        val definitionsContent = compactRender(definitionsOfDynamicEntities)
-        // delete the first and last curly braces
-        StringUtils.substring(definitionsContent, 1, -1)
-      }).toList
 
     //Add a comma between elements of a list and make a string 
     val particularDefinitionsPart = (
