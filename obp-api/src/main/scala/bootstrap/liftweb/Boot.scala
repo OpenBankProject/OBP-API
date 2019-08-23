@@ -50,7 +50,7 @@ import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.MappedConsent
 import code.context.{MappedUserAuthContext, MappedUserAuthContextUpdate}
 import code.crm.MappedCrmEvent
-import code.customer.internalMapping.MappedCustomerIDMapping
+import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraddress.MappedCustomerAddress
 import code.database.authorisation.Authorisation
@@ -648,7 +648,7 @@ object ToSchemify {
     MappedCurrency,
     MappedTransactionRequestTypeCharge,
     MappedAccountWebhook,
-    MappedCustomerIDMapping,
+    MappedCustomerIdMapping,
     MappedProductAttribute,
     MappedConsent,
     MigrationScriptLog,
