@@ -165,8 +165,9 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
 
+
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Tue Jul 23 18:38:46 CEST 2019
+// ---------- create on Fri Aug 23 16:33:55 CEST 2019
 
 messageDocs += MessageDoc(
     process = "obp.getBankAccountsBalances",
@@ -247,6 +248,9 @@ messageDocs += MessageDoc(
   }("getBankAccountsBalances")
     
 //---------------- dynamic end ---------------------please don't modify this line
+    
+    
+    
     
     
     

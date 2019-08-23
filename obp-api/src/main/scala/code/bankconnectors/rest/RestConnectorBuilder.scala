@@ -197,8 +197,8 @@ case class GetGenerator(methodName: String, tp: Type) {
        |    process = "obp.$methodName",
        |    messageFormat = messageFormat,
        |    description = "$description",
-       |    outboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).request),
-       |    inboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).response),
+       |    outboundTopic = None,
+       |    inboundTopic = None,
        |    exampleOutboundMessage = (
        |    $outBoundExample
        |    ),
@@ -218,7 +218,7 @@ case class GetGenerator(methodName: String, tp: Type) {
        |    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
        |    CacheKeyFromArguments.buildCacheKey {
        |      Caching.${cachMethodName}(Some(cacheKey.toString()))(banksTTL second){
-       |        val url = getUrl("$methodName" $pathVariables)
+       |        val url = getUrl(callContext, "$methodName" $pathVariables)
        |        sendGetRequest[$jsonType](url, callContext)
        |          .map { boxedResult =>
        |             $lastMapStatement
