@@ -33,11 +33,19 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(webUiPropsTTL second) {
-        WebUiProps.find(By(WebUiProps.Name, nameOfProperty))
-          .map(_.value)
-          .openOr {
+        try { //We need call this method without database, so just catch exception and others will also throw exception. 
+          WebUiProps.find(By(WebUiProps.Name, nameOfProperty))
+            .map(_.value)
+            .openOr {
+              APIUtil.getPropsValue(nameOfProperty, defaultValue)
+            }
+        } catch {
+          //java.lang.NullPointerException: Looking for Connection Identifier ConnectionIdentifier(lift) but failed to find either a JNDI data 
+          // source with the name lift or a lift connection manager with the correct name
+          // Only handle this exception. no others.
+          case exception: NullPointerException if(exception.getMessage.contains("failed to find either a JNDI data source"))=> 
             APIUtil.getPropsValue(nameOfProperty, defaultValue)
-          }
+        }
       }
     }
   }("getWebUiProps")("MappedWebUiPropsProvider")
