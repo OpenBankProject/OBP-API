@@ -29,7 +29,7 @@ package code.api.v4_0_0
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
 import code.api.util.{ApiVersion, VersionedOBPApis}
-import code.api.v1_3_0.{APIMethods130}
+import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
 import code.api.v2_1_0.APIMethods210
@@ -385,10 +385,16 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   val endpointsOf4_0_0 = 
     Implementations4_0_0.getBanks :: 
     Implementations4_0_0.createTransactionRequest :: 
-    Implementations4_0_0.answerTransactionRequestChallenge :: 
+    Implementations4_0_0.answerTransactionRequestChallenge ::
+    Implementations4_0_0.getDynamicEntities ::
+    Implementations4_0_0.createDynamicEntity ::
+    Implementations4_0_0.updateDynamicEntity ::
+    Implementations4_0_0.deleteDynamicEntity ::
+    Implementations4_0_0.genericEndpoint ::
     Nil
   
-  val allResourceDocs = Implementations4_0_0.resourceDocs ++
+  def allResourceDocs = MockerConnector.doc ++
+                        Implementations4_0_0.resourceDocs ++
                         Implementations3_1_0.resourceDocs ++
                         Implementations3_0_0.resourceDocs ++
                         ImplementationsCustom3_0_0.resourceDocs ++
@@ -398,13 +404,14 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                         Implementations1_4_0.resourceDocs ++
                         Implementations1_3_0.resourceDocs ++
                         Implementations1_2_1.resourceDocs
-  
+
   def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
     allResourceDocs.find(_.partialFunction==pf)
   }
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
+    Implementations4_0_0.genericEndpoint ::
     List(Implementations1_2_1.root(version, versionStatus)) ::: // For now we make this mandatory
   getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
   getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
@@ -420,9 +427,10 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Make them available for use!
   routes.foreach(route => {
+    if(route != Implementations4_0_0.genericEndpoint)
     oauthServe(apiPrefix{route}, findResourceDoc(route))
   })
-
+  oauthServe(apiPrefix{Implementations4_0_0.genericEndpoint}, None)
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 
 }
