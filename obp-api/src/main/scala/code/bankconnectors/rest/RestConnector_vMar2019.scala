@@ -40,8 +40,8 @@ import code.bankconnectors.vJune2017.AuthInfo
 import code.kafka.{KafkaHelper, Topics}
 import code.util.AkkaHttpClient._
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.dto._
-import com.openbankproject.commons.model._
+import com.openbankproject.commons.dto.{InBoundTrait, _}
+import com.openbankproject.commons.model.{TopicTrait, _}
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, _}
 import net.liftweb.util.Helpers.tryo
@@ -238,15 +238,10 @@ messageDocs += MessageDoc(
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
+        import com.openbankproject.commons.dto.{OutBoundGetBankAccountsBalances => OutBound, InBoundGetBankAccountsBalances => InBound}
         val url = getUrl(callContext,"getBankAccountsBalances" , ("bankIdAccountIds", bankIdAccountIds))
-        sendGetRequest[InBoundGetBankAccountsBalances](url, callContext)
-          .map { boxedResult =>
-                                 boxedResult match {
-                        case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
-                        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
-                    }
-    
-          }
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankIdAccountIds)
+        sendGetRequest[InBound](url, req).map(convertToTuple(callContext))
       }
     }
   }("getBankAccountsBalances")
@@ -260,22 +255,22 @@ messageDocs += MessageDoc(
     
 
 
-  private[this] def sendGetRequest[T: TypeTag : Manifest](url: String, callContext: Option[CallContext]) =
-    sendRequest[T](url, callContext, HttpMethods.GET)
+  private[this] def sendGetRequest[T: TypeTag : Manifest](url: String, outBound: TopicTrait) =
+    sendRequest[T](url, HttpMethods.GET, outBound)
 
-  private[this] def sendPostRequest[T: TypeTag : Manifest](url: String, callContext: Option[CallContext], entityJsonString: String) =
-    sendRequest[T](url, callContext, HttpMethods.POST)
+  private[this] def sendPostRequest[T: TypeTag : Manifest](url: String, outBound: TopicTrait) =
+    sendRequest[T](url, HttpMethods.POST, outBound)
 
-  private[this] def sendPutRequest[T: TypeTag : Manifest](url: String, callContext: Option[CallContext], entityJsonString: String) =
-    sendRequest[T](url, callContext, HttpMethods.PUT)
+  private[this] def sendPutRequest[T: TypeTag : Manifest](url: String, outBound: TopicTrait) =
+    sendRequest[T](url, HttpMethods.PUT, outBound)
 
-  private[this] def sendDelteRequest[T: TypeTag : Manifest](url: String, callContext: Option[CallContext]) =
-    sendRequest[T](url, callContext, HttpMethods.DELETE)
+  private[this] def sendDelteRequest[T: TypeTag : Manifest](url: String,  outBound: TopicTrait) =
+    sendRequest[T](url, HttpMethods.DELETE, outBound)
 
   //In RestConnector, we use the headers to propagate the parameters to Adapter. The parameters come from the CallContext.outboundAdapterAuthInfo.userAuthContext
   //We can set them from UserOauthContext or the http request headers.
-  private[this] implicit def buildHeaders(callContext: Option[CallContext]): List[HttpHeader] = {
-    val generalContext = callContext.flatMap(_.toOutboundAdapterCallContext.generalContext).getOrElse(List.empty[BasicGeneralContext])
+  private[this] implicit def buildHeaders(outboundAdapterCallContext: OutboundAdapterCallContext): List[HttpHeader] = {
+    val generalContext = outboundAdapterCallContext.generalContext.getOrElse(List.empty[BasicGeneralContext])
     generalContext.map(generalContext => RawHeader(generalContext.key,generalContext.value))
   }
 
@@ -338,18 +333,20 @@ messageDocs += MessageDoc(
       .foldLeft(s"$baseUrl/$methodName")((url, pair) => url.concat(s"/${pair._1}/${urlValueConverter(pair._2)}")) + queryParams.getOrElse("")
   }
 
-  private[this] def sendRequest[T: TypeTag : Manifest](url: String, callContext: Option[CallContext], method: HttpMethod, entityJsonString: String = ""): Future[Box[T]] = {
-    val request = prepareHttpRequest(url, method, HttpProtocol("HTTP/1.1"), entityJsonString).withHeaders(callContext)
+  private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](url: String, method: HttpMethod, outBound: TopicTrait): Future[Box[T]] = {
+    // TODO transfer accountId to accountReference in outBound
+    val outBoundJson = net.liftweb.json.Serialization.write(outBound)
+    val request = prepareHttpRequest(url, method, HttpProtocol("HTTP/1.1"), outBoundJson).withHeaders(outBound.outboundAdapterCallContext)
     logger.debug(s"RestConnector_vMar2019 request is : $request")
     val responseFuture = makeHttpRequest(request)
     val jsonType = typeOf[T]
     responseFuture.map {
       case response@HttpResponse(status, _, entity@_, _) => (status, entity)
     }.flatMap {
-      case (status, entity) if status.isSuccess() => extractEntity[T](entity, callContext)
-      case (status, entity) => extractBody(entity) map { msg => {
-        Empty ~> APIFailureNewStyle(msg, status.intValue(), callContext.map(_.toLight))
-      }
+      case (status, entity) if status.isSuccess() => extractEntity[T](entity)
+      case (status, entity) => extractBody(entity) map { msg => tryo {
+          parse(msg).extract[T]
+        } ~> APIFailureNewStyle(msg, status.intValue())
       }
     }
   }
@@ -360,13 +357,13 @@ messageDocs += MessageDoc(
       .map(_.utf8String)
   }
 
-  private[this] def extractEntity[T: Manifest](responseEntity: ResponseEntity, callContext: Option[CallContext], failCode: Int = 400): Future[Box[T]] = {
+  private[this] def extractEntity[T: Manifest](responseEntity: ResponseEntity): Future[Box[T]] = {
     this.extractBody(responseEntity)
       .map({
         case null => Empty
         case str => tryo {
           parse(str).extract[T]
-        } ~> APIFailureNewStyle(s"$InvalidJsonFormat The Json body should be the ${manifest[T]} ", failCode, callContext.map(_.toLight))
+        } ~> APIFailureNewStyle(s"$InvalidJsonFormat The Json body should be the ${manifest[T]} ", 400)
       })
   }
 
@@ -390,6 +387,19 @@ messageDocs += MessageDoc(
       // fill this format variables: http://rootpath/banks/:{bank-id}
       //.replaceAll(s":\\{\\s*$key\\s*\\}", String.valueOf(value))
     })
+  }
+
+
+  //-----helper methods
+
+  private[this] def convertToTuple[T](callContext: Option[CallContext]) (inbound: Box[InBoundTrait[T]]): (Box[T], Option[CallContext]) = {
+    val boxedResult = inbound match {
+      case Full(in) if (in.status.hasNoError) => Full(in.data)
+      case Full(inbound) if (inbound.status.hasError) =>
+        Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
+      case failureOrEmpty: Failure => failureOrEmpty
+    }
+    (boxedResult, callContext)
   }
 
   //TODO hongwei confirm the third valu: OutboundAdapterCallContext#adapterAuthInfo

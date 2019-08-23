@@ -343,7 +343,9 @@ trait RoutingT {
 // @see 'case request: TopicTrait' in  code/bankconnectors/kafkaStreamsHelper.scala
 // This is for Kafka topics for both North and South sides.
 // In OBP-API, these topics will be created automatically.
-trait TopicTrait
+trait TopicTrait {
+  def outboundAdapterCallContext: OutboundAdapterCallContext
+}
 
 //high level of four different kinds of transaction request types: FREE_FROM, SANDBOXTAN, COUNTERPATY and SEPA.
 //They share the same AmountOfMoney and description fields
