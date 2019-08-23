@@ -166,66 +166,67 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
 
-//---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Fri Aug 23 16:33:55 CEST 2019
 
-messageDocs += MessageDoc(
+//---------------- dynamic start -------------------please don't modify this line
+  // ---------- create on Fri Aug 23 16:33:55 CEST 2019
+
+  messageDocs += MessageDoc(
     process = "obp.getBankAccountsBalances",
     messageFormat = messageFormat,
     description = "Get Bank Accounts Balances",
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetBankAccountsBalances(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
-      bankIdAccountIds=List( BankIdAccountId(bankId=BankId(bankIdExample.value),
-      accountId=AccountId(accountIdExample.value))))
-    ),
+      OutBoundGetBankAccountsBalances(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
+        sessionId=Some(sessionIdExample.value),
+        consumerId=Some(consumerIdExample.value),
+        generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
+          value=valueExample.value))),
+        outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
+          username=Some(usernameExample.value),
+          linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
+            customerNumber=customerNumberExample.value,
+            legalName=legalNameExample.value))),
+          userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
+            value=valueExample.value))),
+          authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
+            name=viewNameExample.value,
+            description=viewDescriptionExample.value),
+            account= AccountBasic(id=accountIdExample.value,
+              accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+                address=accountRoutingAddressExample.value)),
+              customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
+                customerId=customerIdExample.value,
+                customerNumber=customerNumberExample.value,
+                legalName=legalNameExample.value,
+                dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
+              userOwners=List( InternalBasicUser(userId=userIdExample.value,
+                emailAddress=emailExample.value,
+                name=usernameExample.value))))))))),
+        bankIdAccountIds=List( BankIdAccountId(bankId=BankId(bankIdExample.value),
+          accountId=AccountId(accountIdExample.value))))
+      ),
     exampleInboundMessage = (
-     InBoundGetBankAccountsBalances(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
-      status= Status(errorCode=statusErrorCodeExample.value,
-      backendMessages=List( InboundStatusMessage(source=sourceExample.value,
-      status=inboundStatusMessageStatusExample.value,
-      errorCode=inboundStatusMessageErrorCodeExample.value,
-      text=inboundStatusMessageTextExample.value))),
-      data= AccountsBalances(accounts=List( AccountBalance(id=accountIdExample.value,
-      label=labelExample.value,
-      bankId=bankIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      balance= AmountOfMoney(currency=balanceCurrencyExample.value,
-      amount=balanceAmountExample.value))),
-      overallBalance= AmountOfMoney(currency=currencyExample.value,
-      amount="string"),
-      overallBalanceDate=new Date()))
-    ),
+      InBoundGetBankAccountsBalances(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
+        sessionId=Some(sessionIdExample.value),
+        generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
+          value=valueExample.value)))),
+        status= Status(errorCode=statusErrorCodeExample.value,
+          backendMessages=List( InboundStatusMessage(source=sourceExample.value,
+            status=inboundStatusMessageStatusExample.value,
+            errorCode=inboundStatusMessageErrorCodeExample.value,
+            text=inboundStatusMessageTextExample.value))),
+        data= AccountsBalances(accounts=List( AccountBalance(id=accountIdExample.value,
+          label=labelExample.value,
+          bankId=bankIdExample.value,
+          accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+            address=accountRoutingAddressExample.value)),
+          balance= AmountOfMoney(currency=balanceCurrencyExample.value,
+            amount=balanceAmountExample.value))),
+          overallBalance= AmountOfMoney(currency=currencyExample.value,
+            amount="string"),
+          overallBalanceDate=new Date()))
+      ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /getBankAccountsBalances/bankIdAccountIds/{bankIdAccountIds}
@@ -248,6 +249,7 @@ messageDocs += MessageDoc(
   }("getBankAccountsBalances")
     
 //---------------- dynamic end ---------------------please don't modify this line
+    
     
     
     
