@@ -57,6 +57,8 @@ object Migration extends MdcLoggable {
       dummyScript()
       populateTableViewDefinition()
       populateTableAccountAccess()
+      generateAndPopulateMissingCustomerUUIDs()
+      generateAndPopulateMissingConsumersUUIDs()
     }
     
     private def dummyScript(): Boolean = {
@@ -87,11 +89,17 @@ object Migration extends MdcLoggable {
     }  
     
     private def generateAndPopulateMissingCustomerUUIDs(): Boolean = {
-      CustomerX.customerProvider.vend.populateMissingUUIDs()
+      val name = nameOf(generateAndPopulateMissingCustomerUUIDs)
+      runOnce(name) {
+        CustomerX.customerProvider.vend.populateMissingUUIDs()
+      }
     }
 
     private def generateAndPopulateMissingConsumersUUIDs(): Boolean = {
-      Consumers.consumers.vend.populateMissingUUIDs()
+      val name = nameOf(generateAndPopulateMissingConsumersUUIDs)
+      runOnce(name) {
+        Consumers.consumers.vend.populateMissingUUIDs()
+      }
     }
     
   }
