@@ -77,6 +77,7 @@ import code.metrics.{MappedConnectorMetric, MappedMetric}
 import code.migration.MigrationScriptLog
 import code.model._
 import code.model.dataAccess._
+import code.model.dataAccess.internalMapping.AccountIdMapping
 import code.productAttributeattribute.MappedProductAttribute
 import code.productcollection.MappedProductCollection
 import code.productcollectionitem.MappedProductCollectionItem
@@ -657,5 +658,6 @@ object ToSchemify {
     WebUiProps,
     Authorisation,
     DynamicEntity,
+    AccountIdMapping,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }
