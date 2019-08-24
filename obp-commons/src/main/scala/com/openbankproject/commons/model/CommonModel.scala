@@ -447,9 +447,9 @@ case class OrderObjectJson(
                           )
 
 case class ObpApiLoopback(
-                           connectorVersion: String,
-                           gitCommit: String,
-                           durationTime: String
+                          connectorVersion: String,
+                          gitCommit: String,
+                          durationTime: String
                          ) extends TopicTrait
 
 case class CardObjectJson(

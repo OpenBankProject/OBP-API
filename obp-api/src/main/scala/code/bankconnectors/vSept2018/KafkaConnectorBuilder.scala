@@ -19,6 +19,15 @@ import scala.reflect.runtime.{universe => ru}
 import code.api.util.CodeGenerateUtils.createDocExample
 
 object KafkaConnectorBuilder extends App {
+  // rewrite method code.webuiprops.MappedWebUiPropsProvider#getWebUiPropsValue, avoid access DB cause dataSource not found exception
+  {
+    import javassist.ClassPool
+    val pool = ClassPool.getDefault
+    val ct = pool.getCtClass("code.webuiprops.MappedWebUiPropsProvider$")
+    val m = ct.getDeclaredMethod("getWebUiPropsValue")
+    m.insertBefore("""return ""; """)
+    ct.toClass
+  }
 
   val needToGenerateMethodsNames = List(
 //    "getKycChecks",

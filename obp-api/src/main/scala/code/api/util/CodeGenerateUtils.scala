@@ -147,7 +147,11 @@ object CodeGenerateUtils {
       val TypeRef(_, _, args: List[Type]) = tp
        args.map(createDocExample(_)).mkString("(", ", ", ")")
     } else if (isObpType) {
-      val fields = tp.decls.find(it => it.isConstructor).toList.flatMap(_.asMethod.paramLists(0)).foldLeft("")((str, symbol) => {
+      val concreteType = tp.typeSymbol.isAbstract match {
+        case true => ReflectUtils.getTypeByName(tp.typeSymbol.fullName + "Commons") // if here not found the Commons type, must add one
+        case false => tp
+      }
+      val fields = concreteType.decls.find(it => it.isConstructor).toList.flatMap(_.asMethod.paramLists(0)).foldLeft("")((str, symbol) => {
         val valName = symbol.name.toString
         val TypeRef(pre: Type, sym: Symbol, args: List[Type]) = symbol.info
         val value = if (pre <:< ru.typeOf[ProductAttributeType.type]) {

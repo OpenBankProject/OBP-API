@@ -377,6 +377,12 @@
       <artifactId>evo-inflector</artifactId>
       <version>1.2.2</version>
     </dependency>
+    <!-- modify class dynamically-->
+    <dependency>
+      <groupId>org.javassist</groupId>
+      <artifactId>javassist</artifactId>
+      <version>3.25.0-GA</version>
+    </dependency>
 
   </dependencies>
 

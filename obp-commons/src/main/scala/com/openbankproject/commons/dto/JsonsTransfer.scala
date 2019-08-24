@@ -451,7 +451,7 @@ case class OutBoundGetTransactionRequests210(outboundAdapterCallContext: Outboun
 
 case class InBoundGetTransactionRequests210(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionRequest]) extends InBoundTrait[List[TransactionRequest]]
 
-case class OutBoundGetTransactionsCore(bankId: BankId, accountID: AccountId, limit: Int, offset: Int, fromDate: String, toDate: String) extends TopicTrait
+case class OutBoundGetTransactionsCore(outboundAdapterCallContext: OutboundAdapterCallContext, bankId: BankId, accountID: AccountId, limit: Int, offset: Int, fromDate: String, toDate: String) extends TopicTrait
 case class InBoundGetTransactionsCore(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionCore]) extends InBoundTrait[List[TransactionCore]]
 
 //-------- return type are not Future--------------------------------------------------------------------------------------------------
