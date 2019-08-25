@@ -8,7 +8,6 @@ import net.liftweb.util.Helpers.tryo
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.xml.PrettyPrinter
 
 object MappedUserAuthContextProvider extends UserAuthContextProvider with MdcLoggable {
   

@@ -18,7 +18,7 @@ import code.branches.Branches.Branch
 import code.branches.MappedBranch
 import code.cardattribute.CardAttributeX
 import code.cards.MappedPhysicalCard
-import code.context.{UserAuthContextProvider, UserAuthContextUpdate, UserAuthContextUpdateProvider}
+import code.context.{UserAuthContextProvider, UserAuthContextUpdateProvider}
 import code.customer._
 import code.customeraddress.CustomerAddressX
 import code.fx.{FXRate, MappedFXRate, fx}

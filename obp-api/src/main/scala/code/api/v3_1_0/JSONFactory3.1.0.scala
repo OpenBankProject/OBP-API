@@ -45,13 +45,12 @@ import code.api.v2_2_0._
 import code.api.v3_0_0.{AccountRuleJsonV300, ViewBasicV300}
 import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
 import code.consent.MappedConsent
-import code.context.UserAuthContextUpdate
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, ModeratedBankAccount, UserX}
 import code.webhook.AccountWebhook
-import com.openbankproject.commons.model.{AccountApplication, AmountOfMoneyJsonV121, Product, ProductCollection, ProductCollectionItem, TaxResidence, User, _}
+import com.openbankproject.commons.model.{AccountApplication, AmountOfMoneyJsonV121, Product, ProductCollection, ProductCollectionItem, TaxResidence, User, UserAuthContextUpdate, _}
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List

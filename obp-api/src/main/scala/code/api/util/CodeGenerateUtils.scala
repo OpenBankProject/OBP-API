@@ -3,7 +3,7 @@ package code.api.util
 import java.text.{DateFormat, ParseException}
 import java.util.Date
 
-import com.openbankproject.commons.model.{AccountAttributeType, ProductAttributeType}
+import com.openbankproject.commons.model.{AccountAttributeType, CardAction, CardAttributeType, CardReplacementReason, PinResetReason, ProductAttributeType}
 import com.openbankproject.commons.util.ReflectUtils
 import org.apache.commons.lang3.StringUtils
 
@@ -24,6 +24,17 @@ object CodeGenerateUtils {
     * @return initialize object string
     */
   def createDocExample(tp: ru.Type, fieldName: Option[String] = None, parentFieldName: Option[String] = None, parentType: Option[ru.Type] = None): String = {
+    if(tp =:= typeOf[CardAction]) {
+      return "com.openbankproject.commons.model.CardAction.DEBIT"
+    } else if(tp =:= typeOf[CardReplacementReason]) {
+      return "com.openbankproject.commons.model.CardReplacementReason.FIRST"
+    } else if(tp =:= typeOf[PinResetReason]) {
+      return "com.openbankproject.commons.model.PinResetReason.FORGOT"
+    } else if(tp =:= typeOf[CardAttributeType.Value]) {
+      return "com.openbankproject.commons.model.CardAttributeType.STRING"
+    } else if(tp =:= typeOf[StrongCustomerAuthentication.Value]) {
+      return "code.api.util.StrongCustomerAuthentication.SMS"
+    }
 
     val uncapitalizedTypeName = StringUtils.uncapitalize(tp.typeSymbol.name.toString)
     // try to get example value from ExampleValue
@@ -78,10 +89,14 @@ object CodeGenerateUtils {
     val isTraitType = tp.typeSymbol.asClass.isTrait
 
     // if type is OBP project defined, get the concrete type, or get None
-    def concreteObpType = (isObpType, isTraitType) match {
+    val concreteObpType = (isObpType, isTraitType) match {
       case (false, _) => None
       case (true, false) => Some(tp)
-      case (true, true) => Some(ReflectUtils.getTypeByName(s"com.openbankproject.commons.model.${typeName}Commons"))
+      case (_, true) if(typeName.endsWith("Trait") && ReflectUtils.isTypeExists(fullTypeName.replaceFirst("Trait$", ""))) =>
+        Some(ReflectUtils.getTypeByName(fullTypeName.replaceFirst("Trait$", "")))
+      case (true, true) if(ReflectUtils.isTypeExists(s"com.openbankproject.commons.model.${typeName}Commons")) =>
+        Some(ReflectUtils.getTypeByName(s"com.openbankproject.commons.model.${typeName}Commons"))
+      case _ => Some(ReflectUtils.getTypeByName(s"${fullTypeName}Commons"))
     }
 
     // if type is OBP project defined, and constructor have single parameter, return true
@@ -147,17 +162,15 @@ object CodeGenerateUtils {
       val TypeRef(_, _, args: List[Type]) = tp
        args.map(createDocExample(_)).mkString("(", ", ", ")")
     } else if (isObpType) {
-      val concreteType = tp.typeSymbol.isAbstract match {
-        case true => ReflectUtils.getTypeByName(tp.typeSymbol.fullName + "Commons") // if here not found the Commons type, must add one
-        case false => tp
-      }
-      val fields = concreteType.decls.find(it => it.isConstructor).toList.flatMap(_.asMethod.paramLists(0)).foldLeft("")((str, symbol) => {
+      val fields = concreteObpType.orNull.decls.find(it => it.isConstructor).toList.flatMap(_.asMethod.paramLists(0)).foldLeft("")((str, symbol) => {
         val valName = symbol.name.toString
         val TypeRef(pre: Type, sym: Symbol, args: List[Type]) = symbol.info
         val value = if (pre <:< ru.typeOf[ProductAttributeType.type]) {
           "ProductAttributeType.STRING"
         } else if (pre <:< ru.typeOf[AccountAttributeType.type]) {
           "AccountAttributeType.INTEGER"
+        } else if (valName == "scaMethod") {
+          "code.api.util.StrongCustomerAuthentication.SMS"
         } else {
           createDocExample(symbol.info, Some(valName), fieldName, Some(tp))
         }
@@ -165,8 +178,8 @@ object CodeGenerateUtils {
         s"""$str,
            |${valueName}=${value}""".stripMargin
       }).substring(2)
-      val withNew = if(!tp.typeSymbol.asClass.isCaseClass) "new" else ""
-      s"$withNew ${tp.typeSymbol.name}($fields)"
+      val withNew = if(!concreteObpType.get.typeSymbol.asClass.isCaseClass) "new" else ""
+      s"$withNew ${concreteObpType.get.typeSymbol.name}($fields)"
     } else {
       throw new IllegalStateException(s"type ${fieldName.map(_+": ").getOrElse("")}$tp is not supported, please add this type to here.")
     }

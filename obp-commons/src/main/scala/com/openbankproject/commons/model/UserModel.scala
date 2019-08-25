@@ -65,3 +65,25 @@ trait User {
 case class UserPrimaryKey(val value : Long) {
   override def toString = value.toString
 }
+
+trait UserAuthContextUpdate {
+  def userAuthContextUpdateId : String
+  def userId : String
+  def key : String
+  def value : String
+  def challenge: String
+  def status: String
+}
+case class UserAuthContextUpdateCommons(
+                                         userAuthContextUpdateId: String,
+                                         userId: String,
+                                         key: String,
+                                         value: String,
+                                         challenge: String,
+                                         status: String
+                                       ) extends UserAuthContextUpdate
+
+object UserAuthContextUpdateStatus extends Enumeration {
+  type ConsentStatus = Value
+  val INITIATED, ACCEPTED, REJECTED = Value
+}

@@ -28,7 +28,6 @@ TESOBE (http://www.tesobe.com/)
 
 package com.openbankproject.commons.model
 
-
 class AliasType
 class Alias extends AliasType
 object PublicAlias extends Alias

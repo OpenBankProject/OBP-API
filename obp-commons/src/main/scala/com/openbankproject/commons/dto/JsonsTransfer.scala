@@ -153,7 +153,7 @@ case class OutBoundCreateTransactionRequestv210(outboundAdapterCallContext: Outb
                                                 transactionRequestType: TransactionRequestType,
                                                 transactionRequestCommonBody: TransactionRequestCommonBodyJSONCommons,
                                                 detailsPlain: String,
-                                                chargePolicy: String) extends TopicTrait
+                                                chargePolicy: String, challengeType: Option[String], scaMethod: Option[Any]) extends TopicTrait
 case class InBoundCreateTransactionRequestv210(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest) extends InBoundTrait[TransactionRequest]
 
 
@@ -439,7 +439,7 @@ case class InBoundGetUser(inboundAdapterCallContext: InboundAdapterCallContext, 
 
 
 //create bound case classes
-case class OutBoundCreateChallenge(outboundAdapterCallContext: OutboundAdapterCallContext, bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) extends TopicTrait
+case class OutBoundCreateChallenge(outboundAdapterCallContext: OutboundAdapterCallContext, bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, scaMethod: Option[Any]) extends TopicTrait
 
 case class InBoundCreateChallenge(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: String) extends InBoundTrait[String]
 
@@ -499,12 +499,172 @@ case class OutBoundGetCounterparties(outboundAdapterCallContext: OutboundAdapter
                                      viewId: ViewId) extends TopicTrait
 case class InBoundGetCounterparties(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CounterpartyTraitCommons]) extends InBoundTrait[List[CounterpartyTraitCommons]]
 
-
-
 case class OutBoundGetPhysicalCards(outboundAdapterCallContext: OutboundAdapterCallContext,
                                     user: User) extends TopicTrait
 case class InBoundGetPhysicalCards(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[PhysicalCard]) extends InBoundTrait[List[PhysicalCard]]
 
+
+
+
+case class OutBoundMakeHistoricalPayment(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                         fromAccount: BankAccount,
+                                         toAccount: BankAccount,
+                                         posted: Date,
+                                         completed: Date,
+                                         amount: BigDecimal,
+                                         description: String,
+                                         transactionRequestType: String,
+                                         chargePolicy: String
+                                         ) extends TopicTrait
+case class InBoundMakeHistoricalPayment(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionId) extends InBoundTrait[TransactionId]
+
+case class OutBoundGetCardAttributesFromProvider(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                                 cardId: String
+                                         ) extends TopicTrait
+case class InBoundGetCardAttributesFromProvider(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CardAttributeCommons]) extends InBoundTrait[List[CardAttributeCommons]]
+
+case class OutBoundGetCardAttributeById(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                        cardAttributeId: String
+                                         ) extends TopicTrait
+case class InBoundGetCardAttributeById(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CardAttributeCommons) extends InBoundTrait[CardAttributeCommons]
+
+case class OutBoundCreateOrUpdateCardAttribute(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                               bankId: Option[BankId],
+                                               cardId: Option[String],
+                                               cardAttributeId: Option[String],
+                                               name: String,
+                                               attributeType: CardAttributeType.Value,
+                                               value: String
+                                         ) extends TopicTrait
+case class InBoundCreateOrUpdateCardAttribute(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CardAttributeCommons) extends InBoundTrait[CardAttributeCommons]
+
+case class OutBoundGetAccountAttributesByAccount(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                                 bankId: BankId,
+                                                 accountId: AccountId
+                                         ) extends TopicTrait
+case class InBoundGetAccountAttributesByAccount(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[AccountAttributeCommons]) extends InBoundTrait[List[AccountAttributeCommons]]
+
+case class OutBoundCreateAccountAttributes(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                           bankId: BankId,
+                                           accountId: AccountId,
+                                           productCode: ProductCode,
+                                           accountAttributes: List[ProductAttribute]
+                                         ) extends TopicTrait
+case class InBoundCreateAccountAttributes(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[AccountAttributeCommons]) extends InBoundTrait[List[AccountAttributeCommons]]
+
+
+case class OutBoundGetAccountAttributeById(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                           accountAttributeId: String
+                                         ) extends TopicTrait
+case class InBoundGetAccountAttributeById(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AccountAttributeCommons) extends InBoundTrait[AccountAttributeCommons]
+
+case class OutBoundDeleteProductAttribute(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                          productAttributeId: String
+                                         ) extends TopicTrait
+case class InBoundDeleteProductAttribute(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Boolean) extends InBoundTrait[Boolean]
+
+case class OutBoundDeleteUserAuthContexts(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                           userId: String
+                                         ) extends TopicTrait
+case class InBoundDeleteUserAuthContexts(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Boolean) extends InBoundTrait[Boolean]
+
+case class OutBoundDeleteUserAuthContextById(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                             userAuthContextId: String
+                                             ) extends TopicTrait
+case class InBoundDeleteUserAuthContextById(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Boolean) extends InBoundTrait[Boolean]
+
+case class OutBoundDeleteCustomerAddress(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                          customerAddressId : String) extends TopicTrait
+case class InBoundDeleteCustomerAddress(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Boolean) extends InBoundTrait[Boolean]
+
+case class OutBoundCreateUserAuthContextUpdate(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                               userId: String,
+                                               key: String,
+                                               value: String) extends TopicTrait
+case class InBoundCreateUserAuthContextUpdate(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: UserAuthContextUpdateCommons) extends InBoundTrait[UserAuthContextUpdateCommons]
+
+case class OutBoundDeleteTaxResidence(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                      taxResourceId : String) extends TopicTrait
+case class InBoundDeleteTaxResidence(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Boolean) extends InBoundTrait[Boolean]
+
+case class OutBoundUpdateCustomerGeneralData(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                            customerId: String,
+                                             legalName: Option[String],
+                                             faceImage: Option[CustomerFaceImageTrait],
+                                             dateOfBirth: Option[Date],
+                                             relationshipStatus: Option[String],
+                                             dependents: Option[Int],
+                                             highestEducationAttained: Option[String],
+                                             employmentStatus: Option[String],
+                                             title: Option[String],
+                                             branchId: Option[String],
+                                             nameSuffix: Option[String]
+                                            ) extends TopicTrait
+case class InBoundUpdateCustomerGeneralData(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons) extends InBoundTrait[CustomerCommons]
+
+case class OutBoundUpdateCustomerCreditData(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                            customerId: String,
+                                            creditRating: Option[String],
+                                            creditSource: Option[String],
+                                            creditLimit: Option[AmountOfMoney]) extends TopicTrait
+case class InBoundUpdateCustomerCreditData(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons) extends InBoundTrait[CustomerCommons]
+
+case class OutBoundUpdateCustomerScaData(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                         customerId: String,
+                                         mobileNumber: Option[String],
+                                         email: Option[String],
+                                         customerNumber: Option[String]) extends TopicTrait
+case class InBoundUpdateCustomerScaData(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons) extends InBoundTrait[CustomerCommons]
+
+case class OutBoundCheckCustomerNumberAvailable(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                                 bankId: BankId,
+                                                 customerNumber: String) extends TopicTrait
+case class InBoundCheckCustomerNumberAvailable(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Boolean) extends InBoundTrait[Boolean]
+
+case class OutBoundUpdateBankAccount(outboundAdapterCallContext: OutboundAdapterCallContext,
+                              bankId: BankId,
+                              accountId: AccountId,
+                              accountType: String,
+                              accountLabel: String,
+                              branchId: String,
+                              accountRoutingScheme: String,
+                              accountRoutingAddress: String
+                            ) extends TopicTrait
+case class InBoundUpdateBankAccount(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BankAccountCommons) extends InBoundTrait[BankAccountCommons]
+
+case class OutBoundUpdatePhysicalCard(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                      cardId: String,
+                                      bankCardNumber: String,
+                                      nameOnCard: String,
+                                      cardType: String,
+                                      issueNumber: String,
+                                      serialNumber: String,
+                                      validFrom: Date,
+                                      expires: Date,
+                                      enabled: Boolean,
+                                      cancelled: Boolean,
+                                      onHotList: Boolean,
+                                      technology: String,
+                                      networks: List[String],
+                                      allows: List[String],
+                                      accountId: String,
+                                      bankId: String,
+                                      replacement: Option[CardReplacementInfo],
+                                      pinResets: List[PinResetInfo],
+                                      collected: Option[CardCollectionInfo],
+                                      posted: Option[CardPostedInfo],
+                                      customerId: String) extends TopicTrait
+case class InBoundUpdatePhysicalCard(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: PhysicalCard) extends InBoundTrait[PhysicalCard]
+
+case class OutBoundDeletePhysicalCardForBank(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                          bankId: BankId,
+                                          cardId: String) extends TopicTrait
+case class InBoundDeletePhysicalCardForBank(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Boolean) extends InBoundTrait[Boolean]
+
+case class OutBoundGetPhysicalCardForBank(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                          bankId: BankId,
+                                          cardId: String) extends TopicTrait
+case class InBoundGetPhysicalCardForBank(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: PhysicalCard) extends InBoundTrait[PhysicalCard]
 
 case class OutBoundGetPhysicalCardsForBank(outboundAdapterCallContext: OutboundAdapterCallContext,
                                            bank: Bank,

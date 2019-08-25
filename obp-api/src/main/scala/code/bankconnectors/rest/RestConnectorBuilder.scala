@@ -420,10 +420,30 @@ case class PostGenerator(methodName: String, tp: Type) {
        |        }
     """.stripMargin
   }
-
+  val httpMethod = methodName match {
+    case v if(v.matches("(get.+|answer.+|check.+|.+Exists)")) => "HttpMethods.GET"
+    case v if(v.matches("(create|save|make).+"))              => "HttpMethods.POST"
+    case v if(v.matches("(?i)(update|set).+"))                => "HttpMethods.PUT"
+    case v if(v.matches("(delete|remove).+"))                 => "HttpMethods.DELETE"
+    case _                                                    => "HttpMethods.POST"
+  }
+  /**
+    * Get all the parameters name as a String from `typeSignature` object.
+    * eg: it will return
+    * , bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName, branchId, accountRoutingScheme, accountRoutingAddress
+    */
+  private[this] val parametersNamesString = tp.paramLists(0)//paramLists will return all the curry parameters set.
+    .filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]) // remove the `CallContext` field.
+    .map(_.name.toString)//get all parameters name
+    .map(it => if(it =="type") "`type`" else it)//This is special case for `type`, it is the keyword in scala.
+    .map(it => if(it == "queryParams") "OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams)" else it)
+  match {
+    case Nil => ""
+    case list:List[String] => list.mkString(", ", ", ", "")
+  }
   override def toString =
     s"""
-       |messageDocs += MessageDoc(
+       |  messageDocs += MessageDoc(
        |    process = "obp.$methodName",
        |    messageFormat = messageFormat,
        |    description = "$description",
@@ -439,15 +459,10 @@ case class PostGenerator(methodName: String, tp: Type) {
        |  )
        |  // url example: $urlDemo
        |  override def $signature = {
-       |    import net.liftweb.json.Serialization.write
-       |
-       |    val url = getUrl("$methodName")
-       |    val outboundAdapterCallContext = Box(callContext.map(_.toOutboundAdapterCallContext)).openOrThrowException(NoCallContext)
-       |    val jsonStr = write(OutBound${methodName.capitalize}(outboundAdapterCallContext $params))
-       |    sendPostRequest[InBound${methodName.capitalize}](url, callContext, jsonStr)
-       |      .map{ boxedResult =>
-       |      $lastMapStatement
-       |    }
+       |        import com.openbankproject.commons.dto.{OutBound${methodName.capitalize} => OutBound, InBound${methodName.capitalize} => InBound}
+       |        val url = getUrl(callContext, "$methodName")
+       |        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull $parametersNamesString)
+       |        sendRequest[InBound](url, $httpMethod, req, callContext).map(convertToTuple(callContext))
        |  }
     """.stripMargin
 }
