@@ -243,7 +243,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         import com.openbankproject.commons.dto.{OutBoundGetBankAccountsBalances => OutBound, InBoundGetBankAccountsBalances => InBound}
         val url = getUrl(callContext,"getBankAccountsBalances" , ("bankIdAccountIds", bankIdAccountIds))
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankIdAccountIds)
-        sendRequest[InBound](url, HttpMethods.GET, req).map(convertToTuple(callContext))
+        sendRequest[InBound](url, HttpMethods.GET, req, callContext).map(convertToTuple(callContext))
       }
     }
   }("getBankAccountsBalances")
@@ -254,8 +254,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
   //In RestConnector, we use the headers to propagate the parameters to Adapter. The parameters come from the CallContext.outboundAdapterAuthInfo.userAuthContext
   //We can set them from UserOauthContext or the http request headers.
-  private[this] implicit def buildHeaders(outboundAdapterCallContext: OutboundAdapterCallContext): List[HttpHeader] = {
-    val generalContext = outboundAdapterCallContext.generalContext.getOrElse(List.empty[BasicGeneralContext])
+  private[this] implicit def buildHeaders(callContext: Option[CallContext]): List[HttpHeader] = {
+    val generalContext = callContext.flatMap(_.toOutboundAdapterCallContext.generalContext).getOrElse(List.empty[BasicGeneralContext])
     generalContext.map(generalContext => RawHeader(generalContext.key,generalContext.value))
   }
 
@@ -318,10 +318,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       .foldLeft(s"$baseUrl/$methodName")((url, pair) => url.concat(s"/${pair._1}/${urlValueConverter(pair._2)}")) + queryParams.getOrElse("")
   }
 
-  private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](url: String, method: HttpMethod, outBound: {def outboundAdapterCallContext: OutboundAdapterCallContext}): Future[Box[T]] = {
+  private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](url: String, method: HttpMethod, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
     // TODO transfer accountId to accountReference in outBound
     val outBoundJson = net.liftweb.json.Serialization.write(outBound)
-    val request = prepareHttpRequest(url, method, HttpProtocol("HTTP/1.1"), outBoundJson).withHeaders(outBound.outboundAdapterCallContext)
+    val request = prepareHttpRequest(url, method, HttpProtocol("HTTP/1.1"), outBoundJson).withHeaders(callContext)
     logger.debug(s"RestConnector_vMar2019 request is : $request")
     val responseFuture = makeHttpRequest(request)
     val jsonType = typeOf[T]
