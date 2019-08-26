@@ -21,14 +21,12 @@ import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.consent.ConsentStatus
-import code.context.UserAuthContextUpdateStatus
 import code.dynamicEntity.DynamicEntityCommons
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
-import com.openbankproject.commons.model.{ViewBasic, _}
+import com.openbankproject.commons.model.{AccountBalance, GeoTag, UserAuthContextUpdateStatus, ViewBasic, _}
 import com.openbankproject.commons.util.ReflectUtils
-import com.openbankproject.commons.model.{AccountBalance, GeoTag, ViewBasic, _}
 import net.liftweb.json
 
 import scala.collection.immutable.List

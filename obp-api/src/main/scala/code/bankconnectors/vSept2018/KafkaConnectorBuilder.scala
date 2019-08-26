@@ -19,6 +19,15 @@ import scala.reflect.runtime.{universe => ru}
 import code.api.util.CodeGenerateUtils.createDocExample
 
 object KafkaConnectorBuilder extends App {
+  // rewrite method code.webuiprops.MappedWebUiPropsProvider#getWebUiPropsValue, avoid access DB cause dataSource not found exception
+  {
+    import javassist.ClassPool
+    val pool = ClassPool.getDefault
+    val ct = pool.getCtClass("code.webuiprops.MappedWebUiPropsProvider$")
+    val m = ct.getDeclaredMethod("getWebUiPropsValue")
+    m.insertBefore("""return ""; """)
+    ct.toClass
+  }
 
   val needToGenerateMethodsNames = List(
 //    "getKycChecks",
@@ -108,7 +117,7 @@ class CommonGenerator(val methodName: String, typeSignature: Type) {
    * accountHolderName: String, branchId: String, accountRoutingScheme: String, accountRoutingAddress: String, callContext: Option[CallContext]):   
    * OBPReturnType[Box[BankAccount]]
    *
-   * .replaceFirst("""\btype\b""", "`type`") -->  //TODO not sure, what is this? to clean some special case?                                                                                                    
+   * .replaceFirst("""\btype\b""", "`type`") -->  type is key word of scala, it must be escaped as a parameter
    * (bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, currency: String, initialBalance: BigDecimal,                
    * accountHolderName: String, branchId: String, accountRoutingScheme: String, accountRoutingAddress: String, callContext: Option[CallContext]):   
    * OBPReturnType[Box[BankAccount]]

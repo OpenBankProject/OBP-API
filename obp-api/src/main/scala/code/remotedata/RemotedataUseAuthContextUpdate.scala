@@ -2,7 +2,8 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.context._
+import code.context.{RemotedataUserAuthContextUpdateCaseClasses, UserAuthContextUpdateProvider}
+import com.openbankproject.commons.model.UserAuthContextUpdate
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List

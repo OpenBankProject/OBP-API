@@ -39,7 +39,6 @@ import code.bankconnectors._
 import code.bankconnectors.vJune2017.{InternalCustomer, JsonFactory_vJune2017}
 import code.bankconnectors.vMar2017._
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
-import code.context.UserAuthContextProvider
 import code.customer._
 import code.kafka.{KafkaHelper, Topics}
 import code.model._
@@ -61,7 +60,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
-
 import com.github.dwickern.macros.NameOf.nameOf
 
 trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcLoggable {

@@ -20,20 +20,18 @@ import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.bankconnectors.vMay2019.KafkaMappedConnector_vMay2019
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.Branch
-import code.context.UserAuthContextUpdate
 import code.fx.FXRate
 import code.fx.fx.TTL
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.ResourceUser
 import code.model.toUserExtended
-import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
 import code.users.Users
 import code.util.Helper._
 import code.views.Views
-import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, _}
+import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.json.Extraction.decompose
@@ -41,7 +39,6 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.SimpleInjector
-import org.mindrot.jbcrypt.BCrypt
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -1597,7 +1594,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                             tags: String,
                             status: String,
                             callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] = Future{(Failure(setUnimplementedError), callContext)}
-  def deleteCustomerAddress(customerAddressd : String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
+  def deleteCustomerAddress(customerAddressId : String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def createTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): OBPReturnType[Box[TaxResidence]] = Future{(Failure(setUnimplementedError), callContext)}
 
@@ -1661,7 +1658,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                                       productCode: ProductCode,
                                       productAttributeId: Option[String],
                                       name: String,
-                                      attributType: ProductAttributeType.Value,
+                                      productAttributeType: ProductAttributeType.Value,
                                       value: String,
                                       callContext: Option[CallContext]
                                     ): OBPReturnType[Box[ProductAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
@@ -1692,7 +1689,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                                       productCode: ProductCode,
                                       productAttributeId: Option[String],
                                       name: String,
-                                      attributType: AccountAttributeType.Value,
+                                      accountAttributeType: AccountAttributeType.Value,
                                       value: String,
                                       callContext: Option[CallContext]
                                     ): OBPReturnType[Box[AccountAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
@@ -1714,7 +1711,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                                   cardId: Option[String],
                                   cardAttributeId: Option[String],
                                   name: String,
-                                  attributeType: CardAttributeType.Value,
+                                  cardAttributeType: CardAttributeType.Value,
                                   value: String,
                                   callContext: Option[CallContext]
                                 ): OBPReturnType[Box[CardAttribute]] = Future{(Failure(setUnimplementedError), callContext)}

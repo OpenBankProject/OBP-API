@@ -31,10 +31,11 @@ import code.api.util.ApiRole.{CanCreateCustomer, CanGetUserAuthContext}
 import code.api.util.{ApiRole, ApiVersion, StrongCustomerAuthentication}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.consumer.Consumers
-import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
+import code.context.UserAuthContextUpdateProvider
 import code.entitlement.Entitlement
 import code.scope.Scope
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.UserAuthContextUpdateStatus
 import net.liftweb.common.Full
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag

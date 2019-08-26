@@ -2,6 +2,7 @@ package code.context
 
 import code.api.util.APIUtil
 import code.remotedata.RemotedataUserAuthContextUpdate
+import com.openbankproject.commons.model.UserAuthContextUpdate
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
