@@ -296,7 +296,11 @@ case class InBoundGetTaxResidence(inboundAdapterCallContext: InboundAdapterCallC
 
 
 case class OutBoundGetCustomers(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                bankId: BankId) extends TopicTrait
+                                bankId: BankId,
+                                limit: Int,
+                                offset: Int,
+                                fromDate: String,
+                                toDate: String) extends TopicTrait
 case class InBoundGetCustomers(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CustomerCommons]) extends InBoundTrait[List[CustomerCommons]]
 
 

@@ -170,9 +170,15 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
 
+
+
+
 //---------------- dynamic start -------------------please don't modify this line
 
 //---------------- dynamic end ---------------------please don't modify this line
+    
+    
+    
     
     
     
@@ -196,9 +202,34 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     *
     * @param future
     * @tparam T
-    * @return
+    * @return result of future
     */
-  //private[this] implicit def convertFuture[T](future: Future[T]): T = Await.result(future, 1.minute)
+  private[this] implicit def convertFuture[T](future: Future[T]): T = Await.result(future, 1.minute)
+
+  /**
+   * convert return value of OBPReturnType[Box[T]] to Box[(T, Option[CallContext])], this can let all method have the same body even though return type is not match
+   * @param future
+   * @tparam T
+   * @return
+   */
+  private[this] implicit def convertFutureToBoxTuple[T](future: OBPReturnType[Box[T]]): Box[(T, Option[CallContext])] = {
+    val (boxT, cc) = convertFuture(future)
+    boxT.map((_, cc))
+  }
+  /**
+   * convert return value of OBPReturnType[Box[T]] to Box[T], this can let all method have the same body even though return type is not match
+   * @param future
+   * @tparam T
+   * @return
+   */
+  private[this] implicit def convertFutureToBox[T](future: OBPReturnType[Box[T]]): Box[T] = convertFuture(future)._1
+  /**
+   * convert return value of OBPReturnType[Box[T]] to Future[T], this can let all method have the same body even though return type is not match
+   * @param future
+   * @tparam T
+   * @return
+   */
+  private[this] implicit def convertToIgnoreCC[T](future: OBPReturnType[T]): Future[T] = future.map(it => it._1)
 
   //TODO please modify this baseUrl to your remote api server base url of this connector
   private[this] val baseUrl = "http://localhost:8080/restConnector"
@@ -328,7 +359,4 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }
 }
 
-
-object RestConnector_vMar2019 extends RestConnector_vMar2019 {
-
-}
+object RestConnector_vMar2019 extends RestConnector_vMar2019

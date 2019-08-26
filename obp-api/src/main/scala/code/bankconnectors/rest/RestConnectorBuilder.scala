@@ -448,6 +448,13 @@ case class PostGenerator(methodName: String, tp: Type) {
     case Nil => ""
     case list:List[String] => list.mkString(", ", ", ", "")
   }
+
+  val inboundDataFieldType = ReflectUtils.getTypeByName(s"com.openbankproject.commons.dto.InBound${methodName.capitalize}")
+    .member(TermName("data")).asMethod
+    .returnType.toString.replaceAll(
+    """(\w+\.)+(\w+\.Value)|(\w+\.)+(\w+)""", "$2$4"
+  )
+
   override def toString =
     s"""
        |  messageDocs += MessageDoc(
@@ -469,7 +476,8 @@ case class PostGenerator(methodName: String, tp: Type) {
        |        import com.openbankproject.commons.dto.{OutBound${methodName.capitalize} => OutBound, InBound${methodName.capitalize} => InBound}
        |        val url = getUrl(callContext, "$methodName")
        |        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull $parametersNamesString)
-       |        sendRequest[InBound](url, $httpMethod, req, callContext).map(convertToTuple(callContext))
+       |        val result: OBPReturnType[Box[$inboundDataFieldType]] = sendRequest[InBound](url, $httpMethod, req, callContext).map(convertToTuple(callContext))
+       |        result
        |  }
     """.stripMargin
 }
