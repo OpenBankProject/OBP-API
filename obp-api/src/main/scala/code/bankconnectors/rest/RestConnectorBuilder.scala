@@ -457,7 +457,8 @@ case class PostGenerator(methodName: String, tp: Type) {
 
   override def toString =
     s"""
-       |  messageDocs += MessageDoc(
+       |  messageDocs += ${methodName}Doc
+       |  def ${methodName}Doc = MessageDoc(
        |    process = "obp.$methodName",
        |    messageFormat = messageFormat,
        |    description = "$description",
