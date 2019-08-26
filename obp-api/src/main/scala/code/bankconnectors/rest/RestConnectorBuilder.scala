@@ -462,8 +462,8 @@ case class PostGenerator(methodName: String, tp: Type) {
        |    process = "obp.$methodName",
        |    messageFormat = messageFormat,
        |    description = "$description",
-       |    outboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).request),
-       |    inboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).response),
+       |    outboundTopic = None,
+       |    inboundTopic = None,
        |    exampleOutboundMessage = (
        |    $outBoundExample
        |    ),
