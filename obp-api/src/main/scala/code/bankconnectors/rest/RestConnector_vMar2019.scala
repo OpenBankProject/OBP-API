@@ -82,8 +82,9 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   val connectorName = "rest_vMar2019"
 
 
+
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Mon Aug 26 14:10:07 CEST 2019
+// ---------- create on Mon Aug 26 15:34:08 CEST 2019
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -4938,7 +4939,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       status=inboundStatusMessageStatusExample.value,
       errorCode=inboundStatusMessageErrorCodeExample.value,
       text=inboundStatusMessageTextExample.value))),
-      data= TaxResidenceCommons(customerId=customerIdExample.value.toLong,
+      data= TaxResidenceCommons(customerId=customerIdExample.value,
       taxResidenceId="string",
       domain="string",
       taxNumber="string"))
@@ -5000,7 +5001,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       status=inboundStatusMessageStatusExample.value,
       errorCode=inboundStatusMessageErrorCodeExample.value,
       text=inboundStatusMessageTextExample.value))),
-      data=List( TaxResidenceCommons(customerId=customerIdExample.value.toLong,
+      data=List( TaxResidenceCommons(customerId=customerIdExample.value,
       taxResidenceId="string",
       domain="string",
       taxNumber="string")))
@@ -7906,6 +7907,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }
     
 //---------------- dynamic end ---------------------please don't modify this line
+    
     
     
     

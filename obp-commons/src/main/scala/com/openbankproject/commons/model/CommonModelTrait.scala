@@ -282,7 +282,7 @@ trait ProductCollectionItem {
 }
 
 trait TaxResidence {
-  def customerId: Long
+  def customerId: String
   def taxResidenceId: String
   def domain: String
   def taxNumber: String

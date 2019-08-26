@@ -273,7 +273,7 @@ object CounterpartyTraitCommons extends Converter[CounterpartyTrait, Counterpart
 
 
 case class TaxResidenceCommons(
-                                customerId :Long,
+                                customerId :String,
                                 taxResidenceId :String,
                                 domain :String,
                                 taxNumber :String) extends TaxResidence
