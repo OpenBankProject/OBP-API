@@ -427,10 +427,10 @@ case class PostGenerator(methodName: String, tp: Type) {
     """.stripMargin
   }
   val httpMethod = methodName match {
-    case v if(v.matches("(get.+|answer.+|check.+|.+Exists)")) => "HttpMethods.GET"
-    case v if(v.matches("(create|save|make).+"))              => "HttpMethods.POST"
-    case v if(v.matches("(?i)(update|set).+"))                => "HttpMethods.PUT"
-    case v if(v.matches("(delete|remove).+"))                 => "HttpMethods.DELETE"
+//    case v if(v.matches("(get.+|answer.+|check.+|.+Exists)")) => "HttpMethods.GET"
+//    case v if(v.matches("(create|save|make).+"))              => "HttpMethods.POST"
+//    case v if(v.matches("(?i)(update|set).+"))                => "HttpMethods.PUT"
+//    case v if(v.matches("(delete|remove).+"))                 => "HttpMethods.DELETE"
     case _                                                    => "HttpMethods.POST"
   }
 
