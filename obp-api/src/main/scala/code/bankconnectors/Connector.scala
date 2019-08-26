@@ -1658,7 +1658,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                                       productCode: ProductCode,
                                       productAttributeId: Option[String],
                                       name: String,
-                                      attributType: ProductAttributeType.Value,
+                                      productAttributeType: ProductAttributeType.Value,
                                       value: String,
                                       callContext: Option[CallContext]
                                     ): OBPReturnType[Box[ProductAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
@@ -1689,7 +1689,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                                       productCode: ProductCode,
                                       productAttributeId: Option[String],
                                       name: String,
-                                      attributType: AccountAttributeType.Value,
+                                      accountAttributeType: AccountAttributeType.Value,
                                       value: String,
                                       callContext: Option[CallContext]
                                     ): OBPReturnType[Box[AccountAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
@@ -1711,7 +1711,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                                   cardId: Option[String],
                                   cardAttributeId: Option[String],
                                   name: String,
-                                  attributeType: CardAttributeType.Value,
+                                  cardAttributeType: CardAttributeType.Value,
                                   value: String,
                                   callContext: Option[CallContext]
                                 ): OBPReturnType[Box[CardAttribute]] = Future{(Failure(setUnimplementedError), callContext)}

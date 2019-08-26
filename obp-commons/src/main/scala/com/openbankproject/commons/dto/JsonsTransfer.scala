@@ -329,7 +329,7 @@ case class OutBoundCreateOrUpdateProductAttribute(outboundAdapterCallContext: Ou
                                                   productCode: ProductCode,
                                                   productAttributeId: Option[String],
                                                   name: String,
-                                                  attributType: ProductAttributeType.Value,
+                                                  productAttributeType: ProductAttributeType.Value,
                                                   value: String) extends TopicTrait
 case class InBoundCreateOrUpdateProductAttribute(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ProductAttributeCommons) extends InBoundTrait[ProductAttributeCommons]
 
@@ -351,7 +351,7 @@ case class OutBoundCreateOrUpdateAccountAttribute(outboundAdapterCallContext: Ou
                                                   productCode: ProductCode,
                                                   productAttributeId: Option[String],
                                                   name: String,
-                                                  attributType: AccountAttributeType.Value,
+                                                  accountAttributeType: AccountAttributeType.Value,
                                                   value: String) extends TopicTrait
 case class InBoundCreateOrUpdateAccountAttribute(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AccountAttributeCommons) extends InBoundTrait[AccountAttributeCommons]
 
@@ -403,7 +403,7 @@ case class InBoundGetProductCollectionItem(inboundAdapterCallContext: InboundAda
 case class OutBoundGetProductCollectionItemsTree(outboundAdapterCallContext: OutboundAdapterCallContext,
                                                  collectionCode: String,
                                                  bankId: String) extends TopicTrait
-case class InBoundGetProductCollectionItemsTree(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])])
+case class InBoundGetProductCollectionItemsTree(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])])extends InBoundTrait[List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])]]
 
 
 case class OutBoundCreateMeeting(outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -439,7 +439,13 @@ case class InBoundGetUser(inboundAdapterCallContext: InboundAdapterCallContext, 
 
 
 //create bound case classes
-case class OutBoundCreateChallenge(outboundAdapterCallContext: OutboundAdapterCallContext, bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, scaMethod: Option[Any]) extends TopicTrait
+case class OutBoundCreateChallenge(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                   bankId: BankId,
+                                   accountId: AccountId,
+                                   userId: String,
+                                   transactionRequestType: TransactionRequestType,
+                                   transactionRequestId: String,
+                                   scaMethod: Option[Any]) extends TopicTrait
 
 case class InBoundCreateChallenge(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: String) extends InBoundTrait[String]
 
@@ -533,7 +539,7 @@ case class OutBoundCreateOrUpdateCardAttribute(outboundAdapterCallContext: Outbo
                                                cardId: Option[String],
                                                cardAttributeId: Option[String],
                                                name: String,
-                                               attributeType: CardAttributeType.Value,
+                                               cardAttributeType: CardAttributeType.Value,
                                                value: String
                                          ) extends TopicTrait
 case class InBoundCreateOrUpdateCardAttribute(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CardAttributeCommons) extends InBoundTrait[CardAttributeCommons]
@@ -668,29 +674,36 @@ case class InBoundGetPhysicalCardForBank(inboundAdapterCallContext: InboundAdapt
 
 case class OutBoundGetPhysicalCardsForBank(outboundAdapterCallContext: OutboundAdapterCallContext,
                                            bank: Bank,
-                                           user: User) extends TopicTrait
+                                           user: User,
+                                           limit: Int,
+                                           offset: Int,
+                                           fromDate: String,
+                                           toDate: String) extends TopicTrait
 case class InBoundGetPhysicalCardsForBank(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[PhysicalCard]) extends InBoundTrait[List[PhysicalCard]]
 
-
+//bankCardNumber, nameOnCard, cardType, issueNumber, serialNumber, validFrom, expires, enabled, cancelled, onHotList, technology, networks, allows, accountId, bankId, replacement, pinResets, collected, posted, customerId
 case class OutBoundCreatePhysicalCard(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                              bankCardNumber: String,
-                                              nameOnCard: String,
-                                              issueNumber: String,
-                                              serialNumber: String,
-                                              validFrom: Date,
-                                              expires: Date,
-                                              enabled: Boolean,
-                                              cancelled: Boolean,
-                                              onHotList: Boolean,
-                                              technology: String,
-                                              networks: List[String],
-                                              allows: List[String],
-                                              accountId: String,
-                                              bankId: String,
-                                              replacement: Option[CardReplacementInfo],
-                                              pinResets: List[PinResetInfo],
-                                              collected: Option[CardCollectionInfo],
-                                              posted: Option[CardPostedInfo]) extends TopicTrait
+                                      bankCardNumber: String,
+                                      nameOnCard: String,
+                                      cardType: String,
+                                      issueNumber: String,
+                                      serialNumber: String,
+                                      validFrom: Date,
+                                      expires: Date,
+                                      enabled: Boolean,
+                                      cancelled: Boolean,
+                                      onHotList: Boolean,
+                                      technology: String,
+                                      networks: List[String],
+                                      allows: List[String],
+                                      accountId: String,
+                                      bankId: String,
+                                      replacement: Option[CardReplacementInfo],
+                                      pinResets: List[PinResetInfo],
+                                      collected: Option[CardCollectionInfo],
+                                      posted: Option[CardPostedInfo],
+                                      customerId: String
+                                      ) extends TopicTrait
 case class InBoundCreatePhysicalCard(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: PhysicalCard) extends InBoundTrait[PhysicalCard]
 
 

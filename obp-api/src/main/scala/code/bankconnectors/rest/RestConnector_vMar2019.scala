@@ -170,7 +170,6 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
 
-
 //---------------- dynamic start -------------------please don't modify this line
 
 //---------------- dynamic end ---------------------please don't modify this line
@@ -178,7 +177,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     
     
     
-
+    
+    
+    
+    
 
   //In RestConnector, we use the headers to propagate the parameters to Adapter. The parameters come from the CallContext.outboundAdapterAuthInfo.userAuthContext
   //We can set them from UserOauthContext or the http request headers.
@@ -196,7 +198,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     * @tparam T
     * @return
     */
-  private[this] implicit def convertFuture[T](future: Future[T]): T = Await.result(future, 1.minute)
+  //private[this] implicit def convertFuture[T](future: Future[T]): T = Await.result(future, 1.minute)
 
   //TODO please modify this baseUrl to your remote api server base url of this connector
   private[this] val baseUrl = "http://localhost:8080/restConnector"

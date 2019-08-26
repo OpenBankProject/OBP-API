@@ -306,7 +306,7 @@ object ReflectUtils {
     tp.typeSymbol.isClass && !tp.typeSymbol.asClass.isTrait match {
     case false => Map.empty[String, ru.Type]
     case true => {
-      ReflectUtils.getPrimaryConstructor(tp)
+      getPrimaryConstructor(tp)
         .paramLists
         .headOption
         .getOrElse(Nil)

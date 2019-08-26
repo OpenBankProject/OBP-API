@@ -170,7 +170,7 @@ object CodeGenerateUtils {
         } else if (pre <:< ru.typeOf[AccountAttributeType.type]) {
           "AccountAttributeType.INTEGER"
         } else if (valName == "scaMethod") {
-          "code.api.util.StrongCustomerAuthentication.SMS"
+          "Some(code.api.util.StrongCustomerAuthentication.SMS)"
         } else {
           createDocExample(symbol.info, Some(valName), fieldName, Some(tp))
         }

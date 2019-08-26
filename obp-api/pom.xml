@@ -26,7 +26,6 @@
     <dependency>
       <groupId>com.tesobe</groupId>
       <artifactId>obp-commons</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.github.everit-org.json-schema</groupId>

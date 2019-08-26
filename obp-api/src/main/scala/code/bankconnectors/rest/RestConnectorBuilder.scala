@@ -31,49 +31,49 @@ object RestConnectorBuilder extends App {
     "getChallengeThreshold",
     "getChargeLevel",
     "createChallenge",
-//    "validateChallengeAnswer",
-//    "getBankLegacy",
+    //    "validateChallengeAnswer",
+    //    "getBankLegacy",
     "getBank",
-//    "getBanksLegacy",
+    //    "getBanksLegacy",
     "getBanks",
-//    "getBankAccountsForUserLegacy",
+    //    "getBankAccountsForUserLegacy",
     "getBankAccountsForUser",
     "getUser",
-//    "updateUserAccountViewsOld",
+    //    "updateUserAccountViewsOld",
     "getBankAccount",
-//    "getBankAccountLegacy",
+    //    "getBankAccountLegacy",
     "getBankAccount",
-//    "getBankAccountByIban", *********
-//    "getBankAccountByRouting",
-//    "getBankAccounts",
+    //    "getBankAccountByIban", *********
+    //    "getBankAccountByRouting",
+    //    "getBankAccounts",
     "getBankAccountsBalances",
-//    "getCoreBankAccountsLegacy",
+    //    "getCoreBankAccountsLegacy",
     "getCoreBankAccounts",
-//    "getBankAccountsHeldLegacy",
+    //    "getBankAccountsHeldLegacy",
     "getBankAccountsHeld",
-//    "checkBankAccountExistsLegacy",
+    //    "checkBankAccountExistsLegacy",
     "checkBankAccountExists",
-//    "getEmptyBankAccount", //not useful!
-//    "getCounterpartyFromTransaction", //not useful!
-//    "getCounterpartiesFromTransaction",//not useful!
+    //    "getEmptyBankAccount", //not useful!
+    //    "getCounterpartyFromTransaction", //not useful!
+    //    "getCounterpartiesFromTransaction",//not useful!
     "getCounterparty",
     "getCounterpartyTrait",
-//    "getCounterpartyByCounterpartyIdLegacy",
+    //    "getCounterpartyByCounterpartyIdLegacy",
     "getCounterpartyByCounterpartyId",
     "getCounterpartyByIban",
-//    "getCounterpartiesLegacy",
+    //    "getCounterpartiesLegacy",
     "getCounterparties",
-//    "getTransactionsLegacy",
+    //    "getTransactionsLegacy",
     "getTransactions",
     "getTransactionsCore",
-//    "getTransactionLegacy",
+    //    "getTransactionLegacy",
     "getTransaction",
     "getPhysicalCards",
     "getPhysicalCardForBank",
     "deletePhysicalCardForBank",
-//    "getPhysicalCardsForBankLegacy",
+    //    "getPhysicalCardsForBankLegacy",
     "getPhysicalCardsForBank",
-//    "createPhysicalCardLegacy",
+    //    "createPhysicalCardLegacy",
     "createPhysicalCard",
     "updatePhysicalCard",
     "makePayment",
@@ -108,7 +108,7 @@ object RestConnectorBuilder extends App {
     "updateBankAccount",
     "createBankAndAccount",
     "createBankAccount",
-//    "createBankAccountLegacy",
+    //    "createBankAccountLegacy",
     "createSandboxBankAccount",
     "setAccountHolder",
     "accountExists",
@@ -126,10 +126,10 @@ object RestConnectorBuilder extends App {
     "createOrUpdateAtm",
     "createOrUpdateProduct",
     "createOrUpdateFXRate",
-//    "getBranchLegacy",
+    //    "getBranchLegacy",
     "getBranch",
     "getBranches",
-//    "getAtmLegacy",
+    //    "getAtmLegacy",
     "getAtm",
     "getAtms",
     "accountOwnerExists",
@@ -149,7 +149,7 @@ object RestConnectorBuilder extends App {
     "updateCustomerCreditData",
     "updateCustomerGeneralData",
     "getCustomersByUserId",
-//    "getCustomerByCustomerIdLegacy",
+    //    "getCustomerByCustomerIdLegacy",
     "getCustomerByCustomerId",
     "getCustomerByCustomerNumber",
     "getCustomerAddress",
@@ -212,7 +212,7 @@ object RestConnectorBuilder extends App {
     //    "getKycMedias",
     //    "getKycStatuses",
     //    "createBankAccount",
-//    "createCustomer",
+    //    "createCustomer",
     //    "createMeeting",
     //    "createMessage"
   )
@@ -229,8 +229,8 @@ object RestConnectorBuilder extends App {
     .map(it => {
       val (methodName, typeSignature) = (it.name.toString, it.typeSignature)
       methodName match {
-//        case name if(name.matches("(get|check).*")) => GetGenerator(methodName, typeSignature)
-//        case name if(name.matches("(create|make).*")) => PostGenerator(methodName, typeSignature)
+        //        case name if(name.matches("(get|check).*")) => GetGenerator(methodName, typeSignature)
+        //        case name if(name.matches("(create|make).*")) => PostGenerator(methodName, typeSignature)
         case _ => PostGenerator(methodName, typeSignature)//throw new NotImplementedError(s" not support method name: $methodName")
       }
 
@@ -269,6 +269,9 @@ case class GetGenerator(methodName: String, tp: Type) {
     .replaceAll("(\\w+\\.)+", "")
     .replaceFirst("\\)", "): ")
     .replaceFirst("""\btype\b""", "`type`")
+    .replace("cardAttributeType: Value", "cardAttributeType: CardAttributeType.Value") // scala enum is bad for Reflection
+    .replace("productAttributeType: Value", "productAttributeType: ProductAttributeType.Value") // scala enum is bad for Reflection
+    .replace("accountAttributeType: Value", "accountAttributeType: AccountAttributeType.Value") // scala enum is bad for Reflection
     .replaceFirst("""callContext:\s*Option\[CallContext\]""", "@CacheKeyOmit callContext: Option[CallContext]")
 
   private[this] val params = tp.paramLists(0).filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]).map(_.name.toString)
@@ -383,6 +386,9 @@ case class PostGenerator(methodName: String, tp: Type) {
   private[this] def paramAnResult = tp.toString
     .replaceAll("(\\w+\\.)+", "")
     .replaceFirst("\\)", "): ")
+    .replace("cardAttributeType: Value", "cardAttributeType: CardAttributeType.Value") // scala enum is bad for Reflection
+    .replace("productAttributeType: Value", "productAttributeType: ProductAttributeType.Value") // scala enum is bad for Reflection
+    .replace("accountAttributeType: Value", "accountAttributeType: AccountAttributeType.Value") // scala enum is bad for Reflection
     .replaceFirst("""\btype\b""", "`type`")
 
   private[this] val params = tp.paramLists(0).filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]).map(_.name.toString).mkString(", ", ", ", "").replaceFirst("""\btype\b""", "`type`")
@@ -427,6 +433,7 @@ case class PostGenerator(methodName: String, tp: Type) {
     case v if(v.matches("(delete|remove).+"))                 => "HttpMethods.DELETE"
     case _                                                    => "HttpMethods.POST"
   }
+
   /**
     * Get all the parameters name as a String from `typeSignature` object.
     * eg: it will return
