@@ -113,18 +113,17 @@ object ConnectorEndpoints extends RestHelper{
   }
 
   def getParamValues(outBound: AnyRef, symbols: List[ru.Symbol], optionCC: Option[CallContext], queryParams: Seq[OBPQueryParam]): Seq[Any] = {
-    val paramNameToValue: Map[String, Any] = ReflectUtils.getNameToValues(outBound, symbols.map(_.name.toString))
+    val paramNameToValue: Map[String, Any] = ReflectUtils.getConstructorArgs(outBound)
 
     val queryParamValues: Seq[OBPQueryParam] = symbols.lastOption.find(_.info <:< paramsType).map(_ => queryParams).getOrElse(Nil)
 
-    val otherValues: List[Any] = symbols.filterNot(_.info <:< paramsType)
+    val otherValues: List[Any] = symbols
       .map {symbol =>
-      (symbol.name.toString, symbol.info) match {
-        case ("callContext", _) => optionCC
-        case(name, tp) => paramNameToValue(name)
-        case _ => throw new IllegalArgumentException("impossible exception! just a placeholder.")
-      }
-    }
+        symbol.name.toString match {
+          case "callContext" => optionCC
+          case name => paramNameToValue(name)
+        }
+      }.filterNot(_.isInstanceOf[Seq[OBPQueryParam]])
     otherValues :+ queryParamValues
   }
 
