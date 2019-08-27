@@ -91,14 +91,33 @@ object Migration extends MdcLoggable {
     private def generateAndPopulateMissingCustomerUUIDs(): Boolean = {
       val name = nameOf(generateAndPopulateMissingCustomerUUIDs)
       runOnce(name) {
-        CustomerX.customerProvider.vend.populateMissingUUIDs()
+        val startDate = System.currentTimeMillis()
+        val commitId: String = APIUtil.gitCommit
+        val isSuccessful = CustomerX.customerProvider.vend.populateMissingUUIDs()
+        val endDate = System.currentTimeMillis()
+
+        val comment: String =
+          s"""Execute `generateAndPopulateMissingCustomerUUIDs` 
+             |Duration: ${endDate - startDate} ms;
+             """.stripMargin
+        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
+        isSuccessful
       }
     }
 
     private def generateAndPopulateMissingConsumersUUIDs(): Boolean = {
       val name = nameOf(generateAndPopulateMissingConsumersUUIDs)
       runOnce(name) {
-        Consumers.consumers.vend.populateMissingUUIDs()
+        val startDate = System.currentTimeMillis()
+        val commitId: String = APIUtil.gitCommit
+        val isSuccessful = Consumers.consumers.vend.populateMissingUUIDs()
+        val endDate = System.currentTimeMillis()
+        val comment: String =
+          s"""Execute `generateAndPopulateMissingConsumersUUIDs` 
+             |Duration: ${endDate - startDate} ms;
+             """.stripMargin
+        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
+        isSuccessful
       }
     }
     

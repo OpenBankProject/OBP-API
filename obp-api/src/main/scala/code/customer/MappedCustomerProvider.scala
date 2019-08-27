@@ -4,6 +4,7 @@ import java.lang
 import java.util.Date
 
 import code.api.util._
+import code.api.util.migration.Migration.DbFunction
 import code.usercustomerlinks.{MappedUserCustomerLinkProvider, UserCustomerLink}
 import code.users.Users
 import code.util.Helper.MdcLoggable
@@ -288,8 +289,11 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
 
   override def populateMissingUUIDs(): Boolean = {
     logger.warn("Executed script: " + NameOf.nameOf(populateMissingUUIDs))
+    //Back up MappedCustomer table.
+    DbFunction.makeBackUpOfTable(MappedCustomer)
+    
     for {
-      customer <- MappedCustomer.findAll(NullRef(MappedCustomer.mCustomerId))
+      customer <- MappedCustomer.findAll(NullRef(MappedCustomer.mCustomerId))++ MappedCustomer.findAll(By(MappedCustomer.mCustomerId, ""))
     } yield {
       customer.mCustomerId(APIUtil.generateUUID()).save()
     }
