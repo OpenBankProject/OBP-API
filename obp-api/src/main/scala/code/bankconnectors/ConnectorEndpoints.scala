@@ -32,9 +32,9 @@ object ConnectorEndpoints extends RestHelper{
       cc => {
         val methodSymbol = getMethod(methodName, json).get
         val outBoundType = Class.forName(s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}")
-        val mf = ManifestFactory.classType(outBoundType)
+        val mf = ManifestFactory.classType[TopicTrait](outBoundType)
         val formats = CustomJsonFormats.formats
-        val outBound = json.extract(formats, mf)
+        val outBound = json.extract[TopicTrait](formats, mf)
         val optionCC = Option(cc)
         val queryParams: Seq[OBPQueryParam] = extractOBPQueryParams(outBound)
 
