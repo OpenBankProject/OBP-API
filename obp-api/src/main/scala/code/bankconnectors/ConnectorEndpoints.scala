@@ -3,7 +3,7 @@ package code.bankconnectors
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.{OBPEndpoint, _}
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{APIUtil, CallContext, OBPQueryParam}
+import code.api.util.{APIUtil, CallContext, CustomJsonFormats, OBPQueryParam}
 import code.api.v3_1_0.OBPAPI3_1_0.oauthServe
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ReflectUtils
@@ -11,11 +11,14 @@ import com.openbankproject.commons.util.ReflectUtils.{getType, toValueObject}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.JValue
+import net.liftweb.json.JsonAST.JNothing
 import org.apache.commons.lang3.StringUtils
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.reflect.ManifestFactory
 import scala.reflect.runtime.{universe => ru}
 
 object ConnectorEndpoints extends RestHelper{
@@ -25,19 +28,18 @@ object ConnectorEndpoints extends RestHelper{
   }
 
   lazy val connectorGetMethod: OBPEndpoint = {
-    case "restConnector" :: methodName :: params JsonGet req  if(hashMethod(methodName, params)) => {
+    case "restConnector" :: methodName :: Nil JsonPost json -> _  if(hashMethod(methodName, json)) => {
       cc => {
-        val methodSymbol = getMethod(methodName, params).get
+        val methodSymbol = getMethod(methodName, json).get
+        val outBoundType = Class.forName(s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}")
+        val mf = ManifestFactory.classType(outBoundType)
+        val formats = CustomJsonFormats.formats
+        val outBound = json.extract(formats, mf)
         val optionCC = Option(cc)
-        val queryParams: Seq[OBPQueryParam] = List(
-          OBPQueryParam.toLimit(req.param(OBPQueryParam.LIMIT)),
-          OBPQueryParam.toOffset(req.param(OBPQueryParam.OFFSET)),
-          OBPQueryParam.toFromDate(req.param(OBPQueryParam.FROM_DATE)),
-          OBPQueryParam.toToDate(req.param(OBPQueryParam.TO_DATE))
-        ).filter(_.isDefined).map(_.openOrThrowException("Impossible exception!"))
+        val queryParams: Seq[OBPQueryParam] = extractOBPQueryParams(outBound)
 
         // TODO need wait for confirm the rule, after that do refactor
-        val paramValues: Seq[Any] = getParamValues(params, methodSymbol.paramLists.headOption.getOrElse(Nil), optionCC, queryParams)
+        val paramValues: Seq[Any] = getParamValues(outBound, methodSymbol.paramLists.headOption.getOrElse(Nil), optionCC, queryParams)
 
         val  value = invokeMethod(methodSymbol, paramValues :_*)
 
@@ -60,6 +62,21 @@ object ConnectorEndpoints extends RestHelper{
         }
       }
     }
+  }
+
+  def extractOBPQueryParams(outBound: AnyRef): Seq[OBPQueryParam] = {
+    val tp = ReflectUtils.getType(outBound)
+    val decls = tp.decls.toList
+    val limit = decls.find(it => it.name.toString == OBPQueryParam.LIMIT).map(_.asMethod).map(ReflectUtils.invokeMethod(outBound,_)).map(_.toString)
+    val offset = decls.find(it => it.name.toString == OBPQueryParam.OFFSET).map(_.asMethod).map(ReflectUtils.invokeMethod(outBound,_)).map(_.toString)
+    val fromDate = decls.find(it => it.name.toString == OBPQueryParam.FROM_DATE).map(_.asMethod).map(ReflectUtils.invokeMethod(outBound,_)).map(_.asInstanceOf[String])
+    val toDate = decls.find(it => it.name.toString == OBPQueryParam.TO_DATE).map(_.asMethod).map(ReflectUtils.invokeMethod(outBound,_)).map(_.asInstanceOf[String])
+    List(
+      OBPQueryParam.toLimit(limit),
+      OBPQueryParam.toOffset(offset),
+      OBPQueryParam.toFromDate(fromDate),
+      OBPQueryParam.toToDate(toDate)
+    ).filter(_.isDefined).map(_.openOrThrowException("Impossible exception!"))
   }
 
 //  def buildInboundObject(adapterCallContext: OutboundAdapterCallContext, data: Any, methodName: String): Any = {
@@ -95,11 +112,8 @@ object ConnectorEndpoints extends RestHelper{
     }
   }
 
-  def getParamValues(params: List[String], symbols: List[ru.Symbol], optionCC: Option[CallContext], queryParams: Seq[OBPQueryParam]): Seq[Any] = {
-    val paramNameToValue: Map[String, String] = params.grouped(2).map{ pair =>
-      val name::tail = pair
-      (name, tail.headOption.orNull)
-    }.toMap
+  def getParamValues(outBound: AnyRef, symbols: List[ru.Symbol], optionCC: Option[CallContext], queryParams: Seq[OBPQueryParam]): Seq[Any] = {
+    val paramNameToValue: Map[String, Any] = ReflectUtils.getNameToValues(outBound, symbols.map(_.name.toString))
 
     val queryParamValues: Seq[OBPQueryParam] = symbols.lastOption.find(_.info <:< paramsType).map(_ => queryParams).getOrElse(Nil)
 
@@ -107,7 +121,7 @@ object ConnectorEndpoints extends RestHelper{
       .map {symbol =>
       (symbol.name.toString, symbol.info) match {
         case ("callContext", _) => optionCC
-        case(name, tp) => convertValue(paramNameToValue(name),tp)
+        case(name, tp) => paramNameToValue(name)
         case _ => throw new IllegalArgumentException("impossible exception! just a placeholder.")
       }
     }
@@ -139,17 +153,16 @@ object ConnectorEndpoints extends RestHelper{
       .toList
   }
 
-  def getMethod(methodName: String, params: List[String]): Option[ru.MethodSymbol] = {
-    val paramNames: Seq[String] = (0 until (params.size, 2)).map(params)
+  def getMethod(methodName: String, json: JValue): Option[ru.MethodSymbol] = {
     this.allMethods.filter { triple =>
-      triple._1 == methodName && triple._2 == paramNames
+      triple._1 == methodName && triple._2.forall(paramName => (json \ paramName) != JNothing)
     }
-      .sortBy(_._2.size)
-      .lastOption
+    .sortBy(_._2.size)
+    .lastOption
     .map(_._3)
   }
 
-  def hashMethod(methodName: String, params: List[String]): Boolean = getMethod(methodName, params).isDefined
+  def hashMethod(methodName: String, json: JValue): Boolean = getMethod(methodName, json).isDefined
 
   def invokeMethod(method: ru.MethodSymbol, args: Any*) = {
     mirrorObj.reflectMethod(method).apply(args :_*)
