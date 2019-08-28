@@ -425,7 +425,7 @@ trait APIMethods300 {
       s"""Returns the list of accounts containing private views for the user.
          |Each account lists the views available to the user.
          |
-         |$accountTypeFilterText
+         |${accountTypeFilterText("/my/accounts")}
          |
          |${authenticationRequiredMessage(true)}
          |""",
@@ -1585,7 +1585,7 @@ trait APIMethods300 {
          |
          |If you want to see more information on the Views, use the Account Detail call.
          |
-         |$accountTypeFilterText
+         |${accountTypeFilterText("/banks/BANK_ID/accounts/private")}
          |
          |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
@@ -1625,7 +1625,7 @@ trait APIMethods300 {
          |
          |If you want to see more information on the Views, use the Account Detail call.
          |
-         |$accountTypeFilterText
+         |${accountTypeFilterText("/banks/BANK_ID/accounts/account_ids/private")}
          |
          |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
@@ -2029,7 +2029,7 @@ trait APIMethods300 {
         |
         |Can be used to onboard the account to the API - since all other account and transaction endpoints require views to be assigned.
         |
-        |$accountTypeFilterText
+        |${accountTypeFilterText("/banks/BANK_ID/accounts-held")}
         |
         |${authenticationRequiredMessage(true)}
       """,
