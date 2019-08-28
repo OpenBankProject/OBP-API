@@ -158,7 +158,7 @@ class CustomerAddressTest extends V310ServerSetup {
       val customerAddress = successRes.body.extract[CustomerAddressJsonV310]
       
       When("We try to update the customer address v3.1.0")
-      val successUpdateReq = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "address" / customerAddress.customer_address_id).PUT <@(user1)
+      val successUpdateReq = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "addresses" / customerAddress.customer_address_id).PUT <@(user1)
       val successUpdateRes = makePutRequest(successUpdateReq, write(postCustomerAddressJson.copy(city = "Novi Sad")))
       Then("We should get a 200")
       successUpdateRes.code should equal(200)
