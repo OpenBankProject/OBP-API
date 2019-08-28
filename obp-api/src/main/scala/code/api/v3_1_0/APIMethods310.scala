@@ -1562,7 +1562,7 @@ trait APIMethods310 {
          |
         |""",
       postTaxResidenceJsonV310,
-      taxResidenceJsonV310,
+      taxResidenceV310,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -1587,7 +1587,7 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (taxResidence, callContext) <- NewStyle.function.createTaxResidence(customerId, postedData.domain, postedData.tax_number, callContext)
           } yield {
-            (JSONFactory310.createTaxResidence(List(taxResidence)), HttpCode.`201`(callContext))
+            (JSONFactory310.createTaxResidence(taxResidence), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1598,7 +1598,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(getTaxResidence),
       "GET",
-      "/banks/BANK_ID/customers/CUSTOMER_ID/tax-residence",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/tax-residences",
       "Get Tax Residences of Customer",
       s"""Get the Tax Residences of the Customer specified by CUSTOMER_ID.
          |
@@ -1607,7 +1607,7 @@ trait APIMethods310 {
          |
         |""",
       emptyObjectJson,
-      taxResidenceJsonV310,
+      taxResidencesJsonV310,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -1617,16 +1617,16 @@ trait APIMethods310 {
       List(apiTagCustomer, apiTagKyc, apiTagNewStyle))
 
     lazy val getTaxResidence : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "tax-residence" ::  Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "tax-residences" ::  Nil JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetTaxResidence, callContext)
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
-            (taxResidence, callContext) <- NewStyle.function.getTaxResidence(customerId, callContext)
+            (taxResidences, callContext) <- NewStyle.function.getTaxResidences(customerId, callContext)
           } yield {
-            (JSONFactory310.createTaxResidence(taxResidence), HttpCode.`200`(callContext))
+            (JSONFactory310.createTaxResidences(taxResidences), HttpCode.`200`(callContext))
           }
       }
     }

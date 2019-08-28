@@ -918,7 +918,7 @@ object JSONFactory310{
     )
   }
 
-  def createTaxResidence(tr: List[TaxResidence]) = TaxResidenceJsonV310(
+  def createTaxResidences(tr: List[TaxResidence]) = TaxResidenceJsonV310(
     tr.map(
       i =>
         TaxResidenceV310(
@@ -928,6 +928,12 @@ object JSONFactory310{
         )
     )
   )
+  def createTaxResidence(tr: TaxResidence) = TaxResidenceV310(
+    domain = tr.domain,
+    tax_number = tr.taxNumber,
+    tax_residence_id = tr.taxResidenceId
+  )
+  
   def createAddress(address: CustomerAddress): CustomerAddressJsonV310 =
     CustomerAddressJsonV310(
       customer_address_id = address.customerAddressId,
