@@ -9,24 +9,24 @@ class MappedCustomerIdMapping extends CustomerIdMapping with LongKeyedMapper[Map
   def getSingleton = MappedCustomerIdMapping
 
   object mCustomerId extends MappedUUID(this)
-  object mCustomerReference extends MappedString(this, 255)
+  object mCustomerPlainTextReference extends MappedString(this, 255)
 
   override def customerId = CustomerId(mCustomerId.get)
-  override def customerPlainTextReference = mCustomerReference.get
+  override def customerPlainTextReference = mCustomerPlainTextReference.get
 
 
-  @deprecated("We used customerReference instead","23-08-2019")
+  @deprecated("We used customerPlainTextReference instead","23-08-2019")
   object mBankId extends MappedString(this, 50)
-  @deprecated("We used customerReference instead","23-08-2019")
+  @deprecated("We used customerPlainTextReference instead","23-08-2019")
   object mCustomerNumber extends MappedString(this, 50)
-  @deprecated("We used customerReference instead","23-08-2019")
+  @deprecated("We used customerPlainTextReference instead","23-08-2019")
   override def bankId = BankId(mBankId.get)
-  @deprecated("We used customerReference instead","23-08-2019")
+  @deprecated("We used customerPlainTextReference instead","23-08-2019")
   override def customerNumber: String = mCustomerNumber.get
 
 }
 
 object MappedCustomerIdMapping extends MappedCustomerIdMapping with LongKeyedMetaMapper[MappedCustomerIdMapping] {
   //one customer info per bank for each api user
-  override def dbIndexes = UniqueIndex(mCustomerId) :: UniqueIndex(mCustomerId, mCustomerReference) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mCustomerId) :: UniqueIndex(mCustomerId, mCustomerPlainTextReference) :: super.dbIndexes
 }

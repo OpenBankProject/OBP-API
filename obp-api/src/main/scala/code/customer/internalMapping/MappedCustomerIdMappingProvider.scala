@@ -10,12 +10,12 @@ object MappedCustomerIdMappingProvider extends CustomerIdMappingProvider with Md
 {
 
   override def getOrCreateCustomerId(
-    customerReference: String
+    customerPlainTextReference: String
   ) =
   {
 
     val mappedCustomerIdMapping = MappedCustomerIdMapping.find(
-      By(MappedCustomerIdMapping.mCustomerReference, customerReference)
+      By(MappedCustomerIdMapping.mCustomerPlainTextReference, customerPlainTextReference)
     )
 
     mappedCustomerIdMapping match
@@ -30,7 +30,7 @@ object MappedCustomerIdMappingProvider extends CustomerIdMappingProvider with Md
         val mappedCustomerIdMapping: MappedCustomerIdMapping =
           MappedCustomerIdMapping
             .create
-            .mCustomerReference(customerReference)
+            .mCustomerPlainTextReference(customerPlainTextReference)
             .saveMe
         logger.debug(s"getOrCreateCustomerId--> create mappedCustomerIdMapping : $mappedCustomerIdMapping")
         Full(mappedCustomerIdMapping.customerId)
@@ -41,7 +41,7 @@ object MappedCustomerIdMappingProvider extends CustomerIdMappingProvider with Md
   }
 
 
-  override def getCustomerReference(customerId: CustomerId) = {
+  override def getCustomerPlainTextReference(customerId: CustomerId) = {
     MappedCustomerIdMapping.find(
       By(MappedCustomerIdMapping.mCustomerId, customerId.value),
     ).map(_.customerPlainTextReference)

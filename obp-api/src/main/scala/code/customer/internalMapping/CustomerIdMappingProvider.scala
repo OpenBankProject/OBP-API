@@ -15,8 +15,8 @@ object CustomerIdMappingProvider extends SimpleInjector {
 
 trait CustomerIdMappingProvider {
 
-  def getOrCreateCustomerId(customerReference: String): Box[CustomerId]
+  def getOrCreateCustomerId(customerPlainTextReference: String): Box[CustomerId]
 
-  def getCustomerReference(customerId: CustomerId): Box[String]
+  def getCustomerPlainTextReference(customerId: CustomerId): Box[String]
 
 }
