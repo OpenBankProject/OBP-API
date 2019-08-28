@@ -4,7 +4,7 @@ import com.openbankproject.commons.model.AccountId
 
 /**
  * This trait is used for storing the mapped between obp account_id and bank real account reference.
- * AccountReference is just a plain text from bank. Bank need to prepare it and make it unique for each Account.
+ * AccountPlainTextReference is just a plain text from bank. Bank need to prepare it and make it unique for each Account.
  *
  * eg: Once we create the account over CBS, we need also create a AccountId in api side.
  *     For security reason, we can only use the accountId (UUID) in the apis.  

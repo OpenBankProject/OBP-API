@@ -15,8 +15,8 @@ object AccountIdMappingProvider extends SimpleInjector {
 
 trait AccountIdMappingProvider {
 
-  def getOrCreateAccountId(accountReference: String): Box[AccountId]
+  def getOrCreateAccountId(accountPlainTextReference: String): Box[AccountId]
 
-  def getAccountReference(accountId: AccountId): Box[String]
+  def getAccountPlainTextReference(accountId: AccountId): Box[String]
 
 }
