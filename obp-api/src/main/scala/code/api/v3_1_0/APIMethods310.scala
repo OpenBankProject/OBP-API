@@ -1777,7 +1777,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(updateCustomerAddress),
       "PUT",
-      "/banks/BANK_ID/customers/CUSTOMER_ID/address/CUSTOMER_ADDRESS_ID",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/addresses/CUSTOMER_ADDRESS_ID",
       "Update the Address of a Customer",
       s"""Update an Address of the Customer specified by CUSTOMER_ADDRESS_ID.
          |
@@ -1797,7 +1797,7 @@ trait APIMethods310 {
       List(apiTagCustomer, apiTagNewStyle))
 
     lazy val updateCustomerAddress : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "address" :: customerAddressId ::  Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "addresses" :: customerAddressId ::  Nil JsonPut json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
