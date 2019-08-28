@@ -328,7 +328,9 @@ object SwaggerJSONFactory {
                   case s:scala.Product => s.getClass.getSimpleName
                   case _ => "NoSupportYet"
                 }
-                OperationParameterBodyJson(schema=ResponseObjectSchemaJson(s"#/definitions/${caseClassName}")) :: pathParameters
+                OperationParameterBodyJson(
+                  description = s"${caseClassName} object that needs to be added ",
+                  schema=ResponseObjectSchemaJson(s"#/definitions/${caseClassName}")) :: pathParameters
               },
             responses =
               rd.requestVerb.toLowerCase match {
