@@ -257,7 +257,7 @@ trait APIMethods200 {
         |For each account the API returns the account ID and the views available to the user..
         |Each account must have at least one private View.
         |
-        |$accountTypeFilterText
+        |${accountTypeFilterText("/banks/BANK_ID/accounts")}
         |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,

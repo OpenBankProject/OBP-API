@@ -69,7 +69,7 @@ class TaxResidenceTest extends V310ServerSetup {
   feature("Get the Tax Residence of the Customer specified by  CUSTOMER_ID v3.1.0 - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residence").GET
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residences").GET
       val response310 = makeGetRequest(request310)
       Then("We should get a 400")
       response310.code should equal(400)
@@ -125,24 +125,24 @@ class TaxResidenceTest extends V310ServerSetup {
       val response310 = makePostRequest(request310, write(postTaxResidenceJson))
       Then("We should get a 201")
       response310.code should equal(201)
-      val taxResidenceJson = response310.body.extract[TaxResidenceJsonV310]
+      val taxResidenceJson = response310.body.extract[TaxResidenceV310]
 
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetTaxResidence.toString)
       When("We make a request v3.1.0 with the Role " + canGetTaxResidence)
-      val requestGet310 = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "tax-residence").GET <@(user1)
+      val requestGet310 = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "tax-residences").GET <@(user1)
       val responseGet310 = makeGetRequest(requestGet310)
       Then("We should get a 200")
       responseGet310.code should equal(200)
       val taxResidenceGetJson = responseGet310.body.extract[TaxResidenceJsonV310]
 
-      val createList = taxResidenceJson.tax_residence.map(_.tax_residence_id)
+      val createTexResienceId = taxResidenceJson.tax_residence_id
       val getList = taxResidenceGetJson.tax_residence.map(_.tax_residence_id)
 
-      getList should contain theSameElementsAs (createList)
+      getList.toString contains (createTexResienceId) should be (true)
 
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanDeleteTaxResidence.toString)
       When("We make a request v3.1.0 with the Role " + canDeleteTaxResidence + " but with non existing CUSTOMER_ID")
-      val requestDelete310 = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "tax_residencies" / createList.headOption.getOrElse("")).DELETE <@(user1)
+      val requestDelete310 = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "tax_residencies" / createTexResienceId).DELETE <@(user1)
       val responseDelete310 = makeDeleteRequest(requestDelete310)
       Then("We should get a 200")
       responseDelete310.code should equal(200)
@@ -154,7 +154,7 @@ class TaxResidenceTest extends V310ServerSetup {
   feature("Get the Tax Residence of the Customer specified by  CUSTOMER_ID v3.1.0 - Authorized access") {
     scenario("We will call the endpoint without the proper Role " + canGetTaxResidence, ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canGetTaxResidence)
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residence").GET <@(user1)
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residences").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 403")
       response310.code should equal(403)
@@ -164,7 +164,7 @@ class TaxResidenceTest extends V310ServerSetup {
     scenario("We will call the endpoint with the proper Role " + canGetTaxResidence, ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetTaxResidence.toString)
       When("We make a request v3.1.0 with the Role " + canGetTaxResidence + " but with non existing CUSTOMER_ID")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residence").GET <@(user1)
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residences").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 400")
       response310.code should equal(400)

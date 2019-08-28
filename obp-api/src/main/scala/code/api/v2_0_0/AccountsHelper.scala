@@ -18,15 +18,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
   */
 object AccountsHelper {
   // accountTypeFilter doc part text
-  val accountTypeFilterText =
-    """
+  def accountTypeFilterText(url: String) =
+    s"""
       |optional request parameters:
       |
       |* account_type_filter: one or many accountType value, split by comma
       |* account_type_filter_operation: the filter type of account_type_filter, value must be INCLUDE or EXCLUDE
       |
       |whole url example:
-      |/banks/BANK_ID/accounts/private?account_type_filter=330,CURRENT+PLUS&account_type_filter_operation=INCLUDE
+      |$url?account_type_filter=330,CURRENT+PLUS&account_type_filter_operation=INCLUDE
     """.stripMargin
 
 

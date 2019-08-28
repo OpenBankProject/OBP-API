@@ -339,7 +339,7 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
-    def getTaxResidence(customerId : String, callContext: Option[CallContext]): OBPReturnType[List[TaxResidence]] = {
+    def getTaxResidences(customerId : String, callContext: Option[CallContext]): OBPReturnType[List[TaxResidence]] = {
       Connector.connector.vend.getTaxResidence(customerId, callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
