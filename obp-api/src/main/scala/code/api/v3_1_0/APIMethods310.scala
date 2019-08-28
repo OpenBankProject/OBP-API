@@ -1833,7 +1833,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(getCustomerAddresses),
       "GET",
-      "/banks/BANK_ID/customers/CUSTOMER_ID/address",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/addresses",
       "Get Customer Addresses",
       s"""Get the Addresses of the Customer specified by CUSTOMER_ID.
          |
@@ -1853,7 +1853,7 @@ trait APIMethods310 {
       Some(List(canGetCustomerAddress)))
 
     lazy val getCustomerAddresses : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "address" ::  Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "addresses" ::  Nil JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
