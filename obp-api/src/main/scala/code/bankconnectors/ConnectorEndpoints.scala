@@ -15,6 +15,7 @@ import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.JNothing
 import org.apache.commons.lang3.StringUtils
 
+import scala.collection.immutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -30,16 +31,15 @@ object ConnectorEndpoints extends RestHelper{
   lazy val connectorGetMethod: OBPEndpoint = {
     case "restConnector" :: methodName :: Nil JsonPost json -> _  if(hashMethod(methodName, json)) => {
       cc => {
-        val methodSymbol = getMethod(methodName, json).get
+        val methodSymbol: ru.MethodSymbol = getMethod(methodName, json).get
         val outBoundType = Class.forName(s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}")
         val mf = ManifestFactory.classType[TopicTrait](outBoundType)
         val formats = CustomJsonFormats.formats
         val outBound = json.extract[TopicTrait](formats, mf)
         val optionCC = Option(cc)
-        val queryParams: Seq[OBPQueryParam] = extractOBPQueryParams(outBound)
 
         // TODO need wait for confirm the rule, after that do refactor
-        val paramValues: Seq[Any] = getParamValues(outBound, methodSymbol.paramLists.headOption.getOrElse(Nil), optionCC, queryParams)
+        val paramValues: Seq[Any] = getParamValues(outBound, methodSymbol, optionCC)
 
         val  value = invokeMethod(methodSymbol, paramValues :_*)
 
@@ -112,19 +112,18 @@ object ConnectorEndpoints extends RestHelper{
     }
   }
 
-  def getParamValues(outBound: AnyRef, symbols: List[ru.Symbol], optionCC: Option[CallContext], queryParams: Seq[OBPQueryParam]): Seq[Any] = {
+  def getParamValues(outBound: AnyRef, methodSymbol: ru.MethodSymbol, optionCC: Option[CallContext]): Seq[Any] = {
     val paramNameToValue: Map[String, Any] = ReflectUtils.getConstructorArgs(outBound)
 
-    val queryParamValues: Seq[OBPQueryParam] = symbols.lastOption.find(_.info <:< paramsType).map(_ => queryParams).getOrElse(Nil)
+    val paramValues: Seq[Any] = allMethods.find(_._3 == methodSymbol)
+      .map(_._4).get
+      .map(it => it match {
+        case "queryParams" => extractOBPQueryParams(outBound)
+        case "callContext" => optionCC
+        case name => paramNameToValue(name)
+      })
 
-    val otherValues: List[Any] = symbols
-      .map {symbol =>
-        symbol.name.toString match {
-          case "callContext" => optionCC
-          case name => paramNameToValue(name)
-        }
-      }.filterNot(_.isInstanceOf[Seq[OBPQueryParam]])
-    otherValues :+ queryParamValues
+      paramValues
   }
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -133,8 +132,8 @@ object ConnectorEndpoints extends RestHelper{
   // it is impossible to get the type of OBPQueryParam*, ru.typeOf[OBPQueryParam*] not work, it is Seq type indeed
   private val paramsType = ru.typeOf[Seq[OBPQueryParam]]
 
-  // (methodName, paramNames, method)
-  lazy val allMethods: List[(String, List[String], ru.MethodSymbol)] = {
+  // (methodName, paramNames, method, allParamNames)
+  lazy val allMethods: List[(String, List[String], ru.MethodSymbol, List[String])] = {
      val mirror: ru.Mirror = ru.runtimeMirror(this.getClass.getClassLoader)
      val objMirror = mirror.reflect(LocalMappedConnector)
 
@@ -144,10 +143,13 @@ object ConnectorEndpoints extends RestHelper{
      objMirror.symbol.toType.members
        .filter(_.isMethod)
        .map(it => {
-         val names = it.asMethod.paramLists.headOption.getOrElse(Nil)
+         val allParams = it.asMethod.paramLists.headOption.getOrElse(Nil)
+         val allNames = allParams.map(_.name.toString.trim)
+         // names exclude callContext and queryParams
+         val names = allParams
            .filterNot(symbol => isCallContextOrQueryParams(symbol.info))
-           .map(_.name.toString)
-         (it.name.toString, names, it.asMethod)
+           .map(_.name.toString.trim)
+         (it.name.toString, names, it.asMethod, allNames)
        })
       .toList
   }
