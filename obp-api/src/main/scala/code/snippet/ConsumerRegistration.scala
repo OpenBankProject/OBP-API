@@ -91,7 +91,7 @@ class ConsumerRegistration extends MdcLoggable {
       val createDirectLoginToken = getWebUiPropsValue("webui_create_directlogin_token_url", "")
       val registerConsumerSuccessMessageWebpage = getWebUiPropsValue(
         "webui_register_consumer_success_message_webpage", 
-        "Thanks for registering your consumer with the Open Bank API! Here is your developer information. Please save it in a secure location.")
+        "Thanks for registering your consumer with the Open Bank Project API! Here is your developer information. Please save it in a secure location.")
       //thanks for registering, here's your key, etc.
       "#register-consumer-success-message *" #> registerConsumerSuccessMessageWebpage &
       "#app-consumer_id *" #> consumer.id.get &

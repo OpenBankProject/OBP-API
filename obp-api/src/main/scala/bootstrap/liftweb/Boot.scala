@@ -50,7 +50,7 @@ import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.MappedConsent
 import code.context.{MappedUserAuthContext, MappedUserAuthContextUpdate}
 import code.crm.MappedCrmEvent
-import code.customer.internalMapping.MappedCustomerIDMapping
+import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraddress.MappedCustomerAddress
 import code.database.authorisation.Authorisation
@@ -77,6 +77,7 @@ import code.metrics.{MappedConnectorMetric, MappedMetric}
 import code.migration.MigrationScriptLog
 import code.model._
 import code.model.dataAccess._
+import code.model.dataAccess.internalMapping.AccountIdMapping
 import code.productAttributeattribute.MappedProductAttribute
 import code.productcollection.MappedProductCollection
 import code.productcollectionitem.MappedProductCollectionItem
@@ -649,7 +650,7 @@ object ToSchemify {
     MappedCurrency,
     MappedTransactionRequestTypeCharge,
     MappedAccountWebhook,
-    MappedCustomerIDMapping,
+    MappedCustomerIdMapping,
     MappedProductAttribute,
     MappedConsent,
     MigrationScriptLog,
@@ -657,5 +658,6 @@ object ToSchemify {
     WebUiProps,
     Authorisation,
     DynamicEntity,
+    AccountIdMapping,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }
