@@ -72,6 +72,11 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>com.tesobe</groupId>
+        <artifactId>obp-commons</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
         <groupId>net.liftweb</groupId>
         <artifactId>lift-common_${scala.version}</artifactId>
         <version>${lift.version}</version>

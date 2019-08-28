@@ -1,6 +1,7 @@
 package code.context
 
 import code.util.{MappedUUID, UUIDString}
+import com.openbankproject.commons.model.UserAuthContextUpdate
 import net.liftweb.mapper._
 
 import scala.util.Random

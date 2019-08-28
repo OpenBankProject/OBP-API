@@ -2,6 +2,7 @@ package code.context
 
 import code.api.util.ErrorMessages
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.UserAuthContextUpdateStatus
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo

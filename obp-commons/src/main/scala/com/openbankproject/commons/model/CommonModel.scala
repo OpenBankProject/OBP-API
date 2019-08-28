@@ -273,7 +273,7 @@ object CounterpartyTraitCommons extends Converter[CounterpartyTrait, Counterpart
 
 
 case class TaxResidenceCommons(
-                                customerId :Long,
+                                customerId :String,
                                 taxResidenceId :String,
                                 domain :String,
                                 taxNumber :String) extends TaxResidence
@@ -447,9 +447,9 @@ case class OrderObjectJson(
                           )
 
 case class ObpApiLoopback(
-                           connectorVersion: String,
-                           gitCommit: String,
-                           durationTime: String
+                          connectorVersion: String,
+                          gitCommit: String,
+                          durationTime: String
                          ) extends TopicTrait
 
 case class CardObjectJson(

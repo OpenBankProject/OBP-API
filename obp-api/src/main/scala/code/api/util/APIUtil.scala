@@ -2510,7 +2510,7 @@ Returns a string showed to the developer
     null,
     ApiVersion.v3_1_0,
     messageDoc.process,
-    "get",
+    "post",
     s"/obp-connector/${messageDoc.process.replaceAll("obp.","").replace(".","")}",
     messageDoc.description,
     messageDoc.description,

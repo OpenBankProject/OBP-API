@@ -3,13 +3,12 @@ package code.api.util
 import java.util.{Date, UUID}
 
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
-import code.api.RequestHeader
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages.{BankAccountNotFound, attemptedToOpenAnEmptyBox}
+import code.api.util.ErrorMessages.BankAccountNotFound
 import code.context.UserAuthContextProvider
 import code.customer.CustomerX
-import code.model.Consumer
+import code.model.{Consumer, _}
 import code.views.Views
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Empty}
@@ -17,7 +16,6 @@ import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
-import code.model._
 
 import scala.collection.immutable.List
 

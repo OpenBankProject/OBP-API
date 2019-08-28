@@ -45,10 +45,22 @@ object ReflectUtils {
     */
   def getValues(obj: AnyRef, excludes: Seq[String] = Nil, includeVar: Boolean = true): List[Any] = getNameToValues(obj, excludes, includeVar).values.toList
 
-  def getTypeByName(typeName: String, mirror: ru.Mirror = this.mirror): ru.Type = mirror.staticClass(typeName).asType.toType
+  /**
+   * 
+   * @param fullName need the fully qualified class name: eg: com.openbankproject.commons.dto.OutBoundCreateBankAccount
+   * @param mirror : has the default this.mirror
+   * @return
+   */
+  def getTypeByName(fullName: String, mirror: ru.Mirror = this.mirror): ru.Type = 
+    mirror.staticClass(fullName).asType.toType
 
-  def isTypeExists(typeName: String): Boolean = try {
-    getTypeByName(typeName)
+  /**
+   * Check if the class is existing in the java path or not. 
+   * @param fullName
+   * @return
+   */
+  def isTypeExists(fullName: String): Boolean = try {
+    getTypeByName(fullName)
     true
   } catch {
     case _: Throwable => false
@@ -294,7 +306,7 @@ object ReflectUtils {
     tp.typeSymbol.isClass && !tp.typeSymbol.asClass.isTrait match {
     case false => Map.empty[String, ru.Type]
     case true => {
-      ReflectUtils.getPrimaryConstructor(tp)
+      getPrimaryConstructor(tp)
         .paramLists
         .headOption
         .getOrElse(Nil)

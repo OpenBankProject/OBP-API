@@ -16,40 +16,190 @@ import scala.reflect.runtime.{universe => ru}
 import code.api.util.CodeGenerateUtils.createDocExample
 
 object RestConnectorBuilder extends App {
+  // rewrite method code.webuiprops.MappedWebUiPropsProvider#getWebUiPropsValue, avoid access DB cause dataSource not found exception
+  {
+    import javassist.ClassPool
+    val pool = ClassPool.getDefault
+    val ct = pool.getCtClass("code.webuiprops.MappedWebUiPropsProvider$")
+    val m = ct.getDeclaredMethod("getWebUiPropsValue")
+    m.insertBefore("""return ""; """)
+    ct.toClass
+  }
 
   val genMethodNames = List(
-    //    "getAdapterInfo",
-//    "getAdapterInfo",
-    //    "getUser", // have problem, return type not common
+    "getAdapterInfo",
+    "getChallengeThreshold",
+    "getChargeLevel",
+    "createChallenge",
+    //    "validateChallengeAnswer",
+    //    "getBankLegacy",
+    "getBank",
+    //    "getBanksLegacy",
+    "getBanks",
+    //    "getBankAccountsForUserLegacy",
+    "getBankAccountsForUser",
+    "getUser",
+    //    "updateUserAccountViewsOld",
+    "getBankAccount",
+    //    "getBankAccountLegacy",
+    "getBankAccount",
+    //    "getBankAccountByIban", *********
+    //    "getBankAccountByRouting",
+    //    "getBankAccounts",
     "getBankAccountsBalances",
-//    "getBanksLegacy",
-//    "getBank",
-//    "getBankLegacy",
-//    "getBankAccountsForUser",
-//    "getCustomersByUserIdFuture",
-//    "getBankAccount",
-//    "checkBankAccountExists",
-    //    "getCoreBankAccounts",
-//    "getCoreBankAccountsFuture",
-    //    "getTransactions",
-//    "getTransactionsCore",
-    //    "getTransaction",
-    //    "getTransactionRequests210", //have problem params are not simple object
-    //    "getCounterparties",
-    //    "getCounterpartiesFuture",
-    //    "getCounterpartyByCounterpartyIdFuture",
-    //    "getCounterpartyTrait",
-    //    "getCheckbookOrdersFuture",
-    //    "getStatusOfCreditCardOrderFuture",
-    //    "getBranchesFuture",
-    //    "getBranchFuture",
-    //    "getAtmsFuture",
-    //    "getAtmFuture",
-    //    "getChallengeThreshold",
-
-    //    "makePaymentv210",//not support
-    //    "createChallenge",//not support
-    //    "createCounterparty" // not support
+    //    "getCoreBankAccountsLegacy",
+    "getCoreBankAccounts",
+    //    "getBankAccountsHeldLegacy",
+    "getBankAccountsHeld",
+    //    "checkBankAccountExistsLegacy",
+    "checkBankAccountExists",
+    //    "getEmptyBankAccount", //not useful!
+    //    "getCounterpartyFromTransaction", //not useful!
+    //    "getCounterpartiesFromTransaction",//not useful!
+    "getCounterparty",
+    "getCounterpartyTrait",
+    //    "getCounterpartyByCounterpartyIdLegacy",
+    "getCounterpartyByCounterpartyId",
+    "getCounterpartyByIban",
+    //    "getCounterpartiesLegacy",
+    "getCounterparties",
+    //    "getTransactionsLegacy",
+    "getTransactions",
+    "getTransactionsCore",
+    //    "getTransactionLegacy",
+    "getTransaction",
+    "getPhysicalCards",
+    "getPhysicalCardForBank",
+    "deletePhysicalCardForBank",
+    //    "getPhysicalCardsForBankLegacy",
+    "getPhysicalCardsForBank",
+    //    "createPhysicalCardLegacy",
+    "createPhysicalCard",
+    "updatePhysicalCard",
+    "makePayment",
+    "makePaymentv200",
+    "makePaymentv210",
+    "makePaymentImpl",
+    "createTransactionRequest",
+    "createTransactionRequestv200",
+    "getStatus",
+    "getChargeValue",
+    "createTransactionRequestv210",
+    "createTransactionRequestImpl",
+    "createTransactionRequestImpl210",
+    "saveTransactionRequestTransaction",
+    "saveTransactionRequestTransactionImpl",
+    "saveTransactionRequestChallenge",
+    "saveTransactionRequestChallengeImpl",
+    "saveTransactionRequestStatusImpl",
+    "getTransactionRequests",
+    "getTransactionRequests210",
+    "getTransactionRequestStatuses",
+    "getTransactionRequestStatusesImpl",
+    "getTransactionRequestsImpl",
+    "getTransactionRequestsImpl210",
+    "getTransactionRequestImpl",
+    "getTransactionRequestTypes",
+    "getTransactionRequestTypesImpl",
+    "answerTransactionRequestChallenge",
+    "createTransactionAfterChallenge",
+    "createTransactionAfterChallengev200",
+    "createTransactionAfterChallengeV210",
+    "updateBankAccount",
+    "createBankAndAccount",
+    "createBankAccount",
+    //    "createBankAccountLegacy",
+    "createSandboxBankAccount",
+    "setAccountHolder",
+    "accountExists",
+    "removeAccount",
+    "getMatchingTransactionCount",
+    "createImportedTransaction",
+    "updateAccountBalance",
+    "setBankAccountLastUpdated",
+    "updateAccountLabel",
+    "updateAccount",
+    "getProducts",
+    "getProduct",
+    "createOrUpdateBranch",
+    "createOrUpdateBank",
+    "createOrUpdateAtm",
+    "createOrUpdateProduct",
+    "createOrUpdateFXRate",
+    //    "getBranchLegacy",
+    "getBranch",
+    "getBranches",
+    //    "getAtmLegacy",
+    "getAtm",
+    "getAtms",
+    "accountOwnerExists",
+    "createViews",
+    "getCurrentFxRate",
+    "getCurrentFxRateCached",
+    "getTransactionRequestTypeCharge",
+    "UpdateUserAccoutViewsByUsername",
+    "createTransactionAfterChallengev300",
+    "makePaymentv300",
+    "createTransactionRequestv300",
+    "getTransactionRequestTypeCharges",
+    "createCounterparty",
+    "checkCustomerNumberAvailable",
+    "createCustomer",
+    "updateCustomerScaData",
+    "updateCustomerCreditData",
+    "updateCustomerGeneralData",
+    "getCustomersByUserId",
+    //    "getCustomerByCustomerIdLegacy",
+    "getCustomerByCustomerId",
+    "getCustomerByCustomerNumber",
+    "getCustomerAddress",
+    "createCustomerAddress",
+    "updateCustomerAddress",
+    "deleteCustomerAddress",
+    "createTaxResidence",
+    "getTaxResidence",
+    "deleteTaxResidence",
+    "getCustomers",
+    "getCheckbookOrders",
+    "getStatusOfCreditCardOrder",
+    "createUserAuthContext",
+    "createUserAuthContextUpdate",
+    "deleteUserAuthContexts",
+    "deleteUserAuthContextById",
+    "getUserAuthContexts",
+    "createOrUpdateProductAttribute",
+    "getProductAttributeById",
+    "getProductAttributesByBankAndCode",
+    "deleteProductAttribute",
+    "getAccountAttributeById",
+    "createOrUpdateAccountAttribute",
+    "createAccountAttributes",
+    "getAccountAttributesByAccount",
+    "createOrUpdateCardAttribute",
+    "getCardAttributeById",
+    "getCardAttributesFromProvider",
+    "createAccountApplication",
+    "getAllAccountApplication",
+    "getAccountApplicationById",
+    "updateAccountApplicationStatus",
+    "getOrCreateProductCollection",
+    "getProductCollection",
+    "getOrCreateProductCollectionItem",
+    "getProductCollectionItem",
+    "getProductCollectionItemsTree",
+    "createMeeting",
+    "getMeetings",
+    "getMeeting",
+    "createOrUpdateKycCheck",
+    "createOrUpdateKycDocument",
+    "createOrUpdateKycMedia",
+    "createOrUpdateKycStatus",
+    "getKycChecks",
+    "getKycDocuments",
+    "getKycMedias",
+    "getKycStatuses",
+    "createMessage",
+    "makeHistoricalPayment"
   )
   //For vSept2018
   val genMethodNames2 = List(
@@ -62,7 +212,7 @@ object RestConnectorBuilder extends App {
     //    "getKycMedias",
     //    "getKycStatuses",
     //    "createBankAccount",
-//    "createCustomer",
+    //    "createCustomer",
     //    "createMeeting",
     //    "createMessage"
   )
@@ -79,9 +229,9 @@ object RestConnectorBuilder extends App {
     .map(it => {
       val (methodName, typeSignature) = (it.name.toString, it.typeSignature)
       methodName match {
-        case name if(name.matches("(get|check).*")) => GetGenerator(methodName, typeSignature)
-        case name if(name.matches("(create|make).*")) => PostGenerator(methodName, typeSignature)
-        case _ => throw new NotImplementedError(s" not support method name: $methodName")
+        //        case name if(name.matches("(get|check).*")) => GetGenerator(methodName, typeSignature)
+        //        case name if(name.matches("(create|make).*")) => PostGenerator(methodName, typeSignature)
+        case _ => PostGenerator(methodName, typeSignature)//throw new NotImplementedError(s" not support method name: $methodName")
       }
 
     })
@@ -119,6 +269,9 @@ case class GetGenerator(methodName: String, tp: Type) {
     .replaceAll("(\\w+\\.)+", "")
     .replaceFirst("\\)", "): ")
     .replaceFirst("""\btype\b""", "`type`")
+    .replace("cardAttributeType: Value", "cardAttributeType: CardAttributeType.Value") // scala enum is bad for Reflection
+    .replace("productAttributeType: Value", "productAttributeType: ProductAttributeType.Value") // scala enum is bad for Reflection
+    .replace("accountAttributeType: Value", "accountAttributeType: AccountAttributeType.Value") // scala enum is bad for Reflection
     .replaceFirst("""callContext:\s*Option\[CallContext\]""", "@CacheKeyOmit callContext: Option[CallContext]")
 
   private[this] val params = tp.paramLists(0).filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]).map(_.name.toString)
@@ -197,8 +350,8 @@ case class GetGenerator(methodName: String, tp: Type) {
        |    process = "obp.$methodName",
        |    messageFormat = messageFormat,
        |    description = "$description",
-       |    outboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).request),
-       |    inboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).response),
+       |    outboundTopic = None,
+       |    inboundTopic = None,
        |    exampleOutboundMessage = (
        |    $outBoundExample
        |    ),
@@ -218,7 +371,7 @@ case class GetGenerator(methodName: String, tp: Type) {
        |    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
        |    CacheKeyFromArguments.buildCacheKey {
        |      Caching.${cachMethodName}(Some(cacheKey.toString()))(banksTTL second){
-       |        val url = getUrl("$methodName" $pathVariables)
+       |        val url = ""//getUrl(callContext, "$methodName" $pathVariables)
        |        sendGetRequest[$jsonType](url, callContext)
        |          .map { boxedResult =>
        |             $lastMapStatement
@@ -233,6 +386,9 @@ case class PostGenerator(methodName: String, tp: Type) {
   private[this] def paramAnResult = tp.toString
     .replaceAll("(\\w+\\.)+", "")
     .replaceFirst("\\)", "): ")
+    .replace("cardAttributeType: Value", "cardAttributeType: CardAttributeType.Value") // scala enum is bad for Reflection
+    .replace("productAttributeType: Value", "productAttributeType: ProductAttributeType.Value") // scala enum is bad for Reflection
+    .replace("accountAttributeType: Value", "accountAttributeType: AccountAttributeType.Value") // scala enum is bad for Reflection
     .replaceFirst("""\btype\b""", "`type`")
 
   private[this] val params = tp.paramLists(0).filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]).map(_.name.toString).mkString(", ", ", ", "").replaceFirst("""\btype\b""", "`type`")
@@ -270,15 +426,44 @@ case class PostGenerator(methodName: String, tp: Type) {
        |        }
     """.stripMargin
   }
+  val httpMethod = methodName match {
+//    case v if(v.matches("(get.+|answer.+|check.+|.+Exists)")) => "HttpMethods.GET"
+//    case v if(v.matches("(create|save|make).+"))              => "HttpMethods.POST"
+//    case v if(v.matches("(?i)(update|set).+"))                => "HttpMethods.PUT"
+//    case v if(v.matches("(delete|remove).+"))                 => "HttpMethods.DELETE"
+    case _                                                    => "HttpMethods.POST"
+  }
+
+  /**
+    * Get all the parameters name as a String from `typeSignature` object.
+    * eg: it will return
+    * , bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName, branchId, accountRoutingScheme, accountRoutingAddress
+    */
+  private[this] val parametersNamesString = tp.paramLists(0)//paramLists will return all the curry parameters set.
+    .filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]) // remove the `CallContext` field.
+    .map(_.name.toString)//get all parameters name
+    .map(it => if(it =="type") "`type`" else it)//This is special case for `type`, it is the keyword in scala.
+    .map(it => if(it == "queryParams") "OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams)" else it)
+  match {
+    case Nil => ""
+    case list:List[String] => list.mkString(", ", ", ", "")
+  }
+
+  val inboundDataFieldType = ReflectUtils.getTypeByName(s"com.openbankproject.commons.dto.InBound${methodName.capitalize}")
+    .member(TermName("data")).asMethod
+    .returnType.toString.replaceAll(
+    """(\w+\.)+(\w+\.Value)|(\w+\.)+(\w+)""", "$2$4"
+  )
 
   override def toString =
     s"""
-       |messageDocs += MessageDoc(
+       |  messageDocs += ${methodName}Doc
+       |  def ${methodName}Doc = MessageDoc(
        |    process = "obp.$methodName",
        |    messageFormat = messageFormat,
        |    description = "$description",
-       |    outboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).request),
-       |    inboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).response),
+       |    outboundTopic = None,
+       |    inboundTopic = None,
        |    exampleOutboundMessage = (
        |    $outBoundExample
        |    ),
@@ -289,15 +474,11 @@ case class PostGenerator(methodName: String, tp: Type) {
        |  )
        |  // url example: $urlDemo
        |  override def $signature = {
-       |    import net.liftweb.json.Serialization.write
-       |
-       |    val url = getUrl("$methodName")
-       |    val outboundAdapterCallContext = Box(callContext.map(_.toOutboundAdapterCallContext)).openOrThrowException(NoCallContext)
-       |    val jsonStr = write(OutBound${methodName.capitalize}(outboundAdapterCallContext $params))
-       |    sendPostRequest[InBound${methodName.capitalize}](url, callContext, jsonStr)
-       |      .map{ boxedResult =>
-       |      $lastMapStatement
-       |    }
+       |        import com.openbankproject.commons.dto.{OutBound${methodName.capitalize} => OutBound, InBound${methodName.capitalize} => InBound}
+       |        val url = getUrl(callContext, "$methodName")
+       |        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull $parametersNamesString)
+       |        val result: OBPReturnType[Box[$inboundDataFieldType]] = sendRequest[InBound](url, $httpMethod, req, callContext).map(convertToTuple(callContext))
+       |        result
        |  }
     """.stripMargin
 }

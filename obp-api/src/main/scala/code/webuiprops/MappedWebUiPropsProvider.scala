@@ -33,11 +33,11 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(webUiPropsTTL second) {
-        WebUiProps.find(By(WebUiProps.Name, nameOfProperty))
-          .map(_.value)
-          .openOr {
-            APIUtil.getPropsValue(nameOfProperty, defaultValue)
-          }
+          WebUiProps.find(By(WebUiProps.Name, nameOfProperty))
+            .map(_.value)
+            .openOr {
+              APIUtil.getPropsValue(nameOfProperty, defaultValue)
+            }
       }
     }
   }("getWebUiProps")("MappedWebUiPropsProvider")

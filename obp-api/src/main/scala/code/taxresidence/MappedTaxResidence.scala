@@ -50,7 +50,7 @@ class MappedTaxResidence extends TaxResidence with LongKeyedMapper[MappedTaxResi
   object mDomain extends MediumString(this)
   object mTaxNumber extends MediumString(this)
 
-  override def customerId: Long = mCustomerId.get
+  override def customerId: String = mCustomerId.foreign.map(_.customerId).getOrElse(mCustomerId.get.toString)
   override def taxResidenceId: String = mTaxResidenceId.get
   override def domain: String = mDomain.get
   override def taxNumber: String = mTaxNumber.get
