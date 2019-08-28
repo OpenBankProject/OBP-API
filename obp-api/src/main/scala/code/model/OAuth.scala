@@ -28,6 +28,7 @@ package code.model
 import java.util.{Date, UUID}
 
 import code.api.util.APIUtil
+import code.api.util.migration.Migration.DbFunction
 import code.token.TokensProvider
 import code.consumer.{Consumers, ConsumersProvider}
 import code.model.AppType.{Mobile, Web}
@@ -344,8 +345,11 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
   
   override def populateMissingUUIDs(): Boolean = {
     logger.warn("Executed script: MappedConsumersProvider." + NameOf.nameOf(populateMissingUUIDs))
+    //back up consumer table
+    DbFunction.makeBackUpOfTable(Consumer)
+
     for {
-      consumer <- Consumer.findAll(NullRef(Consumer.consumerId))
+      consumer <- Consumer.findAll(NullRef(Consumer.consumerId))++ Consumer.findAll(By(Consumer.consumerId,""))
     } yield {
       consumer.consumerId(APIUtil.generateUUID()).save()
     }
