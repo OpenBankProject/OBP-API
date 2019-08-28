@@ -10,12 +10,12 @@ object MappedAccountIdMappingProvider extends AccountIdMappingProvider with MdcL
 {
 
   override def getOrCreateAccountId(
-    accountReference: String
+    accountPlainTextReference: String
   ): Box[AccountId] =
   {
 
     val mappedAccountIdMapping = AccountIdMapping.find(
-      By(AccountIdMapping.mAccountReference, accountReference)
+      By(AccountIdMapping.mAccountPlainTextReference, accountPlainTextReference)
     )
 
     mappedAccountIdMapping match
@@ -30,7 +30,7 @@ object MappedAccountIdMappingProvider extends AccountIdMappingProvider with MdcL
         val mappedAccountIdMapping: AccountIdMapping =
           AccountIdMapping
             .create
-            .mAccountReference(accountReference)
+            .mAccountPlainTextReference(accountPlainTextReference)
             .saveMe
         logger.debug(s"getOrCreateAccountId--> create mappedAccountIdMapping : $mappedAccountIdMapping")
         Full(mappedAccountIdMapping.accountId)
@@ -41,7 +41,7 @@ object MappedAccountIdMappingProvider extends AccountIdMappingProvider with MdcL
   }
 
 
-  override def getAccountReference(accountId: AccountId) = {
+  override def getAccountPlainTextReference(accountId: AccountId) = {
     AccountIdMapping.find(
       By(AccountIdMapping.mAccountId, accountId.value),
     ).map(_.accountPlainTextReference)

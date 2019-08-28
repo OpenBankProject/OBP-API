@@ -9,14 +9,14 @@ class AccountIdMapping extends AccountIdMappingT with LongKeyedMapper[AccountIdM
   def getSingleton = AccountIdMapping
 
   object mAccountId extends MappedUUID(this)
-  object mAccountReference extends MappedString(this, 255)
+  object mAccountPlainTextReference extends MappedString(this, 255)
 
   override def accountId = AccountId(mAccountId.get)
-  override def accountPlainTextReference = mAccountReference.get
+  override def accountPlainTextReference = mAccountPlainTextReference.get
   
 }
 
 object AccountIdMapping extends AccountIdMapping with LongKeyedMetaMapper[AccountIdMapping] {
   //one account info per bank for each api user
-  override def dbIndexes = UniqueIndex(mAccountId) :: UniqueIndex(mAccountId, mAccountReference) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mAccountId) :: UniqueIndex(mAccountId, mAccountPlainTextReference) :: super.dbIndexes
 }
