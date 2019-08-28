@@ -33,6 +33,7 @@ import code.methodrouting.{MethodRoutingCommons, MethodRoutingParam, MethodRouti
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
+import com.openbankproject.commons.model.Product
 import code.users.Users
 import code.util.Helper
 import code.views.Views
@@ -52,6 +53,7 @@ import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 import net.liftweb.util.{Helpers, Mailer}
 import org.apache.commons.lang3.Validate
 
+import scala.collection.immutable
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -5363,10 +5365,13 @@ trait APIMethods310 {
             explicitWebUiProps <- Future{ MappedWebUiPropsProvider.getAll() }
             implicitWebUiPropsRemovedDuplicated = if(isActived){
               val implicitWebUiProps = getWebUIPropsPairs.map(webUIPropsPairs=>WebUiPropsCommons(webUIPropsPairs._1, webUIPropsPairs._2, webUiPropsId= Some("default")))
-              if(explicitWebUiProps.nonEmpty)
-                //remove the duplicated fields in the webui fields.
-                explicitWebUiProps.map(webUiProp =>implicitWebUiProps.filterNot(_.name==webUiProp.name)).flatten
-              else implicitWebUiProps
+              if(explicitWebUiProps.nonEmpty){
+                //get the same name props in the `implicitWebUiProps`
+                val duplicatedProps : List[WebUiPropsCommons]= explicitWebUiProps.map(explicitWebUiProp => implicitWebUiProps.filter(_.name == explicitWebUiProp.name)).flatten
+                //remove the depulicated fields from `implicitWebUiProps`
+                implicitWebUiProps diff duplicatedProps
+              }
+              else implicitWebUiProps.distinct
             } else {
               List.empty[WebUiPropsCommons]
             }
