@@ -253,6 +253,7 @@ object SwaggerJSONFactory {
         .replaceAll("/KYC_MEDIA_ID", "/{KYC_MEDIA_ID}")
         .replaceAll("/AMT_ID", "/{AMT_ID}")
         .replaceAll("/API_VERSION", "/{API_VERSION}")
+        .replaceAll("/CUSTOMER_ADDRESS_ID", "/{CUSTOMER_ADDRESS_ID}")
       
       var pathParameters = List.empty[OperationParameter]
       if(path.contains("/{BANK_ID}"))
@@ -303,6 +304,8 @@ object SwaggerJSONFactory {
         pathParameters = OperationParameterPathJson(name="KYC_MEDIA_ID", description="The kyc media id") :: pathParameters
       if(path.contains("/{AMT_ID}"))
         pathParameters = OperationParameterPathJson(name="AMT_ID", description="The kyc media id") :: pathParameters
+      if(path.contains("/{CUSTOMER_ADDRESS_ID}"))
+        pathParameters = OperationParameterPathJson(name="CUSTOMER_ADDRESS_ID", description= "the customer address id") :: pathParameters
       if(path.contains("/{API_VERSION}"))
         pathParameters = OperationParameterPathJson(name="API_VERSION", description="eg:v2.2.0, v3.0.0") :: pathParameters
   
