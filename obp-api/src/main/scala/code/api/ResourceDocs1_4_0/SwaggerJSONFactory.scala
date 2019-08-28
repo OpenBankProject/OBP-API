@@ -255,6 +255,31 @@ object SwaggerJSONFactory {
         .replaceAll("/API_VERSION", "/{API_VERSION}")
         .replaceAll("/CUSTOMER_ADDRESS_ID", "/{CUSTOMER_ADDRESS_ID}")
         .replaceAll("/TAX_RESIDENCE_ID", "/{TAX_RESIDENCE_ID}")
+        .replaceAll("/CARD_ID", "/{CARD_ID}")
+        .replaceAll("/CARD_ATTRIBUTE_ID", "/{CARD_ATTRIBUTE_ID}")
+        .replaceAll("/PRODUCT_CODE", "/{PRODUCT_CODE}")
+        .replaceAll("/ACCOUNT_ATTRIBUTE_ID", "/{ACCOUNT_ATTRIBUTE_ID}")
+        .replaceAll("/ACCOUNT_APPLICATION_ID", "/{ACCOUNT_APPLICATION_ID}")
+        .replaceAll("/DYNAMIC_ENTITY_ID", "/{DYNAMIC_ENTITY_ID}")
+        .replaceAll("/METHOD_ROUTING_ID", "/{METHOD_ROUTING_ID}")
+        .replaceAll("/WEB_UI_PROPS_ID", "/{WEB_UI_PROPS_ID}")
+        .replaceAll("/ATM_ID", "/{ATM_ID}")
+        .replaceAll("/CONSENT_ID", "/{CONSENT_ID}")
+        .replaceAll("/PRODUCT_ATTRIBUTE_ID", "/{PRODUCT_ATTRIBUTE_ID}")
+        .replaceAll("/SCA_METHOD", "/{SCA_METHOD}")
+        .replaceAll("/SCOPE_ID", "/{SCOPE_ID}")
+        .replaceAll("/ENTITLEMENT_REQUEST_ID", "/{ENTITLEMENT_REQUEST_ID}")
+        .replaceAll("/INDEX", "/{INDEX}")
+        .replaceAll("/FIELD", "/{FIELD}")
+        .replaceAll("/USER_AUTH_CONTEXT_ID", "/{USER_AUTH_CONTEXT_ID}")
+        .replaceAll("/AUTH_CONTEXT_UPDATE_ID", "/{AUTH_CONTEXT_UPDATE_ID}")
+        .replaceAll("/Email", "/{Email}")
+        .replaceAll("/USERNAME", "/{USERNAME}")
+        .replaceAll("/PROVIDER", "/{PROVIDER}")
+        .replaceAll("/REQUEST_ID", "/{REQUEST_ID}")
+        .replaceAll("/MEETING_ID", "/{MEETING_ID}")
+        .replaceAll("/COLLECTION_CODE", "/{COLLECTION_CODE}")
+        .replaceAll("/COUNTERPARTY_ID", "/{COUNTERPARTY_ID}")
       
       var pathParameters = List.empty[OperationParameter]
       if(path.contains("/{BANK_ID}"))
@@ -309,6 +334,56 @@ object SwaggerJSONFactory {
         pathParameters = OperationParameterPathJson(name="CUSTOMER_ADDRESS_ID", description= "the customer address id") :: pathParameters
       if(path.contains("/{TAX_RESIDENCE_ID}"))
         pathParameters = OperationParameterPathJson(name="TAX_RESIDENCE_ID", description= "the tax residence id") :: pathParameters
+      if(path.contains("/{CARD_ID}"))
+        pathParameters = OperationParameterPathJson(name="CARD_ID", description= "the card id") :: pathParameters
+      if(path.contains("/{CARD_ATTRIBUTE_ID}"))
+        pathParameters = OperationParameterPathJson(name="CARD_ATTRIBUTE_ID", description= "the card attribute id") :: pathParameters
+      if(path.contains("/{PRODUCT_CODE}"))
+        pathParameters = OperationParameterPathJson(name="PRODUCT_CODE", description= "the product code") :: pathParameters
+      if(path.contains("/{ACCOUNT_ATTRIBUTE_ID}"))
+        pathParameters = OperationParameterPathJson(name="ACCOUNT_ATTRIBUTE_ID", description= "the account attribute id ") :: pathParameters
+      if(path.contains("/{ACCOUNT_APPLICATION_ID}"))
+        pathParameters = OperationParameterPathJson(name="ACCOUNT_APPLICATION_ID", description= "the account application id ") :: pathParameters
+      if(path.contains("/{DYNAMIC_ENTITY_ID}"))
+        pathParameters = OperationParameterPathJson(name="DYNAMIC_ENTITY_ID", description= "the dynamic entity id ") :: pathParameters
+      if(path.contains("/{METHOD_ROUTING_ID}"))
+        pathParameters = OperationParameterPathJson(name="METHOD_ROUTING_ID", description= "the method routing id ") :: pathParameters
+      if(path.contains("/{WEB_UI_PROPS_ID}"))
+        pathParameters = OperationParameterPathJson(name="WEB_UI_PROPS_ID", description= "the web ui props id") :: pathParameters
+      if(path.contains("/{ATM_ID}"))
+        pathParameters = OperationParameterPathJson(name="ATM_ID", description= "the atm id") :: pathParameters
+      if(path.contains("/{CONSENT_ID}"))
+        pathParameters = OperationParameterPathJson(name="CONSENT_ID", description= "the consent id") :: pathParameters
+      if(path.contains("/{PRODUCT_ATTRIBUTE_ID}"))
+        pathParameters = OperationParameterPathJson(name="PRODUCT_ATTRIBUTE_ID", description= "the product attribute id") :: pathParameters
+      if(path.contains("/{SCA_METHOD}"))
+        pathParameters = OperationParameterPathJson(name="SCA_METHOD", description= "the sca method") :: pathParameters
+      if(path.contains("/{SCOPE_ID}"))
+        pathParameters = OperationParameterPathJson(name="SCOPE_ID", description= "the scope id") :: pathParameters
+      if(path.contains("/{ENTITLEMENT_REQUEST_ID}"))
+        pathParameters = OperationParameterPathJson(name="ENTITLEMENT_REQUEST_ID", description= "the entitlement request id") :: pathParameters
+      if(path.contains("/{INDEX}"))
+        pathParameters = OperationParameterPathJson(name="INDEX", description= "the elastic search index") :: pathParameters
+      if(path.contains("/{FIELD}"))
+        pathParameters = OperationParameterPathJson(name="FIELD", description= "the elastic search field") :: pathParameters
+      if(path.contains("/{USER_AUTH_CONTEXT_ID}"))
+        pathParameters = OperationParameterPathJson(name="USER_AUTH_CONTEXT_ID", description= "the user auth context id") :: pathParameters
+      if(path.contains("/{AUTH_CONTEXT_UPDATE_ID}"))
+        pathParameters = OperationParameterPathJson(name="AUTH_CONTEXT_UPDATE_ID", description= "the auth context update id") :: pathParameters
+      if(path.contains("/{Email}"))
+        pathParameters = OperationParameterPathJson(name="Email", description= "the user email address") :: pathParameters
+      if(path.contains("/{USERNAME}"))
+        pathParameters = OperationParameterPathJson(name="USERNAME", description= "the user name") :: pathParameters
+      if(path.contains("/{PROVIDER}"))
+        pathParameters = OperationParameterPathJson(name="PROVIDER", description= "the user PROVIDER") :: pathParameters
+      if(path.contains("/{REQUEST_ID}"))
+        pathParameters = OperationParameterPathJson(name="REQUEST_ID", description= "the request id") :: pathParameters
+      if(path.contains("/{MEETING_ID}"))
+        pathParameters = OperationParameterPathJson(name="MEETING_ID", description= "the meeting id") :: pathParameters
+      if(path.contains("/{COLLECTION_CODE}"))
+        pathParameters = OperationParameterPathJson(name="COLLECTION_CODE", description= "the collection code") :: pathParameters
+      if(path.contains("/{COUNTERPARTY_ID}"))
+        pathParameters = OperationParameterPathJson(name="COUNTERPARTY_ID", description= "the counterparty id") :: pathParameters
       if(path.contains("/{API_VERSION}"))
         pathParameters = OperationParameterPathJson(name="API_VERSION", description="eg:v2.2.0, v3.0.0") :: pathParameters
   
