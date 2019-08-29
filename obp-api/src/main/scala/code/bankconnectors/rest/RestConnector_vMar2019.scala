@@ -55,8 +55,9 @@ import scala.reflect.runtime.universe._
 import code.api.util.ExampleValue._
 import code.api.util.APIUtil._
 import code.api.util.StrongCustomerAuthentication.SCA
-import code.methodrouting.MethodRoutingParam
-import org.apache.commons.lang3.StringUtils
+import code.customer.internalMapping.MappedCustomerIdMappingProvider
+import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
+import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json._
 
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
@@ -8013,7 +8014,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }
 
   private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](url: String, method: HttpMethod, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
-    // TODO transfer accountId to accountReference in outBound
+    //transfer accountId to accountReference and customerId to customerReference in outBound
+    this.convertToReference(outBound)
     val outBoundJson = net.liftweb.json.Serialization.write(outBound)
     val request = prepareHttpRequest(url, method, HttpProtocol("HTTP/1.1"), outBoundJson).withHeaders(callContext)
     logger.debug(s"RestConnector_vMar2019 request is : $request")
@@ -8027,7 +8029,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           parse(msg).extract[T]
         } ~> APIFailureNewStyle(msg, status.intValue())
       }
-    }
+    }.map(convertToId(_))
   }
 
   private[this] def extractBody(responseEntity: ResponseEntity): Future[String] = responseEntity.toStrict(2.seconds) flatMap { e =>
@@ -8089,6 +8091,76 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   private[this] def buildCallContext(boxedInboundAdapterCallContext: Box[InboundAdapterCallContext], callContext: Option[CallContext]): Option[CallContext] = boxedInboundAdapterCallContext match {
     case Full(inboundAdapterCallContext) => buildCallContext(inboundAdapterCallContext, callContext)
     case _ => callContext
+  }
+
+  /**
+   * helper function to convert customerId and accountId in a given instance
+   * @param obj
+   * @param customerIdConverter customerId converter, to or from customerReference
+   * @param accountIdConverter accountId converter, to or from accountReference
+   * @tparam T type of instance
+   * @return modified instance
+   */
+  private def convertId[T](obj: T, customerIdConverter: String=> String, accountIdConverter: String=> String): T = {
+    ReflectUtils.operateNestedValues(obj)(fieldMirror => {
+      val fieldValue = fieldMirror.get
+      val fieldSymbol: TermSymbol = fieldMirror.symbol
+      val fieldType: Type = fieldSymbol.info
+      val fieldName: String = fieldSymbol.name.toString.trim.toLowerCase
+
+      val ownerSymbol: Type = fieldSymbol.owner.asType.toType
+
+      if(fieldValue == null) {
+        // do nothing
+      } else if (ownerSymbol <:< typeOf[CustomerId] ||
+        (fieldName == "customerid" && fieldType =:= typeOf[String]) ||
+        (ownerSymbol <:< typeOf[Customer] && fieldName == "id" && fieldType =:= typeOf[String])
+      ) {
+        val customerRef = customerIdConverter(fieldValue.asInstanceOf[String])
+        fieldMirror.set(customerRef)
+      } else if(ownerSymbol <:< typeOf[AccountId] ||
+        (fieldName == "accountid" && fieldType =:= typeOf[String])
+      ) {
+        val accountRef = accountIdConverter(fieldValue.asInstanceOf[String])
+        fieldMirror.set(accountRef)
+      }
+    })
+    obj
+  }
+
+  /**
+   * convert given instance nested CustomerId to customerReference, AccountId to accountReference
+   * @param obj
+   * @tparam T type of instance
+   * @return modified instance
+   */
+  def convertToReference[T](obj: T): T = {
+    import code.api.util.ErrorMessages.{CustomerNotFoundByCustomerId, InvalidAccountIdFormat}
+    def customerIdConverter(customerId: String): String = MappedCustomerIdMappingProvider
+      .getCustomerPlainTextReference(CustomerId(customerId))
+      .openOrThrowException(s"$CustomerNotFoundByCustomerId the invalid customerId is $customerId")
+    def accountIdConverter(accountId: String): String = MappedAccountIdMappingProvider
+      .getAccountPlainTextReference(AccountId(accountId))
+      .openOrThrowException(s"$InvalidAccountIdFormat the invalid accountId is $accountId")
+    convertId[T](obj, customerIdConverter, accountIdConverter)
+  }
+
+  /**
+   * convert given instance nested customerReference to CustomerId, accountReference to AccountId
+   * @param obj
+   * @tparam T type of instance
+   * @return modified instance
+   */
+  def convertToId[T](obj: T): T = {
+    import code.api.util.ErrorMessages.{CustomerNotFoundByCustomerId, InvalidAccountIdFormat}
+    def customerIdConverter(customerReference: String): String = MappedCustomerIdMappingProvider
+      .getOrCreateCustomerId(customerReference)
+      .map(_.value)
+      .openOrThrowException(s"$CustomerNotFoundByCustomerId the invalid customerReference is $customerReference")
+    def accountIdConverter(accountReference: String): String = MappedAccountIdMappingProvider
+      .getOrCreateAccountId(accountReference)
+      .map(_.value).openOrThrowException(s"$InvalidAccountIdFormat the invalid accountReference is $accountReference")
+    convertId[T](obj, customerIdConverter, accountIdConverter)
   }
 }
 

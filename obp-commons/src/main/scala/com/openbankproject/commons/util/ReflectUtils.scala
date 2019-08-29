@@ -1,12 +1,15 @@
 package com.openbankproject.commons.util
 
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Empty, Full}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.annotation.tailrec
 import scala.collection.immutable.List
+import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
+import scala.util.Success
 
 object ReflectUtils {
   private[this] val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -16,6 +19,92 @@ object ReflectUtils {
   def isObpObject(any: Any): Boolean = any != null && OBP_TYPE_REGEX.findFirstIn(any.getClass.getName).isDefined
 
   def isObpType(tp: Type): Boolean = tp != null && tp.typeSymbol.isClass && OBP_TYPE_REGEX.findFirstIn(tp.typeSymbol.fullName).isDefined
+
+  /**
+   * get given instance FieldMirror, and operate it. this function is just for helper of getField and setField function
+   * @param obj
+   * @param fieldName
+   * @param fn a callback to operate field, default value is do nothing
+   * @return the given value given field original value
+   */
+  private def operateField[T](obj: AnyRef, fieldName: String, fn: ru.FieldMirror => Unit = _=>()): T = {
+    val instanceMirror: ru.InstanceMirror = mirror.reflect(obj)
+    val fieldTerm: ru.TermName = ru.TermName(fieldName)
+    val fieldSymbol: ru.TermSymbol = getType(obj).member(fieldTerm).asTerm.accessed.asTerm
+    val fieldMirror: ru.FieldMirror = instanceMirror.reflectField(fieldSymbol)
+    val originValue = fieldMirror.get
+    fn(fieldMirror)
+    originValue.asInstanceOf[T]
+  }
+
+  /**
+   * get given object given field value
+   * @param obj
+   * @param fieldName field name
+   * @return the field value of obj
+   */
+  def getField(obj: AnyRef, fieldName: String): Any = operateField[Any](obj, fieldName)
+
+  /**
+   * set given instance given field to a new value, and return the original value
+   * @param obj
+   * @param fieldName
+   * @param fieldValue
+   * @tparam T field type
+   * @return the original field value
+   */
+  def setField[T](obj: AnyRef, fieldName: String, fieldValue: T): T = operateField[T](obj, fieldName, _.set(fieldValue))
+
+  /**
+   * modify given instance nested values
+   * @param obj given instance to modify
+   * @param predicate check whether current field value need to modify
+   * @param fn modify function
+   * @return modified instance
+   */
+  def operateNestedValues(obj: Any, predicate: Any => Boolean = isObpObject)(fn: ru.FieldMirror => Unit): Any = {
+    val recurseCallback = operateNestedValues(_: Any, predicate)(fn)
+    obj match {
+      case null | None | Empty | Nil => obj
+      case _: Unit => obj
+      case _: Boolean => obj
+      case _: Byte => obj
+      case _: Char => obj
+      case _: Short => obj
+      case _: Int => obj
+      case _: Long => obj
+      case _: Float => obj
+      case _: Double => obj
+      case it: Iterable[_] if(it.isEmpty) => obj
+      case v: Some[_] => v.map(recurseCallback)
+      case v: Full[_] => v.map(recurseCallback)
+      case (k, v) => (recurseCallback(k), recurseCallback(v))
+      case v: Future[_] => v.map(recurseCallback)
+      case v: Right[_, _] => v.map(recurseCallback)
+      case v: Success[_] => v.map(recurseCallback)
+      case v: Array[_] => v.map(recurseCallback)
+      case v: Map[_, _] => v.values.map(recurseCallback)
+      case v: Iterable[_] => v.map(recurseCallback)
+      case v if(!predicate(v)) => v
+      case _ => {
+        val tp = this.getType(obj)
+        val instanceMirror: ru.InstanceMirror = mirror.reflect(obj)
+
+        val constructFieldNames: Seq[String] = ReflectUtils.getPrimaryConstructor(tp)
+          .paramLists
+          .headOption
+          .getOrElse(Nil)
+          .map(_.name.toString.trim)
+        constructFieldNames.foreach(it => {
+          val fieldSymbol: ru.TermSymbol = getType(obj).member(ru.TermName(it)).asTerm.accessed.asTerm
+          val fieldMirror: ru.FieldMirror = instanceMirror.reflectField(fieldSymbol)
+          recurseCallback(fieldMirror.get)
+          fn(fieldMirror)
+        })
+        obj
+      }
+    }
+  }
 
   /**
     * get all val and var name to values of given object
@@ -32,7 +121,7 @@ object ReflectUtils {
         .map(_.asTerm)
         .filterNot(it => excludes.contains(it.name.toString))
         .filter(it => it.isVal || (includeVar && it.isVar))
-        .map(it => (it.name.toString, invokeMethod(obj, it.getter.asMethod)))
+        .map(it => (it.name.toString.trim, invokeMethod(obj, it.getter.asMethod)))
         .toMap
     }
   }
