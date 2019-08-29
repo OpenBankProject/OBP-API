@@ -34,7 +34,7 @@ import code.api.APIFailureNewStyle
 import code.api.cache.Caching
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric}
 import code.api.util.ErrorMessages._
-import code.api.util.{CallContext, NewStyle, OBPQueryParam}
+import code.api.util.{APIUtil, CallContext, NewStyle, OBPQueryParam}
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
 import code.kafka.{KafkaHelper, Topics}
@@ -8102,30 +8102,35 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
    * @return modified instance
    */
   private def convertId[T](obj: T, customerIdConverter: String=> String, accountIdConverter: String=> String): T = {
-    ReflectUtils.operateNestedValues(obj)(fieldMirror => {
-      val fieldValue = fieldMirror.get
-      val fieldSymbol: TermSymbol = fieldMirror.symbol
-      val fieldType: Type = fieldSymbol.info
-      val fieldName: String = fieldSymbol.name.toString.trim.toLowerCase
-
-      val ownerSymbol: Type = fieldSymbol.owner.asType.toType
-
-      if(fieldValue == null) {
-        // do nothing
-      } else if (ownerSymbol <:< typeOf[CustomerId] ||
-        (fieldName == "customerid" && fieldType =:= typeOf[String]) ||
-        (ownerSymbol <:< typeOf[Customer] && fieldName == "id" && fieldType =:= typeOf[String])
-      ) {
-        val customerRef = customerIdConverter(fieldValue.asInstanceOf[String])
-        fieldMirror.set(customerRef)
-      } else if(ownerSymbol <:< typeOf[AccountId] ||
-        (fieldName == "accountid" && fieldType =:= typeOf[String])
-      ) {
-        val accountRef = accountIdConverter(fieldValue.asInstanceOf[String])
-        fieldMirror.set(accountRef)
-      }
-    })
-    obj
+    //1st: We must not convert when connector == mapped. this will ignore the implicitly_convert_ids props.
+    //2rd: if connector != mapped, we still need the `implicitly_convert_ids == true` 
+    if(APIUtil.getPropsValue("connector","mapped") != "mapped" && APIUtil.getPropsAsBoolValue("implicitly_convert_ids",false)){
+      ReflectUtils.operateNestedValues(obj)(fieldMirror => {
+        val fieldValue = fieldMirror.get
+        val fieldSymbol: TermSymbol = fieldMirror.symbol
+        val fieldType: Type = fieldSymbol.info
+        val fieldName: String = fieldSymbol.name.toString.trim.toLowerCase
+  
+        val ownerSymbol: Type = fieldSymbol.owner.asType.toType
+  
+        if(fieldValue == null) {
+          // do nothing
+        } else if (ownerSymbol <:< typeOf[CustomerId] ||
+          (fieldName == "customerid" && fieldType =:= typeOf[String]) ||
+          (ownerSymbol <:< typeOf[Customer] && fieldName == "id" && fieldType =:= typeOf[String])
+        ) {
+          val customerRef = customerIdConverter(fieldValue.asInstanceOf[String])
+          fieldMirror.set(customerRef)
+        } else if(ownerSymbol <:< typeOf[AccountId] ||
+          (fieldName == "accountid" && fieldType =:= typeOf[String])
+        ) {
+          val accountRef = accountIdConverter(fieldValue.asInstanceOf[String])
+          fieldMirror.set(accountRef)
+        }
+      })
+      obj
+    } else
+      obj
   }
 
   /**
