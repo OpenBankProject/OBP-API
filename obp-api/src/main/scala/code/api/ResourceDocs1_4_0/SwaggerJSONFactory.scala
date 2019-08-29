@@ -574,7 +574,7 @@ object SwaggerJSONFactory {
         case _ if(isOneOfType[List[BigDecimal], List[JBigDecimal]])                 => s""""$paramName": {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
         case _ if(isOneOfType[Option[List[BigDecimal]], Option[List[JBigDecimal]]]) => s""""$paramName": {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
         //Date
-        case _ if(isOneOfType[Date, Option[Date]])                   => s""""$paramName": {"type":"string", "format":"date","example":"$exampleValue"}"""
+        case _ if(isOneOfType[Date, Option[Date]])                   => s""""$paramName": {"type":"string", "format":"date","example":"${APIUtil.DateWithSecondsFormat.format(exampleValue)}"}"""
         case _ if(isOneOfType[List[Date], Option[List[Date]]])       => s""""$paramName": {"type":"array", "items":{"type":"string", "format":"date"}}"""
 
         //List case classes.
@@ -744,8 +744,6 @@ object SwaggerJSONFactory {
     */
   // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
   def loadDefinitions(resourceDocList: List[ResourceDoc], allSwaggerDefinitionCaseClasses: Seq[AnyRef]): liftweb.json.JValue = {
-
-    implicit val formats = CustomJsonFormats.formats
 
     val docEntityExamples: List[AnyRef] = (resourceDocList.map(_.exampleRequestBody.asInstanceOf[AnyRef]) :::
                                            resourceDocList.map(_.successResponseBody.asInstanceOf[AnyRef])
