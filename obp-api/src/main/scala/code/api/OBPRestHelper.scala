@@ -38,6 +38,7 @@ import code.api.util._
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_1_0.APIMethods310
 import code.api.v4_0_0.APIMethods400
+import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
@@ -213,6 +214,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     val url = URLDecoder.decode(S.uriAndQueryString.getOrElse(""),"UTF-8")
     val correlationId = getCorrelationId()
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
+    val allowedRefreshUser = APIUtil.getPropsAsBoolValue(nameOfProperty="refresh_user_for_each_session", defaultValue=false)
     val cc = CallContext(
       resourceDocument = rd,
       startTime = Some(Helpers.now),
@@ -229,7 +231,12 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     } else if (APIUtil.hasConsentId(reqHeaders)) {
       val (usr, callContext) =  Consent.applyRulesOldStyle(APIUtil.getConsentId(reqHeaders), cc)
       usr match {
-        case Full(u) => fn(callContext.copy(user = Full(u))) // Authentication is successful
+        case Full(u) => 
+          {
+            //After get the user from Consent, we need to `Refresh User.`
+            if(allowedRefreshUser) {AuthUser.updateUserAccountViewsFuture(u, Some(cc))}
+            fn(callContext.copy(user = Full(u)))
+          } // Authentication is successful
         case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) => Failure(msg, t, c)
         case _ => Failure("Consent error")
@@ -237,7 +244,12 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     } else if (hasAnOAuthHeader(authorization)) {
       val (usr, callContext) = getUserAndCallContext(cc)
       usr match {
-        case Full(u) => fn(callContext.copy(user = Full(u))) // Authentication is successful
+        case Full(u) =>
+        {
+          //After get the user from Consent, we need to `Refresh User.`
+          if(allowedRefreshUser) {AuthUser.updateUserAccountViewsFuture(u, Some(cc))}
+          fn(callContext.copy(user = Full(u))) // Authentication is successful
+         }
         case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) => Failure(msg, t, c)
         case _ => Failure("oauth error")
@@ -245,7 +257,11 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     } else if (hasAnOAuth2Header(authorization)) {
       val (user, _) = OAuth2Login.getUser(cc)
       user match {
-        case Full(u) => fn(cc.copy(user = Full(u))) // Authentication is successful
+        case Full(u) => {
+          //After get the user from Consent, we need to `Refresh User.`
+          if(allowedRefreshUser) {AuthUser.updateUserAccountViewsFuture(u, Some(cc))}
+          fn(cc.copy(user = Full(u))) // Authentication is successful
+        }
         case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) => Failure(msg, t, c)
         case _ => Failure("oauth error")
@@ -253,9 +269,11 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     } else if (APIUtil.getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
       DirectLogin.getUser match {
         case Full(u) => {
+          //After get the user from Consent, we need to `Refresh User.`
+          if(allowedRefreshUser) {AuthUser.updateUserAccountViewsFuture(u, Some(cc))}
           val consumer = DirectLogin.getConsumer
           fn(cc.copy(user = Full(u), consumer=consumer))
-        }// Authentication is successful
+        }
         case _ => {
           var (httpCode, message, directLoginParameters) = DirectLogin.validator("protectedResource", DirectLogin.getHttpMethod)
           Full(errorJsonResponse(message, httpCode))

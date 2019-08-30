@@ -51,6 +51,7 @@ import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.metrics._
 import code.model._
+import code.model.dataAccess.AuthUser
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
@@ -1876,15 +1877,33 @@ Returns a string showed to the developer
     val url = URLDecoder.decode(S.uriAndQueryString.getOrElse(""),"UTF-8")
     val correlationId = getCorrelationId()
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
+    val allowedRefreshUser = APIUtil.getPropsAsBoolValue(nameOfProperty="refresh_user_for_each_session", defaultValue=false)
     val res =
     if (APIUtil.hasConsentId(reqHeaders)) {
-      Consent.applyRules(APIUtil.getConsentId(reqHeaders), Some(cc)) 
+       for{
+          (Full(user), callContext) <- Consent.applyRules(APIUtil.getConsentId(reqHeaders), Some(cc))
+          //After get the user from Consent, we need to `Refresh User.`
+          _ <- if(allowedRefreshUser)AuthUser.updateUserAccountViewsFuture(user, callContext) else Future{}
+        } yield {(Full(user), callContext)}
     } else if (hasAnOAuthHeader(cc.authReqHeaderField)) {
-      getUserFromOAuthHeaderFuture(cc)
+      for{
+        (Full(user), callContext) <- getUserFromOAuthHeaderFuture(cc)
+        //After get the user from Consent, we need to `Refresh User.`
+        _ <- if(allowedRefreshUser)AuthUser.updateUserAccountViewsFuture(user, callContext) else Future{}
+      } yield {(Full(user), callContext)}
     } else if (hasAnOAuth2Header(cc.authReqHeaderField)) {
-      OAuth2Login.getUserFuture(cc)
+      for{
+        (Full(user), callContext) <- OAuth2Login.getUserFuture(cc)
+        //After get the user from Consent, we need to `Refresh User.`
+        _ <- if(allowedRefreshUser)AuthUser.updateUserAccountViewsFuture(user, callContext) else Future{}
+      } yield {(Full(user), callContext)}
     } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
-      DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
+      for{
+        (Full(user), callContext) <- DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
+        //After get the user from Consent, we need to `Refresh User.`
+        _ <- if(allowedRefreshUser)AuthUser.updateUserAccountViewsFuture(user, callContext) else Future{}
+      } yield {(Full(user), callContext)}
+      
     } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
       APIUtil.getPropsValue("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
@@ -1923,7 +1942,11 @@ Returns a string showed to the developer
           Future { (Failure(ErrorMessages.GatewayLoginUnknownError), None) }
       }
     } else if(Option(cc).flatMap(_.user).isDefined) {
-      Future{(cc.user, Some(cc))}
+      for{
+        (Full(user), callContext) <- Future{(cc.user, Some(cc))}
+        //After get the user from Consent, we need to `Refresh User.`
+        _ <- if(allowedRefreshUser)AuthUser.updateUserAccountViewsFuture(user, callContext) else Future{}
+      } yield {(Full(user), callContext)}
     }
     else {
       Future { (Empty, None) }
