@@ -8122,7 +8122,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           val customerRef = customerIdConverter(fieldValue.asInstanceOf[String])
           fieldMirror.set(customerRef)
         } else if(ownerSymbol <:< typeOf[AccountId] ||
-          (fieldName == "accountid" && fieldType =:= typeOf[String])
+          (fieldName == "accountid" && fieldType =:= typeOf[String]) ||
+          (ownerSymbol <:< typeOf[CoreAccount] && fieldName == "id" && fieldType =:= typeOf[String])||
+          (ownerSymbol <:< typeOf[AccountBalance] && fieldName == "id" && fieldType =:= typeOf[String])||
+          (ownerSymbol <:< typeOf[AccountHeld] && fieldName == "id" && fieldType =:= typeOf[String])
         ) {
           val accountRef = accountIdConverter(fieldValue.asInstanceOf[String])
           fieldMirror.set(accountRef)
