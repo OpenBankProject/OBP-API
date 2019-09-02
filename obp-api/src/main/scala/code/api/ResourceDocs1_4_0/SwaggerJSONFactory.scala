@@ -543,7 +543,7 @@ object SwaggerJSONFactory {
         case _ if(isTypeOf[Option[List[JValue]]])     => s""""$paramName": {"type":"array", "items":{"type":"string","example":"This is a json String."}}"""
 
         case _ if(isTypeOf[EnumValue])                   => s""""$paramName": {"type":"string","enum": [${enumsToString(paramType)}]}"""
-        case _ if(isTypeOf[Option[EnumValue]])           => s""""$paramName": {"type":"string","enum": [${enumsToString(paramType)}]"""
+        case _ if(isTypeOf[Option[EnumValue]])           => s""""$paramName": {"type":"string","enum": [${enumsToString(paramType)}]}"""
         case _ if(isTypeOf[List[EnumValue]])             => s""""$paramName": {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
         case _ if(isTypeOf[Option[List[EnumValue]]])     => s""""$paramName": {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
 
