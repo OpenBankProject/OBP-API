@@ -400,19 +400,19 @@ object SwaggerJSONFactory {
                 // Note: The operationId should not start with a number becuase Javascript constructors may use it to build variables.
                 case _ => s"${rd.implementedInApiVersion.fullyQualifiedVersion }-${rd.partialFunctionName.toString }"
               },
-            //TODO, this is for Post Body 
-            parameters =
-              if (rd.requestVerb.toLowerCase == "get" || rd.requestVerb.toLowerCase == "delete"){
+            parameters ={
+              val caseClassName = rd.exampleRequestBody match {
+                case s:scala.Product => s.getClass.getSimpleName
+                case _ => "NoSupportYet"
+              }//Here we only use `EmptyClassJson` to make sure the json body. now, for connector swagger, the get method also has body.
+              if ("EmptyClassJson".equals(caseClassName)){
                 pathParameters
-               } else{
-                val caseClassName = rd.exampleRequestBody match {
-                  case s:scala.Product => s.getClass.getSimpleName
-                  case _ => "NoSupportYet"
-                }
-                OperationParameterBodyJson(
-                  description = s"${caseClassName} object that needs to be added ",
-                  schema=ResponseObjectSchemaJson(s"#/definitions/${caseClassName}")) :: pathParameters
-              },
+              } else{
+              OperationParameterBodyJson(
+                description = s"${caseClassName} object that needs to be added ",
+                schema=ResponseObjectSchemaJson(s"#/definitions/${caseClassName}")) :: pathParameters
+              }
+            },
             responses =
               rd.requestVerb.toLowerCase match {
                 case "get" => 

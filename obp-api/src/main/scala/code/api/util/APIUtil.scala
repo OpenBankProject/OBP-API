@@ -2510,7 +2510,15 @@ Returns a string showed to the developer
     null,
     ApiVersion.v3_1_0,
     messageDoc.process,
-    "post",
+    requestVerb = {
+      val connectorMethodName = messageDoc.process.toString
+      if (connectorMethodName.contains("get") && !connectorMethodName.contains("getOrCreate")) 
+        "get" 
+      else if(connectorMethodName.contains("delete")) 
+        "delete"
+      else 
+        "post"
+    }, 
     s"/obp-adapter/${messageDoc.process.replaceAll("obp.","").replace(".","")}",
     messageDoc.description,
     messageDoc.description,
