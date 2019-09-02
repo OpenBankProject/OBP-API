@@ -25,6 +25,7 @@ import code.dynamicEntity.DynamicEntityCommons
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
+import com.openbankproject.commons.model.enums.CardAttributeType
 import com.openbankproject.commons.model.{AccountBalance, GeoTag, UserAuthContextUpdateStatus, ViewBasic, _}
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json

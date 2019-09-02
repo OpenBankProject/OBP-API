@@ -42,7 +42,7 @@ import code.api.oauth1a.OauthParams._
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
 import code.api.util.Glossary.GlossaryItem
-import code.api.util.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, util, _}
 import code.bankconnectors.Connector
@@ -56,6 +56,7 @@ import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
+import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{Customer, _}
 import dispatch.url
 import net.liftweb.actor.LAFuture

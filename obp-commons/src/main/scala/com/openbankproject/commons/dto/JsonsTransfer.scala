@@ -28,7 +28,9 @@ package com.openbankproject.commons.dto
 
 import java.util.Date
 
-import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.CardAttributeType
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.{enums, _}
 
 import scala.collection.immutable.List
 
@@ -153,7 +155,7 @@ case class OutBoundCreateTransactionRequestv210(outboundAdapterCallContext: Outb
                                                 transactionRequestType: TransactionRequestType,
                                                 transactionRequestCommonBody: TransactionRequestCommonBodyJSONCommons,
                                                 detailsPlain: String,
-                                                chargePolicy: String, challengeType: Option[String], scaMethod: Option[Any]) extends TopicTrait
+                                                chargePolicy: String, challengeType: Option[String], scaMethod: Option[SCA]) extends TopicTrait
 case class InBoundCreateTransactionRequestv210(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest) extends InBoundTrait[TransactionRequest]
 
 
@@ -333,7 +335,7 @@ case class OutBoundCreateOrUpdateProductAttribute(outboundAdapterCallContext: Ou
                                                   productCode: ProductCode,
                                                   productAttributeId: Option[String],
                                                   name: String,
-                                                  productAttributeType: ProductAttributeType.Value,
+                                                  productAttributeType: enums.ProductAttributeType.Value,
                                                   value: String) extends TopicTrait
 case class InBoundCreateOrUpdateProductAttribute(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ProductAttributeCommons) extends InBoundTrait[ProductAttributeCommons]
 
@@ -355,7 +357,7 @@ case class OutBoundCreateOrUpdateAccountAttribute(outboundAdapterCallContext: Ou
                                                   productCode: ProductCode,
                                                   productAttributeId: Option[String],
                                                   name: String,
-                                                  accountAttributeType: AccountAttributeType.Value,
+                                                  accountAttributeType: enums.AccountAttributeType.Value,
                                                   value: String) extends TopicTrait
 case class InBoundCreateOrUpdateAccountAttribute(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AccountAttributeCommons) extends InBoundTrait[AccountAttributeCommons]
 
@@ -449,7 +451,7 @@ case class OutBoundCreateChallenge(outboundAdapterCallContext: OutboundAdapterCa
                                    userId: String,
                                    transactionRequestType: TransactionRequestType,
                                    transactionRequestId: String,
-                                   scaMethod: Option[Any]) extends TopicTrait
+                                   scaMethod: Option[SCA]) extends TopicTrait
 
 case class InBoundCreateChallenge(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: String) extends InBoundTrait[String]
 
@@ -543,7 +545,7 @@ case class OutBoundCreateOrUpdateCardAttribute(outboundAdapterCallContext: Outbo
                                                cardId: Option[String],
                                                cardAttributeId: Option[String],
                                                name: String,
-                                               cardAttributeType: CardAttributeType.Value,
+                                               cardAttributeType: CardAttributeType,
                                                value: String
                                          ) extends TopicTrait
 case class InBoundCreateOrUpdateCardAttribute(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CardAttributeCommons) extends InBoundTrait[CardAttributeCommons]

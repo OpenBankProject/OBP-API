@@ -26,7 +26,7 @@ Berlin 13359, Germany
 import java.util.Date
 
 import code.api.util.ErrorMessages._
-import code.api.util.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.api.util._
 import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.branches.Branches.Branch

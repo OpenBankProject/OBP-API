@@ -301,7 +301,7 @@ object ReflectUtils {
      getPrimaryConstructor(obj)
        .paramLists.headOption
        .getOrElse(Nil)
-       .map(it => (it.name.toString, it.info))
+       .map(it => (it.name.toString.trim, it.info))
        .toMap
 
 
@@ -358,6 +358,23 @@ object ReflectUtils {
   def getPrimaryConstructor(tp: ru.Type): MethodSymbol = tp.decl(ru.termNames.CONSTRUCTOR).alternatives.head.asMethod
 
   def getPrimaryConstructor(obj: Any): MethodSymbol = this.getPrimaryConstructor(this.getType(obj))
+
+  /**
+   * get all sub type companions instance
+   * @param tp type
+   * @return
+   */
+  def getSubCompanions(tp: ru.Type): Set[Any] =
+      tp
+      .typeSymbol
+      .asClass
+      .knownDirectSubclasses
+      .map(_.asClass.module.asModule)
+      .map(mirror.reflectModule(_).instance)
+
+  def getSubCompanions[T](clazz: Class[T]): Set[T] = getSubCompanions(classToType(clazz)).map(_.asInstanceOf[T])
+
+  def classToType[A](clazz: Class[A]) : ru.Type = mirror.classSymbol(clazz).toType
 
   def classToTypeTag[A](clazz: Class[A], typeParams: Class[_]*): TypeTag[A] = {
     import scala.reflect.api

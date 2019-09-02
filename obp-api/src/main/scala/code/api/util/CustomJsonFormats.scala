@@ -5,13 +5,12 @@ import java.util.regex.Pattern
 import code.api.util.ApiRole.rolesMappedToClasses
 import code.api.v3_1_0.ListResult
 import com.openbankproject.commons.model.JsonFieldReName
-import com.openbankproject.commons.util.ReflectUtils
+import com.openbankproject.commons.util.{EnumValue, ReflectUtils}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
 import net.liftweb.util.StringHelpers
 
 import scala.reflect.runtime.{universe => ru}
-
 import scala.reflect.ManifestFactory
 
 trait CustomJsonFormats {
@@ -20,17 +19,17 @@ trait CustomJsonFormats {
 
 object CustomJsonFormats {
 
-  val formats: Formats = net.liftweb.json.DefaultFormats + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer
+  val formats: Formats = net.liftweb.json.DefaultFormats + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer
 
-  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer
+  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer
 
-  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer
+  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer
 
   lazy val rolesMappedToClassesFormats: Formats = new Formats {
     val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
 
     override val typeHints = ShortTypeHints(rolesMappedToClasses)
-  } + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer
+  } + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer
 }
 
 object BigDecimalSerializer extends Serializer[BigDecimal] {
@@ -45,6 +44,21 @@ object BigDecimalSerializer extends Serializer[BigDecimal] {
 
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case x: BigDecimal => JString(x.toString())
+  }
+}
+
+object EnumValueSerializer extends Serializer[EnumValue] {
+  private val IntervalClass = classOf[EnumValue]
+
+  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), EnumValue] = {
+    case (TypeInfo(clazz, _), json) if(IntervalClass.isAssignableFrom(clazz)) => json match {
+      case JString(s) => ReflectUtils.getSubCompanions(clazz).find(_.toString == s).get.asInstanceOf[EnumValue]
+      case x => throw new MappingException(s"Can't convert $x to $clazz")
+    }
+  }
+
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case x: EnumValue => JString(x.toString())
   }
 }
 
