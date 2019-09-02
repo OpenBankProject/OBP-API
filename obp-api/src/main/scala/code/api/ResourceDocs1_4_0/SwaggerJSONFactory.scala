@@ -543,7 +543,7 @@ object SwaggerJSONFactory {
         case _ if(isTypeOf[Option[List[JValue]]])     => s""""$paramName": {"type":"array", "items":{"type":"string","example":"This is a json String."}}"""
 
         case _ if(isTypeOf[EnumValue])                   => s""""$paramName": {"type":"string","enum": [${enumsToString(paramType)}]}"""
-        case _ if(isTypeOf[Option[EnumValue]])           => s""""$paramName": {"type":"string","enum": [${enumsToString(paramType)}]"""
+        case _ if(isTypeOf[Option[EnumValue]])           => s""""$paramName": {"type":"string","enum": [${enumsToString(paramType)}]}"""
         case _ if(isTypeOf[List[EnumValue]])             => s""""$paramName": {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
         case _ if(isTypeOf[Option[List[EnumValue]]])     => s""""$paramName": {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
 
@@ -773,6 +773,7 @@ object SwaggerJSONFactory {
 
     val translatedEntities = examples
                               .distinctBy(_.getClass)
+                              .filterNot(classOf[EnumValue].isInstance(_)) // OBPEnumeration not need definition
                               .map(translateEntity)
 
     val errorMessages: Set[AnyRef] = resourceDocList.flatMap(_.errorResponseBodies).toSet
