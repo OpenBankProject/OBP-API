@@ -54,9 +54,10 @@ import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import code.api.util.ExampleValue._
 import code.api.util.APIUtil._
-import code.api.util.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType}
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json._
 
@@ -84,8 +85,15 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
 
+
+
+
+
+
+
+
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Mon Aug 26 15:34:08 CEST 2019
+// ---------- create on Tue Sep 03 00:10:36 CST 2019
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -324,7 +332,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       userId=userIdExample.value,
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value),
       transactionRequestId="string",
-      scaMethod=Some(code.api.util.StrongCustomerAuthentication.SMS))
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS))
     ),
     exampleInboundMessage = (
      InBoundCreateChallenge(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
@@ -2215,7 +2223,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       detailsPlain="string",
       chargePolicy="string",
       challengeType=Some("string"),
-      scaMethod=Some(code.api.util.StrongCustomerAuthentication.SMS))
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS))
     ),
     exampleInboundMessage = (
      InBoundCreateTransactionRequestv210(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
@@ -5645,7 +5653,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       productCode=ProductCode("string"),
       productAttributeId=Some("string"),
       name="string",
-      productAttributeType=ProductAttributeType.STRING,
+      productAttributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
       value=valueExample.value)
     ),
     exampleInboundMessage = (
@@ -5662,7 +5670,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       productCode=ProductCode("string"),
       productAttributeId="string",
       name="string",
-      attributeType=ProductAttributeType.STRING,
+      attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
       value=valueExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -5726,7 +5734,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       productCode=ProductCode("string"),
       productAttributeId="string",
       name="string",
-      attributeType=ProductAttributeType.STRING,
+      attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
       value=valueExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -5791,7 +5799,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       productCode=ProductCode("string"),
       productAttributeId="string",
       name="string",
-      attributeType=ProductAttributeType.STRING,
+      attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
       value=valueExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -5915,7 +5923,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       productCode=ProductCode("string"),
       accountAttributeId="string",
       name="string",
-      attributeType=AccountAttributeType.INTEGER,
+      attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
       value=valueExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -5968,7 +5976,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       productCode=ProductCode("string"),
       productAttributeId=Some("string"),
       name="string",
-      accountAttributeType=AccountAttributeType.INTEGER,
+      accountAttributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
       value=valueExample.value)
     ),
     exampleInboundMessage = (
@@ -5986,7 +5994,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       productCode=ProductCode("string"),
       accountAttributeId="string",
       name="string",
-      attributeType=AccountAttributeType.INTEGER,
+      attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
       value=valueExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -6041,7 +6049,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       productCode=ProductCode("string"),
       productAttributeId="string",
       name="string",
-      attributeType=ProductAttributeType.STRING,
+      attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
       value=valueExample.value)))
     ),
     exampleInboundMessage = (
@@ -6059,7 +6067,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       productCode=ProductCode("string"),
       accountAttributeId="string",
       name="string",
-      attributeType=AccountAttributeType.INTEGER,
+      attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
       value=valueExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -6125,7 +6133,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       productCode=ProductCode("string"),
       accountAttributeId="string",
       name="string",
-      attributeType=AccountAttributeType.INTEGER,
+      attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
       value=valueExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -6177,7 +6185,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       cardId=Some(cardIdExample.value),
       cardAttributeId=Some(cardAttributeIdExample.value),
       name="string",
-      cardAttributeType=com.openbankproject.commons.model.CardAttributeType.STRING,
+      cardAttributeType=com.openbankproject.commons.model.enums.CardAttributeType.example,
       value=valueExample.value)
     ),
     exampleInboundMessage = (
@@ -6194,7 +6202,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       cardId=Some(cardIdExample.value),
       cardAttributeId=Some(cardAttributeIdExample.value),
       name=cardAttributeNameExample.value,
-      attributeType=com.openbankproject.commons.model.CardAttributeType.STRING,
+      attributeType=com.openbankproject.commons.model.enums.CardAttributeType.example,
       value=cardAttributeValueExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -6258,7 +6266,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       cardId=Some(cardIdExample.value),
       cardAttributeId=Some(cardAttributeIdExample.value),
       name=cardAttributeNameExample.value,
-      attributeType=com.openbankproject.commons.model.CardAttributeType.STRING,
+      attributeType=com.openbankproject.commons.model.enums.CardAttributeType.example,
       value=cardAttributeValueExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -6322,7 +6330,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       cardId=Some(cardIdExample.value),
       cardAttributeId=Some(cardAttributeIdExample.value),
       name=cardAttributeNameExample.value,
-      attributeType=com.openbankproject.commons.model.CardAttributeType.STRING,
+      attributeType=com.openbankproject.commons.model.enums.CardAttributeType.example,
       value=cardAttributeValueExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -6899,7 +6907,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       productCode=ProductCode("string"),
       productAttributeId="string",
       name="string",
-      attributeType=ProductAttributeType.STRING,
+      attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
       value=valueExample.value)))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -7908,11 +7916,6 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }
     
 //---------------- dynamic end ---------------------please don't modify this line
-    
-    
-    
-    
-    
     
     
     

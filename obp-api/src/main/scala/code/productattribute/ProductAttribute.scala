@@ -5,7 +5,8 @@ package code.productattribute
 import code.api.util.APIUtil
 import code.productAttributeattribute.MappedProductAttributeProvider
 import code.remotedata.RemotedataProductAttribute
-import com.openbankproject.commons.model.{BankId, ProductAttribute, ProductAttributeType, ProductCode}
+import com.openbankproject.commons.model.enums.ProductAttributeType
+import com.openbankproject.commons.model.{BankId, ProductAttribute, ProductCode}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 

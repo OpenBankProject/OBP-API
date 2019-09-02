@@ -2,6 +2,7 @@ package code.cardattribute
 
 import code.util.{MappedUUID, UUIDString}
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.CardAttributeType
 import net.liftweb.mapper._
 
 class MappedCardAttribute extends CardAttribute with LongKeyedMapper[MappedCardAttribute] with IdPK {

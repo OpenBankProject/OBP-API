@@ -4,6 +4,7 @@ import akka.pattern.ask
 import code.cardattribute.{CardAttributeProvider, RemotedataCardAttributeCaseClasses}
 import code.actorsystem.ObpActorInit
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.CardAttributeType
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List

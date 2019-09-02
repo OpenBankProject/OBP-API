@@ -5,7 +5,7 @@ import java.util.{Date, Objects}
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages._
 import code.api.util._
-import com.openbankproject.commons.util.ReflectUtils
+import com.openbankproject.commons.util.{EnumValue, ReflectUtils}
 import net.liftweb
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
@@ -529,12 +529,23 @@ object SwaggerJSONFactory {
       def isTypeOf[T: TypeTag]: Boolean = paramType <:< typeTag[T].tpe
       def isOneOfType[T: TypeTag, D: TypeTag]: Boolean = isTypeOf[T] || isTypeOf[D]
 
+      // enum all values to Array structure string: ["red", "green", "other"]
+      def enumsToString(enumTp: Type) = {
+        val enumType: Type = ReflectUtils.getDeepGenericType(enumTp).head
+        ReflectUtils.getSubCompanions(enumType).map(it => s""""$it"""").mkString(",")
+      }
+
       paramType match {
         //TODO: this maybe wrong, JValue will have many types: JObject, JBool, JInt, JDouble , but here we just map one type `String`
         case _ if(isTypeOf[JValue])                   => s""""$paramName": {"type":"string","example":"This is a json String."}"""
         case _ if(isTypeOf[Option[JValue]])           => s""""$paramName": {"type":"string","example":"This is a json String."}"""
         case _ if(isTypeOf[List[JValue]])             => s""""$paramName": {"type":"array", "items":{"type":"string","example":"This is a json String."}}"""
         case _ if(isTypeOf[Option[List[JValue]]])     => s""""$paramName": {"type":"array", "items":{"type":"string","example":"This is a json String."}}"""
+
+        case _ if(isTypeOf[EnumValue])                   => s""""$paramName": {"type":"string","enum": [${enumsToString(paramType)}]}"""
+        case _ if(isTypeOf[Option[EnumValue]])           => s""""$paramName": {"type":"string","enum": [${enumsToString(paramType)}]"""
+        case _ if(isTypeOf[List[EnumValue]])             => s""""$paramName": {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
+        case _ if(isTypeOf[Option[List[EnumValue]]])     => s""""$paramName": {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
 
         //Boolean - 4 kinds
         case _ if(isOneOfType[Boolean, JBoolean])                            => s""""$paramName": {"type":"boolean", "example": "$exampleValue"}"""
