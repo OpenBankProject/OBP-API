@@ -26,53 +26,36 @@ object RestConnectorBuilder extends App {
   }
 
   val genMethodNames = List(
+    //    "getEmptyBankAccount", //not useful!
+    //    "getCounterpartyFromTransaction", //not useful!
+    //    "getCounterpartiesFromTransaction",//not useful!
+    
     "getAdapterInfo",
     "getChallengeThreshold",
     "getChargeLevel",
     "createChallenge",
-    //    "validateChallengeAnswer",
-    //    "getBankLegacy",
     "getBank",
-    //    "getBanksLegacy",
     "getBanks",
-    //    "getBankAccountsForUserLegacy",
     "getBankAccountsForUser",
     "getUser",
-    //    "updateUserAccountViewsOld",
     "getBankAccount",
-    //    "getBankAccountLegacy",
     "getBankAccount",
-    //    "getBankAccountByIban", *********
-    //    "getBankAccountByRouting",
-    //    "getBankAccounts",
     "getBankAccountsBalances",
-    //    "getCoreBankAccountsLegacy",
     "getCoreBankAccounts",
-    //    "getBankAccountsHeldLegacy",
     "getBankAccountsHeld",
-    //    "checkBankAccountExistsLegacy",
     "checkBankAccountExists",
-    //    "getEmptyBankAccount", //not useful!
-    //    "getCounterpartyFromTransaction", //not useful!
-    //    "getCounterpartiesFromTransaction",//not useful!
     "getCounterparty",
     "getCounterpartyTrait",
-    //    "getCounterpartyByCounterpartyIdLegacy",
     "getCounterpartyByCounterpartyId",
     "getCounterpartyByIban",
-    //    "getCounterpartiesLegacy",
     "getCounterparties",
-    //    "getTransactionsLegacy",
     "getTransactions",
     "getTransactionsCore",
-    //    "getTransactionLegacy",
     "getTransaction",
     "getPhysicalCards",
     "getPhysicalCardForBank",
     "deletePhysicalCardForBank",
-    //    "getPhysicalCardsForBankLegacy",
     "getPhysicalCardsForBank",
-    //    "createPhysicalCardLegacy",
     "createPhysicalCard",
     "updatePhysicalCard",
     "makePayment",
@@ -107,7 +90,6 @@ object RestConnectorBuilder extends App {
     "updateBankAccount",
     "createBankAndAccount",
     "createBankAccount",
-    //    "createBankAccountLegacy",
     "createSandboxBankAccount",
     "setAccountHolder",
     "accountExists",
@@ -125,10 +107,8 @@ object RestConnectorBuilder extends App {
     "createOrUpdateAtm",
     "createOrUpdateProduct",
     "createOrUpdateFXRate",
-    //    "getBranchLegacy",
     "getBranch",
     "getBranches",
-    //    "getAtmLegacy",
     "getAtm",
     "getAtms",
     "accountOwnerExists",
@@ -148,7 +128,6 @@ object RestConnectorBuilder extends App {
     "updateCustomerCreditData",
     "updateCustomerGeneralData",
     "getCustomersByUserId",
-    //    "getCustomerByCustomerIdLegacy",
     "getCustomerByCustomerId",
     "getCustomerByCustomerNumber",
     "getCustomerAddress",
@@ -222,21 +201,6 @@ object RestConnectorBuilder extends App {
     "getBranchLegacy",
     "getAtmLegacy",
     "getCustomerByCustomerIdLegacy",
-  )
-  //For vSept2018
-  val genMethodNames2 = List(
-    //    "createOrUpdateKycCheck",
-    //    "createOrUpdateKycDocument",
-    //    "createOrUpdateKycMedia",
-    //    "createOrUpdateKycStatus",
-    //    "getKycChecks",
-    //    "getKycDocuments",
-    //    "getKycMedias",
-    //    "getKycStatuses",
-    //    "createBankAccount",
-    //    "createCustomer",
-    //    "createMeeting",
-    //    "createMessage"
   )
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
