@@ -29,7 +29,7 @@ import code.context.UserAuthContextUpdateProvider
 import code.entitlement.Entitlement
 import code.kafka.KafkaHelper
 import code.loginattempts.LoginAttempt
-import code.methodrouting.{MethodRoutingCommons, MethodRoutingParam, MethodRoutingT}
+import code.methodrouting.{MethodRouting, MethodRoutingCommons, MethodRoutingParam, MethodRoutingT}
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -52,7 +52,7 @@ import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 import net.liftweb.util.{Helpers, Mailer}
-import org.apache.commons.lang3.Validate
+import org.apache.commons.lang3.{StringUtils, Validate}
 
 import scala.collection.immutable
 import scala.collection.immutable.{List, Nil}
@@ -4027,7 +4027,11 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateMethodRouting, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[MethodRoutingCommons]} "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[MethodRoutingCommons]
+              val entity = json.extract[MethodRoutingCommons]
+              entity.bankIdPattern match {
+                case Some(v) if(StringUtils.isBlank(v) || v.trim == "*") => entity.copy(bankIdPattern = Some(MethodRouting.bankIdPatternMatchAny))
+                case v => entity
+              }
             }
             invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
             _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
@@ -4089,7 +4093,11 @@ trait APIMethods310 {
 
             failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[MethodRoutingCommons]} "
             putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[MethodRoutingCommons].copy(methodRoutingId = Some(methodRoutingId))
+              val entity = json.extract[MethodRoutingCommons].copy(methodRoutingId = Some(methodRoutingId))
+              entity.bankIdPattern match {
+                case Some(v) if(StringUtils.isBlank(v) || v.trim == "*") => entity.copy(bankIdPattern = Some(MethodRouting.bankIdPatternMatchAny))
+                case v => entity
+              }
             }
 
             (_, _) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)
