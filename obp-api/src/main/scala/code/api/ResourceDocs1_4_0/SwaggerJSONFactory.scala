@@ -771,6 +771,7 @@ object SwaggerJSONFactory {
 
     val translatedEntities = examples
                               .distinctBy(_.getClass)
+                              .filterNot(classOf[EnumValue].isInstance(_)) // OBPEnumeration not need definition
                               .map(translateEntity)
 
     val errorMessages: Set[AnyRef] = resourceDocList.flatMap(_.errorResponseBodies).toSet
