@@ -198,7 +198,30 @@ object RestConnectorBuilder extends App {
     "getKycMedias",
     "getKycStatuses",
     "createMessage",
-    "makeHistoricalPayment"
+    "makeHistoricalPayment",
+    // new removed comments
+    "validateChallengeAnswer",
+    "getBankLegacy",
+    "getBanksLegacy",
+    "getBankAccountsForUserLegacy",
+    "updateUserAccountViewsOld",
+    "getBankAccountLegacy",
+    "getBankAccountByIban",
+    "getBankAccountByRouting",
+    "getBankAccounts",
+    "getCoreBankAccountsLegacy",
+    "getBankAccountsHeldLegacy",
+    "checkBankAccountExistsLegacy",
+    "getCounterpartyByCounterpartyIdLegacy",
+    "getCounterpartiesLegacy",
+    "getTransactionsLegacy",
+    "getTransactionLegacy",
+    "getPhysicalCardsForBankLegacy",
+    "createPhysicalCardLegacy",
+    "createBankAccountLegacy",
+    "getBranchLegacy",
+    "getAtmLegacy",
+    "getCustomerByCustomerIdLegacy",
   )
   //For vSept2018
   val genMethodNames2 = List(
