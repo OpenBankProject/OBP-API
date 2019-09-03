@@ -5,7 +5,7 @@ import java.util.regex.Pattern
 import code.api.util.ApiRole.rolesMappedToClasses
 import code.api.v3_1_0.ListResult
 import com.openbankproject.commons.model.JsonFieldReName
-import com.openbankproject.commons.util.{EnumValue, ReflectUtils}
+import com.openbankproject.commons.util.{EnumValue, OBPEnumeration, ReflectUtils}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
 import net.liftweb.util.StringHelpers
@@ -52,7 +52,7 @@ object EnumValueSerializer extends Serializer[EnumValue] {
 
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), EnumValue] = {
     case (TypeInfo(clazz, _), json) if(IntervalClass.isAssignableFrom(clazz)) => json match {
-      case JString(s) => ReflectUtils.getSubCompanions(clazz).find(_.toString == s).get.asInstanceOf[EnumValue]
+      case JString(s) => OBPEnumeration.withName(clazz.asInstanceOf[Class[EnumValue]], s)
       case x => throw new MappingException(s"Can't convert $x to $clazz")
     }
   }

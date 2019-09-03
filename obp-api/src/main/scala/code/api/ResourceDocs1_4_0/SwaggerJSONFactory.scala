@@ -5,7 +5,7 @@ import java.util.{Date, Objects}
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages._
 import code.api.util._
-import com.openbankproject.commons.util.{EnumValue, ReflectUtils}
+import com.openbankproject.commons.util.{EnumValue, OBPEnumeration, ReflectUtils}
 import net.liftweb
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
@@ -532,7 +532,7 @@ object SwaggerJSONFactory {
       // enum all values to Array structure string: ["red", "green", "other"]
       def enumsToString(enumTp: Type) = {
         val enumType: Type = ReflectUtils.getDeepGenericType(enumTp).head
-        ReflectUtils.getSubCompanions(enumType).map(it => s""""$it"""").mkString(",")
+        OBPEnumeration.getValuesByType(enumType).map(it => s""""$it"""").mkString(",")
       }
 
       paramType match {

@@ -36,6 +36,8 @@ abstract class OBPEnumeration[T <: EnumValue: ru.TypeTag] { // trait not support
 
   val values: List[T] = modules.map(_.instance.asInstanceOf[T])
 
+  assert(values.nonEmpty, s"enumeration must at least have one value, please check ${tpe}")
+
   val nameToValue: Map[String, T] = modules.map(it => (it.symbol.name.toString, it.instance.asInstanceOf[T])).toMap
 
   def withNameOption(name: String): Option[T] = nameToValue.get(name)
@@ -44,4 +46,50 @@ abstract class OBPEnumeration[T <: EnumValue: ru.TypeTag] { // trait not support
   def withName(name: String): T = nameToValue.get(name).get
   def withIndex(index: Int): T = values.lift(index).get
   def example: T = values.head
+}
+
+object OBPEnumeration {
+  private def getEnumContainer(tp: Type): OBPEnumeration[_] = {
+    require(tp <:< typeOf[EnumValue], s"parameter must be sub-type of ${typeOf[EnumValue]}")
+
+    val mirror = ru.runtimeMirror(this.getClass.getClassLoader)
+    val anyImplementation: ru.Symbol = tp.typeSymbol.asClass.knownDirectSubclasses.head
+    val enumContainer: ru.ModuleSymbol = anyImplementation.owner.asClass.module.asModule
+    mirror.reflectModule(enumContainer).instance.asInstanceOf[OBPEnumeration[_]]
+  }
+
+  private def getEnumContainer[T <: EnumValue](clazz: Class[T]): OBPEnumeration[T] = {
+    require(clazz != classOf[EnumValue], s"parameter must be sub-class of ${classOf[EnumValue]}")
+
+    val mirror = ru.runtimeMirror(this.getClass.getClassLoader)
+    val anyImplementation = mirror.classSymbol(clazz).knownDirectSubclasses.head
+    val enumContainer = anyImplementation.owner.asClass.module.asModule
+    mirror.reflectModule(enumContainer).instance.asInstanceOf[OBPEnumeration[T]]
+  }
+
+  def getValuesByType(tp: Type): List[EnumValue] = getEnumContainer(tp).values.map(_.asInstanceOf[EnumValue])
+
+  def getValuesByClass[T <: EnumValue](clazz: Class[T]): List[T] = getEnumContainer(clazz).values
+
+  def getValues[T <: EnumValue: TypeTag]: List[T] = getEnumContainer(typeTag[T].tpe).values.map(_.asInstanceOf[T])
+
+  def withNameOption(tp: Type, name: String): Option[EnumValue] = getEnumContainer(tp).withNameOption(name).map(_.asInstanceOf[EnumValue])
+
+  def withNameOption[T <: EnumValue](clazz: Class[T], name: String): Option[T] = getEnumContainer(clazz).withNameOption(name)
+
+  def withName(tp: Type, name: String): EnumValue = withNameOption(tp, name).get
+
+  def withName[T <: EnumValue](clazz: Class[T], name: String): T = withNameOption[T](clazz, name).get
+
+  def withIndexOption(tp: Type, index: Int): Option[EnumValue] = getEnumContainer(tp).withIndexOption(index).map(_.asInstanceOf[EnumValue])
+
+  def withIndexOption[T <: EnumValue](clazz: Class[T], index: Int): Option[T] = getEnumContainer(clazz).withIndexOption(index)
+
+  def withIndex(tp: Type, index: Int): EnumValue = withIndexOption(tp, index).get
+
+  def withIndex[T <: EnumValue](clazz: Class[T], index: Int): T = withIndexOption[T](clazz, index).get
+
+  def getExampleByType(tp: Type): EnumValue = getEnumContainer(tp).example.asInstanceOf[EnumValue]
+
+  def getExampleByClass[T <: EnumValue](clazz: Class[T]): T = getEnumContainer(clazz).example
 }
