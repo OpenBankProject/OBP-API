@@ -3,6 +3,7 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+03/09/2019    f953386c      Added props: implicitly_convert_ids . it will convert Bank_Plan_Text_Reference to OBP-UUID implicitly.  
 21/08/2019    4ac93f1c      Added props: webui_register_consumer_success_message_webpage and webui_register_consumer_success_message_email.
                             These  messages will be shown to developers on the webpage or email, when they register the consumer successfully. 
 05/07/2019    7032ce3       Added props: webui_sandbox_introduction, To display the introduction page for sandbox.
