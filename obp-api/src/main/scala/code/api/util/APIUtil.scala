@@ -1888,7 +1888,7 @@ Returns a string showed to the developer
         (user, callContext) <- OAuth2Login.getUserFuture(cc)
       } yield {
         if (!APIUtil.isSandboxMode && user.isDefined) 
-          AuthUser.updateUserAccountViews(user.openOrThrowException("Can not be empty here"), callContext)
+          AuthUser.updateUserAccountViewsFuture(user.openOrThrowException("Can not be empty here"), callContext)
         (user, callContext)
       }
     } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
