@@ -2507,30 +2507,36 @@ Returns a string showed to the developer
   //This is used to change connector level Message Doc to api level ResouceDoc.
   //Because we already have the code from resouceDocs --> Swagger File.
   //Here we use the same code for MessageDoc, so we transfer them first.
-  def toResourceDoc(messageDoc: MessageDoc): ResourceDoc = ResourceDoc(
-    null,
-    ApiVersion.v3_1_0,
-    messageDoc.process,
-    requestVerb = {
-      val connectorMethodName = messageDoc.process.toString
-      if (connectorMethodName.contains("get") && !connectorMethodName.contains("getOrCreate")) 
-        "get" 
-      else if(connectorMethodName.contains("delete")) 
-        "delete"
-      else 
-        "post"
-    }, 
-    s"/obp-adapter/${messageDoc.process.replaceAll("obp.","").replace(".","")}",
-    messageDoc.description,
-    messageDoc.description,
-    messageDoc.exampleOutboundMessage,
-    messageDoc.exampleInboundMessage,
-    errorResponseBodies = List(InvalidJsonFormat),
-    Catalogs(notCore,notPSD2,notOBWG),
-    List(apiTagBank)
-  )
-  
-  
+  def toResourceDoc(messageDoc: MessageDoc): ResourceDoc = {
+    val connectorMethodName = {messageDoc.process.replaceAll("obp.","").replace(".","")}
+    ResourceDoc(
+      null,
+      ApiVersion.v3_1_0,
+      messageDoc.process,
+      requestVerb = {
+        getRequestTypeByMethodName(connectorMethodName)
+      },
+      s"/obp-adapter/$connectorMethodName",
+      messageDoc.description,
+      messageDoc.description,
+      messageDoc.exampleOutboundMessage,
+      messageDoc.exampleInboundMessage,
+      errorResponseBodies = List(InvalidJsonFormat),
+      Catalogs(notCore,notPSD2,notOBWG),
+      List(apiTagBank)
+    )
+  }
+
+  def getRequestTypeByMethodName(connectorMethodName: String) = {
+    connectorMethodName match {
+      case v if (v.matches("(get.+|check.+|.+Exists)") && !v.matches("(getOrCreate.+)")) => "get"
+      case v if (v.matches("(getOrCreate|create|save|make|answer).+")) => "post"
+      case v if (v.matches("(?i)(update|set).+")) => "post"
+      case v if (v.matches("(delete|remove).+")) => "delete"
+      case _ => "post"
+    }
+  }
+
   def createBasicUserAuthContext(userAuthContest : UserAuthContext) : BasicUserAuthContext = {
     BasicUserAuthContext(
       key = userAuthContest.key,

@@ -3,7 +3,7 @@ package code.bankconnectors.rest
 import java.io.File
 import java.util.Date
 
-import code.api.util.{CallContext, OBPQueryParam}
+import code.api.util.{APIUtil, CallContext, OBPQueryParam}
 import code.bankconnectors.Connector
 import com.openbankproject.commons.util.ReflectUtils
 import org.apache.commons.io.FileUtils
@@ -12,7 +12,6 @@ import scala.collection.immutable.List
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
-
 import code.api.util.CodeGenerateUtils.createDocExample
 
 object RestConnectorBuilder extends App {
@@ -426,12 +425,11 @@ case class PostGenerator(methodName: String, tp: Type) {
        |        }
     """.stripMargin
   }
-  val httpMethod = methodName match {
-//    case v if(v.matches("(get.+|answer.+|check.+|.+Exists)")) => "HttpMethods.GET"
-//    case v if(v.matches("(create|save|make).+"))              => "HttpMethods.POST"
-//    case v if(v.matches("(?i)(update|set).+"))                => "HttpMethods.PUT"
-//    case v if(v.matches("(delete|remove).+"))                 => "HttpMethods.DELETE"
-    case _                                                    => "HttpMethods.POST"
+  val httpMethod = APIUtil.getRequestTypeByMethodName(methodName) match {
+    case "get" => "HttpMethods.GET"
+    case "post" => "HttpMethods.POST"
+    case "put" => "HttpMethods.PUT"
+    case "delete" => "HttpMethods.DELETE"
   }
 
   /**
