@@ -12,11 +12,35 @@ object InOutCaseClassGenerator extends App {
       extractReturnModel(tp.typeArgs(0))
     }
   }
+val list = List(
+   "validateChallengeAnswer",
+   "getBankLegacy",
+   "getBanksLegacy",
+   "getBankAccountsForUserLegacy",
+   "updateUserAccountViewsOld",
+   "getBankAccountLegacy",
+   "getBankAccountByIban",
+   "getBankAccountByRouting",
+   "getBankAccounts",
+   "getCoreBankAccountsLegacy",
+   "getBankAccountsHeldLegacy",
+   "checkBankAccountExistsLegacy",
+   "getCounterpartyByCounterpartyIdLegacy",
+   "getCounterpartiesLegacy",
+   "getTransactionsLegacy",
+   "getTransactionLegacy",
+   "getPhysicalCardsForBankLegacy",
+   "createPhysicalCardLegacy",
+   "createBankAccountLegacy",
+   "getBranchLegacy",
+   "getAtmLegacy",
+   "getCustomerByCustomerIdLegacy"
+)
 
   private val mirror: ru.Mirror = ru.runtimeMirror(this.getClass.getClassLoader)
   private val clazz: ru.ClassSymbol = mirror.typeOf[Connector].typeSymbol.asClass
   private val retureFutureMethods: Iterable[ru.MethodSymbol] = mirror.typeOf[Connector].decls.filter(symbol => {
-    val isMethod = symbol.isMethod && !symbol.asMethod.isVal && !symbol.asMethod.isVar && !symbol.asMethod.isConstructor
+    val isMethod = symbol.isMethod && !symbol.asMethod.isVal && !symbol.asMethod.isVar && !symbol.asMethod.isConstructor && list.contains(symbol.name.toString.trim)
     isMethod
   }).map(it => it.asMethod)
     .filterNot(it => it.returnType <:< ru.typeOf[Future[_]])
@@ -45,8 +69,8 @@ object InOutCaseClassGenerator extends App {
       parameters = parameters.replaceFirst("^\\(", ", ").replaceFirst(", callContext: Option.*$", "").replace(",", ",\n")
     }
     s"""
-       |case class OutBound${it.name.toString.capitalize} (adapterCallContext: AdapterCallContext$parameters)
-       |case class InBound${it.name.toString.capitalize} (adapterCallContext: OutboundAdapterCallContext, data: $payload)
+       |case class OutBound${it.name.toString.capitalize} (outboundAdapterCallContext: OutboundAdapterCallContext$parameters) extends TopicTrait
+       |case class InBound${it.name.toString.capitalize} (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: $payload) extends InBoundTrait[$payload]
      """.stripMargin
   })
   code.foreach(println)
