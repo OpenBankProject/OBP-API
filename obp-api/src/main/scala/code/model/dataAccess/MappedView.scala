@@ -33,10 +33,11 @@ import net.liftweb.mapper._
 
 import scala.collection.immutable.List
 
-/*
-This stores the link between A User and a View
-A User can't use a View unless it is listed here.
- */
+/**
+  * This code is deprecated via a migration process.
+  * Please take a look at TableViewDefinition.populate for more details.
+  */
+@deprecated("Migrated to the table AccountAccess","10-05-2019")
 class ViewPrivileges extends LongKeyedMapper[ViewPrivileges] with IdPK with CreatedUpdated {
   def getSingleton = ViewPrivileges
   object user extends MappedLongForeignKey(this, ResourceUser)
@@ -44,6 +45,11 @@ class ViewPrivileges extends LongKeyedMapper[ViewPrivileges] with IdPK with Crea
 }
 object ViewPrivileges extends ViewPrivileges with LongKeyedMetaMapper[ViewPrivileges]
 
+/**
+  * This code is deprecated via a migration process.
+  * Please take a look at TableAccountAccess.populate for more details.
+ */
+@deprecated("Migrated to the table ViewDefinition","10-05-2019")
 class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with CreatedUpdated{
   def getSingleton = ViewImpl
 
