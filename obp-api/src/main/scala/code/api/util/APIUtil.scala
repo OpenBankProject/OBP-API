@@ -51,6 +51,7 @@ import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.metrics._
 import code.model._
+import code.model.dataAccess.AuthUser
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
@@ -1882,7 +1883,13 @@ Returns a string showed to the developer
     } else if (hasAnOAuthHeader(cc.authReqHeaderField)) {
       getUserFromOAuthHeaderFuture(cc)
     } else if (hasAnOAuth2Header(cc.authReqHeaderField)) {
-      OAuth2Login.getUserFuture(cc)
+      for {
+        (user, callContext) <- OAuth2Login.getUserFuture(cc)
+      } yield {
+        if (!APIUtil.isSandboxMode && user.isDefined) 
+          AuthUser.updateUserAccountViews(user.openOrThrowException("Can not be empty here"), callContext)
+        (user, callContext)
+      }
     } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
       DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
     } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
