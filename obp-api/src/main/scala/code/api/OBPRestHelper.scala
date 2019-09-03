@@ -38,6 +38,7 @@ import code.api.util._
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_1_0.APIMethods310
 import code.api.v4_0_0.APIMethods400
+import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
@@ -243,9 +244,11 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         case _ => Failure("oauth error")
       }
     } else if (hasAnOAuth2Header(authorization)) {
-      val (user, _) = OAuth2Login.getUser(cc)
+      val (user, callContext) = OAuth2Login.getUser(cc)
       user match {
-        case Full(u) => fn(cc.copy(user = Full(u))) // Authentication is successful
+        case Full(u) =>
+          AuthUser.updateUserAccountViews(u, callContext)
+          fn(cc.copy(user = Full(u))) // Authentication is successful
         case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) => Failure(msg, t, c)
         case _ => Failure("oauth error")

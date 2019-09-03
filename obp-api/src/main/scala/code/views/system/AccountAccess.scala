@@ -3,7 +3,10 @@ package code.views.system
 import code.model.dataAccess.ResourceUser
 import code.util.UUIDString
 import net.liftweb.mapper._
-
+/*
+This stores the link between A User and a View
+A User can't use a View unless it is listed here.
+ */
 class AccountAccess extends LongKeyedMapper[AccountAccess] with IdPK with CreatedUpdated {
   def getSingleton = AccountAccess
   object user_fk extends MappedLongForeignKey(this, ResourceUser)
