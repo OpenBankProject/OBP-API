@@ -2529,7 +2529,8 @@ Returns a string showed to the developer
 
   def getRequestTypeByMethodName(connectorMethodName: String) = {
     connectorMethodName match {
-      case v if (v.matches("(get.+|check.+|.+Exists)") && !v.matches("(getOrCreate.+)")) => "get"
+        //TODO, liftweb do not support json body for get request. Here we used `post` first.
+      case v if (v.matches("(get.+|check.+|.+Exists)") && !v.matches("(getOrCreate.+)")) => "post"
       case v if (v.matches("(getOrCreate|create|save|make|answer).+")) => "post"
       case v if (v.matches("(?i)(update|set).+")) => "post"
       case v if (v.matches("(delete|remove).+")) => "delete"
