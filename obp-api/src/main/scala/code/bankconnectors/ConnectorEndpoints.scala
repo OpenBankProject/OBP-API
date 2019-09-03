@@ -11,6 +11,7 @@ import com.openbankproject.commons.util.ReflectUtils
 import com.openbankproject.commons.util.ReflectUtils.{getType, toValueObject}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.github.dwickern.macros.NameOf.nameOf
+import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.JNothing
@@ -28,8 +29,18 @@ object ConnectorEndpoints extends RestHelper{
     oauthServe(connectorGetMethod)
   }
 
+  /**
+   * extract request body, no matter GET, POST, PUT or DELETE method
+   */
+  object JsonAny extends JsonTest with JsonBody{
+    def unapply(r: Req): Option[(List[String], (JValue, Req))] =
+      if (testResponse_?(r))
+        body(r).toOption.map(t => (r.path.partPath -> (t -> r)))
+      else None
+  }
+
   lazy val connectorGetMethod: OBPEndpoint = {
-    case "restConnector" :: methodName :: Nil JsonPost json -> _  if(hashMethod(methodName, json)) => {
+    case "restConnector" :: methodName :: Nil JsonAny json -> req if(hashMethod(methodName, json))  => {
       cc => {
         val methodSymbol: ru.MethodSymbol = getMethod(methodName, json).get
         val outBoundType = Class.forName(s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}")
