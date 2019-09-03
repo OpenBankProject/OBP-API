@@ -199,7 +199,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       Users.users.vend.getOrCreateUserByProviderIdFuture(
         provider = issuer, 
         idGivenByProvider = subject, 
-        name = getClaim(name = "name", idToken = idToken).orElse(Some(subject)),
+        name = getClaim(name = "given_name", idToken = idToken).orElse(Some(subject)),
         email = getClaim(name = "email", idToken = idToken)
       )
     }
@@ -226,7 +226,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         Users.users.vend.createResourceUser( // Otherwise create a new one
           provider = issuer,
           providerId = Some(subject),
-          name = getClaim(name = "name", idToken = idToken).orElse(Some(subject)),
+          name = getClaim(name = "given_name", idToken = idToken).orElse(Some(subject)),
           email = getClaim(name = "email", idToken = idToken),
           userId = None
         )
