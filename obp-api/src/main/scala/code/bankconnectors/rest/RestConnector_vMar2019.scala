@@ -7937,6 +7937,9 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     * @tparam T
     * @return result of future
     */
+  // This result is accessed synchronously (blocking)
+  // TODO 1. Consider can be the result accessed asynchronously (non-blocking)
+  // TODO 2. Consider making the duration tweakable via props file at least
   private[this] implicit def convertFuture[T](future: Future[T]): T = Await.result(future, 1.minute)
 
   /**
