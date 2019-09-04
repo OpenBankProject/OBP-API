@@ -40,7 +40,7 @@ import code.api.builder.OBP_APIBuilder
 import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.sandbox.SandboxApiCalls
-import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
+import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
 import code.api.util.StrongCustomerAuthentication.SCA
 import code.api.v1_2.ErrorMessage
@@ -1699,7 +1699,7 @@ Returns a string showed to the developer
            // Only allow Resource Doc if it matches one of the pre selected endpoints from the version list.
              // i.e. this function may recieve more Resource Docs than version endpoints
             endpoints.exists(_ == item.partialFunction) &&
-             (NewStyle.endpoints.exists(x => x == (item.partialFunctionName, item.implementedInApiVersion.toString())) || !onlyNewStyle)
+             (item.tags.exists(_ == apiTagNewStyle) || !onlyNewStyle)
     )
       yield item.partialFunction
     routes.toList
