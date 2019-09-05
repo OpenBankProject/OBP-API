@@ -51,7 +51,6 @@ object NewStyle {
     (nameOf(Implementations2_0_0.getKycMedia), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.getKycStatuses), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.getKycChecks), ApiVersion.v2_0_0.toString),
-    (nameOf(Implementations2_0_0.getSocialMediaHandles), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.addKycDocument), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.addKycMedia), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.addKycStatus), ApiVersion.v2_0_0.toString),
