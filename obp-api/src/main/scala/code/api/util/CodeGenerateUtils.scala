@@ -1,16 +1,16 @@
 package code.api.util
 
-import java.text.{DateFormat, ParseException}
 import java.util.Date
 
-import com.openbankproject.commons.model.{AccountAttributeType, CardAction, CardAttributeType, CardReplacementReason, PinResetReason, ProductAttributeType}
-import com.openbankproject.commons.util.ReflectUtils
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
+import com.openbankproject.commons.model.{CardAction, CardReplacementReason, PinResetReason}
+import com.openbankproject.commons.util.{EnumValue, ReflectUtils}
 import org.apache.commons.lang3.StringUtils
 
-import scala.reflect.runtime.{universe => ru}
+import scala.collection.immutable.List
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
-import scala.collection.immutable.List
+import scala.reflect.runtime.{universe => ru}
 
 object CodeGenerateUtils {
 
@@ -30,10 +30,10 @@ object CodeGenerateUtils {
       return "com.openbankproject.commons.model.CardReplacementReason.FIRST"
     } else if(tp =:= typeOf[PinResetReason]) {
       return "com.openbankproject.commons.model.PinResetReason.FORGOT"
-    } else if(tp =:= typeOf[CardAttributeType.Value]) {
-      return "com.openbankproject.commons.model.CardAttributeType.STRING"
     } else if(tp =:= typeOf[StrongCustomerAuthentication.Value]) {
-      return "code.api.util.StrongCustomerAuthentication.SMS"
+      return "com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS"
+    } else if(tp <:< typeOf[EnumValue]) {
+      return s"${tp.typeSymbol.fullName}.example"
     }
 
     val uncapitalizedTypeName = StringUtils.uncapitalize(tp.typeSymbol.name.toString)
@@ -165,12 +165,8 @@ object CodeGenerateUtils {
       val fields = concreteObpType.orNull.decls.find(it => it.isConstructor).toList.flatMap(_.asMethod.paramLists(0)).foldLeft("")((str, symbol) => {
         val valName = symbol.name.toString
         val TypeRef(pre: Type, sym: Symbol, args: List[Type]) = symbol.info
-        val value = if (pre <:< ru.typeOf[ProductAttributeType.type]) {
-          "ProductAttributeType.STRING"
-        } else if (pre <:< ru.typeOf[AccountAttributeType.type]) {
-          "AccountAttributeType.INTEGER"
-        } else if (valName == "scaMethod") {
-          "Some(code.api.util.StrongCustomerAuthentication.SMS)"
+        val value = if (pre <:< ru.typeOf[EnumValue]) {
+          s"${pre.typeSymbol.fullName}.example"
         } else {
           createDocExample(symbol.info, Some(valName), fieldName, Some(tp))
         }

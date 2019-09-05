@@ -4,7 +4,8 @@ package code.cardattribute
 
 import code.api.util.APIUtil
 import code.remotedata.RemotedataCardAttribute
-import com.openbankproject.commons.model.{CardAttribute, CardAttributeType, AccountId, BankId, ProductCode}
+import com.openbankproject.commons.model.enums.CardAttributeType
+import com.openbankproject.commons.model.{AccountId, BankId, CardAttribute, ProductCode}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 

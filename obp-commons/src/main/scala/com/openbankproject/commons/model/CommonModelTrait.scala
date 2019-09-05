@@ -29,50 +29,14 @@ package com.openbankproject.commons.model
 
 import java.util.Date
 
+import com.openbankproject.commons.model.enums._
+
 import scala.collection.immutable.List
 
 /**
   * a mark trait, any type that extends this trait will rename field from Camel-Case to snakify naming
   */
 trait JsonFieldReName
-
-
-//--------- enums
-object AccountAttributeType extends Enumeration{
-  type ProductAttributeType = Value
-  val STRING = Value("STRING")
-
-  val INTEGER = Value("INTEGER")
-
-  val DOUBLE = Value("DOUBLE")
-
-  val DATE_WITH_DAY = Value("DATE_WITH_DAY")
-}
-
-
-object ProductAttributeType extends Enumeration{
-  type ProductAttributeType = Value
-  val STRING = Value("STRING")
-
-  val INTEGER = Value("INTEGER")
-
-  val DOUBLE = Value("DOUBLE")
-
-  val DATE_WITH_DAY = Value("DATE_WITH_DAY")
-}
-
-object CardAttributeType extends Enumeration{
-  type CardAttributeType = Value
-  val STRING = Value("STRING")
-
-  val INTEGER = Value("INTEGER")
-
-  val DOUBLE = Value("DOUBLE")
-
-  val DATE_WITH_DAY = Value("DATE_WITH_DAY")
-}
-//-------------------
-
 
 /**
 *

@@ -42,7 +42,7 @@ import code.api.oauth1a.OauthParams._
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
-import code.api.util.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, util, _}
 import code.bankconnectors.Connector
@@ -57,6 +57,7 @@ import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
+import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{Customer, _}
 import dispatch.url
 import net.liftweb.actor.LAFuture
@@ -1887,7 +1888,7 @@ Returns a string showed to the developer
         (user, callContext) <- OAuth2Login.getUserFuture(cc)
       } yield {
         if (!APIUtil.isSandboxMode && user.isDefined) 
-          AuthUser.updateUserAccountViews(user.openOrThrowException("Can not be empty here"), callContext)
+          AuthUser.updateUserAccountViewsFuture(user.openOrThrowException("Can not be empty here"), callContext)
         (user, callContext)
       }
     } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
@@ -2513,22 +2514,37 @@ Returns a string showed to the developer
   //This is used to change connector level Message Doc to api level ResouceDoc.
   //Because we already have the code from resouceDocs --> Swagger File.
   //Here we use the same code for MessageDoc, so we transfer them first.
-  def toResourceDoc(messageDoc: MessageDoc): ResourceDoc = ResourceDoc(
-    null,
-    ApiVersion.v3_1_0,
-    messageDoc.process,
-    "post",
-    s"/obp-connector/${messageDoc.process.replaceAll("obp.","").replace(".","")}",
-    messageDoc.description,
-    messageDoc.description,
-    messageDoc.exampleOutboundMessage,
-    messageDoc.exampleInboundMessage,
-    errorResponseBodies = List(InvalidJsonFormat),
-    Catalogs(notCore,notPSD2,notOBWG),
-    List(apiTagBank)
-  )
-  
-  
+  def toResourceDoc(messageDoc: MessageDoc): ResourceDoc = {
+    val connectorMethodName = {messageDoc.process.replaceAll("obp.","").replace(".","")}
+    ResourceDoc(
+      null,
+      ApiVersion.v3_1_0,
+      messageDoc.process,
+      requestVerb = {
+        getRequestTypeByMethodName(connectorMethodName)
+      },
+      s"/obp-adapter/$connectorMethodName",
+      messageDoc.description,
+      messageDoc.description,
+      messageDoc.exampleOutboundMessage,
+      messageDoc.exampleInboundMessage,
+      errorResponseBodies = List(InvalidJsonFormat),
+      Catalogs(notCore,notPSD2,notOBWG),
+      List(apiTagBank)
+    )
+  }
+
+  def getRequestTypeByMethodName(connectorMethodName: String) = {
+    connectorMethodName match {
+        //TODO, liftweb do not support json body for get request. Here we used `post` first.
+      case v if (v.matches("(get.+|check.+|.+Exists)") && !v.matches("(getOrCreate.+)")) => "post"
+      case v if (v.matches("(getOrCreate|create|save|make|answer).+")) => "post"
+      case v if (v.matches("(?i)(update|set).+")) => "post"
+      case v if (v.matches("(delete|remove).+")) => "delete"
+      case _ => "post"
+    }
+  }
+
   def createBasicUserAuthContext(userAuthContest : UserAuthContext) : BasicUserAuthContext = {
     BasicUserAuthContext(
       key = userAuthContest.key,

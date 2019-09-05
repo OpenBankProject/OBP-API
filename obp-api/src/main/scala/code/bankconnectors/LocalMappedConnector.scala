@@ -10,7 +10,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
-import code.api.util.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.api.util._
 import code.atms.Atms.Atm
 import code.atms.MappedAtm
@@ -51,6 +51,7 @@ import code.views.Views
 import com.google.common.cache.CacheBuilder
 import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, Product, ProductAttribute, ProductCollectionItem, TaxResidence, _}
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount

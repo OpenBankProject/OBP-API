@@ -5,7 +5,7 @@ import java.util.{Date, Objects}
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages._
 import code.api.util._
-import com.openbankproject.commons.util.ReflectUtils
+import com.openbankproject.commons.util.{EnumValue, OBPEnumeration, ReflectUtils}
 import net.liftweb
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
@@ -400,19 +400,19 @@ object SwaggerJSONFactory {
                 // Note: The operationId should not start with a number becuase Javascript constructors may use it to build variables.
                 case _ => s"${rd.implementedInApiVersion.fullyQualifiedVersion }-${rd.partialFunctionName.toString }"
               },
-            //TODO, this is for Post Body 
-            parameters =
-              if (rd.requestVerb.toLowerCase == "get" || rd.requestVerb.toLowerCase == "delete"){
+            parameters ={
+              val caseClassName = rd.exampleRequestBody match {
+                case s:scala.Product => s.getClass.getSimpleName
+                case _ => "NoSupportYet"
+              }//Here we only use `EmptyClassJson` to make sure the json body. now, for connector swagger, the get method also has body.
+              if ("EmptyClassJson".equals(caseClassName)){
                 pathParameters
-               } else{
-                val caseClassName = rd.exampleRequestBody match {
-                  case s:scala.Product => s.getClass.getSimpleName
-                  case _ => "NoSupportYet"
-                }
-                OperationParameterBodyJson(
-                  description = s"${caseClassName} object that needs to be added ",
-                  schema=ResponseObjectSchemaJson(s"#/definitions/${caseClassName}")) :: pathParameters
-              },
+              } else{
+              OperationParameterBodyJson(
+                description = s"${caseClassName} object that needs to be added ",
+                schema=ResponseObjectSchemaJson(s"#/definitions/${caseClassName}")) :: pathParameters
+              }
+            },
             responses =
               rd.requestVerb.toLowerCase match {
                 case "get" => 
@@ -529,12 +529,23 @@ object SwaggerJSONFactory {
       def isTypeOf[T: TypeTag]: Boolean = paramType <:< typeTag[T].tpe
       def isOneOfType[T: TypeTag, D: TypeTag]: Boolean = isTypeOf[T] || isTypeOf[D]
 
+      // enum all values to Array structure string: ["red", "green", "other"]
+      def enumsToString(enumTp: Type) = {
+        val enumType: Type = ReflectUtils.getDeepGenericType(enumTp).head
+        OBPEnumeration.getValuesByType(enumType).map(it => s""""$it"""").mkString(",")
+      }
+
       paramType match {
         //TODO: this maybe wrong, JValue will have many types: JObject, JBool, JInt, JDouble , but here we just map one type `String`
         case _ if(isTypeOf[JValue])                   => s""""$paramName": {"type":"string","example":"This is a json String."}"""
         case _ if(isTypeOf[Option[JValue]])           => s""""$paramName": {"type":"string","example":"This is a json String."}"""
         case _ if(isTypeOf[List[JValue]])             => s""""$paramName": {"type":"array", "items":{"type":"string","example":"This is a json String."}}"""
         case _ if(isTypeOf[Option[List[JValue]]])     => s""""$paramName": {"type":"array", "items":{"type":"string","example":"This is a json String."}}"""
+
+        case _ if(isTypeOf[EnumValue])                   => s""""$paramName": {"type":"string","enum": [${enumsToString(paramType)}]}"""
+        case _ if(isTypeOf[Option[EnumValue]])           => s""""$paramName": {"type":"string","enum": [${enumsToString(paramType)}]}"""
+        case _ if(isTypeOf[List[EnumValue]])             => s""""$paramName": {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
+        case _ if(isTypeOf[Option[List[EnumValue]]])     => s""""$paramName": {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
 
         //Boolean - 4 kinds
         case _ if(isOneOfType[Boolean, JBoolean])                            => s""""$paramName": {"type":"boolean", "example": "$exampleValue"}"""
@@ -574,7 +585,7 @@ object SwaggerJSONFactory {
         case _ if(isOneOfType[List[BigDecimal], List[JBigDecimal]])                 => s""""$paramName": {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
         case _ if(isOneOfType[Option[List[BigDecimal]], Option[List[JBigDecimal]]]) => s""""$paramName": {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
         //Date
-        case _ if(isOneOfType[Date, Option[Date]])                   => s""""$paramName": {"type":"string", "format":"date","example":"$exampleValue"}"""
+        case _ if(isOneOfType[Date, Option[Date]])                   => s""""$paramName": {"type":"string", "format":"date","example":"${APIUtil.DateWithSecondsFormat.format(exampleValue)}"}"""
         case _ if(isOneOfType[List[Date], Option[List[Date]]])       => s""""$paramName": {"type":"array", "items":{"type":"string", "format":"date"}}"""
 
         //List case classes.
@@ -745,8 +756,6 @@ object SwaggerJSONFactory {
   // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
   def loadDefinitions(resourceDocList: List[ResourceDoc], allSwaggerDefinitionCaseClasses: Seq[AnyRef]): liftweb.json.JValue = {
 
-    implicit val formats = CustomJsonFormats.formats
-
     val docEntityExamples: List[AnyRef] = (resourceDocList.map(_.exampleRequestBody.asInstanceOf[AnyRef]) :::
                                            resourceDocList.map(_.successResponseBody.asInstanceOf[AnyRef])
                                           ).filterNot(Objects.isNull)
@@ -762,6 +771,7 @@ object SwaggerJSONFactory {
 
     val translatedEntities = examples
                               .distinctBy(_.getClass)
+                              .filterNot(classOf[EnumValue].isInstance(_)) // OBPEnumeration not need definition
                               .map(translateEntity)
 
     val errorMessages: Set[AnyRef] = resourceDocList.flatMap(_.errorResponseBodies).toSet

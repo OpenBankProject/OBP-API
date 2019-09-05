@@ -8,7 +8,7 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.util.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
@@ -31,7 +31,9 @@ import code.transactionrequests.{TransactionRequestTypeCharge, TransactionReques
 import code.users.Users
 import code.util.Helper._
 import code.views.Views
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
+
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.json.Extraction.decompose
@@ -229,7 +231,6 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   /**
     *
     * @param username username of the user.
-    * @param forceFresh call the MainFrame call, or only get the cache data.
     * @return all the accounts, get from Main Frame.
     */
   def getBankAccountsForUserLegacy(username: String, callContext: Option[CallContext]) : Box[(List[InboundAccount], Option[CallContext])] = Failure(setUnimplementedError)
@@ -237,7 +238,6 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   /**
     *
     * @param username username of the user.
-    * @param forceFresh call the MainFrame call, or only get the cache data.
     * @return all the accounts, get from Main Frame.
     */
   def getBankAccountsForUser(username: String, callContext: Option[CallContext]) : Future[Box[(List[InboundAccount], Option[CallContext])]] = Future{

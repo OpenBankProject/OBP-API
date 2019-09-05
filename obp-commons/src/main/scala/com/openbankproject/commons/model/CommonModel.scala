@@ -28,10 +28,11 @@ package com.openbankproject.commons.model
 
 import java.util.Date
 
+import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.ReflectUtils
-import scala.reflect.runtime.universe._
 
 import scala.collection.immutable.List
+import scala.reflect.runtime.universe._
 //import code.customeraddress.CustomerAddress
 //import code.bankconnectors.InboundAccountCommon
 //import code.branches.Branches.BranchT

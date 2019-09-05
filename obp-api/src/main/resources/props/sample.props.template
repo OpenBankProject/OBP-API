@@ -661,3 +661,6 @@ database_messages_scheduler_interval=3600
 # COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=dummy
 # Possible values: dummy,email,sms
 # -----------------------------------------------------------------------
+
+# convert Bank_Plan_Text_Reference to OBP-UUID switch. Note: this is in process only for RestConnector now.
+#implicitly_convert_ids = false
