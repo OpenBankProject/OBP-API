@@ -5,17 +5,18 @@ import code.api.util.APIUtil.{OBPEndpoint, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats, OBPQueryParam}
 import code.api.v3_1_0.OBPAPI3_1_0.oauthServe
+import code.bankconnectors.rest.RestConnector_vMar2019
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ReflectUtils
 import com.openbankproject.commons.util.ReflectUtils.{getType, toValueObject}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.github.dwickern.macros.NameOf.nameOf
+import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.JNothing
 import org.apache.commons.lang3.StringUtils
 
-import scala.collection.immutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -28,8 +29,18 @@ object ConnectorEndpoints extends RestHelper{
     oauthServe(connectorGetMethod)
   }
 
+  /**
+   * extract request body, no matter GET, POST, PUT or DELETE method
+   */
+  object JsonAny extends JsonTest with JsonBody{
+    def unapply(r: Req): Option[(List[String], (JValue, Req))] =
+      if (testResponse_?(r))
+        body(r).toOption.map(t => (r.path.partPath -> (t -> r)))
+      else None
+  }
+
   lazy val connectorGetMethod: OBPEndpoint = {
-    case "restConnector" :: methodName :: Nil JsonPost json -> _  if(hashMethod(methodName, json)) => {
+    case "restConnector" :: methodName :: Nil JsonAny json -> req if(hashMethod(methodName, json))  => {
       cc => {
         val methodSymbol: ru.MethodSymbol = getMethod(methodName, json).get
         val outBoundType = Class.forName(s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}")
@@ -41,7 +52,7 @@ object ConnectorEndpoints extends RestHelper{
         // TODO need wait for confirm the rule, after that do refactor
         val paramValues: Seq[Any] = getParamValues(outBound, methodSymbol, optionCC)
 
-        val  value = invokeMethod(methodSymbol, paramValues :_*)
+        val value = invokeMethod(methodSymbol, paramValues :_*)
 
         // convert any to Future[(Box[_], Option[CallContext])]  type
         val futureValue: Future[(Box[_], Option[CallContext])] = toStandaredFuture(value)
@@ -113,6 +124,7 @@ object ConnectorEndpoints extends RestHelper{
   }
 
   def getParamValues(outBound: AnyRef, methodSymbol: ru.MethodSymbol, optionCC: Option[CallContext]): Seq[Any] = {
+    RestConnector_vMar2019.convertToId(outBound) // convert reference to customerId and accountId
     val paramNameToValue: Map[String, Any] = ReflectUtils.getConstructorArgs(outBound)
 
     val paramValues: Seq[Any] = allMethods.find(_._3 == methodSymbol)
@@ -172,8 +184,8 @@ object ConnectorEndpoints extends RestHelper{
   def toStandaredFuture(obj: Any): Future[(Box[_], Option[CallContext])] = {
     obj match {
       case null => Future((Empty, None))
-      case _: Future[_] => {
-        obj.asInstanceOf[Future[_]].map {value =>
+      case future: Future[_] => {
+        future.map {value =>
           value match {
             case (_, _) => value.asInstanceOf[(Box[_], Option[CallContext])]
             case _ : Box[_] => {
@@ -183,6 +195,7 @@ object ConnectorEndpoints extends RestHelper{
             case _ => throw new IllegalArgumentException(s"not supported type ${getType(value)}")
           }
         }
+        .map(RestConnector_vMar2019.convertToReference(_)) //convert customerId and AccountId to reference
       }
       case Full(data) => {
         data match {

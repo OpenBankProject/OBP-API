@@ -27,7 +27,7 @@ import java.util.Date
 
 import code.api.util.APIUtil.MessageDoc
 import code.api.util.ErrorMessages._
-import code.api.util.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.api.util._
 import code.api.v2_1_0._
 import code.bankconnectors._

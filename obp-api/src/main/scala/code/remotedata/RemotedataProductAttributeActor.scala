@@ -6,7 +6,8 @@ import code.actorsystem.ObpActorHelper
 import code.productAttributeattribute.MappedProductAttributeProvider
 import code.productattribute.RemotedataProductAttributeCaseClasses
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.{BankId, ProductAttributeType, ProductCode}
+import com.openbankproject.commons.model.enums.ProductAttributeType
+import com.openbankproject.commons.model.{BankId, ProductCode}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

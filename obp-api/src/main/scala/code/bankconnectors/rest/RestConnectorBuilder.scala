@@ -3,7 +3,7 @@ package code.bankconnectors.rest
 import java.io.File
 import java.util.Date
 
-import code.api.util.{CallContext, OBPQueryParam}
+import code.api.util.{APIUtil, CallContext, OBPQueryParam}
 import code.bankconnectors.Connector
 import com.openbankproject.commons.util.ReflectUtils
 import org.apache.commons.io.FileUtils
@@ -12,7 +12,6 @@ import scala.collection.immutable.List
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
-
 import code.api.util.CodeGenerateUtils.createDocExample
 
 object RestConnectorBuilder extends App {
@@ -27,53 +26,36 @@ object RestConnectorBuilder extends App {
   }
 
   val genMethodNames = List(
+    //    "getEmptyBankAccount", //not useful!
+    //    "getCounterpartyFromTransaction", //not useful!
+    //    "getCounterpartiesFromTransaction",//not useful!
+    
     "getAdapterInfo",
     "getChallengeThreshold",
     "getChargeLevel",
     "createChallenge",
-    //    "validateChallengeAnswer",
-    //    "getBankLegacy",
     "getBank",
-    //    "getBanksLegacy",
     "getBanks",
-    //    "getBankAccountsForUserLegacy",
     "getBankAccountsForUser",
     "getUser",
-    //    "updateUserAccountViewsOld",
     "getBankAccount",
-    //    "getBankAccountLegacy",
     "getBankAccount",
-    //    "getBankAccountByIban", *********
-    //    "getBankAccountByRouting",
-    //    "getBankAccounts",
     "getBankAccountsBalances",
-    //    "getCoreBankAccountsLegacy",
     "getCoreBankAccounts",
-    //    "getBankAccountsHeldLegacy",
     "getBankAccountsHeld",
-    //    "checkBankAccountExistsLegacy",
     "checkBankAccountExists",
-    //    "getEmptyBankAccount", //not useful!
-    //    "getCounterpartyFromTransaction", //not useful!
-    //    "getCounterpartiesFromTransaction",//not useful!
     "getCounterparty",
     "getCounterpartyTrait",
-    //    "getCounterpartyByCounterpartyIdLegacy",
     "getCounterpartyByCounterpartyId",
     "getCounterpartyByIban",
-    //    "getCounterpartiesLegacy",
     "getCounterparties",
-    //    "getTransactionsLegacy",
     "getTransactions",
     "getTransactionsCore",
-    //    "getTransactionLegacy",
     "getTransaction",
     "getPhysicalCards",
     "getPhysicalCardForBank",
     "deletePhysicalCardForBank",
-    //    "getPhysicalCardsForBankLegacy",
     "getPhysicalCardsForBank",
-    //    "createPhysicalCardLegacy",
     "createPhysicalCard",
     "updatePhysicalCard",
     "makePayment",
@@ -108,7 +90,6 @@ object RestConnectorBuilder extends App {
     "updateBankAccount",
     "createBankAndAccount",
     "createBankAccount",
-    //    "createBankAccountLegacy",
     "createSandboxBankAccount",
     "setAccountHolder",
     "accountExists",
@@ -126,10 +107,8 @@ object RestConnectorBuilder extends App {
     "createOrUpdateAtm",
     "createOrUpdateProduct",
     "createOrUpdateFXRate",
-    //    "getBranchLegacy",
     "getBranch",
     "getBranches",
-    //    "getAtmLegacy",
     "getAtm",
     "getAtms",
     "accountOwnerExists",
@@ -149,7 +128,6 @@ object RestConnectorBuilder extends App {
     "updateCustomerCreditData",
     "updateCustomerGeneralData",
     "getCustomersByUserId",
-    //    "getCustomerByCustomerIdLegacy",
     "getCustomerByCustomerId",
     "getCustomerByCustomerNumber",
     "getCustomerAddress",
@@ -199,22 +177,30 @@ object RestConnectorBuilder extends App {
     "getKycMedias",
     "getKycStatuses",
     "createMessage",
-    "makeHistoricalPayment"
-  )
-  //For vSept2018
-  val genMethodNames2 = List(
-    //    "createOrUpdateKycCheck",
-    //    "createOrUpdateKycDocument",
-    //    "createOrUpdateKycMedia",
-    //    "createOrUpdateKycStatus",
-    //    "getKycChecks",
-    //    "getKycDocuments",
-    //    "getKycMedias",
-    //    "getKycStatuses",
-    //    "createBankAccount",
-    //    "createCustomer",
-    //    "createMeeting",
-    //    "createMessage"
+    "makeHistoricalPayment",
+    // new removed comments
+    "validateChallengeAnswer",
+    "getBankLegacy",
+    "getBanksLegacy",
+    "getBankAccountsForUserLegacy",
+    "updateUserAccountViewsOld",
+    "getBankAccountLegacy",
+    "getBankAccountByIban",
+    "getBankAccountByRouting",
+    "getBankAccounts",
+    "getCoreBankAccountsLegacy",
+    "getBankAccountsHeldLegacy",
+    "checkBankAccountExistsLegacy",
+    "getCounterpartyByCounterpartyIdLegacy",
+    "getCounterpartiesLegacy",
+    "getTransactionsLegacy",
+    "getTransactionLegacy",
+    "getPhysicalCardsForBankLegacy",
+    "createPhysicalCardLegacy",
+    "createBankAccountLegacy",
+    "getBranchLegacy",
+    "getAtmLegacy",
+    "getCustomerByCustomerIdLegacy",
   )
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -426,12 +412,11 @@ case class PostGenerator(methodName: String, tp: Type) {
        |        }
     """.stripMargin
   }
-  val httpMethod = methodName match {
-//    case v if(v.matches("(get.+|answer.+|check.+|.+Exists)")) => "HttpMethods.GET"
-//    case v if(v.matches("(create|save|make).+"))              => "HttpMethods.POST"
-//    case v if(v.matches("(?i)(update|set).+"))                => "HttpMethods.PUT"
-//    case v if(v.matches("(delete|remove).+"))                 => "HttpMethods.DELETE"
-    case _                                                    => "HttpMethods.POST"
+  val httpMethod = APIUtil.getRequestTypeByMethodName(methodName) match {
+    case "get" => "HttpMethods.GET"
+    case "post" => "HttpMethods.POST"
+    case "put" => "HttpMethods.PUT"
+    case "delete" => "HttpMethods.DELETE"
   }
 
   /**

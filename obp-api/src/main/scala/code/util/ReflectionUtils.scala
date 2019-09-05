@@ -2,11 +2,12 @@ package code.util
 
 import java.util.Date
 
+import com.openbankproject.commons.model.enums.{AccountAttributeType, ProductAttributeType}
+import com.openbankproject.commons.util.EnumValue
+
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
-import com.openbankproject.commons.model.{AccountAttributeType, ProductAttributeType}
-
 import scala.collection.immutable.List
 
 object reflectionUtils {
@@ -25,10 +26,8 @@ object reflectionUtils {
     if (tp.typeSymbol.fullName.startsWith("com.openbankproject.commons.")) {
       val fields = tp.decls.find(it => it.isConstructor).toList.flatMap(_.asMethod.paramLists(0)).foldLeft("")((str, symbol) => {
         val TypeRef(pre: Type, sym: Symbol, args: List[Type]) = symbol.info
-        val value = if (pre <:< ru.typeOf[ProductAttributeType.type]) {
-          "ProductAttributeType.STRING"
-        } else if (pre <:< ru.typeOf[AccountAttributeType.type]) {
-          "AccountAttributeType.INTEGER"
+        val value = if (pre <:< ru.typeOf[EnumValue]) {
+          s"${pre.typeSymbol.fullName}.example"
         } else if (args.isEmpty && sym.isClass && sym.asClass.isTrait) {
           val commonClass = reflectionUtils.getTypeByName(s"com.openbankproject.commons.model.${sym.name}Commons")
             createDocExample(commonClass)
