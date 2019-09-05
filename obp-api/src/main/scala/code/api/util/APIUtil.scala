@@ -1463,6 +1463,12 @@ Returns a string showed to the developer
 
   }
   /**
+    * The POST or PUT body.  This will be empty if the content
+    * type is application/x-www-form-urlencoded or a multipart mime.
+    * It will also be empty if rawInputStream is accessed
+    */
+  def getRequestBody(req: Box[Req]) = req.flatMap(_.body).map(_.map(_.toChar)).map(_.mkString)
+  /**
     * @return - the HTTP session ID
     */
   def getCorrelationId(): String = S.containerSession.map(_.sessionId).openOr("")
@@ -1873,6 +1879,7 @@ Returns a string showed to the developer
   def getUserAndSessionContextFuture(cc: CallContext): OBPReturnType[Box[User]] = {
     val s = S
     val spelling = getSpellingParam()
+    val body: Box[String] = getRequestBody(S.request)
     val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
     val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
     val url = URLDecoder.decode(S.uriAndQueryString.getOrElse(""),"UTF-8")
@@ -1951,6 +1958,8 @@ Returns a string showed to the developer
       x => (x._1, x._2.map(_.copy(requestHeaders = reqHeaders)))
     } map {
       x => (x._1, x._2.map(_.copy(ipAddress = getRemoteIpAddress())))
+    }  map {
+      x => (x._1, x._2.map(_.copy(httpBody = body.toOption)))
     } 
     
   }
