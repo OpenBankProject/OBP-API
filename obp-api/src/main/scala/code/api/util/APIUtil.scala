@@ -40,7 +40,7 @@ import code.api.builder.OBP_APIBuilder
 import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.sandbox.SandboxApiCalls
-import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
+import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.api.v1_2.ErrorMessage
@@ -1463,6 +1463,12 @@ Returns a string showed to the developer
 
   }
   /**
+    * The POST or PUT body.  This will be empty if the content
+    * type is application/x-www-form-urlencoded or a multipart mime.
+    * It will also be empty if rawInputStream is accessed
+    */
+  def getRequestBody(req: Box[Req]) = req.flatMap(_.body).map(_.map(_.toChar)).map(_.mkString)
+  /**
     * @return - the HTTP session ID
     */
   def getCorrelationId(): String = S.containerSession.map(_.sessionId).openOr("")
@@ -1700,7 +1706,7 @@ Returns a string showed to the developer
            // Only allow Resource Doc if it matches one of the pre selected endpoints from the version list.
              // i.e. this function may recieve more Resource Docs than version endpoints
             endpoints.exists(_ == item.partialFunction) &&
-             (NewStyle.endpoints.exists(x => x == (item.partialFunctionName, item.implementedInApiVersion.toString())) || !onlyNewStyle)
+             (item.tags.exists(_ == apiTagNewStyle) || !onlyNewStyle)
     )
       yield item.partialFunction
     routes.toList
@@ -1873,6 +1879,7 @@ Returns a string showed to the developer
   def getUserAndSessionContextFuture(cc: CallContext): OBPReturnType[Box[User]] = {
     val s = S
     val spelling = getSpellingParam()
+    val body: Box[String] = getRequestBody(S.request)
     val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
     val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
     val url = URLDecoder.decode(S.uriAndQueryString.getOrElse(""),"UTF-8")
@@ -1951,6 +1958,8 @@ Returns a string showed to the developer
       x => (x._1, x._2.map(_.copy(requestHeaders = reqHeaders)))
     } map {
       x => (x._1, x._2.map(_.copy(ipAddress = getRemoteIpAddress())))
+    }  map {
+      x => (x._1, x._2.map(_.copy(httpBody = body.toOption)))
     } 
     
   }

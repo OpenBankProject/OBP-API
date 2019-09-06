@@ -2369,14 +2369,15 @@ trait APIMethods300 {
   }
 }
 object APIMethods300 extends RestHelper with APIMethods300 {
+  lazy val oldStyleEndpoints = List(
+    nameOf(Implementations3_0_0.createBranch),
+    nameOf(Implementations3_0_0.updateBranch),
+    nameOf(Implementations3_0_0.createAtm)
+  )
   lazy val newStyleEndpoints: List[(String, String)] = Implementations3_0_0.resourceDocs.map {
     rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
   }.toList.filterNot{
-    rd => 
-      List(
-        nameOf(Implementations3_0_0.createBranch), 
-        nameOf(Implementations3_0_0.updateBranch), 
-        nameOf(Implementations3_0_0.createAtm)
-      ).contains(rd._1)
+    rd =>
+      oldStyleEndpoints.contains(rd._1)
   }
 }

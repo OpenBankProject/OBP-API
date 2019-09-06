@@ -47,6 +47,8 @@ import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
 
+import scala.collection.immutable.List
+
 trait APIFailure{
   val msg : String
   val responseCode : Int
@@ -202,6 +204,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         ApiVersion.v2_2_0.toString
       ).exists(_ == e.implementedInApiVersion.toString()) =>
         false
+      case Some(e) if APIMethods300.oldStyleEndpoints.exists(_ == e.partialFunctionName) =>
+        false
       case _ =>
         true
     }
@@ -209,6 +213,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
 
   def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(fn: CallContext => Box[JsonResponse]) : JsonResponse = {
     val authorization = S.request.map(_.header("Authorization")).flatten
+    val body: Box[String] = getRequestBody(S.request)
     val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
     val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
     val url = URLDecoder.decode(S.uriAndQueryString.getOrElse(""),"UTF-8")
@@ -220,6 +225,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       authReqHeaderField = authorization,
       implementedInVersion = implementedInVersion,
       verb = verb,
+      httpBody = body,
       correlationId = correlationId,
       url = url,
       ipAddress = getRemoteIpAddress(),
