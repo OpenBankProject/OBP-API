@@ -47,6 +47,8 @@ import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
 
+import scala.collection.immutable.List
+
 trait APIFailure{
   val msg : String
   val responseCode : Int
@@ -201,6 +203,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         ApiVersion.v2_1_0.toString, 
         ApiVersion.v2_2_0.toString
       ).exists(_ == e.implementedInApiVersion.toString()) =>
+        false
+      case Some(e) if APIMethods300.oldStyleEndpoints.exists(_ == e.partialFunctionName) =>
         false
       case _ =>
         true
