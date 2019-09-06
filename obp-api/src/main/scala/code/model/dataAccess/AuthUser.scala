@@ -873,6 +873,21 @@ def restoreSomeSessions(): Unit = {
   protected def findUserByUsernameLocally(name: String): Box[TheUserType] = {
     find(By(this.username, name))
   }
+
+  def passwordResetUrl(name: String, email: String, userId: String): String = {
+    find(By(this.username, name)) match {
+      case Full(authUser) if authUser.validated_? && authUser.email == email =>
+        Users.users.vend.getUserByUserId(userId) match {
+          case Full(u) if u.name == name && u.emailAddress == email =>
+            authUser.resetUniqueId().save
+            val resetLink = APIUtil.getPropsValue("hostname", "ERROR")+
+              passwordResetPath.mkString("/", "/", "/")+urlEncode(authUser.getUniqueId())
+            resetLink
+          case _ => ""
+        }
+        case _ => ""
+    }
+  }
   /**
     * Find the authUsers by author email(authUser and resourceUser are the same).
     * Only search for the local database. 
