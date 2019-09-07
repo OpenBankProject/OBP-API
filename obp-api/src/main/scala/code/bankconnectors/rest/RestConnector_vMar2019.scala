@@ -9429,37 +9429,28 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
    */
   private def convertId[T](obj: T, customerIdConverter: String=> String, accountIdConverter: String=> String): T = {
     //1st: We must not convert when connector == mapped. this will ignore the implicitly_convert_ids props.
-    //2rd: if connector != mapped, we still need the `implicitly_convert_ids == true` 
-    if(APIUtil.getPropsValue("connector","mapped") != "mapped" && APIUtil.getPropsAsBoolValue("implicitly_convert_ids",false)){
-      ReflectUtils.operateNestedValues(obj)(fieldMirror => {
-        val fieldValue = fieldMirror.get
-        val fieldSymbol: TermSymbol = fieldMirror.symbol
-        val fieldType: Type = fieldSymbol.info
-        val fieldName: String = fieldSymbol.name.toString.trim.toLowerCase
-  
-        val ownerSymbol: Type = fieldSymbol.owner.asType.toType
-  
-        if(fieldValue == null) {
-          // do nothing
-        } else if (ownerSymbol <:< typeOf[CustomerId] ||
-          (fieldName == "customerid" && fieldType =:= typeOf[String]) ||
-          (ownerSymbol <:< typeOf[Customer] && fieldName == "id" && fieldType =:= typeOf[String])
-        ) {
-          val customerRef = customerIdConverter(fieldValue.asInstanceOf[String])
-          fieldMirror.set(customerRef)
-        } else if(ownerSymbol <:< typeOf[AccountId] ||
-          (fieldName == "accountid" && fieldType =:= typeOf[String]) ||
-          (ownerSymbol <:< typeOf[CoreAccount] && fieldName == "id" && fieldType =:= typeOf[String])||
-          (ownerSymbol <:< typeOf[AccountBalance] && fieldName == "id" && fieldType =:= typeOf[String])||
-          (ownerSymbol <:< typeOf[AccountHeld] && fieldName == "id" && fieldType =:= typeOf[String])
-        ) {
-          val accountRef = accountIdConverter(fieldValue.asInstanceOf[String])
-          fieldMirror.set(accountRef)
-        }
-      })
-      obj
-    } else
-      obj
+    //2rd: if connector != mapped, we still need the `implicitly_convert_ids == true`
+
+    def isCustomerId(fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type) = {
+        ownerType =:= typeOf[CustomerId] ||
+        (fieldName.equalsIgnoreCase("customerId") && fieldType =:= typeOf[String]) ||
+        (ownerType <:< typeOf[Customer] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])
+      }
+
+    def isAccountId(fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type) = {
+        ownerType <:< typeOf[AccountId] ||
+        (fieldName.equalsIgnoreCase("accountId") && fieldType =:= typeOf[String])
+        (ownerType <:< typeOf[CoreAccount] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
+        (ownerType <:< typeOf[AccountBalance] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
+        (ownerType <:< typeOf[AccountHeld] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])
+      }
+
+    ReflectUtils.resetNestedFields(obj){
+      case (fieldName, fieldType, fieldValue: String, ownerType) if isCustomerId(fieldName, fieldType, fieldValue, ownerType) => customerIdConverter(fieldValue)
+      case (fieldName, fieldType, fieldValue: String, ownerType) if isAccountId(fieldName, fieldType, fieldValue, ownerType) => accountIdConverter(fieldValue)
+    }
+
+    obj
   }
 
   /**
