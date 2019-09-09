@@ -1035,8 +1035,8 @@ trait APIMethods400 {
       nameOf(resetPasswordUrl),
       "POST",
       "/management/user/reset-password-url",
-      "Request password reset url",
-      s"""Request password reset url.
+      "Create password reset url",
+      s"""Create password reset url.
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -1058,6 +1058,9 @@ trait APIMethods400 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.NotAllowedEndpoint) {
+              APIUtil.getPropsAsBoolValue("ResetPasswordUrlEnabled", false)
+            }
             _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateResetPasswordUrl, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[PostResetPasswordUrlJsonV400]} "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {

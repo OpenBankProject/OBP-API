@@ -31,7 +31,7 @@ import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.{DirectLogin, GatewayLogin, OAuthHandshake}
-import code.bankconnectors.{Connector}
+import code.bankconnectors.Connector
 import code.loginattempts.LoginAttempt
 import code.users.Users
 import code.util.Helper
@@ -882,6 +882,8 @@ def restoreSomeSessions(): Unit = {
             authUser.resetUniqueId().save
             val resetLink = APIUtil.getPropsValue("hostname", "ERROR")+
               passwordResetPath.mkString("/", "/", "/")+urlEncode(authUser.getUniqueId())
+            warn(s"Password reset url is created for this user $email")
+            // TODO Notify via email appropriate persons 
             resetLink
           case _ => ""
         }

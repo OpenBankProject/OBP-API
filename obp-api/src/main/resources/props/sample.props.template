@@ -664,3 +664,6 @@ database_messages_scheduler_interval=3600
 
 # convert Bank_Plan_Text_Reference to OBP-UUID switch. Note: this is in process only for RestConnector now.
 #implicitly_convert_ids = false
+
+# Enable /Disable Create password reset url endpoint
+#ResetPasswordUrlEnabled=false
