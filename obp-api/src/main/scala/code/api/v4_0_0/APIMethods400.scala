@@ -1058,7 +1058,7 @@ trait APIMethods400 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            // _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateResetPasswordUrl, callContext)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateResetPasswordUrl, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[PostResetPasswordUrlJsonV400]} "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostResetPasswordUrlJsonV400]
