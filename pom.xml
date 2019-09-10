@@ -81,6 +81,18 @@
         <artifactId>lift-common_${scala.version}</artifactId>
         <version>${lift.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest_${scala.version}</artifactId>
+        <version>3.0.8</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalactic</groupId>
+        <artifactId>scalactic_${scala.version}</artifactId>
+        <version>3.0.8</version>
+        <scope>test</scope>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 

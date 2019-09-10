@@ -56,14 +56,17 @@ object ReflectUtils {
   def setField[T](obj: AnyRef, fieldName: String, fieldValue: T): T = operateField[T](obj, fieldName, _.set(fieldValue))
 
   /**
-   * modify given instance nested values
+   * modify given instance nested fields value
    * @param obj given instance to modify
    * @param predicate check whether current field value need to modify
-   * @param fn modify function
+   * @param fn modify function, signature is (fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type): Any
+   *           fn result is calculated new value
    * @return modified instance
+   *
+   * @note be carefully, this method will modify immutable object state, before you call this method, you should very sure it is safe for your logic.
    */
-  def operateNestedValues(obj: Any, predicate: Any => Boolean = isObpObject)(fn: ru.FieldMirror => Unit): Any = {
-    val recurseCallback = operateNestedValues(_: Any, predicate)(fn)
+  def resetNestedFields(obj: Any, predicate: Any => Boolean = isObpObject)(fn: PartialFunction[(String, Type, Any, Type), Any]): Any = {
+    val recurseCallback = resetNestedFields(_: Any, predicate)(fn)
     obj match {
       case null | None | Empty | Nil => obj
       case _: Unit => obj
@@ -85,7 +88,7 @@ object ReflectUtils {
       case v: Array[_] => v.map(recurseCallback)
       case v: Map[_, _] => v.values.map(recurseCallback)
       case v: Iterable[_] => v.map(recurseCallback)
-      case v if(!predicate(v)) => v
+      case v if !predicate(v) => v
       case _ => {
         val tp = this.getType(obj)
         val instanceMirror: ru.InstanceMirror = mirror.reflect(obj)
@@ -98,8 +101,18 @@ object ReflectUtils {
         constructFieldNames.foreach(it => {
           val fieldSymbol: ru.TermSymbol = getType(obj).member(ru.TermName(it)).asTerm.accessed.asTerm
           val fieldMirror: ru.FieldMirror = instanceMirror.reflectField(fieldSymbol)
-          recurseCallback(fieldMirror.get)
-          fn(fieldMirror)
+          val fieldValue: Any = fieldMirror.get
+          recurseCallback(fieldValue)
+
+          //check whether field should modify, if PartialFunction check result is true, just modify it with new Value
+          val fieldName: String = it
+          val fieldType: Type = fieldSymbol.info
+          val ownerType: Type = fieldSymbol.owner.asType.toType
+
+          if(fn.isDefinedAt(fieldName, fieldType, fieldValue, ownerType)) {
+            val newValue = fn(fieldName, fieldType, fieldValue, ownerType)
+            fieldMirror.set(newValue)
+          }
         })
         obj
       }

@@ -13,6 +13,14 @@
     <packaging>jar</packaging>
     <name>Open Bank Project Commons</name>
 
+    <repositories>
+        <repository>
+            <id>artima</id>
+            <name>Artima Maven Repository</name>
+            <url>http://repo.artima.com/releases</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>net.liftweb</groupId>
@@ -27,13 +35,23 @@
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_${scala.version}</artifactId>
-            <version>3.0.5</version>
-            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalactic</groupId>
+            <artifactId>scalactic_${scala.version}</artifactId>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${scala.version}</version>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
@@ -47,6 +65,13 @@
                     <scalaCompatVersion>${scala.version}</scalaCompatVersion>
                     <recompileMode>incremental</recompileMode>
                     <useZincServer>true</useZincServer>
+                    <compilerPlugins>
+                        <compilerPlugin>
+                            <groupId>com.artima.supersafe</groupId>
+                            <artifactId>supersafe_${scala.compiler}</artifactId>
+                            <version>1.1.8</version>
+                        </compilerPlugin>
+                    </compilerPlugins>
                 </configuration>
                 <executions>
                     <execution>
