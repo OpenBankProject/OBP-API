@@ -31,7 +31,7 @@ import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.{DirectLogin, GatewayLogin, OAuthHandshake}
-import code.bankconnectors.{Connector}
+import code.bankconnectors.Connector
 import code.loginattempts.LoginAttempt
 import code.users.Users
 import code.util.Helper
@@ -872,6 +872,23 @@ def restoreSomeSessions(): Unit = {
     */
   protected def findUserByUsernameLocally(name: String): Box[TheUserType] = {
     find(By(this.username, name))
+  }
+
+  def passwordResetUrl(name: String, email: String, userId: String): String = {
+    find(By(this.username, name)) match {
+      case Full(authUser) if authUser.validated_? && authUser.email == email =>
+        Users.users.vend.getUserByUserId(userId) match {
+          case Full(u) if u.name == name && u.emailAddress == email =>
+            authUser.resetUniqueId().save
+            val resetLink = APIUtil.getPropsValue("hostname", "ERROR")+
+              passwordResetPath.mkString("/", "/", "/")+urlEncode(authUser.getUniqueId())
+            warn(s"Password reset url is created for this user $email")
+            // TODO Notify via email appropriate persons 
+            resetLink
+          case _ => ""
+        }
+        case _ => ""
+    }
   }
   /**
     * Find the authUsers by author email(authUser and resourceUser are the same).

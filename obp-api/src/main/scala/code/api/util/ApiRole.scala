@@ -362,6 +362,9 @@ object ApiRole {
 
   case class CanDeleteDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteDynamicEntity = CanDeleteDynamicEntity()
+  
+  case class CanCreateResetPasswordUrl(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateResetPasswordUrl = CanCreateResetPasswordUrl()
 
   private val roles =
       canSearchAllTransactions ::
@@ -476,6 +479,7 @@ object ApiRole {
       canCreateDynamicEntity ::
       canUpdateDynamicEntity ::
       canDeleteDynamicEntity ::
+      canCreateResetPasswordUrl ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)
