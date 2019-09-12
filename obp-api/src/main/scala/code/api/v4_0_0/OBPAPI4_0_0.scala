@@ -391,6 +391,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations4_0_0.updateDynamicEntity ::
     Implementations4_0_0.deleteDynamicEntity ::
     Implementations4_0_0.genericEndpoint ::
+    Implementations4_0_0.resetPasswordUrl ::
     Nil
   
   def allResourceDocs = MockerConnector.doc ++

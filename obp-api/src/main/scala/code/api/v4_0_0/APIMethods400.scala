@@ -5,13 +5,14 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankNotFound, CounterpartyBeneficiaryPermit, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
+import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankNotFound, CounterpartyBeneficiaryPermit, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, InvalidWebUiProps, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_1_0._
 import code.api.v3_1_0.ListResult
 import code.dynamicEntity.DynamicEntityCommons
+import code.model.dataAccess.AuthUser
 import code.model.toUserExtended
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
@@ -1025,6 +1026,53 @@ trait APIMethods400 {
           }
       }
     }
+
+
+
+    resourceDocs += ResourceDoc(
+      resetPasswordUrl,
+      implementedInApiVersion,
+      nameOf(resetPasswordUrl),
+      "POST",
+      "/management/user/reset-password-url",
+      "Create password reset url",
+      s"""Create password reset url.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      PostResetPasswordUrlJsonV400("jobloggs", "jo@gmail.com", "74a8ebcc-10e4-4036-bef3-9835922246bf"),
+      ResetPasswordUrlJsonV400( "https://apisandbox.openbankproject.com/user_mgt/reset_password/QOL1CPNJPCZ4BRMPX3Z01DPOX1HMGU3L"),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagUser, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateResetPasswordUrl)))
+
+    lazy val resetPasswordUrl : OBPEndpoint = {
+      case "management" :: "user" :: "reset-password-url" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.NotAllowedEndpoint) {
+              APIUtil.getPropsAsBoolValue("ResetPasswordUrlEnabled", false)
+            }
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateResetPasswordUrl, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[PostResetPasswordUrlJsonV400]} "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostResetPasswordUrlJsonV400]
+            }
+          } yield {
+             val resetLink = AuthUser.passwordResetUrl(postedData.username, postedData.email, postedData.user_id) 
+            (ResetPasswordUrlJsonV400(resetLink), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
 
   }
 

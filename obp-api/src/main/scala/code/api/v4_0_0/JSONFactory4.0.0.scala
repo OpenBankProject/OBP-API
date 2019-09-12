@@ -70,6 +70,8 @@ case class TransactionRequestWithChargeJSON400(
                                                 challenge: ChallengeJsonV400,
                                                 charge : TransactionRequestChargeJsonV200
                                               )
+case class PostResetPasswordUrlJsonV400(username: String, email: String, user_id: String)
+case class ResetPasswordUrlJsonV400(reset_password_url: String)
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {

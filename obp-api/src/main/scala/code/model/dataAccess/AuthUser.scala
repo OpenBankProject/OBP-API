@@ -31,10 +31,11 @@ import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.{DirectLogin, GatewayLogin, OAuthHandshake}
-import code.bankconnectors.{Connector}
+import code.bankconnectors.Connector
 import code.loginattempts.LoginAttempt
 import code.users.Users
 import code.util.Helper
+import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.openbankproject.commons.model.{User, _}
 import net.liftweb.common._
@@ -70,7 +71,7 @@ import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
   *      one AuthUser <---> one ResourceUser 
   *
  */
-class AuthUser extends MegaProtoUser[AuthUser] with Logger {
+class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
   def getSingleton = AuthUser // what's the "meta" server
 
   object user extends MappedLongForeignKey(this, ResourceUser)
@@ -183,15 +184,15 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
 
   override def save(): Boolean = {
     if(! (user defined_?)){
-      info("user reference is null. We will create a ResourceUser")
+      logger.info("user reference is null. We will create a ResourceUser")
       val resourceUser = createUnsavedResourceUser()
       val savedUser = Users.users.vend.saveResourceUser(resourceUser)
       user(savedUser)   //is this saving resourceUser into a user field?
     }
     else {
-      info("user reference is not null. Trying to update the ResourceUser")
+      logger.info("user reference is not null. Trying to update the ResourceUser")
       Users.users.vend.getResourceUserByResourceUserId(user.get).map{ u =>{
-          info("API User found ")
+          logger.info("API User found ")
           u.name_(username.get)
           .email(email.get)
           .providerId(username.get)
@@ -289,7 +290,7 @@ import net.liftweb.util.Helpers._
       } else if (hasGatewayHeader(authorization)){
         GatewayLogin.getUser
       } else {
-        debug(ErrorMessages.CurrentUserNotFoundException)
+        logger.debug(ErrorMessages.CurrentUserNotFoundException)
         Failure(ErrorMessages.CurrentUserNotFoundException)
         //This is a big problem, if there is no current user from here.
         //throw new RuntimeException(ErrorMessages.CurrentUserNotFoundException)
@@ -450,7 +451,7 @@ import net.liftweb.util.Helpers._
   }
 
   def userLoginFailed = {
-    info("failed: " + failedLoginRedirect.get)
+    logger.info("failed: " + failedLoginRedirect.get)
     // variable redir is from failedLoginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
     // val currentUrl = S.uriAndQueryString.getOrElse("/")
     // AuthUser.failedLoginRedirect.set(Full(Helpers.appendParams(currentUrl, List((FailedLoginParam, "true")))))
@@ -464,7 +465,7 @@ import net.liftweb.util.Helpers._
         S.redirectTo(redir.toString)
     } else {
       S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-      info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
+      logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
     }
     S.error("login", S.?("Invalid Username or Password"))
   }
@@ -498,7 +499,7 @@ import net.liftweb.util.Helpers._
         else if (LoginAttempt.userIsLocked(username))
         {
           LoginAttempt.incrementBadLoginAttempts(username)
-          info(ErrorMessages.UsernameHasBeenLocked)
+          logger.info(ErrorMessages.UsernameHasBeenLocked)
           //TODO need to fix, use Failure instead, it is used to show the error message to the GUI
           Full(usernameLockedStateCode)
         }
@@ -557,7 +558,7 @@ import net.liftweb.util.Helpers._
   def getUserFromConnector(name: String, password: String):Box[AuthUser] = {
     Connector.connector.vend.getUser(name, password) match {
       case Full(InboundUser(extEmail, extPassword, extUsername)) => {
-        info("external user authenticated. login redir: " + loginRedirect.get)
+        logger.info("external user authenticated. login redir: " + loginRedirect.get)
         val redir = loginRedirect.get match {
           case Full(url) =>
             loginRedirect(Empty)
@@ -574,7 +575,7 @@ import net.liftweb.util.Helpers._
             // && user.provider == extProvider
             => {
             // Return existing user if found
-            info("external user already exists locally, using that one")
+            logger.info("external user already exists locally, using that one")
             user
           }
 
@@ -582,7 +583,7 @@ import net.liftweb.util.Helpers._
           case _ => {
             // Create AuthUser using fetched data from Kafka
             // assuming that user's email is always validated
-            info("external user "+ extEmail +" does not exist locally, creating one")
+            logger.info("external user "+ extEmail +" does not exist locally, creating one")
             val newUser = AuthUser.create
               .firstName(extUsername)
               .email(extEmail)
@@ -642,7 +643,7 @@ def restoreSomeSessions(): Unit = {
               // Reset any bad attempts
               LoginAttempt.resetBadLoginAttempts(usernameFromGui)
               val preLoginState = capturePreLoginState()
-              info("login redir: " + loginRedirect.get)
+              logger.info("login redir: " + loginRedirect.get)
               val redir = loginRedirect.get match {
                 case Full(url) =>
                   loginRedirect(Empty)
@@ -663,7 +664,7 @@ def restoreSomeSessions(): Unit = {
               })
             } else {
               S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-              info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
+              logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
             }
           }
 
@@ -677,7 +678,7 @@ def restoreSomeSessions(): Unit = {
               // Reset any bad attempts
               LoginAttempt.resetBadLoginAttempts(usernameFromGui)
               val preLoginState = capturePreLoginState()
-              info("login redir: " + loginRedirect.get)
+              logger.info("login redir: " + loginRedirect.get)
               val redir = loginRedirect.get match {
                 case Full(url) =>
                   loginRedirect(Empty)
@@ -700,7 +701,7 @@ def restoreSomeSessions(): Unit = {
                 })
               } else {
                 S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-                info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
+                logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
               }
             }
 
@@ -725,7 +726,7 @@ def restoreSomeSessions(): Unit = {
             (APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) ||
             APIUtil.getPropsAsBoolValue("obpjvm.user.authentication", false)) =>
               val preLoginState = capturePreLoginState()
-              info("login redir: " + loginRedirect.get)
+              logger.info("login redir: " + loginRedirect.get)
               val redir = loginRedirect.get match {
                 case Full(url) =>
                   loginRedirect(Empty)
@@ -752,7 +753,7 @@ def restoreSomeSessions(): Unit = {
                     })
                   } else {
                     S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-                    info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
+                    logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
                   }
                 case _ =>
                   LoginAttempt.incrementBadLoginAttempts(username.get)
@@ -836,7 +837,7 @@ def restoreSomeSessions(): Unit = {
   def updateUserAccountViews(user: User, callContext: Option[CallContext]): Unit = {
     //get all accounts from Kafka
     val accounts = Connector.connector.vend.getBankAccountsForUserLegacy(user.name,callContext).openOrThrowException(attemptedToOpenAnEmptyBox)
-    debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
+    logger.debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
 
     updateUserAccountViews(user, accounts._1)
   }
@@ -872,6 +873,23 @@ def restoreSomeSessions(): Unit = {
     */
   protected def findUserByUsernameLocally(name: String): Box[TheUserType] = {
     find(By(this.username, name))
+  }
+
+  def passwordResetUrl(name: String, email: String, userId: String): String = {
+    find(By(this.username, name)) match {
+      case Full(authUser) if authUser.validated_? && authUser.email == email =>
+        Users.users.vend.getUserByUserId(userId) match {
+          case Full(u) if u.name == name && u.emailAddress == email =>
+            authUser.resetUniqueId().save
+            val resetLink = APIUtil.getPropsValue("hostname", "ERROR")+
+              passwordResetPath.mkString("/", "/", "/")+urlEncode(authUser.getUniqueId())
+            logger.warn(s"Password reset url is created for this user: $email")
+            // TODO Notify via email appropriate persons 
+            resetLink
+          case _ => ""
+        }
+        case _ => ""
+    }
   }
   /**
     * Find the authUsers by author email(authUser and resourceUser are the same).
@@ -913,7 +931,7 @@ def restoreSomeSessions(): Unit = {
             })
           } else {
             S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-            info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
+            logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
           }
 
         case xs =>

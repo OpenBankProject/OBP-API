@@ -148,7 +148,7 @@ class DynamicEntityTest extends V400ServerSetup {
 
   feature("Add a DynamicEntity v4.0.4- Unauthorized access - Authorized access") {
     scenario("We will call the endpoint without the proper Role " + canCreateDynamicEntity, ApiEndpoint1, VersionOfApi) {
-      When("We make a request v4.0.0 without a Role " + canCreateTaxResidence)
+      When("We make a request v4.0.0 without a Role " + canCreateDynamicEntity)
       val request400 = (v4_0_0_Request / "management" / "dynamic_entities").POST <@(user1)
       val response400 = makePostRequest(request400, write(rightEntity))
       Then("We should get a 403")

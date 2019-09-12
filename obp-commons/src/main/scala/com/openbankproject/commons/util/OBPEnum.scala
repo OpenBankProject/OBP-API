@@ -71,8 +71,6 @@ object OBPEnumeration {
 
   def getValuesByClass[T <: EnumValue](clazz: Class[T]): List[T] = getEnumContainer(clazz).values
 
-  def getValues[T <: EnumValue: TypeTag]: List[T] = getEnumContainer(typeTag[T].tpe).values.map(_.asInstanceOf[T])
-
   def withNameOption(tp: Type, name: String): Option[EnumValue] = getEnumContainer(tp).withNameOption(name).map(_.asInstanceOf[EnumValue])
 
   def withNameOption[T <: EnumValue](clazz: Class[T], name: String): Option[T] = getEnumContainer(clazz).withNameOption(name)
