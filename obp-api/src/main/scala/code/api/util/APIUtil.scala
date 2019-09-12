@@ -2298,6 +2298,10 @@ Returns a string showed to the developer
   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName$otherAccountRoutingScheme$otherAccountRoutingAddress")
 
   val isSandboxMode: Boolean = (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
+  
+  //If we use kafka connector, we need set up kafka server first. For some cases(eg: get Kafka MessageDoc), we do not need kafka.. 
+  val isStarConnectorButNoKafkaSupport: Boolean = 
+    (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("star") && (!(APIUtil.getPropsValue("starConnector_supported_types").openOrThrowException(attemptedToOpenAnEmptyBox).toString).contains("kafka"))
 
   /**
     * This function is implemented in order to support encrypted values in props file.
