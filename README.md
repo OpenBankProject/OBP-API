@@ -591,6 +591,9 @@ If it is required for a "STABLE" api to be changed, then the class metadata must
 
 There is a video about the detail: [demonstrate the detail of the feature](https://www.youtube.com/watch?v=m9iYCSM0bKA)
 
+## Frozen Connector InBound OutBound types
+The same as `Frozen APIs`, if related unit test fail, make sure whether the modify is required, if yes, run frozen util to re-generate frozen types metadata file. take `RestConnector_vMar2019` as example, the corresponding util is `RestConnector_vMar2019_FrozenUtil`, the corresponding unit test is `RestConnector_vMar2019_FrozenTest`
+
 ## Scala / Lift
 
 * We use scala and liftweb http://www.liftweb.net/
