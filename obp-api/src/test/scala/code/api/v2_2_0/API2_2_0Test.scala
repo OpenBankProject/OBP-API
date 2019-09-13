@@ -422,6 +422,31 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       val response: APIResponse = makeGetRequest(request)
   
       response.code should be (200)
+    }  
+    
+    scenario("Get Message Docs - akka_vDec2018") {
+      val request = (v2_2Request / "message-docs" / "akka_vDec2018" )
+      val response: APIResponse = makeGetRequest(request)
+  
+      response.code should be (200)
+    }    
+    scenario("Get Message Docs - kafka_vSept2018") {
+      val request = (v2_2Request / "message-docs" / "kafka_vSept2018" )
+      val response: APIResponse = makeGetRequest(request)
+  
+      response.code should be (200)
+    }    
+    scenario("Get Message Docs - kafka_vMay2019") {
+      val request = (v2_2Request / "message-docs" / "kafka_vMay2019" )
+      val response: APIResponse = makeGetRequest(request)
+  
+      response.code should be (200)
+    }    
+    scenario("Get Message Docs - rest_vMar2019") {
+      val request = (v2_2Request / "message-docs" / "rest_vMar2019" )
+      val response: APIResponse = makeGetRequest(request)
+  
+      response.code should be (200)
     }
   }
   
