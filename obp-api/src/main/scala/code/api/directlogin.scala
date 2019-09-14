@@ -330,7 +330,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
         val parameterValue = parameters.get(key).get
         key match {
           case "username" =>
-            checkMediumString(parameterValue)
+            checkUsernameString(parameterValue)
           case "password" =>
             checkMediumPassword(parameterValue)
           case "consumer_key" =>
