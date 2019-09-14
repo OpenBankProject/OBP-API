@@ -18,7 +18,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
   val KEY = randomString(40).toLowerCase
   val SECRET = randomString(40).toLowerCase
   val EMAIL = randomString(10).toLowerCase + "@example.com"
-  val USERNAME = randomString(10).toLowerCase
+  val USERNAME = "username with spaces"
   val PASSWORD = randomString(20)
 
   val KEY_DISABLED = randomString(40).toLowerCase
