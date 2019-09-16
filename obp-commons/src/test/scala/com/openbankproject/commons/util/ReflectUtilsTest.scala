@@ -1,8 +1,10 @@
 package com.openbankproject.commons.util
 
 import org.scalatest.{FlatSpec, Matchers}
+
 import scala.reflect.runtime.universe._
 import org.scalatest.Tag
+import org.scalatest.matchers.Matcher
 
 class ReflectUtilsTest  extends FlatSpec with Matchers {
   object ReflectUtilsTag extends Tag("ReflectUtils")
@@ -26,7 +28,8 @@ class ReflectUtilsTest  extends FlatSpec with Matchers {
     group.manager.id should endWith (idSuffix)
     group.id shouldBe(3)
     group.members.head.id shouldBe null
-    group.members.lift(1).get.id should  endWith (idSuffix)
-    group.members.lift(2).get.id should  endWith (idSuffix)
+
+    val endWithSuffix: Matcher[Aperson] = endWith(idSuffix).compose(_.id)
+    every(members.tail) should endWithSuffix
   }
 }

@@ -366,6 +366,30 @@ object ApiRole {
   case class CanCreateResetPasswordUrl(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateResetPasswordUrl = CanCreateResetPasswordUrl()
 
+  case class CanAddKycCheck(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canAddKycCheck = CanAddKycCheck()
+
+  case class CanAddKycDocument(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canAddKycDocument = CanAddKycDocument()
+
+  case class CanAddKycMedia(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canAddKycMedia = CanAddKycMedia()
+
+  case class CanAddKycStatus(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canAddKycStatus = CanAddKycStatus()
+
+  case class CanGetKycChecks(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetKycChecks = CanGetKycChecks()
+
+  case class CanGetKycDocuments(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetKycDocuments = CanGetKycDocuments()
+
+  case class CanGetKycMedia(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetKycMedia = CanGetKycMedia()
+
+  case class CanGetKycStatuses(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetKycStatuses = CanGetKycStatuses()
+  
   private val roles =
       canSearchAllTransactions ::
       canSearchAllAccounts ::
@@ -480,6 +504,14 @@ object ApiRole {
       canUpdateDynamicEntity ::
       canDeleteDynamicEntity ::
       canCreateResetPasswordUrl ::
+      canAddKycCheck ::
+      canAddKycDocument ::
+      canAddKycMedia ::
+      canAddKycStatus ::
+      canGetKycChecks ::
+      canGetKycDocuments ::
+      canGetKycMedia ::
+      canGetKycStatuses ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)
