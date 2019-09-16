@@ -126,6 +126,11 @@ class WebUI extends MdcLoggable{
   def apiManagerLink: CssSel = {
     ".api-manager-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_manager_url", ""))
   }
+  
+  // Link to OBP-CLI
+  def obpCliLink: CssSel = {
+    ".obp-cli-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_obp_cli_url", "https://github.com/OpenBankProject/OBP-CLI"))
+  }
 
   // Link to API Tester
   def apiTesterLink: CssSel = {
