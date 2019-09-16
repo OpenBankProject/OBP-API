@@ -60,7 +60,7 @@ object MockerConnector {
     collection.mutable.ArrayBuffer(docs:_*)
   }
 
-  // TODO the reqestBody and responseBody is not correct ref type
+  // TODO the requestBody and responseBody is not correct ref type
   def createDocs(dynamicEntityInfo: DynamicEntityInfo) = {
     val entityName = dynamicEntityInfo.entityName
     val idNameInUrl = StringHelpers.snakify(dynamicEntityInfo.idName).toUpperCase()
@@ -207,7 +207,7 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
   )
 
   val definitionJson = json.parse(definition).asInstanceOf[JObject]
-  val entity = (definitionJson \ "definitions" \ entityName).asInstanceOf[JObject]
+  val entity = (definitionJson \ entityName).asInstanceOf[JObject]
 
   def toResponse(result: JObject, id: Option[String]): JObject = {
 

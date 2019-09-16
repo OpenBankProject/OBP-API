@@ -11,7 +11,7 @@ import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_1_0._
 import code.api.v3_1_0.ListResult
-import code.dynamicEntity.DynamicEntityCommons
+import code.dynamicEntity.{DynamicEntityCommons, DynamicEntityDefinition}
 import code.model.dataAccess.AuthUser
 import code.model.toUserExtended
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
@@ -23,9 +23,11 @@ import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
-import net.liftweb.json._
+import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
+import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 import net.liftweb.util.StringHelpers
 import org.atteo.evo.inflector.English
+import net.liftweb.json._
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -686,30 +688,8 @@ trait APIMethods400 {
       emptyObjectJson,
       ListResult(
         "dynamic_entities",
-        (List(DynamicEntityCommons(entityName = "FooBar", metadataJson =
-          """
-            |{
-            |    "definitions": {
-            |        "FooBar": {
-            |            "required": [
-            |                "name"
-            |            ],
-            |            "properties": {
-            |                "name": {
-            |                    "type": "string",
-            |                    "example": "James Brown"
-            |                },
-            |                "number": {
-            |                    "type": "integer",
-            |                    "example": "698761728934"
-            |                }
-            |            }
-            |        }
-            |    }
-            |}
-            |""".stripMargin)))
-      )
-      ,
+        List(dynamicEntityResponseBodyExample)
+      ),
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -730,23 +710,17 @@ trait APIMethods400 {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities())
           } yield {
             val listCommons: List[DynamicEntityCommons] = dynamicEntities
-            (ListResult("dynamic_entities", listCommons), HttpCode.`200`(callContext))
+            val jObjects = listCommons.map(_.jValue)
+            (ListResult("dynamic_entities", jObjects), HttpCode.`200`(callContext))
           }
       }
     }
 
-    private def validateDynamicEntityJson(data: DynamicEntityCommons) = {
-      val metadataJson = net.liftweb.json.parse(data.metadataJson)
-
-      val rqs = (metadataJson \ "definitions" \ data.entityName \ "required").extract[Array[String]]
-
-      val propertiesFields = (metadataJson \ "definitions" \ data.entityName \ "properties").asInstanceOf[JObject].values
-      require(rqs.toSet.diff(propertiesFields.keySet).isEmpty)
-      propertiesFields.values.foreach(pair => {
-        val map = pair.asInstanceOf[Map[String, _]]
-        require(map("type").isInstanceOf[String])
-        require(map("example") != null)
-      })
+    private def validateDynamicEntityJson(metadataJson: JValue) = {
+      val jFields = metadataJson.asInstanceOf[JObject].obj
+      require(jFields.size == 1, "json format for create or update DynamicEntity is not correct, it should have a single key value for structure definition")
+      val JField(_, definition) = jFields.head
+      definition.extract[DynamicEntityDefinition]
     }
 
     resourceDocs += ResourceDoc(
@@ -755,68 +729,20 @@ trait APIMethods400 {
       nameOf(createDynamicEntity),
       "POST",
       "/management/dynamic_entities",
-      "Add DynamicEntity",
-      s"""Add a DynamicEntity.
+      "Create DynamicEntity",
+      s"""Create a DynamicEntity.
          |
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Explanation of Fields:
+         |Create one DynamicEntity, after created success, the corresponding CURD endpoints will be generated automatically
          |
-         |* method_name is required String value
-         |* connector_name is required String value
-         |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
-         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
-         |* parameters is optional array of key value pairs. You can set some paremeters for this method
+         |Current support filed types as follow:
+         |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", "]")}
          |
-         |note:
-         |
-         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
          |""",
-      DynamicEntityCommons(entityName = "FooBar", metadataJson =
-        """
-          |{
-          |    "definitions": {
-          |        "FooBar": {
-          |            "required": [
-          |                "name"
-          |            ],
-          |            "properties": {
-          |                "name": {
-          |                    "type": "string",
-          |                    "example": "James Brown"
-          |                },
-          |                "number": {
-          |                    "type": "integer",
-          |                    "example": "698761728934"
-          |                }
-          |            }
-          |        }
-          |    }
-          |}
-          |""".stripMargin),
-      DynamicEntityCommons(entityName = "FooBar", metadataJson =
-        """
-          |{
-          |    "definitions": {
-          |        "FooBar": {
-          |            "required": [
-          |                "name"
-          |            ],
-          |            "properties": {
-          |                "name": {
-          |                    "type": "string",
-          |                    "example": "James Brown"
-          |                },
-          |                "number": {
-          |                    "type": "integer",
-          |                    "example": "698761728934"
-          |                }
-          |            }
-          |        }
-          |    }
-          |}
-          |""".stripMargin, dynamicEntityId = Some("dynamic-entity-id")),
+      dynamicEntityRequestBodyExample,
+      dynamicEntityResponseBodyExample,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -833,17 +759,18 @@ trait APIMethods400 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateDynamicEntity, callContext)
-            failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[DynamicEntityCommons]}, and metadataJson should be the same structure as document example."
+            failMsg = s"$InvalidJsonFormat The Json body should be the same structure as request body example."
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              val data = json.extract[DynamicEntityCommons]
-              validateDynamicEntityJson(data)
-              data
+              validateDynamicEntityJson(json)
+
+              val JField(name, _) = json.asInstanceOf[JObject].obj.head
+              DynamicEntityCommons(name, compactRender(json))
             }
 
             Full(dynamicEntity) <- NewStyle.function.createOrUpdateDynamicEntity(postedData)
           } yield {
             val commonsData: DynamicEntityCommons = dynamicEntity
-            (commonsData, HttpCode.`201`(callContext))
+            (commonsData.jValue, HttpCode.`201`(callContext))
           }
       }
     }
@@ -861,61 +788,14 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Explanations of Fields:
+         |Update one DynamicEntity, after update finished, the corresponding CURD endpoints will be changed.
          |
-         |* method_name is required String value
-         |* connector_name is required String value
-         |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
-         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
-         |* parameters is optional array of key value pairs. You can set some paremeters for this method
-         |note:
+         |Current support filed types as follow:
+         |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", "]")}
          |
-         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
          |""",
-      DynamicEntityCommons(entityName = "FooBar", metadataJson =
-        """
-          |{
-          |    "definitions": {
-          |        "FooBar": {
-          |            "required": [
-          |                "name"
-          |            ],
-          |            "properties": {
-          |                "name": {
-          |                    "type": "string",
-          |                    "example": "James Brown"
-          |                },
-          |                "number": {
-          |                    "type": "integer",
-          |                    "example": "698761728934"
-          |                }
-          |            }
-          |        }
-          |    }
-          |}
-          |""".stripMargin),
-      DynamicEntityCommons(entityName = "FooBar", metadataJson =
-        """
-          |{
-          |    "definitions": {
-          |        "FooBar": {
-          |            "required": [
-          |                "name"
-          |            ],
-          |            "properties": {
-          |                "name": {
-          |                    "type": "string",
-          |                    "example": "James Brown"
-          |                },
-          |                "number": {
-          |                    "type": "integer",
-          |                    "example": "698761728934"
-          |                }
-          |            }
-          |        }
-          |    }
-          |}
-          |""".stripMargin, dynamicEntityId = Some("dynamic-entity-id")),
+      dynamicEntityRequestBodyExample,
+      dynamicEntityResponseBodyExample,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -933,11 +813,11 @@ trait APIMethods400 {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canUpdateDynamicEntity, callContext)
 
-            failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[DynamicEntityCommons]}, and metadataJson should be the same structure as document example."
+            failMsg = s"$InvalidJsonFormat The Json body should be the same structure as request body example."
             putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              val data = json.extract[DynamicEntityCommons].copy(dynamicEntityId = Some(dynamicEntityId))
-              validateDynamicEntityJson(data)
-              data
+              validateDynamicEntityJson(json)
+              val JField(name, _) = json.asInstanceOf[JObject].obj.head
+              DynamicEntityCommons(name, compactRender(json), Some(dynamicEntityId))
             }
 
             (_, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, callContext)
@@ -945,7 +825,7 @@ trait APIMethods400 {
             Full(dynamicEntity) <- NewStyle.function.createOrUpdateDynamicEntity(putData)
           } yield {
             val commonsData: DynamicEntityCommons = dynamicEntity
-            (commonsData, HttpCode.`200`(callContext))
+            (commonsData.jValue, HttpCode.`200`(callContext))
           }
       }
     }

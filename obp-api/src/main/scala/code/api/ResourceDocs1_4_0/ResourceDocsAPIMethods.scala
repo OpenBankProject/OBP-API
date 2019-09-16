@@ -12,7 +12,8 @@ import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
-import code.api.v4_0_0.OBPAPI4_0_0
+import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
+import APIMethods400.Implementations4_0_0.genericEndpoint
 import code.util.Helper.MdcLoggable
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, Full}
@@ -619,7 +620,7 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
           val jsonOut = for {
               requestedApiVersion <- Full(ApiVersion.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
               _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
-            rd <- getResourceDocsList(requestedApiVersion)
+            rd <- getResourceDocsList(requestedApiVersion).map(_.filterNot(_.partialFunction == genericEndpoint)) // exclude all DynamicEntity endpoints
           } yield {
             // Filter
             val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)

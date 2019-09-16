@@ -45,3 +45,12 @@ object PemCertificateRole extends OBPEnumeration[PemCertificateRole] {
   object PSP_PI extends Value
 }
 //------api enumerations end ----
+sealed trait DynamicEntityFieldType extends EnumValue
+object DynamicEntityFieldType extends OBPEnumeration[DynamicEntityFieldType]{
+ object string  extends Value
+ object number extends Value
+ object integer extends Value
+ object boolean extends Value
+// object array extends Value
+// object `object` extends Value //TODO in the future, we consider support nested type
+}
