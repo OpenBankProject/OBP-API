@@ -158,7 +158,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
             )
           if (input contains "=") {
             val split = input.split("=", 2)
-            val parameterValue = split(1).replace("\"", "")
+            val parameterValue = split(1).replaceAll("^\"|\"$", "");
             //add only OAuth parameters and not empty
             if (directLoginPossibleParameters.contains(split(0)) && !parameterValue.isEmpty)
               Some(split(0), parameterValue) // return key , value
@@ -286,7 +286,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
             )
           if (input contains "=") {
             val split = input.split("=", 2)
-            val parameterValue = split(1).replace("\"", "")
+            val parameterValue = split(1).replaceAll("^\"|\"$", "");
             //add only OAuth parameters and not empty
             if (directLoginPossibleParameters.contains(split(0)) && !parameterValue.isEmpty)
               Some(split(0), parameterValue) // return key , value
