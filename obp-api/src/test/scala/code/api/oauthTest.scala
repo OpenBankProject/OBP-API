@@ -71,7 +71,7 @@ class OAuthTest extends ServerSetup {
   lazy val user1 =
     AuthUser.create.
       email(randomString(3)+"@example.com").
-      username(randomString(9)).
+      username("username with_space").
       password(user1Password).
       validated(true).
       firstName(randomString(10)).
@@ -82,7 +82,7 @@ class OAuthTest extends ServerSetup {
   lazy val user2 =
     AuthUser.create.
       email(randomString(3)+"@example.com").
-      username(randomString(9)).
+      username("username with more than 1 space").
       password(user2Password).
       validated(false).
       firstName(randomString(10)).
