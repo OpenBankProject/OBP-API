@@ -114,3 +114,6 @@ allow_public_views =true
 #external.hostname=apisandbox.openbankproject.com
 #external.https=true
 #external.port=8080
+
+# Enable /Disable Create password reset url endpoint
+#ResetPasswordUrlEnabled=true

@@ -158,7 +158,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
             )
           if (input contains "=") {
             val split = input.split("=", 2)
-            val parameterValue = split(1).replace("\"", "")
+            val parameterValue = split(1).replaceAll("^\"|\"$", "");
             //add only OAuth parameters and not empty
             if (directLoginPossibleParameters.contains(split(0)) && !parameterValue.isEmpty)
               Some(split(0), parameterValue) // return key , value
@@ -168,9 +168,9 @@ object DirectLogin extends RestHelper with MdcLoggable {
           else
             None
         }
-        //we delete the "DirectLogin" prefix and all the white spaces that may exist in the string
-        val cleanedParameterList = parametersList.stripPrefix("DirectLogin").replaceAll("\\s", "")
-        val params = Map(cleanedParameterList.split(",").flatMap(dynamicListExtract _): _*)
+        //we delete the "DirectLogin" prefix and trim the white spaces that may exist in the string
+        val cleanedParameterList = parametersList.stripPrefix("DirectLogin").split(",").map(_.trim()).toList
+        val params = Map(cleanedParameterList.flatMap(dynamicListExtract _): _*)
         params
       }
 
@@ -202,7 +202,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
         val parameterValue = parameters.get(key).get
         key match {
           case "username" =>
-            checkMediumString(parameterValue)
+            checkUsernameString(parameterValue)
           case "password" =>
             checkMediumPassword(parameterValue)
           case "consumer_key" =>
@@ -286,7 +286,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
             )
           if (input contains "=") {
             val split = input.split("=", 2)
-            val parameterValue = split(1).replace("\"", "")
+            val parameterValue = split(1).replaceAll("^\"|\"$", "");
             //add only OAuth parameters and not empty
             if (directLoginPossibleParameters.contains(split(0)) && !parameterValue.isEmpty)
               Some(split(0), parameterValue) // return key , value
@@ -296,9 +296,9 @@ object DirectLogin extends RestHelper with MdcLoggable {
           else
             None
         }
-        //we delete the "DirectLogin" prefix and all the white spaces that may exist in the string
-        val cleanedParameterList = parametersList.stripPrefix("DirectLogin").replaceAll("\\s", "")
-        val params = Map(cleanedParameterList.split(",").flatMap(dynamicListExtract _): _*)
+        //we delete the "DirectLogin" prefix and trim the white spaces that may exist in the string
+        val cleanedParameterList = parametersList.stripPrefix("DirectLogin").split(",").map(_.trim()).toList
+        val params = Map(cleanedParameterList.flatMap(dynamicListExtract _): _*)
         params
       }
 
@@ -330,7 +330,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
         val parameterValue = parameters.get(key).get
         key match {
           case "username" =>
-            checkMediumString(parameterValue)
+            checkUsernameString(parameterValue)
           case "password" =>
             checkMediumPassword(parameterValue)
           case "consumer_key" =>
