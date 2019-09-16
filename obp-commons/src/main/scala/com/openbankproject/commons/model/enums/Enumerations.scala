@@ -51,6 +51,6 @@ object DynamicEntityFieldType extends OBPEnumeration[DynamicEntityFieldType]{
  object number extends Value
  object integer extends Value
  object boolean extends Value
-// object array extends Value  //TODO in the future, we consider support these type
-// object `object` extends Value
+// object array extends Value
+// object `object` extends Value //TODO in the future, we consider support nested type
 }
