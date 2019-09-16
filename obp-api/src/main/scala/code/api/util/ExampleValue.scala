@@ -2,6 +2,8 @@ package code.api.util
 
 
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
+import code.dynamicEntity.{DynamicEntityDefinition, DynamicEntityFooBar, DynamicEntityFullBarFields, DynamicEntityTypeExample}
+import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 
 case class ConnectorField(value: String, description: String) {
 
@@ -283,6 +285,39 @@ object ExampleValue {
   // if yes, please rename the follow to lastOkDateExample, and delete outBoundCreateCustomerLastOkDateExample
   lazy val outBoundCreateCustomerLastOkDateExample = ConnectorField("2019-09-12", "fix me, lastOkDate Date string")
 
+
+  //this is only for dynamicEntity post or request body example
+  """
+    |{
+    |   "FooBar": {
+    |       "required": [
+    |           "name"
+    |       ],
+    |       "properties": {
+    |           "name": {
+    |               "type": "string",
+    |               "example": "James Brown"
+    |           },
+    |           "number": {
+    |               "type": "integer",
+    |               "example": "698761728934"
+    |           }
+    |       }
+    |   }
+    |}
+    |""".stripMargin
+
+  lazy val dynamicEntityRequestBodyExample = DynamicEntityFooBar(
+    DynamicEntityDefinition(
+      List("name"),
+      DynamicEntityFullBarFields(
+        DynamicEntityTypeExample(DynamicEntityFieldType.string, "James Brown"),
+        DynamicEntityTypeExample(DynamicEntityFieldType.integer, "698761728934")
+      )
+    )
+  )
+
+  lazy val dynamicEntityResponseBodyExample = dynamicEntityRequestBodyExample.copy(dynamicEntityId = Some("dynamic-entity-id"))
 }
 
 

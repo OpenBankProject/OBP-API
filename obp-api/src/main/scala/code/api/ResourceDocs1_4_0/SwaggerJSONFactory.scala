@@ -25,7 +25,6 @@ import net.liftweb.common.{EmptyBox, Full}
 import org.apache.commons.lang3.StringUtils
 
 import scala.reflect.runtime.universe
-import scala.tools.scalap.scalax.util.StringUtil
 
 object SwaggerJSONFactory {
   //Info Object
@@ -797,8 +796,7 @@ object SwaggerJSONFactory {
       .find(_.partialFunction == genericEndpoint)
       .map(_ => {
         NewStyle.function.getDynamicEntities()
-          .map(it => parse(it.metadataJson) \ "definitions")
-          .map(compactRender(_))
+          .map(_.metadataJson)
           .map(StringUtils.substring(_, 1, -1))
       })
       .toList.flatten
