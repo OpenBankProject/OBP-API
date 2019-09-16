@@ -461,6 +461,7 @@ trait APIMethods200 {
         cc => {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetKycDocuments, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (kycDocuments, callContxt) <- NewStyle.function.getKycDocuments(customerId, callContext)
           } yield {
@@ -493,6 +494,7 @@ trait APIMethods200 {
         cc => {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetKycMedia, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (kycMedias, callContxt) <- NewStyle.function.getKycMedias(customerId, callContext)
           } yield {
@@ -526,6 +528,7 @@ trait APIMethods200 {
         cc => {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetKycChecks, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (kycChecks, callContxt) <- NewStyle.function.getKycChecks(customerId, callContext)
           } yield {
@@ -556,6 +559,7 @@ trait APIMethods200 {
         cc => {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetKycStatuses, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (kycStatuses, callContxt) <- NewStyle.function.getKycStatuses(customerId, callContext)
           } yield {
@@ -626,6 +630,7 @@ trait APIMethods200 {
         cc => {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canAddKycDocument, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostKycDocumentJSON "
@@ -674,6 +679,7 @@ trait APIMethods200 {
         cc => {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canAddKycMedia, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostKycMediaJSON "
@@ -722,6 +728,7 @@ trait APIMethods200 {
         cc => {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canAddKycCheck, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostKycCheckJSON "
@@ -771,6 +778,7 @@ trait APIMethods200 {
         cc => {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canAddKycStatus, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostKycStatusJSON "
