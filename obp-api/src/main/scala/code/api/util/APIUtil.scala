@@ -560,6 +560,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  /** only  A-Z, a-z, 0-9, -, _, ., @, space and max length <= 512  */
+  def checkUsernameString(value:String): String ={
+    val valueLength = value.length
+    val regex = """^([A-Za-z0-9\-._@ ]+)$""".r
+    value match {
+      case regex(e) if(valueLength <= 512) => SILENCE_IS_GOLDEN
+      case regex(e) if(valueLength > 512) => ErrorMessages.InvalidValueLength
+      case _ => ErrorMessages.InvalidValueCharacters
+    }
+  }
+
 
   def ValueOrOBP(text : String) =
     text match {
