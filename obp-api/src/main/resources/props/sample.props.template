@@ -315,7 +315,7 @@ webui_sofi_url = https://sofi.openbankproject.com
 webui_api_manager_url = https://apimanager.openbankproject.com
 
 # Open Bank Project CLI URL, change to your instance
-webui_obp_cli_url = https://obp-cli.openbankproject.com
+webui_obp_cli_url = https://github.com/OpenBankProject/OBP-CLI
 
 # API Tester URL, change to your instance
 webui_api_tester_url = https://apitester.openbankproject.com
