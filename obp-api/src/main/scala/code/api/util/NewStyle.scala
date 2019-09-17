@@ -28,11 +28,14 @@ import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType}
+import com.openbankproject.commons.model.enums.DynamicEntityOperation.{CREATE, UPDATE}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
+import net.liftweb.json
+import net.liftweb.json.{JArray, JBool, JDouble, JInt, JObject, JString, JValue}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
@@ -1397,8 +1400,25 @@ object NewStyle {
       }
     }
 
-    def createOrUpdateDynamicEntity(dynamicEntity: DynamicEntityT): Future[Box[DynamicEntityT]] = Future {
-      DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
+    def createOrUpdateDynamicEntity(dynamicEntity: DynamicEntityT, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] = {
+      val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.entityName)
+
+      val isEntityNameNotChange = existsDynamicEntity.isEmpty ||
+        existsDynamicEntity.filter(_.dynamicEntityId == dynamicEntity.dynamicEntityId).isDefined
+
+       isEntityNameNotChange match {
+        case true => Future {
+          DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
+        }
+        case false => {
+          val entityNameExists = existsDynamicEntity.isDefined
+          // validate whether entityName is exists
+          val errorMsg = s"$DynamicEntityEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
+          Helper.booleanToFuture(errorMsg)(!entityNameExists).map { _ =>
+            DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
+          }
+        }
+      }
     }
 
     def deleteDynamicEntity(dynamicEntityId: String): Future[Box[Boolean]] = Future {
@@ -1411,6 +1431,11 @@ object NewStyle {
       Future{
         (dynamicEntity, callContext)
       }
+    }
+
+    def getDynamicEntityByEntityName(entityName : String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEntityT]] = Future {
+      val boxedDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
+      (boxedDynamicEntity, callContext)
     }
 
     private[this] val dynamicEntityTTL = APIUtil.getPropsValue(s"dynamicEntity.cache.ttl.seconds", "0").toInt
@@ -1450,6 +1475,50 @@ object NewStyle {
       ) map {
         i => (unboxFullOrFail(i._1, callContext, s"$CreateTransactionsException"), i._2)
       }
+
+    def invokeDynamicConnector(operation: DynamicEntityOperation, entityName: String, requestBody: Option[JObject], entityId: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
+      val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
+      val dynamicEntity = unboxFullOrFail(dynamicEntityBox, callContext, DynamicEntityEntityNotExists)
+
+      if(operation == CREATE || operation == UPDATE) {
+          val jsonTypeMap = Map[String, Class[_]](
+            ("boolean", classOf[JBool]),
+            ("string", classOf[JString]),
+            ("array", classOf[JArray]),
+            ("integer", classOf[JInt]),
+            ("number", classOf[JDouble]),
+          )
+          val definitionJson = json.parse(dynamicEntity.metadataJson).asInstanceOf[JObject]
+          val entity = (definitionJson \ entityName).asInstanceOf[JObject]
+          val requiredFieldNames: Set[String] = (entity \ "required").asInstanceOf[JArray].arr.map(_.asInstanceOf[JString].s).toSet
+
+          val fieldNameToTypeName: Map[String, String] = (entity \ "properties")
+            .asInstanceOf[JObject]
+            .obj
+            .map(field => (field.name, (field.value \ "type").asInstanceOf[JString].s))
+            .toMap
+
+          val fieldNameToType: Map[String, Class[_]] = fieldNameToTypeName
+            .mapValues(jsonTypeMap(_))
+          val bodyJson = requestBody.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument please supply the requestBody."))
+          val fields = bodyJson.obj.filter(it => fieldNameToType.keySet.contains(it.name))
+
+          // if there are field type are not match the definitions, there must be bug.
+          val invalidTypes = fields.filterNot(it => fieldNameToType(it.name).isInstance(it.value))
+          val invalidTypeNames = invalidTypes.map(_.name).mkString("[", ",",  "]")
+          val missingRequiredFields = requiredFieldNames.filterNot(it => fields.exists(_.name == it))
+          val missingFieldNames = missingRequiredFields.mkString("[", ",",  "]")
+
+          Helper.booleanToFuture(s"$InvalidJsonFormat these field type not correct: $invalidTypeNames")(invalidTypes.isEmpty).flatMap{ _ =>
+            Helper.booleanToFuture(s"$InvalidJsonFormat some required fields are missing: $missingFieldNames")(missingRequiredFields.isEmpty)
+          }.flatMap{ _ =>
+            Connector.connector.vend.dynamicEntityProcess(operation, entityName, requestBody, entityId, callContext)
+          }
+
+        } else {
+          Connector.connector.vend.dynamicEntityProcess(operation, entityName, requestBody, entityId, callContext)
+        }
+    }
 
   }
 

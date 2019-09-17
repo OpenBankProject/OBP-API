@@ -25,6 +25,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
 import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
+import com.openbankproject.commons.model.enums.DynamicEntityOperation.{CREATE, DELETE, GET_ALL, GET_ONE, UPDATE}
 import net.liftweb.util.StringHelpers
 import org.atteo.evo.inflector.English
 import net.liftweb.json._
@@ -763,11 +764,11 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               validateDynamicEntityJson(json)
 
-              val JField(name, _) = json.asInstanceOf[JObject].obj.head
-              DynamicEntityCommons(name, compactRender(json))
+              val JField(entityName, _) = json.asInstanceOf[JObject].obj.head
+              DynamicEntityCommons(entityName, compactRender(json))
             }
 
-            Full(dynamicEntity) <- NewStyle.function.createOrUpdateDynamicEntity(postedData)
+            Full(dynamicEntity) <- NewStyle.function.createOrUpdateDynamicEntity(postedData, callContext)
           } yield {
             val commonsData: DynamicEntityCommons = dynamicEntity
             (commonsData.jValue, HttpCode.`201`(callContext))
@@ -822,7 +823,7 @@ trait APIMethods400 {
 
             (_, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, callContext)
 
-            Full(dynamicEntity) <- NewStyle.function.createOrUpdateDynamicEntity(putData)
+            Full(dynamicEntity) <- NewStyle.function.createOrUpdateDynamicEntity(putData, callContext)
           } yield {
             val commonsData: DynamicEntityCommons = dynamicEntity
             (commonsData.jValue, HttpCode.`200`(callContext))
@@ -869,41 +870,43 @@ trait APIMethods400 {
 
 
     lazy val genericEndpoint: OBPEndpoint = {
-      case EntityName(entityName) :: Nil JsonGet req => {
-        cc =>
-          Future {
-            import net.liftweb.json.JsonDSL._
-            val listName = StringHelpers.snakify(English.plural(entityName))
-            val resultList = MockerConnector.getAll(entityName)
-
-            val jValue: JValue = listName -> resultList
-
-            (jValue, HttpCode.`200`(Some(cc)))
-          }
+      case EntityName(entityName) :: Nil JsonGet req => { cc =>
+        val listName = StringHelpers.snakify(English.plural(entityName))
+        for {
+          (Full(resultList: JObject), _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
+        } yield {
+          import net.liftweb.json.JsonDSL._
+          val jValue: JObject = listName -> resultList
+          (jValue, HttpCode.`200`(Some(cc)))
+        }
       }
-      case EntityName(entityName, id) JsonGet req => {
-        cc =>
-          Future {
-            (MockerConnector.getSingle(entityName, id), HttpCode.`200`(Some(cc)))
-          }
+      case EntityName(entityName, id) JsonGet req => {cc =>
+        for {
+          (Full(entity), _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
+        } yield {
+          (entity, HttpCode.`200`(Some(cc)))
+        }
       }
-      case EntityName(entityName) :: Nil JsonPost json -> _ => {
-        cc =>
-          Future {
-            (MockerConnector.persist(entityName, json.asInstanceOf[JObject]), HttpCode.`201`(Some(cc)))
-          }
+      case EntityName(entityName) :: Nil JsonPost json -> _ => {cc =>
+        for {
+          (Full(entity), _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, Some(cc))
+        } yield {
+          (entity, HttpCode.`201`(Some(cc)))
+        }
       }
-      case EntityName(entityName, id) JsonPut json -> _ => {
-        cc =>
-          Future {
-            (MockerConnector.persist(entityName, json.asInstanceOf[JObject], Some(id)), HttpCode.`200`(Some(cc)))
-          }
+      case EntityName(entityName, id) JsonPut json -> _ => { cc =>
+        for {
+          (Full(entity), _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), Some(cc))
+        } yield {
+          (entity, HttpCode.`200`(Some(cc)))
+        }
       }
-      case EntityName(entityName, id) JsonDelete req => {
-        cc =>
-          Future {
-            (MockerConnector.delete(entityName, id), HttpCode.`200`(Some(cc)))
-          }
+      case EntityName(entityName, id) JsonDelete req => { cc =>
+        for {
+          (Full(deleteResult), _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), Some(cc))
+        } yield {
+          (deleteResult, HttpCode.`200`(Some(cc)))
+        }
       }
     }
 

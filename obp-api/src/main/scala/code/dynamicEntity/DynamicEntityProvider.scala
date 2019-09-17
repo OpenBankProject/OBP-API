@@ -52,6 +52,8 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
 trait DynamicEntityProvider {
   def getById(dynamicEntityId: String): Box[DynamicEntityT]
 
+  def getByEntityName(entityName: String): Box[DynamicEntityT]
+
   def getDynamicEntities(): List[DynamicEntityT]
 
   def createOrUpdate(dynamicEntity: DynamicEntityT): Box[DynamicEntityT]

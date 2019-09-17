@@ -12,6 +12,7 @@ import code.api.util.APIUtil.{OBPReturnType, isValidCurrencyISOCode, saveConnect
 import code.api.util.ErrorMessages._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.api.util._
+import code.api.v4_0_0.MockerConnector
 import code.atms.Atms.Atm
 import code.atms.MappedAtm
 import code.branches.Branches.Branch
@@ -51,11 +52,14 @@ import code.views.Views
 import com.google.common.cache.CacheBuilder
 import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType, StrongCustomerAuthentication}
+import com.openbankproject.commons.model.enums.DynamicEntityOperation.{CREATE, DELETE, GET_ALL, GET_ONE, UPDATE}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, Product, ProductAttribute, ProductCollectionItem, TaxResidence, _}
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
+import net.liftweb.json.JsonAST.{JArray, JBool}
+import net.liftweb.json.{JObject, JValue}
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{tryo, _}
 import net.liftweb.util.Mailer
@@ -2785,4 +2789,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (boxedData, callContext)
   }
 
+  override def dynamicEntityProcess(operation: DynamicEntityOperation,
+                                    entityName: String,
+                                    requestBody: Option[JObject],
+                                    entityId: Option[String],
+                                    callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = Future {
+    val processResult: Box[JValue] = operation match {
+      case GET_ALL => Full {
+        JArray(MockerConnector.getAll(entityName).toList)
+      }
+      case GET_ONE => {
+        val boxedEntity: Box[JValue] = MockerConnector.getSingle(entityName, entityId.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument the entityId is required.")))
+        boxedEntity
+      }
+      case CREATE | UPDATE => {
+        val body = requestBody.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument please supply the requestBody."))
+        val persistedEntity = MockerConnector.persist(entityName, body, entityId)
+        Full(persistedEntity)
+      }
+      case DELETE => {
+        val deleteResult = MockerConnector.delete(entityName, entityId.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument the entityId is required. ")))
+        deleteResult.map(JBool(_))
+      }
+    }
+    (processResult, callContext)
+  }
 }
