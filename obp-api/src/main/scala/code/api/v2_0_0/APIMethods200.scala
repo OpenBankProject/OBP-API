@@ -452,7 +452,9 @@ trait APIMethods200 {
       kycDocumentsJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagKyc, apiTagCustomer))
+      List(apiTagKyc, apiTagCustomer),
+      Some(List(canGetKycDocuments))
+    )
 
     // TODO Add Role
 
@@ -487,7 +489,8 @@ trait APIMethods200 {
       kycMediasJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
     Catalogs(notCore, notPSD2, notOBWG),
-    List(apiTagKyc, apiTagCustomer))
+    List(apiTagKyc, apiTagCustomer),
+    Some(List(canGetKycMedia)))
 
     lazy val getKycMedia  : OBPEndpoint = {
       case "customers" :: customerId :: "kyc_media" :: Nil JsonGet _ => {
@@ -519,7 +522,9 @@ trait APIMethods200 {
       kycChecksJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagKyc, apiTagCustomer))
+      List(apiTagKyc, apiTagCustomer),
+      Some(List(canGetKycChecks))
+    )
 
     // TODO Add Role
 
@@ -552,7 +557,9 @@ trait APIMethods200 {
       kycStatusesJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagKyc, apiTagCustomer))
+      List(apiTagKyc, apiTagCustomer),
+      Some(List(canGetKycStatuses))
+    )
 
     lazy val getKycStatuses  : OBPEndpoint = {
       case "customers" :: customerId :: "kyc_statuses" :: Nil JsonGet _ => {
@@ -619,7 +626,8 @@ trait APIMethods200 {
       kycDocumentJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId,"Server error: could not add KycDocument", UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagKyc, apiTagCustomer)
+      List(apiTagKyc, apiTagCustomer),
+      Some(List(canAddKycDocument))
     )
 
     // TODO customerNumber should be in the url but not also in the postedData
@@ -670,7 +678,8 @@ trait APIMethods200 {
       kycMediaJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagKyc, apiTagCustomer)
+      List(apiTagKyc, apiTagCustomer),
+      Some(List(canAddKycMedia))
     )
 
     lazy val addKycMedia : OBPEndpoint = {
@@ -719,7 +728,8 @@ trait APIMethods200 {
       kycCheckJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagKyc, apiTagCustomer)
+      List(apiTagKyc, apiTagCustomer),
+      Some(List(canAddKycCheck))
     )
 
     lazy val addKycCheck : OBPEndpoint = {
@@ -769,7 +779,8 @@ trait APIMethods200 {
       kycStatusJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat,UnknownError, BankNotFound ,ServerAddDataError ,CustomerNotFoundByCustomerId),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagKyc, apiTagCustomer)
+      List(apiTagKyc, apiTagCustomer),
+      Some(List(canAddKycStatus))
     )
 
     lazy val addKycStatus : OBPEndpoint = {
