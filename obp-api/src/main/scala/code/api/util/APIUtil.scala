@@ -2027,7 +2027,7 @@ Returns a string showed to the developer
   private def underCallLimits(userAndCallContext: (Box[User], Option[CallContext])): (Box[User], Option[CallContext]) = {
     import util.RateLimitPeriod._
     import util.RateLimitUtil._
-    val perHourLimitAnonymous = APIUtil.getPropsAsIntValue("user_consumer_limit_anonymous_access", 60)
+    val perHourLimitAnonymous = APIUtil.getPropsAsIntValue("user_consumer_limit_anonymous_access", 1000)
     def composeMsg(period: LimitCallPeriod, limit: Long): String = TooManyRequests + s" We only allow $limit requests ${RateLimitPeriod.humanReadable(period)} for this Consumer."
     def composeMsgAnonymousAccess(period: LimitCallPeriod, limit: Long): String = TooManyRequests + s" We only allow $limit requests ${RateLimitPeriod.humanReadable(period)} for anonymous access."
 
