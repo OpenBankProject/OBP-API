@@ -71,6 +71,12 @@ package object bankconnectors {
     }
 
     val connectorName: Box[String] = bankId match {
+      case None if methodName == "dynamicEntityProcess" => {
+        val entityName = args.tail.head
+        NewStyle.function.getMethodRoutings(Some(methodName))
+          .find(_.parameters.exists(it => it.key == "entityName" && it.value == entityName))
+          .map(_.connectorName)
+      }
       case None => NewStyle.function.getMethodRoutings(Some(methodName), Some(false))
         .find {routing =>
           val bankIdPattern = routing.bankIdPattern

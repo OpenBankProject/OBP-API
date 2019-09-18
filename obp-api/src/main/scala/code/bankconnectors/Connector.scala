@@ -31,13 +31,13 @@ import code.transactionrequests.{TransactionRequestTypeCharge, TransactionReques
 import code.users.Users
 import code.util.Helper._
 import code.views.Views
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
-
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.json.Extraction.decompose
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JObject
+import net.liftweb.json.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.SimpleInjector
@@ -1862,4 +1862,18 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                             chargePolicy: String,
                             callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = Future{(Failure(setUnimplementedError), callContext)}
 
+  /**
+   * DynamicEntity process function
+   * @param operation type of operation, this is an enumeration
+   * @param entityName DynamicEntity's entity name
+   * @param requestBody content of request
+   * @param entityId    id of given DynamicEntity
+   * @param callContext
+   * @return result DynamicEntity process
+   */
+  def dynamicEntityProcess(operation: DynamicEntityOperation,
+                             entityName: String,
+                             requestBody: Option[JObject],
+                             entityId: Option[String],
+                             callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = Future{(Failure(setUnimplementedError), callContext)}
 }

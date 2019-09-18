@@ -40,6 +40,11 @@
             <groupId>org.scalactic</groupId>
             <artifactId>scalactic_${scala.version}</artifactId>
         </dependency>
+        <dependency>
+            <groupId>net.liftweb</groupId>
+            <artifactId>lift-json_${scala.version}</artifactId>
+            <version>${lift.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

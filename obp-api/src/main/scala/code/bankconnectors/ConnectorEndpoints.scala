@@ -144,8 +144,8 @@ object ConnectorEndpoints extends RestHelper{
   // it is impossible to get the type of OBPQueryParam*, ru.typeOf[OBPQueryParam*] not work, it is Seq type indeed
   private val paramsType = ru.typeOf[Seq[OBPQueryParam]]
 
-  // (methodName, paramNames, method, allParamNames)
-  lazy val allMethods: List[(String, List[String], ru.MethodSymbol, List[String])] = {
+  // (methodName, paramNames, method, allParamNames, fn: paramName => isOption)
+  lazy val allMethods: List[(String, List[String], ru.MethodSymbol, List[String], String => Boolean)] = {
      val mirror: ru.Mirror = ru.runtimeMirror(this.getClass.getClassLoader)
      val objMirror = mirror.reflect(LocalMappedConnector)
 
@@ -161,14 +161,17 @@ object ConnectorEndpoints extends RestHelper{
          val names = allParams
            .filterNot(symbol => isCallContextOrQueryParams(symbol.info))
            .map(_.name.toString.trim)
-         (it.name.toString, names, it.asMethod, allNames)
+         val paramNameToIsOption: Map[String, Boolean] = allParams.map(it => (it.name.toString.trim, it.info <:< ru.typeOf[Option[_]])).toMap
+         val isParamOption: String => Boolean = name => paramNameToIsOption.get(name).filter(true ==).isDefined
+         (it.name.toString, names, it.asMethod, allNames, isParamOption)
        })
       .toList
   }
 
   def getMethod(methodName: String, json: JValue): Option[ru.MethodSymbol] = {
-    this.allMethods.filter { triple =>
-      triple._1 == methodName && triple._2.forall(paramName => (json \ paramName) != JNothing)
+    this.allMethods.filter { quadruple =>
+      val (mName, paramNames, _, _, isParamOption) = quadruple
+      mName == methodName && paramNames.forall(paramName => isParamOption(paramName) || (json \ paramName) != JNothing)
     }
     .sortBy(_._2.size)
     .lastOption
