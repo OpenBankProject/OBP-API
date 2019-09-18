@@ -1477,47 +1477,7 @@ object NewStyle {
       }
 
     def invokeDynamicConnector(operation: DynamicEntityOperation, entityName: String, requestBody: Option[JObject], entityId: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
-      val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
-      val dynamicEntity = unboxFullOrFail(dynamicEntityBox, callContext, DynamicEntityEntityNotExists)
-
-      if(operation == CREATE || operation == UPDATE) {
-          val jsonTypeMap = Map[String, Class[_]](
-            ("boolean", classOf[JBool]),
-            ("string", classOf[JString]),
-            ("array", classOf[JArray]),
-            ("integer", classOf[JInt]),
-            ("number", classOf[JDouble]),
-          )
-          val definitionJson = json.parse(dynamicEntity.metadataJson).asInstanceOf[JObject]
-          val entity = (definitionJson \ entityName).asInstanceOf[JObject]
-          val requiredFieldNames: Set[String] = (entity \ "required").asInstanceOf[JArray].arr.map(_.asInstanceOf[JString].s).toSet
-
-          val fieldNameToTypeName: Map[String, String] = (entity \ "properties")
-            .asInstanceOf[JObject]
-            .obj
-            .map(field => (field.name, (field.value \ "type").asInstanceOf[JString].s))
-            .toMap
-
-          val fieldNameToType: Map[String, Class[_]] = fieldNameToTypeName
-            .mapValues(jsonTypeMap(_))
-          val bodyJson = requestBody.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument please supply the requestBody."))
-          val fields = bodyJson.obj.filter(it => fieldNameToType.keySet.contains(it.name))
-
-          // if there are field type are not match the definitions, there must be bug.
-          val invalidTypes = fields.filterNot(it => fieldNameToType(it.name).isInstance(it.value))
-          val invalidTypeNames = invalidTypes.map(_.name).mkString("[", ",",  "]")
-          val missingRequiredFields = requiredFieldNames.filterNot(it => fields.exists(_.name == it))
-          val missingFieldNames = missingRequiredFields.mkString("[", ",",  "]")
-
-          Helper.booleanToFuture(s"$InvalidJsonFormat these field type not correct: $invalidTypeNames")(invalidTypes.isEmpty).flatMap{ _ =>
-            Helper.booleanToFuture(s"$InvalidJsonFormat some required fields are missing: $missingFieldNames")(missingRequiredFields.isEmpty)
-          }.flatMap{ _ =>
-            Connector.connector.vend.dynamicEntityProcess(operation, entityName, requestBody, entityId, callContext)
-          }
-
-        } else {
-          Connector.connector.vend.dynamicEntityProcess(operation, entityName, requestBody, entityId, callContext)
-        }
+      Connector.connector.vend.dynamicEntityProcess(operation, entityName, requestBody, entityId, callContext)
     }
 
   }

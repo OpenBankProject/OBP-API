@@ -37,7 +37,7 @@ import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.json.Extraction.decompose
 import net.liftweb.json.JObject
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.SimpleInjector

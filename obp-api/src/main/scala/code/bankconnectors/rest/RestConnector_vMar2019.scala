@@ -30,7 +30,7 @@ import java.util.Date
 import akka.http.scaladsl.model.{HttpProtocol, _}
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.util.ByteString
-import code.api.APIFailureNewStyle
+import code.api.{APIFailureNewStyle, ErrorMessage}
 import code.api.cache.Caching
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric}
 import code.api.util.ErrorMessages._
@@ -9361,9 +9361,15 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       case response@HttpResponse(status, _, entity@_, _) => (status, entity)
     }.flatMap {
       case (status, entity) if status.isSuccess() => extractEntity[T](entity)
-      case (status, entity) => extractBody(entity) map { msg => tryo {
-          parse(msg).extract[T]
-        } ~> APIFailureNewStyle(msg, status.intValue())
+      case (status, entity) => {
+          val future: Future[Box[Box[T]]] = extractBody(entity) map { msg =>
+            tryo {
+            val errorMsg = parse(msg).extract[ErrorMessage]
+            val failure: Box[T] = ParamFailure(errorMsg.message, "")
+            failure
+          } ~> APIFailureNewStyle(msg, status.intValue())
+        }
+        future.map(_.flatten)
       }
     }.map(convertToId(_))
   }

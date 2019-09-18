@@ -36,7 +36,6 @@ import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
-import org.scalatest.LoneElement._
 import org.scalatest.Tag
 class DynamicEntityTest extends V400ServerSetup {
 

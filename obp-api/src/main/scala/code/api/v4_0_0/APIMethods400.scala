@@ -868,12 +868,12 @@ trait APIMethods400 {
       }
     }
 
-
     lazy val genericEndpoint: OBPEndpoint = {
       case EntityName(entityName) :: Nil JsonGet req => { cc =>
         val listName = StringHelpers.snakify(English.plural(entityName))
         for {
-          (Full(resultList: JArray), _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
+          (box: Box[JArray], _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
+          resultList = APIUtil.unboxFullOrFail(box, Some(cc))
         } yield {
           import net.liftweb.json.JsonDSL._
           val jValue: JObject = listName -> resultList
@@ -882,28 +882,32 @@ trait APIMethods400 {
       }
       case EntityName(entityName, id) JsonGet req => {cc =>
         for {
-          (Full(entity), _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
+          (box: Box[JObject], _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
+           entity = APIUtil.unboxFullOrFail(box, Some(cc))
         } yield {
           (entity, HttpCode.`200`(Some(cc)))
         }
       }
       case EntityName(entityName) :: Nil JsonPost json -> _ => {cc =>
         for {
-          (Full(entity), _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, Some(cc))
+          (box: Box[JObject], _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, Some(cc))
+          entity = APIUtil.unboxFullOrFail(box, Some(cc))
         } yield {
           (entity, HttpCode.`201`(Some(cc)))
         }
       }
       case EntityName(entityName, id) JsonPut json -> _ => { cc =>
         for {
-          (Full(entity), _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), Some(cc))
+          (box: Box[JObject], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), Some(cc))
+          entity = APIUtil.unboxFullOrFail(box, Some(cc))
         } yield {
           (entity, HttpCode.`200`(Some(cc)))
         }
       }
       case EntityName(entityName, id) JsonDelete req => { cc =>
         for {
-          (Full(deleteResult), _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), Some(cc))
+          (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), Some(cc))
+          deleteResult = APIUtil.unboxFullOrFail(box, Some(cc))
         } yield {
           (deleteResult, HttpCode.`200`(Some(cc)))
         }

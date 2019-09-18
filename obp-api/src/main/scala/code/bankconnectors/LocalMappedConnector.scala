@@ -23,6 +23,7 @@ import code.cards.MappedPhysicalCard
 import code.context.{UserAuthContextProvider, UserAuthContextUpdateProvider}
 import code.customer._
 import code.customeraddress.CustomerAddressX
+import code.dynamicEntity.DynamicEntityProvider
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.kycchecks.KycChecks
 import code.kycdocuments.KycDocuments
@@ -59,8 +60,8 @@ import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, 
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
-import net.liftweb.json.JsonAST.{JArray, JBool}
-import net.liftweb.json.{JObject, JValue}
+import net.liftweb.json
+import net.liftweb.json.{JArray, JBool, JDouble, JInt, JObject, JString, JValue}
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{tryo, _}
 import net.liftweb.util.Mailer
@@ -2796,16 +2797,56 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                     requestBody: Option[JObject],
                                     entityId: Option[String],
                                     callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
-    operation match {
-      case GET_ONE | UPDATE | DELETE => {
-        val id = entityId.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument the entityId is required."))
-        val idName = StringUtils.uncapitalize(entityName) + "Id"
-        val idExists = persistedEntities.contains(id -> entityName)
-        if(!idExists) {
-          throw new RuntimeException(s"$InvalidUrl not exists ${entityName} of ${idName} = $id")
-        }
+
+    val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
+    // do validate, any validate process fail will return immediately
+    if(dynamicEntityBox.isEmpty) {
+      return Helper.booleanToFuture(s"$DynamicEntityEntityNotExists entity's name is '$entityName'")(dynamicEntityBox.isDefined)
+        .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+    } else if(entityId.isDefined && !persistedEntities.contains(entityId.get -> entityName)) {
+      val id = entityId.get
+      val idName = StringUtils.uncapitalize(entityName) + "Id"
+
+      return Helper.booleanToFuture(s"$InvalidUrl not exists $entityName of $idName = $id")(false)
+        .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+    } else if(requestBody.isDefined) {
+      val dynamicEntity = dynamicEntityBox.openOrThrowException(DynamicEntityEntityNotExists)
+
+      val jsonTypeMap = Map[String, Class[_]](
+        ("boolean", classOf[JBool]),
+        ("string", classOf[JString]),
+        ("array", classOf[JArray]),
+        ("integer", classOf[JInt]),
+        ("number", classOf[JDouble]),
+      )
+      val definitionJson = json.parse(dynamicEntity.metadataJson).asInstanceOf[JObject]
+      val entity = (definitionJson \ entityName).asInstanceOf[JObject]
+      val requiredFieldNames: Set[String] = (entity \ "required").asInstanceOf[JArray].arr.map(_.asInstanceOf[JString].s).toSet
+
+      val fieldNameToTypeName: Map[String, String] = (entity \ "properties")
+        .asInstanceOf[JObject]
+        .obj
+        .map(field => (field.name, (field.value \ "type").asInstanceOf[JString].s))
+        .toMap
+
+      val fieldNameToType: Map[String, Class[_]] = fieldNameToTypeName
+        .mapValues(jsonTypeMap(_))
+      val bodyJson = requestBody.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument please supply the requestBody."))
+      val fields = bodyJson.obj.filter(it => fieldNameToType.keySet.contains(it.name))
+
+      // if there are field type are not match the definitions, there must be bug.
+      val invalidTypes = fields.filterNot(it => fieldNameToType(it.name).isInstance(it.value))
+      val invalidTypeNames = invalidTypes.map(_.name).mkString("[", ",",  "]")
+      val missingRequiredFields = requiredFieldNames.filterNot(it => fields.exists(_.name == it))
+      val missingFieldNames = missingRequiredFields.mkString("[", ",",  "]")
+
+      if(invalidTypes.nonEmpty) {
+        return  Helper.booleanToFuture(s"$InvalidJsonFormat these field type not correct: $invalidTypeNames")(invalidTypes.isEmpty)
+          .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+      } else if(missingRequiredFields.nonEmpty) {
+        return Helper.booleanToFuture(s"$InvalidJsonFormat some required fields are missing: $missingFieldNames")(missingRequiredFields.isEmpty)
+          .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
       }
-      case _ => Unit
     }
 
     Future {
