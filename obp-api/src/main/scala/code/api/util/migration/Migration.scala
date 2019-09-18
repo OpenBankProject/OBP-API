@@ -19,6 +19,7 @@ import scala.collection.mutable.HashMap
 
 object Migration extends MdcLoggable {
   
+  private val executeAll = getPropsAsBoolValue("migration_scripts.execute_all", false)
   private val execute = getPropsAsBoolValue("migration_scripts.execute", false)
   private val scriptsToExecute: immutable.Seq[String] = getPropsValue("list_of_migration_scripts_to_execute").toList.map(_.split(",")).flatten
 
@@ -27,7 +28,7 @@ object Migration extends MdcLoggable {
   }
   
   private def runOnce(name: String)(blockOfCode: => Boolean): Boolean = {
-    val toExecute = scriptsToExecute.contains(name)
+    val toExecute: Boolean = executeAll || scriptsToExecute.contains(name)
     val isExecuted = MigrationScriptLogProvider.migrationScriptLogProvider.vend.isExecuted(name)
     (toExecute, isExecuted) match {
       case (true, false) => blockOfCode

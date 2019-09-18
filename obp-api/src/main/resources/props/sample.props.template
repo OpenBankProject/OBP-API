@@ -602,6 +602,8 @@ featured_apis=elasticSearchWarehouseV300
 # Define list of migration scripts to execute.
 # List is not ordered.
 # list_of_migration_scripts_to_execute=dummyScript
+# Bypass the list and execute all available scripts
+# migration_scripts.execute_all=false
 # -------------------------------------------------
 
 # -- Mapper rules -------------------------------

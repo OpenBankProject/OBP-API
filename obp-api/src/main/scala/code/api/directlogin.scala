@@ -140,89 +140,89 @@ object DirectLogin extends RestHelper with MdcLoggable {
     case _ => "ERROR"
   }
 
+  /**Validate user supplied Direct Login parameters before they are used further,
+    * guard maximum length and content of strings (a-z, 0-9 etc.) */
+  private def validDirectLoginParameters(parameters: Map[String, String]): Iterable[String] = {
+    for (key <- parameters.keys) yield {
+      val parameterValue = parameters.get(key).get
+      key match {
+        case "username" =>
+          checkUsernameString(parameterValue)
+        case "password" =>
+          checkMediumPassword(parameterValue)
+        case "consumer_key" =>
+          checkMediumAlphaNumeric(parameterValue)
+        case "token" =>
+          checkMediumString(parameterValue)
+        case _ => ErrorMessages.InvalidDirectLoginParameters
+      }
+    }
+  }
 
-  //Check if the request (access token or request token) is valid and return a tuple
-  def validator(requestType : String, httpMethod : String) : (Int, String, Map[String,String]) = {
-    //return a Map containing the directLogin parameters : prameter -> value
-    def getAllParameters: Map[String, String] = {
-      def toMap(parametersList: String) = {
-        //transform the string "directLogin_prameter="value""
-        //to a tuple (directLogin_parameter,Decoded(value))
-        def dynamicListExtract(input: String) = {
-          val directLoginPossibleParameters =
-            List(
-              "consumer_key",
-              "token",
-              "username",
-              "password"
-            )
-          if (input contains "=") {
-            val split = input.split("=", 2)
-            val parameterValue = split(1).replaceAll("^\"|\"$", "");
-            //add only OAuth parameters and not empty
-            if (directLoginPossibleParameters.contains(split(0)) && !parameterValue.isEmpty)
-              Some(split(0), parameterValue) // return key , value
-            else
-              None
-          }
+  //@return the missing parameters depending of the request type
+  private def missingDirectLoginParameters(parameters: Map[String, String], requestType: String): Set[String] = {
+    requestType match {
+      case "authorizationToken" =>
+        ("username" :: "password" :: "consumer_key" :: List()).toSet diff parameters.keySet
+      case "protectedResource" =>
+        ("token" :: List()).toSet diff parameters.keySet
+      case _ =>
+        parameters.keySet
+    }
+  }
+  //return a Map containing the directLogin parameters : prameter -> value
+  private def getAllParameters: Map[String, String] = {
+    def toMap(parametersList: String) = {
+      //transform the string "directLogin_prameter="value""
+      //to a tuple (directLogin_parameter,Decoded(value))
+      def dynamicListExtract(input: String) = {
+        val directLoginPossibleParameters =
+          List(
+            "consumer_key",
+            "token",
+            "username",
+            "password"
+          )
+        if (input contains "=") {
+          val split = input.split("=", 2)
+          val parameterValue = split(1).replaceAll("^\"|\"$", "");
+          //add only OAuth parameters and not empty
+          if (directLoginPossibleParameters.contains(split(0)) && !parameterValue.isEmpty)
+            Some(split(0), parameterValue) // return key , value
           else
             None
         }
-        //we delete the "DirectLogin" prefix and trim the white spaces that may exist in the string
-        val cleanedParameterList = parametersList.stripPrefix("DirectLogin").split(",").map(_.trim()).toList
-        val params = Map(cleanedParameterList.flatMap(dynamicListExtract _): _*)
-        params
+        else
+          None
       }
-
-      S.request match {
-        case Full(a) => a.header("Authorization") match {
-          case Full(header) => {
-            if (header.contains("DirectLogin"))
-              toMap(header)
-            else
-              Map("error" -> "header incorrect")
-          }
-          case _ => Map("error" -> "missing header")
-        }
-        case _ => Map("error" -> "request incorrect")
-      }
+      //we delete the "DirectLogin" prefix and trim the white spaces that may exist in the string
+      val cleanedParameterList = parametersList.stripPrefix("DirectLogin").split(",").map(_.trim()).toList
+      val params = Map(cleanedParameterList.flatMap(dynamicListExtract _): _*)
+      params
     }
+
+    S.request match {
+      case Full(a) => a.header("Authorization") match {
+        case Full(header) => {
+          if (header.contains("DirectLogin"))
+            toMap(header)
+          else
+            Map("error" -> "header incorrect")
+        }
+        case _ => Map("error" -> "missing header")
+      }
+      case _ => Map("error" -> "request incorrect")
+    }
+  }
+
+
+  //Check if the request (access token or request token) is valid and return a tuple
+  def validator(requestType : String, httpMethod : String) : (Int, String, Map[String,String]) = {
 
     def validAccessToken(tokenKey: String) = {
       Tokens.tokens.vend.getTokenByKeyAndType(tokenKey, TokenType.Access) match {
         case Full(token) => token.isValid
         case _ => false
-      }
-    }
-
-    /**Validate user supplied Direct Login parameters before they are used further,
-      * guard maximum length and content of strings (a-z, 0-9 etc.) */
-    def validDirectLoginParameters(parameters: Map[String, String]): Iterable[String] = {
-      for (key <- parameters.keys) yield {
-        val parameterValue = parameters.get(key).get
-        key match {
-          case "username" =>
-            checkUsernameString(parameterValue)
-          case "password" =>
-            checkMediumPassword(parameterValue)
-          case "consumer_key" =>
-            checkMediumAlphaNumeric(parameterValue)
-          case "token" =>
-            checkMediumString(parameterValue)
-          case _ => ErrorMessages.InvalidDirectLoginParameters
-        }
-      }
-    }
-
-    //@return the missing parameters depending of the request type
-    def missingDirectLoginParameters(parameters: Map[String, String], requestType: String): Set[String] = {
-      requestType match {
-        case "authorizationToken" =>
-          ("username" :: "password" :: "consumer_key" :: List()).toSet diff parameters.keySet
-        case "protectedResource" =>
-          ("token" :: List()).toSet diff parameters.keySet
-        case _ =>
-          parameters.keySet
       }
     }
 
@@ -271,86 +271,11 @@ object DirectLogin extends RestHelper with MdcLoggable {
 
   //Check if the request (access token or request token) is valid and return a tuple
   def validatorFuture(requestType : String, httpMethod : String) : Future[(Int, String, Map[String,String])] = {
-    //return a Map containing the directLogin parameters : prameter -> value
-    def getAllParameters: Map[String, String] = {
-      def toMap(parametersList: String) = {
-        //transform the string "directLogin_prameter="value""
-        //to a tuple (directLogin_parameter,Decoded(value))
-        def dynamicListExtract(input: String) = {
-          val directLoginPossibleParameters =
-            List(
-              "consumer_key",
-              "token",
-              "username",
-              "password"
-            )
-          if (input contains "=") {
-            val split = input.split("=", 2)
-            val parameterValue = split(1).replaceAll("^\"|\"$", "");
-            //add only OAuth parameters and not empty
-            if (directLoginPossibleParameters.contains(split(0)) && !parameterValue.isEmpty)
-              Some(split(0), parameterValue) // return key , value
-            else
-              None
-          }
-          else
-            None
-        }
-        //we delete the "DirectLogin" prefix and trim the white spaces that may exist in the string
-        val cleanedParameterList = parametersList.stripPrefix("DirectLogin").split(",").map(_.trim()).toList
-        val params = Map(cleanedParameterList.flatMap(dynamicListExtract _): _*)
-        params
-      }
-
-      S.request match {
-        case Full(a) => a.header("Authorization") match {
-          case Full(header) => {
-            if (header.contains("DirectLogin"))
-              toMap(header)
-            else
-              Map("error" -> "header incorrect")
-          }
-          case _ => Map("error" -> "missing header")
-        }
-        case _ => Map("error" -> "request incorrect")
-      }
-    }
 
     def validAccessTokenFuture(tokenKey: String) = {
       Tokens.tokens.vend.getTokenByKeyAndTypeFuture(tokenKey, TokenType.Access) map {
         case Full(token) => token.isValid
         case _ => false
-      }
-    }
-
-    /**Validate user supplied Direct Login parameters before they are used further,
-      * guard maximum length and content of strings (a-z, 0-9 etc.) */
-    def validDirectLoginParameters(parameters: Map[String, String]): Iterable[String] = {
-      for (key <- parameters.keys) yield {
-        val parameterValue = parameters.get(key).get
-        key match {
-          case "username" =>
-            checkUsernameString(parameterValue)
-          case "password" =>
-            checkMediumPassword(parameterValue)
-          case "consumer_key" =>
-            checkMediumAlphaNumeric(parameterValue)
-          case "token" =>
-            checkMediumString(parameterValue)
-          case _ => ErrorMessages.InvalidDirectLoginParameters
-        }
-      }
-    }
-
-    //@return the missing parameters depending of the request type
-    def missingDirectLoginParameters(parameters: Map[String, String], requestType: String): Set[String] = {
-      requestType match {
-        case "authorizationToken" =>
-          ("username" :: "password" :: "consumer_key" :: List()).toSet diff parameters.keySet
-        case "protectedResource" =>
-          ("token" :: List()).toSet diff parameters.keySet
-        case _ =>
-          parameters.keySet
       }
     }
 

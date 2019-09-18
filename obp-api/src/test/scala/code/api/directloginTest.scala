@@ -1,19 +1,35 @@
 package code.api
 
-import code.api.util.ErrorMessages
+import code.api.util.{ApiVersion, ErrorMessages}
 import code.api.util.ErrorMessages._
+import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
+import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import code.api.v3_0_0.UserJsonV300
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.AuthUser
 import code.setup.{APIResponse, ServerSetup}
+import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
-import org.scalatest.BeforeAndAfter
+import org.scalatest.{BeforeAndAfter, Tag}
 
 
 
 class directloginTest extends ServerSetup with BeforeAndAfter {
+
+  /**
+    * Test tags
+    * Example: To run tests with tag "getPermissions":
+    * 	mvn test -D tagsToInclude
+    *
+    *  This is made possible by the scalatest maven plugin
+    */
+  object VersionOfApi200 extends Tag(ApiVersion.v2_0_0.toString)
+  object VersionOfApi300 extends Tag(ApiVersion.v3_0_0.toString)
+  object ApiEndpoint1 extends Tag(nameOf(Implementations2_0_0.getCurrentUser))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations3_0_0.getCurrentUser))
 
   val KEY = randomString(40).toLowerCase
   val SECRET = randomString(40).toLowerCase
@@ -206,7 +222,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidConsumerKey)
     }
 
-    scenario("Login with correct everything!") {
+    scenario("Login with correct everything!", ApiEndpoint1, ApiEndpoint2) {
 
       //setupUserAndConsumer
 
@@ -241,6 +257,24 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
         case JArray(List()) =>
         case _ => fail("Expected empty list of accounts")
       }
+
+      When("when we use the token to get current user and it should work - New Style")
+      val requestCurrentUserNewStyle = baseRequest / "obp" / "v3.0.0" / "users" / "current"
+      val responseCurrentUserNewStyle = makeGetRequest(requestCurrentUserNewStyle, validHeadersWithToken)
+      And("We should get a 200")
+      responseCurrentUserNewStyle.code should equal(200)
+      val currentUserNewStyle = responseCurrentUserNewStyle.body.extract[UserJsonV300]
+      currentUserNewStyle.username shouldBe USERNAME
+      
+      When("when we use the token to get current user and it should work - Old Style")
+      val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
+      val responseCurrentUserOldStyle = makeGetRequest(requestCurrentUserOldStyle, validHeadersWithToken)
+      And("We should get a 200")
+      responseCurrentUserOldStyle.code should equal(200)
+      val currentUserOldStyle = responseCurrentUserOldStyle.body.extract[UserJsonV300]
+      currentUserOldStyle.username shouldBe USERNAME
+
+      currentUserNewStyle.username shouldBe currentUserOldStyle.username
     }
 
   }
