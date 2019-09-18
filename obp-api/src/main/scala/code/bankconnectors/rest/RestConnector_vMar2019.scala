@@ -57,7 +57,7 @@ import code.api.util.APIUtil._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json._
 
@@ -9240,9 +9240,19 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         val result: OBPReturnType[Box[TransactionId]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
-//---------------- dynamic end ---------------------please don't modify this line
-    
+
+  //---------------- dynamic end ---------------------please don't modify this line
+  override def dynamicEntityProcess(operation: DynamicEntityOperation,
+                                    entityName: String,
+                                    requestBody: Option[JObject],
+                                    entityId: Option[String],
+                                    callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
+    import com.openbankproject.commons.dto.{OutBoundDynamicEntityProcess => OutBound, InBoundDynamicEntityProcess => InBound}
+    val url = getUrl(callContext, "dynamicEntityProcess")
+    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , operation, entityName, requestBody, entityId)
+    val result: OBPReturnType[Box[JValue]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
+    result
+  }
     
 
   //In RestConnector, we use the headers to propagate the parameters to Adapter. The parameters come from the CallContext.outboundAdapterAuthInfo.userAuthContext

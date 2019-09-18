@@ -53,7 +53,11 @@ object MockerConnector {
 
   def getAll(entityName: String) = persistedEntities.filter(pair => pair._1._2 == entityName).values
 
-  def delete(entityName: String, id: String): Box[Boolean] = persistedEntities.remove(id -> entityName).map(_ => true)
+  def delete(entityName: String, id: String): Box[Boolean] = {
+    val idName = StringUtils.uncapitalize(entityName) + "Id"
+    require(persistedEntities.contains(id -> entityName), s"$InvalidUrl not exists ${entityName} of ${idName} = $id")
+    persistedEntities.remove(id -> entityName).map(_ => true)
+  }
 
   def doc = {
     val docs: Seq[ResourceDoc] = definitionsMap.values.flatMap(createDocs).toSeq

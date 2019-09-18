@@ -873,7 +873,7 @@ trait APIMethods400 {
       case EntityName(entityName) :: Nil JsonGet req => { cc =>
         val listName = StringHelpers.snakify(English.plural(entityName))
         for {
-          (Full(resultList: JObject), _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
+          (Full(resultList: JArray), _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
         } yield {
           import net.liftweb.json.JsonDSL._
           val jValue: JObject = listName -> resultList
