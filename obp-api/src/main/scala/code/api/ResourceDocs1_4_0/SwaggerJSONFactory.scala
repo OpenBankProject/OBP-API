@@ -20,12 +20,11 @@ import net.liftweb.util.StringHelpers
 
 import scala.collection.mutable.ListBuffer
 import code.api.v3_1_0.ListResult
-import code.dynamicEntity.DynamicEntityCommons
+import code.api.v4_0_0.APIMethods400.Implementations4_0_0.genericEndpoint
 import net.liftweb.common.{EmptyBox, Full}
 import org.apache.commons.lang3.StringUtils
 
 import scala.reflect.runtime.universe
-import scala.tools.scalap.scalax.util.StringUtil
 
 object SwaggerJSONFactory {
   //Info Object
@@ -794,11 +793,10 @@ object SwaggerJSONFactory {
 
     // extract uploaded DynamicEntities definitions, only when processing resourceDocList have DynamicEntity
     val dynamicEntityDefinitions = resourceDocList
-      .find(_.exampleRequestBody.isInstanceOf[DynamicEntityCommons])
+      .find(_.partialFunction == genericEndpoint)
       .map(_ => {
         NewStyle.function.getDynamicEntities()
-          .map(it => parse(it.metadataJson) \ "definitions")
-          .map(compactRender(_))
+          .map(_.metadataJson)
           .map(StringUtils.substring(_, 1, -1))
       })
       .toList.flatten

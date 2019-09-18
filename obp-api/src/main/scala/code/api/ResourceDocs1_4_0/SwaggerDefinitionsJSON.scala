@@ -3432,29 +3432,6 @@ object SwaggerDefinitionsJSON {
     overall_balance = amountOfMoney,
     overall_balance_date = DateWithMsExampleObject
   )
-
-  val dynamicEntityCommons = DynamicEntityCommons(entityName = "FooBar", metadataJson =
-    """
-      |{
-      |    \"definitions\": {
-      |        \"FooBar\": {
-      |            \"required\": [
-      |                \"name\"
-      |            ],
-      |            \"properties\": {
-      |                \"name\": {
-      |                    \"type\": \"string\",
-      |                    \"example\": \"James Brown\"
-      |                },
-      |                \"number\": {
-      |                    \"type\": \"integer\",
-      |                    \"example\": \"698761728934\"
-      |                }
-      |            }
-      |        }
-      |    }
-      |}
-      |""".stripMargin, dynamicEntityId = Some("dynamic-entity-id"))
     
   //The common error or success format.
   //Just some helper format to use in Json 

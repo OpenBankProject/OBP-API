@@ -13,6 +13,10 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
     By(DynamicEntity.DynamicEntityId, dynamicEntityId)
   )
 
+  override def getByEntityName(entityName: String): Box[DynamicEntityT] = DynamicEntity.find(
+    By(DynamicEntity.EntityName, entityName)
+  )
+
   override def getDynamicEntities(): List[DynamicEntity] = {
     DynamicEntity.findAll()
   }
