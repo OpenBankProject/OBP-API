@@ -30,7 +30,7 @@ import java.util.Date
 import akka.http.scaladsl.model.{HttpProtocol, _}
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.util.ByteString
-import code.api.APIFailureNewStyle
+import code.api.{APIFailureNewStyle, ErrorMessage}
 import code.api.cache.Caching
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric}
 import code.api.util.ErrorMessages._
@@ -57,7 +57,7 @@ import code.api.util.APIUtil._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json._
 
@@ -9240,9 +9240,19 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         val result: OBPReturnType[Box[TransactionId]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
-//---------------- dynamic end ---------------------please don't modify this line
-    
+
+  //---------------- dynamic end ---------------------please don't modify this line
+  override def dynamicEntityProcess(operation: DynamicEntityOperation,
+                                    entityName: String,
+                                    requestBody: Option[JObject],
+                                    entityId: Option[String],
+                                    callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
+    import com.openbankproject.commons.dto.{OutBoundDynamicEntityProcess => OutBound, InBoundDynamicEntityProcess => InBound}
+    val url = getUrl(callContext, "dynamicEntityProcess")
+    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , operation, entityName, requestBody, entityId)
+    val result: OBPReturnType[Box[JValue]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
+    result
+  }
     
 
   //In RestConnector, we use the headers to propagate the parameters to Adapter. The parameters come from the CallContext.outboundAdapterAuthInfo.userAuthContext
@@ -9351,9 +9361,15 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       case response@HttpResponse(status, _, entity@_, _) => (status, entity)
     }.flatMap {
       case (status, entity) if status.isSuccess() => extractEntity[T](entity)
-      case (status, entity) => extractBody(entity) map { msg => tryo {
-          parse(msg).extract[T]
-        } ~> APIFailureNewStyle(msg, status.intValue())
+      case (status, entity) => {
+          val future: Future[Box[Box[T]]] = extractBody(entity) map { msg =>
+            tryo {
+            val errorMsg = parse(msg).extract[ErrorMessage]
+            val failure: Box[T] = ParamFailure(errorMsg.message, "")
+            failure
+          } ~> APIFailureNewStyle(msg, status.intValue())
+        }
+        future.map(_.flatten)
       }
     }.map(convertToId(_))
   }

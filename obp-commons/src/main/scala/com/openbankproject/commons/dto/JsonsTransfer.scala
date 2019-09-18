@@ -28,9 +28,10 @@ package com.openbankproject.commons.dto
 
 import java.util.Date
 
-import com.openbankproject.commons.model.enums.CardAttributeType
+import com.openbankproject.commons.model.enums.{CardAttributeType, DynamicEntityOperation}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.{enums, _}
+import net.liftweb.json.{JObject, JValue}
 
 import scala.collection.immutable.List
 
@@ -1158,3 +1159,10 @@ case class InBoundGetBankAccountByIban (inboundAdapterCallContext: InboundAdapte
 case class OutBoundGetBankAccounts (outboundAdapterCallContext: OutboundAdapterCallContext,
                                     bankIdAccountIds: List[BankIdAccountId]) extends TopicTrait
 case class InBoundGetBankAccounts (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[BankAccountCommons]) extends InBoundTrait[List[BankAccountCommons]]
+
+case class OutBoundDynamicEntityProcess (outboundAdapterCallContext: OutboundAdapterCallContext,
+                                         operation: DynamicEntityOperation,
+                                         entityName: String,
+                                         requestBody: Option[JObject],
+                                         entityId: Option[String]) extends TopicTrait
+case class InBoundDynamicEntityProcess (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: JValue) extends InBoundTrait[JValue]

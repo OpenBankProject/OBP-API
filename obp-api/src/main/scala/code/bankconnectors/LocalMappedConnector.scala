@@ -12,6 +12,8 @@ import code.api.util.APIUtil.{OBPReturnType, isValidCurrencyISOCode, saveConnect
 import code.api.util.ErrorMessages._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.api.util._
+import code.api.v4_0_0.MockerConnector
+import code.api.v4_0_0.MockerConnector.persistedEntities
 import code.atms.Atms.Atm
 import code.atms.MappedAtm
 import code.branches.Branches.Branch
@@ -21,6 +23,7 @@ import code.cards.MappedPhysicalCard
 import code.context.{UserAuthContextProvider, UserAuthContextUpdateProvider}
 import code.customer._
 import code.customeraddress.CustomerAddressX
+import code.dynamicEntity.DynamicEntityProvider
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.kycchecks.KycChecks
 import code.kycdocuments.KycDocuments
@@ -51,15 +54,19 @@ import code.views.Views
 import com.google.common.cache.CacheBuilder
 import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType, StrongCustomerAuthentication}
+import com.openbankproject.commons.model.enums.DynamicEntityOperation.{CREATE, DELETE, GET_ALL, GET_ONE, UPDATE}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, Product, ProductAttribute, ProductCollectionItem, TaxResidence, _}
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
+import net.liftweb.json
+import net.liftweb.json.{JArray, JBool, JDouble, JInt, JObject, JString, JValue}
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{tryo, _}
 import net.liftweb.util.Mailer
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
+import org.apache.commons.lang3.StringUtils
 import org.mindrot.jbcrypt.BCrypt
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
@@ -2785,4 +2792,83 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (boxedData, callContext)
   }
 
+  override def dynamicEntityProcess(operation: DynamicEntityOperation,
+                                    entityName: String,
+                                    requestBody: Option[JObject],
+                                    entityId: Option[String],
+                                    callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
+
+    val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
+    // do validate, any validate process fail will return immediately
+    if(dynamicEntityBox.isEmpty) {
+      return Helper.booleanToFuture(s"$DynamicEntityEntityNotExists entity's name is '$entityName'")(dynamicEntityBox.isDefined)
+        .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+    } else if(entityId.isDefined && !persistedEntities.contains(entityId.get -> entityName)) {
+      val id = entityId.get
+      val idName = StringUtils.uncapitalize(entityName) + "Id"
+
+      return Helper.booleanToFuture(s"$InvalidUrl not exists $entityName of $idName = $id")(false)
+        .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+    } else if(requestBody.isDefined) {
+      val dynamicEntity = dynamicEntityBox.openOrThrowException(DynamicEntityEntityNotExists)
+
+      val jsonTypeMap = Map[String, Class[_]](
+        ("boolean", classOf[JBool]),
+        ("string", classOf[JString]),
+        ("array", classOf[JArray]),
+        ("integer", classOf[JInt]),
+        ("number", classOf[JDouble]),
+      )
+      val definitionJson = json.parse(dynamicEntity.metadataJson).asInstanceOf[JObject]
+      val entity = (definitionJson \ entityName).asInstanceOf[JObject]
+      val requiredFieldNames: Set[String] = (entity \ "required").asInstanceOf[JArray].arr.map(_.asInstanceOf[JString].s).toSet
+
+      val fieldNameToTypeName: Map[String, String] = (entity \ "properties")
+        .asInstanceOf[JObject]
+        .obj
+        .map(field => (field.name, (field.value \ "type").asInstanceOf[JString].s))
+        .toMap
+
+      val fieldNameToType: Map[String, Class[_]] = fieldNameToTypeName
+        .mapValues(jsonTypeMap(_))
+      val bodyJson = requestBody.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument please supply the requestBody."))
+      val fields = bodyJson.obj.filter(it => fieldNameToType.keySet.contains(it.name))
+
+      // if there are field type are not match the definitions, there must be bug.
+      val invalidTypes = fields.filterNot(it => fieldNameToType(it.name).isInstance(it.value))
+      val invalidTypeNames = invalidTypes.map(_.name).mkString("[", ",",  "]")
+      val missingRequiredFields = requiredFieldNames.filterNot(it => fields.exists(_.name == it))
+      val missingFieldNames = missingRequiredFields.mkString("[", ",",  "]")
+
+      if(invalidTypes.nonEmpty) {
+        return  Helper.booleanToFuture(s"$InvalidJsonFormat these field type not correct: $invalidTypeNames")(invalidTypes.isEmpty)
+          .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+      } else if(missingRequiredFields.nonEmpty) {
+        return Helper.booleanToFuture(s"$InvalidJsonFormat some required fields are missing: $missingFieldNames")(missingRequiredFields.isEmpty)
+          .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+      }
+    }
+
+    Future {
+      val processResult: Box[JValue] = operation match {
+        case GET_ALL => Full {
+          JArray(MockerConnector.getAll(entityName).toList)
+        }
+        case GET_ONE => {
+          val boxedEntity: Box[JValue] = MockerConnector.getSingle(entityName, entityId.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument the entityId is required.")))
+          boxedEntity
+        }
+        case CREATE | UPDATE => {
+          val body = requestBody.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument please supply the requestBody."))
+          val persistedEntity = MockerConnector.persist(entityName, body, entityId)
+          Full(persistedEntity)
+        }
+        case DELETE => {
+          val deleteResult = MockerConnector.delete(entityName, entityId.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument the entityId is required. ")))
+          deleteResult.map(JBool(_))
+        }
+      }
+      (processResult, callContext)
+    }
+  }
 }
