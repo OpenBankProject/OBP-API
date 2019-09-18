@@ -20,7 +20,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{app
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
 import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
@@ -867,13 +867,20 @@ trait APIMethods400 {
           }
       }
     }
+    private def unboxResult[T](box: Box[T]): T = {
+       if(box.isInstanceOf[Failure]) {
+        throw new Exception(box.asInstanceOf[Failure].msg)
+      }
 
+      box.openOrThrowException("impossible error")
+    }
     lazy val genericEndpoint: OBPEndpoint = {
       case EntityName(entityName) :: Nil JsonGet req => { cc =>
         val listName = StringHelpers.snakify(English.plural(entityName))
         for {
           (box: Box[JArray], _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
-          resultList = APIUtil.unboxFullOrFail(box, Some(cc))
+//          resultList = APIUtil.unboxFullOrFail(box, Some(cc))
+          resultList = unboxResult(box)
         } yield {
           import net.liftweb.json.JsonDSL._
           val jValue: JObject = listName -> resultList
@@ -883,7 +890,8 @@ trait APIMethods400 {
       case EntityName(entityName, id) JsonGet req => {cc =>
         for {
           (box: Box[JObject], _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
-           entity = APIUtil.unboxFullOrFail(box, Some(cc))
+//           entity = APIUtil.unboxFullOrFail(box, Some(cc))
+           entity = unboxResult(box)
         } yield {
           (entity, HttpCode.`200`(Some(cc)))
         }
@@ -891,7 +899,8 @@ trait APIMethods400 {
       case EntityName(entityName) :: Nil JsonPost json -> _ => {cc =>
         for {
           (box: Box[JObject], _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, Some(cc))
-          entity = APIUtil.unboxFullOrFail(box, Some(cc))
+//          entity = APIUtil.unboxFullOrFail(box, Some(cc))
+          entity = unboxResult(box)
         } yield {
           (entity, HttpCode.`201`(Some(cc)))
         }
@@ -899,7 +908,8 @@ trait APIMethods400 {
       case EntityName(entityName, id) JsonPut json -> _ => { cc =>
         for {
           (box: Box[JObject], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), Some(cc))
-          entity = APIUtil.unboxFullOrFail(box, Some(cc))
+//          entity = APIUtil.unboxFullOrFail(box, Some(cc))
+          entity = unboxResult(box)
         } yield {
           (entity, HttpCode.`200`(Some(cc)))
         }
@@ -907,7 +917,8 @@ trait APIMethods400 {
       case EntityName(entityName, id) JsonDelete req => { cc =>
         for {
           (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), Some(cc))
-          deleteResult = APIUtil.unboxFullOrFail(box, Some(cc))
+//          deleteResult = APIUtil.unboxFullOrFail(box, Some(cc))
+          deleteResult = unboxResult(box)
         } yield {
           (deleteResult, HttpCode.`200`(Some(cc)))
         }
