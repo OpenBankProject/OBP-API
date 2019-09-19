@@ -73,6 +73,30 @@ case class TransactionRequestWithChargeJSON400(
 case class PostResetPasswordUrlJsonV400(username: String, email: String, user_id: String)
 case class ResetPasswordUrlJsonV400(reset_password_url: String)
 
+case class APIInfoJson400(
+                        version : String,
+                        version_status: String,
+                        git_commit : String,
+                        connector : String,
+                        hosted_by : HostedBy400,
+                        hosted_at : HostedAt400,
+                        energy_source : EnergySource400
+                      )
+case class HostedBy400(
+                     organisation : String,
+                     email : String,
+                     phone : String,
+                     organisation_website: String
+                   )
+case class HostedAt400(
+                     organisation : String,
+                     organisation_website: String
+                   )
+case class EnergySource400(
+                         organisation : String,
+                         organisation_website: String
+                       )
+
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)

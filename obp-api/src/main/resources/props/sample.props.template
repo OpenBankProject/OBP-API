@@ -672,3 +672,9 @@ database_messages_scheduler_interval=3600
 
 # Enable /Disable Create password reset url endpoint
 #ResetPasswordUrlEnabled=false
+
+# Get API Info (root)
+#hosted_at.organisation=
+#hosted_at.organisation_website=
+#energy_source.organisation=
+#energy_source.organisation_website=
