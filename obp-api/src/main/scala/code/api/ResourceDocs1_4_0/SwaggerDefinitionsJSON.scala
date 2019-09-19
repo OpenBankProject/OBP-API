@@ -5,30 +5,27 @@ import java.util.Date
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
-import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalanceV1, AccountBalances, AmountOfMoneyV1, Balances, ClosingBookedBody, CoreAccountJsonV1, CoreAccountsJsonV1, ExpectedBody, TransactionJsonV1, Transactions, TransactionsJsonV1, ViewAccount}
+import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalanceV1, AccountBalances, AmountOfMoneyV1, ClosingBookedBody, ExpectedBody, TransactionJsonV1, TransactionsJsonV1, ViewAccount}
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
-import code.api.util.{ApiTrigger, ExampleValue}
 import code.api.util.ExampleValue._
+import code.api.util.{ApiTrigger, ExampleValue}
 import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson, MessageDocsJson}
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
-import code.api.v3_1_0.{BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v3_0_0.{EmptyElasticSearch, LobbyJsonV330, NewModeratedCoreAccountJsonV300, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
+import code.api.v4_0_0.{APIInfoJson400, EnergySource400, HostedAt400, HostedBy400}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
+import code.consent.ConsentStatus
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
-import code.consent.ConsentStatus
-import code.dynamicEntity.DynamicEntityCommons
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
 import com.openbankproject.commons.model.enums.CardAttributeType
-import com.openbankproject.commons.model.{AccountBalance, GeoTag, UserAuthContextUpdateStatus, ViewBasic, _}
+import com.openbankproject.commons.model.{UserAuthContextUpdateStatus, ViewBasic, _}
 import com.openbankproject.commons.util.ReflectUtils
-import net.liftweb.json
 
 import scala.collection.immutable.List
 
@@ -279,7 +276,6 @@ object SwaggerDefinitionsJSON {
   // code.transactionrequests.TransactionRequests
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
-  import code.transactionrequests.TransactionRequests._
 
   val transactionRequestCharge = TransactionRequestCharge(
     summary = "String",
@@ -451,10 +447,34 @@ object SwaggerDefinitionsJSON {
     email = "String",
     phone = "String",
     organisation_website = "String"
+  )  
+  
+  val hostedBy400 = HostedBy400(
+    organisation = "String",
+    email = "String",
+    phone = "String",
+    organisation_website = "String"
+  )
+  val hostedAt400 = HostedAt400(
+    organisation = "Amazon",
+    organisation_website = "https://aws.amazon.com/"
+  )
+  val energySource400 = EnergySource400(
+    organisation = "Stromio",
+    organisation_website = "https://www.stromio.de/"
   )
 
   val rateLimiting = RateLimiting(true, "REDIS", true, true)
 
+  val apiInfoJson400 = APIInfoJson400(
+    version = "String",
+    version_status = "String",
+    git_commit = "String",
+    connector = "String",
+    hosted_by = hostedBy400,
+    hosted_at = hostedAt400,
+    energy_source = energySource400
+  )
   val apiInfoJSON = APIInfoJSON(
     version = "String",
     version_status = "String",

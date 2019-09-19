@@ -392,6 +392,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations4_0_0.deleteDynamicEntity ::
     Implementations4_0_0.genericEndpoint ::
     Implementations4_0_0.resetPasswordUrl ::
+    Implementations4_0_0.root ::
     Nil
   
   def allResourceDocs = MockerConnector.doc ++
@@ -413,7 +414,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
     Implementations4_0_0.genericEndpoint ::
-    List(Implementations1_2_1.root(version, versionStatus)) ::: // For now we make this mandatory
+      Implementations4_0_0.root :: // For now we make this mandatory
   getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
   getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
   getAllowedEndpoints(endpointsOf1_4_0, Implementations1_4_0.resourceDocs) :::

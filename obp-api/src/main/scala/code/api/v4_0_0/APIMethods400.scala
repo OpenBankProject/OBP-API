@@ -5,7 +5,8 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankNotFound, CounterpartyBeneficiaryPermit, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, InvalidWebUiProps, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
+import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankNotFound, CounterpartyBeneficiaryPermit, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
+import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
@@ -20,15 +21,15 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{app
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.DynamicEntityFieldType
+import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Serialization.write
-import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
-import com.openbankproject.commons.model.enums.DynamicEntityFieldType
-import com.openbankproject.commons.model.enums.DynamicEntityOperation.{CREATE, DELETE, GET_ALL, GET_ONE, UPDATE}
+import net.liftweb.json._
 import net.liftweb.util.StringHelpers
 import org.atteo.evo.inflector.English
-import net.liftweb.json._
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -967,6 +968,68 @@ trait APIMethods400 {
           } yield {
              val resetLink = AuthUser.passwordResetUrl(postedData.username, postedData.email, postedData.user_id) 
             (ResetPasswordUrlJsonV400(resetLink), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    private def getApiInfoJSON() = {
+      val (apiVersion, apiVersionStatus) = (implementedInApiVersion, OBPAPI4_0_0.versionStatus)
+      val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
+      val email = APIUtil.getPropsValue("hosted_by.email", "contact@tesobe.com")
+      val phone = APIUtil.getPropsValue("hosted_by.phone", "+49 (0)30 8145 3994")
+      val organisationWebsite = APIUtil.getPropsValue("organisation_website", "https://www.tesobe.com")
+      val hostedBy = new HostedBy400(organisation, email, phone, organisationWebsite)
+
+      val organisationHostedAt = APIUtil.getPropsValue("hosted_at.organisation", "")
+      val organisationWebsiteHostedAt = APIUtil.getPropsValue("hosted_at.organisation_website", "")
+      val hostedAt = new HostedAt400(organisationHostedAt, organisationWebsiteHostedAt)
+
+      val organisationEnergySource = APIUtil.getPropsValue("energy_source.organisation", "")
+      val organisationWebsiteEnergySource = APIUtil.getPropsValue("energy_source.organisation_website", "")
+      val energySource = new EnergySource400(organisationEnergySource, organisationWebsiteEnergySource)
+
+      val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
+
+      APIInfoJson400(apiVersion.vDottedApiVersion(), apiVersionStatus, gitCommit, connector, hostedBy, hostedAt, energySource)
+    }
+
+
+    resourceDocs += ResourceDoc(
+      root,
+      implementedInApiVersion,
+      "root",
+      "GET",
+      "/root",
+      "Get API Info (root)",
+      """Returns information about:
+        |
+        |* API version
+        |* Hosted by information
+        |* Hosted at information
+        |* Energy source information
+        |* Git Commit""",
+      emptyObjectJson,
+      apiInfoJson400,
+      List(UnknownError, "no connector set"),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagApi :: Nil)
+
+    lazy val root : OBPEndpoint = {
+      case "root" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+          } yield {
+            (getApiInfoJSON(), HttpCode.`200`(callContext))
+          }
+      }
+      case Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+          } yield {
+            (getApiInfoJSON(), HttpCode.`200`(callContext))
           }
       }
     }

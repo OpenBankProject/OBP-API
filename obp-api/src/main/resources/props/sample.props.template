@@ -593,6 +593,8 @@ featured_apis=elasticSearchWarehouseV300
 # user_consumer_limit_anonymous_access=100
 # redis_address=127.0.0.1
 # redis_port=6379
+# In case isn't defined default value is root
+# rate_limiting.exclude_endpoints=root
 # -----------------------------------------------------
 
 # -- Migration Scripts ----------------------------
@@ -672,3 +674,9 @@ database_messages_scheduler_interval=3600
 
 # Enable /Disable Create password reset url endpoint
 #ResetPasswordUrlEnabled=false
+
+# Get API Info (root)
+#hosted_at.organisation=
+#hosted_at.organisation_website=
+#energy_source.organisation=
+#energy_source.organisation_website=
