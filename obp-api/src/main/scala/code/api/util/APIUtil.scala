@@ -2192,7 +2192,12 @@ Returns a string showed to the developer
     */
   def anonymousAccess(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
     getUserAndSessionContextFuture(cc) map {
-      x => underCallLimits(x)
+      result => 
+        val excludeFunctions = getPropsValue("rate_limiting.exclude_endpoints", "root").split(",").toList
+        cc.resourceDocument.map(_.partialFunctionName) match {
+          case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
+          case _ => underCallLimits(result)
+        }
     }
   }
 
