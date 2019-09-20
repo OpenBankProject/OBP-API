@@ -1896,6 +1896,7 @@ Returns a string showed to the developer
     val url = URLDecoder.decode(S.uriAndQueryString.getOrElse(""),"UTF-8")
     val correlationId = getCorrelationId()
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
+    val remoteIpAddress = getRemoteIpAddress()
     val res =
     if (APIUtil.hasConsentId(reqHeaders)) {
       Consent.applyRules(APIUtil.getConsentId(reqHeaders), Some(cc)) 
@@ -1913,7 +1914,7 @@ Returns a string showed to the developer
       DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
     } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
       APIUtil.getPropsValue("gateway.host") match {
-        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
+        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
           val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
           httpCode match {
             case 200 =>
@@ -1939,7 +1940,7 @@ Returns a string showed to the developer
             case _ =>
               Future { (Failure(message), None) }
           }
-        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == false) => // All other addresses will be rejected
+        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == false) => // All other addresses will be rejected
           Future { (Failure(ErrorMessages.GatewayLoginWhiteListAddresses), None) }
         case Empty =>
           Future { (Failure(ErrorMessages.GatewayLoginHostPropertyMissing), None) } // There is no gateway.host in props file
@@ -1968,7 +1969,7 @@ Returns a string showed to the developer
     } map {
       x => (x._1, x._2.map(_.copy(requestHeaders = reqHeaders)))
     } map {
-      x => (x._1, x._2.map(_.copy(ipAddress = getRemoteIpAddress())))
+      x => (x._1, x._2.map(_.copy(ipAddress = remoteIpAddress)))
     }  map {
       x => (x._1, x._2.map(_.copy(httpBody = body.toOption)))
     } 
