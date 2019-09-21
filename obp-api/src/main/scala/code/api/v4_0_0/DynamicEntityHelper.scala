@@ -220,15 +220,7 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
     val fieldNameToType: Map[String, Class[_]] = fieldNameToTypeName
       .mapValues(jsonTypeMap(_))
 
-    val requiredFieldNames: Set[String] = (entity \ "required").asInstanceOf[JArray].arr.map(_.asInstanceOf[JString].s).toSet
-
     val fields = result.obj.filter(it => fieldNameToType.keySet.contains(it.name))
-
-    def check(v: Boolean, msg: String) = if (!v) throw new RuntimeException(msg)
-    // if there are field type are not match the definitions, there must be bug.
-    fields.foreach(it => check(fieldNameToType(it.name).isInstance(it.value), s"""$InvalidJsonFormat "${it.name}" required type is "${fieldNameToTypeName(it.name)}"."""))
-    // if there are required field not presented, must be some bug.
-    requiredFieldNames.foreach(it => check(fields.exists(_.name == it), s"""$InvalidJsonFormat required field "$it" not presented."""))
 
     (id, fields.exists(_.name == idName)) match {
       case (Some(idValue), false) => JObject(JField(idName, JString(idValue)) :: fields)

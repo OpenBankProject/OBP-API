@@ -9242,6 +9242,61 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }
 
   //---------------- dynamic end ---------------------please don't modify this line
+
+  messageDocs += dynamicEntityProcessDoc
+  def dynamicEntityProcessDoc = MessageDoc(
+    process = "obp.dynamicEntityProcess",
+    messageFormat = messageFormat,
+    description = "operate commited dynamic entity data",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundDynamicEntityProcessDoc(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
+        sessionId=Some(sessionIdExample.value),
+        consumerId=Some(consumerIdExample.value),
+        generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
+          value=valueExample.value))),
+        outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
+          username=Some(usernameExample.value),
+          linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
+            customerNumber=customerNumberExample.value,
+            legalName=legalNameExample.value))),
+          userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
+            value=valueExample.value))),
+          authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
+            name=viewNameExample.value,
+            description=viewDescriptionExample.value),
+            account= AccountBasic(id=accountIdExample.value,
+              accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+                address=accountRoutingAddressExample.value)),
+              customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
+                customerId=customerIdExample.value,
+                customerNumber=customerNumberExample.value,
+                legalName=legalNameExample.value,
+                dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
+              userOwners=List( InternalBasicUser(userId=userIdExample.value,
+                emailAddress=emailExample.value,
+                name=usernameExample.value))))))))),
+        operation = DynamicEntityOperation.UPDATE,
+        entityName = "FooBar",
+        requestBody = Some(FooBar(name = "James Brown", number = 1234567890)),
+        entityId = Some("foobar-id-value"))
+      ),
+    exampleInboundMessage = (
+      InBoundDynamicEntityProcessDoc(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
+        sessionId=Some(sessionIdExample.value),
+        generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
+          value=valueExample.value)))),
+        status= Status(errorCode=statusErrorCodeExample.value,
+          backendMessages=List( InboundStatusMessage(source=sourceExample.value,
+            status=inboundStatusMessageStatusExample.value,
+            errorCode=inboundStatusMessageErrorCodeExample.value,
+            text=inboundStatusMessageTextExample.value))),
+        data=FooBar(name = "James Brown", number = 1234567890, fooBarId = Some("foobar-id-value")))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
   override def dynamicEntityProcess(operation: DynamicEntityOperation,
                                     entityName: String,
                                     requestBody: Option[JObject],
@@ -9365,7 +9420,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           val future: Future[Box[Box[T]]] = extractBody(entity) map { msg =>
             tryo {
             val errorMsg = parse(msg).extract[ErrorMessage]
-            val failure: Box[T] = ParamFailure(errorMsg.message, "")
+            val failure: Box[T] = ParamFailure("", APIFailureNewStyle(errorMsg.message, status.intValue()))
             failure
           } ~> APIFailureNewStyle(msg, status.intValue())
         }

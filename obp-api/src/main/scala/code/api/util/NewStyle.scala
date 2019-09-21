@@ -1413,7 +1413,7 @@ object NewStyle {
         case false => {
           val entityNameExists = existsDynamicEntity.isDefined
           // validate whether entityName is exists
-          val errorMsg = s"$DynamicEntityEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
+          val errorMsg = s"$DynamicEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
           Helper.booleanToFuture(errorMsg)(!entityNameExists).map { _ =>
             DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
           }

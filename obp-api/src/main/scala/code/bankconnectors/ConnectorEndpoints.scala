@@ -17,6 +17,7 @@ import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.JNothing
 import org.apache.commons.lang3.StringUtils
 
+import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -55,16 +56,14 @@ object ConnectorEndpoints extends RestHelper{
         val value = invokeMethod(methodSymbol, paramValues :_*)
 
         // convert any to Future[(Box[_], Option[CallContext])]  type
-        val futureValue: Future[(Box[_], Option[CallContext])] = toStandaredFuture(value)
+        val futureValue: Future[(Box[_], Option[CallContext])] = toStandardFuture(value)
 
         for {
-          (Full(data), callContext) <- futureValue.map {it =>
-            APIUtil.fullBoxOrException(it._1 ~> APIFailureNewStyle("", 400, optionCC.map(_.toLight)))
-            it
-          }
+          (boxedData, _) <- futureValue
+          data = APIUtil.fullBoxOrException(boxedData ~> APIFailureNewStyle("", 400, optionCC.map(_.toLight)))
           inboundAdapterCallContext = nameOf(InboundAdapterCallContext)
           //convert first letter to small case
-          inboundAdapterCallContextKey = Character.toLowerCase(inboundAdapterCallContext.charAt(0)) + inboundAdapterCallContext.substring(1)
+          inboundAdapterCallContextKey = StringUtils.uncapitalize(inboundAdapterCallContext)
           inboundAdapterCallContextValue = InboundAdapterCallContext(cc.correlationId)
         } yield {
           // NOTE: if any filed type is BigDecimal, it is can't be serialized by lift json
@@ -184,7 +183,8 @@ object ConnectorEndpoints extends RestHelper{
     mirrorObj.reflectMethod(method).apply(args :_*)
   }
 
-  def toStandaredFuture(obj: Any): Future[(Box[_], Option[CallContext])] = {
+  @tailrec
+  def toStandardFuture(obj: Any): Future[(Box[_], Option[CallContext])] = {
     obj match {
       case null => Future((Empty, None))
       case future: Future[_] => {
@@ -202,10 +202,10 @@ object ConnectorEndpoints extends RestHelper{
       }
       case Full(data) => {
         data match {
-          case _: (_, _) => toStandaredFuture(Future(obj))
+          case _: (_, _) => toStandardFuture(Future(obj))
           case _ => {
             val fillCallContext = obj.asInstanceOf[Box[_]].map((_, None))
-            toStandaredFuture(Future(fillCallContext))
+            toStandardFuture(Future(fillCallContext))
           }
         }
       }
