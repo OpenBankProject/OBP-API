@@ -195,10 +195,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               )
             } yield true
         }
-        val errorMessage = sendingResult map {
-          case f: Failure => f.msg
-          case Empty => ""
-        }
+        val errorMessage = sendingResult.filter(_.isInstanceOf[Failure]).map(_.asInstanceOf[Failure].msg)
+
         if(sendingResult.forall(_ == Full(true))) hashedPassword else (Failure(errorMessage.toSet.mkString(" <- ")), callContext)
       case None => // All versions which precede v4.0.0 i.e. to keep backward compatibility 
         createHashedPassword("123")
