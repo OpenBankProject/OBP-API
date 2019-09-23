@@ -32,7 +32,7 @@ import com.openbankproject.commons.model.enums.DynamicEntityOperation.{CREATE, U
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, Full, ParamFailure}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json
 import net.liftweb.json.{JArray, JBool, JDouble, JInt, JObject, JString, JValue}
@@ -1400,26 +1400,50 @@ object NewStyle {
       }
     }
 
-    def createOrUpdateDynamicEntity(dynamicEntity: DynamicEntityT, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] = {
+    private def createDynamicEntity(dynamicEntity: DynamicEntityT, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] = {
       val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.entityName)
 
-      val isEntityNameNotChange = existsDynamicEntity.isEmpty ||
-        existsDynamicEntity.filter(_.dynamicEntityId == dynamicEntity.dynamicEntityId).isDefined
+      if(existsDynamicEntity.isDefined) {
+        val errorMsg = s"$DynamicEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
+        return Helper.booleanToFuture(errorMsg)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
+      }
 
-       isEntityNameNotChange match {
-        case true => Future {
-          DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
-        }
-        case false => {
-          val entityNameExists = existsDynamicEntity.isDefined
-          // validate whether entityName is exists
-          val errorMsg = s"$DynamicEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
-          Helper.booleanToFuture(errorMsg)(!entityNameExists).map { _ =>
-            DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
-          }
-        }
+      Future {
+        DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
       }
     }
+
+    private def updateDynamicEntity(dynamicEntity: DynamicEntityT, dynamicEntityId: String , callContext: Option[CallContext]): Future[Box[DynamicEntityT]] = {
+      val originEntity = DynamicEntityProvider.connectorMethodProvider.vend.getById(dynamicEntityId)
+      // if can't find by id, return 404 error
+      val idNotExistsMsg = s"$DynamicEntityNotFoundByDynamicEntityId dynamicEntityId = ${dynamicEntity.dynamicEntityId.get}."
+
+      if (originEntity.isEmpty) {
+        return Helper.booleanToFuture(idNotExistsMsg, 404)(originEntity.isDefined).map(_.asInstanceOf[Box[DynamicEntityT]])
+      }
+
+      val originEntityName = originEntity.map(_.entityName).orNull
+      // if entityName changed and the new entityName already exists, return error message
+      if(dynamicEntity.entityName != originEntityName) {
+        val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.entityName)
+
+        if(existsDynamicEntity.isDefined) {
+          val errorMsg = s"$DynamicEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
+          return Helper.booleanToFuture(errorMsg)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
+        }
+      }
+
+      Future {
+        DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
+      }
+
+    }
+
+    def createOrUpdateDynamicEntity(dynamicEntity: DynamicEntityT, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] =
+      dynamicEntity.dynamicEntityId match {
+        case Some(dynamicEntityId) => updateDynamicEntity(dynamicEntity, dynamicEntityId, callContext)
+        case None => createDynamicEntity(dynamicEntity, callContext)
+      }
 
     def deleteDynamicEntity(dynamicEntityId: String): Future[Box[Boolean]] = Future {
       DynamicEntityProvider.connectorMethodProvider.vend.delete(dynamicEntityId)

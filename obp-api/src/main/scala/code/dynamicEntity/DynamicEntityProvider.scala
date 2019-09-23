@@ -112,29 +112,34 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
    * @return object of DynamicEntityCommons
    */
   def apply(jsonObject: JObject, dynamicEntityId: Option[String]): DynamicEntityCommons = {
+
+    def checkFormat(requirement: Boolean, message: String) = {
+      if (!requirement) throw new IllegalArgumentException(message)
+    }
+
     val fields = jsonObject.obj
 
     // validate whether json is object and have a single field, currently support one entity definition
-    require(fields.nonEmpty, s"$InvalidJsonFormat The Json root object should have a single entity, but current have none.")
-    require(fields.size == 1, s"$InvalidJsonFormat The Json root object should have a single entity, but current entityNames: ${fields.map(_.name).mkString(",  ")}")
+    checkFormat(fields.nonEmpty, s"$InvalidJsonFormat The Json root object should have a single entity, but current have none.")
+    checkFormat(fields.size == 1, s"$InvalidJsonFormat The Json root object should have a single entity, but current entityNames: ${fields.map(_.name).mkString(",  ")}")
 
     val JField(entityName, metadataJson) = fields.head
 
     // validate entityName corresponding value is json object
     val metadataStr = compactRender(metadataJson)
-    require(metadataJson.isInstanceOf[JObject], s"$InvalidJsonFormat The $entityName should have an object value, but current value is: $metadataStr")
+    checkFormat(metadataJson.isInstanceOf[JObject], s"$InvalidJsonFormat The $entityName should have an object value, but current value is: $metadataStr")
 
     val required = metadataJson \ "required"
 
     // validate 'required' field exists and is a json array[string]
-    require(required != JNothing , s"$InvalidJsonFormat There must be 'required' field in $entityName, and type is json array[string]")
-    require(required.isInstanceOf[JArray] && required.asInstanceOf[JArray].arr.forall(_.isInstanceOf[JString]), s"$InvalidJsonFormat The 'required' field's type of $entityName should be array[string]")
+    checkFormat(required != JNothing , s"$InvalidJsonFormat There must be 'required' field in $entityName, and type is json array[string]")
+    checkFormat(required.isInstanceOf[JArray] && required.asInstanceOf[JArray].arr.forall(_.isInstanceOf[JString]), s"$InvalidJsonFormat The 'required' field's type of $entityName should be array[string]")
 
     val properties = metadataJson \ "properties"
 
     // validate 'properties' field exists and is json object
-    require(properties != JNothing , s"$InvalidJsonFormat There must be 'required' field in $entityName, and type is array[string]")
-    require(properties.isInstanceOf[JObject], s"$InvalidJsonFormat The 'properties' field's type of $entityName should be json object")
+    checkFormat(properties != JNothing , s"$InvalidJsonFormat There must be 'required' field in $entityName, and type is array[string]")
+    checkFormat(properties.isInstanceOf[JObject], s"$InvalidJsonFormat The 'properties' field's type of $entityName should be json object")
 
     val propertiesObj = properties.asInstanceOf[JObject]
 
@@ -142,23 +147,27 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
 
     val allFields = propertiesObj.obj
 
+    val missingRequiredFields = requiredFields diff allFields.map(_.name)
+
+    checkFormat(missingRequiredFields.isEmpty , s"$InvalidJsonFormat missing properties: ${missingRequiredFields.mkString(", ")}")
+
     // validate there is no required field missing in properties
     val notFoundRequiredField = requiredFields.diff(allFields.map(_.name))
-    require(metadataJson.isInstanceOf[JObject], s"$InvalidJsonFormat In the $entityName, all 'required' fields should be present, these are missing: ${notFoundRequiredField.mkString(", ")}")
+    checkFormat(metadataJson.isInstanceOf[JObject], s"$InvalidJsonFormat In the $entityName, all 'required' fields should be present, these are missing: ${notFoundRequiredField.mkString(", ")}")
 
     // validate all properties have a type and example
     allFields.foreach(field => {
       val JField(fieldName, value) = field
-      require(value.isInstanceOf[JObject], s"$InvalidJsonFormat The property of $fieldName's type should be json object")
+      checkFormat(value.isInstanceOf[JObject], s"$InvalidJsonFormat The property of $fieldName's type should be json object")
 
       // 'type' exists and value should be one of allowed type
       val fieldType = value \ "type"
-      require(fieldType.isInstanceOf[JString] && fieldType.asInstanceOf[JString].s.nonEmpty, s"$InvalidJsonFormat The property of $fieldName's 'type' field should be exists and type is json string")
-      require(allowedFieldType.contains(fieldType.asInstanceOf[JString].s), s"$InvalidJsonFormat The property of $fieldName's 'type' field should be json string and value should be one of: ${allowedFieldType.mkString(", ")}")
+      checkFormat(fieldType.isInstanceOf[JString] && fieldType.asInstanceOf[JString].s.nonEmpty, s"$InvalidJsonFormat The property of $fieldName's 'type' field should be exists and type is json string")
+      checkFormat(allowedFieldType.contains(fieldType.asInstanceOf[JString].s), s"$InvalidJsonFormat The property of $fieldName's 'type' field should be json string and value should be one of: ${allowedFieldType.mkString(", ")}")
 
       // example is exists
       val fieldExample = value \ "example"
-      require(fieldExample != JNothing, s"$InvalidJsonFormat The property of $fieldName's 'example' field should be exists")
+      checkFormat(fieldExample != JNothing, s"$InvalidJsonFormat The property of $fieldName's 'example' field should be exists")
     })
 
     DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId)
