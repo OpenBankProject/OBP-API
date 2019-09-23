@@ -9243,15 +9243,17 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
   //---------------- dynamic end ---------------------please don't modify this line
 
+  private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
+
   messageDocs += dynamicEntityProcessDoc
   def dynamicEntityProcessDoc = MessageDoc(
     process = "obp.dynamicEntityProcess",
     messageFormat = messageFormat,
-    description = "operate commited dynamic entity data",
+    description = s"operate committed dynamic entity data, the available value of 'operation' can be: ${availableOperation}",
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundDynamicEntityProcessDoc(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
+      OutBoundDynamicEntityProcessDoc(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId=correlationIdExample.value,
         sessionId=Some(sessionIdExample.value),
         consumerId=Some(consumerIdExample.value),
         generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
