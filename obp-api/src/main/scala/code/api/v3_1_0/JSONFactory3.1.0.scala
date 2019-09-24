@@ -31,8 +31,8 @@ import java.util.Date
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
-import code.api.util.RateLimitPeriod.LimitCallPeriod
-import code.api.util.{APIUtil, RateLimitPeriod}
+import code.api.util.RateLimitingPeriod.LimitCallPeriod
+import code.api.util.{APIUtil, RateLimitingPeriod}
 import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
 import code.api.v1_2_1.{BankJSON, RateLimiting, UserJSONV121, ViewJSONV121}
 import code.api.v1_3_0.JSONFactory1_3_0._
@@ -750,7 +750,7 @@ object JSONFactory310{
     val redisRateLimit = rateLimits match {
       case Nil => None
       case _   =>
-        def getInfo(period: RateLimitPeriod.Value): Option[RateLimit] = {
+        def getInfo(period: RateLimitingPeriod.Value): Option[RateLimit] = {
           rateLimits.filter(_._2 == period) match {
             case x :: Nil =>
               x._1 match {
@@ -763,12 +763,12 @@ object JSONFactory310{
         }
         Some(
           RedisCallLimitJson(
-            getInfo(RateLimitPeriod.PER_SECOND),
-            getInfo(RateLimitPeriod.PER_MINUTE),
-            getInfo(RateLimitPeriod.PER_HOUR),
-            getInfo(RateLimitPeriod.PER_DAY),
-            getInfo(RateLimitPeriod.PER_WEEK),
-            getInfo(RateLimitPeriod.PER_MONTH)
+            getInfo(RateLimitingPeriod.PER_SECOND),
+            getInfo(RateLimitingPeriod.PER_MINUTE),
+            getInfo(RateLimitingPeriod.PER_HOUR),
+            getInfo(RateLimitingPeriod.PER_DAY),
+            getInfo(RateLimitingPeriod.PER_WEEK),
+            getInfo(RateLimitingPeriod.PER_MONTH)
           )
         )
     }
