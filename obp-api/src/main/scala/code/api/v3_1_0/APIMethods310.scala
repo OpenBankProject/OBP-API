@@ -20,7 +20,6 @@ import code.api.v2_2_0.{CreateAccountJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
-import com.openbankproject.commons.util.ReflectUtils
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.consent.{ConsentStatus, Consents}
@@ -33,7 +32,6 @@ import code.methodrouting.{MethodRouting, MethodRoutingCommons, MethodRoutingPar
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import com.openbankproject.commons.model.Product
 import code.users.Users
 import code.util.Helper
 import code.views.Views
@@ -44,6 +42,7 @@ import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{CreditLimit, Product, _}
+import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.S
 import net.liftweb.http.provider.HTTPParam
@@ -54,7 +53,6 @@ import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 import net.liftweb.util.{Helpers, Mailer}
 import org.apache.commons.lang3.{StringUtils, Validate}
 
-import scala.collection.immutable
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
