@@ -205,6 +205,9 @@ object ApiRole {
 
   case class CanGetConfig(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetConfig = CanGetConfig()
+  
+  case class CanGetCallContext(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetCallContext = CanGetCallContext()
 
   case class CanGetConnectorMetrics(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetConnectorMetrics = CanGetConnectorMetrics()
@@ -440,6 +443,7 @@ object ApiRole {
       canCreateBank ::
       canReadMetrics ::
       canGetConfig ::
+      canGetCallContext ::
       canGetConnectorMetrics ::
       canGetOtherAccountsAtBank ::
       canDeleteEntitlementRequestsAtOneBank ::

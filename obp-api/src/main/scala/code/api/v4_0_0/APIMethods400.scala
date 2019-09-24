@@ -11,6 +11,7 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_1_0._
+import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.ListResult
 import code.dynamicEntity.{DynamicEntityCommons, DynamicEntityDefinition}
 import code.model.dataAccess.AuthUser
@@ -19,6 +20,7 @@ import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.util.Helper
+import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
@@ -1033,6 +1035,39 @@ trait APIMethods400 {
           }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      getCallContext,
+      implementedInApiVersion,
+      nameOf(getCallContext),
+      "GET",
+      "/development/call_context",
+      "Get the Call Context of a current call",
+      s"""Get the Call Context of the current call.
+         |
+         |${authenticationRequiredMessage(true)}
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagApi, apiTagNewStyle),
+      Some(List(canGetCallContext)))
+
+    lazy val getCallContext: OBPEndpoint = {
+      case "development" :: "call_context" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetCallContext, callContext)
+          } yield {
+            (callContext, HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+    
     
 
   }
