@@ -332,13 +332,13 @@ http://localhost:8080/obp/v2.0.0/banks
 
 ## Running the API in Production Mode
 
-We use jetty8 to run the API in production mode.
+We use 9 to run the API in production mode.
 
-1) Install java and jetty8
+1) Install java and jetty9
 
-2) jetty 8 configuration
+2) jetty configuration
 
-* Edit the /etc/default/jetty8 file so that it contains the following settings:
+* Edit the /etc/default/jetty9 file so that it contains the following settings:
 
         NO_START=0
         JETTY_HOST=127.0.0.1 #If you want your application to be accessed from other hosts, change this to your IP address
@@ -355,23 +355,23 @@ We use jetty8 to run the API in production mode.
         db.driver=org.postgresql.Driver
         db.url=jdbc:postgresql://localhost:5432/yourdbname?user=yourdbusername&password=yourpassword
 
-* Now, build the application to generate .war file which will be deployed on jetty8 server:
+* Now, build the application to generate .war file which will be deployed on jetty server:
 
         cd OBP-API/
         mvn package
 
 * This will generate OBP-API-1.0.war under OBP-API/target/
 
-* Copy OBP-API-1.0.war to /usr/share/jetty8/webapps/ directory and rename it to root.war
+* Copy OBP-API-1.0.war to /usr/share/jetty9/webapps/ directory and rename it to root.war
 
-* Edit the /etc/jetty8/jetty.conf file and comment out the lines:
+* Edit the /etc/jetty9/jetty.conf file and comment out the lines:
 
         etc/jetty-logging.xml
         etc/jetty-started.xml
 
-* Now restart jetty8:
+* Now restart jetty9:
 
-        sudo service jetty8 restart
+        sudo service jetty9 restart
 
 * You should now be able to browse to localhost:8080 (or yourIPaddress:8080)
 
