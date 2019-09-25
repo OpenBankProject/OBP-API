@@ -42,9 +42,9 @@ import code.api.oauth1a.OauthParams._
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
-import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
-import code.api.{DirectLogin, util, _}
+import code.api.{DirectLogin, _}
 import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.customer.CustomerX
@@ -52,11 +52,13 @@ import code.entitlement.Entitlement
 import code.metrics._
 import code.model._
 import code.model.dataAccess.AuthUser
+import code.ratelimiting.{RateLimiting, RateLimitingDI}
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{Customer, _}
 import dispatch.url
@@ -1955,8 +1957,51 @@ Returns a string showed to the developer
     else {
       Future { (Empty, None) }
     }
-    // Update Call Context
-    res map {
+    
+    
+
+    /******************************************************************************************************************
+      * This block of code needs to update Call Context with Rate Limiting
+      * Please note that first source is the table RateLimiting and second the table Consumer
+      */
+    def getRateLimiting(consumerId: String): Future[Box[RateLimiting]] = {
+      RateLimitingUtil.useConsumerLimits match {
+        case true => RateLimitingDI.rateLimiting.vend.getByConsumerId(consumerId)
+        case false => Future(Empty)
+      }
+    }
+    val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = for {
+      (user, cc) <- res
+      consumer = cc.flatMap(_.consumer)
+      rateLimiting <- getRateLimiting(consumer.map(_.consumerId.get).getOrElse(""))
+    } yield {
+      val limit: Option[CallLimit] = rateLimiting match {
+        case Full(rl) => Some(CallLimit(
+          rl.consumerId,
+          rl.perSecondCallLimit,
+          rl.perMinuteCallLimit,
+          rl.perHourCallLimit,
+          rl.perDayCallLimit,
+          rl.perWeekCallLimit,
+          rl.perMonthCallLimit))
+        case Empty =>
+          Some(CallLimit(
+            consumer.map(_.consumerId.get).getOrElse(""),
+            consumer.map(_.perSecondCallLimit.get).getOrElse(-1),
+            consumer.map(_.perMinuteCallLimit.get).getOrElse(-1),
+            consumer.map(_.perHourCallLimit.get).getOrElse(-1),
+            consumer.map(_.perDayCallLimit.get).getOrElse(-1),
+            consumer.map(_.perWeekCallLimit.get).getOrElse(-1),
+            consumer.map(_.perMonthCallLimit.get).getOrElse(-1)
+          ))
+        case _ => None 
+      }
+      (user, cc.map(_.copy(rateLimiting = limit)))
+    }
+    /*************************************************************************************************************** */
+
+      // Update Call Context
+    resultWithRateLimiting map {
       x => (x._1, ApiSession.updateCallContext(Spelling(spelling), x._2))
     } map {
       x => (x._1, x._2.map(_.copy(implementedInVersion = implementedInVersion)))

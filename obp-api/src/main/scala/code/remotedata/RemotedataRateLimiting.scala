@@ -12,8 +12,13 @@ import scala.concurrent.Future
 object RemotedataRateLimiting extends ObpActorInit with RateLimitingProviderTrait {
 
   val cc = RemotedataRateLimitingCaseClasses
-  override def getAll(): Future[List[RateLimiting]] = {
+  
+  def getAll(): Future[List[RateLimiting]] = {
     (actor ? cc.getAll()).mapTo[List[RateLimiting]]
+  }
+
+  def getByConsumerId(consumerId: String): Future[Box[RateLimiting]] = {
+    (actor ? cc.getByConsumerId(consumerId)).mapTo[Box[RateLimiting]]
   }
 
   def createOrUpdateConsumerCallLimits(id: String,

@@ -18,6 +18,10 @@ class RemotedataRateLimitingActor extends Actor with ObpActorHelper with MdcLogg
     case cc.getAll() =>
       logger.debug("getAll()")
       mapper.getAll() pipeTo sender
+      
+    case cc.getByConsumerId(consumerId: String) =>
+      logger.debug("getByConsumerId(" + consumerId + ")")
+      mapper.getByConsumerId(consumerId) pipeTo sender
 
     case cc.createOrUpdateConsumerCallLimits(id: String, perSecond: Option[String], perMinute: Option[String], perHour: Option[String], perDay: Option[String], perWeek: Option[String], perMonth: Option[String]) =>
       logger.debug("createOrUpdateConsumerCallLimits(" + id + ", " + perSecond.getOrElse("None")+ ", " + perMinute.getOrElse("None") + ", " + perHour.getOrElse("None") + ", " + perDay.getOrElse("None") + ", " + perWeek.getOrElse("None") + ", " + perMonth.getOrElse("None") + ")")

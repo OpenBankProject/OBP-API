@@ -1,13 +1,12 @@
 package code.api.util
 
-import code.api.{APIFailureNewStyle, util}
+import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.TooManyRequests
-import code.api.util.RateLimitingPeriod.{LimitCallPeriod, PER_DAY, PER_HOUR, PER_MINUTE, PER_MONTH, PER_SECOND, PER_WEEK, PER_YEAR}
-import code.model.Consumer
+import code.api.util.RateLimitingJson.CallLimit
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty}
 import net.liftweb.util.Props
 import redis.clients.jedis.Jedis
 
@@ -55,8 +54,21 @@ object RateLimitingPeriod extends Enumeration {
   }
 }
 
-object RateLimitingUtil extends MdcLoggable {
+object RateLimitingJson {
+  case class CallLimit(
+                  consumer_id : String,
+                  per_second : Long,
+                  per_minute : Long,
+                  per_hour : Long,
+                  per_day : Long,
+                  per_week : Long,
+                  per_month : Long
+                )
+}
 
+object RateLimitingUtil extends MdcLoggable {
+  import code.api.util.RateLimitingPeriod._
+  
   val useConsumerLimits = APIUtil.getPropsAsBoolValue("use_consumer_limits", false)
   val inMemoryMode = APIUtil.getPropsAsBoolValue("use_consumer_limits_in_memory_mode", false)
 
@@ -231,22 +243,15 @@ object RateLimitingUtil extends MdcLoggable {
     def composeMsgAuthorizedAccess(period: LimitCallPeriod, limit: Long): String = TooManyRequests + s" We only allow $limit requests ${RateLimitingPeriod.humanReadable(period)} for this Consumer."
     def composeMsgAnonymousAccess(period: LimitCallPeriod, limit: Long): String = TooManyRequests + s" We only allow $limit requests ${RateLimitingPeriod.humanReadable(period)} for anonymous access."
 
-    def setXRateLimits(c: Consumer, z: (Long, Long), period: LimitCallPeriod): Option[CallContext] = {
+    def setXRateLimits(c: CallLimit, z: (Long, Long), period: LimitCallPeriod): Option[CallContext] = {
       val limit = period match {
-        case PER_SECOND =>
-          c.perSecondCallLimit.get
-        case PER_MINUTE =>
-          c.perMinuteCallLimit.get
-        case PER_HOUR   =>
-          c.perHourCallLimit.get
-        case PER_DAY    =>
-          c.perDayCallLimit.get
-        case PER_WEEK   =>
-          c.perWeekCallLimit.get
-        case PER_MONTH  =>
-          c.perMonthCallLimit.get
-        case PER_YEAR   =>
-          -1
+        case PER_SECOND => c.per_second
+        case PER_MINUTE => c.per_minute
+        case PER_HOUR   => c.per_hour
+        case PER_DAY    => c.per_day
+        case PER_WEEK   => c.per_week
+        case PER_MONTH  => c.per_month
+        case PER_YEAR   => -1
       }
       userAndCallContext._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
         .map(_.copy(`X-Rate-Limit-Reset` = z._1))
@@ -262,23 +267,16 @@ object RateLimitingUtil extends MdcLoggable {
         .map(_.copy(`X-Rate-Limit-Remaining` = limit - z._2))
     }
 
-    def exceededRateLimit(c: Consumer, period: LimitCallPeriod): Option[CallContextLight] = {
-      val remain = ttl(c.key.get, period)
+    def exceededRateLimit(c: CallLimit, period: LimitCallPeriod): Option[CallContextLight] = {
+      val remain = ttl(c.consumer_id, period)
       val limit = period match {
-        case PER_SECOND =>
-          c.perSecondCallLimit.get
-        case PER_MINUTE =>
-          c.perMinuteCallLimit.get
-        case PER_HOUR   =>
-          c.perHourCallLimit.get
-        case PER_DAY    =>
-          c.perDayCallLimit.get
-        case PER_WEEK   =>
-          c.perWeekCallLimit.get
-        case PER_MONTH  =>
-          c.perMonthCallLimit.get
-        case PER_YEAR   =>
-          -1
+        case PER_SECOND => c.per_second
+        case PER_MINUTE => c.per_minute
+        case PER_HOUR   => c.per_hour
+        case PER_DAY    => c.per_day
+        case PER_WEEK   => c.per_week
+        case PER_MONTH  => c.per_month
+        case PER_YEAR   => -1
       }
       userAndCallContext._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
         .map(_.copy(`X-Rate-Limit-Reset` = remain))
@@ -298,56 +296,56 @@ object RateLimitingUtil extends MdcLoggable {
 
     userAndCallContext._2 match {
       case Some(cc) =>
-        cc.consumer match {
-          case Full(c) => // Authorized access
+        cc.rateLimiting match {
+          case Some(rl) => // Authorized access
             val checkLimits = List(
-              underConsumerLimits(c.key.get, PER_SECOND, c.perSecondCallLimit.get),
-              underConsumerLimits(c.key.get, PER_MINUTE, c.perMinuteCallLimit.get),
-              underConsumerLimits(c.key.get, PER_HOUR, c.perHourCallLimit.get),
-              underConsumerLimits(c.key.get, PER_DAY, c.perDayCallLimit.get),
-              underConsumerLimits(c.key.get, PER_WEEK, c.perWeekCallLimit.get),
-              underConsumerLimits(c.key.get, PER_MONTH, c.perMonthCallLimit.get)
+              underConsumerLimits(rl.consumer_id, PER_SECOND, rl.per_second),
+              underConsumerLimits(rl.consumer_id, PER_MINUTE, rl.per_minute),
+              underConsumerLimits(rl.consumer_id, PER_HOUR, rl.per_hour),
+              underConsumerLimits(rl.consumer_id, PER_DAY, rl.per_day),
+              underConsumerLimits(rl.consumer_id, PER_WEEK, rl.per_week),
+              underConsumerLimits(rl.consumer_id, PER_MONTH, rl.per_month)
             )
             checkLimits match {
               case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x1 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_SECOND, c.perSecondCallLimit.get), 429, exceededRateLimit(c, PER_SECOND))), userAndCallContext._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_SECOND, rl.per_second), 429, exceededRateLimit(rl, PER_SECOND))), userAndCallContext._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x2 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_MINUTE, c.perMinuteCallLimit.get), 429, exceededRateLimit(c, PER_MINUTE))), userAndCallContext._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_MINUTE, rl.per_minute), 429, exceededRateLimit(rl, PER_MINUTE))), userAndCallContext._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x3 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_HOUR, c.perHourCallLimit.get), 429, exceededRateLimit(c, PER_HOUR))), userAndCallContext._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_HOUR, rl.per_hour), 429, exceededRateLimit(rl, PER_HOUR))), userAndCallContext._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x4 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_DAY, c.perDayCallLimit.get), 429, exceededRateLimit(c, PER_DAY))), userAndCallContext._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_DAY, rl.per_day), 429, exceededRateLimit(rl, PER_DAY))), userAndCallContext._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x5 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_WEEK, c.perWeekCallLimit.get), 429, exceededRateLimit(c, PER_WEEK))), userAndCallContext._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_WEEK, rl.per_week), 429, exceededRateLimit(rl, PER_WEEK))), userAndCallContext._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x6 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_MONTH, c.perMonthCallLimit.get), 429, exceededRateLimit(c, PER_MONTH))), userAndCallContext._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_MONTH, rl.per_month), 429, exceededRateLimit(rl, PER_MONTH))), userAndCallContext._2)
               case _ =>
                 val incrementCounters = List (
-                  incrementConsumerCounters(c.key.get, PER_SECOND, c.perSecondCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(c.key.get, PER_MINUTE, c.perMinuteCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(c.key.get, PER_HOUR, c.perHourCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(c.key.get, PER_DAY, c.perDayCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(c.key.get, PER_WEEK, c.perWeekCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(c.key.get, PER_MONTH, c.perMonthCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(rl.consumer_id, PER_SECOND, rl.per_second),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(rl.consumer_id, PER_MINUTE, rl.per_minute),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(rl.consumer_id, PER_HOUR, rl.per_hour),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(rl.consumer_id, PER_DAY, rl.per_day),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(rl.consumer_id, PER_WEEK, rl.per_week),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(rl.consumer_id, PER_MONTH, rl.per_month)  // Responses other than the 429 status code MUST be stored by a cache.
                 )
                 incrementCounters match {
                   case first :: _ :: _ :: _ :: _ :: _ :: Nil if first._1 > 0 =>
-                    (userAndCallContext._1, setXRateLimits(c, first, PER_SECOND))
+                    (userAndCallContext._1, setXRateLimits(rl, first, PER_SECOND))
                   case _ :: second :: _ :: _ :: _ :: _ :: Nil if second._1 > 0 =>
-                    (userAndCallContext._1, setXRateLimits(c, second, PER_MINUTE))
+                    (userAndCallContext._1, setXRateLimits(rl, second, PER_MINUTE))
                   case _ :: _ :: third :: _ :: _ :: _ :: Nil if third._1 > 0 =>
-                    (userAndCallContext._1, setXRateLimits(c, third, PER_HOUR))
+                    (userAndCallContext._1, setXRateLimits(rl, third, PER_HOUR))
                   case _ :: _ :: _ :: fourth :: _ :: _ :: Nil if fourth._1 > 0 =>
-                    (userAndCallContext._1, setXRateLimits(c, fourth, PER_DAY))
+                    (userAndCallContext._1, setXRateLimits(rl, fourth, PER_DAY))
                   case _ :: _ :: _ :: _ :: fifth :: _ :: Nil if fifth._1 > 0 =>
-                    (userAndCallContext._1, setXRateLimits(c, fifth, PER_WEEK))
+                    (userAndCallContext._1, setXRateLimits(rl, fifth, PER_WEEK))
                   case _ :: _ :: _ :: _ :: _ :: sixth :: Nil if sixth._1 > 0 =>
-                    (userAndCallContext._1, setXRateLimits(c, sixth, PER_MONTH))
+                    (userAndCallContext._1, setXRateLimits(rl, sixth, PER_MONTH))
                   case _  =>
                     (userAndCallContext._1, userAndCallContext._2)
                 }
             }
-          case Empty => // Anonymous access
+          case None => // Anonymous access
             val consumerId = cc.ipAddress
             val checkLimits = List(
               underConsumerLimits(consumerId, PER_HOUR, perHourLimitAnonymous)
@@ -366,7 +364,6 @@ object RateLimitingUtil extends MdcLoggable {
                     (userAndCallContext._1, userAndCallContext._2)
                 }
             }
-          case _ => (userAndCallContext._1, userAndCallContext._2)
         }
       case _ => (userAndCallContext._1, userAndCallContext._2)
     }

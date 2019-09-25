@@ -32,6 +32,7 @@ import code.methodrouting.{MethodRouting, MethodRoutingCommons, MethodRoutingPar
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
+import code.ratelimiting.RateLimitingDI
 import code.users.Users
 import code.util.Helper
 import code.views.Views
@@ -609,9 +610,9 @@ trait APIMethods310 {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CallLimitPostJson ", 400, callContext) {
               json.extract[CallLimitPostJson]
             }
-            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
-            updatedConsumer <- Consumers.consumers.vend.updateConsumerCallLimits(
-              consumer.id.get,
+            _ <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
+            rateLimiting <- RateLimitingDI.rateLimiting.vend.createOrUpdateConsumerCallLimits(
+              consumerId,
               Some(postJson.per_second_call_limit),
               Some(postJson.per_minute_call_limit),
               Some(postJson.per_hour_call_limit),
@@ -621,7 +622,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, UpdateConsumerError)
             }
           } yield {
-            (createCallLimitJson(updatedConsumer, Nil), HttpCode.`200`(callContext))
+            (createCallsLimitJson(rateLimiting), HttpCode.`200`(callContext))
           }
       }
     }

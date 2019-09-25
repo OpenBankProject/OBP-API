@@ -10,6 +10,14 @@ import scala.concurrent.Future
 
 object MappedRateLimitingProvider extends RateLimitingProviderTrait {
   def getAll(): Future[List[RateLimiting]] = Future(RateLimiting.findAll())
+  def getByConsumerId(consumerId: String): Future[Box[RateLimiting]] = Future {
+    RateLimiting.find(
+      By(RateLimiting.ConsumerId, consumerId),
+      NullRef(RateLimiting.BankId),
+      NullRef(RateLimiting.ApiVersion),
+      NullRef(RateLimiting.ApiName)
+    )
+  }
   def createOrUpdateConsumerCallLimits(consumerId: String,
                                        perSecond: Option[String],
                                        perMinute: Option[String],

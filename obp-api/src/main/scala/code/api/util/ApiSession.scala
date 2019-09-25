@@ -6,6 +6,7 @@ import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.BankAccountNotFound
+import code.api.util.RateLimitingJson.CallLimit
 import code.context.UserAuthContextProvider
 import code.customer.CustomerX
 import code.model.{Consumer, _}
@@ -40,6 +41,7 @@ case class CallContext(
                        httpCode: Option[Int] = None,
                        httpBody: Option[String] = None,
                        requestHeaders: List[HTTPParam] = Nil,
+                       rateLimiting: Option[CallLimit] = None,
                        `X-Rate-Limit-Limit` : Long = -1,
                        `X-Rate-Limit-Remaining` : Long = -1,
                        `X-Rate-Limit-Reset` : Long = -1
