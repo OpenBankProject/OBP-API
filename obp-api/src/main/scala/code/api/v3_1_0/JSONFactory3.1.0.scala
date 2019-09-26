@@ -111,6 +111,8 @@ case class BadLoginStatusJson(
 )
 
 case class CallLimitPostJson(
+                          from_date : Date,
+                          to_date : Date,
                           per_second_call_limit : String,
                           per_minute_call_limit : String,
                           per_hour_call_limit : String,
@@ -128,6 +130,8 @@ case class RedisCallLimitJson(
                           per_month :  Option[RateLimit]
                         )
 case class CallLimitJson(
+                          from_date : Option[Date],
+                          to_date : Option[Date],
                           per_second_call_limit : String,
                           per_minute_call_limit : String,
                           per_hour_call_limit : String,
@@ -775,6 +779,8 @@ object JSONFactory310{
     }
 
     CallLimitJson(
+      None,
+      None,
       consumer.perSecondCallLimit.get.toString,
       consumer.perMinuteCallLimit.get.toString,
       consumer.perHourCallLimit.get.toString,
@@ -787,6 +793,8 @@ object JSONFactory310{
   }
   def createCallsLimitJson(rateLimiting: ratelimiting.RateLimiting) : CallLimitJson = {
     CallLimitJson(
+      Some(rateLimiting.fromDate),
+      Some(rateLimiting.toDate),
       rateLimiting.perSecondCallLimit.toString,
       rateLimiting.perMinuteCallLimit.toString,
       rateLimiting.perHourCallLimit.toString,

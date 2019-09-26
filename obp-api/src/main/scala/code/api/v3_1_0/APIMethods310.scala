@@ -613,6 +613,8 @@ trait APIMethods310 {
             _ <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
             rateLimiting <- RateLimitingDI.rateLimiting.vend.createOrUpdateConsumerCallLimits(
               consumerId,
+              postJson.from_date,
+              postJson.to_date,
               Some(postJson.per_second_call_limit),
               Some(postJson.per_minute_call_limit),
               Some(postJson.per_hour_call_limit),
@@ -665,7 +667,7 @@ trait APIMethods310 {
             (Full(u), callContext) <-  authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canReadCallLimits, callContext)
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
-            rateLimit <- Future(RateLimitingUtil.consumerRateLimitState(consumer.key.get).toList)
+            rateLimit <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId.get).toList)
           } yield {
             (createCallLimitJson(consumer, rateLimit), HttpCode.`200`(callContext))
           }

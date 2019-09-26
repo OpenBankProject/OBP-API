@@ -1,5 +1,7 @@
 package code.ratelimiting
 
+import java.util.Date
+
 import code.util.{MappedUUID, UUIDString}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
@@ -19,6 +21,8 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait {
     )
   }
   def createOrUpdateConsumerCallLimits(consumerId: String,
+                                       fromDate: Date,
+                                       toDate: Date,
                                        perSecond: Option[String],
                                        perMinute: Option[String],
                                        perHour: Option[String],
@@ -28,6 +32,8 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait {
     
     def createRateLimit(c: RateLimiting): Box[RateLimiting] = {
       tryo {
+        c.FromDate(fromDate)
+        c.ToDate(toDate)
         perSecond match {
           case Some(v) => c.PerSecondCallLimit(v.toLong)
           case None =>
@@ -98,6 +104,8 @@ class RateLimiting extends RateLimitingTrait with LongKeyedMapper[RateLimiting] 
   object PerMonthCallLimit extends MappedLong(this) {
     override def defaultValue = -1
   }
+  object FromDate extends MappedDateTime(this)
+  object ToDate extends MappedDateTime(this)
 
   def rateLimitingId: String = RateLimitingId.get
   def apiName: String = ApiName.get
@@ -110,6 +118,8 @@ class RateLimiting extends RateLimitingTrait with LongKeyedMapper[RateLimiting] 
   def perDayCallLimit: Long = PerDayCallLimit.get
   def perWeekCallLimit: Long = PerWeekCallLimit.get
   def perMonthCallLimit: Long = PerMonthCallLimit.get
+  def fromDate: Date = FromDate.get
+  def toDate: Date = ToDate.get
 
 }
 

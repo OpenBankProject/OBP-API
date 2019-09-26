@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_1_0
 
 import code.api.ErrorMessage
+import code.api.util.APIUtil.DateWithDayFormat
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanReadCallLimits, CanSetCallLimits}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
@@ -50,7 +51,12 @@ class RateLimitTest extends V310ServerSetup {
   object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.callsLimit))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getCallsLimit))
 
+  val fromDate = DateWithDayFormat.parse("2019-09-19")
+  val toDate = DateWithDayFormat.parse("2020-09-19")
+
   val callLimitJson1 = CallLimitPostJson(
+    fromDate,
+    toDate,
     per_second_call_limit = "-1",
     per_minute_call_limit = "-1",
     per_hour_call_limit = "-1",
@@ -59,6 +65,8 @@ class RateLimitTest extends V310ServerSetup {
     per_month_call_limit = "-1"
   )
   val callLimitSecondJson = CallLimitPostJson(
+    fromDate,
+    toDate,
     per_second_call_limit = "1",
     per_minute_call_limit = "-1",
     per_hour_call_limit = "-1",
@@ -67,6 +75,8 @@ class RateLimitTest extends V310ServerSetup {
     per_month_call_limit = "-1"
   )
   val callLimitMinuteJson = CallLimitPostJson(
+    fromDate,
+    toDate,
     per_second_call_limit = "-1",
     per_minute_call_limit = "1",
     per_hour_call_limit = "-1",
@@ -75,6 +85,8 @@ class RateLimitTest extends V310ServerSetup {
     per_month_call_limit = "-1"
   )
   val callLimitHourJson = CallLimitPostJson(
+    fromDate,
+    toDate,
     per_second_call_limit = "-1",
     per_minute_call_limit = "-1",
     per_hour_call_limit = "1",
@@ -83,6 +95,8 @@ class RateLimitTest extends V310ServerSetup {
     per_month_call_limit = "-1"
   )
   val callLimitDayJson = CallLimitPostJson(
+    fromDate,
+    toDate,
     per_second_call_limit = "-1",
     per_minute_call_limit = "-1",
     per_hour_call_limit = "-1",
@@ -91,6 +105,8 @@ class RateLimitTest extends V310ServerSetup {
     per_month_call_limit = "-1"
   )
   val callLimitWeekJson = CallLimitPostJson(
+    fromDate,
+    toDate,
     per_second_call_limit = "-1",
     per_minute_call_limit = "-1",
     per_hour_call_limit = "-1",
@@ -99,6 +115,8 @@ class RateLimitTest extends V310ServerSetup {
     per_month_call_limit = "-1"
   )
   val callLimitMonthJson = CallLimitPostJson(
+    fromDate,
+    toDate,
     per_second_call_limit = "-1",
     per_minute_call_limit = "-1",
     per_hour_call_limit = "-1",
