@@ -130,8 +130,6 @@ case class RedisCallLimitJson(
                           per_month :  Option[RateLimit]
                         )
 case class CallLimitJson(
-                          from_date : Option[Date],
-                          to_date : Option[Date],
                           per_second_call_limit : String,
                           per_minute_call_limit : String,
                           per_hour_call_limit : String,
@@ -140,6 +138,18 @@ case class CallLimitJson(
                           per_month_call_limit : String,
                           current_state: Option[RedisCallLimitJson]
                          )
+
+case class CallLimitJson310(
+                             from_date: Date,
+                             to_date: Date,
+                             per_second_call_limit: String,
+                             per_minute_call_limit: String,
+                             per_hour_call_limit: String,
+                             per_day_call_limit: String,
+                             per_week_call_limit: String,
+                             per_month_call_limit: String,
+                             current_state: Option[RedisCallLimitJson]
+                           )
 case class CheckFundsAvailableJson(answer: String,
                                    date: Date,
                                    available_funds_request_id: String)
@@ -779,8 +789,6 @@ object JSONFactory310{
     }
 
     CallLimitJson(
-      None,
-      None,
       consumer.perSecondCallLimit.get.toString,
       consumer.perMinuteCallLimit.get.toString,
       consumer.perHourCallLimit.get.toString,
@@ -791,10 +799,10 @@ object JSONFactory310{
     )
 
   }
-  def createCallsLimitJson(rateLimiting: ratelimiting.RateLimiting) : CallLimitJson = {
-    CallLimitJson(
-      Some(rateLimiting.fromDate),
-      Some(rateLimiting.toDate),
+  def createCallsLimitJson(rateLimiting: ratelimiting.RateLimiting) : CallLimitJson310 = {
+    CallLimitJson310(
+      rateLimiting.fromDate,
+      rateLimiting.toDate,
       rateLimiting.perSecondCallLimit.toString,
       rateLimiting.perMinuteCallLimit.toString,
       rateLimiting.perHourCallLimit.toString,
