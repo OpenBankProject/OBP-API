@@ -350,7 +350,7 @@ trait APIMethods200 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
           } yield {
-            val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
+            val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == BankId(defaultBankId))
             val privateAaccountsForOneBank = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
             val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAaccountsForOneBank, privateViewsUserCanAccessAtOneBank)
             (result, HttpCode.`200`(callContext))
@@ -453,7 +453,7 @@ trait APIMethods200 {
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagKyc, apiTagCustomer),
-      Some(List(canGetKycDocuments))
+      Some(List(canGetAnyKycDocuments))
     )
 
     // TODO Add Role
@@ -463,7 +463,7 @@ trait APIMethods200 {
         cc => {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetKycDocuments, callContext)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyKycDocuments, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (kycDocuments, callContxt) <- NewStyle.function.getKycDocuments(customerId, callContext)
           } yield {
@@ -490,14 +490,14 @@ trait APIMethods200 {
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
     Catalogs(notCore, notPSD2, notOBWG),
     List(apiTagKyc, apiTagCustomer),
-    Some(List(canGetKycMedia)))
+    Some(List(canGetAnyKycMedia)))
 
     lazy val getKycMedia  : OBPEndpoint = {
       case "customers" :: customerId :: "kyc_media" :: Nil JsonGet _ => {
         cc => {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetKycMedia, callContext)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyKycMedia, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (kycMedias, callContxt) <- NewStyle.function.getKycMedias(customerId, callContext)
           } yield {
@@ -523,17 +523,15 @@ trait APIMethods200 {
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagKyc, apiTagCustomer),
-      Some(List(canGetKycChecks))
+      Some(List(canGetAnyKycChecks))
     )
-
-    // TODO Add Role
 
     lazy val getKycChecks  : OBPEndpoint = {
       case "customers" :: customerId :: "kyc_checks" :: Nil JsonGet _ => {
         cc => {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetKycChecks, callContext)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyKycChecks, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (kycChecks, callContxt) <- NewStyle.function.getKycChecks(customerId, callContext)
           } yield {
@@ -558,7 +556,7 @@ trait APIMethods200 {
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagKyc, apiTagCustomer),
-      Some(List(canGetKycStatuses))
+      Some(List(canGetAnyKycStatuses))
     )
 
     lazy val getKycStatuses  : OBPEndpoint = {
@@ -566,7 +564,7 @@ trait APIMethods200 {
         cc => {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetKycStatuses, callContext)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyKycStatuses, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (kycStatuses, callContxt) <- NewStyle.function.getKycStatuses(customerId, callContext)
           } yield {

@@ -440,7 +440,8 @@ object NewStyle {
 
 
     def hasEntitlement(failMsg: String)(bankId: String, userId: String, role: ApiRole): Future[Box[Unit]] = {
-      Helper.booleanToFuture(failMsg + role.toString()) {
+      val errorMessage = if(bankId.nonEmpty) (failMsg + role.toString() + s" for BANK_ID(${bankId})") else failMsg + role.toString()
+      Helper.booleanToFuture(errorMessage) {
         code.api.util.APIUtil.hasEntitlement(bankId, userId, role)
       }
     }

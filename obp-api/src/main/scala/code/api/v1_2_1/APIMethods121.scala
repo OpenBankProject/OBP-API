@@ -1398,7 +1398,7 @@ trait APIMethods121 {
         BankAccountNotFound,
         InvalidJsonFormat,
         NoViewPermission,
-        "the view " + viewId + "does not allow adding more info",
+        "the view " + viewIdSwagger + "does not allow adding more info",
         "More Info cannot be added",
         UnknownError
       ),

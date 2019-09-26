@@ -248,17 +248,17 @@ object SwaggerDefinitionsJSON {
     )
   )
 
-  val transactionTypeId = TransactionTypeId(value = "123")
+  val transactionTypeIdSwagger = TransactionTypeId(value = "123")
 
-  val bankId = BankId(value = "gh.uk.9j")
+  val bankIdSwagger = BankId(value = "gh.uk.9j")
 
-  val transactionRequestId = TransactionRequestId(value = "123")
+  val transactionRequestIdSwagger = TransactionRequestId(value = "123")
 
-  val counterpartyId = CounterpartyId(value = "123")
+  val counterpartyIdSwagger = CounterpartyId(value = "123")
 
-  val accountId = model.AccountId(value = "123")
+  val accountIdSwagger = model.AccountId(value = "123")
 
-  val viewId = ViewId(value = "owner")
+  val viewIdSwagger = ViewId(value = "owner")
 
 
   // from code.TransactionTypes.TransactionType, not from normal version Factory
@@ -267,8 +267,8 @@ object SwaggerDefinitionsJSON {
   import code.TransactionTypes.TransactionType._
 
   val transactionType = TransactionType(
-    id = transactionTypeId,
-    bankId = bankId,
+    id = transactionTypeIdSwagger,
+    bankId = bankIdSwagger,
     shortCode = "80080",
     summary = SANDBOX_TAN.toString,
     description = "This is the sandbox mode, charging litter money.",
@@ -390,7 +390,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val transactionRequest = TransactionRequest(
-    id= transactionRequestId,
+    id= transactionRequestIdSwagger,
     `type`= "String",
     from= transactionRequestAccount,
     body= transactionRequestBodyAllTypes,
@@ -401,11 +401,11 @@ object SwaggerDefinitionsJSON {
     challenge= transactionRequestChallenge,
     charge= transactionRequestCharge,
     charge_policy= "String",
-    counterparty_id= counterpartyId,
+    counterparty_id= counterpartyIdSwagger,
     name= "String",
-    this_bank_id= bankId,
-    this_account_id= accountId,
-    this_view_id= viewId,
+    this_bank_id= bankIdSwagger,
+    this_account_id= accountIdSwagger,
+    this_view_id= viewIdSwagger,
     other_account_routing_scheme= "String",
     other_account_routing_address= "String",
     other_bank_routing_scheme= "String",
@@ -1024,7 +1024,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val transactionRequestJson = TransactionRequestJson(
-    id = transactionRequestId,
+    id = transactionRequestIdSwagger,
     `type` = "String",
     from = transactionRequestAccount,
     details = transactionRequestBodyJson,
@@ -1036,11 +1036,11 @@ object SwaggerDefinitionsJSON {
     challenge = transactionRequestChallenge,
     charge = transactionRequestCharge,
     charge_policy = "String",
-    counterparty_id = counterpartyId,
+    counterparty_id = counterpartyIdSwagger,
     name = "String",
-    this_bank_id = bankId,
-    this_account_id = accountId,
-    this_view_id = viewId,
+    this_bank_id = bankIdSwagger,
+    this_account_id = accountIdSwagger,
+    this_view_id = viewIdSwagger,
     other_account_routing_scheme = "String",
     other_account_routing_address = "String",
     other_bank_routing_scheme = "String",
@@ -1651,7 +1651,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val transactionTypeJsonV200 = TransactionTypeJsonV200(
-    id = transactionTypeId,
+    id = transactionTypeIdSwagger,
     bank_id = bankIdExample.value,
     short_code = "PlaceholderString",
     summary = "PlaceholderString",
@@ -2821,7 +2821,7 @@ object SwaggerDefinitionsJSON {
   )
   
   val transactionInnerJson  = TransactionInnerJson(
-    AccountId = accountId.value,
+    AccountId = accountIdSwagger.value,
     TransactionId  = "123",
     TransactionReference = "Ref 1",
     Amount = amountOfMoneyJsonV121,
