@@ -12,13 +12,41 @@ import scala.concurrent.Future
 
 object MappedRateLimitingProvider extends RateLimitingProviderTrait {
   def getAll(): Future[List[RateLimiting]] = Future(RateLimiting.findAll())
-  def getByConsumerId(consumerId: String): Future[Box[RateLimiting]] = Future {
-    RateLimiting.find(
-      By(RateLimiting.ConsumerId, consumerId),
-      NullRef(RateLimiting.BankId),
-      NullRef(RateLimiting.ApiVersion),
-      NullRef(RateLimiting.ApiName)
-    )
+  def getAllByConsumerId(consumerId: String, date: Option[Date] = None): Future[List[RateLimiting]] = Future {
+    date match {
+      case None =>
+        RateLimiting.findAll(
+          By(RateLimiting.ConsumerId, consumerId)
+        )
+      case Some(date) =>
+        RateLimiting.findAll(
+          By(RateLimiting.ConsumerId, consumerId),
+          By_<(RateLimiting.FromDate, date),
+          By_>(RateLimiting.ToDate, date)
+        )
+    }
+    
+  }
+  def getByConsumerId(consumerId: String, date: Option[Date] = None): Future[Box[RateLimiting]] = Future {
+    date match {
+      case None =>
+        RateLimiting.find(
+          By(RateLimiting.ConsumerId, consumerId),
+          NullRef(RateLimiting.BankId),
+          NullRef(RateLimiting.ApiVersion),
+          NullRef(RateLimiting.ApiName)
+        )
+      case Some(date) =>
+        RateLimiting.find(
+          By(RateLimiting.ConsumerId, consumerId),
+          NullRef(RateLimiting.BankId),
+          NullRef(RateLimiting.ApiVersion),
+          NullRef(RateLimiting.ApiName),
+          By_<(RateLimiting.FromDate, date),
+          By_>(RateLimiting.ToDate, date)
+        )
+    }
+    
   }
   def createOrUpdateConsumerCallLimits(consumerId: String,
                                        fromDate: Date,

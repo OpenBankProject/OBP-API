@@ -21,9 +21,13 @@ class RemotedataRateLimitingActor extends Actor with ObpActorHelper with MdcLogg
       logger.debug("getAll()")
       mapper.getAll() pipeTo sender
       
-    case cc.getByConsumerId(consumerId: String) =>
-      logger.debug("getByConsumerId(" + consumerId + ")")
-      mapper.getByConsumerId(consumerId) pipeTo sender
+    case cc.getAllByConsumerId(consumerId: String, date: Option[Date]) =>
+      logger.debug("getAllByConsumerId(" + consumerId +  ", " +  date + ")")
+      mapper.getAllByConsumerId(consumerId, date) pipeTo sender
+      
+    case cc.getByConsumerId(consumerId: String, date: Option[Date]) =>
+      logger.debug("getByConsumerId(" + consumerId +  ", " +  date + ")")
+      mapper.getByConsumerId(consumerId, date) pipeTo sender
 
     case cc.createOrUpdateConsumerCallLimits(id: String, fromDate: Date, toDate: Date,perSecond: Option[String], perMinute: Option[String], perHour: Option[String], perDay: Option[String], perWeek: Option[String], perMonth: Option[String]) =>
       logger.debug("createOrUpdateConsumerCallLimits(" + id + ", " +  fromDate+ ", " +  toDate + ", "  + perSecond.getOrElse("None") + ", " + perMinute.getOrElse("None") + ", " + perHour.getOrElse("None") + ", " + perDay.getOrElse("None") + ", " + perWeek.getOrElse("None") + ", " + perMonth.getOrElse("None") + ")")

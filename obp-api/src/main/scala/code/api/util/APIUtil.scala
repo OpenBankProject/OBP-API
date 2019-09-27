@@ -1966,7 +1966,7 @@ Returns a string showed to the developer
       */
     def getRateLimiting(consumerId: String): Future[Box[RateLimiting]] = {
       RateLimitingUtil.useConsumerLimits match {
-        case true => RateLimitingDI.rateLimiting.vend.getByConsumerId(consumerId)
+        case true => RateLimitingDI.rateLimiting.vend.getByConsumerId(consumerId, Some(new Date()))
         case false => Future(Empty)
       }
     }
@@ -1978,6 +1978,9 @@ Returns a string showed to the developer
       val limit: Option[CallLimit] = rateLimiting match {
         case Full(rl) => Some(CallLimit(
           rl.consumerId,
+          None,
+          None,
+          None,
           rl.perSecondCallLimit,
           rl.perMinuteCallLimit,
           rl.perHourCallLimit,
@@ -1987,6 +1990,9 @@ Returns a string showed to the developer
         case Empty =>
           Some(CallLimit(
             consumer.map(_.consumerId.get).getOrElse(""),
+            None,
+            None,
+            None,
             consumer.map(_.perSecondCallLimit.get).getOrElse(-1),
             consumer.map(_.perMinuteCallLimit.get).getOrElse(-1),
             consumer.map(_.perHourCallLimit.get).getOrElse(-1),

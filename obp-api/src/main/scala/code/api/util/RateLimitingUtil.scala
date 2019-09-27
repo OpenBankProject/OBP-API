@@ -57,6 +57,9 @@ object RateLimitingPeriod extends Enumeration {
 object RateLimitingJson {
   case class CallLimit(
                   consumer_id : String,
+                  api_name : Option[String],
+                  api_version : Option[String],
+                  bank_id : Option[String],
                   per_second : Long,
                   per_minute : Long,
                   per_hour : Long,
@@ -227,8 +230,6 @@ object RateLimitingUtil extends MdcLoggable {
       Nil
     }
   }
-
-  
 
   /**
     * This function checks rate limiting for a Consumer.

@@ -25,6 +25,11 @@ TESOBE (http://www.tesobe.com/)
 */
 package code.api.v3_1_0
 
+import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
+import java.time.{ZoneId, ZonedDateTime}
+import java.util.{Calendar, Date}
+
 import code.api.ErrorMessage
 import code.api.util.APIUtil.DateWithDayFormat
 import code.api.util.APIUtil.OAuth._
@@ -51,8 +56,12 @@ class RateLimitTest extends V310ServerSetup {
   object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.callsLimit))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getCallsLimit))
 
-  val fromDate = DateWithDayFormat.parse("2019-09-19")
-  val toDate = DateWithDayFormat.parse("2020-09-19")
+  val yesterday = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
+  val tomorrow = ZonedDateTime.now(ZoneId.of("UTC")).plusDays(10)
+  val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
+  
+  val fromDate = Date.from(yesterday.toInstant())
+  val toDate = Date.from(tomorrow.toInstant())
 
   val callLimitJson1 = CallLimitPostJson(
     fromDate,
