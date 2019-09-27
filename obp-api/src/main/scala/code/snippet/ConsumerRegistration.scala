@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.snippet
 
+import code.api.DirectLogin
 import code.api.util.{APIUtil, ErrorMessages}
 import code.consumer.Consumers
 import code.model._
@@ -36,6 +37,8 @@ import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{FieldError, Helpers}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+
+import scala.collection.mutable.ListBuffer
 
 class ConsumerRegistration extends MdcLoggable {
 
@@ -89,6 +92,29 @@ class ConsumerRegistration extends MdcLoggable {
       val urlOAuthEndpoint = APIUtil.getPropsValue("hostname", "") + "/oauth/initiate"
       val urlDirectLoginEndpoint = APIUtil.getPropsValue("hostname", "") + "/my/logins/direct"
       val createDirectLoginToken = getWebUiPropsValue("webui_create_directlogin_token_url", "")
+      val dummyCustomersInfo = getWebUiPropsValue("webui_dummy_customer_logins", "")
+      val isShowDummyCustomerTokens = getWebUiPropsValue("webui_show_dummy_customer_tokens", "false").toBoolean
+      val dummyUsersTokens: String = (isShowDummyCustomerTokens, dummyCustomersInfo) match {
+        case(true, v) if v.nonEmpty => {
+          val regex = """\{"user_name"\s*:\s*"(.+?)".+?"password"\s*:\s*"(.+?)".+?\}""".r
+          val matcher = regex.pattern.matcher(v)
+          val tokens = ListBuffer[String]()
+          while(matcher.find()) {
+            val userName = matcher.group(1)
+            val password = matcher.group(2)
+            val consumerKey = consumer.key.get
+            val (code, token) = DirectLogin.createToken(Map(("username", userName), ("password", password), ("consumer_key", consumerKey)))
+            val authHeader = code match {
+              case 200 => s"""$userName auth header --> Authorization: DirectLogin token="$token""""
+              case _ => s"""$userName - -> username or password is invalid, generate token fail"""
+            }
+            tokens += authHeader
+          }
+          tokens.mkString(""" | """)
+        }
+        case _ => ""
+      }
+
       val registerConsumerSuccessMessageWebpage = getWebUiPropsValue(
         "webui_register_consumer_success_message_webpage", 
         "Thanks for registering your consumer with the Open Bank Project API! Here is your developer information. Please save it in a secure location.")
@@ -111,7 +137,13 @@ class ConsumerRegistration extends MdcLoggable {
       "#directlogin-endpoint a [href]" #> urlDirectLoginEndpoint &
       "#post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
       "#post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl &
-      "#register-consumer-input" #> ""
+      "#register-consumer-input" #> "" & {
+        if(dummyUsersTokens.isEmpty) {
+          ".preparedTokens" #> dummyUsersTokens
+        } else {
+          "#preparedTokens *" #> dummyUsersTokens
+        }
+      }
     }
 
     def showRegistrationResults(result : Consumer) = {
