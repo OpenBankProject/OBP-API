@@ -194,19 +194,18 @@ openssl s_client -connect ip:port
 
 The above section is work in progress.
 
+## Administrator role / SuperUser
 
+In the API's props file, add the ID of your user account to `super_admin_user_ids=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. User Id can be retrieved via the "Get User (Current)" endpoint (e.g. /obp/v4.0.0/users/current) after login or via API Explorer (https://github.com/OpenBankProject/API-Explorer) at `/#OBPv3_0_0-getCurrentUser`.
+
+Super users can give themselves any entitlement, but it is recommended to use this props only for bootstrapping (creating the first admin user). Use this admin user to create further priviledged users by granting them the "CanCreateEntitlementAtAnyBank" role. This, again, can be done via API Explorer (`/#OBPv2_0_0-addEntitlement`, leave `bank_id` empty) or, more conveniently, via API Manager (https://github.com/OpenBankProject/API-Manager).
 
 ## Sandbox data
 
 To populate the OBP database with sandbox data:
 
 1) In the API's props file, set `allow_sandbox_data_import=true`
-
-Probably best then, is to use the API Explorer (https://github.com/OpenBankProject/API-Explorer):
-
-2) Get your `user_id` from the API Explorer at `/#2_0_0-getCurrentUser`
-3) Add this id to `super_admin_user_ids` in the API's props file and restart the API
-4) Go back to API Explorer, log in again and grant your user the role `CanCreateSandbox` at `/#2_0_0-addEntitlement` (make `bank_id` empty)
+2) Grant your user the role `CanCreateSandbox`. See previous section on how to do this
 5) Now post the JSON data using the payload field at `/#2_1_0-sandboxDataImport`
 6) If successful you should see an empty result `{}` and no error message
 
@@ -333,13 +332,13 @@ http://localhost:8080/obp/v2.0.0/banks
 
 ## Running the API in Production Mode
 
-We use jetty8 to run the API in production mode.
+We use 9 to run the API in production mode.
 
-1) Install java and jetty8
+1) Install java and jetty9
 
-2) jetty 8 configuration
+2) jetty configuration
 
-* Edit the /etc/default/jetty8 file so that it contains the following settings:
+* Edit the /etc/default/jetty9 file so that it contains the following settings:
 
         NO_START=0
         JETTY_HOST=127.0.0.1 #If you want your application to be accessed from other hosts, change this to your IP address
@@ -356,23 +355,23 @@ We use jetty8 to run the API in production mode.
         db.driver=org.postgresql.Driver
         db.url=jdbc:postgresql://localhost:5432/yourdbname?user=yourdbusername&password=yourpassword
 
-* Now, build the application to generate .war file which will be deployed on jetty8 server:
+* Now, build the application to generate .war file which will be deployed on jetty server:
 
         cd OBP-API/
         mvn package
 
 * This will generate OBP-API-1.0.war under OBP-API/target/
 
-* Copy OBP-API-1.0.war to /usr/share/jetty8/webapps/ directory and rename it to root.war
+* Copy OBP-API-1.0.war to /usr/share/jetty9/webapps/ directory and rename it to root.war
 
-* Edit the /etc/jetty8/jetty.conf file and comment out the lines:
+* Edit the /etc/jetty9/jetty.conf file and comment out the lines:
 
         etc/jetty-logging.xml
         etc/jetty-started.xml
 
-* Now restart jetty8:
+* Now restart jetty9:
 
-        sudo service jetty8 restart
+        sudo service jetty9 restart
 
 * You should now be able to browse to localhost:8080 (or yourIPaddress:8080)
 

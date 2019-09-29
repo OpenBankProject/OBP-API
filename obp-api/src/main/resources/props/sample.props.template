@@ -423,6 +423,9 @@ webui_dummy_customer_logins = Customer Logins\
                               \
                               Please ask a member of the Open Bank Project team for more logins if you require. You can use this [application](https://sofit.openbankproject.com) which also uses OAuth to browse your transaction data (use the above username/password).\
 
+# when this value is set to true and webui_dummy_customer_logins value not empty, the register consumer key success page will show dummy customers Direct Login tokens.
+webui_show_dummy_customer_tokens=false
+
 # when developer register the consumer successfully, it will show this message to developer on the webpage or email. 
 webui_register_consumer_success_message_webpage = Thanks for registering your consumer with the Open Bank Project API! Here is your developer information. Please save it in a secure location.
 webui_register_consumer_success_message_email = Thank you for registering to use the Open Bank Project API.
@@ -593,6 +596,8 @@ featured_apis=elasticSearchWarehouseV300
 # user_consumer_limit_anonymous_access=100
 # redis_address=127.0.0.1
 # redis_port=6379
+# In case isn't defined default value is root
+# rate_limiting.exclude_endpoints=root
 # -----------------------------------------------------
 
 # -- Migration Scripts ----------------------------
@@ -672,3 +677,9 @@ database_messages_scheduler_interval=3600
 
 # Enable /Disable Create password reset url endpoint
 #ResetPasswordUrlEnabled=false
+
+# Get API Info (root)
+#hosted_at.organisation=
+#hosted_at.organisation_website=
+#energy_source.organisation=
+#energy_source.organisation_website=
