@@ -1,6 +1,5 @@
 package code.api.v4_0_0
 
-import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -13,7 +12,8 @@ import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequest
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.ListResult
-import code.dynamicEntity.{DynamicEntityCommons, DynamicEntityDefinition}
+import code.api.{APIFailureNewStyle, ChargePolicy}
+import code.dynamicEntity.DynamicEntityCommons
 import code.model.dataAccess.AuthUser
 import code.model.toUserExtended
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
@@ -25,9 +25,8 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
-import net.liftweb.common.{Box, Failure, Full}
+import net.liftweb.common.{Box, Full, ParamFailure}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 import net.liftweb.util.StringHelpers
@@ -720,13 +719,6 @@ trait APIMethods400 {
       }
     }
 
-    private def validateDynamicEntityJson(metadataJson: JValue) = {
-      val jFields = metadataJson.asInstanceOf[JObject].obj
-      require(jFields.size == 1, "json format for create or update DynamicEntity is not correct, it should have a single key value for structure definition")
-      val JField(_, definition) = jFields.head
-      definition.extract[DynamicEntityDefinition]
-    }
-
     resourceDocs += ResourceDoc(
       createDynamicEntity,
       implementedInApiVersion,
@@ -763,17 +755,12 @@ trait APIMethods400 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateDynamicEntity, callContext)
-            failMsg = s"$InvalidJsonFormat The Json body should be the same structure as request body example."
-            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              validateDynamicEntityJson(json)
 
-              val JField(entityName, _) = json.asInstanceOf[JObject].obj.head
-              DynamicEntityCommons(entityName, compactRender(json))
-            }
-
-            Full(dynamicEntity) <- NewStyle.function.createOrUpdateDynamicEntity(postedData, callContext)
+            jsonObject = json.asInstanceOf[JObject]
+            dynamicEntity = DynamicEntityCommons(jsonObject, None)
+            Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, callContext)
           } yield {
-            val commonsData: DynamicEntityCommons = dynamicEntity
+            val commonsData: DynamicEntityCommons = result
             (commonsData.jValue, HttpCode.`201`(callContext))
           }
       }
@@ -817,18 +804,11 @@ trait APIMethods400 {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canUpdateDynamicEntity, callContext)
 
-            failMsg = s"$InvalidJsonFormat The Json body should be the same structure as request body example."
-            putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              validateDynamicEntityJson(json)
-              val JField(name, _) = json.asInstanceOf[JObject].obj.head
-              DynamicEntityCommons(name, compactRender(json), Some(dynamicEntityId))
-            }
-
-            (_, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, callContext)
-
-            Full(dynamicEntity) <- NewStyle.function.createOrUpdateDynamicEntity(putData, callContext)
+            jsonObject = json.asInstanceOf[JObject]
+            dynamicEntity = DynamicEntityCommons(jsonObject, Some(dynamicEntityId))
+            Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, callContext)
           } yield {
-            val commonsData: DynamicEntityCommons = dynamicEntity
+            val commonsData: DynamicEntityCommons = result
             (commonsData.jValue, HttpCode.`200`(callContext))
           }
       }
@@ -870,9 +850,11 @@ trait APIMethods400 {
           }
       }
     }
-    private def unboxResult[T](box: Box[T]): T = {
-       if(box.isInstanceOf[Failure]) {
-        throw new Exception(box.asInstanceOf[Failure].msg)
+
+
+    private def unboxResult[T: Manifest](box: Box[T]): T = {
+       if(box.isInstanceOf[ParamFailure[_]]) {
+         fullBoxOrException[T](box)
       }
 
       box.openOrThrowException("impossible error")
@@ -881,9 +863,8 @@ trait APIMethods400 {
       case EntityName(entityName) :: Nil JsonGet req => { cc =>
         val listName = StringHelpers.snakify(English.plural(entityName))
         for {
-          (box: Box[JArray], _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
-//          resultList = APIUtil.unboxFullOrFail(box, Some(cc))
-          resultList = unboxResult(box)
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
+          resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]])
         } yield {
           import net.liftweb.json.JsonDSL._
           val jValue: JObject = listName -> resultList
@@ -892,36 +873,32 @@ trait APIMethods400 {
       }
       case EntityName(entityName, id) JsonGet req => {cc =>
         for {
-          (box: Box[JObject], _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
-//           entity = APIUtil.unboxFullOrFail(box, Some(cc))
-           entity = unboxResult(box)
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
+           entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]])
         } yield {
           (entity, HttpCode.`200`(Some(cc)))
         }
       }
       case EntityName(entityName) :: Nil JsonPost json -> _ => {cc =>
         for {
-          (box: Box[JObject], _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, Some(cc))
-//          entity = APIUtil.unboxFullOrFail(box, Some(cc))
-          entity = unboxResult(box)
+          (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, Some(cc))
+          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]])
         } yield {
           (entity, HttpCode.`201`(Some(cc)))
         }
       }
       case EntityName(entityName, id) JsonPut json -> _ => { cc =>
         for {
-          (box: Box[JObject], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), Some(cc))
-//          entity = APIUtil.unboxFullOrFail(box, Some(cc))
-          entity = unboxResult(box)
+          (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), Some(cc))
+          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]])
         } yield {
           (entity, HttpCode.`200`(Some(cc)))
         }
       }
       case EntityName(entityName, id) JsonDelete req => { cc =>
         for {
-          (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), Some(cc))
-//          deleteResult = APIUtil.unboxFullOrFail(box, Some(cc))
-          deleteResult = unboxResult(box)
+          (box, _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), Some(cc))
+          deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]])
         } yield {
           (deleteResult, HttpCode.`200`(Some(cc)))
         }

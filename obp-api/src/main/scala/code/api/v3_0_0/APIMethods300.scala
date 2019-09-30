@@ -483,7 +483,7 @@ trait APIMethods300 {
       moderatedCoreAccountsJsonV300,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccountFirehose, apiTagAccount, apiTagFirehoseData, apiTagNewStyle),
+      List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
       Some(List(canUseFirehoseAtAnyBank))
     )
 
@@ -550,7 +550,7 @@ trait APIMethods300 {
       transactionsJsonV300,
       List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccountFirehose, apiTagAccount, apiTagFirehoseData, apiTagNewStyle),
+      List(apiTagTransaction, apiTagAccountFirehose, apiTagTransactionFirehose, apiTagFirehoseData, apiTagNewStyle),
       Some(List(canUseFirehoseAtAnyBank)))
 
     lazy val getFirehoseTransactionsForBankAccount : OBPEndpoint = {
@@ -1776,7 +1776,7 @@ trait APIMethods300 {
                 val msg = s"$InvalidJsonFormat The Json body should be the $CreateEntitlementRequestJSON "
                 x => unboxFullOrFail(x, callContext, msg)
               }
-              _ <- Future { if (postedData.bank_id == "") Full() else NewStyle.function.getBank(bankId, callContext)}
+              _ <- Future { if (postedData.bank_id == "") Full() else NewStyle.function.getBank(BankId(postedData.bank_id), callContext)}
               
               _ <- Helper.booleanToFuture(failMsg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")) {
                 availableRoles.exists(_ == postedData.role_name)

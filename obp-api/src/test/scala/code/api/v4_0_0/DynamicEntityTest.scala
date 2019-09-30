@@ -159,6 +159,13 @@ class DynamicEntityTest extends V400ServerSetup {
       val response = makePostRequest(request, write(rightEntity))
       Then("We should get a 201")
       response.code should equal(201)
+
+      { // create duplicated entityName FooBar, cause 400
+        val response400 = makePostRequest(request, write(rightEntity))
+        response400.code should equal(400)
+        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityNameAlreadyExists)
+      }
+
       val responseJson = response.body
       val dynamicEntityId = (responseJson \ "dynamicEntityId").asInstanceOf[JString].s
       val dynamicEntityIdJObject: JObject = "dynamicEntityId" -> dynamicEntityId
@@ -193,11 +200,11 @@ class DynamicEntityTest extends V400ServerSetup {
 
       {
         // update a not exists DynamicEntity
-        val request400 = (v4_0_0_Request / "management" / "dynamic_entities" / "not-exists-id" ).PUT <@(user1)
-        val response400 = makePutRequest(request400, compactRender(updateRequest))
+        val request404 = (v4_0_0_Request / "management" / "dynamic_entities" / "not-exists-id" ).PUT <@(user1)
+        val response404 = makePutRequest(request404, compactRender(updateRequest))
         Then("We should get a 400")
-        response400.code should equal(400)
-        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityNotFoundByDynamicEntityId)
+        response404.code should equal(404)
+        response404.body.extract[ErrorMessage].message should startWith (DynamicEntityNotFoundByDynamicEntityId)
       }
 
       {

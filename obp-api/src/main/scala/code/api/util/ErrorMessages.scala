@@ -36,9 +36,10 @@ object ErrorMessages {
 
   // DynamicEntity Exceptions (OBP-09XXX)
   val DynamicEntityNotFoundByDynamicEntityId = "OBP-09001: DynamicEntity not found. Please specify a valid value for dynamic_entity_id."
-  val DynamicEntityEntityNameAlreadyExists = "OBP-09002: DynamicEntity's entityName already exists. Please specify a different value for entityName."
-  val DynamicEntityEntityNotExists = "OBP-09003: DynamicEntity not exists. Please check entityName."
+  val DynamicEntityNameAlreadyExists = "OBP-09002: DynamicEntity's entityName already exists. Please specify a different value for entityName."
+  val DynamicEntityNotExists = "OBP-09003: DynamicEntity not exists. Please check entityName." 
   val DynamicEntityMissArgument = "OBP-09004: DynamicEntity process related argument is missing."
+  val EntityNotFoundByEntityId = "OBP-09005: Entity not found. Please specify a valid value for entityId."
 
   // General messages (OBP-10XXX)
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."

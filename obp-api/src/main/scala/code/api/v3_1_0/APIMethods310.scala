@@ -470,7 +470,7 @@ trait APIMethods310 {
       transactionsJsonV300,
       List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccountFirehose, apiTagAccount, apiTagFirehoseData, apiTagNewStyle),
+      List(apiTagCustomer, apiTagFirehoseData, apiTagNewStyle),
       Some(List(canUseFirehoseAtAnyBank)))
 
     lazy val getFirehoseCustomers : OBPEndpoint = {
