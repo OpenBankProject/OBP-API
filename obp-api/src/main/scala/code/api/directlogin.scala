@@ -94,42 +94,52 @@ object DirectLogin extends RestHelper with MdcLoggable {
     //Handling get request for a token
     case Req("my" :: "logins" :: "direct" :: Nil,_ , PostRequest) => {
 
-      //Extract the directLogin parameters from the header and test if the request is valid
-      var (httpCode, message, directLoginParameters) = validator("authorizationToken", getHttpMethod)
-
-      if (httpCode == 200) {
-        val userId:Long = (for {id <- getUserId(directLoginParameters)} yield id).getOrElse(0)
-
-        if (userId == 0) {
-          message = ErrorMessages.InvalidLoginCredentials
-          httpCode = 401
-        } else if (userId == AuthUser.usernameLockedStateCode) {
-            message = ErrorMessages.UsernameHasBeenLocked
-            httpCode = 401
-        } else {
-          val jwtPayloadAsJson =
-            """{
-                 "":""
-               }"""
-
-          val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
-          val (token:String, secret:String) = generateTokenAndSecret(jwtClaims)
-
-          //Save the token that we have generated
-          if (saveAuthorizationToken(directLoginParameters, token, secret, userId)) {
-            message = token
-          } else {
-            httpCode = 500
-            message = "invalid"
-          }
-        }
-      }
+      val (httpCode: Int, message: String) = createToken(getAllParameters)
 
       if (httpCode == 200)
         successJsonResponse(Extraction.decompose(JSONFactory.createTokenJSON(message)), 201)
       else
         errorJsonResponse(message, httpCode)
     }
+  }
+
+  /**
+   * according username, password, consumer_key to generate a DirectLogin token
+   * @param allParameters map {"username": "some_username", "password": "some_password", "consumer_key": "some_consumer_key"}
+   * @return httpCode and token value
+   */
+  def createToken(allParameters: Map[String, String]) = {
+    //Extract the directLogin parameters from the header and test if the request is valid
+    var (httpCode, message, directLoginParameters) = validator("authorizationToken", allParameters)
+
+    if (httpCode == 200) {
+      val userId: Long = (for {id <- getUserId(directLoginParameters)} yield id).getOrElse(0)
+
+      if (userId == 0) {
+        message = ErrorMessages.InvalidLoginCredentials
+        httpCode = 401
+      } else if (userId == AuthUser.usernameLockedStateCode) {
+        message = ErrorMessages.UsernameHasBeenLocked
+        httpCode = 401
+      } else {
+        val jwtPayloadAsJson =
+          """{
+                 "":""
+               }"""
+
+        val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
+        val (token: String, secret: String) = generateTokenAndSecret(jwtClaims)
+
+        //Save the token that we have generated
+        if (saveAuthorizationToken(directLoginParameters, token, secret, userId)) {
+          message = token
+        } else {
+          httpCode = 500
+          message = "invalid"
+        }
+      }
+    }
+    (httpCode, message)
   }
 
   def getHttpMethod = S.request match {
@@ -217,7 +227,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
 
 
   //Check if the request (access token or request token) is valid and return a tuple
-  def validator(requestType : String, httpMethod : String) : (Int, String, Map[String,String]) = {
+  def validator(requestType : String, allParameters: Map[String, String] = getAllParameters) : (Int, String, Map[String,String]) = {
 
     def validAccessToken(tokenKey: String) = {
       Tokens.tokens.vend.getTokenByKeyAndType(tokenKey, TokenType.Access) match {
@@ -229,12 +239,10 @@ object DirectLogin extends RestHelper with MdcLoggable {
     var message = ""
     var httpCode: Int = 500
 
-    val parameters = getAllParameters
-
     //are all the necessary directLogin parameters present?
-    val missingParams = missingDirectLoginParameters(parameters, requestType)
+    val missingParams = missingDirectLoginParameters(allParameters, requestType)
     //guard maximum length and content of strings (a-z, 0-9 etc.) for parameters
-    val validParams = validDirectLoginParameters(parameters)
+    val validParams = validDirectLoginParameters(allParameters)
 
     if (missingParams.nonEmpty) {
       message = ErrorMessages.DirectLoginMissingParameters + missingParams.mkString(", ")
@@ -246,18 +254,18 @@ object DirectLogin extends RestHelper with MdcLoggable {
     }
     else if (
       requestType == "protectedResource" &&
-        ! validAccessToken(parameters.getOrElse("token", ""))
+        ! validAccessToken(allParameters.getOrElse("token", ""))
     ) {
-      message = ErrorMessages.DirectLoginInvalidToken + parameters.getOrElse("token", "")
+      message = ErrorMessages.DirectLoginInvalidToken + allParameters.getOrElse("token", "")
       httpCode = 401
     }
     //check if the application is registered and active
     else if (
       requestType == "authorizationToken" &&
         APIUtil.getPropsAsBoolValue("direct_login_consumer_key_mandatory", true) &&
-        ! APIUtil.registeredApplication(parameters.getOrElse("consumer_key", ""))) {
+        ! APIUtil.registeredApplication(allParameters.getOrElse("consumer_key", ""))) {
 
-      logger.error("application: " + parameters.getOrElse("consumer_key", "") + " not found")
+      logger.error("application: " + allParameters.getOrElse("consumer_key", "") + " not found")
       message = ErrorMessages.InvalidConsumerKey
       httpCode = 401
     }
@@ -265,7 +273,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
       httpCode = 200
     if(message.nonEmpty)
       logger.error("error message : " + message)
-    (httpCode, message, parameters)
+    (httpCode, message, allParameters)
   }
 
 
@@ -377,7 +385,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
       case Full(r) => r.request.method
       case _ => "GET"
     }
-    val (httpCode, message, directLoginParameters) = validator("protectedResource", httpMethod)
+    val (httpCode, message, directLoginParameters) = validator("protectedResource")
 
     if (httpCode == 400 || httpCode == 401)
       ParamFailure(message, Empty, Empty, APIFailure(message, httpCode))
@@ -450,7 +458,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
       case _ => "GET"
     }
 
-    val (httpCode, message, directLoginParameters) = validator("protectedResource", httpMethod)
+    val (httpCode, message, directLoginParameters) = validator("protectedResource")
 
     val consumer: Option[Consumer] = for {
       tokenId: String <- directLoginParameters.get("token")

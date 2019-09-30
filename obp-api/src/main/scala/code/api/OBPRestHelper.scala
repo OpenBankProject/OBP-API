@@ -266,7 +266,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           fn(cc.copy(user = Full(u), consumer=consumer))
         }// Authentication is successful
         case _ => {
-          var (httpCode, message, directLoginParameters) = DirectLogin.validator("protectedResource", DirectLogin.getHttpMethod)
+          var (httpCode, message, directLoginParameters) = DirectLogin.validator("protectedResource")
           Full(errorJsonResponse(message, httpCode))
         }
       }

@@ -378,17 +378,17 @@ object ApiRole {
   case class CanAddKycStatus(requiresBankId: Boolean = true) extends ApiRole
   lazy val canAddKycStatus = CanAddKycStatus()
 
-  case class CanGetKycChecks(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canGetKycChecks = CanGetKycChecks()
+  case class CanGetAnyKycChecks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAnyKycChecks = CanGetAnyKycChecks()
 
-  case class CanGetKycDocuments(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canGetKycDocuments = CanGetKycDocuments()
+  case class CanGetAnyKycDocuments(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAnyKycDocuments = CanGetAnyKycDocuments()
 
-  case class CanGetKycMedia(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canGetKycMedia = CanGetKycMedia()
+  case class CanGetAnyKycMedia(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAnyKycMedia = CanGetAnyKycMedia()
 
-  case class CanGetKycStatuses(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canGetKycStatuses = CanGetKycStatuses()
+  case class CanGetAnyKycStatuses(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAnyKycStatuses = CanGetAnyKycStatuses()
   
   private val roles =
       canSearchAllTransactions ::
@@ -508,10 +508,10 @@ object ApiRole {
       canAddKycDocument ::
       canAddKycMedia ::
       canAddKycStatus ::
-      canGetKycChecks ::
-      canGetKycDocuments ::
-      canGetKycMedia ::
-      canGetKycStatuses ::
+      canGetAnyKycChecks ::
+      canGetAnyKycDocuments ::
+      canGetAnyKycMedia ::
+      canGetAnyKycStatuses ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)
