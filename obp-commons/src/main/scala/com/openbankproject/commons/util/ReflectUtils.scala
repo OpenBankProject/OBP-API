@@ -1,6 +1,6 @@
 package com.openbankproject.commons.util
 
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.annotation.tailrec
@@ -10,6 +10,7 @@ import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
 import scala.util.Success
+import net.liftweb.json.JValue
 
 object ReflectUtils {
   private[this] val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -506,9 +507,18 @@ object ReflectUtils {
   def toValueObject(t: Any): Any = {
     t match {
       case null => null
+      case v: JValue => v
+      case Some(v) => toValueObject(v)
+      case Full(v) => toValueObject(v)
+      case None|Empty => null
+      case v: Failure => v
+      case Left(v) => Left(toValueObject(v))
+      case v: Right[_, _] => v.map(toValueObject)
+      case v: Success[_]=> v.map(toValueObject)
+      case scala.util.Failure(v) => v
       case it: Iterable[_] => it.map(toValueObject)
       case array: Array[_] => array.map(toValueObject)
-      case v if(getType(v).typeSymbol.asClass.isCaseClass) => v
+      case v if getType(v).typeSymbol.asClass.isCaseClass => v
       case other => {
         val mirrorObj = mirror.reflect(other)
         mirrorObj.symbol.info.decls
