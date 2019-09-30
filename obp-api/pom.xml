@@ -380,6 +380,12 @@
       <artifactId>javassist</artifactId>
       <version>3.25.0-GA</version>
     </dependency>
+    <!-- Stripe client library. It is a payment gateway. -->
+    <dependency>
+      <groupId>com.stripe</groupId>
+      <artifactId>stripe-java</artifactId>
+      <version>12.1.0</version>
+    </dependency>
 
   </dependencies>
 
