@@ -176,14 +176,6 @@ class WebUI extends MdcLoggable{
     "#api_documentation_content *" #> scala.xml.Unparsed(PegdownOptions.convertPegdownToHtmlTweaked(description()))
   }
 
-  // CreateDirectLoginToken
-  def createDirectLoginToken: CssSel = {
-    getWebUiPropsValue("webui_create_directlogin_token_url", "") match {
-      case "" => ".create-direct-login-token-link " #> scala.xml.Unparsed("")
-      case value => ".create-direct-login-token-link a [href]" #> scala.xml.Unparsed(value)
-    }
-  }
-
   // Points to the documentation. Probably a sandbox specific link is good.
   def apiDocumentationLink: CssSel = {
     ".api-documentation-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_documentation_url", "https://github.com/OpenBankProject/OBP-API/wiki"))
