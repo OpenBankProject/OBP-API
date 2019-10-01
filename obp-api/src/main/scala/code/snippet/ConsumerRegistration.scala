@@ -114,12 +114,12 @@ class ConsumerRegistration extends MdcLoggable {
       "#post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
       "#post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl &
       "#register-consumer-input" #> "" & {
-        val hasDummyCustomers = getWebUiPropsValue("webui_dummy_customer_logins", "").nonEmpty
-        val isShowDummyCustomerTokens = getWebUiPropsValue("webui_show_dummy_customer_tokens", "false").toBoolean
-        if(hasDummyCustomers && isShowDummyCustomerTokens) {
+        val hasDummyUsers = getWebUiPropsValue("webui_dummy_user_logins", "").nonEmpty
+        val isShowDummyUserTokens = getWebUiPropsValue("webui_show_dummy_user_tokens", "false").toBoolean
+        if(hasDummyUsers && isShowDummyUserTokens) {
           "#create-directlogin a [href]" #> s"dummy-consumer-tokens?consumer_key=${consumer.key.get}"
         } else {
-          "#dummy-customer-tokens" #> ""
+          "#dummy-user-tokens" #> ""
         }
       }
     }
@@ -298,10 +298,10 @@ class ConsumerRegistration extends MdcLoggable {
 
   def showDummyCustomerTokens(): CssSel = {
     val consumerKeyBox = S.param("consumer_key")
-    val dummyCustomersInfo = getWebUiPropsValue("webui_dummy_customer_logins", "")
-    val isShowDummyCustomerTokens = getWebUiPropsValue("webui_show_dummy_customer_tokens", "false").toBoolean
+    val dummyUsersInfo = getWebUiPropsValue("webui_dummy_user_logins", "")
+    val isShowDummyUserTokens = getWebUiPropsValue("webui_show_dummy_user_tokens", "false").toBoolean
 
-    val userNameToAuthInfo: Map[String, String] = (isShowDummyCustomerTokens, consumerKeyBox, dummyCustomersInfo) match {
+    val userNameToAuthInfo: Map[String, String] = (isShowDummyUserTokens, consumerKeyBox, dummyUsersInfo) match {
       case(true, Full(consumerKey), dummyCustomers) if dummyCustomers.nonEmpty => {
         val regex = """(?s)\{.*?"user_name"\s*:\s*"(.+?)".+?"password"\s*:\s*"(.+?)".+?\}""".r
         val matcher = regex.pattern.matcher(dummyCustomers)
@@ -333,6 +333,6 @@ class ConsumerRegistration extends MdcLoggable {
             </div>
       }
 
-    "#dummy-customer-tokens ^" #> elements
+    "#dummy-user-tokens ^" #> elements
   }
 }

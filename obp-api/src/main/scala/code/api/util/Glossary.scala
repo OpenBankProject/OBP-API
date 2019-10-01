@@ -1812,7 +1812,7 @@ object Glossary {
 			s"""|
 |The following dummy Customer Logins may be used by developers testing their applications on this sandbox:
 |
-|${getWebUiPropsValue("webui_dummy_customer_logins", "")}
+|${getWebUiPropsValue("webui_dummy_user_logins", "")}
 |
 |
 |
