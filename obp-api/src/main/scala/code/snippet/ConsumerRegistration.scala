@@ -117,7 +117,7 @@ class ConsumerRegistration extends MdcLoggable {
         val hasDummyUsers = getWebUiPropsValue("webui_dummy_user_logins", "").nonEmpty
         val isShowDummyUserTokens = getWebUiPropsValue("webui_show_dummy_user_tokens", "false").toBoolean
         if(hasDummyUsers && isShowDummyUserTokens) {
-          "#create-directlogin a [href]" #> s"dummy-consumer-tokens?consumer_key=${consumer.key.get}"
+          "#create-directlogin a [href]" #> s"dummy-user-tokens?consumer_key=${consumer.key.get}"
         } else {
           "#dummy-user-tokens" #> ""
         }
