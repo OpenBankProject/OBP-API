@@ -404,6 +404,7 @@ class Boot extends MdcLoggable {
           Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
           	submenus(Consumer.menus : _*),
           Menu("Consumer Registration", "Get API Key") / "consumer-registration" >> AuthUser.loginFirst,
+          Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
 
           Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
           // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL

@@ -577,3 +577,9 @@ footer #copyright {
 	font-size: 18px;
 	text-align: center;
 }
+
+/* wrap text, break at any position, no matter where it it word ending*/
+.wrap-text {
+	word-break: break-all;
+	overflow-wrap: break-word;
+}

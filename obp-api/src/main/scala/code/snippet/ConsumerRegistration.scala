@@ -35,10 +35,11 @@ import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{FieldError, Helpers}
+import net.liftweb.util.{CssSel, FieldError, Helpers}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.immutable.ListMap
+
 
 class ConsumerRegistration extends MdcLoggable {
 
@@ -91,29 +92,6 @@ class ConsumerRegistration extends MdcLoggable {
     def showResults(consumer : Consumer) = {
       val urlOAuthEndpoint = APIUtil.getPropsValue("hostname", "") + "/oauth/initiate"
       val urlDirectLoginEndpoint = APIUtil.getPropsValue("hostname", "") + "/my/logins/direct"
-      val createDirectLoginToken = getWebUiPropsValue("webui_create_directlogin_token_url", "")
-      val dummyCustomersInfo = getWebUiPropsValue("webui_dummy_customer_logins", "")
-      val isShowDummyCustomerTokens = getWebUiPropsValue("webui_show_dummy_customer_tokens", "false").toBoolean
-      val dummyUsersTokens: String = (isShowDummyCustomerTokens, dummyCustomersInfo) match {
-        case(true, v) if v.nonEmpty => {
-          val regex = """\{"user_name"\s*:\s*"(.+?)".+?"password"\s*:\s*"(.+?)".+?\}""".r
-          val matcher = regex.pattern.matcher(v)
-          val tokens = ListBuffer[String]()
-          while(matcher.find()) {
-            val userName = matcher.group(1)
-            val password = matcher.group(2)
-            val consumerKey = consumer.key.get
-            val (code, token) = DirectLogin.createToken(Map(("username", userName), ("password", password), ("consumer_key", consumerKey)))
-            val authHeader = code match {
-              case 200 => s"""$userName auth header --> Authorization: DirectLogin token="$token""""
-              case _ => s"""$userName - -> username or password is invalid, generate token fail"""
-            }
-            tokens += authHeader
-          }
-          tokens.mkString(""" | """)
-        }
-        case _ => ""
-      }
 
       val registerConsumerSuccessMessageWebpage = getWebUiPropsValue(
         "webui_register_consumer_success_message_webpage", 
@@ -132,16 +110,16 @@ class ConsumerRegistration extends MdcLoggable {
       "#oauth-endpoint a *" #> urlOAuthEndpoint &
       "#oauth-endpoint a [href]" #> urlOAuthEndpoint &
       "#directlogin-endpoint a *" #> urlDirectLoginEndpoint &
-      "#create-directlogin a *" #> createDirectLoginToken &
-      "#create-directlogin a [href]" #> createDirectLoginToken &
       "#directlogin-endpoint a [href]" #> urlDirectLoginEndpoint &
       "#post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
       "#post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl &
       "#register-consumer-input" #> "" & {
-        if(dummyUsersTokens.isEmpty) {
-          ".preparedTokens" #> dummyUsersTokens
+        val hasDummyUsers = getWebUiPropsValue("webui_dummy_user_logins", "").nonEmpty
+        val isShowDummyUserTokens = getWebUiPropsValue("webui_show_dummy_user_tokens", "false").toBoolean
+        if(hasDummyUsers && isShowDummyUserTokens) {
+          "#create-directlogin a [href]" #> s"dummy-user-tokens?consumer_key=${consumer.key.get}"
         } else {
-          "#preparedTokens *" #> dummyUsersTokens
+          "#dummy-user-tokens" #> ""
         }
       }
     }
@@ -246,7 +224,7 @@ class ConsumerRegistration extends MdcLoggable {
       val directLoginDocumentationUrl = getWebUiPropsValue("webui_direct_login_documentation_url", apiExplorerUrl + "/glossary#Direct-Login")
       val oauthDocumentationUrl = getWebUiPropsValue("webui_oauth_1_documentation_url", apiExplorerUrl + "/glossary#OAuth-1.0a")
       val oauthEndpointUrl = thisApiInstance + "/oauth/initiate"
-      val createDirectLoginTokenUrl = getWebUiPropsValue("webui_create_directlogin_token_url", "")
+
       val directLoginEndpointUrl = thisApiInstance + "/my/logins/direct"
       val registrationMessage = s"Thank you for registering a Consumer on $thisApiInstance. \n" +
         s"Email: ${registered.developerEmail.get} \n" +
@@ -257,7 +235,6 @@ class ConsumerRegistration extends MdcLoggable {
         s"Consumer Secret : ${consumerSecretOrMessage} \n" +
         s"OAuth Endpoint: ${oauthEndpointUrl} \n" +
         s"OAuth Documentation: ${directLoginDocumentationUrl} \n" +
-        s"Get Direct Login Token: ${createDirectLoginTokenUrl} \n" +
         s"Direct Login Endpoint: ${directLoginEndpointUrl} \n" +
         s"Direct Login Documentation: ${oauthDocumentationUrl} \n" +
         s"$registrationMoreInfoText: $registrationMoreInfoUrl"
@@ -319,4 +296,43 @@ class ConsumerRegistration extends MdcLoggable {
 
   }
 
+  def showDummyCustomerTokens(): CssSel = {
+    val consumerKeyBox = S.param("consumer_key")
+    val dummyUsersInfo = getWebUiPropsValue("webui_dummy_user_logins", "")
+    val isShowDummyUserTokens = getWebUiPropsValue("webui_show_dummy_user_tokens", "false").toBoolean
+
+    val userNameToAuthInfo: Map[String, String] = (isShowDummyUserTokens, consumerKeyBox, dummyUsersInfo) match {
+      case(true, Full(consumerKey), dummyCustomers) if dummyCustomers.nonEmpty => {
+        val regex = """(?s)\{.*?"user_name"\s*:\s*"(.+?)".+?"password"\s*:\s*"(.+?)".+?\}""".r
+        val matcher = regex.pattern.matcher(dummyCustomers)
+        var tokens = ListMap[String, String]()
+        while(matcher.find()) {
+          val userName = matcher.group(1)
+          val password = matcher.group(2)
+          val (code, token) = DirectLogin.createToken(Map(("username", userName), ("password", password), ("consumer_key", consumerKey)))
+          val authHeader = code match {
+            case 200 => userName -> s"""Authorization: DirectLogin token="$token""""
+            case _ => userName ->  "username or password is invalid, generate token fail"
+          }
+          tokens += authHeader
+        }
+        tokens
+      }
+      case _ => Map.empty[String, String]
+    }
+
+    val elements = userNameToAuthInfo.map{ pair =>
+        val (userName, authHeader) = pair
+            <div class="row">
+              <div class="col-xs-12 col-sm-4">
+                {userName}
+              </div>
+              <div class="col-xs-12 col-sm-8">
+                {authHeader}
+               </div>
+            </div>
+      }
+
+    "#dummy-user-tokens ^" #> elements
+  }
 }
