@@ -467,7 +467,7 @@ trait APIMethods310 {
          |
          |""".stripMargin,
       emptyObjectJson,
-      transactionsJsonV300,
+      customerJSONs,
       List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagFirehoseData, apiTagNewStyle),
