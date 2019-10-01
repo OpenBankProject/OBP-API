@@ -2691,5 +2691,22 @@ Returns a string showed to the developer
       case _ => Full(StrongCustomerAuthentication.UNDEFINED)
     }
   }
+
+  /**
+    * Given two ranges(like date ranges), do they overlap and if so, how much?
+    *
+    *         A +-----------------+ B
+    *                      C +-------------------+ D
+    *
+    * if NOT ( B <= C or A >= D) then they overlap
+    * Next, do 4 calculations:
+    * B-A, B-C, D-A, D-C
+    * The actual overlap will be the least of these.
+    * 
+    */
+  case class DateInterval(start: Date, end: Date)
+  def dateRangesOverlap(range1: DateInterval, range2: DateInterval): Boolean = {
+    if(range1.end.before(range2.start) || range1.start.after(range2.end)) false else true
+  }
   
 }
