@@ -40,8 +40,8 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 import code.api.v2_0_0.AccountsHelper._
+import net.liftweb.json.JsonAST.JField
 
 
 trait APIMethods300 {
@@ -747,6 +747,18 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
               esw.isEnabled()
             }
+
+            //This is for performance issue, we can not support query more than 10000 records in one call. 
+            // If it contains the size and if it over 10000, we will throw the error back.
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.","Please check query body, the maximum size is 10000.")) {
+              // find all the size field.
+              val allSizeFields = json filterField {
+                case JField(key, _) => key.equals("size")
+              }
+              //loop all the items and if find any value is over 10000, then throw the proper error !
+              allSizeFields.map(_.value.values.toString.toInt).find(_ > 10000).isEmpty
+            }
+            
             indexPart <- Future { esw.getElasticSearchUri(index) } map {
               x => unboxFullOrFail(x, callContext, ElasticSearchIndexNotFound)
             }
@@ -816,6 +828,18 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
               esw.isEnabled()
             }
+            
+            //This is for performance issue, we can not support query more than 10000 records in one call. 
+            // If it contains the size and if it over 10000, we will throw the error back.
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.","Please check query body, the maximum size is 10000.")) {
+              // find all the size field.
+              val allSizeFields = json filterField {
+                case JField(key, _) => key.equals("size")
+              }
+              //loop all the items and if find any value is over 10000, then throw the proper error !
+              allSizeFields.map(_.value.values.toString.toInt).find(_ > 10000).isEmpty
+            }
+            
             indexPart <- Future { esw.getElasticSearchUri(index) } map {
               x => unboxFullOrFail(x, callContext, ElasticSearchIndexNotFound)
             }
@@ -824,7 +848,7 @@ trait APIMethods300 {
             }
             result <- esw.searchProxyStatsAsyncV300(u.userId, indexPart, bodyPart, field)
           } yield {
-            (esw.parseResponse(result), HttpCode.`201`(callContext))
+            (esw.parseResponse(result, true), HttpCode.`201`(callContext))
           }
       }
     }
