@@ -161,7 +161,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           //now in V300 Implementations2_0_0.getCoreAccountById ::
                           //now in V300 Implementations2_0_0.getCoreTransactionsForBankAccount ::
                           // Implementations2_0_0.getCurrentUser ::
-                          Implementations2_0_0.getEntitlements ::
+                          // Implementations2_0_0.getEntitlements ::
                           Implementations2_0_0.getKycChecks ::
                           Implementations2_0_0.getKycDocuments ::
                           Implementations2_0_0.getKycMedia ::
@@ -394,6 +394,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations4_0_0.resetPasswordUrl ::
     Implementations4_0_0.root ::
     Implementations4_0_0.getCallContext ::
+    Implementations4_0_0.getEntitlements ::
     Nil
   
   def allResourceDocs = MockerConnector.doc ++

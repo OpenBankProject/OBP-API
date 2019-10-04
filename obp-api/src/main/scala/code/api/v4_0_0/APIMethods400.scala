@@ -9,8 +9,8 @@ import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntit
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
+import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
-import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.ListResult
 import code.api.{APIFailureNewStyle, ChargePolicy}
 import code.dynamicEntity.DynamicEntityCommons
@@ -20,7 +20,6 @@ import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.util.Helper
-import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
@@ -36,6 +35,10 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
+import code.api.v3_0_0.JSONFactory300
+import code.entitlement.Entitlement
+import code.views.Views
 
 trait APIMethods400 {
   self: RestHelper =>
@@ -992,7 +995,7 @@ trait APIMethods400 {
       apiInfoJson400,
       List(UnknownError, "no connector set"),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagApi :: Nil)
+      apiTagApi :: apiTagNewStyle :: Nil)
 
     lazy val root : OBPEndpoint = {
       case "root" :: Nil JsonGet _ => {
@@ -1044,8 +1047,48 @@ trait APIMethods400 {
         }
       }
     }
-    
-    
+
+    resourceDocs += ResourceDoc(
+      getEntitlements,
+      implementedInApiVersion,
+      "getEntitlements",
+      "GET",
+      "/users/USER_ID/entitlements",
+      "Get Entitlements for User",
+      s"""
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      entitlementJSONs,
+      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
+      Some(List(canGetEntitlementsForAnyUserAtAnyBank)))
+
+
+    lazy val getEntitlements: OBPEndpoint = {
+      case "users" :: userId :: "entitlements" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetEntitlementsForAnyUserAtAnyBank, callContext)
+            entitlements <- NewStyle.function.getEntitlementsByUserId(userId, callContext)
+          } yield {
+            var json = EntitlementJSONs(Nil)
+            // Format the data as V2.0.0 json
+            if (isSuperAdmin(userId)) {
+              // If the user is SuperAdmin add it to the list
+              json = EntitlementJSONs(JSONFactory200.createEntitlementJSONs(entitlements).list:::List(EntitlementJSON("", "SuperAdmin", "")))
+            } else {
+              json = JSONFactory200.createEntitlementJSONs(entitlements)
+            }
+            (json, HttpCode.`200`(callContext))
+          }
+      }
+    }
 
   }
 

@@ -298,6 +298,12 @@ class ConsumerRegistration extends MdcLoggable {
 
   def showDummyCustomerTokens(): CssSel = {
     val consumerKeyBox = S.param("consumer_key")
+    // The following will check the login user and the user from the consumerkey. we do not want to share consumerkey to others.
+    val loginUserId = AuthUser.getCurrentUser.map(_.userId).openOr("")
+    val userCreatedByUserId = consumerKeyBox.map(Consumers.consumers.vend.getConsumerByConsumerKey(_)).flatten.map(_.createdByUserId.get).openOr("")
+    if(!loginUserId.equals(userCreatedByUserId)) 
+      return "#dummy-user-tokens ^" #> "The consumer key in the URL is not created by the current login user, please create consumer for this user first!"
+    
     val dummyUsersInfo = getWebUiPropsValue("webui_dummy_user_logins", "")
     val isShowDummyUserTokens = getWebUiPropsValue("webui_show_dummy_user_tokens", "false").toBoolean
 
