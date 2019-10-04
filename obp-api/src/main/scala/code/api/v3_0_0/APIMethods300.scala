@@ -848,7 +848,7 @@ trait APIMethods300 {
             }
             result <- esw.searchProxyStatsAsyncV300(u.userId, indexPart, bodyPart, field)
           } yield {
-            (esw.parseResponse(result), HttpCode.`201`(callContext))
+            (esw.parseResponse(result, true), HttpCode.`201`(callContext))
           }
       }
     }
