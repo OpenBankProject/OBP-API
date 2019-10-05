@@ -747,16 +747,16 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
               esw.isEnabled()
             }
-
-            //This is for performance issue, we can not support query more than 10000 records in one call. 
-            // If it contains the size and if it over 10000, we will throw the error back.
-            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.","Please check query body, the maximum size is 10000.")) {
+            maximumSize = APIUtil.getPropsAsIntValue("es.warehouse.allowed.maximum.size", 10000)
+            //This is for performance issue, we can not support query more than maximumSize records in one call. 
+            // If it contains the size and if it over maximumSize, we will throw the error back.
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.",s"Please check query body, the maximum size is $maximumSize.")) {
               // find all the size field.
               val allSizeFields = json filterField {
                 case JField(key, _) => key.equals("size")
               }
-              //loop all the items and if find any value is over 10000, then throw the proper error !
-              allSizeFields.map(_.value.values.toString.toInt).find(_ > 10000).isEmpty
+              //loop all the items and if find any value is over maximumSize, then throw the proper error !
+              allSizeFields.map(_.value.values.toString.toInt).find(_ > maximumSize).isEmpty
             }
             
             indexPart <- Future { esw.getElasticSearchUri(index) } map {
@@ -828,16 +828,16 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
               esw.isEnabled()
             }
-            
-            //This is for performance issue, we can not support query more than 10000 records in one call. 
-            // If it contains the size and if it over 10000, we will throw the error back.
-            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.","Please check query body, the maximum size is 10000.")) {
+            maximumSize = APIUtil.getPropsAsIntValue("es.warehouse.allowed.maximum.size", 10000)
+            //This is for performance issue, we can not support query more than maximumSize records in one call. 
+            // If it contains the size and if it over maximumSize, we will throw the error back.
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.",s"Please check query body, the maximum size is $maximumSize.")) {
               // find all the size field.
               val allSizeFields = json filterField {
                 case JField(key, _) => key.equals("size")
               }
-              //loop all the items and if find any value is over 10000, then throw the proper error !
-              allSizeFields.map(_.value.values.toString.toInt).find(_ > 10000).isEmpty
+              //loop all the items and if find any value is over maximumSize, then throw the proper error !
+              allSizeFields.map(_.value.values.toString.toInt).find(_ > maximumSize).isEmpty
             }
             
             indexPart <- Future { esw.getElasticSearchUri(index) } map {

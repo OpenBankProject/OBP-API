@@ -90,8 +90,6 @@ class elasticsearch extends MdcLoggable {
       val response = getAPIResponseAsync(request)
       logger.info (s"searchProxyAsyncV300 says response follows:")
 
-      // TODO Extract code and hits from response and log that.
-
     response foreach {
       msg => logger.info(msg.body)
     }
