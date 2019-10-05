@@ -1322,8 +1322,10 @@ trait APIMethods300 {
             }
             (_, callContext)<- NewStyle.function.getBank(bankId, callContext)
             (branches, callContext) <- Connector.connector.vend.getBranches(bankId, callContext) map {
-              case Full((List(), _)) | Empty =>
+              case Empty =>
                 fullBoxOrException(Empty ?~! BranchesNotFound)
+              case Full((List(), callContext)) =>
+                Full(List())
               case Full((list, callContext)) =>
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! branchesNotFoundLicense)
