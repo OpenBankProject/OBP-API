@@ -1,6 +1,11 @@
 package com.openbankproject.commons.model.enums
 
 import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
+import net.liftweb.json.{JArray, JBool, JDouble, JInt, JObject, JValue}
+import net.liftweb.json.JsonAST.JString
+
+import scala.reflect.ClassTag
+import scala.reflect.runtime.universe._
 
 sealed trait AccountAttributeType extends EnumValue
 object AccountAttributeType extends OBPEnumeration[AccountAttributeType]{
@@ -46,14 +51,17 @@ object PemCertificateRole extends OBPEnumeration[PemCertificateRole] {
 }
 //------api enumerations end ----
 
-sealed trait DynamicEntityFieldType extends EnumValue
+sealed trait DynamicEntityFieldType extends EnumValue {
+  val jValueType: Class[_]
+  def isJValueValid(jValue: JValue): Boolean = jValueType.isInstance(jValue)
+}
 object DynamicEntityFieldType extends OBPEnumeration[DynamicEntityFieldType]{
- object string  extends Value
- object number extends Value
- object integer extends Value
- object boolean extends Value
-// object array extends Value
-// object `object` extends Value //TODO in the future, we consider support nested type
+ object string  extends Value{val jValueType = classOf[JString]}
+ object number  extends Value{val jValueType = classOf[JDouble]}
+ object integer extends Value{val jValueType = classOf[JInt]}
+ object boolean extends Value{val jValueType = classOf[JBool]}
+ //object array extends Value{val jValueType = classOf[JArray]}
+ //object `object` extends Value{val jValueType = classOf[JObject]} //TODO in the future, we consider support nested type
 }
 
 /**

@@ -2,7 +2,7 @@ package code.api.util
 
 
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
-import code.dynamicEntity.{DynamicEntityDefinition, DynamicEntityFooBar, DynamicEntityFullBarFields, DynamicEntityTypeExample}
+import code.dynamicEntity.{DynamicEntityDefinition, DynamicEntityFooBar, DynamicEntityFullBarFields, DynamicEntityIntTypeExample, DynamicEntityStringTypeExample}
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 
 case class ConnectorField(value: String, description: String) {
@@ -311,8 +311,8 @@ object ExampleValue {
     DynamicEntityDefinition(
       List("name"),
       DynamicEntityFullBarFields(
-        DynamicEntityTypeExample(DynamicEntityFieldType.string, "James Brown"),
-        DynamicEntityTypeExample(DynamicEntityFieldType.integer, "698761728934")
+        DynamicEntityStringTypeExample(DynamicEntityFieldType.string, "James Brown"),
+        DynamicEntityIntTypeExample(DynamicEntityFieldType.integer, 698761728)
       )
     )
   )
