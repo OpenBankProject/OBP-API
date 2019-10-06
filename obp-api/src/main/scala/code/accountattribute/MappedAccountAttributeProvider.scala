@@ -46,7 +46,9 @@ object MappedAccountAttributeProvider extends AccountAttributeProvider {
       case Some(id) => Future {
         MappedAccountAttribute.find(By(MappedAccountAttribute.mAccountAttributeId, id)) match {
             case Full(attribute) => tryo {
-              attribute.mAccountId(accountId.value)
+              attribute
+                .mBankIdId(bankId.value)
+                .mAccountId(accountId.value)
                 .mCode(productCode.value)
                 .mName(name)
                 .mType(attributeType.toString)
@@ -59,6 +61,7 @@ object MappedAccountAttributeProvider extends AccountAttributeProvider {
       case None => Future {
         Full {
           MappedAccountAttribute.create
+            .mBankIdId(bankId.value)
             .mAccountId(accountId.value)
             .mCode(productCode.value)
             .mName(name)
