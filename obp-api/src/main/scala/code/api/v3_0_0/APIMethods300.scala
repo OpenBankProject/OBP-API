@@ -1450,8 +1450,10 @@ trait APIMethods300 {
             }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (atms, callContext) <- Connector.connector.vend.getAtms(bankId, callContext) map {
-              case Full((List(),_)) | Empty =>
+              case Empty =>
                 fullBoxOrException(Empty ?~! atmsNotFound)
+              case Full((List(), callContext)) =>
+                Full(List())
               case Full((list, _)) =>
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
