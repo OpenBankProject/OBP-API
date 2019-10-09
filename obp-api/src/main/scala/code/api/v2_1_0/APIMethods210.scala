@@ -1464,12 +1464,12 @@ trait APIMethods210 {
       "GET",
       "/banks/BANK_ID/customers",
       "Get Customers for current User at Bank",
-      s"""Retuns a list of Customers at the Bank that are linked to the currently authenticated User.
+      s"""Returns a list of Customers at the Bank that are linked to the currently authenticated User.
         |
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      customerJsonV210,
+      customerJSONs,
       List(
         UserNotLoggedIn,
         BankNotFound,
