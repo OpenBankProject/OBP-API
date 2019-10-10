@@ -66,7 +66,7 @@ class DynamicEntityTest extends V400ServerSetup {
       |            },
       |            "number": {
       |                "type": "integer",
-      |                "example": "698761728934"
+      |                "example": 69876172
       |            }
       |        }
       |    }
@@ -87,7 +87,7 @@ class DynamicEntityTest extends V400ServerSetup {
       |           },
       |           "number": {
       |               "type": "integer",
-      |               "example": "698761728934"
+      |               "example": 69876172
       |           }
       |       }
       |   }

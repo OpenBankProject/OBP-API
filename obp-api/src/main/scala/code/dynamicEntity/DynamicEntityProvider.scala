@@ -168,19 +168,15 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       // example is exists
       val fieldExample = value \ "example"
       checkFormat(fieldExample != JNothing, s"$InvalidJsonFormat The property of $fieldName's 'example' field should be exists")
+      // example type is correct
+      val dEntityFieldType: DynamicEntityFieldType = DynamicEntityFieldType.withName(fieldType.asInstanceOf[JString].s)
+      checkFormat(dEntityFieldType.isJValueValid(fieldExample), s"$InvalidJsonFormat The property of $fieldName's 'example' field should be type $dEntityFieldType")
     })
 
     DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId)
   }
 
-  private val allowedFieldType: Set[String] = Set(
-      "string",
-      "number",
-      "integer",
-      "boolean",
-      "array",
-//      "object",
-  )
+  private val allowedFieldType: Set[String] = DynamicEntityFieldType.values.map(_.toString).toSet
 }
 
 /**
@@ -189,8 +185,9 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
  */
 case class DynamicEntityFooBar(FooBar: DynamicEntityDefinition, dynamicEntityId: Option[String] = None)
 case class DynamicEntityDefinition(required: List[String],properties: DynamicEntityFullBarFields)
-case class DynamicEntityFullBarFields(name: DynamicEntityTypeExample, number: DynamicEntityTypeExample)
-case class DynamicEntityTypeExample(`type`: DynamicEntityFieldType, example: String)
+case class DynamicEntityFullBarFields(name: DynamicEntityStringTypeExample, number: DynamicEntityIntTypeExample)
+case class DynamicEntityStringTypeExample(`type`: DynamicEntityFieldType, example: String)
+case class DynamicEntityIntTypeExample(`type`: DynamicEntityFieldType, example: Int)
 //-------------------example case class end
 
 
