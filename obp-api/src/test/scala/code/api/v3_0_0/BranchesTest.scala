@@ -332,10 +332,10 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
       When("We make a request v3.0.0")
       val request300 = (v3_0Request / "banks" / BankWithoutBranches.value / "branches").GET <@(user1)
       val response300 = makeGetRequest(request300)
-      Then("We should get a 400 and correct response json format")
-      response300.code should equal(400)
-      response300.body.extract[BranchesJsonV300]
-      response300.body.extract[ErrorMessage].message should include (ErrorMessages.BranchesNotFound)
+      Then("We should get a 200 and correct response json format")
+      response300.code should equal(200)
+      val result = response300.body.extract[BranchesJsonV300]
+      result.branches.size should be (0)
     }
 
 
