@@ -747,16 +747,16 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
               esw.isEnabled()
             }
-
-            //This is for performance issue, we can not support query more than 10000 records in one call. 
-            // If it contains the size and if it over 10000, we will throw the error back.
-            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.","Please check query body, the maximum size is 10000.")) {
+            maximumSize = APIUtil.getPropsAsIntValue("es.warehouse.allowed.maximum.size", 10000)
+            //This is for performance issue, we can not support query more than maximumSize records in one call. 
+            // If it contains the size and if it over maximumSize, we will throw the error back.
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.",s"Please check query body, the maximum size is $maximumSize.")) {
               // find all the size field.
               val allSizeFields = json filterField {
                 case JField(key, _) => key.equals("size")
               }
-              //loop all the items and if find any value is over 10000, then throw the proper error !
-              allSizeFields.map(_.value.values.toString.toInt).find(_ > 10000).isEmpty
+              //loop all the items and if find any value is over maximumSize, then throw the proper error !
+              allSizeFields.map(_.value.values.toString.toInt).find(_ > maximumSize).isEmpty
             }
             
             indexPart <- Future { esw.getElasticSearchUri(index) } map {
@@ -828,16 +828,16 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
               esw.isEnabled()
             }
-            
-            //This is for performance issue, we can not support query more than 10000 records in one call. 
-            // If it contains the size and if it over 10000, we will throw the error back.
-            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.","Please check query body, the maximum size is 10000.")) {
+            maximumSize = APIUtil.getPropsAsIntValue("es.warehouse.allowed.maximum.size", 10000)
+            //This is for performance issue, we can not support query more than maximumSize records in one call. 
+            // If it contains the size and if it over maximumSize, we will throw the error back.
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.",s"Please check query body, the maximum size is $maximumSize.")) {
               // find all the size field.
               val allSizeFields = json filterField {
                 case JField(key, _) => key.equals("size")
               }
-              //loop all the items and if find any value is over 10000, then throw the proper error !
-              allSizeFields.map(_.value.values.toString.toInt).find(_ > 10000).isEmpty
+              //loop all the items and if find any value is over maximumSize, then throw the proper error !
+              allSizeFields.map(_.value.values.toString.toInt).find(_ > maximumSize).isEmpty
             }
             
             indexPart <- Future { esw.getElasticSearchUri(index) } map {
@@ -1322,8 +1322,10 @@ trait APIMethods300 {
             }
             (_, callContext)<- NewStyle.function.getBank(bankId, callContext)
             (branches, callContext) <- Connector.connector.vend.getBranches(bankId, callContext) map {
-              case Full((List(), _)) | Empty =>
+              case Empty =>
                 fullBoxOrException(Empty ?~! BranchesNotFound)
+              case Full((List(), callContext)) =>
+                Full(List())
               case Full((list, callContext)) =>
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! branchesNotFoundLicense)
@@ -1448,8 +1450,10 @@ trait APIMethods300 {
             }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (atms, callContext) <- Connector.connector.vend.getAtms(bankId, callContext) map {
-              case Full((List(),_)) | Empty =>
+              case Empty =>
                 fullBoxOrException(Empty ?~! atmsNotFound)
+              case Full((List(), callContext)) =>
+                Full(List())
               case Full((list, _)) =>
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
@@ -1531,7 +1535,7 @@ trait APIMethods300 {
         |
         |""",
       emptyObjectJson,
-      customerJsonV300,
+      customersJsonV300,
       List(
         UserNotLoggedIn,
         UserCustomerLinksNotFoundForUser,
