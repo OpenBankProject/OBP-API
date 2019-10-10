@@ -59,6 +59,7 @@ object NewStyle {
     (nameOf(Implementations2_0_0.addKycStatus), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.addKycCheck), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_1_0.getRoles), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations2_1_0.getCustomersForCurrentUserAtBank), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getViewsForBankAccount), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getCurrentFxRate), ApiVersion.v2_2_0.toString),

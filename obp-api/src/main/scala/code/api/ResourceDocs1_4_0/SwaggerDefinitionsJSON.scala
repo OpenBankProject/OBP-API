@@ -1994,6 +1994,8 @@ object SwaggerDefinitionsJSON {
     nameSuffix = ExampleValue.nameSuffixExample.value
   )
   
+  val customersJsonV300 = code.api.v3_0_0.CustomerJSONs(List(customerJsonV300))
+  
   val postCustomerJsonV310 =
     PostCustomerJsonV310(
       legal_name = ExampleValue.legalNameExample.value,

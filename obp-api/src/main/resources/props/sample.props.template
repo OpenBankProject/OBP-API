@@ -108,6 +108,7 @@ write_connector_metrics=true
 #es.warehouse.port.http=9200
 
 #es.warehouse.allowed.indices = index1,index2 (or = ALL for all).
+#es.warehouse.allowed.maximum.size = 10000
 
 
 
