@@ -306,32 +306,35 @@ class ConsumerRegistration extends MdcLoggable {
     
     val dummyUsersInfo = getWebUiPropsValue("webui_dummy_user_logins", "")
     val isShowDummyUserTokens = getWebUiPropsValue("webui_show_dummy_user_tokens", "false").toBoolean
-
-    val userNameToAuthInfo: Map[String, String] = (isShowDummyUserTokens, consumerKeyBox, dummyUsersInfo) match {
+    // (username, password) -> authHeader
+    val userNameToAuthInfo: Map[(String, String), String] = (isShowDummyUserTokens, consumerKeyBox, dummyUsersInfo) match {
       case(true, Full(consumerKey), dummyCustomers) if dummyCustomers.nonEmpty => {
         val regex = """(?s)\{.*?"user_name"\s*:\s*"(.+?)".+?"password"\s*:\s*"(.+?)".+?\}""".r
         val matcher = regex.pattern.matcher(dummyCustomers)
-        var tokens = ListMap[String, String]()
+        var tokens = ListMap[(String, String), String]()
         while(matcher.find()) {
           val userName = matcher.group(1)
           val password = matcher.group(2)
           val (code, token) = DirectLogin.createToken(Map(("username", userName), ("password", password), ("consumer_key", consumerKey)))
           val authHeader = code match {
-            case 200 => userName -> s"""Authorization: DirectLogin token="$token""""
-            case _ => userName ->  "username or password is invalid, generate token fail"
+            case 200 => (userName, password) -> s"""Authorization: DirectLogin token="$token""""
+            case _ => (userName, password) ->  "username or password is invalid, generate token fail"
           }
           tokens += authHeader
         }
         tokens
       }
-      case _ => Map.empty[String, String]
+      case _ => Map.empty[(String, String), String]
     }
 
     val elements = userNameToAuthInfo.map{ pair =>
-        val (userName, authHeader) = pair
+        val ((userName, password), authHeader) = pair
             <div class="row">
               <div class="col-xs-12 col-sm-4">
-                {userName}
+                username: <br/>
+                {userName} <br/>
+                password: <br/>
+                {password}
               </div>
               <div class="col-xs-12 col-sm-8">
                 {authHeader}
