@@ -177,7 +177,7 @@ The two user models are now called AuthUser and ResourceUser
 *   Answer Transaction Request Challenge (updated)
 *   Get Transaction Requests (updated)
 *   Get Roles (new)
-*   Get Entitlements By Bank And User (new)
+*   Get Entitlements By Bank And User (naaew)
 *   Get Consumer (App) (new)
 *   Get Consumers (App) (new)
 *   Enable Disable Consumers (Apps) (new)
