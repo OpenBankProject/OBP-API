@@ -747,7 +747,7 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
               esw.isEnabled()
             }
-            maximumSize = APIUtil.getPropsAsIntValue("es.warehouse.allowed.maximum.size", 10000)
+            maximumSize = APIUtil.getPropsAsIntValue("es.warehouse.allowed.maximum.pagesize", 10000)
             //This is for performance issue, we can not support query more than maximumSize records in one call. 
             // If it contains the size and if it over maximumSize, we will throw the error back.
             _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.",s"Please check query body, the maximum size is $maximumSize.")) {
@@ -828,7 +828,7 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
               esw.isEnabled()
             }
-            maximumSize = APIUtil.getPropsAsIntValue("es.warehouse.allowed.maximum.size", 10000)
+            maximumSize = APIUtil.getPropsAsIntValue("es.warehouse.allowed.maximum.pagesize", 10000)
             //This is for performance issue, we can not support query more than maximumSize records in one call. 
             // If it contains the size and if it over maximumSize, we will throw the error back.
             _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.",s"Please check query body, the maximum size is $maximumSize.")) {
