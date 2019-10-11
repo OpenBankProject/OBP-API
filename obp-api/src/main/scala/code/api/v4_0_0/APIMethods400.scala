@@ -1,19 +1,21 @@
 package code.api.v4_0_0
 
+import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankNotFound, CounterpartyBeneficiaryPermit, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
+import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankAccountNotFound, BankNotFound, CounterpartyBeneficiaryPermit, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NoViewPermission, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
 import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
+import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v3_1_0.ListResult
-import code.api.{APIFailureNewStyle, ChargePolicy}
 import code.dynamicEntity.DynamicEntityCommons
+import code.metadata.tags.Tags
 import code.model.dataAccess.AuthUser
 import code.model.toUserExtended
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
@@ -28,6 +30,7 @@ import net.liftweb.common.{Box, Full, ParamFailure}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
+import net.liftweb.util.Helpers.now
 import net.liftweb.util.StringHelpers
 import org.atteo.evo.inflector.English
 
@@ -35,10 +38,6 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
-import code.api.v3_0_0.JSONFactory300
-import code.entitlement.Entitlement
-import code.views.Views
 
 trait APIMethods400 {
   self: RestHelper =>
@@ -1089,6 +1088,98 @@ trait APIMethods400 {
           }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      addTagForViewOnAccount,
+      implementedInApiVersion,
+      "addTagForViewOnAccount",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
+      "Add a tag.",
+      s"""Posts a tag about an account ACCOUNT_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Authentication is required as the tag is linked with the user.""",
+      postTransactionTagJSON,
+      transactionTagJSON,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        NoViewPermission,
+        ViewNotFound,
+        UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount))
+
+    lazy val addTagForViewOnAccount : OBPEndpoint = {
+      //add a tag
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(bankId, accountId), callContext)
+            _ <- NewStyle.function.hasViewAccess(view, u)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_add_tag. Current ViewId($viewId)") {
+              view.canAddTag
+            }
+            tagJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostTransactionTagJSON ", 400, callContext) {
+              json.extract[PostTransactionTagJSON]
+            }
+            (postedTag, callContext) <- Future(Tags.tags.vend.addTagOnAccount(bankId, accountId)(u.userPrimaryKey, viewId, tagJson.value, now)) map {
+              i => (connectorEmptyResponse(i, callContext), callContext)
+            }
+          } yield {
+            (JSONFactory.createTransactionTagJSON(postedTag), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      deleteTagForViewOnAccount,
+      implementedInApiVersion,
+      "deleteTagForViewOnAccount",
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags/TAG_ID",
+      "Delete a tag.",
+      """Deletes the tag TAG_ID about the account ACCOUNT_ID made on [view](#1_2_1-getViewsForBankAccount).
+        |Authentication via OAuth is required. The user must either have owner privileges for this account, 
+        |or must be the user that posted the tag.
+        |""".stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      List(NoViewPermission,
+        ViewNotFound,
+        UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount))
+
+    lazy val deleteTagForViewOnAccount : OBPEndpoint = {
+      //delete a tag
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(bankId, accountId), callContext)
+            _ <- NewStyle.function.hasViewAccess(view, u)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_delete_tag. Current ViewId($viewId)") {
+              view.canDeleteTag
+            }
+            deleted <- Future(Tags.tags.vend.deleteTagOnAccount(bankId, accountId)(tagId)) map {
+              i => (connectorEmptyResponse(i, callContext), callContext)
+            }
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
 
   }
 
