@@ -38,8 +38,11 @@ import code.api.v3_0_0.APIMethods300
 import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.api.v3_1_0.APIMethods310
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.{Box, Full}
+import net.liftweb.http.{LiftResponse, PlainTextResponse}
+import org.apache.http.HttpStatus
 
-import scala.collection.immutable.Nil
+import scala.collection.immutable.{List, Nil}
 
 
 
@@ -436,4 +439,21 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   oauthServe(apiPrefix{Implementations4_0_0.genericEndpoint}, None)
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 
+  // specified response for OPTIONS request.
+  private val corsResponse: Box[LiftResponse] = Full{
+    val corsHeaders = List(
+      "Access-Control-Allow-Origin" -> "*",
+      "Access-Control-Allow-Methods" -> "GET, POST, OPTIONS, PUT, PATCH, DELETE",
+      "Access-Control-Allow-Headers" -> "*",
+      "Access-Control-Allow-Credentials" -> "true",
+      "Access-Control-Max-Age" -> "1728000" //Tell client that this pre-flight info is valid for 20 days
+    )
+    PlainTextResponse("", corsHeaders, HttpStatus.SC_NO_CONTENT)
+  }
+  /*
+   * process OPTIONS http request, just return no content and status is 204
+   */
+  this.serve({
+    case req if req.requestType.method == "OPTIONS" => corsResponse
+  })
 }
