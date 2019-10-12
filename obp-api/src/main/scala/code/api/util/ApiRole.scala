@@ -393,7 +393,7 @@ object ApiRole {
   case class CanGetAnyKycStatuses(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAnyKycStatuses = CanGetAnyKycStatuses()
   
-  private val roles =
+  private var roles =
       canSearchAllTransactions ::
       canSearchAllAccounts ::
       canQueryOtherUser ::
@@ -424,6 +424,9 @@ object ApiRole {
       canDeleteEntitlementAtAnyBank ::
       canGetConsumers ::
       canDisableConsumers ::
+      Nil
+
+  roles ++=
       canEnableConsumers ::
       canUpdateConsumerRedirectUrl ::
       canCreateConsumer ::
@@ -454,6 +457,9 @@ object ApiRole {
       canReadAggregateMetrics ::
       canCreateScopeAtOneBank ::
       canCreateScopeAtAnyBank ::
+      Nil
+
+  roles ++=
       canDeleteScopeAtAnyBank ::
       canDeleteScopeAtOneBank ::
       canUnlockUser ::
@@ -484,6 +490,9 @@ object ApiRole {
       canDeleteBranch ::
       canCreateSystemView ::
       canUpdateSystemView ::
+      Nil
+
+  roles ++=
       canGetSystemView ::
       canDeleteSystemView ::
       canCreateUserAuthContextUpdate ::

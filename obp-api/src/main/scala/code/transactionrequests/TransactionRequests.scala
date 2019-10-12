@@ -29,7 +29,7 @@ object TransactionRequests extends SimpleInjector {
     type TransactionRequestTypes = Value
     val SANDBOX_TAN, ACCOUNT, ACCOUNT_OTP, COUNTERPARTY, SEPA, FREE_FORM, TRANSFER_TO_PHONE, TRANSFER_TO_ATM, TRANSFER_TO_ACCOUNT, TRANSFER_TO_REFERENCE_ACCOUNT,
     //The following are BerlinGroup Standard 
-    sepa_credit_transfers, instant_sepa_credit_transfers, target_2_payments, cross_border_credit_transfers= Value
+    SEPA_CREDIT_TRANSFERS, INSTANT_SEPA_CREDIT_TRANSFERS, TARGET_2_PAYMENTS, CROSS_BORDER_CREDIT_TRANSFERS= Value
   }
 
   def updatestatus(newStatus: String) = {}

@@ -1091,7 +1091,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
         }yield{
           (transactionId,callContext)
         }
-        case sepa_credit_transfers => for{
+        case SEPA_CREDIT_TRANSFERS => for{
 
           toSepaCreditTransfers <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySandBoxTanJSON ", 400, callContext){
             body.to_sepa_credit_transfers.get

@@ -48,7 +48,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |"creditorName": "70charname"
             }""".stripMargin
 
-      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, wrongInitiatePaymentJson)
       Then("We should get a 400 ")
       response.code should equal(400)
@@ -72,7 +72,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |"creditorName": "70charname"
             }""".stripMargin
 
-      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, wrongAmountInitiatePaymentJson)
       Then("We should get a 400 ")
       response.code should equal(400)
@@ -103,7 +103,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |"creditorName": "70charname"
             }""".stripMargin
 
-      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
       Then("We should get a 201 ")
       response.code should equal(201)
@@ -142,7 +142,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |"creditorName": "70charname"
             }""".stripMargin
 
-      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
       Then("We should get a 201 ")
       response.code should equal(201)
@@ -180,7 +180,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |"creditorName": "70charname"
             }""".stripMargin
 
-      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
       Then("We should get a 201 ")
       response.code should equal(201)
@@ -190,7 +190,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
 
       Then(s"we test the ${getPaymentInformation.name}")
       val paymentId = payment.paymentId
-      val requestGet = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId).GET <@ (user1)
+      val requestGet = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId).GET <@ (user1)
       val responseGet: APIResponse = makeGetRequest(requestGet)
       responseGet.code should be (200)
       responseGet.body.extract[SepaCreditTransfers].instructedAmount.currency should be ("EUR")
@@ -222,7 +222,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |"creditorName": "70charname"
             }""".stripMargin
 
-      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
       Then("We should get a 201 ")
       response.code should equal(201)
@@ -233,7 +233,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
 
       Then(s"we test the ${getPaymentInitiationStatus.name}")
       val paymentId = payment.paymentId
-      val requestGet = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "status").GET <@ (user1)
+      val requestGet = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "status").GET <@ (user1)
       val responseGet: APIResponse = makeGetRequest(requestGet)
       responseGet.code should be (200)
       (responseGet.body \ "transactionStatus").extract[String] should be ("RCVD")
@@ -243,7 +243,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
   feature(s"test the BG v1.3 ${startPaymentAuthorisation.name} and ${getPaymentInitiationAuthorisation.name} and ${getPaymentInitiationScaStatus.name} and ${updatePaymentPsuData.name}") {
     scenario(s"${startPaymentAuthorisation.name} Failed Case - Wrong PaymentId", BerlinGroupV1_3, PIS, startPaymentAuthorisation) {
      
-      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / "PAYMENT_ID" / "authorisations").POST <@ (user1)
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "authorisations").POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, """""")
       Then("We should get a 400 ")
       response.code should equal(400)
@@ -274,7 +274,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |"creditorName": "70charname"
             }""".stripMargin
 
-      val requestInitiatePaymentJson = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
+      val requestInitiatePaymentJson = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
       val responseInitiatePaymentJson: APIResponse = makePostRequest(requestInitiatePaymentJson, initiatePaymentJson)
       Then("We should get a 201 ")
       responseInitiatePaymentJson.code should equal(201)
@@ -285,7 +285,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val paymentId = paymentResponseInitiatePaymentJson.paymentId
 
       Then(s"we test the ${startPaymentAuthorisation.name}")
-      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "authorisations").POST <@ (user1)
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "authorisations").POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, """""")
       Then("We should get a 200 ")
       response.code should equal(200)
@@ -297,7 +297,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       startPaymentAuthorisationResponse._links.scaStatus should not be null
       
       Then(s"We can test the ${getPaymentInitiationAuthorisation.name}")
-      val requestGetPaymentInitiationAuthorisation = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "authorisations").GET <@ (user1)
+      val requestGetPaymentInitiationAuthorisation = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "authorisations").GET <@ (user1)
       val responseGetPaymentInitiationAuthorisation: APIResponse = makeGetRequest(requestGetPaymentInitiationAuthorisation)
       responseGetPaymentInitiationAuthorisation.code should be (200)
       responseGetPaymentInitiationAuthorisation.body.extract[List[StartPaymentAuthorisationJson]].length > 0 should be (true)
@@ -306,7 +306,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       paymentInitiationAuthorisation.scaStatus should be (ScaStatus.received.toString)
 
       Then(s"We can test the ${getPaymentInitiationScaStatus.name}")
-      val requestGetPaymentInitiationScaStatus = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "authorisations" /authorisationId).GET <@ (user1)
+      val requestGetPaymentInitiationScaStatus = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "authorisations" /authorisationId).GET <@ (user1)
       val responseGetPaymentInitiationScaStatus: APIResponse = makeGetRequest(requestGetPaymentInitiationScaStatus)
       responseGetPaymentInitiationScaStatus.code should be (200)
       val paymentInitiationScaStatus = (responseGetPaymentInitiationScaStatus.body \ "scaStatus").extract[String]
@@ -319,7 +319,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
         .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
         .jvalueToCaseclass
       
-      val requestUpdatePaymentPsuData = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "authorisations"/authorisationId).PUT <@ (user1)
+      val requestUpdatePaymentPsuData = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "authorisations"/authorisationId).PUT <@ (user1)
       val responseUpdatePaymentPsuData: APIResponse = makePutRequest(requestUpdatePaymentPsuData, write(updatePaymentPsuDataJsonBody))
       responseUpdatePaymentPsuData.code should be (200)
       responseUpdatePaymentPsuData.body.extract[StartPaymentAuthorisationJson].scaStatus should be("finalised")
@@ -340,7 +340,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     s"and ${updatePaymentCancellationPsuData.name}") {
     scenario(s"${startPaymentInitiationCancellationAuthorisation.name} Failed Case - Wrong PaymentId", BerlinGroupV1_3, PIS, startPaymentInitiationCancellationAuthorisation) {
 
-      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / "PAYMENT_ID" / "cancellation-authorisations").POST <@ (user1)
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "cancellation-authorisations").POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, """""")
       Then("We should get a 400 ")
       response.code should equal(400)
@@ -367,7 +367,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |"creditorName": "70charname"
             }""".stripMargin
 
-      val requestInitiatePaymentJson = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
+      val requestInitiatePaymentJson = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
       val responseInitiatePaymentJson: APIResponse = makePostRequest(requestInitiatePaymentJson, initiatePaymentJson)
       Then("We should get a 201 ")
       responseInitiatePaymentJson.code should equal(201)
@@ -377,7 +377,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val paymentId = paymentResponseInitiatePaymentJson.paymentId
 
       Then(s"we test the ${startPaymentInitiationCancellationAuthorisation.name}")
-      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "cancellation-authorisations").POST <@ (user1)
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "cancellation-authorisations").POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost)
       Then("We should get a 200 ")
       response.code should equal(200)
@@ -389,7 +389,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       startPaymentAuthorisationResponse._links.scaStatus should not be null
 
       Then(s"We can test the ${getPaymentInitiationCancellationAuthorisationInformation.name}")
-      val requestGetPaymentInitiationCancellationAuthorisationInformation = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "cancellation-authorisations").GET <@ (user1)
+      val requestGetPaymentInitiationCancellationAuthorisationInformation = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "cancellation-authorisations").GET <@ (user1)
       val responseGetPaymentInitiationCancellationAuthorisationInformation: APIResponse = makeGetRequest(requestGetPaymentInitiationCancellationAuthorisationInformation)
       responseGetPaymentInitiationCancellationAuthorisationInformation.code should be (200)
       responseGetPaymentInitiationCancellationAuthorisationInformation.body.extract[CancellationJsonV13].cancellationIds.length > 0 should be (true)
@@ -397,7 +397,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val cancelationId = cancellationJsonV13.head
 
       Then(s"We can test the ${getPaymentCancellationScaStatus.name}")
-      val requestGetPaymentCancellationScaStatus = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "cancellation-authorisations" /cancelationId).GET <@ (user1)
+      val requestGetPaymentCancellationScaStatus = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "cancellation-authorisations" /cancelationId).GET <@ (user1)
       val responseGetPaymentCancellationScaStatus: APIResponse = makeGetRequest(requestGetPaymentCancellationScaStatus)
       responseGetPaymentCancellationScaStatus.code should be (200)
       val cancellationScaStatus = (responseGetPaymentCancellationScaStatus.body \ "scaStatus").extract[String]
@@ -410,7 +410,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
         .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
         .jvalueToCaseclass
 
-      val requestUpdatePaymentCancellationPsuData = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "cancellation-authorisations"/cancelationId).PUT <@ (user1)
+      val requestUpdatePaymentCancellationPsuData = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "cancellation-authorisations"/cancelationId).PUT <@ (user1)
       val responseUpdatePaymentCancellationPsuData: APIResponse = makePutRequest(requestUpdatePaymentCancellationPsuData, write(updatePaymentCancellationPsuDataJsonBody))
       responseUpdatePaymentCancellationPsuData.code should be (200)
       responseUpdatePaymentCancellationPsuData.body.extract[StartPaymentAuthorisationJson].scaStatus should be("finalised")
@@ -425,7 +425,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val cancellationId = "NON_EXISTING_CANCELLATION_ID"
       val requestGet = (V1_3_BG /
         PaymentServiceTypes.bulk_payments.toString /
-        TransactionRequestTypes.sepa_credit_transfers.toString /
+        TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString /
         "PAYMENT_ID" /
         "cancellation-authorisations" /
         cancellationId).POST <@ (user1)
@@ -442,7 +442,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       When("Post empty to call initiatePayment")
       val requestGet = (V1_3_BG /
         PaymentServiceTypes.bulk_payments.toString /
-        TransactionRequestTypes.sepa_credit_transfers.toString /
+        TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString /
         "NON_EXISTING_PAYMENT_ID" /
         "authorisations").POST <@ (user1)
       val response: APIResponse = makeGetRequest(requestGet)
@@ -458,7 +458,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       When("Post empty to call initiatePayment")
       val requestGet = (V1_3_BG /
         PaymentServiceTypes.bulk_payments.toString /
-        TransactionRequestTypes.sepa_credit_transfers.toString /
+        TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString /
         "NON_EXISTING_PAYMENT_ID" /
         "cancellation-authorisations").POST <@ (user1)
       val response: APIResponse = makeGetRequest(requestGet)

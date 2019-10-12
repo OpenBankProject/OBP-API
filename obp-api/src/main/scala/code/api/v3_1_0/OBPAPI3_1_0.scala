@@ -276,7 +276,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   val endpointsOfCustom3_0_0 = ImplementationsCustom3_0_0.endpointsOfCustom3_0_0
   
   // Possible Endpoints from 3.1.0
-  val endpointsOf3_1_0 =  Implementations3_1_0.getCheckbookOrders :: 
+  var endpointsOf3_1_0 =  Implementations3_1_0.getCheckbookOrders ::
                           Implementations3_1_0.getStatusOfCreditCardOrder ::
                           Implementations3_1_0.createCreditLimitRequest ::
                           Implementations3_1_0.getCreditLimitRequests ::
@@ -316,7 +316,9 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.deleteCustomerAddress ::
                           Implementations3_1_0.getObpApiLoopback ::
                           Implementations3_1_0.refreshUser ::
-                          Implementations3_1_0.createProductAttribute ::
+                          Nil
+
+  endpointsOf3_1_0 ++=    Implementations3_1_0.createProductAttribute ::
                           Implementations3_1_0.getProductAttribute ::
                           Implementations3_1_0.updateProductAttribute ::
                           Implementations3_1_0.deleteProductAttribute ::
@@ -355,8 +357,10 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.updateAccount :: 
                           Implementations3_1_0.addCardForBank :: 
                           Implementations3_1_0.deleteCardForBank :: 
-                          Implementations3_1_0.getCardForBank :: 
-                          Implementations3_1_0.getCardsForBank :: 
+                          Implementations3_1_0.getCardForBank ::
+                          Nil
+
+  endpointsOf3_1_0 ++=    Implementations3_1_0.getCardsForBank ::
                           Implementations3_1_0.updatedCardForBank :: 
                           Implementations3_1_0.updateCustomerIdentity ::
                           Implementations3_1_0.updateCustomerBranch ::
