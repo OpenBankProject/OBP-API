@@ -397,6 +397,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations4_0_0.getEntitlements ::
     Implementations4_0_0.addTagForViewOnAccount ::
     Implementations4_0_0.deleteTagForViewOnAccount ::
+    Implementations4_0_0.getTagsForViewOnAccount ::
     Nil
   
   def allResourceDocs = MockerConnector.doc ++

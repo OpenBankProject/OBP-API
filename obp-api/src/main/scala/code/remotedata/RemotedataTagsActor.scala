@@ -18,6 +18,10 @@ class RemotedataTagsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("getTags(" + bankId +", "+ accountId +", "+ transactionId +", "+ viewId +")")
       sender ! (mapper.getTags(bankId, accountId, transactionId)(viewId))
 
+    case cc.getTagsOnAccount(bankId, accountId, viewId) =>
+      logger.debug("getTags(" + bankId +", "+ accountId +", "+ viewId +")")
+      sender ! (mapper.getTagsOnAccount(bankId, accountId)(viewId))
+      
     case cc.addTag(bankId, accountId, transactionId, userId, viewId, text, datePosted) =>
       logger.debug("addTag(" + bankId +", "+ accountId +", "+ transactionId +", "+ text +", "+ text +", "+ datePosted +")")
       sender ! (mapper.addTag(bankId, accountId, transactionId)(userId, viewId, text, datePosted))

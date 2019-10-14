@@ -1096,7 +1096,7 @@ trait APIMethods400 {
       "addTagForViewOnAccount",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
-      "Add a tag.",
+      "Add a tag on account.",
       s"""Posts a tag about an account ACCOUNT_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
          |${authenticationRequiredMessage(true)}
@@ -1145,11 +1145,12 @@ trait APIMethods400 {
       "deleteTagForViewOnAccount",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags/TAG_ID",
-      "Delete a tag.",
-      """Deletes the tag TAG_ID about the account ACCOUNT_ID made on [view](#1_2_1-getViewsForBankAccount).
-        |Authentication via OAuth is required. The user must either have owner privileges for this account, 
-        |or must be the user that posted the tag.
-        |""".stripMargin,
+      "Delete a tag on account.",
+      s"""Deletes the tag TAG_ID about the account ACCOUNT_ID made on [view](#1_2_1-getViewsForBankAccount).
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |Authentication is required as the tag is linked with the user.""",
       emptyObjectJson,
       emptyObjectJson,
       List(NoViewPermission,
@@ -1176,6 +1177,50 @@ trait APIMethods400 {
             }
           } yield {
             (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getTagsForViewOnAccount,
+      implementedInApiVersion,
+      "getTagsForViewOnAccount",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
+      "Get tags on account.",
+      s"""Returns the account ACCOUNT_ID tags made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
+         |${authenticationRequiredMessage(true)}
+         |
+         |Authentication is required as the tag is linked with the user.""",
+      emptyObjectJson,
+      transactionTagJSON,
+      List(
+        BankAccountNotFound,
+        NoViewPermission,
+        ViewNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount))
+
+    lazy val getTagsForViewOnAccount : OBPEndpoint = {
+      //get tags
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(bankId, accountId), callContext)
+            _ <- NewStyle.function.hasViewAccess(view, u)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_tags. Current ViewId($viewId)") {
+              view.canSeeTags
+            }
+            tags <- Future(Tags.tags.vend.getTagsOnAccount(bankId, accountId)(viewId))
+          } yield {
+            val json = JSONFactory.createTransactionTagsJSON(tags)
+            (json, HttpCode.`200`(callContext))
           }
       }
     }

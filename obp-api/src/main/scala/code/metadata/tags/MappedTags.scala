@@ -17,6 +17,13 @@ object MappedTags extends Tags {
     val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     MappedTag.findAll(MappedTag.findQuery(bankId, accountId, transactionId, ViewId(metadateViewId)): _*)
   }
+  override def getTagsOnAccount(bankId: BankId, accountId: AccountId)(viewId: ViewId): List[TransactionTag] = {
+    val metadataViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
+    MappedTag.findAll( By(MappedTag.bank, bankId.value),
+      By(MappedTag.account, accountId.value) ,
+      NullRef(MappedTag.transaction),
+      By(MappedTag.view, ViewId(metadataViewId).value))
+  }
 
   override def addTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
                      (userId: UserPrimaryKey, viewId: ViewId, tagText: String, datePosted: Date): Box[TransactionTag] = {
