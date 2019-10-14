@@ -1112,7 +1112,7 @@ trait APIMethods400 {
         ViewNotFound,
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount))
+      List(apiTagAccountMetadata, apiTagAccount))
 
     lazy val addTagForViewOnAccount : OBPEndpoint = {
       //add a tag
@@ -1157,7 +1157,7 @@ trait APIMethods400 {
         ViewNotFound,
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount))
+      List(apiTagAccountMetadata, apiTagAccount))
 
     lazy val deleteTagForViewOnAccount : OBPEndpoint = {
       //delete a tag
@@ -1202,7 +1202,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount))
+      List(apiTagAccountMetadata, apiTagAccount))
 
     lazy val getTagsForViewOnAccount : OBPEndpoint = {
       //get tags
