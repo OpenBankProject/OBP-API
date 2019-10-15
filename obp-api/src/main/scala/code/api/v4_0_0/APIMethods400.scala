@@ -13,6 +13,7 @@ import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
+import code.api.v4_0_0.JSONFactory400.createNewCoreBankAccountJson
 import code.api.v3_1_0.ListResult
 import code.dynamicEntity.DynamicEntityCommons
 import code.metadata.tags.Tags
@@ -22,6 +23,7 @@ import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.util.Helper
+import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
@@ -1221,6 +1223,61 @@ trait APIMethods400 {
           } yield {
             val json = JSONFactory.createTransactionTagsJSON(tags)
             (json, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+
+
+    resourceDocs += ResourceDoc(
+      getCoreAccountById,
+      implementedInApiVersion,
+      nameOf(getCoreAccountById),
+      "GET",
+      "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
+      "Get Account by Id (Core)",
+      s"""Information returned about the account specified by ACCOUNT_ID:
+         |
+         |* Number - The human readable account number given by the bank that identifies the account.
+         |* Label - A label given by the owner of the account
+         |* Owners - Users that own this account
+         |* Type - The type of account
+         |* Balance - Currency and Value
+         |* Account Routings - A list that might include IBAN or national account identifiers
+         |* Account Rules - A list that might include Overdraft and other bank specific rules
+         |
+         |This call returns the owner view and requires access to that view.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      emptyObjectJson,
+      newModeratedCoreAccountJsonV400,
+      List(BankAccountNotFound,UnknownError),
+      Catalogs(Core, PSD2, notOBWG),
+      apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: Nil)
+    lazy val getCoreAccountById : OBPEndpoint = {
+      //get account by id (assume owner view requested)
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), callContext) <-  authorizedAccess(cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            // Assume owner view was requested
+            viewId = ViewId("owner")
+            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            _ <- NewStyle.function.hasViewAccess(view, u)
+            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
+              bankId,
+              accountId,
+              callContext: Option[CallContext])
+            tags <- Future(Tags.tags.vend.getTagsOnAccount(bankId, accountId)(viewId))
+          } yield {
+            val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
+            (createNewCoreBankAccountJson(moderatedAccount, availableViews, accountAttributes, tags), HttpCode.`200`(callContext))
           }
       }
     }

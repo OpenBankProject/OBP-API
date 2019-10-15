@@ -229,7 +229,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getTransactionsForBankAccount ::
                           // Implementations3_0_0.getPrivateAccountById ::
                           Implementations3_0_0.getPublicAccountById ::
-                          Implementations3_0_0.getCoreAccountById ::
+                          // Implementations3_0_0.getCoreAccountById ::
                           Implementations3_0_0.getViewsForBankAccount ::
                           Implementations3_0_0.createViewForBankAccount ::
                           Implementations3_0_0.updateViewForBankAccount ::
@@ -398,6 +398,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations4_0_0.addTagForViewOnAccount ::
     Implementations4_0_0.deleteTagForViewOnAccount ::
     Implementations4_0_0.getTagsForViewOnAccount ::
+    Implementations4_0_0.getCoreAccountById ::
     Nil
   
   def allResourceDocs = MockerConnector.doc ++
