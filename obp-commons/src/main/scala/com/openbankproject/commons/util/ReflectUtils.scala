@@ -38,6 +38,43 @@ object ReflectUtils {
     originValue.asInstanceOf[T]
   }
 
+  def getFieldValues(obj: AnyRef)(predicate: TermSymbol => Boolean = _=>true): Map[String, Any] = {
+    val instanceMirror = mirror.reflect(obj)
+    val tp: ru.Type = instanceMirror.symbol.info
+    (tp.members ++ tp.decls).toSet
+      .withFilter(_.isTerm)
+      .map(_.asTerm)
+      .withFilter(it => it.isLazy || it.isVal || it.isVar)
+      .withFilter(predicate)
+      .map(it => {
+        val TermName(fieldName) = it.name
+        if(it.isLazy) {
+          // get lazy value
+          fieldName -> instanceMirror.reflectMethod(it.asMethod)()
+        } else {
+          fieldName -> instanceMirror.reflectField(it).get
+        }
+      })
+      .toMap
+  }
+
+  /**
+   * get all field name to value of object
+   * @param obj
+   * @tparam T field type
+   * @return
+   */
+  def getFieldsNameToValue[T: TypeTag](obj: AnyRef): Map[String, T] = {
+    val tpe = typeTag[T].tpe
+    getFieldValues(obj){it =>
+    if(it.isMethod) {
+        it.asMethod.returnType <:< tpe
+      } else {
+        it.info <:< tpe
+      }
+    }.asInstanceOf[Map[String, T]]
+  }
+
   /**
    * get given object given field value
    * @param obj
