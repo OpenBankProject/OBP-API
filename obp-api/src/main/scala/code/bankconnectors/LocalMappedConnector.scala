@@ -1749,8 +1749,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           // Insert...
           logger.info("Creating Branch...")
           MappedBranch.create
-            .mBranchId(branch.branchId.toString)
-            .mBankId(branch.bankId.toString)
+            .mBranchId(branch.branchId.value)
+            .mBankId(branch.bankId.value)
             .mName(branch.name)
             .mLine1(branch.address.line1)
             .mLine2(branch.address.line2)

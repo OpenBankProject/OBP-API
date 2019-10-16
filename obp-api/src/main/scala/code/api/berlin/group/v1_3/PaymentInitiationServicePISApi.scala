@@ -593,7 +593,7 @@ $additionalInstructions
              amountOfMoneyJSON = transDetailsJson.instructedAmount
 
              (createdTransactionRequest,callContext) <- transactionRequestTypes match {
-               case TransactionRequestTypes.sepa_credit_transfers => {
+               case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
                  for {
                    (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(
                      u,

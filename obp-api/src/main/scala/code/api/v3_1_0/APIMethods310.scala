@@ -2839,14 +2839,16 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagNewStyle))
+      List(apiTagAccount, apiTagNewStyle),
+      Some(List(canUpdateAccountAttribute))
+    )
 
     lazy val updateAccountAttribute : OBPEndpoint = {
-      case "banks" :: bankId :: "accounts" :: accountId :: "products" :: productCode :: "attributes" :: accountAtrributeId :: Nil JsonPut json -> _=> {
+      case "banks" :: bankId :: "accounts" :: accountId :: "products" :: productCode :: "attributes" :: accountAttributeId :: Nil JsonPut json -> _=> {
         cc =>
           for {
-            (_, callContext) <- authorizedAccess(cc)
-            
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canUpdateAccountAttribute, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AccountAttributeJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[AccountAttributeJson]
@@ -2861,14 +2863,14 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), callContext)
             (_, callContext) <- NewStyle.function.getProduct(BankId(bankId), ProductCode(productCode), callContext)
-            (_, callContext) <- NewStyle.function.getAccountAttributeById(accountAtrributeId, callContext)
+            (_, callContext) <- NewStyle.function.getAccountAttributeById(accountAttributeId, callContext)
             
 
             (accountAttribute, callContext) <- NewStyle.function.createOrUpdateAccountAttribute(
               BankId(bankId),
               AccountId(accountId),
               ProductCode(productCode),
-              Some(accountAtrributeId),
+              Some(accountAttributeId),
               postedData.name,
               accountAttributeType,
               postedData.value,

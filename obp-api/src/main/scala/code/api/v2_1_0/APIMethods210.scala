@@ -1464,12 +1464,12 @@ trait APIMethods210 {
       "GET",
       "/banks/BANK_ID/customers",
       "Get Customers for current User at Bank",
-      s"""Retuns a list of Customers at the Bank that are linked to the currently authenticated User.
+      s"""Returns a list of Customers at the Bank that are linked to the currently authenticated User.
         |
         |
         |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
-      customerJsonV210,
+      customerJSONs,
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -1485,14 +1485,16 @@ trait APIMethods210 {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonGet _ => {
         cc => {
           for {
-            u <- cc.user ?~! UserNotLoggedIn
-            (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
-            customers <- tryo{CustomerX.customerProvider.vend.getCustomersByUserId(u.userId)} ?~! UserCustomerLinksNotFoundForUser
-            // Filter so we only see the ones for the bank in question
-            bankCustomers = customers.filter(_.bankId==bankId.value)
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (customers, callContext) <- Connector.connector.vend.getCustomersByUserId(u.userId, callContext) map {
+              connectorEmptyResponse(_, callContext)
+            }
           } yield {
+            // Filter so we only see the ones for the bank in question
+            val bankCustomers = customers.filter(_.bankId==bankId.value)
             val json = JSONFactory210.createCustomersJson(bankCustomers)
-            successJsonResponse(Extraction.decompose(json))
+            (json, HttpCode.`200`(callContext))
           }
         }
       }
