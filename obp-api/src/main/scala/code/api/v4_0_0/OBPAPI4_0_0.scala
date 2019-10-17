@@ -277,6 +277,9 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // Possible Endpoints from 3.0.0 Custom Folder
   val endpointsOfCustom3_0_0 = ImplementationsCustom3_0_0.endpointsOfCustom3_0_0
 
+  // Possible Endpoints from 3.1.0
+  val endpointsOf3_1_0 =  ReflectUtils.getFieldsNameToValue[OBPEndpoint](Implementations3_1_0).values.toList.distinct
+
   // Possible Endpoints from 4.0.0
   val endpointsOf4_0_0 = ReflectUtils.getFieldsNameToValue[OBPEndpoint](Implementations4_0_0).values.toList.distinct
   
@@ -308,7 +311,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   getAllowedEndpoints(endpointsOf2_2_0, Implementations2_2_0.resourceDocs) :::
   getAllowedEndpoints(endpointsOf3_0_0, Implementations3_0_0.resourceDocs) :::
   getAllowedEndpoints(endpointsOfCustom3_0_0, ImplementationsCustom3_0_0.resourceDocs) :::
-  getAllowedEndpoints(OBPAPI3_1_0.endpointsOf3_1_0, Implementations3_1_0.resourceDocs) :::
+  getAllowedEndpoints(endpointsOf3_1_0, Implementations3_1_0.resourceDocs) :::
   getAllowedEndpoints(endpointsOf4_0_0, Implementations4_0_0.resourceDocs)
 
 
