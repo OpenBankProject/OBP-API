@@ -1696,7 +1696,7 @@ Returns a string showed to the developer
   type OBPReturnType[T] = Future[(T, Option[CallContext])]
 
 
-  def getAllowedEndpoints (endpoints : List[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]) : List[OBPEndpoint] = {
+  def getAllowedEndpoints (endpoints : Iterable[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]) : List[OBPEndpoint] = {
 
     // Endpoints
     val disabledEndpoints = getDisabledEndpoints
@@ -2774,7 +2774,6 @@ Returns a string showed to the developer
   /**
     * This function finds the emails of an Customer in accordance to next rule:
     * - User -> User Customer Links -> Customer.email
-    * @param bankId The USER_ID
     * @return The phone numbers of a Customer
     */
   def getEmailsByUserId(userId: String): List[(String, String)] = {
