@@ -37,7 +37,6 @@ import code.api.v2_2_0.APIMethods220
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.util.ReflectUtils
 
 import scala.collection.immutable.Nil
 
@@ -52,7 +51,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   val version : ApiVersion = ApiVersion.v3_1_0
 
-  val versionStatus = "DRAFT" 
+  val versionStatus = "DRAFT"
 
 
   // Possible Endpoints from 1.2.1
@@ -101,7 +100,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations1_2_1.getTagsForViewOnTransaction ::
                           // Implementations1_2_1.getTransactionByIdForBankAccount ::
                           Implementations1_2_1.getTransactionNarrative ::
-                          //now in V300      
+                          //now in V300
                           //Implementations1_2_1.getTransactionsForBankAccount ::
                           //Implementations1_2_1.getViewsForBankAccount ::
                           Implementations1_2_1.getWhereTagForViewOnTransaction ::
@@ -123,7 +122,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
 
   // Possible Endpoints from VERSION 1.3.0
-  val endpointsOf1_3_0 = 
+  val endpointsOf1_3_0 =
                          Implementations1_3_0.getCards ::
 //                         Implementations1_3_0.getCardsForBank ::
                          Nil
@@ -223,7 +222,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           //Implementations2_2_0.getCoreTransactionsForBankAccount ::
     Nil
 
-  
+
   // Possible Endpoints from 3.0.0
   val endpointsOf3_0_0 = Implementations3_0_0.getCoreTransactionsForBankAccount ::
                           Implementations3_0_0.getTransactionsForBankAccount ::
@@ -275,9 +274,9 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Possible Endpoints from 3.0.0 Custom Folder
   val endpointsOfCustom3_0_0 = ImplementationsCustom3_0_0.endpointsOfCustom3_0_0
-  
+
   // Possible Endpoints from 3.1.0
-  val endpointsOf3_1_0 =  ReflectUtils.getFieldsNameToValue[OBPEndpoint](Implementations3_1_0).values.toList.distinct
+  val endpointsOf3_1_0 =  getEndpoints(Implementations3_1_0)
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++
                         Implementations3_0_0.resourceDocs ++
