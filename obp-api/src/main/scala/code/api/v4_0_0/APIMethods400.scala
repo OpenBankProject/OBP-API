@@ -13,8 +13,8 @@ import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
-import code.api.v4_0_0.JSONFactory400.createNewCoreBankAccountJson
 import code.api.v3_1_0.ListResult
+import code.api.v4_0_0.JSONFactory400.{createNewCoreBankAccountJson, createBankAccountJSON}
 import code.dynamicEntity.DynamicEntityCommons
 import code.metadata.tags.Tags
 import code.model.dataAccess.AuthUser
@@ -1278,6 +1278,57 @@ trait APIMethods400 {
           } yield {
             val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
             (createNewCoreBankAccountJson(moderatedAccount, availableViews, accountAttributes, tags), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getPrivateAccountByIdFull,
+      implementedInApiVersion,
+      nameOf(getPrivateAccountByIdFull),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
+      "Get Account by Id (Full)",
+      """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+        |
+        |* Number
+        |* Owners
+        |* Type
+        |* Balance
+        |* IBAN
+        |* Available views (sorted by short_name)
+        |
+        |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+        |
+        |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
+        |This call provides balance and other account information via delegated authentication using OAuth.
+        |
+        |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+        |""".stripMargin,
+      emptyObjectJson,
+      moderatedAccountJSON310,
+      List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      apiTagAccount ::  apiTagNewStyle :: Nil)
+    lazy val getPrivateAccountByIdFull : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            _ <- NewStyle.function.hasViewAccess(view, u)
+            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
+              bankId,
+              accountId,
+              callContext: Option[CallContext])
+          } yield {
+            val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
+            val viewsAvailable = availableViews.map(JSONFactory.createViewJSON).sortBy(_.short_name)
+            val tags = Tags.tags.vend.getTagsOnAccount(bankId, accountId)(viewId)
+            (createBankAccountJSON(moderatedAccount, viewsAvailable, accountAttributes, tags), HttpCode.`200`(callContext))
           }
       }
     }
