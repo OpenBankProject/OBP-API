@@ -103,19 +103,19 @@ case class EnergySource400(
                          organisation_website: String
                        )
 
-case class NewModeratedCoreAccountJsonV400(
-                                            id: String,
-                                            bank_id: String,
-                                            label: String,
-                                            number: String,
-                                            owners: List[UserJSONV121],
-                                            `type`: String,
-                                            balance: AmountOfMoneyJsonV121,
-                                            account_routings: List[AccountRoutingJsonV121],
-                                            views_basic: List[ViewBasicV300],
-                                            account_attributes: List[AccountAttributeResponseJson],
-                                            tags: List[TransactionTagJSON]
-                                          )
+case class ModeratedCoreAccountJsonV400(
+                                         id: String,
+                                         bank_id: String,
+                                         label: String,
+                                         number: String,
+                                         owners: List[UserJSONV121],
+                                         `type`: String,
+                                         balance: AmountOfMoneyJsonV121,
+                                         account_routings: List[AccountRoutingJsonV121],
+                                         views_basic: List[ViewBasicV300],
+                                         account_attributes: List[AccountAttributeResponseJson],
+                                         tags: List[TransactionTagJSON]
+                                       )
 
 case class ModeratedAccountJSON400(
                                     id : String,
@@ -214,9 +214,9 @@ object JSONFactory400 {
   def createNewCoreBankAccountJson(account : ModeratedBankAccount, 
                                    availableViews: List[View],
                                    accountAttributes: List[AccountAttribute], 
-                                   tags: List[TransactionTag]) : NewModeratedCoreAccountJsonV400 =  {
+                                   tags: List[TransactionTag]) : ModeratedCoreAccountJsonV400 =  {
     val bankName = account.bankName.getOrElse("")
-    new NewModeratedCoreAccountJsonV400 (
+    new ModeratedCoreAccountJsonV400 (
       account.accountId.value,
       stringOrNull(account.bankId.value),
       stringOptionOrNull(account.label),
