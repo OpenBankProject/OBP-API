@@ -38,6 +38,9 @@ import code.api.v3_0_0.APIMethods300
 import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.api.v3_1_0.{APIMethods310, OBPAPI3_1_0}
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.{Box, Full}
+import net.liftweb.http.{LiftResponse, PlainTextResponse}
+import org.apache.http.HttpStatus
 
 /*
 This file defines which endpoints from all the versions are available in v4.0.0
@@ -51,11 +54,13 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // Possible Endpoints from 4.0.0, exclude one endpoint use - method,exclude multiple endpoints use -- method,
   // e.g getEndpoints(Implementations4_0_0) -- List(Implementations4_0_0.genericEndpoint, Implementations4_0_0.root)
   val endpointsOf4_0_0 = getEndpoints(Implementations4_0_0) - Implementations4_0_0.genericEndpoint
-  
-  def allResourceDocs = MockerConnector.doc ++
-                        Implementations4_0_0.resourceDocs ++
-                        OBPAPI3_1_0.allResourceDocs
 
+  // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
+  val allResourceDocs = collectResourceDocs(OBPAPI3_1_0.allResourceDocs,
+                                            Implementations4_0_0.resourceDocs,
+                                            MockerConnector.doc)
+  // all endpoints
+  private val endpoints: List[OBPEndpoint] = OBPAPI3_1_0.routes ++ endpointsOf4_0_0
 
   def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
     allResourceDocs.find(_.partialFunction==pf)
@@ -64,9 +69,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
       Implementations4_0_0.root :: // For now we make this mandatory
-      getAllowedEndpoints(endpointsOf4_0_0, Implementations4_0_0.resourceDocs) ++
-      OBPAPI3_1_0.routes // ***** here the previous version routes added at last, so there no need exclude any previous endpoints, because they will be omit.
-
+      getAllowedEndpoints(endpoints, allResourceDocs)
 
 
   // register v4.0.0 apis first, Make them available for use!
@@ -77,4 +80,21 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   oauthServe(apiPrefix{Implementations4_0_0.genericEndpoint}, None)
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 
+  // specified response for OPTIONS request.
+  private val corsResponse: Box[LiftResponse] = Full{
+    val corsHeaders = List(
+      "Access-Control-Allow-Origin" -> "*",
+      "Access-Control-Allow-Methods" -> "GET, POST, OPTIONS, PUT, PATCH, DELETE",
+      "Access-Control-Allow-Headers" -> "*",
+      "Access-Control-Allow-Credentials" -> "true",
+      "Access-Control-Max-Age" -> "1728000" //Tell client that this pre-flight info is valid for 20 days
+    )
+    PlainTextResponse("", corsHeaders, HttpStatus.SC_NO_CONTENT)
+  }
+  /*
+   * process OPTIONS http request, just return no content and status is 204
+   */
+  this.serve({
+    case req if req.requestType.method == "OPTIONS" => corsResponse
+  })
 }
