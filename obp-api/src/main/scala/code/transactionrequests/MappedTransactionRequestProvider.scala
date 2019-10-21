@@ -276,7 +276,7 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
     else
       None
     //This is Berlin Group Types:
-    val t_to_sepa_credit_transfers = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.sepa_credit_transfers && details.nonEmpty)
+    val t_to_sepa_credit_transfers = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.SEPA_CREDIT_TRANSFERS && details.nonEmpty)
       Some(parsedDetails.extract[SepaCreditTransfers]) //TODO, here may need a internal case class, but for now, we used it from request json body.
     else
       None

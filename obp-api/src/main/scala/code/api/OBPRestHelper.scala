@@ -40,6 +40,7 @@ import code.api.v3_1_0.APIMethods310
 import code.api.v4_0_0.APIMethods400
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
@@ -395,5 +396,14 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     super.serve(obpHandler)
   }
 
-
+  /**
+   * collect endpoints from APIMethodsxxx type
+   * @param obj APIMethodsxxx instance
+   * @return all collect endpoints
+   */
+  def getEndpoints(obj: AnyRef): Set[OBPEndpoint] = {
+    ReflectUtils.getFieldsNameToValue[OBPEndpoint](obj)
+      .values
+      .toSet
+  }
 }

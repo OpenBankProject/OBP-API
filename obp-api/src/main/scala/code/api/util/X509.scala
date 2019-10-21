@@ -29,10 +29,9 @@ object X509 {
       // Parsing failed
       Nil
     } else {
-      cert.getSubjectDN().getName().split(",").toList.map {
-        attribute => attribute.trim.split("=").toList match {
-          case key :: value :: Nil => SubjectAttribute(key, value)
-        }
+      cert.getSubjectDN().getName().split(",").toList.map { attribute =>
+       val Array(key, value) = attribute.trim.split("=")
+       SubjectAttribute(key, value)
       }
     }
   }
@@ -94,8 +93,7 @@ object X509 {
         Full(getPsd2Roles(asn1encodable: Array[ASN1Encodable]))
       }
       catch {
-        case _ =>
-          Failure(ErrorMessages.X509ThereAreNoPsd2Roles)
+        case _: Throwable => Failure(ErrorMessages.X509ThereAreNoPsd2Roles)
       }
     }
   }

@@ -1,5 +1,7 @@
 package code.api.util
 
+import com.openbankproject.commons.util.ReflectUtils
+
 sealed trait ApiRole{
   val requiresBankId: Boolean
   override def toString() = getClass().getSimpleName
@@ -396,131 +398,7 @@ object ApiRole {
   case class CanGetAnyKycStatuses(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAnyKycStatuses = CanGetAnyKycStatuses()
   
-  private val roles =
-      canSearchAllTransactions ::
-      canSearchAllAccounts ::
-      canQueryOtherUser ::
-      canSearchWarehouse ::
-      canSearchWarehouseStatistics ::
-      canSearchMetrics ::
-      canGetCustomer ::
-      canCreateCustomer ::
-      canCreateCustomerAtAnyBank ::
-      canCreateUserCustomerLink ::
-      canCreateUserCustomerLinkAtAnyBank ::
-      canCreateCustomerAddress ::
-      canGetCustomerAddress ::
-      canDeleteCustomerAddress ::
-      canCreateAccount ::
-      canUpdateAccount ::
-      canUpdateAccountAttribute ::
-      canGetAnyUser ::
-      canCreateAnyTransactionRequest ::
-      canAddSocialMediaHandle ::
-      canGetSocialMediaHandles ::
-      canCreateSandbox ::
-      canGetEntitlementsForAnyUserAtOneBank ::
-      canCreateEntitlementAtOneBank ::
-      canDeleteEntitlementAtOneBank ::
-      canGetEntitlementsForAnyUserAtAnyBank ::
-      canCreateEntitlementAtAnyBank ::
-      canDeleteEntitlementAtAnyBank ::
-      canGetConsumers ::
-      canDisableConsumers ::
-      canEnableConsumers ::
-      canUpdateConsumerRedirectUrl ::
-      canCreateConsumer ::
-      canCreateTransactionType::
-      canCreateCardsForBank ::
-      canDeleteCardsForBank ::
-      canUpdateCardsForBank ::
-      canGetCardsForBank ::
-      canCreateBranch ::
-      canCreateBranchAtAnyBank ::
-      canUpdateBranch ::
-      canCreateAtm ::
-      canCreateAtmAtAnyBank ::
-      canCreateProduct ::
-      canCreateProductAtAnyBank ::
-      canCreateFxRate ::
-      canCreateFxRateAtAnyBank ::
-      canCreateBank ::
-      canReadMetrics ::
-      canGetConfig ::
-      canGetCallContext ::
-      canGetConnectorMetrics ::
-      canGetOtherAccountsAtBank ::
-      canDeleteEntitlementRequestsAtOneBank ::
-      canDeleteEntitlementRequestsAtAnyBank ::
-      canGetEntitlementRequestsAtOneBank ::
-      canGetEntitlementRequestsAtAnyBank ::
-      canUseFirehoseAtAnyBank ::
-      canReadAggregateMetrics ::
-      canCreateScopeAtOneBank ::
-      canCreateScopeAtAnyBank ::
-      canDeleteScopeAtAnyBank ::
-      canDeleteScopeAtOneBank ::
-      canUnlockUser ::
-      canSetCallLimits ::
-      canReadCallLimits ::
-      canReadUserLockedStatus ::
-      canCheckFundsAvailable ::
-      canCreateWebhook ::
-      canGetWebhooks ::
-      canUpdateWebhook ::
-      canUpdateUserAuthContext ::
-      canGetUserAuthContext ::
-      canDeleteUserAuthContext ::
-      canCreateUserAuthContext ::
-      canGetTaxResidence ::
-      canCreateTaxResidence ::
-      canDeleteTaxResidence ::
-      canRefreshUser ::
-      canGetAccountApplications::
-      canUpdateAccountApplications::
-      canReadFx::
-      canUpdateProductAttribute ::
-      canGetProductAttribute ::
-      canDeleteProductAttribute ::
-      canCreateProductAttribute ::
-      canMaintainProductCollection ::
-      canDeleteBranchAtAnyBank ::
-      canDeleteBranch ::
-      canCreateSystemView ::
-      canUpdateSystemView ::
-      canGetSystemView ::
-      canDeleteSystemView ::
-      canCreateUserAuthContextUpdate ::
-      canUpdateCustomerEmail ::
-      canUpdateCustomerMobilePhoneNumber ::
-      canUpdateCustomerIdentity ::
-      canUpdateCustomerBranch ::
-      canUpdateCustomerCreditLimit ::
-      canUpdateCustomerCreditRatingAndSource ::
-      canUpdateCustomerData ::
-      canGetMethodRoutings ::
-      canCreateMethodRouting ::
-      canUpdateMethodRouting ::
-      canDeleteMethodRouting ::
-      canUpdateCustomerNumber ::
-      canCreateHistoricalTransaction ::
-      canGetWebUiProps ::
-      canCreateWebUiProps ::
-      canDeleteWebUiProps ::
-      canGetDynamicEntities ::
-      canCreateDynamicEntity ::
-      canUpdateDynamicEntity ::
-      canDeleteDynamicEntity ::
-      canCreateResetPasswordUrl ::
-      canAddKycCheck ::
-      canAddKycDocument ::
-      canAddKycMedia ::
-      canAddKycStatus ::
-      canGetAnyKycChecks ::
-      canGetAnyKycDocuments ::
-      canGetAnyKycMedia ::
-      canGetAnyKycStatuses ::
-      Nil
+  private val roles = ReflectUtils.getFieldsNameToValue[ApiRole](this).values.toList
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)
 

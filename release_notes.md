@@ -3,7 +3,7 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
-04/10/2019    aa9659c7      Added props: es.warehouse.allowed.maximum.size. This is the maximum size in the query for warehouse apis.
+04/10/2019    aa9659c7      Added props: es.warehouse.allowed.maximum.pagesize. This is the maximum size in the query for warehouse apis.
                             It has the default value 10000.
 03/09/2019    f953386c      Added props: implicitly_convert_ids . it will convert Bank_Plan_Text_Reference to OBP-UUID implicitly.  
 21/08/2019    4ac93f1c      Added props: webui_register_consumer_success_message_webpage and webui_register_consumer_success_message_email.

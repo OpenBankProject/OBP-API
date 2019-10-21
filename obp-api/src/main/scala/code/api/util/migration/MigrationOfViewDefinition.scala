@@ -25,7 +25,7 @@ object TableViewDefinition {
           for {
             view: ViewImpl <- views
           } yield {
-            ViewDefinition
+            val viewDefinition = ViewDefinition
               .create
               .isSystem_(view.isSystem)
               .isFirehose_(view.isFirehose)
@@ -56,6 +56,8 @@ object TableViewDefinition {
               .canSeeBankAccountType_(view.canSeeBankAccountType)
               .canSeeBankAccountBalance_(view.canSeeBankAccountBalance)
               .canSeeBankAccountCurrency_(view.canSeeBankAccountCurrency)
+
+            viewDefinition
               .canSeeBankAccountLabel_(view.canSeeBankAccountLabel)
               .canSeeBankAccountNationalIdentifier_(view.canSeeBankAccountNationalIdentifier)
               .canSeeBankAccountSwift_bic_(view.canSeeBankAccountSwift_bic)
@@ -86,6 +88,8 @@ object TableViewDefinition {
               .canAddPhysicalLocation_(view.canAddPhysicalLocation)
               .canAddPublicAlias_(view.canAddPublicAlias)
               .canAddPrivateAlias_(view.canAddPrivateAlias)
+
+            viewDefinition
               .canAddCounterparty_(view.canAddCounterparty)
               .canDeleteCorporateLocation_(view.canDeleteCorporateLocation)
               .canDeletePhysicalLocation_(view.canDeletePhysicalLocation)
