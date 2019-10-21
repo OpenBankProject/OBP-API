@@ -100,12 +100,13 @@ class OBPEnumerationTest extends FlatSpec with Matchers {
     }
   }
 
-  it should "have compile warnings when match case is not exhaustive with enumeration" taggedAs(OBPEnumTag) in {
+  // to see the compile warning, just uncomment the follow lines test
+  /*it should "have compile warnings when match case is not exhaustive with enumeration" taggedAs(OBPEnumTag) in {
     val shape: OBPShape = OBPShape.Other
     shape match {
       case OBPShape.Other => "hi other"
     }
-  }
+  }*/
 
   "shape.isInstanceOf[OBPColor] " should "return false" taggedAs(OBPEnumTag) in {
     // the worst: confused type check

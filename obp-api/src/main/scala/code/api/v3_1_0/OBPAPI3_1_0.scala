@@ -51,7 +51,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   val version : ApiVersion = ApiVersion.v3_1_0
 
-  val versionStatus = "DRAFT" 
+  val versionStatus = "DRAFT"
 
 
   // Possible Endpoints from 1.2.1
@@ -100,7 +100,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations1_2_1.getTagsForViewOnTransaction ::
                           // Implementations1_2_1.getTransactionByIdForBankAccount ::
                           Implementations1_2_1.getTransactionNarrative ::
-                          //now in V300      
+                          //now in V300
                           //Implementations1_2_1.getTransactionsForBankAccount ::
                           //Implementations1_2_1.getViewsForBankAccount ::
                           Implementations1_2_1.getWhereTagForViewOnTransaction ::
@@ -122,7 +122,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
 
   // Possible Endpoints from VERSION 1.3.0
-  val endpointsOf1_3_0 = 
+  val endpointsOf1_3_0 =
                          Implementations1_3_0.getCards ::
 //                         Implementations1_3_0.getCardsForBank ::
                          Nil
@@ -222,7 +222,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           //Implementations2_2_0.getCoreTransactionsForBankAccount ::
     Nil
 
-  
+
   // Possible Endpoints from 3.0.0
   val endpointsOf3_0_0 = Implementations3_0_0.getCoreTransactionsForBankAccount ::
                           Implementations3_0_0.getTransactionsForBankAccount ::
@@ -274,110 +274,9 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Possible Endpoints from 3.0.0 Custom Folder
   val endpointsOfCustom3_0_0 = ImplementationsCustom3_0_0.endpointsOfCustom3_0_0
-  
+
   // Possible Endpoints from 3.1.0
-  val endpointsOf3_1_0 =  Implementations3_1_0.getCheckbookOrders :: 
-                          Implementations3_1_0.getStatusOfCreditCardOrder ::
-                          Implementations3_1_0.createCreditLimitRequest ::
-                          Implementations3_1_0.getCreditLimitRequests ::
-                          Implementations3_1_0.getCreditLimitRequestByRequestId ::
-                          Implementations3_1_0.getTopAPIs ::
-                          Implementations3_1_0.getMetricsTopConsumers ::
-                          Implementations3_1_0.getFirehoseCustomers ::
-                          Implementations3_1_0.getBadLoginStatus ::
-                          Implementations3_1_0.unlockUser ::
-                          Implementations3_1_0.callsLimit ::
-                          Implementations3_1_0.getCallsLimit ::
-                          Implementations3_1_0.checkFundsAvailable ::
-                          Implementations3_1_0.getConsumer ::
-                          Implementations3_1_0.getConsumersForCurrentUser ::
-                          Implementations3_1_0.getConsumers ::
-                          Implementations3_1_0.createAccountWebhook ::
-                          Implementations3_1_0.enableDisableAccountWebhook ::
-                          Implementations3_1_0.getAccountWebhooks ::
-                          Implementations3_1_0.config ::
-                          Implementations3_1_0.getAdapterInfo ::
-                          Implementations3_1_0.getTransactionByIdForBankAccount ::
-                          Implementations3_1_0.getTransactionRequests ::
-                          Implementations3_1_0.createCustomer ::
-                          Implementations3_1_0.getRateLimitingInfo ::
-                          Implementations3_1_0.getCustomerByCustomerId ::
-                          Implementations3_1_0.getCustomerByCustomerNumber ::
-                          Implementations3_1_0.createUserAuthContext ::
-                          Implementations3_1_0.getUserAuthContexts ::
-                          Implementations3_1_0.deleteUserAuthContexts::
-                          Implementations3_1_0.deleteUserAuthContextById::
-                          Implementations3_1_0.createTaxResidence ::
-                          Implementations3_1_0.getTaxResidence ::
-                          Implementations3_1_0.deleteTaxResidence ::
-                          Implementations3_1_0.getAllEntitlements ::
-                          Implementations3_1_0.createCustomerAddress ::
-                          Implementations3_1_0.getCustomerAddresses ::
-                          Implementations3_1_0.deleteCustomerAddress ::
-                          Implementations3_1_0.getObpApiLoopback ::
-                          Implementations3_1_0.refreshUser ::
-                          Implementations3_1_0.createProductAttribute ::
-                          Implementations3_1_0.getProductAttribute ::
-                          Implementations3_1_0.updateProductAttribute ::
-                          Implementations3_1_0.deleteProductAttribute ::
-                          Implementations3_1_0.createAccountApplication ::
-                          Implementations3_1_0.getAccountApplications ::
-                          Implementations3_1_0.getAccountApplication ::
-                          Implementations3_1_0.updateAccountApplicationStatus ::
-                          Implementations3_1_0.createProduct ::
-                          Implementations3_1_0.updateCustomerAddress ::
-                          Implementations3_1_0.getProduct ::
-                          Implementations3_1_0.getProducts ::
-                          Implementations3_1_0.getProductTree ::
-                          Implementations3_1_0.createProductCollection ::
-                          Implementations3_1_0.getProductCollection ::
-                          Implementations3_1_0.createAccountAttribute ::
-                          Implementations3_1_0.updateAccountAttribute ::
-                          Implementations3_1_0.deleteBranch ::
-                          Implementations3_1_0.createMeeting ::
-                          Implementations3_1_0.getMeetings ::
-                          Implementations3_1_0.getMeeting ::
-                          Implementations3_1_0.getServerJWK ::
-                          Implementations3_1_0.createConsent ::
-                          Implementations3_1_0.answerConsentChallenge ::
-                          Implementations3_1_0.getConsents ::
-                          Implementations3_1_0.revokeConsent ::
-                          Implementations3_1_0.createUserAuthContextUpdate ::
-                          Implementations3_1_0.answerUserAuthContextUpdateChallenge ::
-                          Implementations3_1_0.getSystemView ::
-                          Implementations3_1_0.createSystemView ::
-                          Implementations3_1_0.deleteSystemView ::
-                          Implementations3_1_0.updateSystemView ::
-                          Implementations3_1_0.getOAuth2ServerJWKsURIs ::
-                          Implementations3_1_0.getMessageDocsSwagger ::
-                          Implementations3_1_0.updateCustomerEmail ::
-                          Implementations3_1_0.updateCustomerMobileNumber ::
-                          Implementations3_1_0.updateAccount :: 
-                          Implementations3_1_0.addCardForBank :: 
-                          Implementations3_1_0.deleteCardForBank :: 
-                          Implementations3_1_0.getCardForBank :: 
-                          Implementations3_1_0.getCardsForBank :: 
-                          Implementations3_1_0.updatedCardForBank :: 
-                          Implementations3_1_0.updateCustomerIdentity ::
-                          Implementations3_1_0.updateCustomerBranch ::
-                          Implementations3_1_0.updateCustomerCreditLimit ::
-                          Implementations3_1_0.updateCustomerCreditRatingAndSource ::
-                          Implementations3_1_0.updateCustomerData ::
-                          Implementations3_1_0.getMethodRoutings ::
-                          Implementations3_1_0.createMethodRouting ::
-                          Implementations3_1_0.updateMethodRouting ::
-                          Implementations3_1_0.deleteMethodRouting ::
-                          Implementations3_1_0.updateCustomerNumber ::
-                          Implementations3_1_0.createAccount ::
-                          Implementations3_1_0.getPrivateAccountByIdFull ::
-                          Implementations3_1_0.saveHistoricalTransaction ::
-                          Implementations3_1_0.createCardAttribute ::
-                          Implementations3_1_0.updateCardAttribute ::
-                          Implementations3_1_0.getWebUiProps ::
-                          Implementations3_1_0.createWebUiProps ::
-                          Implementations3_1_0.deleteWebUiProps ::
-                          Implementations3_1_0.getBankAccountsBalances ::
-                          Nil
+  val endpointsOf3_1_0 =  getEndpoints(Implementations3_1_0)
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++
                         Implementations3_0_0.resourceDocs ++
