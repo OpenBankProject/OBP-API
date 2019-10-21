@@ -49,6 +49,8 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
 
 import scala.collection.immutable.List
+import scala.collection.mutable.ArrayBuffer
+import scala.math.Ordering
 
 trait APIFailure{
   val msg : String
@@ -400,9 +402,35 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
    * @param obj APIMethodsxxx instance
    * @return all collect endpoints
    */
-  def getEndpoints(obj: AnyRef): Set[OBPEndpoint] = {
+  protected def getEndpoints(obj: AnyRef): Set[OBPEndpoint] = {
     ReflectUtils.getFieldsNameToValue[OBPEndpoint](obj)
       .values
       .toSet
+  }
+
+  /**
+   * collect ResourceDoc objects
+   * Note: if new version ResourceDoc's endpoint have the same name with old version, old version ResourceDoc will be omitted
+   * @param allResourceDocs all ResourceDoc objects
+   * @return collected ResourceDoc objects those omit duplicated old version ResourceDoc objects.
+   */
+  protected def collectResourceDocs(allResourceDocs: ArrayBuffer[ResourceDoc]*): ArrayBuffer[ResourceDoc] = {
+    //descending sort by ApiVersion
+    implicit val ordering = new Ordering[ScannedApiVersion] {
+      override def compare(x: ScannedApiVersion, y: ScannedApiVersion): Int = y.toString().compareTo(x.toString())
+    }
+    val docsToOnceToSeq: Seq[ResourceDoc] = allResourceDocs.flatten
+      .sortBy(_.implementedInApiVersion)
+
+    val result = ArrayBuffer[ResourceDoc]()
+    val endpointNames = scala.collection.mutable.Set[String]()
+    for (doc <- docsToOnceToSeq) {
+      val funcName = doc.partialFunctionName
+      if(!endpointNames.contains(funcName)) {
+        endpointNames.add(funcName)
+        result += doc
+      }
+    }
+    result
   }
 }
