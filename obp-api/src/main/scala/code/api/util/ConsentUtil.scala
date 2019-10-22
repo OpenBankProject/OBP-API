@@ -1,5 +1,6 @@
 package code.api.util
 
+import code.api.v3_1_0.{EntitlementJsonV400, PostConsentBodyCommonJson, ViewJsonV400}
 import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
 import code.entitlement.Entitlement
@@ -13,6 +14,7 @@ import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, MappingException, compactRender}
 import net.liftweb.mapper.By
 
+import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -310,21 +312,30 @@ object Consent {
   }
   
   
-  def createConsentJWT(user: User, viewId: String, secret: String, consentId: String): String = {
+  def createConsentJWT(user: User,
+                       consent: PostConsentBodyCommonJson,
+                       secret: String, 
+                       consentId: String): String = {
     val consumerKey = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.key.get).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
-    val views: Box[List[ConsentView]] = {
-      Views.views.vend.getPermissionForUser(user) map {
-        _.views map {
-          view =>
-            ConsentView(
-              bank_id = view.bankId.value,
-              account_id = view.accountId.value,
-              view_id = viewId
-            )
-        }
+    val views: Seq[ConsentView] = 
+      for {
+        view <- Views.views.vend.getPermissionForUser(user).map(_.views).getOrElse(Nil)
+        if consent.everything || consent.views.exists(_ == ViewJsonV400(view.bankId.value,view.accountId.value, view.viewId.value))
+      } yield  {
+        ConsentView(
+          bank_id = view.bankId.value,
+          account_id = view.accountId.value,
+          view_id = view.viewId.value
+        )
       }
-    }.map(_.distinct)
+    val entitlements: Seq[Role] = 
+      for {
+        entitlement <- Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).getOrElse(Nil)
+        if consent.everything || consent.entitlements.exists(_ == EntitlementJsonV400(entitlement.bankId,entitlement.roleName))
+      } yield  {
+        Role(entitlement.roleName, entitlement.bankId)
+      }
     val json = ConsentJWT(
       createdByUserId=user.userId,
       sub=APIUtil.generateUUID(),
@@ -336,8 +347,8 @@ object Consent {
       exp=currentTimeInSeconds + 3600,
       name=None,
       email=None,
-      entitlements=Nil,
-      views=views.getOrElse(Nil)
+      entitlements=entitlements.toList,
+      views=views.toList
     )
     
     implicit val formats = CustomJsonFormats.formats
