@@ -37,44 +37,44 @@ object ExampleValue {
 
 
   lazy val customerIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer and is used in URLs. This SHOULD NOT be the customer number. The combination of customerId and bankId MUST be unique on an OBP instance. customerId SHOULD be unique on an OBP instance. Ideally customerId is a UUID. A mapping between customer number and customer id is kept in OBP.")
-  glossaryItems += makeGlossaryItem("Adapter.customerId", customerIdExample)
+  glossaryItems += makeGlossaryItem("Customer.customerId", customerIdExample)
 
   lazy val consumerIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the consumer. It is the app which calls the apis")
-  glossaryItems += makeGlossaryItem("Adapter.consumerId", consumerIdExample)
+  glossaryItems += makeGlossaryItem("Customer.customerId", consumerIdExample)
   
   lazy val nameSuffixExample = ConnectorField("Sr", s"suffix of the name")
-  glossaryItems += makeGlossaryItem("Adapter.nameSuffix", nameSuffixExample)
+  glossaryItems += makeGlossaryItem("Customer.nameSuffix", nameSuffixExample)
 
   lazy val titleExample = ConnectorField("Dr.", s"title of the name")
-  glossaryItems += makeGlossaryItem("Adapter.title", titleExample)
+  glossaryItems += makeGlossaryItem("Customer.title", titleExample)
   
   lazy val highestEducationAttainedExample = ConnectorField("Master", s"highest education attained")
-  glossaryItems += makeGlossaryItem("Adapter.highestEducationAttained", highestEducationAttainedExample)
+  glossaryItems += makeGlossaryItem("Customer.highestEducationAttained", highestEducationAttainedExample)
   
   lazy val employmentStatusExample = ConnectorField("worker", s"employment status")
-  glossaryItems += makeGlossaryItem("Adapter.employmentStatus", employmentStatusExample)
+  glossaryItems += makeGlossaryItem("Customer.employmentStatus", employmentStatusExample)
   
   lazy val relationshipStatusExample = ConnectorField("single", s"relationship status")
-  glossaryItems += makeGlossaryItem("Adapter.relationshipStatus", relationshipStatusExample)
+  glossaryItems += makeGlossaryItem("Customer.relationshipStatus", relationshipStatusExample)
   
   lazy val dependentsExample = ConnectorField("10", s"the number of dependents")
-  glossaryItems += makeGlossaryItem("Adapter.dependents", dependentsExample)
+  glossaryItems += makeGlossaryItem("Customer.dependents", dependentsExample)
   
   lazy val kycStatusExample = ConnectorField("true", s"This is boolean to indicate if the cusomter's KYC has been checked.") 
-  glossaryItems += makeGlossaryItem("Adapter.kycStatus", kycStatusExample)
+  glossaryItems += makeGlossaryItem("Customer.kycStatus", kycStatusExample)
   
   lazy val urlExample = ConnectorField("http://www.example.com/id-docs/123/image.png", s"The URL ") 
-  glossaryItems += makeGlossaryItem("Adapter.url", urlExample)
+  glossaryItems += makeGlossaryItem("Customer.url", urlExample)
   
   lazy val customerNumberExample = ConnectorField("5987953", s"The human friendly customer identifier that MUST uniquely identify the Customer at the Bank ID. Customer Number is NOT used in URLs.")
-  glossaryItems += makeGlossaryItem("Adapter.customerNumber", customerNumberExample)
+  glossaryItems += makeGlossaryItem("Customer.customerNumber", customerNumberExample)
 
   lazy val labelExample = ConnectorField("My Account", s"A lable that describes the Account")
   lazy val legalNameExample = ConnectorField("Eveline Tripman", s"The legal name of the Customer.")
-  glossaryItems += makeGlossaryItem("Adapter.legalName", legalNameExample)
+  glossaryItems += makeGlossaryItem("Customer.legalName", legalNameExample)
   
   lazy val mobileNumberExample = ConnectorField("+44 07972 444 876", s"The mobile number name of the Customer.")
-  glossaryItems += makeGlossaryItem("Adapter.mobileNumber", mobileNumberExample)
+  glossaryItems += makeGlossaryItem("Customer.mobileNumber", mobileNumberExample)
   
   lazy val ratingExample = ConnectorField("", s".") //TODO, not sure what is this filed for?
   glossaryItems += makeGlossaryItem("Adapter.rating", ratingExample)
