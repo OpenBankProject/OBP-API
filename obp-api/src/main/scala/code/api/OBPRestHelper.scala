@@ -222,6 +222,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     val url = URLDecoder.decode(S.uriAndQueryString.getOrElse(""),"UTF-8")
     val correlationId = getCorrelationId()
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
+    val remoteIpAddress = getRemoteIpAddress()
     val cc = CallContext(
       resourceDocument = rd,
       startTime = Some(Helpers.now),
@@ -231,7 +232,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       httpBody = body,
       correlationId = correlationId,
       url = url,
-      ipAddress = getRemoteIpAddress(),
+      ipAddress = remoteIpAddress,
       requestHeaders = reqHeaders
     )
     if(newStyleEndpoints(rd)) {
@@ -274,9 +275,9 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         }
       }
     } else if (APIUtil.getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
-      logger.info("allow_gateway_login-getRemoteIpAddress: " + getRemoteIpAddress() )
+      logger.info("allow_gateway_login-getRemoteIpAddress: " + remoteIpAddress )
       APIUtil.getPropsValue("gateway.host") match {
-        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
+        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
           val s = S
           val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
           httpCode match {
@@ -303,7 +304,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
             case _ =>
               Failure(message)
           }
-        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == false) => // All other addresses will be rejected
+        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == false) => // All other addresses will be rejected
           Failure(ErrorMessages.GatewayLoginWhiteListAddresses)
         case Empty =>
           Failure(ErrorMessages.GatewayLoginHostPropertyMissing) // There is no gateway.host in props file

@@ -1,26 +1,29 @@
 package code.api.v4_0_0
 
+import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankNotFound, CounterpartyBeneficiaryPermit, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
+import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankAccountNotFound, BankNotFound, CounterpartyBeneficiaryPermit, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NoViewPermission, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
 import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
+import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v3_1_0.ListResult
-import code.api.{APIFailureNewStyle, ChargePolicy}
+import code.api.v4_0_0.JSONFactory400.{createNewCoreBankAccountJson, createBankAccountJSON}
 import code.dynamicEntity.DynamicEntityCommons
-import code.entitlement.Entitlement
+import code.metadata.tags.Tags
 import code.model.dataAccess.AuthUser
 import code.model.toUserExtended
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.util.Helper
+import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
@@ -29,6 +32,7 @@ import net.liftweb.common.{Box, Full, ParamFailure}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
+import net.liftweb.util.Helpers.now
 import net.liftweb.util.StringHelpers
 import org.atteo.evo.inflector.English
 
@@ -1014,6 +1018,36 @@ trait APIMethods400 {
     }
 
 
+    resourceDocs += ResourceDoc(
+      getCallContext,
+      implementedInApiVersion,
+      nameOf(getCallContext),
+      "GET",
+      "/development/call_context",
+      "Get the Call Context of a current call",
+      s"""Get the Call Context of the current call.
+         |
+         |${authenticationRequiredMessage(true)}
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagApi, apiTagNewStyle),
+      Some(List(canGetCallContext)))
+
+    lazy val getCallContext: OBPEndpoint = {
+      case "development" :: "call_context" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetCallContext, callContext)
+          } yield {
+            (callContext, HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
 
     resourceDocs += ResourceDoc(
       getEntitlements,
@@ -1056,8 +1090,248 @@ trait APIMethods400 {
           }
       }
     }
-    
-    
+
+
+    resourceDocs += ResourceDoc(
+      addTagForViewOnAccount,
+      implementedInApiVersion,
+      "addTagForViewOnAccount",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
+      "Add a tag on account.",
+      s"""Posts a tag about an account ACCOUNT_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Authentication is required as the tag is linked with the user.""",
+      postTransactionTagJSON,
+      transactionTagJSON,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        NoViewPermission,
+        ViewNotFound,
+        UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccountMetadata, apiTagAccount))
+
+    lazy val addTagForViewOnAccount : OBPEndpoint = {
+      //add a tag
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(bankId, accountId), callContext)
+            _ <- NewStyle.function.hasViewAccess(view, u)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_add_tag. Current ViewId($viewId)") {
+              view.canAddTag
+            }
+            tagJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostTransactionTagJSON ", 400, callContext) {
+              json.extract[PostTransactionTagJSON]
+            }
+            (postedTag, callContext) <- Future(Tags.tags.vend.addTagOnAccount(bankId, accountId)(u.userPrimaryKey, viewId, tagJson.value, now)) map {
+              i => (connectorEmptyResponse(i, callContext), callContext)
+            }
+          } yield {
+            (JSONFactory.createTransactionTagJSON(postedTag), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      deleteTagForViewOnAccount,
+      implementedInApiVersion,
+      "deleteTagForViewOnAccount",
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags/TAG_ID",
+      "Delete a tag on account.",
+      s"""Deletes the tag TAG_ID about the account ACCOUNT_ID made on [view](#1_2_1-getViewsForBankAccount).
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |Authentication is required as the tag is linked with the user.""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(NoViewPermission,
+        ViewNotFound,
+        UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccountMetadata, apiTagAccount))
+
+    lazy val deleteTagForViewOnAccount : OBPEndpoint = {
+      //delete a tag
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(bankId, accountId), callContext)
+            _ <- NewStyle.function.hasViewAccess(view, u)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_delete_tag. Current ViewId($viewId)") {
+              view.canDeleteTag
+            }
+            deleted <- Future(Tags.tags.vend.deleteTagOnAccount(bankId, accountId)(tagId)) map {
+              i => (connectorEmptyResponse(i, callContext), callContext)
+            }
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getTagsForViewOnAccount,
+      implementedInApiVersion,
+      "getTagsForViewOnAccount",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
+      "Get tags on account.",
+      s"""Returns the account ACCOUNT_ID tags made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
+         |${authenticationRequiredMessage(true)}
+         |
+         |Authentication is required as the tag is linked with the user.""",
+      emptyObjectJson,
+      transactionTagJSON,
+      List(
+        BankAccountNotFound,
+        NoViewPermission,
+        ViewNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccountMetadata, apiTagAccount))
+
+    lazy val getTagsForViewOnAccount : OBPEndpoint = {
+      //get tags
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(bankId, accountId), callContext)
+            _ <- NewStyle.function.hasViewAccess(view, u)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_tags. Current ViewId($viewId)") {
+              view.canSeeTags
+            }
+            tags <- Future(Tags.tags.vend.getTagsOnAccount(bankId, accountId)(viewId))
+          } yield {
+            val json = JSONFactory.createTransactionTagsJSON(tags)
+            (json, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+
+
+    resourceDocs += ResourceDoc(
+      getCoreAccountById,
+      implementedInApiVersion,
+      nameOf(getCoreAccountById),
+      "GET",
+      "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
+      "Get Account by Id (Core)",
+      s"""Information returned about the account specified by ACCOUNT_ID:
+         |
+         |* Number - The human readable account number given by the bank that identifies the account.
+         |* Label - A label given by the owner of the account
+         |* Owners - Users that own this account
+         |* Type - The type of account
+         |* Balance - Currency and Value
+         |* Account Routings - A list that might include IBAN or national account identifiers
+         |* Account Rules - A list that might include Overdraft and other bank specific rules
+         |
+         |This call returns the owner view and requires access to that view.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      emptyObjectJson,
+      newModeratedCoreAccountJsonV400,
+      List(BankAccountNotFound,UnknownError),
+      Catalogs(Core, PSD2, notOBWG),
+      apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: Nil)
+    lazy val getCoreAccountById : OBPEndpoint = {
+      //get account by id (assume owner view requested)
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), callContext) <-  authorizedAccess(cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            // Assume owner view was requested
+            viewId = ViewId("owner")
+            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            _ <- NewStyle.function.hasViewAccess(view, u)
+            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
+              bankId,
+              accountId,
+              callContext: Option[CallContext])
+            tags <- Future(Tags.tags.vend.getTagsOnAccount(bankId, accountId)(viewId))
+          } yield {
+            val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
+            (createNewCoreBankAccountJson(moderatedAccount, availableViews, accountAttributes, tags), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getPrivateAccountByIdFull,
+      implementedInApiVersion,
+      nameOf(getPrivateAccountByIdFull),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
+      "Get Account by Id (Full)",
+      """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+        |
+        |* Number
+        |* Owners
+        |* Type
+        |* Balance
+        |* IBAN
+        |* Available views (sorted by short_name)
+        |
+        |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+        |
+        |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
+        |This call provides balance and other account information via delegated authentication using OAuth.
+        |
+        |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+        |""".stripMargin,
+      emptyObjectJson,
+      moderatedAccountJSON310,
+      List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      apiTagAccount ::  apiTagNewStyle :: Nil)
+    lazy val getPrivateAccountByIdFull : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            _ <- NewStyle.function.hasViewAccess(view, u)
+            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
+              bankId,
+              accountId,
+              callContext: Option[CallContext])
+          } yield {
+            val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
+            val viewsAvailable = availableViews.map(JSONFactory.createViewJSON).sortBy(_.short_name)
+            val tags = Tags.tags.vend.getTagsOnAccount(bankId, accountId)(viewId)
+            (createBankAccountJSON(moderatedAccount, viewsAvailable, accountAttributes, tags), HttpCode.`200`(callContext))
+          }
+      }
+    }
     
 
   }

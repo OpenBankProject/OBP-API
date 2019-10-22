@@ -42,10 +42,6 @@ import net.liftweb.common.{Box, Full}
 import net.liftweb.http.{LiftResponse, PlainTextResponse}
 import org.apache.http.HttpStatus
 
-import scala.collection.immutable.{List, Nil}
-
-
-
 /*
 This file defines which endpoints from all the versions are available in v4.0.0
  */

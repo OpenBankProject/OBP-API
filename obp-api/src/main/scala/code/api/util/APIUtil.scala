@@ -42,9 +42,9 @@ import code.api.oauth1a.OauthParams._
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
-import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
-import code.api.{DirectLogin, util, _}
+import code.api.{DirectLogin, _}
 import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.customer.CustomerX
@@ -52,11 +52,13 @@ import code.entitlement.Entitlement
 import code.metrics._
 import code.model._
 import code.model.dataAccess.AuthUser
+import code.ratelimiting.{RateLimiting, RateLimitingDI}
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{Customer, _}
 import dispatch.url
@@ -345,7 +347,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   private def getRateLimitHeadersNewStyle(cc: Option[CallContextLight]) = {
-    (cc, RateLimitUtil.useConsumerLimits) match {
+    (cc, RateLimitingUtil.useConsumerLimits) match {
       case (Some(x), true) =>
         CustomResponseHeaders(
           List(
@@ -1896,6 +1898,7 @@ Returns a string showed to the developer
     val url = URLDecoder.decode(S.uriAndQueryString.getOrElse(""),"UTF-8")
     val correlationId = getCorrelationId()
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
+    val remoteIpAddress = getRemoteIpAddress()
     val res =
     if (APIUtil.hasConsentId(reqHeaders)) {
       Consent.applyRules(APIUtil.getConsentId(reqHeaders), Some(cc)) 
@@ -1913,7 +1916,7 @@ Returns a string showed to the developer
       DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
     } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
       APIUtil.getPropsValue("gateway.host") match {
-        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == true) => // Only addresses from white list can use this feature
+        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
           val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
           httpCode match {
             case 200 =>
@@ -1939,7 +1942,7 @@ Returns a string showed to the developer
             case _ =>
               Future { (Failure(message), None) }
           }
-        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(getRemoteIpAddress()) == false) => // All other addresses will be rejected
+        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == false) => // All other addresses will be rejected
           Future { (Failure(ErrorMessages.GatewayLoginWhiteListAddresses), None) }
         case Empty =>
           Future { (Failure(ErrorMessages.GatewayLoginHostPropertyMissing), None) } // There is no gateway.host in props file
@@ -1954,8 +1957,57 @@ Returns a string showed to the developer
     else {
       Future { (Empty, None) }
     }
-    // Update Call Context
-    res map {
+    
+    
+
+    /******************************************************************************************************************
+      * This block of code needs to update Call Context with Rate Limiting
+      * Please note that first source is the table RateLimiting and second the table Consumer
+      */
+    def getRateLimiting(consumerId: String): Future[Box[RateLimiting]] = {
+      RateLimitingUtil.useConsumerLimits match {
+        case true => RateLimitingDI.rateLimiting.vend.getByConsumerId(consumerId, Some(new Date()))
+        case false => Future(Empty)
+      }
+    }
+    val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = for {
+      (user, cc) <- res
+      consumer = cc.flatMap(_.consumer)
+      rateLimiting <- getRateLimiting(consumer.map(_.consumerId.get).getOrElse(""))
+    } yield {
+      val limit: Option[CallLimit] = rateLimiting match {
+        case Full(rl) => Some(CallLimit(
+          rl.consumerId,
+          None,
+          None,
+          None,
+          rl.perSecondCallLimit,
+          rl.perMinuteCallLimit,
+          rl.perHourCallLimit,
+          rl.perDayCallLimit,
+          rl.perWeekCallLimit,
+          rl.perMonthCallLimit))
+        case Empty =>
+          Some(CallLimit(
+            consumer.map(_.consumerId.get).getOrElse(""),
+            None,
+            None,
+            None,
+            consumer.map(_.perSecondCallLimit.get).getOrElse(-1),
+            consumer.map(_.perMinuteCallLimit.get).getOrElse(-1),
+            consumer.map(_.perHourCallLimit.get).getOrElse(-1),
+            consumer.map(_.perDayCallLimit.get).getOrElse(-1),
+            consumer.map(_.perWeekCallLimit.get).getOrElse(-1),
+            consumer.map(_.perMonthCallLimit.get).getOrElse(-1)
+          ))
+        case _ => None 
+      }
+      (user, cc.map(_.copy(rateLimiting = limit)))
+    }
+    /*************************************************************************************************************** */
+
+      // Update Call Context
+    resultWithRateLimiting map {
       x => (x._1, ApiSession.updateCallContext(Spelling(spelling), x._2))
     } map {
       x => (x._1, x._2.map(_.copy(implementedInVersion = implementedInVersion)))
@@ -1968,7 +2020,7 @@ Returns a string showed to the developer
     } map {
       x => (x._1, x._2.map(_.copy(requestHeaders = reqHeaders)))
     } map {
-      x => (x._1, x._2.map(_.copy(ipAddress = getRemoteIpAddress())))
+      x => (x._1, x._2.map(_.copy(ipAddress = remoteIpAddress)))
     }  map {
       x => (x._1, x._2.map(_.copy(httpBody = body.toOption)))
     } 
@@ -2014,163 +2066,7 @@ Returns a string showed to the developer
   def unboxOptionFuture[T](option: Option[Future[T]]): Future[Box[T]] = unboxFuture(Box(option))
 
   def unboxOptionOBPReturnType[T](option: Option[OBPReturnType[T]]): Future[Box[T]] = unboxOBPReturnType(Box(option))
-
-
-  /**
-    * This function checks rate limiting for a Consumer.
-    * It will check rate limiting per minute, hour, day, week and month.
-    * In case any of the above is hit an error is thrown.
-    * In case two or more limits are hit rate limit with lower period has precedence regarding the error message.
-    * @param userAndCallContext is a Tuple (Box[User], Option[CallContext]) provided from getUserAndSessionContextFuture function
-    * @return a Tuple (Box[User], Option[CallContext]) enriched with rate limiting header or an error.
-    */
-  private def underCallLimits(userAndCallContext: (Box[User], Option[CallContext])): (Box[User], Option[CallContext]) = {
-    import util.RateLimitPeriod._
-    import util.RateLimitUtil._
-    val perHourLimitAnonymous = APIUtil.getPropsAsIntValue("user_consumer_limit_anonymous_access", 1000)
-    def composeMsg(period: LimitCallPeriod, limit: Long): String = TooManyRequests + s" We only allow $limit requests ${RateLimitPeriod.humanReadable(period)} for this Consumer."
-    def composeMsgAnonymousAccess(period: LimitCallPeriod, limit: Long): String = TooManyRequests + s" We only allow $limit requests ${RateLimitPeriod.humanReadable(period)} for anonymous access."
-
-    def setXRateLimits(c: Consumer, z: (Long, Long), period: LimitCallPeriod): Option[CallContext] = {
-      val limit = period match {
-        case PER_SECOND => 
-          c.perSecondCallLimit.get
-        case PER_MINUTE => 
-          c.perMinuteCallLimit.get
-        case PER_HOUR   => 
-          c.perHourCallLimit.get
-        case PER_DAY    => 
-          c.perDayCallLimit.get
-        case PER_WEEK   => 
-          c.perWeekCallLimit.get
-        case PER_MONTH  => 
-          c.perMonthCallLimit.get
-        case PER_YEAR   => 
-          -1
-      }
-      userAndCallContext._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
-        .map(_.copy(`X-Rate-Limit-Reset` = z._1))
-        .map(_.copy(`X-Rate-Limit-Remaining` = limit - z._2))
-    }
-    def setXRateLimitsAnonymous(id: String, z: (Long, Long), period: LimitCallPeriod): Option[CallContext] = {
-      val limit = period match {
-        case PER_HOUR   => perHourLimitAnonymous
-        case _   => -1
-      }
-      userAndCallContext._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
-        .map(_.copy(`X-Rate-Limit-Reset` = z._1))
-        .map(_.copy(`X-Rate-Limit-Remaining` = limit - z._2))
-    }
-
-    def exceededRateLimit(c: Consumer, period: LimitCallPeriod): Option[CallContextLight] = {
-      val remain = ttl(c.key.get, period)
-      val limit = period match {
-        case PER_SECOND => 
-          c.perSecondCallLimit.get
-        case PER_MINUTE => 
-          c.perMinuteCallLimit.get
-        case PER_HOUR   => 
-          c.perHourCallLimit.get
-        case PER_DAY    => 
-          c.perDayCallLimit.get
-        case PER_WEEK   => 
-          c.perWeekCallLimit.get
-        case PER_MONTH  => 
-          c.perMonthCallLimit.get
-        case PER_YEAR   => 
-          -1
-      }
-      userAndCallContext._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
-        .map(_.copy(`X-Rate-Limit-Reset` = remain))
-        .map(_.copy(`X-Rate-Limit-Remaining` = 0)).map(_.toLight)
-    }
-
-    def exceededRateLimitAnonymous(id: String, period: LimitCallPeriod): Option[CallContextLight] = {
-      val remain = ttl(id, period)
-      val limit = period match {
-        case PER_HOUR   => perHourLimitAnonymous
-        case _   => -1
-      }
-      userAndCallContext._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
-        .map(_.copy(`X-Rate-Limit-Reset` = remain))
-        .map(_.copy(`X-Rate-Limit-Remaining` = 0)).map(_.toLight)
-    }
-
-    userAndCallContext._2 match {
-      case Some(cc) =>
-        cc.consumer match {
-          case Full(c) => // Authorized access
-            val checkLimits = List(
-              underConsumerLimits(c.key.get, PER_SECOND, c.perSecondCallLimit.get),
-              underConsumerLimits(c.key.get, PER_MINUTE, c.perMinuteCallLimit.get),
-              underConsumerLimits(c.key.get, PER_HOUR, c.perHourCallLimit.get),
-              underConsumerLimits(c.key.get, PER_DAY, c.perDayCallLimit.get),
-              underConsumerLimits(c.key.get, PER_WEEK, c.perWeekCallLimit.get),
-              underConsumerLimits(c.key.get, PER_MONTH, c.perMonthCallLimit.get)
-            )
-            checkLimits match {
-              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x1 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_SECOND, c.perSecondCallLimit.get), 429, exceededRateLimit(c, PER_SECOND))), userAndCallContext._2)
-              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x2 == false =>
-               (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_MINUTE, c.perMinuteCallLimit.get), 429, exceededRateLimit(c, PER_MINUTE))), userAndCallContext._2)
-              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x3 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_HOUR, c.perHourCallLimit.get), 429, exceededRateLimit(c, PER_HOUR))), userAndCallContext._2)
-              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x4 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_DAY, c.perDayCallLimit.get), 429, exceededRateLimit(c, PER_DAY))), userAndCallContext._2)
-              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x5 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_WEEK, c.perWeekCallLimit.get), 429, exceededRateLimit(c, PER_WEEK))), userAndCallContext._2)
-              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x6 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_MONTH, c.perMonthCallLimit.get), 429, exceededRateLimit(c, PER_MONTH))), userAndCallContext._2)
-              case _ =>
-                val incrementCounters = List (
-                  incrementConsumerCounters(c.key.get, PER_SECOND, c.perSecondCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(c.key.get, PER_MINUTE, c.perMinuteCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(c.key.get, PER_HOUR, c.perHourCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(c.key.get, PER_DAY, c.perDayCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(c.key.get, PER_WEEK, c.perWeekCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(c.key.get, PER_MONTH, c.perMonthCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
-                )
-                incrementCounters match {
-                  case first :: _ :: _ :: _ :: _ :: _ :: Nil if first._1 > 0 => 
-                    (userAndCallContext._1, setXRateLimits(c, first, PER_SECOND))
-                  case _ :: second :: _ :: _ :: _ :: _ :: Nil if second._1 > 0 => 
-                    (userAndCallContext._1, setXRateLimits(c, second, PER_MINUTE))
-                  case _ :: _ :: third :: _ :: _ :: _ :: Nil if third._1 > 0 => 
-                    (userAndCallContext._1, setXRateLimits(c, third, PER_HOUR))
-                  case _ :: _ :: _ :: fourth :: _ :: _ :: Nil if fourth._1 > 0 => 
-                    (userAndCallContext._1, setXRateLimits(c, fourth, PER_DAY))
-                  case _ :: _ :: _ :: _ :: fifth :: _ :: Nil if fifth._1 > 0 => 
-                    (userAndCallContext._1, setXRateLimits(c, fifth, PER_WEEK))
-                  case _ :: _ :: _ :: _ :: _ :: sixth :: Nil if sixth._1 > 0 => 
-                    (userAndCallContext._1, setXRateLimits(c, sixth, PER_MONTH))
-                  case _  => 
-                    (userAndCallContext._1, userAndCallContext._2)
-                }
-            }
-          case Empty => // Anonymous access
-            val consumerId = cc.ipAddress
-            val checkLimits = List(
-              underConsumerLimits(consumerId, PER_HOUR, perHourLimitAnonymous)
-            )
-            checkLimits match {
-              case x1 :: Nil if x1 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAnonymousAccess(PER_HOUR, perHourLimitAnonymous), 429, exceededRateLimitAnonymous(consumerId, PER_HOUR))), userAndCallContext._2)
-              case _ =>
-                val incrementCounters = List (
-                    incrementConsumerCounters(consumerId, PER_HOUR, perHourLimitAnonymous),  // Responses other than the 429 status code MUST be stored by a cache.
-                  )
-                incrementCounters match {
-                  case x1 :: Nil if x1._1 > 0 =>
-                    (userAndCallContext._1, setXRateLimitsAnonymous(consumerId, x1, PER_HOUR))
-                  case _  =>
-                    (userAndCallContext._1, userAndCallContext._2)
-                }
-            }
-          case _ => (userAndCallContext._1, userAndCallContext._2)
-        }
-      case _ => (userAndCallContext._1, userAndCallContext._2)
-    }
-  }
+  
 
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
@@ -2196,7 +2092,7 @@ Returns a string showed to the developer
         val excludeFunctions = getPropsValue("rate_limiting.exclude_endpoints", "root").split(",").toList
         cc.resourceDocument.map(_.partialFunctionName) match {
           case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
-          case _ => underCallLimits(result)
+          case _ => RateLimitingUtil.underCallLimits(result)
         }
     }
   }
@@ -2793,6 +2689,23 @@ Returns a string showed to the developer
       case Full(sca) if sca == StrongCustomerAuthentication.EMAIL.toString() => Full(StrongCustomerAuthentication.EMAIL)
       case _ => Full(StrongCustomerAuthentication.UNDEFINED)
     }
+  }
+
+  /**
+    * Given two ranges(like date ranges), do they overlap and if so, how much?
+    *
+    *         A +-----------------+ B
+    *                      C +-------------------+ D
+    *
+    * if NOT ( B <= C or A >= D) then they overlap
+    * Next, do 4 calculations:
+    * B-A, B-C, D-A, D-C
+    * The actual overlap will be the least of these.
+    * 
+    */
+  case class DateInterval(start: Date, end: Date)
+  def dateRangesOverlap(range1: DateInterval, range2: DateInterval): Boolean = {
+    if(range1.end.before(range2.start) || range1.start.after(range2.end)) false else true
   }
   
 }

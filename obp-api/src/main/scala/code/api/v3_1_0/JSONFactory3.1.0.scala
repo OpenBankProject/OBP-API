@@ -31,8 +31,8 @@ import java.util.Date
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
-import code.api.util.RateLimitPeriod.LimitCallPeriod
-import code.api.util.{APIUtil, RateLimitPeriod}
+import code.api.util.RateLimitingPeriod.LimitCallPeriod
+import code.api.util.{APIUtil, RateLimitingPeriod}
 import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
 import code.api.v1_2_1.{BankJSON, RateLimiting, UserJSONV121, ViewJSONV121}
 import code.api.v1_3_0.JSONFactory1_3_0._
@@ -49,6 +49,7 @@ import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, ModeratedBankAccount, UserX}
+import code.ratelimiting
 import code.webhook.AccountWebhook
 import com.openbankproject.commons.model.{AccountApplication, AmountOfMoneyJsonV121, Product, ProductCollection, ProductCollectionItem, TaxResidence, User, UserAuthContextUpdate, _}
 import net.liftweb.common.{Box, Full}
@@ -110,6 +111,8 @@ case class BadLoginStatusJson(
 )
 
 case class CallLimitPostJson(
+                          from_date : Date,
+                          to_date : Date,
                           per_second_call_limit : String,
                           per_minute_call_limit : String,
                           per_hour_call_limit : String,
@@ -135,6 +138,18 @@ case class CallLimitJson(
                           per_month_call_limit : String,
                           current_state: Option[RedisCallLimitJson]
                          )
+
+case class CallLimitJson310(
+                             from_date: Date,
+                             to_date: Date,
+                             per_second_call_limit: String,
+                             per_minute_call_limit: String,
+                             per_hour_call_limit: String,
+                             per_day_call_limit: String,
+                             per_week_call_limit: String,
+                             per_month_call_limit: String,
+                             current_state: Option[RedisCallLimitJson]
+                           )
 case class CheckFundsAvailableJson(answer: String,
                                    date: Date,
                                    available_funds_request_id: String)
@@ -750,7 +765,7 @@ object JSONFactory310{
     val redisRateLimit = rateLimits match {
       case Nil => None
       case _   =>
-        def getInfo(period: RateLimitPeriod.Value): Option[RateLimit] = {
+        def getInfo(period: RateLimitingPeriod.Value): Option[RateLimit] = {
           rateLimits.filter(_._2 == period) match {
             case x :: Nil =>
               x._1 match {
@@ -763,12 +778,12 @@ object JSONFactory310{
         }
         Some(
           RedisCallLimitJson(
-            getInfo(RateLimitPeriod.PER_SECOND),
-            getInfo(RateLimitPeriod.PER_MINUTE),
-            getInfo(RateLimitPeriod.PER_HOUR),
-            getInfo(RateLimitPeriod.PER_DAY),
-            getInfo(RateLimitPeriod.PER_WEEK),
-            getInfo(RateLimitPeriod.PER_MONTH)
+            getInfo(RateLimitingPeriod.PER_SECOND),
+            getInfo(RateLimitingPeriod.PER_MINUTE),
+            getInfo(RateLimitingPeriod.PER_HOUR),
+            getInfo(RateLimitingPeriod.PER_DAY),
+            getInfo(RateLimitingPeriod.PER_WEEK),
+            getInfo(RateLimitingPeriod.PER_MONTH)
           )
         )
     }
@@ -781,6 +796,20 @@ object JSONFactory310{
       consumer.perWeekCallLimit.get.toString,
       consumer.perMonthCallLimit.get.toString,
       redisRateLimit
+    )
+
+  }
+  def createCallsLimitJson(rateLimiting: ratelimiting.RateLimiting) : CallLimitJson310 = {
+    CallLimitJson310(
+      rateLimiting.fromDate,
+      rateLimiting.toDate,
+      rateLimiting.perSecondCallLimit.toString,
+      rateLimiting.perMinuteCallLimit.toString,
+      rateLimiting.perHourCallLimit.toString,
+      rateLimiting.perDayCallLimit.toString,
+      rateLimiting.perWeekCallLimit.toString,
+      rateLimiting.perMonthCallLimit.toString,
+      None
     )
 
   }

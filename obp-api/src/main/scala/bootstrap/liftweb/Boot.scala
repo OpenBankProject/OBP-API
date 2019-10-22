@@ -81,6 +81,7 @@ import code.productAttributeattribute.MappedProductAttribute
 import code.productcollection.MappedProductCollection
 import code.productcollectionitem.MappedProductCollectionItem
 import code.products.MappedProduct
+import code.ratelimiting.RateLimiting
 import code.remotedata.RemotedataActors
 import code.scheduler.DatabaseDriverScheduler
 import code.scope.{MappedScope, MappedUserScope}
@@ -619,7 +620,8 @@ object ToSchemify {
     MappedProductCollection,
     MappedProductCollectionItem,
     MappedAccountAttribute,
-    MappedCardAttribute
+    MappedCardAttribute,
+    RateLimiting
   )
 
   // The following tables are accessed directly via Mapper / JDBC

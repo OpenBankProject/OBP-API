@@ -20,12 +20,22 @@ object RemotedataTags extends ObpActorInit with Tags {
     (actor ? cc.getTags(bankId, accountId, transactionId, viewId)).mapTo[List[TransactionTag]]
   )
 
+  def getTagsOnAccount(bankId : BankId, accountId : AccountId)(viewId : ViewId) : List[TransactionTag] = getValueFromFuture(
+    (actor ? cc.getTagsOnAccount(bankId, accountId, viewId)).mapTo[List[TransactionTag]]
+  )
+
   def addTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserPrimaryKey, viewId : ViewId, tagText : String, datePosted : Date) : Box[TransactionTag] = getValueFromFuture(
     (actor ? cc.addTag(bankId, accountId, transactionId, userId, viewId, tagText, datePosted)).mapTo[Box[TransactionTag]]
+  )
+  def addTagOnAccount(bankId : BankId, accountId : AccountId)(userId: UserPrimaryKey, viewId : ViewId, tagText : String, datePosted : Date) : Box[TransactionTag] = getValueFromFuture(
+    (actor ? cc.addTagOnAccount(bankId, accountId, userId, viewId, tagText, datePosted)).mapTo[Box[TransactionTag]]
   )
 
   def deleteTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(tagId : String) : Box[Boolean] = getValueFromFuture(
     (actor ? cc.deleteTag(bankId, accountId, transactionId, tagId)).mapTo[Box[Boolean]]
+  )
+  def deleteTagOnAccount(bankId : BankId, accountId : AccountId)(tagId : String) : Box[Boolean] = getValueFromFuture(
+    (actor ? cc.deleteTagOnAccount(bankId, accountId, tagId)).mapTo[Box[Boolean]]
   )
 
   def bulkDeleteTags(bankId: BankId, accountId: AccountId): Boolean = getValueFromFuture(
