@@ -60,6 +60,7 @@ object Migration extends MdcLoggable {
       populateTableAccountAccess()
       generateAndPopulateMissingCustomerUUIDs()
       generateAndPopulateMissingConsumersUUIDs()
+      populateTableRateLimiting()
     }
     
     private def dummyScript(): Boolean = {
@@ -121,11 +122,18 @@ object Migration extends MdcLoggable {
         isSuccessful
       }
     }
+
+    private def populateTableRateLimiting(): Boolean = {
+      val name = nameOf(populateTableRateLimiting)
+      runOnce(name) {
+        TableRateLmiting.populate(name)
+      }
+    }
     
   }
 
   /**
-    * In this object we put functions dedcated to common database tasks.
+    * In this object we put functions dedicated to common database tasks.
     */
   object DbFunction {
     /**

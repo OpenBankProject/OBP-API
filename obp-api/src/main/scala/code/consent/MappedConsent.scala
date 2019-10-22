@@ -134,7 +134,7 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   object mChallenge extends MappedString(this, 10)  {
     override def defaultValue = Random.nextInt(99999999).toString()
   }
-  object mJsonWebToken extends MappedString(this, 2048)
+  object mJsonWebToken extends MappedString(this, 4096)
 
   //The following are added for BerlinGroup
   object mRecurringIndicator extends MappedBoolean(this)

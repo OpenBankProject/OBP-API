@@ -18,7 +18,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with User1AllPrivileges wi
       val request = v4_0_0_Request / "banks"
       makeGetRequest(request)
     }
-    val banksJson = getBanksInfo.body.extract[BanksJSON]
+    val banksJson = getBanksInfo.body.extract[BanksJson400]
     val randomPosition = nextInt(banksJson.banks.size)
     val bank = banksJson.banks(randomPosition)
     bank.id
@@ -40,10 +40,10 @@ trait V400ServerSetup extends ServerSetupWithTestData with User1AllPrivileges wi
     accountsJson(randomPosition)
   }
 
-  def randomViewPermalink(bankId: String, account: AccountJSON) : String = {
+  def randomOwnerViewPermalink(bankId: String, account: AccountJSON) : String = {
     val request = v4_0_0_Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
     val reply = makeGetRequest(request)
-    val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views.filterNot(_.is_public==true)
+    val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views.filterNot(_.is_public==true).filter(_.id == "owner")
     val randomPosition = nextInt(possibleViewsPermalinks.size)
     possibleViewsPermalinks(randomPosition).id
   }

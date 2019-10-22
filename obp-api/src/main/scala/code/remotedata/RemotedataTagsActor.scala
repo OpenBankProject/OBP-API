@@ -18,13 +18,25 @@ class RemotedataTagsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("getTags(" + bankId +", "+ accountId +", "+ transactionId +", "+ viewId +")")
       sender ! (mapper.getTags(bankId, accountId, transactionId)(viewId))
 
+    case cc.getTagsOnAccount(bankId, accountId, viewId) =>
+      logger.debug("getTags(" + bankId +", "+ accountId +", "+ viewId +")")
+      sender ! (mapper.getTagsOnAccount(bankId, accountId)(viewId))
+      
     case cc.addTag(bankId, accountId, transactionId, userId, viewId, text, datePosted) =>
       logger.debug("addTag(" + bankId +", "+ accountId +", "+ transactionId +", "+ text +", "+ text +", "+ datePosted +")")
       sender ! (mapper.addTag(bankId, accountId, transactionId)(userId, viewId, text, datePosted))
+      
+    case cc.addTagOnAccount(bankId, accountId, userId, viewId, text, datePosted) =>
+      logger.debug("addTag(" + bankId +", "+ accountId +", " + text +", "+ text +", "+ datePosted +")")
+      sender ! (mapper.addTagOnAccount(bankId, accountId)(userId, viewId, text, datePosted))
 
     case cc.deleteTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, tagId : String) =>
       logger.debug("deleteTag(" + bankId +", "+ accountId +", "+ transactionId + tagId +")")
       sender ! (mapper.deleteTag(bankId, accountId, transactionId)(tagId))
+
+    case cc.deleteTagOnAccount(bankId : BankId, accountId : AccountId, tagId : String) =>
+      logger.debug("deleteTag(" + bankId +", "+ accountId +", "+ tagId +")")
+      sender ! (mapper.deleteTagOnAccount(bankId, accountId)(tagId))
 
     case cc.bulkDeleteTags(bankId: BankId, accountId: AccountId) =>
       logger.debug("bulkDeleteTags(" + bankId +", "+ accountId + ")")

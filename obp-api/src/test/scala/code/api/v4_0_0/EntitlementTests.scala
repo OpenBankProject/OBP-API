@@ -11,7 +11,7 @@ import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import com.github.dwickern.macros.NameOf.nameOf
 import org.scalatest.Tag
 
-class EntitlementTests extends V400ServerSetup with DefaultUsers {
+class EntitlementTests extends V400ServerSetupAsync with DefaultUsers {
 
    override def beforeAll() {
      super.beforeAll()
@@ -36,21 +36,25 @@ class EntitlementTests extends V400ServerSetup with DefaultUsers {
     scenario("We try to get entitlements without login - getEntitlements", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "users" / resourceUser1.userId / "entitlements").GET
-      val responseGet = makeGetRequest(requestGet)
+      val responseGet = makeGetRequestAsync(requestGet)
       Then("We should get a 400")
-      responseGet.code should equal(400)
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-      responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.UserNotLoggedIn)
+      responseGet map { r =>
+          r.code should equal(400)
+          r.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      }
     }
 
     scenario("We try to get entitlements without credentials - getEntitlements", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
-      val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 40")
-      responseGet.code should equal(403)
+      val responseGet = makeGetRequestAsync(requestGet)
+      Then("We should get a 403")
       And("We should get a message: " + s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
-      responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
+      responseGet map { r =>
+          r.code should equal(403)
+          r.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
+      }
     }
 
     scenario("We try to get entitlements with credentials - getEntitlements", ApiEndpoint1, VersionOfApi) {
@@ -58,9 +62,11 @@ class EntitlementTests extends V400ServerSetup with DefaultUsers {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetEntitlementsForAnyUserAtAnyBank.toString)
       And("We make the request")
       val requestGet = (v4_0_0_Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
-      val responseGet = makeGetRequest(requestGet)
+      val responseGet = makeGetRequestAsync(requestGet)
       Then("We should get a 200")
-      responseGet.code should equal(200)
+      responseGet map { r =>
+          r.code should equal(200)
+      }
     }
   }
 

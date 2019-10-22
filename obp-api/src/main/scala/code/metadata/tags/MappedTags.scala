@@ -17,6 +17,13 @@ object MappedTags extends Tags {
     val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     MappedTag.findAll(MappedTag.findQuery(bankId, accountId, transactionId, ViewId(metadateViewId)): _*)
   }
+  override def getTagsOnAccount(bankId: BankId, accountId: AccountId)(viewId: ViewId): List[TransactionTag] = {
+    val metadataViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
+    MappedTag.findAll( By(MappedTag.bank, bankId.value),
+      By(MappedTag.account, accountId.value) ,
+      NullRef(MappedTag.transaction),
+      By(MappedTag.view, ViewId(metadataViewId).value))
+  }
 
   override def addTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
                      (userId: UserPrimaryKey, viewId: ViewId, tagText: String, datePosted: Date): Box[TransactionTag] = {
@@ -32,10 +39,29 @@ object MappedTags extends Tags {
         .date(datePosted).saveMe
     }
   }
+  
+  override def addTagOnAccount(bankId: BankId, accountId: AccountId)
+                     (userId: UserPrimaryKey, viewId: ViewId, tagText: String, datePosted: Date): Box[TransactionTag] = {
+    val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
+    tryo{
+      MappedTag.create
+        .bank(bankId.value)
+        .account(accountId.value)
+        .transaction(null)
+        .view(metadateViewId)
+        .user(userId.value)
+        .tag(tagText)
+        .date(datePosted).saveMe
+    }
+  }
 
   override def deleteTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(tagId: String): Box[Boolean] = {
     //tagId is always unique so we actually don't need to use bankId, accountId, or transactionId
     MappedTag.find(By(MappedTag.tagId, tagId)).map(_.delete_!)
+  }
+  override def deleteTagOnAccount(bankId: BankId, accountId: AccountId)(tagId: String): Box[Boolean] = {
+    //tagId is always unique so we actually don't need to use bankId, accountId, or transactionId
+    MappedTag.find(By(MappedTag.tagId, tagId), By(MappedTag.bank, bankId.value), By(MappedTag.account, accountId.value)).map(_.delete_!)
   }
 
   override def bulkDeleteTags(bankId: BankId, accountId: AccountId): Boolean = {

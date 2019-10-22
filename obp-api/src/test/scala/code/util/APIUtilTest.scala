@@ -27,6 +27,8 @@ TESOBE (http://www.tesobe.com/)
 
 package code.util
 
+import java.time.{ZoneId, ZonedDateTime}
+import java.time.format.DateTimeFormatter
 import java.util.Date
 
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
@@ -49,6 +51,28 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
   val inputStringDateFormat = DateWithMsFormat
   val startDateObject: Date = DefaultFromDate
   val endDateObject: Date = DefaultToDate
+
+
+
+  feature("test APIUtil.dateRangesOverlap method") {
+    
+    val oneDayAgo = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
+    val twoDayAgo = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(2)
+    val tomorrow = ZonedDateTime.now(ZoneId.of("UTC")).plusDays(2)
+    val dayAfterTomorrow = ZonedDateTime.now(ZoneId.of("UTC")).plusDays(1)
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
+    
+    scenario("Date intervals do not overlap"){
+      val interval1 = DateInterval(Date.from(twoDayAgo.toInstant()), Date.from(oneDayAgo.toInstant()))
+      val interval2 = DateInterval(Date.from(tomorrow.toInstant()), Date.from(dayAfterTomorrow.toInstant()))
+      dateRangesOverlap(interval1, interval2) should be (false)
+    }
+    scenario("Date intervals overlap"){
+      val interval1 = DateInterval(Date.from(twoDayAgo.toInstant()), Date.from(tomorrow.toInstant()))
+      val interval2 = DateInterval(Date.from(oneDayAgo.toInstant()), Date.from(dayAfterTomorrow.toInstant()))
+      dateRangesOverlap(interval1, interval2) should be (true)
+    }
+  }
   
   feature("test APIUtil.getHttpRequestUrlParam method") 
   {

@@ -29,13 +29,19 @@ package code.api.v4_0_0
 import java.util.Date
 
 import code.api.util.APIUtil
-import code.api.util.APIUtil.stringOrNull
-import code.api.v1_2_1.BankRoutingJsonV121
+import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
+import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON, createTransactionTagJSON}
+import code.api.v1_2_1.{BankRoutingJsonV121, TransactionTagJSON, UserJSONV121, ViewJSONV121}
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
+import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
+import code.api.v3_0_0.{NewModeratedCoreAccountJsonV300, ViewBasicV300}
+import code.api.v3_1_0.AccountAttributeResponseJson
+import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
+import code.model.ModeratedBankAccount
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.ACCOUNT_OTP
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, Bank, TransactionRequest, TransactionRequestBodyAllTypes}
+import com.openbankproject.commons.model.{AccountAttribute, AccountRoutingJsonV121, AmountOfMoneyJsonV121, Bank, TransactionRequest, TransactionRequestBodyAllTypes, TransactionTag, View}
 
 import scala.collection.immutable.List
 
@@ -96,6 +102,34 @@ case class EnergySource400(
                          organisation : String,
                          organisation_website: String
                        )
+
+case class ModeratedCoreAccountJsonV400(
+                                         id: String,
+                                         bank_id: String,
+                                         label: String,
+                                         number: String,
+                                         owners: List[UserJSONV121],
+                                         `type`: String,
+                                         balance: AmountOfMoneyJsonV121,
+                                         account_routings: List[AccountRoutingJsonV121],
+                                         views_basic: List[ViewBasicV300],
+                                         account_attributes: List[AccountAttributeResponseJson],
+                                         tags: List[TransactionTagJSON]
+                                       )
+
+case class ModeratedAccountJSON400(
+                                    id : String,
+                                    label : String,
+                                    number : String,
+                                    owners : List[UserJSONV121],
+                                    `type` : String,
+                                    balance : AmountOfMoneyJsonV121,
+                                    views_available : List[ViewJSONV121],
+                                    bank_id : String,
+                                    account_routing :AccountRoutingJsonV121,
+                                    account_attributes: List[AccountAttributeResponseJson],
+                                    tags: List[TransactionTagJSON]
+                                  )
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
@@ -175,5 +209,48 @@ object JSONFactory400 {
       )} catch {case _ : Throwable => null}
     )
   }
+
+  
+  def createNewCoreBankAccountJson(account : ModeratedBankAccount, 
+                                   availableViews: List[View],
+                                   accountAttributes: List[AccountAttribute], 
+                                   tags: List[TransactionTag]) : ModeratedCoreAccountJsonV400 =  {
+    val bankName = account.bankName.getOrElse("")
+    new ModeratedCoreAccountJsonV400 (
+      account.accountId.value,
+      stringOrNull(account.bankId.value),
+      stringOptionOrNull(account.label),
+      stringOptionOrNull(account.number),
+      createOwnersJSON(account.owners.getOrElse(Set()), bankName),
+      stringOptionOrNull(account.accountType),
+      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+      createAccountRoutingsJSON(account.accountRoutings),
+      views_basic = availableViews.map(view => code.api.v3_0_0.ViewBasicV300(id = view.viewId.value, short_name = view.name, description = view.description, is_public = view.isPublic)),
+      accountAttributes.map(createAccountAttributeJson),
+      tags.map(createTransactionTagJSON)
+    )
+  }
+
+
+  def createBankAccountJSON(account : ModeratedBankAccount,
+                            viewsAvailable : List[ViewJSONV121],
+                            accountAttributes: List[AccountAttribute],
+                            tags: List[TransactionTag]) : ModeratedAccountJSON400 =  {
+    val bankName = account.bankName.getOrElse("")
+    new ModeratedAccountJSON400(
+      account.accountId.value,
+      stringOptionOrNull(account.label),
+      stringOptionOrNull(account.number),
+      createOwnersJSON(account.owners.getOrElse(Set()), bankName),
+      stringOptionOrNull(account.accountType),
+      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+      viewsAvailable,
+      stringOrNull(account.bankId.value),
+      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress)),
+      accountAttributes.map(createAccountAttributeJson),
+      tags.map(createTransactionTagJSON)
+    )
+  }
+  
 }
 
