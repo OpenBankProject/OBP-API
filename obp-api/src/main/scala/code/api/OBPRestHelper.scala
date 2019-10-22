@@ -411,7 +411,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
 
   /**
    * collect ResourceDoc objects
-   * Note: if new version ResourceDoc's endpoint have the same name with old version, old version ResourceDoc will be omitted
+   * Note: if new version ResourceDoc's endpoint have the same 'requestUrl' and 'requestVerb' with old version, old version ResourceDoc will be omitted
    * @param allResourceDocs all ResourceDoc objects
    * @return collected ResourceDoc objects those omit duplicated old version ResourceDoc objects.
    */
@@ -424,11 +424,11 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       .sortBy(_.implementedInApiVersion)
 
     val result = ArrayBuffer[ResourceDoc]()
-    val endpointNames = scala.collection.mutable.Set[String]()
+    val urlAndMethods = scala.collection.mutable.Set[(String, String)]()
     for (doc <- docsToOnceToSeq) {
-      val funcName = doc.partialFunctionName
-      if(!endpointNames.contains(funcName)) {
-        endpointNames.add(funcName)
+      val urlAndMethod = (doc.requestUrl, doc.requestVerb)
+      if(!urlAndMethods.contains(urlAndMethod)) {
+        urlAndMethods.add(urlAndMethod)
         result += doc
       }
     }
