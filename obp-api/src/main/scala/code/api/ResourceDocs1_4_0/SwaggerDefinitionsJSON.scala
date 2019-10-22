@@ -15,7 +15,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, EnergySource400, HostedAt400, HostedBy400, ModeratedCoreAccountJsonV400}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, EnergySource400, HostedAt400, HostedBy400, ModeratedCoreAccountJsonV400, PostAccountTagJSON}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
 import code.sandbox.SandboxData
@@ -505,6 +505,9 @@ object SwaggerDefinitionsJSON {
   val postTransactionTagJSON = PostTransactionTagJSON(
     value = "String"
   )
+  val postAccountTagJSON = PostAccountTagJSON(
+    value = "String"
+  )
   val aliasJSON = AliasJSON(
     alias = "String"
   )
@@ -893,6 +896,16 @@ object SwaggerDefinitionsJSON {
 
   val transactionTagsJSON = TransactionTagsJSON(
     tags = List(transactionTagJSON)
+  )
+
+  val accountTagJSON = AccountTagJSON(
+    id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
+    value = "OBP",
+    date = DateWithDayExampleObject,
+    user = userJSONV121
+  )
+  val accountTagsJSON = AccountTagsJSON(
+    tags = List(accountTagJSON)
   )
 
   val transactionMetadataJSON = TransactionMetadataJSON(
@@ -3367,7 +3380,7 @@ object SwaggerDefinitionsJSON {
     views_basic = List(viewBasicV300),
     account_attributes = List(accountAttributeResponseJson)
   )  
-  val newModeratedCoreAccountJsonV400 = ModeratedCoreAccountJsonV400(
+  val moderatedCoreAccountJsonV400 = ModeratedCoreAccountJsonV400(
     id = accountIdExample.value,
     bank_id= bankIdExample.value,
     label= labelExample.value,
@@ -3378,7 +3391,7 @@ object SwaggerDefinitionsJSON {
     account_routings = List(accountRoutingJsonV121),
     views_basic = List(viewBasicV300),
     account_attributes = List(accountAttributeResponseJson),
-    tags = List(transactionTagJSON)
+    tags = List(accountTagJSON)
   )
   
   val postHistoricalTransactionJson = PostHistoricalTransactionJson(
