@@ -32,8 +32,10 @@ object PegdownOptions {
   // convertPegdownToHtmlTweaked not support insert image, so here manual convert to html img tag
   private def convertImgTag(markdown: String) = markdown.stripMargin.replaceAll("""!\[(.*)\]\((.*) =(.*?)x(.*?)\)""", """<img alt="$1" src="$2" width="$3" height="$4" />""")
 
-  def convertMarkdownToHtml(description: String): String = {
+  def convertGitHubDocMarkdownToHtml(description: String): String = {
     val options = new MutableDataSet()
+    import com.vladsch.flexmark.parser.ParserEmulationProfile
+    options.setFrom(ParserEmulationProfile.GITHUB_DOC)
     val parser = Parser.builder(options).build
     val renderer = HtmlRenderer.builder(options).build
     val document = parser.parse(description.stripMargin)
