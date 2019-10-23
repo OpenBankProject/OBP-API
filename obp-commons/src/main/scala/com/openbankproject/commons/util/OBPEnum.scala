@@ -71,6 +71,12 @@ object OBPEnumeration {
 
   def getValuesByClass[T <: EnumValue](clazz: Class[T]): List[T] = getEnumContainer(clazz).values
 
+  def getValuesByInstance[T <: EnumValue](instance: T): List[T] = {
+    val clazz = instance.getClass
+    val enumType = clazz.getInterfaces.headOption.getOrElse(clazz.getSuperclass)
+    getValuesByClass(enumType.asInstanceOf[Class[T]])
+  }
+
   def withNameOption(tp: Type, name: String): Option[EnumValue] = getEnumContainer(tp).withNameOption(name).map(_.asInstanceOf[EnumValue])
 
   def withNameOption[T <: EnumValue](clazz: Class[T], name: String): Option[T] = getEnumContainer(clazz).withNameOption(name)
