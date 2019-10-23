@@ -43,6 +43,20 @@ class WebUI extends MdcLoggable{
 
   @transient protected val log = logger //Logger(this.getClass)
 
+  /**
+    * This function transform GitHub markdown to html.
+    * In case text contains html tag we avoid conversion.
+    * @param text markdown/html
+    * @return html code
+    */
+  def makeHtml(text: String) = {
+    val hasHtmlTag = """<[^>]*>""".r.findFirstIn(text).isDefined
+    hasHtmlTag match {
+      case false => PegdownOptions.convertGitHubDocMarkdownToHtml(text)
+      case true => text
+    }
+  }
+
   // Cookie Consent button.
   // Note we don't currently (7th Jan 2017) need to display the cookie consent message due to our limited use of cookies
   // If a deployment does make more use of cookies we would need to add a No button and we might want to make use of the
