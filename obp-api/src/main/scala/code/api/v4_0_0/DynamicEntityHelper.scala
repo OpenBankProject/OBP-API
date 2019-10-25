@@ -2,9 +2,8 @@ package code.api.v4_0_0
 
 import code.api.util.APIUtil.{Catalogs, ResourceDoc, authenticationRequiredMessage, emptyObjectJson, generateUUID, notCore, notOBWG, notPSD2}
 import code.api.util.ApiTag.{apiTagApi, apiTagNewStyle}
-import code.api.util.ErrorMessages.{InvalidJsonFormat, InvalidUrl, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{ApiTag, ApiVersion, NewStyle}
-import net.liftweb.common.Box
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.util.StringHelpers
@@ -29,31 +28,6 @@ object EntityName {
 object MockerConnector {
 
   def definitionsMap = NewStyle.function.getDynamicEntities().map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName))).toMap
-
-  //(id, entityName) -> entity
-  val persistedEntities = scala.collection.mutable.Map[(String, String), JObject]()
-
-  def persist(entityName: String, requestBody: JObject, id: Option[String] = None) = {
-    val idValue = id.orElse(Some(generateUUID()))
-    val idName = StringUtils.uncapitalize(entityName) + "Id"
-    val entityToPersist = this.definitionsMap(entityName).toResponse(requestBody, id)
-    val haveIdEntity = (entityToPersist \ idName) match {
-      case JNothing => JObject(JField(idName, JString(idValue.get)) :: entityToPersist.obj)
-      case _ => entityToPersist
-    }
-    persistedEntities.put((idValue.get, entityName), haveIdEntity)
-    haveIdEntity
-  }
-
-  def getSingle(entityName: String, id: String) = {
-    persistedEntities.get(id, entityName)
-  }
-
-  def getAll(entityName: String) = persistedEntities.filter(pair => pair._1._2 == entityName).values
-
-  def delete(entityName: String, id: String): Box[Boolean] = {
-    persistedEntities.remove(id -> entityName).map(_ => true)
-  }
 
   def doc = {
     val docs: Seq[ResourceDoc] = definitionsMap.values.flatMap(createDocs).toSeq
