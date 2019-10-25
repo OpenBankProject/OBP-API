@@ -53,9 +53,9 @@ class RemotedataConsumersActor extends Actor with ObpActorHelper with MdcLoggabl
       logger.debug("updateConsumerCallLimits(" + id + ", " + perSecond.getOrElse("None")+ ", " + perMinute.getOrElse("None") + ", " + perHour.getOrElse("None") + ", " + perDay.getOrElse("None") + ", " + perWeek.getOrElse("None") + ", " + perMonth.getOrElse("None") + ")")
       sender ! (mapper.updateConsumerCallLimitsRemote(id, perSecond, perMinute, perHour, perDay, perWeek, perMonth))
 
-    case cc.getOrCreateConsumer(consumerId: Option[String], key: Option[String], secret: Option[String], azp: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]) =>
-      logger.debug("getOrCreateConsumer(" + consumerId.getOrElse("None") + ", " + "*****" + ", " + "*****" + ", " + isActive.getOrElse("None") + ", " + name.getOrElse("None") + ", " + appType.getOrElse("None") + ", " + description.getOrElse("None") + ", " + developerEmail.getOrElse("None") + ", " + redirectURL.getOrElse("None") + ", " + createdByUserId.getOrElse("None") + ")")
-      sender ! (mapper.getOrCreateConsumer(consumerId, key, secret, azp, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId))
+    case cc.getOrCreateConsumer(consumerId: Option[String], key: Option[String], secret: Option[String], azp: Option[String], iss: Option[String], sub: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]) =>
+      logger.debug("getOrCreateConsumer(" + consumerId.getOrElse("None") + ", " + "*****" + ", " + "*****" + ", " + azp.getOrElse("None") + ", " + iss.getOrElse("None") + ", " + sub.getOrElse("None") + ", " + name.getOrElse("None") + ", " + appType.getOrElse("None") + ", " + description.getOrElse("None") + ", " + developerEmail.getOrElse("None") + ", " + redirectURL.getOrElse("None") + ", " + createdByUserId.getOrElse("None") + ")")
+      sender ! (mapper.getOrCreateConsumer(consumerId, key, secret, azp, iss, sub, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId))
 
     case cc.populateMissingUUIDs() =>
       logger.debug("populateMissingUUIDs()")

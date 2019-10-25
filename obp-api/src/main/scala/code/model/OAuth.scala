@@ -281,6 +281,8 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
                                    key: Option[String],
                                    secret: Option[String],
                                    azp: Option[String],
+                                   iss: Option[String],
+                                   sub: Option[String],
                                    isActive: Option[Boolean],
                                    name: Option[String],
                                    appType: Option[AppType],
@@ -293,7 +295,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
       // 1st try represent GatewayLogin usage of this function
       Consumer.find(By(Consumer.consumerId, consumerId.getOrElse("None"))) or {
         // 2nd try represent OAuth2 usage of this function
-        Consumer.find(By(Consumer.azp, azp.getOrElse("None")), By(Consumer.createdByUserId, createdByUserId.getOrElse("None")))
+        Consumer.find(By(Consumer.azp, azp.getOrElse("None")), By(Consumer.sub, sub.getOrElse("None")))
       }
     consumer match {
       case Full(c) => Full(c)
@@ -312,6 +314,14 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
           }
           azp match {
             case Some(v) => c.azp(v)
+            case None =>
+          }
+          iss match {
+            case Some(v) => c.iss(v)
+            case None =>
+          }
+          sub match {
+            case Some(v) => c.sub(v)
             case None =>
           }
           isActive match {
@@ -420,6 +430,12 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   object secret extends MappedString(this, 250)
   object azp extends MappedString(this, 250) {
     override def defaultValue = null
+  }  
+  object iss extends MappedString(this, 250) {
+    override def defaultValue = null
+  }  
+  object sub extends MappedString(this, 250) {
+    override def defaultValue = null
   }
   object isActive extends MappedBoolean(this){
     override def defaultValue = APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false)
@@ -479,7 +495,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
  */
 object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consumer] with CRUDify[Long, Consumer]{
 
-  override def dbIndexes = UniqueIndex(key) :: UniqueIndex(azp, createdByUserId) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(key) :: UniqueIndex(azp, sub) :: super.dbIndexes
 
   //list all path : /admin/consumer/list
   override def calcPrefix = List("admin",_dbTableNameLC)

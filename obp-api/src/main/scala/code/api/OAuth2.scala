@@ -236,11 +236,11 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       }
     }
     /** 
-      * This function creates a consumer based on "azp", "iss", "name" and "email" fields
+      * This function creates a consumer based on "azp", "sub", "iss", "name" and "email" fields
       * Please note that a user must be created before consumer.
-      * Unique criteria to decide do we create or get a consumer is pair o values: < createdByUserId : azp > i.e.
-      * We cannot find consumer by createdByUserId and azp => Create
-      * We can find consumer by createdByUserId and azp => Get
+      * Unique criteria to decide do we create or get a consumer is pair o values: < sub : azp > i.e.
+      * We cannot find consumer by sub and azp => Create
+      * We can find consumer by sub and azp => Get
       * @param idToken Google's response example:
       *                {
       *                "access_token": "ya29.GluUBg5DflrJciFikW5hqeKEp9r1whWnU5x2JXCm9rKkRMs2WseXX8O5UugFMDsIKuKCZlE7tTm1fMII_YYpvcMX6quyR5DXNHH8Lbx5TrZN__fA92kszHJEVqPc", 
@@ -255,6 +255,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
     def getOrCreateConsumerFuture(idToken: String, userId: Box[String]): Box[Consumer] = {
       val azp = getClaim(name = "azp", idToken = idToken)
       val iss = getClaim(name = "iss", idToken = idToken)
+      val sub = getClaim(name = "sub", idToken = idToken)
       val email = getClaim(name = "email", idToken = idToken)
       val name = getClaim(name = "name", idToken = idToken)
       Consumers.consumers.vend.getOrCreateConsumer(
@@ -262,6 +263,8 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         key = Some(Helpers.randomString(40).toLowerCase),
         secret = Some(Helpers.randomString(40).toLowerCase),
         azp = azp,
+        iss = iss,
+        sub = sub,
         Some(true),
         name = name,
         appType = None,
