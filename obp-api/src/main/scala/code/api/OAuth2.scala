@@ -29,6 +29,8 @@ package code.api
 import java.net.URI
 
 import code.api.util.{APIUtil, CallContext, ErrorMessages, JwtUtil}
+import code.consumer.Consumers
+import code.model.Consumer
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
@@ -36,6 +38,7 @@ import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.util.Helpers
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -233,11 +236,32 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       }
     }
 
+    def getOrCreateConsumerFuture(idToken: String, userId: Box[String]): Box[Consumer] = {
+      val azp = getClaim(name = "azp", idToken = idToken)
+      val iss = getClaim(name = "iss", idToken = idToken)
+      val email = getClaim(name = "email", idToken = idToken)
+      val name = getClaim(name = "name", idToken = idToken)
+      Consumers.consumers.vend.getOrCreateConsumer(
+        consumerId = None,
+        key = Some(Helpers.randomString(40).toLowerCase),
+        secret = Some(Helpers.randomString(40).toLowerCase),
+        azp = azp,
+        Some(true),
+        name = name,
+        appType = None,
+        description = iss.map(v => "Via " + v),
+        developerEmail = email,
+        redirectURL = None,
+        createdByUserId = userId.toOption
+      )
+    }
+
     def applyRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
       validateIdToken(value) match {
         case Full(_) =>
           val user = Google.getOrCreateResourceUser(value)
-          (user, Some(cc))
+          val consumer = Google.getOrCreateConsumerFuture(value, user.map(_.userId))
+          (user, Some(cc.copy(consumer = consumer)))
         case ParamFailure(a, b, c, apiFailure : APIFailure) =>
           (ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc))
         case Failure(msg, t, c) =>
@@ -251,8 +275,9 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         case Full(_) =>
           for {
             user <-  Google.getOrCreateResourceUserFuture(value)
+            consumer <-  Future{Google.getOrCreateConsumerFuture(value, user.map(_.userId))}
           } yield {
-            (user, Some(cc))
+            (user, Some(cc.copy(consumer = consumer)))
           }
         case ParamFailure(a, b, c, apiFailure : APIFailure) =>
           Future((ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc)))

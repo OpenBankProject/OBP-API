@@ -54,8 +54,8 @@ object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
   def updateConsumerCallLimits(id: Long, perSecond: Option[String], perMinute: Option[String], perHour: Option[String], perDay: Option[String], perWeek: Option[String], perMonth: Option[String]): Future[Box[Consumer]] =
     (actor ? cc.updateConsumerCallLimits(id, perSecond, perMinute, perHour, perDay, perWeek, perMonth)).mapTo[Box[Consumer]]
   
-  def getOrCreateConsumer(consumerId: Option[String], key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer] = getValueFromFuture(
-    (actor ? cc.getOrCreateConsumer(consumerId, key, secret, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId)).mapTo[Box[Consumer]]
+  def getOrCreateConsumer(consumerId: Option[String], key: Option[String], secret: Option[String], azp: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer] = getValueFromFuture(
+    (actor ? cc.getOrCreateConsumer(consumerId, key, secret, azp, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId)).mapTo[Box[Consumer]]
   )
   def populateMissingUUIDs(): Boolean = getValueFromFuture(
     (actor ? cc.populateMissingUUIDs()).mapTo[Boolean]

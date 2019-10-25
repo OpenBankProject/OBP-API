@@ -280,6 +280,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
   override def getOrCreateConsumer(consumerId: Option[String],
                                    key: Option[String],
                                    secret: Option[String],
+                                   azp: Option[String],
                                    isActive: Option[Boolean],
                                    name: Option[String],
                                    appType: Option[AppType],
@@ -288,7 +289,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
                                    redirectURL: Option[String],
                                    createdByUserId: Option[String]): Box[Consumer] = {
 
-    Consumer.find(By(Consumer.consumerId, consumerId.getOrElse(Helpers.randomString(40)))) match {
+    val consumer = Consumer.find(By(Consumer.consumerId, consumerId.getOrElse("None"))) or {
+      Consumer.find(By(Consumer.azp, azp.getOrElse("None")), By(Consumer.createdByUserId, createdByUserId.getOrElse("None")))
+    }
+    consumer match {
       case Full(c) => Full(c)
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
@@ -301,6 +305,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
           }
           secret match {
             case Some(v) => c.secret(v)
+            case None =>
+          }
+          azp match {
+            case Some(v) => c.azp(v)
             case None =>
           }
           isActive match {
@@ -407,6 +415,9 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
 
   object key extends MappedString(this, 250)
   object secret extends MappedString(this, 250)
+  object azp extends MappedString(this, 250) {
+    override def defaultValue = null
+  }
   object isActive extends MappedBoolean(this){
     override def defaultValue = APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false)
   }
@@ -465,7 +476,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
  */
 object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consumer] with CRUDify[Long, Consumer]{
 
-  override def dbIndexes = UniqueIndex(key) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(key) :: UniqueIndex(azp, createdByUserId) :: super.dbIndexes
 
   //list all path : /admin/consumer/list
   override def calcPrefix = List("admin",_dbTableNameLC)

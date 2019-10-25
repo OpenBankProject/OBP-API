@@ -353,6 +353,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       consumerId=Some(consumerId),
       Some(Helpers.randomString(40).toLowerCase),
       Some(Helpers.randomString(40).toLowerCase),
+      None,
       Some(true),
       name = Some(consumerName),
       appType = None,
