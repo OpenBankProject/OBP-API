@@ -289,9 +289,12 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
                                    redirectURL: Option[String],
                                    createdByUserId: Option[String]): Box[Consumer] = {
 
-    val consumer = Consumer.find(By(Consumer.consumerId, consumerId.getOrElse("None"))) or {
-      Consumer.find(By(Consumer.azp, azp.getOrElse("None")), By(Consumer.createdByUserId, createdByUserId.getOrElse("None")))
-    }
+    val consumer = 
+      // 1st try represent GatewayLogin usage of this function
+      Consumer.find(By(Consumer.consumerId, consumerId.getOrElse("None"))) or {
+        // 2nd try represent OAuth2 usage of this function
+        Consumer.find(By(Consumer.azp, azp.getOrElse("None")), By(Consumer.createdByUserId, createdByUserId.getOrElse("None")))
+      }
     consumer match {
       case Full(c) => Full(c)
       case Failure(msg, t, c) => Failure(msg, t, c)
