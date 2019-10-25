@@ -164,8 +164,8 @@ case class UpdateViewJSON(
   * @define canEditOwnerComment If true, the view can edit the Transaction Owner Comment
   * @define canAddComment If true, the view can add a Transaction Comment
   * @define canDeleteComment If true, the view can delete a Transaction Comment
-  * @define canAddTag If true, the view can add a Transaction Tag
-  * @define canDeleteTag If true, the view can delete a Transaction Tag
+  * @define canAddTag If true, the view can add a Transaction/Account Tag
+  * @define canDeleteTag If true, the view can delete a Transaction/Account Tag
   * @define canAddImage If true, the view can add a Transaction Image
   * @define canDeleteImage If true, the view can delete a Transaction Image
   * @define canAddWhereTag If true, the view can add a Transaction Where Tag

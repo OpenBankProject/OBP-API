@@ -5,7 +5,6 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiVersion
 import code.api.util.ErrorMessages.UserNotLoggedIn
-import code.api.v1_2_1.{TransactionTagJSON, TransactionTagsJSON}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.json.Serialization.write
@@ -24,7 +23,7 @@ class AccountTagTest extends V400ServerSetup {
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.deleteTagForViewOnAccount))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getTagsForViewOnAccount))
 
-  lazy val accountTag = SwaggerDefinitionsJSON.transactionTagJSON
+  lazy val accountTag = SwaggerDefinitionsJSON.accountTagJSON
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccount(bankId)
   lazy val view = randomOwnerViewPermalink(bankId, bankAccount)
@@ -71,12 +70,12 @@ class AccountTagTest extends V400ServerSetup {
 
       Then("We should get a 201 and check the response body")
       response.code should equal(201)
-      response.body.extract[TransactionTagJSON]
+      response.body.extract[AccountTagJSON]
 
       val requestGet = (v4_0_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "metadata" / "tags").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
       responseGet.code should equal(200)
-      val tags = responseGet.body.extract[TransactionTagsJSON].tags
+      val tags = responseGet.body.extract[AccountTagsJSON].tags
       tags.exists(_.value == accountTag.value) equals true
       val tagId = tags.map(_.id).headOption.getOrElse("")
 

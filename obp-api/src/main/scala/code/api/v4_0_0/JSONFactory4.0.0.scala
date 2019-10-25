@@ -30,18 +30,17 @@ import java.util.Date
 
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
-import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON, createTransactionTagJSON}
-import code.api.v1_2_1.{BankRoutingJsonV121, TransactionTagJSON, UserJSONV121, ViewJSONV121}
+import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
+import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSONV121}
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
-import code.api.v3_0_0.{NewModeratedCoreAccountJsonV300, ViewBasicV300}
+import code.api.v3_0_0.ViewBasicV300
 import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.model.ModeratedBankAccount
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.ACCOUNT_OTP
-import com.openbankproject.commons.model.{AccountAttribute, AccountRoutingJsonV121, AmountOfMoneyJsonV121, Bank, TransactionRequest, TransactionRequestBodyAllTypes, TransactionTag, View}
+import com.openbankproject.commons.model._
 
 import scala.collection.immutable.List
 
@@ -114,7 +113,7 @@ case class ModeratedCoreAccountJsonV400(
                                          account_routings: List[AccountRoutingJsonV121],
                                          views_basic: List[ViewBasicV300],
                                          account_attributes: List[AccountAttributeResponseJson],
-                                         tags: List[TransactionTagJSON]
+                                         tags: List[AccountTagJSON]
                                        )
 
 case class ModeratedAccountJSON400(
@@ -128,9 +127,22 @@ case class ModeratedAccountJSON400(
                                     bank_id : String,
                                     account_routing :AccountRoutingJsonV121,
                                     account_attributes: List[AccountAttributeResponseJson],
-                                    tags: List[TransactionTagJSON]
+                                    tags: List[AccountTagJSON]
                                   )
 
+case class AccountTagJSON(
+                           id : String,
+                           value : String,
+                           date : Date,
+                           user : UserJSONV121
+                         )
+
+case class AccountTagsJSON(
+                            tags: List[AccountTagJSON]
+                          )
+case class PostAccountTagJSON(
+                               value : String
+                             )
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
@@ -227,7 +239,7 @@ object JSONFactory400 {
       createAccountRoutingsJSON(account.accountRoutings),
       views_basic = availableViews.map(view => code.api.v3_0_0.ViewBasicV300(id = view.viewId.value, short_name = view.name, description = view.description, is_public = view.isPublic)),
       accountAttributes.map(createAccountAttributeJson),
-      tags.map(createTransactionTagJSON)
+      tags.map(createAccountTagJSON)
     )
   }
 
@@ -248,7 +260,20 @@ object JSONFactory400 {
       stringOrNull(account.bankId.value),
       AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress)),
       accountAttributes.map(createAccountAttributeJson),
-      tags.map(createTransactionTagJSON)
+      tags.map(createAccountTagJSON)
+    )
+  }
+
+
+  def createAccountTagsJSON(tags : List[TransactionTag]) : AccountTagsJSON = {
+    new AccountTagsJSON(tags.map(createAccountTagJSON))
+  }
+  def createAccountTagJSON(tag : TransactionTag) : AccountTagJSON = {
+    new AccountTagJSON(
+      id = tag.id_,
+      value = tag.value,
+      date = tag.datePosted,
+      user = JSONFactory.createUserJSON(tag.postedBy)
     )
   }
   

@@ -3390,7 +3390,7 @@ trait APIMethods310 {
             createdConsent <- Future(Consents.consentProvider.vend.createConsent(user)) map {
               i => connectorEmptyResponse(i, callContext)
             }
-            consentJWT = Consent.createConsentJWT(user, consentJson.view, createdConsent.secret, createdConsent.consentId)
+            consentJWT = Consent.createConsentJWT(user, consentJson, createdConsent.secret, createdConsent.consentId)
             _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
               i => connectorEmptyResponse(i, callContext)
             }

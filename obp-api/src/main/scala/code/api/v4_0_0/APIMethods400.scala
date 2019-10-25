@@ -1117,8 +1117,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |Authentication is required as the tag is linked with the user.""",
-      postTransactionTagJSON,
-      transactionTagJSON,
+      postAccountTagJSON,
+      accountTagJSON,
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
@@ -1149,7 +1149,7 @@ trait APIMethods400 {
               i => (connectorEmptyResponse(i, callContext), callContext)
             }
           } yield {
-            (JSONFactory.createTransactionTagJSON(postedTag), HttpCode.`201`(callContext))
+            (JSONFactory400.createAccountTagJSON(postedTag), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1209,7 +1209,7 @@ trait APIMethods400 {
          |
          |Authentication is required as the tag is linked with the user.""",
       emptyObjectJson,
-      transactionTagJSON,
+      accountTagsJSON,
       List(
         BankAccountNotFound,
         NoViewPermission,
@@ -1234,7 +1234,7 @@ trait APIMethods400 {
             }
             tags <- Future(Tags.tags.vend.getTagsOnAccount(bankId, accountId)(viewId))
           } yield {
-            val json = JSONFactory.createTransactionTagsJSON(tags)
+            val json = JSONFactory400.createAccountTagsJSON(tags)
             (json, HttpCode.`200`(callContext))
           }
       }
@@ -1259,6 +1259,8 @@ trait APIMethods400 {
          |* Balance - Currency and Value
          |* Account Routings - A list that might include IBAN or national account identifiers
          |* Account Rules - A list that might include Overdraft and other bank specific rules
+         |* Account Attributes - A list that might include custom defined account attribute
+         |* Tags - A list of Tags assigned to this account
          |
          |This call returns the owner view and requires access to that view.
          |
@@ -1267,7 +1269,7 @@ trait APIMethods400 {
          |
          |""".stripMargin,
       emptyObjectJson,
-      newModeratedCoreAccountJsonV400,
+      moderatedCoreAccountJsonV400,
       List(BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: Nil)

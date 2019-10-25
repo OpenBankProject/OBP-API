@@ -490,27 +490,32 @@ case class MeetingJsonV310(
 case class MeetingsJsonV310(
   meetings: List[MeetingJsonV310]
 )
-
+case class EntitlementJsonV400(bank_id: String, role_name: String)
+case class ViewJsonV400(bank_id: String, account_id: String, view_id: String)
 trait PostConsentCommonBody{
-  val `for`: String
-  val view: String
+  val everything: Boolean
+  val views: List[ViewJsonV400]
+  val entitlements: List[EntitlementJsonV400]
 }
 
 case class PostConsentBodyCommonJson(
-  `for`: String, 
-  view: String
+                                      everything: Boolean,
+                                      views:  List[ViewJsonV400],
+                                      entitlements: List[EntitlementJsonV400]
 ) extends PostConsentCommonBody
 
 case class PostConsentEmailJsonV310(
-  `for`: String,
-  view: String,
-  email: String
+                                     everything: Boolean,
+                                     views:  List[ViewJsonV400],
+                                     entitlements: List[EntitlementJsonV400],
+                                     email: String
 ) extends PostConsentCommonBody
 
 case class PostConsentPhoneJsonV310(
-  `for`: String,
-  view: String,
-  phone_number: String
+                                     everything: Boolean,
+                                     views:  List[ViewJsonV400],
+                                     entitlements: List[EntitlementJsonV400],
+                                     phone_number: String
 ) extends PostConsentCommonBody
 
 case class ConsentJsonV310(consent_id: String, jwt: String, status: String)
