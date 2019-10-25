@@ -3,6 +3,7 @@ package code.bankconnectors
 import java.util.Date
 import java.util.UUID.randomUUID
 
+import code.DynamicData.DynamicDataProvider
 import code.accountapplication.AccountApplicationX
 import code.accountattribute.AccountAttributeX
 import code.accountholders.AccountHolders
@@ -10,10 +11,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
-import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.api.util._
-import code.api.v4_0_0.MockerConnector
-import code.api.v4_0_0.MockerConnector.persistedEntities
 import code.atms.Atms.Atm
 import code.atms.MappedAtm
 import code.branches.Branches.Branch
@@ -54,12 +52,14 @@ import code.views.Views
 import com.google.common.cache.CacheBuilder
 import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
-import com.openbankproject.commons.model.enums.DynamicEntityOperation.{CREATE, DELETE, GET_ALL, GET_ONE, UPDATE}
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType, StrongCustomerAuthentication}
+import com.openbankproject.commons.model.enums.DynamicEntityOperation._
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, Product, ProductAttribute, ProductCollectionItem, TaxResidence, _}
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
+import net.liftweb.json
 import net.liftweb.json.{JArray, JBool, JObject, JValue}
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{tryo, _}
@@ -2819,31 +2819,41 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         return Helper.booleanToFuture(s"$InvalidJsonFormat entityId is required for $operation operation.")(entityId.isEmpty || StringUtils.isBlank(entityId.get))
           .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
       }
-      if (!persistedEntities.contains(entityId.get -> entityName)) {
-        val id = entityId.get
+      val id = entityId.get
+      val value = DynamicDataProvider.connectorMethodProvider.vend.get(entityName, id)
+      if (value.isEmpty) {
         return Helper.booleanToFuture(s"$EntityNotFoundByEntityId please check: entityId = $id", 404)(false)
           .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
       }
     }
-
+    val op: Any = operation
     Future {
-      val processResult: Box[JValue] = operation match {
+      val processResult: Box[JValue] = op match {
         case GET_ALL => Full {
-          JArray(MockerConnector.getAll(entityName).toList)
+          val dataList = DynamicDataProvider.connectorMethodProvider.vend.getAll(entityName)
+          JArray(dataList)
         }
         case GET_ONE => {
-          val boxedEntity: Box[JValue] = MockerConnector.getSingle(entityName, entityId.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument the entityId is required.")))
+          val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend
+            .get(entityName, entityId.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument the entityId is required.")))
+            .map(it => json.parse(it.dataJson))
           boxedEntity
         }
         case CREATE | UPDATE => {
           val body = requestBody.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument please supply the requestBody."))
           val id = if(operation == CREATE) None  else entityId
-          val persistedEntity = MockerConnector.persist(entityName, body, id)
-          Full(persistedEntity)
+          val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend.saveOrUpdate(entityName, body, id)
+            .map(it => json.parse(it.dataJson))
+          boxedEntity
         }
         case DELETE => {
-          val deleteResult = MockerConnector.delete(entityName, entityId.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument the entityId is required. ")))
-          deleteResult.map(JBool(_))
+          val id = entityId.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument the entityId is required. "))
+          val deleteResult: Boolean = DynamicDataProvider.connectorMethodProvider.vend.delete(entityName, id)
+          Full(JBool(deleteResult))
+        }
+        case IS_EXISTS_DATA => {
+          val isExistsData: Boolean = DynamicDataProvider.connectorMethodProvider.vend.existsData(entityName)
+          Full(JBool(isExistsData))
         }
       }
       (processResult, callContext)

@@ -74,4 +74,5 @@ object DynamicEntityOperation extends OBPEnumeration[DynamicEntityOperation] {
   object CREATE extends Value
   object UPDATE extends Value
   object DELETE extends Value
+  object IS_EXISTS_DATA extends Value
 }
