@@ -29,6 +29,7 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.{Locale, TimeZone}
 
+import code.DynamicData.DynamicData
 import code.accountapplication.MappedAccountApplication
 import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
@@ -660,6 +661,7 @@ object ToSchemify {
     WebUiProps,
     Authorisation,
     DynamicEntity,
+    DynamicData,
     AccountIdMapping,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }

@@ -5,7 +5,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankAccountNotFound, BankNotFound, CounterpartyBeneficiaryPermit, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NoViewPermission, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
+import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankAccountNotFound, BankNotFound, CounterpartyBeneficiaryPermit, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NoViewPermission, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound, DynamicEntityOperationNotAllowed}
 import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
@@ -808,6 +808,13 @@ trait APIMethods400 {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canUpdateDynamicEntity, callContext)
 
+            // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
+            (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, callContext)
+            (isExists, _) <- NewStyle.function.invokeDynamicConnector(IS_EXISTS_DATA, entity.entityName, None, None, callContext)
+            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
+              isExists.isDefined && isExists.contains(JBool(false))
+            }
+
             jsonObject = json.asInstanceOf[JObject]
             dynamicEntity = DynamicEntityCommons(jsonObject, Some(dynamicEntityId))
             Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, callContext)
@@ -848,6 +855,12 @@ trait APIMethods400 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteDynamicEntity, callContext)
+            // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
+            (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, callContext)
+            (isExists, _) <- NewStyle.function.invokeDynamicConnector(IS_EXISTS_DATA, entity.entityName, None, None, callContext)
+            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
+              isExists.isDefined && isExists.contains(JBool(false))
+            }
             deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
           } yield {
             (deleted, HttpCode.`200`(callContext))

@@ -202,7 +202,7 @@ class DynamicEntityTest extends V400ServerSetup {
         // update a not exists DynamicEntity
         val request404 = (v4_0_0_Request / "management" / "dynamic_entities" / "not-exists-id" ).PUT <@(user1)
         val response404 = makePutRequest(request404, compactRender(updateRequest))
-        Then("We should get a 400")
+        Then("We should get a 404")
         response404.code should equal(404)
         response404.body.extract[ErrorMessage].message should startWith (DynamicEntityNotFoundByDynamicEntityId)
       }
