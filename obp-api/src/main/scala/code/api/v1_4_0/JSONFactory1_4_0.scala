@@ -8,9 +8,11 @@ import code.api.v3_1_0.ListResult
 import code.crm.CrmEvent.CrmEvent
 import code.transactionrequests.TransactionRequestTypeCharge
 import com.openbankproject.commons.model.{Product, _}
+import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
 import net.liftweb.common.Full
 import net.liftweb.json
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.{JDouble, JInt, JString}
+import net.liftweb.json.JsonAST.{JArray, JBool, JObject, JValue}
 import net.liftweb.util.StringHelpers
 
 import scala.reflect.runtime.currentMirror
@@ -393,12 +395,17 @@ object JSONFactory1_4_0 {
     *         the OBP type format. 
     */
   def translateEntity(entity: Any, isArray:Boolean): String = {
-    
-    val r = currentMirror.reflect(entity)
-    val mapOfFields = entity match {
+    val extractedEntity = entity match {
+      case Full(v) => v
+      case Some(v) => v
+      case v => v
+    }
+
+    val r = currentMirror.reflect(extractedEntity)
+    val mapOfFields: Map[String, Any] = extractedEntity match {
 
       case ListResult(name, results) => Map((name, results))
-
+      case JObject(jFields) => jFields.map(it => (it.name, it.value)).toMap
       case _ => r.symbol.typeSignature.members.toStream
         .collect { case s: TermSymbol if !s.isMethod => r.reflectField(s)}
         .map(r => r.symbol.name.toString.trim -> r.get)
@@ -407,7 +414,7 @@ object JSONFactory1_4_0 {
 
 
 
-    val convertParamName = (name: String) =>  entity match {
+    val convertParamName = (name: String) =>  extractedEntity match {
       case _ : JsonFieldReName => StringHelpers.snakify(name)
       case _ => name
     }
@@ -425,7 +432,7 @@ object JSONFactory1_4_0 {
         case Some(List(i: Date, _*))       => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}"""
 
         //Boolean - 4 kinds
-        case i: Boolean                    => "\""  + key + """": {"type":"boolean"}""" 
+        case _: Boolean | _: JBool         => "\""  + key + """": {"type":"boolean"}"""
         case Some(i: Boolean)              => "\""  + key + """": {"type":"boolean"}"""
         case List(i: Boolean, _*)          => "\""  + key + """": {"type": "array","items": {"type": "boolean"}}"""
         case Some(List(i: Boolean, _*))    => "\""  + key + """": {"type": "array","items": {"type": "boolean"}}"""
@@ -438,12 +445,18 @@ object JSONFactory1_4_0 {
         case Some(List(i: String, _*)) if(key.contains("date")&& i.length != "20181230".length)  => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}"""
          
         //String-->
-        case i: String                     => "\""  + key + """": {"type":"string"}"""
+        case _: String| _:JString          => "\""  + key + """": {"type":"string"}"""
+        case e: EnumValue                  => {
+          val enumValues = OBPEnumeration.getValuesByInstance(e)
+            .map(it => s""""$it"""")
+            .mkString("[", ", ", "]")
+          "\""  + key + s"""": {"type":"string","enum": $enumValues}"""
+        }
         case Some(i: String)               => "\""  + key + """": {"type":"string"}"""
         case List(i: String, _*)           => "\""  + key + """": {"type": "array","items": {"type": "string"}}""" 
         case Some(List(i: String, _*))     => "\""  + key + """": {"type": "array","items": {"type": "string"}}"""
         //Int 
-        case i: Int                        => "\""  + key + """": {"type":"integer"}"""
+        case _: Int | _:JInt               => "\""  + key + """": {"type":"integer"}"""
         case Some(i: Int)                  => "\""  + key + """": {"type":"integer"}"""
         case List(i: Int, _*)              => "\""  + key + """": {"type": "array","items": {"type": "integer"}}"""
         case Some(List(i: Int, _*))        => "\""  + key + """": {"type": "array","items": {"type": "integer"}}"""
@@ -458,7 +471,7 @@ object JSONFactory1_4_0 {
         case List(i: Float, _*)            => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
         case Some(List(i: Float, _*))      => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
         //Double
-        case i: Double                     => "\""  + key + """": {"type":"number"}"""
+        case _: Double | _: JDouble        => "\""  + key + """": {"type":"number"}"""
         case Some(i: Double)               => "\""  + key + """": {"type":"number"}"""
         case List(i: Double, _*)           => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
         case Some(List(i: Double, _*))     => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
@@ -473,7 +486,8 @@ object JSONFactory1_4_0 {
         case List(i: BigDecimal, _*)       => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
         case Some(List(i: BigDecimal, _*)) => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
 
-        //List case classes.  
+        //List case classes.
+        case JArray(List(f,_*))            => "\""  + key + """":""" +translateEntity(f,true)
         case List(f)                       => "\""  + key + """":""" +translateEntity(f,true)
         case List(f,_*)                    => "\""  + key + """":""" +translateEntity(f,true)
         case List(Some(f))                 => "\""  + key + """":""" +translateEntity(f,true)
