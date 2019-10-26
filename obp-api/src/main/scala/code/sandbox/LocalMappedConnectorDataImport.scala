@@ -211,7 +211,7 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
         .accountNumber(acc.number)
         .kind(acc.`type`)
         .accountIban(acc.IBAN)
-        .accountCurrency(currency)
+        .accountCurrency(currency.toUpperCase)
         .accountBalance(convertToSmallestCurrencyUnits(balance, currency))
     }
 

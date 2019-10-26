@@ -60,7 +60,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .bank(bankId.value)
       .accountIban(randomString(20))//Added the Iban for test accounts
       .theAccountId(accountId.value)
-      .accountCurrency(currency)
+      .accountCurrency(currency.toUpperCase)
       .accountBalance(900000000)
       .holder(randomString(4))
       .accountNumber(randomString(4))
@@ -72,7 +72,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
   }
 
   override protected def updateAccountCurrency(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
-     MappedBankAccount.find(By(MappedBankAccount.bank, bankId.value), By(MappedBankAccount.theAccountId, accountId.value)).openOrThrowException(attemptedToOpenAnEmptyBox).accountCurrency(currency).saveMe()
+     MappedBankAccount.find(By(MappedBankAccount.bank, bankId.value), By(MappedBankAccount.theAccountId, accountId.value)).openOrThrowException(attemptedToOpenAnEmptyBox).accountCurrency(currency.toUpperCase).saveMe()
   }
 
   def addEntitlement(bankId: String, userId: String, roleName: String): Box[Entitlement] = {
