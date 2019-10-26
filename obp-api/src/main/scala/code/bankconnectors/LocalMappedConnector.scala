@@ -614,9 +614,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     val mappedBankAccount = getBankAccount(bankId, accountId).map(_.asInstanceOf[MappedBankAccount]) match {
       case Full(f) =>
-        f.bank(bankId.value).theAccountId(accountId.value).accountCurrency(currency).saveMe()
+        f.bank(bankId.value).theAccountId(accountId.value).accountCurrency(currency.toUpperCase).saveMe()
       case _ =>
-        MappedBankAccount.create.bank(bankId.value).theAccountId(accountId.value).accountCurrency(currency).saveMe()
+        MappedBankAccount.create.bank(bankId.value).theAccountId(accountId.value).accountCurrency(currency.toUpperCase).saveMe()
     }
 
     Full(mappedBankAccount)
@@ -1384,7 +1384,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           .accountNumber(accountNumber)
           .kind(accountType)
           .accountLabel(accountLabel)
-          .accountCurrency(currency)
+          .accountCurrency(currency.toUpperCase)
           .accountBalance(balanceInSmallestCurrencyUnits)
           .holder(accountHolderName)
           .mBranchId(branchId)

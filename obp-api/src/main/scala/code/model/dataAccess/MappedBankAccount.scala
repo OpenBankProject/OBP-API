@@ -50,7 +50,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
     if(i.isEmpty) None else Some(i)
   }
   override def bankId: BankId = BankId(bank.get)
-  override def currency: String = accountCurrency.get
+  override def currency: String = accountCurrency.get.toUpperCase
   override def number: String = accountNumber.get
   override def balance: BigDecimal = Helper.smallestCurrencyUnitToBigDecimal(accountBalance.get, currency)
   override def name: String = accountName.get
@@ -67,7 +67,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   def createAccountRule(scheme: String, value: Long) = {
     scheme match {
       case s: String if s.equalsIgnoreCase("") == false =>
-        val v = Helper.smallestCurrencyUnitToBigDecimal(value, accountCurrency.get)
+        val v = Helper.smallestCurrencyUnitToBigDecimal(value, accountCurrency.get.toUpperCase)
         List(AccountRule(scheme, v.toString()))
       case _ =>
         Nil
