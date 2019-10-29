@@ -11,7 +11,7 @@
   <inceptionYear>2011</inceptionYear>
   <properties>
     <scala.version>2.12</scala.version>
-    <scala.compiler>2.12.4</scala.compiler>
+    <scala.compiler>2.12.10</scala.compiler>
     <akka.version>2.5.19</akka.version>
     <akka-streams-kafka.version>0.22</akka-streams-kafka.version>
     <kafka.version>1.1.0</kafka.version>
@@ -102,6 +102,15 @@
   </dependencyManagement>
 
   <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>net.alchim31.maven</groupId>
+          <artifactId>scala-maven-plugin</artifactId>
+          <version>4.2.4</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -114,7 +123,6 @@
         <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
-          <version>3.4.6</version>
           <configuration>
             <charset>${project.build.sourceEncoding}</charset>
             <jvmArgs>
@@ -232,7 +240,6 @@
       <plugin>
         <groupId>net.alchim31.maven</groupId>
         <artifactId>scala-maven-plugin</artifactId>
-        <version>3.4.6</version>
         <configuration>
           <charset>${project.build.sourceEncoding}</charset>
           <jvmArgs>

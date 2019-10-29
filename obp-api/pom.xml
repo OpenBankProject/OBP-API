@@ -450,7 +450,6 @@
         <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
-          <version>3.4.6</version>
           <configuration>
             <charset>${project.build.sourceEncoding}</charset>
             <jvmArgs>
@@ -592,8 +591,7 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.8.1</version>
         <configuration>
-          <source>${java.version}</source>
-          <target>${java.version}</target>
+          <release>${java.version}</release>
         </configuration>
       </plugin>
     </plugins>
@@ -603,7 +601,6 @@
       <plugin>
         <groupId>net.alchim31.maven</groupId>
         <artifactId>scala-maven-plugin</artifactId>
-        <version>3.4.6</version>
         <configuration>
           <charset>${project.build.sourceEncoding}</charset>
           <jvmArgs>
