@@ -410,7 +410,6 @@
         <!-- enable the scalatest plugin -->
         <groupId>org.scalatest</groupId>
         <artifactId>scalatest-maven-plugin</artifactId>
-        <version>1.0</version>
         <configuration>
           <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
             <forkMode>once</forkMode>
