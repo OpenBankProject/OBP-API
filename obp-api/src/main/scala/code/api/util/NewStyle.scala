@@ -148,6 +148,32 @@ object NewStyle {
         connectorEmptyResponse(_, callContext)
       }
     }
+    def createOrUpdateBank(bankId: String,
+                           fullBankName: String,
+                           shortBankName: String,
+                           logoURL: String,
+                           websiteURL: String,
+                           swiftBIC: String,
+                           national_identifier: String,
+                           bankRoutingScheme: String,
+                           bankRoutingAddress: String,
+                           callContext: Option[CallContext]): OBPReturnType[Bank] = {
+      Future {
+        Connector.connector.vend.createOrUpdateBank(
+          bankId,
+          fullBankName,
+          shortBankName,
+          logoURL,
+          websiteURL,
+          swiftBIC,
+          national_identifier,
+          bankRoutingScheme,
+          bankRoutingAddress
+        ) map {
+          i =>  (i, callContext)
+        }
+      } map { unboxFull(_) }
+    }
     def getBalances(callContext: Option[CallContext]) : OBPReturnType[List[Bank]] = {
       Connector.connector.vend.getBanks(callContext: Option[CallContext]) map {
         connectorEmptyResponse(_, callContext)

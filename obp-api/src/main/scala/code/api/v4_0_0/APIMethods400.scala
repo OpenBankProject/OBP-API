@@ -2,10 +2,10 @@ package code.api.v4_0_0
 
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil._
+import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankAccountNotFound, BankNotFound, CounterpartyBeneficiaryPermit, DynamicEntityOperationNotAllowed, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NoViewPermission, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserCustomerLinksNotFoundForUser, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
+import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankAccountNotFound, BankNotFound, CounterpartyBeneficiaryPermit, DynamicEntityOperationNotAllowed, InsufficientAuthorisationToCreateBank, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NoViewPermission, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserCustomerLinksNotFoundForUser, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
 import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
@@ -13,10 +13,12 @@ import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
+import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_1_0.{JSONFactory310, ListResult}
+import code.api.v3_1_0.ListResult
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
 import code.dynamicEntity.DynamicEntityCommons
+import code.entitlement.Entitlement
 import code.metadata.tags.Tags
 import code.model.dataAccess.AuthUser
 import code.model.toUserExtended
@@ -1391,6 +1393,69 @@ trait APIMethods400 {
             (customers, callContext) <- NewStyle.function.getCustomersByCustomerPhoneNumber(bank.bankId, postedData.mobile_phone_number , callContext)
           } yield {
             (JSONFactory300.createCustomersJson(customers), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      createBank,
+      implementedInApiVersion,
+      "createBank",
+      "POST",
+      "/banks",
+      "Create Bank",
+      s"""Create a new bank (Authenticated access).
+         |${authenticationRequiredMessage(true) }
+         |""",
+      bankJSONV220,
+      bankJSONV220,
+      List(
+        InvalidJsonFormat,
+        UserNotLoggedIn,
+        InsufficientAuthorisationToCreateBank,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      List(apiTagBank),
+      Some(List(canCreateBank))
+    )
+
+    lazy val createBank: OBPEndpoint = {
+      case "banks" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $BankJSONV220 "
+            bank <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[BankJSONV220]
+            }
+            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.InvalidConsumerCredentials) {
+              callContext.map(_.consumer.isDefined == true).isDefined == true
+            }
+            (success, callContext) <- NewStyle.function.createOrUpdateBank(
+              bank.id,
+              bank.full_name,
+              bank.short_name,
+              bank.logo_url,
+              bank.website_url,
+              bank.swift_bic,
+              bank.national_identifier,
+              bank.bank_routing.scheme,
+              bank.bank_routing.address,
+              callContext
+              )
+            entitlements <- NewStyle.function.getEntitlementsByUserId(u.userId, callContext)
+            _ <- entitlements.filter(_.roleName == CanCreateEntitlementAtOneBank.toString()).size > 0 match {
+              case true =>
+                // Already has entitlement
+                Future()
+              case false =>
+                Future(Entitlement.entitlement.vend.addEntitlement(bank.id, u.userId, CanCreateEntitlementAtOneBank.toString()))
+            }
+          } yield {
+            (JSONFactory220.createBankJSON(success), HttpCode.`201`(callContext))
           }
       }
     }
