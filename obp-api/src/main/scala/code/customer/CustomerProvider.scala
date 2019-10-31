@@ -7,6 +7,7 @@ import code.remotedata.RemotedataCustomers
 import com.openbankproject.commons.model.{User, _}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
+import akka.pattern.pipe
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
@@ -27,6 +28,8 @@ object CustomerX extends SimpleInjector {
 trait CustomerProvider {
   def getCustomersFuture(bankId : BankId, queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]]
 
+  def getCustomersByCustomerPhoneNumber(bankId: BankId, phoneNumber: String): Future[Box[List[Customer]]]
+  
   def getCustomerByUserId(bankId: BankId, userId: String): Box[Customer]
 
   def getCustomersByUserId(userId: String): List[Customer]
@@ -99,6 +102,7 @@ trait CustomerProvider {
 
 class RemotedataCustomerProviderCaseClasses {
   case class getCustomersFuture(bankId: BankId, queryParams: List[OBPQueryParam])
+  case class getCustomersByCustomerPhoneNumber(bankId: BankId, phoneNumber: String)
   case class getCustomerByUserId(bankId: BankId, userId: String)
   case class getCustomersByUserId(userId: String)
   case class getCustomersByUserIdFuture(userId: String)

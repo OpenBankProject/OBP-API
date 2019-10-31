@@ -143,6 +143,8 @@ case class AccountTagsJSON(
 case class PostAccountTagJSON(
                                value : String
                              )
+case class PostCustomerPhoneNumberJsonV400(customer_phone_number: String)
+
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)

@@ -5,7 +5,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankAccountNotFound, BankNotFound, CounterpartyBeneficiaryPermit, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NoViewPermission, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound, DynamicEntityOperationNotAllowed}
+import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankAccountNotFound, BankNotFound, CounterpartyBeneficiaryPermit, DynamicEntityOperationNotAllowed, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NoViewPermission, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserCustomerLinksNotFoundForUser, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
 import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
@@ -13,8 +13,9 @@ import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
-import code.api.v3_1_0.ListResult
-import code.api.v4_0_0.JSONFactory400.{createNewCoreBankAccountJson, createBankAccountJSON}
+import code.api.v3_0_0.JSONFactory300
+import code.api.v3_1_0.{JSONFactory310, ListResult}
+import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
 import code.dynamicEntity.DynamicEntityCommons
 import code.metadata.tags.Tags
 import code.model.dataAccess.AuthUser
@@ -1344,6 +1345,52 @@ trait APIMethods400 {
             val viewsAvailable = availableViews.map(JSONFactory.createViewJSON).sortBy(_.short_name)
             val tags = Tags.tags.vend.getTagsOnAccount(bankId, accountId)(viewId)
             (createBankAccountJSON(moderatedAccount, viewsAvailable, accountAttributes, tags), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getCustomersByCustomerPhoneNumber,
+      implementedInApiVersion,
+      nameOf(getCustomersByCustomerPhoneNumber),
+      "POST",
+      "/banks/BANK_ID/customers/customer-phone-number",
+      "Get Customers by CUSTOMER_PHONE_NUMBER",
+      s"""Gets the Customers specified by CUSTOMER_PHONE_NUMBER.
+         |
+         |There are two wildcards often used in conjunction with the LIKE operator:
+         |    % - The percent sign represents zero, one, or multiple characters
+         |    _ - The underscore represents a single character
+         |For example {"customer_phone_number":"%381%"} lists all numbers which contain 381 sequence
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      postCustomerPhoneNumberJsonV400,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagKyc ,apiTagNewStyle))
+
+    lazy val getCustomersByCustomerPhoneNumber : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: "customer-phone-number" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetCustomer, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerPhoneNumberJsonV400 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostCustomerPhoneNumberJsonV400]
+            }
+            (customers, callContext) <- NewStyle.function.getCustomersByCustomerPhoneNumber(bank.bankId, postedData.customer_phone_number , callContext)
+          } yield {
+            (JSONFactory300.createCustomersJson(customers), HttpCode.`201`(callContext))
           }
       }
     }
