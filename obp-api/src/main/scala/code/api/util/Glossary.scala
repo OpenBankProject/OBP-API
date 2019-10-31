@@ -1055,7 +1055,83 @@ object Glossary {
 			|
 		  """)
 
+	glossaryItems += GlossaryItem(
+		title = "Scenario 5: Onboarding a User using Auth Context ",
+		description =
+			s"""
+			|### 1) Create a user
+			|
+			|Action:
+			|
+			|	POST $getObpApiRoot/v3.0.0/users
+			|
+			|Body:
+			|
+			|	{  "email":"ellie@example.com",  "username":"ellie",  "password":"P@55w0RD123",  "first_name":"Ellie",  "last_name":"Williams"}
+			|
+			|Headers:
+			|
+			|	Content-Type:  application/json
+			|
+			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|
+			|Please note the user_id
+			|
+			|### 2) Create User Auth Context
+			| 
+			| These key value pairs will be propagated over connector to adapter and to bank. So the bank can use these key value paris
+			| to map obp user to real bank customer. 
+			| 
+			|Action:
+			|
+			|	POST $getObpApiRoot/obp/v4.0.0/users/USER_ID/auth-context
+			|
+			|Body:
+			|
+			|	{  "key":"CUSTOMER_NUMBER",  "value":"78987432"}
+			|
+			|Headers:
+			|
+			|	Content-Type:  application/json
+			|
+			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|
+			|### 3) Create customer
+			|
+			|Requires CanCreateCustomer or canCreateCustomerAtAnyBank roles
+			|
+			|Action:
+			|
+			|	POST $getObpApiRoot/v3.1.0/banks/BANK_ID/customers
+			|
+			|Body:
+			|
+			|	{  "user_id":"user-id-from-step-1", "customer_number":"687687678", "legal_name":"NONE",  "mobile_phone_number":"+44 07972 444 876", "email":"person@example.com", "face_image":{    "url":"www.openbankproject",    "date":"2013-01-22T00:08:00Z"  },  "date_of_birth":"2013-01-22T00:08:00Z",  "relationship_status":"Single",  "dependants":5,  "dob_of_dependants":["2013-01-22T00:08:00Z"],  "credit_rating":{    "rating":"OBP",    "source":"OBP"  },  "credit_limit":{    "currency":"EUR",    "amount":"10"  },  "highest_education_attained":"Bachelor’s Degree",  "employment_status":"Employed",  "kyc_status":true,  "last_ok_date":"2013-01-22T00:08:00Z"}
+			|
+			|Headers:
+			|
+			|	Content-Type:  application/json
+			|
+			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			| 
+			|### 4) Get Customers for Current User
+			|
+			|Action:
+			|
+			|	GET $getObpApiRoot/v3.0.0/users/current/customers
+			|
+			|Body:
+			|
+			|	Leave empty!
+			|
+			|Headers:
+			|
+			|	Content-Type:  application/json
+			|
+			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|
 
+		  """)
 	glossaryItems += GlossaryItem(
 		title = "KYC (Know Your Customer)",
 		description =
