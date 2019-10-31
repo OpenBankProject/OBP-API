@@ -143,7 +143,7 @@ case class AccountTagsJSON(
 case class PostAccountTagJSON(
                                value : String
                              )
-case class PostCustomerPhoneNumberJsonV400(customer_phone_number: String)
+case class PostCustomerPhoneNumberJsonV400(mobile_phone_number: String)
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {

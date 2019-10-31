@@ -1355,9 +1355,9 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getCustomersByCustomerPhoneNumber),
       "POST",
-      "/banks/BANK_ID/customers/customer-phone-number",
-      "Get Customers by CUSTOMER_PHONE_NUMBER",
-      s"""Gets the Customers specified by CUSTOMER_PHONE_NUMBER.
+      "/banks/BANK_ID/search/customers/mobile-phone-number",
+      "Get Customers by MOBILE_PHONE_NUMBER",
+      s"""Gets the Customers specified by MOBILE_PHONE_NUMBER.
          |
          |There are two wildcards often used in conjunction with the LIKE operator:
          |    % - The percent sign represents zero, one, or multiple characters
@@ -1378,7 +1378,7 @@ trait APIMethods400 {
       List(apiTagCustomer, apiTagKyc ,apiTagNewStyle))
 
     lazy val getCustomersByCustomerPhoneNumber : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customers" :: "customer-phone-number" ::  Nil JsonPost  json -> _ => {
+      case "banks" :: BankId(bankId) :: "search"  :: "customers" :: "mobile-phone-number" ::  Nil JsonPost  json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
@@ -1388,7 +1388,7 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostCustomerPhoneNumberJsonV400]
             }
-            (customers, callContext) <- NewStyle.function.getCustomersByCustomerPhoneNumber(bank.bankId, postedData.customer_phone_number , callContext)
+            (customers, callContext) <- NewStyle.function.getCustomersByCustomerPhoneNumber(bank.bankId, postedData.mobile_phone_number , callContext)
           } yield {
             (JSONFactory300.createCustomersJson(customers), HttpCode.`201`(callContext))
           }
