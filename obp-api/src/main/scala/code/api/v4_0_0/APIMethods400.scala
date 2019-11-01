@@ -1325,7 +1325,7 @@ trait APIMethods400 {
         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
         |""".stripMargin,
       emptyObjectJson,
-      moderatedAccountJSON310,
+      moderatedAccountJSON400,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  apiTagNewStyle :: Nil)

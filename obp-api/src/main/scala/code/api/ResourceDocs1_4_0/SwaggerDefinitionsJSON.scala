@@ -15,7 +15,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, EnergySource400, HostedAt400, HostedBy400, ModeratedCoreAccountJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
 import code.sandbox.SandboxData
@@ -3389,10 +3389,24 @@ object SwaggerDefinitionsJSON {
     label= labelExample.value,
     number= accountNumberExample.value,
     owners =  List(userJSONV121),
-    `type`= accountTypeExample.value,
+    product_code= accountTypeExample.value,
     balance = amountOfMoneyJsonV121,
     account_routings = List(accountRoutingJsonV121),
     views_basic = List(viewBasicV300),
+    account_attributes = List(accountAttributeResponseJson),
+    tags = List(accountTagJSON)
+  )
+
+  val moderatedAccountJSON400 = ModeratedAccountJSON400(
+    id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
+    label = "NoneLabel",
+    number = "123",
+    owners = List(userJSONV121),
+    product_code = "OBP",
+    balance = amountOfMoneyJsonV121,
+    views_available = List(viewJSONV121),
+    bank_id = bankIdExample.value,
+    account_routing = accountRoutingJsonV121,
     account_attributes = List(accountAttributeResponseJson),
     tags = List(accountTagJSON)
   )
