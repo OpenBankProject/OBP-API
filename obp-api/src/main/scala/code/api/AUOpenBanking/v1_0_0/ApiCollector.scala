@@ -29,22 +29,22 @@
   *Ayoub Benali: ayoub AT tesobe DOT com
   *
   */
-package code.api.AUOpenBanking.v1
+package code.api.AUOpenBanking.v1_0_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
 import code.api.util.{ScannedApiVersion, ScannedApis}
 import code.util.Helper.MdcLoggable
 
-import code.api.AUOpenBanking.v1.APIMethods_AccountsApi
-import code.api.AUOpenBanking.v1.APIMethods_BankingApi
-import code.api.AUOpenBanking.v1.APIMethods_CommonApi
-import code.api.AUOpenBanking.v1.APIMethods_CustomerApi
-import code.api.AUOpenBanking.v1.APIMethods_DirectDebitsApi
-import code.api.AUOpenBanking.v1.APIMethods_DiscoveryApi
-import code.api.AUOpenBanking.v1.APIMethods_PayeesApi
-import code.api.AUOpenBanking.v1.APIMethods_ProductsApi
-import code.api.AUOpenBanking.v1.APIMethods_ScheduledPaymentsApi
+import code.api.AUOpenBanking.v1_0_0.APIMethods_AccountsApi
+import code.api.AUOpenBanking.v1_0_0.APIMethods_BankingApi
+import code.api.AUOpenBanking.v1_0_0.APIMethods_CommonApi
+import code.api.AUOpenBanking.v1_0_0.APIMethods_CustomerApi
+import code.api.AUOpenBanking.v1_0_0.APIMethods_DirectDebitsApi
+import code.api.AUOpenBanking.v1_0_0.APIMethods_DiscoveryApi
+import code.api.AUOpenBanking.v1_0_0.APIMethods_PayeesApi
+import code.api.AUOpenBanking.v1_0_0.APIMethods_ProductsApi
+import code.api.AUOpenBanking.v1_0_0.APIMethods_ScheduledPaymentsApi
 
 import scala.collection.mutable.ArrayBuffer
 

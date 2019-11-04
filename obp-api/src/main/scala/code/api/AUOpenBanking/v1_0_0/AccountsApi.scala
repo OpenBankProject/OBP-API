@@ -1,4 +1,4 @@
-package code.api.AUOpenBanking.v1
+package code.api.AUOpenBanking.v1_0_0
 
 import code.api.APIFailureNewStyle
 import code.api.berlin.group.v1_3.JvalueCaseClass
@@ -20,7 +20,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import code.api.AUOpenBanking.v1.ApiCollector
+import code.api.AUOpenBanking.v1_0_0.ApiCollector
 import code.api.util.ApiTag
 
 object APIMethods_AccountsApi extends RestHelper {
@@ -33,8 +33,8 @@ object APIMethods_AccountsApi extends RestHelper {
       getAccountDetail ::
       getTransactionDetail ::
       getTransactions ::
-      listAccounts ::
-      listBalance ::
+//      listAccounts ::
+//      listBalance ::
       listBalancesBulk ::
       listBalancesSpecificAccounts ::
       Nil
@@ -271,173 +271,173 @@ Some general notes that apply to all end points that retrieve transactions:
          }
        }
             
-     resourceDocs += ResourceDoc(
-       listAccounts, 
-       apiVersion, 
-       nameOf(listAccounts),
-       "GET", 
-       "/banking/accounts", 
-       "Get Accounts",
-       s"""${mockedDataText(true)}
-            Obtain a list of accounts
-
-            """,
-       json.parse(""""""),
-       json.parse("""{
-  "data" : {
-    "accounts" : [ {
-      "accountId" : "accountId",
-      "maskedNumber" : "maskedNumber",
-      "openStatus" : "OPEN",
-      "displayName" : "displayName",
-      "isOwned" : true,
-      "nickname" : "nickname",
-      "creationDate" : "creationDate",
-      "productName" : "productName",
-      "productCategory" : { }
-    }, {
-      "accountId" : "accountId",
-      "maskedNumber" : "maskedNumber",
-      "openStatus" : "OPEN",
-      "displayName" : "displayName",
-      "isOwned" : true,
-      "nickname" : "nickname",
-      "creationDate" : "creationDate",
-      "productName" : "productName",
-      "productCategory" : { }
-    } ]
-  },
-  "meta" : {
-    "totalRecords" : 0,
-    "totalPages" : 6
-  },
-  "links" : {
-    "next" : "next",
-    "last" : "last",
-    "prev" : "prev",
-    "self" : "self",
-    "first" : "first"
-  }
-}"""),
-       List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
-     )
-
-     lazy val listAccounts : OBPEndpoint = {
-       case "banking":: "accounts" :: Nil JsonGet _ => {
-         cc =>
-           for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
-             } yield {
-            (json.parse("""{
-  "data" : {
-    "accounts" : [ {
-      "accountId" : "accountId",
-      "maskedNumber" : "maskedNumber",
-      "openStatus" : "OPEN",
-      "displayName" : "displayName",
-      "isOwned" : true,
-      "nickname" : "nickname",
-      "creationDate" : "creationDate",
-      "productName" : "productName",
-      "productCategory" : { }
-    }, {
-      "accountId" : "accountId",
-      "maskedNumber" : "maskedNumber",
-      "openStatus" : "OPEN",
-      "displayName" : "displayName",
-      "isOwned" : true,
-      "nickname" : "nickname",
-      "creationDate" : "creationDate",
-      "productName" : "productName",
-      "productCategory" : { }
-    } ]
-  },
-  "meta" : {
-    "totalRecords" : 0,
-    "totalPages" : 6
-  },
-  "links" : {
-    "next" : "next",
-    "last" : "last",
-    "prev" : "prev",
-    "self" : "self",
-    "first" : "first"
-  }
-}"""), callContext)
-           }
-         }
-       }
+//     resourceDocs += ResourceDoc(
+//       listAccounts, 
+//       apiVersion, 
+//       nameOf(listAccounts),
+//       "GET", 
+//       "/banking/accounts", 
+//       "Get Accounts",
+//       s"""${mockedDataText(true)}
+//            Obtain a list of accounts
+//
+//            """,
+//       json.parse(""""""),
+//       json.parse("""{
+//  "data" : {
+//    "accounts" : [ {
+//      "accountId" : "accountId",
+//      "maskedNumber" : "maskedNumber",
+//      "openStatus" : "OPEN",
+//      "displayName" : "displayName",
+//      "isOwned" : true,
+//      "nickname" : "nickname",
+//      "creationDate" : "creationDate",
+//      "productName" : "productName",
+//      "productCategory" : { }
+//    }, {
+//      "accountId" : "accountId",
+//      "maskedNumber" : "maskedNumber",
+//      "openStatus" : "OPEN",
+//      "displayName" : "displayName",
+//      "isOwned" : true,
+//      "nickname" : "nickname",
+//      "creationDate" : "creationDate",
+//      "productName" : "productName",
+//      "productCategory" : { }
+//    } ]
+//  },
+//  "meta" : {
+//    "totalRecords" : 0,
+//    "totalPages" : 6
+//  },
+//  "links" : {
+//    "next" : "next",
+//    "last" : "last",
+//    "prev" : "prev",
+//    "self" : "self",
+//    "first" : "first"
+//  }
+//}"""),
+//       List(UserNotLoggedIn, UnknownError),
+//       Catalogs(notCore, notPSD2, notOBWG), 
+//       ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
+//     )
+//
+//     lazy val listAccounts : OBPEndpoint = {
+//       case "banking":: "accounts" :: Nil JsonGet _ => {
+//         cc =>
+//           for {
+//             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+//             } yield {
+//            (json.parse("""{
+//  "data" : {
+//    "accounts" : [ {
+//      "accountId" : "accountId",
+//      "maskedNumber" : "maskedNumber",
+//      "openStatus" : "OPEN",
+//      "displayName" : "displayName",
+//      "isOwned" : true,
+//      "nickname" : "nickname",
+//      "creationDate" : "creationDate",
+//      "productName" : "productName",
+//      "productCategory" : { }
+//    }, {
+//      "accountId" : "accountId",
+//      "maskedNumber" : "maskedNumber",
+//      "openStatus" : "OPEN",
+//      "displayName" : "displayName",
+//      "isOwned" : true,
+//      "nickname" : "nickname",
+//      "creationDate" : "creationDate",
+//      "productName" : "productName",
+//      "productCategory" : { }
+//    } ]
+//  },
+//  "meta" : {
+//    "totalRecords" : 0,
+//    "totalPages" : 6
+//  },
+//  "links" : {
+//    "next" : "next",
+//    "last" : "last",
+//    "prev" : "prev",
+//    "self" : "self",
+//    "first" : "first"
+//  }
+//}"""), callContext)
+//           }
+//         }
+//       }
             
-     resourceDocs += ResourceDoc(
-       listBalance, 
-       apiVersion, 
-       nameOf(listBalance),
-       "GET", 
-       "/banking/accounts/ACCOUNT_ID/balance", 
-       "Get Account Balance",
-       s"""${mockedDataText(true)}
-            Obtain the balance for a single specified account
-
-            """,
-       json.parse(""""""),
-       json.parse("""{
-  "data" : {
-    "accountId" : "accountId",
-    "purses" : [ {
-      "amount" : "amount",
-      "currency" : "currency"
-    }, {
-      "amount" : "amount",
-      "currency" : "currency"
-    } ],
-    "amortisedLimit" : "amortisedLimit",
-    "currentBalance" : "currentBalance",
-    "creditLimit" : "creditLimit",
-    "currency" : "currency",
-    "availableBalance" : "availableBalance"
-  },
-  "meta" : { },
-  "links" : {
-    "self" : "self"
-  }
-}"""),
-       List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
-     )
-
-     lazy val listBalance : OBPEndpoint = {
-       case "banking":: "accounts" :: accountId:: "balance" :: Nil JsonGet _ => {
-         cc =>
-           for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
-             } yield {
-            (json.parse("""{
-  "data" : {
-    "accountId" : "accountId",
-    "purses" : [ {
-      "amount" : "amount",
-      "currency" : "currency"
-    }, {
-      "amount" : "amount",
-      "currency" : "currency"
-    } ],
-    "amortisedLimit" : "amortisedLimit",
-    "currentBalance" : "currentBalance",
-    "creditLimit" : "creditLimit",
-    "currency" : "currency",
-    "availableBalance" : "availableBalance"
-  },
-  "meta" : { },
-  "links" : {
-    "self" : "self"
-  }
-}"""), callContext)
-           }
-         }
-       }
+//     resourceDocs += ResourceDoc(
+//       listBalance, 
+//       apiVersion, 
+//       nameOf(listBalance),
+//       "GET", 
+//       "/banking/accounts/ACCOUNT_ID/balance", 
+//       "Get Account Balance",
+//       s"""${mockedDataText(true)}
+//            Obtain the balance for a single specified account
+//
+//            """,
+//       json.parse(""""""),
+//       json.parse("""{
+//  "data" : {
+//    "accountId" : "accountId",
+//    "purses" : [ {
+//      "amount" : "amount",
+//      "currency" : "currency"
+//    }, {
+//      "amount" : "amount",
+//      "currency" : "currency"
+//    } ],
+//    "amortisedLimit" : "amortisedLimit",
+//    "currentBalance" : "currentBalance",
+//    "creditLimit" : "creditLimit",
+//    "currency" : "currency",
+//    "availableBalance" : "availableBalance"
+//  },
+//  "meta" : { },
+//  "links" : {
+//    "self" : "self"
+//  }
+//}"""),
+//       List(UserNotLoggedIn, UnknownError),
+//       Catalogs(notCore, notPSD2, notOBWG), 
+//       ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
+//     )
+//
+//     lazy val listBalance : OBPEndpoint = {
+//       case "banking":: "accounts" :: accountId:: "balance" :: Nil JsonGet _ => {
+//         cc =>
+//           for {
+//             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+//             } yield {
+//            (json.parse("""{
+//  "data" : {
+//    "accountId" : "accountId",
+//    "purses" : [ {
+//      "amount" : "amount",
+//      "currency" : "currency"
+//    }, {
+//      "amount" : "amount",
+//      "currency" : "currency"
+//    } ],
+//    "amortisedLimit" : "amortisedLimit",
+//    "currentBalance" : "currentBalance",
+//    "creditLimit" : "creditLimit",
+//    "currency" : "currency",
+//    "availableBalance" : "availableBalance"
+//  },
+//  "meta" : { },
+//  "links" : {
+//    "self" : "self"
+//  }
+//}"""), callContext)
+//           }
+//         }
+//       }
             
      resourceDocs += ResourceDoc(
        listBalancesBulk, 

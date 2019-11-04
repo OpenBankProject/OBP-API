@@ -1,4 +1,4 @@
-package code.api.AUOpenBanking.v1
+package code.api.AUOpenBanking.v1_0_0
 
 import code.api.APIFailureNewStyle
 import code.api.berlin.group.v1_3.JvalueCaseClass
@@ -20,7 +20,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import code.api.AUOpenBanking.v1.ApiCollector
+import code.api.AUOpenBanking.v1_0_0.ApiCollector
 import code.api.util.ApiTag
 
 object APIMethods_PayeesApi extends RestHelper {

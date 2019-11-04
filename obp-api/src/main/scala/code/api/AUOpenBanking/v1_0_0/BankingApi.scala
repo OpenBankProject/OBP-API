@@ -1,4 +1,4 @@
-package code.api.AUOpenBanking.v1
+package code.api.AUOpenBanking.v1_0_0
 
 import code.api.APIFailureNewStyle
 import code.api.berlin.group.v1_3.JvalueCaseClass
@@ -16,12 +16,15 @@ import code.views.Views
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import com.github.dwickern.macros.NameOf.nameOf
-import scala.collection.immutable.Nil
+
+import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import code.api.AUOpenBanking.v1.ApiCollector
+import code.api.AUOpenBanking.v1_0_0.ApiCollector
 import code.api.util.ApiTag
+import code.api.v2_0_0.AccountsHelper.getFilteredCoreAccounts
+import com.openbankproject.commons.model.{AccountId, AccountRouting, BankId}
 
 object APIMethods_BankingApi extends RestHelper {
     val apiVersion =  ApiCollector.apiVersion
@@ -421,43 +424,10 @@ Some general notes that apply to all end points that retrieve transactions:
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, BankId(defaultBankId))
+             (coreAccounts, callContext) <- NewStyle.function.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)
              } yield {
-            (json.parse("""{
-  "data" : {
-    "accounts" : [ {
-      "accountId" : "accountId",
-      "maskedNumber" : "maskedNumber",
-      "openStatus" : "OPEN",
-      "displayName" : "displayName",
-      "isOwned" : true,
-      "nickname" : "nickname",
-      "creationDate" : "creationDate",
-      "productName" : "productName",
-      "productCategory" : { }
-    }, {
-      "accountId" : "accountId",
-      "maskedNumber" : "maskedNumber",
-      "openStatus" : "OPEN",
-      "displayName" : "displayName",
-      "isOwned" : true,
-      "nickname" : "nickname",
-      "creationDate" : "creationDate",
-      "productName" : "productName",
-      "productCategory" : { }
-    } ]
-  },
-  "meta" : {
-    "totalRecords" : 0,
-    "totalPages" : 6
-  },
-  "links" : {
-    "next" : "next",
-    "last" : "last",
-    "prev" : "prev",
-    "self" : "self",
-    "first" : "first"
-  }
-}"""), callContext)
+             (JSONFactory_AU_OpenBanking_1_0_0.createListAccountsJson(coreAccounts), HttpCode.`200`(callContext))
            }
          }
        }
@@ -505,28 +475,9 @@ Some general notes that apply to all end points that retrieve transactions:
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             (account, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
              } yield {
-            (json.parse("""{
-  "data" : {
-    "accountId" : "accountId",
-    "purses" : [ {
-      "amount" : "amount",
-      "currency" : "currency"
-    }, {
-      "amount" : "amount",
-      "currency" : "currency"
-    } ],
-    "amortisedLimit" : "amortisedLimit",
-    "currentBalance" : "currentBalance",
-    "creditLimit" : "creditLimit",
-    "currency" : "currency",
-    "availableBalance" : "availableBalance"
-  },
-  "meta" : { },
-  "links" : {
-    "self" : "self"
-  }
-}"""), callContext)
+             (JSONFactory_AU_OpenBanking_1_0_0.createAccountBalanceJson(account), HttpCode.`200`(callContext))
            }
          }
        }
