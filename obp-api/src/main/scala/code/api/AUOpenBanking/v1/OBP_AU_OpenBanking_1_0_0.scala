@@ -29,7 +29,7 @@
   *Ayoub Benali: ayoub AT tesobe DOT com
   *
   */
-package code.api.AUSOpenBanking.v1
+package code.api.AUOpenBanking.v1
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}

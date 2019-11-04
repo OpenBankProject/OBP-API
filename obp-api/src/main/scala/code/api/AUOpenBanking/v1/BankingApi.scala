@@ -1,4 +1,4 @@
-package code.api.AUSOpenBanking.v1
+package code.api.AUOpenBanking.v1
 
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
