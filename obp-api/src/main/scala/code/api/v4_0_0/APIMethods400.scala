@@ -1434,6 +1434,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = ErrorMessages.InvalidConsumerCredentials) {
               callContext.map(_.consumer.isDefined == true).isDefined == true
             }
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateBank, callContext)
             (success, callContext) <- NewStyle.function.createOrUpdateBank(
               bank.id,
               bank.full_name,
