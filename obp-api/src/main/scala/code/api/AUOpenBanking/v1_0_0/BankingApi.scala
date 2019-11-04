@@ -373,7 +373,7 @@ Some general notes that apply to all end points that retrieve transactions:
        "GET", 
        "/banking/accounts", 
        "Get Accounts",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             Obtain a list of accounts
 
             """,
@@ -439,7 +439,7 @@ Some general notes that apply to all end points that retrieve transactions:
        "GET", 
        "/banking/accounts/ACCOUNT_ID/balance", 
        "Get Account Balance",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             Obtain the balance for a single specified account
 
             """,
