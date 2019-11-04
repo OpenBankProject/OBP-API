@@ -36,23 +36,51 @@ import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
 import code.api.util.{ScannedApiVersion, ScannedApis}
 import code.util.Helper.MdcLoggable
 
+import code.api.AUOpenBanking.v1.APIMethods_AccountsApi
+import code.api.AUOpenBanking.v1.APIMethods_BankingApi
+import code.api.AUOpenBanking.v1.APIMethods_CommonApi
+import code.api.AUOpenBanking.v1.APIMethods_CustomerApi
+import code.api.AUOpenBanking.v1.APIMethods_DirectDebitsApi
+import code.api.AUOpenBanking.v1.APIMethods_DiscoveryApi
+import code.api.AUOpenBanking.v1.APIMethods_PayeesApi
+import code.api.AUOpenBanking.v1.APIMethods_ProductsApi
+import code.api.AUOpenBanking.v1.APIMethods_ScheduledPaymentsApi
+
 import scala.collection.mutable.ArrayBuffer
+
+
 
 
 /*
 This file defines which endpoints from all the versions are available in v1
  */
-object OBP_AU_OpenBanking_1_0_0 extends OBPRestHelper with MdcLoggable with ScannedApis {
-
+object ApiCollector extends OBPRestHelper with MdcLoggable with ScannedApis {
+  //please modify these three parameter if it is not correct.
   override val apiVersion = ScannedApiVersion("cds-au", "AU", "v1.0.0")
   val versionStatus = "DRAFT"
 
   private[this] val endpoints =
-    APIMethods_BankingApi.endpoints 
+    APIMethods_AccountsApi.endpoints ++
+    APIMethods_BankingApi.endpoints ++
+    APIMethods_CommonApi.endpoints ++
+    APIMethods_CustomerApi.endpoints ++
+    APIMethods_DirectDebitsApi.endpoints ++
+    APIMethods_DiscoveryApi.endpoints ++
+    APIMethods_PayeesApi.endpoints ++
+    APIMethods_ProductsApi.endpoints ++
+    APIMethods_ScheduledPaymentsApi.endpoints 
 
   override val allResourceDocs: ArrayBuffer[ResourceDoc]  =
-    APIMethods_BankingApi.resourceDocs
-  
+    APIMethods_AccountsApi.resourceDocs ++
+    APIMethods_BankingApi.resourceDocs ++
+    APIMethods_CommonApi.resourceDocs ++
+    APIMethods_CustomerApi.resourceDocs ++
+    APIMethods_DirectDebitsApi.resourceDocs ++
+    APIMethods_DiscoveryApi.resourceDocs ++
+    APIMethods_PayeesApi.resourceDocs ++
+    APIMethods_ProductsApi.resourceDocs ++
+    APIMethods_ScheduledPaymentsApi.resourceDocs 
+
   private[this] def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
     allResourceDocs.find(_.partialFunction==pf)
   }
