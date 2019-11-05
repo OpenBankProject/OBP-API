@@ -5506,7 +5506,9 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteWebUiProps, callContext)
-            deleted: Box[Boolean] <- Future {MappedWebUiPropsProvider.delete(webUiPropsId)}
+            deleted <- Future { MappedWebUiPropsProvider.delete(webUiPropsId) } map {
+              unboxFullOrFail(_, callContext)
+            }
           } yield {
             (deleted, HttpCode.`200`(callContext))
           }

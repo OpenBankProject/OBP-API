@@ -108,7 +108,7 @@ case class ModeratedCoreAccountJsonV400(
                                          label: String,
                                          number: String,
                                          owners: List[UserJSONV121],
-                                         `type`: String,
+                                         product_code: String,
                                          balance: AmountOfMoneyJsonV121,
                                          account_routings: List[AccountRoutingJsonV121],
                                          views_basic: List[ViewBasicV300],
@@ -121,7 +121,7 @@ case class ModeratedAccountJSON400(
                                     label : String,
                                     number : String,
                                     owners : List[UserJSONV121],
-                                    `type` : String,
+                                    product_code : String,
                                     balance : AmountOfMoneyJsonV121,
                                     views_available : List[ViewJSONV121],
                                     bank_id : String,
@@ -143,6 +143,8 @@ case class AccountTagsJSON(
 case class PostAccountTagJSON(
                                value : String
                              )
+case class PostCustomerPhoneNumberJsonV400(mobile_phone_number: String)
+
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)

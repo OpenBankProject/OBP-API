@@ -3,11 +3,11 @@ package code.webuiprops
 import java.util.UUID.randomUUID
 
 import code.api.cache.Caching
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, ErrorMessages}
 import code.api.util.APIUtil.saveConnectorMetric
 import code.util.MappedUUID
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper._
 
 /**
@@ -26,7 +26,11 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
       .map(_.Name(webUiProps.name).Value(webUiProps.value).saveMe())
   }
 
-  override def delete(webUiPropsId: String):Box[Boolean] = WebUiProps.find(By(WebUiProps.WebUiPropsId, webUiPropsId)).map(_.delete_!)
+  override def delete(webUiPropsId: String):Box[Boolean] = WebUiProps.find(By(WebUiProps.WebUiPropsId, webUiPropsId)) match {
+    case Full(props) => Full(props.delete_!)
+    case Empty => Failure(ErrorMessages.WebUiPropsNotFound)
+    case Failure(msg, t, c) => Failure(msg, t, c)
+  }
 
   override def getWebUiPropsValue(nameOfProperty: String, defaultValue: String): String = saveConnectorMetric {
     import scala.concurrent.duration._
