@@ -148,6 +148,32 @@ object NewStyle {
         connectorEmptyResponse(_, callContext)
       }
     }
+    def createOrUpdateBank(bankId: String,
+                           fullBankName: String,
+                           shortBankName: String,
+                           logoURL: String,
+                           websiteURL: String,
+                           swiftBIC: String,
+                           national_identifier: String,
+                           bankRoutingScheme: String,
+                           bankRoutingAddress: String,
+                           callContext: Option[CallContext]): OBPReturnType[Bank] = {
+      Future {
+        Connector.connector.vend.createOrUpdateBank(
+          bankId,
+          fullBankName,
+          shortBankName,
+          logoURL,
+          websiteURL,
+          swiftBIC,
+          national_identifier,
+          bankRoutingScheme,
+          bankRoutingAddress
+        ) map {
+          i =>  (i, callContext)
+        }
+      } map { unboxFull(_) }
+    }
     def getBalances(callContext: Option[CallContext]) : OBPReturnType[List[Bank]] = {
       Connector.connector.vend.getBanks(callContext: Option[CallContext]) map {
         connectorEmptyResponse(_, callContext)
@@ -252,6 +278,11 @@ object NewStyle {
     def getCustomers(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[List[Customer]] = {
       Connector.connector.vend.getCustomers(bankId, callContext, queryParams) map {
         connectorEmptyResponse(_, callContext)
+      }
+    }
+    def getCustomersByCustomerPhoneNumber(bankId : BankId, phoneNumber: String, callContext: Option[CallContext]): OBPReturnType[List[Customer]] = {
+      Connector.connector.vend.getCustomersByCustomerPhoneNumber(bankId, phoneNumber, callContext) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
     def getCustomerByCustomerId(customerId : String, callContext: Option[CallContext]): OBPReturnType[Customer] = {
