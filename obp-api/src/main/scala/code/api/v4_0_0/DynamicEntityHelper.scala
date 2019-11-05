@@ -43,7 +43,7 @@ object MockerConnector {
     val endPoint = APIMethods400.Implementations4_0_0.genericEndpoint
     val implementedInApiVersion = ApiVersion.v4_0_0
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-
+    val apiTag = ApiTag("_" + dynamicEntityInfo.entityName);
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
@@ -60,7 +60,7 @@ object MockerConnector {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(ApiTag(dynamicEntityInfo.entityName), apiTagApi, apiTagNewStyle),
+      List(apiTag, apiTagApi, apiTagNewStyle),
       Some(List())
     )
     resourceDocs += ResourceDoc(
@@ -79,7 +79,7 @@ object MockerConnector {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(ApiTag(dynamicEntityInfo.entityName), apiTagApi, apiTagNewStyle),
+      List(apiTag, apiTagApi, apiTagNewStyle),
       Some(List())
     )
 
@@ -105,7 +105,7 @@ object MockerConnector {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(ApiTag(dynamicEntityInfo.entityName), apiTagApi, apiTagNewStyle),
+      List(apiTag, apiTagApi, apiTagNewStyle),
       Some(List()))
 
     resourceDocs += ResourceDoc(
@@ -130,7 +130,7 @@ object MockerConnector {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(ApiTag(dynamicEntityInfo.entityName), apiTagApi, apiTagNewStyle),
+      List(apiTag, apiTagApi, apiTagNewStyle),
       Some(List()))
 
     resourceDocs += ResourceDoc(
@@ -155,7 +155,7 @@ object MockerConnector {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(ApiTag(dynamicEntityInfo.entityName), apiTagApi, apiTagNewStyle),
+      List(apiTag, apiTagApi, apiTagNewStyle),
       Some(List()))
 
     resourceDocs

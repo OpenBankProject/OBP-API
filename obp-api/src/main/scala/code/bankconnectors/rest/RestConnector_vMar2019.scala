@@ -1266,13 +1266,24 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /getBankAccountsBalances
-  override def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[Box[AccountsBalances]] = {
+  override def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]): OBPReturnType[Box[AccountsBalances]] =  saveConnectorMetric {
+    /**
+     * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+     * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+     * The real value will be assigned by Macro during compile time at this line of a code:
+     * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+     */
+    //Note: here is a bit different, we get the headers from api level and also use them as the cache key.  
+    val basicUserAuthContext = callContext.map(createBasicUserAuthContextJsonFromCallContext(_))
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString) 
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()+ basicUserAuthContext.toString()))(bankAccountsBalancesTTL second){{
         import com.openbankproject.commons.dto.{OutBoundGetBankAccountsBalances => OutBound, InBoundGetBankAccountsBalances => InBound}
         val url = getUrl(callContext, "getBankAccountsBalances")
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankIdAccountIds)
         val result: OBPReturnType[Box[AccountsBalances]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
-  }
+  }}}}("getBankAccountsBalances")
     
   messageDocs += getCoreBankAccountsLegacyDoc
   def getCoreBankAccountsLegacyDoc = MessageDoc(

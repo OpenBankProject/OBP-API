@@ -123,6 +123,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   protected val atmTTL = getSecondsCache("getAtm")
   protected val statusOfCheckbookOrders = getSecondsCache("getStatusOfCheckbookOrdersFuture")
   protected val statusOfCreditcardOrders = getSecondsCache("getStatusOfCreditCardOrderFuture")
+  protected val bankAccountsBalancesTTL = getSecondsCache("getBankAccountsBalances")
 
   /**
     * convert original return type future to OBPReturnType
