@@ -1,10 +1,76 @@
-
-
 ## Completed developments (most recent first)
+
+(a non exhaustive summary!)
+
+
+* New / Enhanced support for Berlin Group, STET, UK Open Banking, Polish and Australia CDR APIs e.g.
+ [Berlin Group](https://apiexplorersandbox.openbankproject.com/?version=BGv3.1) and
+ [STET](https://apiexplorersandbox.openbankproject.com/?version=STETv1.4) and
+ [Australia CDR](https://apiexplorersandbox.openbankproject.com/more?version=AUv1.0.0&list-all-banks=false)
+
+
+### New Or Updated in Version 4.0.0
+25 new or updated endpoints.
+
+
+API
+
+    Get API Info (root)
+    Get the Call Context of a current call
+        So the CBS integrator can see what info about the current call will be sent to the CBS Adapter
+
+Account
+
+    Get Account by Id (Core)
+    Get Account by Id (Full)
+        Account.type has been renamed Account.product_code
+        Account endpoints include Account Attributes
+
+Account Metadata
+
+    Add a tag on account.
+    Delete a tag on account.
+    Get tags on account.
+        Account Tags work similarly to Transaction Tags.
+
+Bank
+
+    Get Banks
+
+Dynamic Entity
+
+    Create DynamicEntity
+    Delete DynamicEntity
+    Get DynamicEntities
+    Update DynamicEntity
+        So developers can create their own Persistent Entities and their associated CRUD like endpoints on the OBP Server in real time.
+
+Role
+
+    Get Entitlements for User
+
+Transaction Request
+
+    Answer Transaction Request Challenge.
+    Create Transaction Request (ACCOUNT)
+    Create Transaction Request (ACCOUNT_OTP)
+    Create Transaction Request (COUNTERPARTY)
+    Create Transaction Request (FREE_FORM).
+    Create Transaction Request (SEPA)
+        ACCOUNT is a new synonym for SANDBOX_TAN
+
+
+User
+
+    Create password reset url
+        To aid User onboarding
+
+See [here](https://apiexplorersandbox.openbankproject.com/?version=OBPv4.0.0&ignoredefcat=true&native=true) for details.
+
 
 
 ### Version 3.1.0
-50 new and updated endpoints. Major new functionality includes:
+102 new or updated endpoints. Major new functionality includes:
 
 * Webhooks
 * Rate limiting and Throttling.
@@ -14,78 +80,177 @@
 * Product Collections
 * User Auth Context
 
+
+
+
+API
+
+    Get API Configuration
+    Get Adapter Info
+    Get Connector Status (Loopback)
+    Get JSON Web Key (JWK)
+    Get JSON Web Key (JWK) URIs
+    Get Rate Limiting Info
+
+Account
+
+    Check Available Funds
+    Create Account
+        When an Account is created and the Account.type AKA product_code matches a Product.product_code, the Account inherits Product Attributes from the related Product.
+
+    Create Account Attribute
+    Get Account by Id (Full)
+    Get Accounts Balances
+    Get Checkbook orders
+    Update Account Attribute
+    Update Account.
+
+Account Application
+
+    Create Account Application
+    Get Account Application by Id
+    Get Account Applications
+    Update Account Application Status
+
+Branch
+
+    Delete Branch
+
+Card
+
+    Create Card
+    Create Card Attribute
+    Delete Card
+    Get Card By Id
+    Get Cards for the specified bank
+    Get status of Credit Card order
+    Update Card
+    Update Card Attribute
+
+Consent
+
+    Answer Consent Challenge
+    Create Consent (EMAIL)
+    Create Consent (SMS)
+    Get Consents
+    Revoke Consent
+
+Consumer
+
+    Get Call Limits for a Consumer
+    Get Consumer
+    Get Consumers
+    Get Consumers (logged in User)
+    Set Calls Limit for a Consumer
+
+Customer
+
+    Add Address to Customer
+    Add Tax Residence to Customer
+    Create Credit Limit Order Request
+    Create Customer.
+    Delete Customer Address
+    Delete Tax Residence
+    Get Credit Limit Order Request By Request Id
+    Get Credit Limit Order Requests
+    Get Customer Addresses
+    Get Customer by CUSTOMER_ID
+    Get Customer by CUSTOMER_NUMBER
+    Get Firehose Customers
+    Get Tax Residences of Customer
+    Update the Address of a Customer
+    Update the Branch of a Customer
+    Update the credit limit of a Customer
+    Update the credit rating and source of a Customer
+    Update the email of a Customer
+    Update the identity data of a Customer
+    Update the mobile number of a Customer
+    Update the number of a Customer
+    Update the other data of a Customer
+
+Customer Meeting
+
+    Create Meeting (video conference/call)
+    Get Meeting
+    Get Meetings
+
+Documentation
+
+    Get Message Docs Swagger
+
+Method Routing
+
+    Add MethodRouting
+    Delete MethodRouting
+    Get MethodRoutings
+    Update MethodRouting
+
+Metric
+
+    Get Top APIs
+    Get Top Consumers
+
+Product
+
+    Create Product
+    Create Product Attribute
+    Delete Product Attribute
+    Get Bank Product
+    Get Product Attribute
+    Get Product Tree
+    Get Products
+    Update Product Attribute
+
+Product Collection
+
+    Create Product Collection
+    Get Product Collection
+
+Role
+
+    Get all Entitlements
+
+System View
+
+    Create System View.
+    Delete System View
+    Get System View
+    Update System View.
+
+Transaction
+
+    Get Transaction by Id.
+
+Transaction Request
+
+    Get Transaction Requests.
+    Save Historical Transactions
+
+User
+
+    Answer Auth Context Update Challenge
+    Create User Auth Context
+    Create User Auth Context Update
+    Delete User Auth Context
+    Delete User's Auth Contexts
+    Get User Auth Contexts
+    Get User Lock Status
+    Refresh User.
+    Unlock the user
+
+WebUi Props
+
+    Add WebUiProps
+    Delete WebUiProps
+    Get WebUiProps
+
+Webhook
+
+    Create an Account Webhook
+    Enable/Disable an Account Webhook
+    Get Account Webhooks
+
 See [here](https://apiexplorersandbox.openbankproject.com/?version=OBPv3.1.0&ignoredefcat=true&native=true) for details.
-
-
-    API
-        Get API Configuration
-        Get Adapter Info (general)
-        Get Connector Status (Loopback)
-        Get Rate Limiting Info
-    Account
-        Check Available Funds
-        get Checkbook orders
-    Account Application
-        Create Account Application
-        Get Account Application by Id
-        Get Account Applications
-        Update Account Application Status
-    Account Firehose
-        Get Firehose Customers
-    Card
-        Get status of Credit Card order
-    Consumer
-        Get Call Limits for a Consumer
-        Get Consumers (logged in User)
-        Set Calls Limit for a Consumer
-    Customer
-        Add Address to Customer
-        Add Tax Residence to Customer
-        Create Credit Limit Order Request
-        Create Customer.
-        Delete Customer Address
-        Delete Tax Residence
-        Get Credit Limit Order Request By Request Id
-        Get Credit Limit Order Requests
-        Get Customer Addresses
-        Get Customer by CUSTOMER_ID
-        Get Customer by CUSTOMER_NUMBER
-        Get Tax Residences of Customer
-        Update the Address of an Customer
-    Metric
-        Get Top APIs
-        Get Top Consumers
-    Product
-        Create Product
-        Create Product Attribute
-        Create Product Collections
-        Delete Product Attribute
-        Get Bank Product
-        Get Bank Product
-        Get Bank Products
-        Get Product Attribute
-        Update Product Attribute
-    Role
-        Get all Entitlements
-    Transaction
-        Get Transaction by Id.
-    Transaction Request
-        Get Transaction Requests.
-    User
-        Create User Auth Context
-        Delete User Auth Context
-        Delete User's Auth Contexts
-        Get User Auth Contexts
-        Get User Lock Status
-        Refresh User.
-        Unlock the user
-    Webhook
-        Create an Account Webhook
-        Enable/Disable an Account Webhook
-        Get Account Webhooks
-
-
-See [here](https://apiexplorersandbox.openbankproject.com/?version=OBPv3.1.0&ignoredefcat=true) for all OBP v3.1 APIS
 
 
 ### Product Collections
@@ -158,6 +323,11 @@ Including
 
 ### User model refactoring
 The two user models are now called AuthUser and ResourceUser
+
+### Version 3.0.0
+
+Various including smaller Account and Transaction response bodies.
+
 
 
 ### Version 2.2.0

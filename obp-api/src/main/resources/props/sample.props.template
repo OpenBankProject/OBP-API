@@ -59,7 +59,7 @@ resourceDocsObp.cache.ttl.seconds=3600
 #obpjvm.transport=kafka
 
 ## Transaction status scheduler delay in seconds.
-## Retrieves trasactionRequest status from south-side connector.
+## Retrieves transactionRequest status from south-side connector.
 ## Scheduler will be disabled if delay is not set.
 #transaction_status_scheduler_delay=300
 

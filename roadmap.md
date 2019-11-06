@@ -15,14 +15,7 @@ If you have a particular requirement or would like to comment or help us specify
 
 ## Current developments
 
-* Use Product Attributes as a template when creating Account Attributes
 
-* Additional Consent models
-
-* Enhanced support for Berlin Group, STET, UK Open Banking and Polish APIs e.g.
- [Berlin Group](https://apiexplorersandbox.openbankproject.com/?version=BGv3.1) and [STET](https://apiexplorersandbox.openbankproject.com/?version=STETv1.4)
-
-* General Documents resource
 
 ## Completed developments
 
@@ -30,19 +23,23 @@ See [completed_developments.md](completed_developments.md)
 
 ## Roadmap
 
-### Version 4.0
+### Version 4.0.0
 
-* Rename Account type product_code which links to Financial Product
-* Customer - summary of portfolio across the bank
-* Additional Accounts and Transactions endpoints that have smaller response body.
-* Additional Accounts endpoint that includes Account Attributes
 * Add Accounts query API (by Product Code etc.)
+* Model Offers
+* Model Direct Debits
+* Model Future Payments with Transaction Requests
+* Create scripts to populate Products for
+    * Fixed Term Deposits (size, term, interest rate, constraints)
+    * Savings accounts (interest rate, constraints)
+* Customer Portfolio summary endpoint.
+* Clarify Account Customer Owners.
+
 * Auto feed of Firehose Accounts/Transactions/Customers into Elastic Search
 * Kafka Stream API for Accounts/Transactions/Customers
-* Offers
-* Sandbox modelling of Fixed term deposits (size, term, interest rate, constraints)
-* Sandbox modelling of Savings accounts (interest rate, constraints)
+
 
 ### SDK Documentation Upgrade
 
 *   Update SDK docs so API root links are clearly place holders
+*   Create second generation SDKs
