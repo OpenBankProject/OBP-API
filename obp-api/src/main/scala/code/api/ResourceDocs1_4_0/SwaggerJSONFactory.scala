@@ -195,8 +195,8 @@ object SwaggerJSONFactory {
     implicit val formats = CustomJsonFormats.formats
 
     val infoTitle = "Open Bank Project API"
-    val infoDescription = "An Open Source API for Banks. (c) TESOBE Ltd. 2011 - 2018. Licensed under the AGPL and commercial licences."
-    val infoContact = InfoContactJson("TESOBE Ltd. / Open Bank Project", "https://openbankproject.com" ,"contact@tesobe.com")
+    val infoDescription = "An Open Source API for Banks. (c) TESOBE GmbH. 2011 - 2018. Licensed under the AGPL and commercial licences."
+    val infoContact = InfoContactJson("TESOBE GmbH. / Open Bank Project", "https://openbankproject.com" ,"contact@tesobe.com")
     val infoApiVersion = requestedApiVersion
     val info = InfoJson(infoTitle, infoDescription, infoContact, infoApiVersion.toString)
     val host = APIUtil.getPropsValue("hostname", "unknown host").replaceFirst("http://", "").replaceFirst("https://", "")
