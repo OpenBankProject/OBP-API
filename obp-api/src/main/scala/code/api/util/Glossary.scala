@@ -390,6 +390,52 @@ object Glossary {
 
 
 	glossaryItems += GlossaryItem(
+		title = "Connector",
+		description =
+			s"""In OBP, we use the term "Connector" to mean the Scala/Java/Other JVM code in OBP that connects directly or indirectly to the systems of record i.e. the Core Banking Systems, Payment Systems and Databases.
+				 |
+					|Several Connectors are present in the OBP source code and all must implement the Connector interface
+|- but, except when using the Star Connector, only one of them is active at any one time.
+|
+| The active connector is defined in the OBP Props file.
+|
+| A "Direct Connector" is considered to be one that talks directly to the system of record or existing service layer.
+|
+| i.e. OBP -> Connector -> CBS
+|
+| An "Indirect Connector" is considered one which pairs with an Adapter which in turn talks to the system of record or service layer.
+|
+| i.e. OBP -> Adapter -> CBS
+|
+| The advantage of a Direct connector is that its perhaps simpler. The disadvantage is that you have to code in a JVM language, understand a bit about OBP internals and a bit of Scala.
+|
+| The advantage of the Indirect Connector is that you can write the Adapter in any language and the Connector and Adapter are decoupled (you just have to respect the Outbound / Inbound message format).
+|
+| The default Connector in OBP is a Direct Connector called "mapped". It is called the "mapped" connector because it
+|  talks directly to the OBP database (Postgres, MySQL, Oracle, MSSQL etc.) via the Liftweb ORM which is called Mapper.
+|
+|If you want to create your own (Direct) Connector you can fork any of the connectors within OBP.
+|
+|
+| There is a special Connector called the Star Connector which can use functions from all the normal connectors.
+|
+| Using the Star Connector we can dynamically reroute function calls to different Connectors per function per bank_id.
+|
+| The OBP API Manager has a GUI to manage this or you can use the OBP Method Routing APIs to set destinations for each function call.
+|
+| Note: We generate the source code for individual connectors automatically.
+|
+ |"""
+	)
+
+
+
+
+
+
+
+
+	glossaryItems += GlossaryItem(
 		title = "Adapter.authInfo",
 		description =
 				s"""authInfo is a JSON object sent by the Connector to the Adapter so the Adapter and/or Core Banking System can
