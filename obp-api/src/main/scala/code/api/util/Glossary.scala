@@ -401,11 +401,11 @@ object Glossary {
 |
 | A "Direct Connector" is considered to be one that talks directly to the system of record or existing service layer.
 |
-| i.e. OBP -> Connector -> CBS
+| i.e. API -> Connector -> CBS
 |
 | An "Indirect Connector" is considered one which pairs with an Adapter which in turn talks to the system of record or service layer.
 |
-| i.e. OBP -> Adapter -> CBS
+| i.e. API -> Connector -> Adapter -> CBS
 |
 | The advantage of a Direct connector is that its perhaps simpler. The disadvantage is that you have to code in a JVM language, understand a bit about OBP internals and a bit of Scala.
 |
