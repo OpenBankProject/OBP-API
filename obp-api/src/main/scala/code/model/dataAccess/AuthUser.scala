@@ -418,10 +418,11 @@ import net.liftweb.util.Helpers._
 
   def agreePrivacyPolicy = {
     val url = getWebUiPropsValue("webui_agree_privacy_policy_url", "")
+    val text = getWebUiPropsValue("webui_agree_privacy_policy_html_text", s"""<div id="signup-agree-privacy-policy"><label>By submitting this information you consent to processing your data by TESOBE GmbH according to our <a href="$url" title="Privacy Policy">Privacy Policy</a>. TESOBE shall use this information to send you emails and provide customer support.</label></div>""")
     if (url.isEmpty) {
       s""
     } else {
-      scala.xml.Unparsed(s"""<div id="signup-agree-privacy-policy"><label>By submitting this information you consent to processing your data by TESOBE Ltd according to our <a href="$url" title="Privacy Policy">Privacy Policy</a>. TESOBE shall use this information to send you emails and provide customer support.</label></div>""")
+      scala.xml.Unparsed(s"""$text""")
     }
   }
 
