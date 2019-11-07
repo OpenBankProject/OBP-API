@@ -165,6 +165,8 @@ object SwaggerDefinitionsJSON {
     )
   )
 
+  val createSystemViewJson = createViewJson.copy(name = "test", metadata_view = "test")
+
   val updateViewJSON = UpdateViewJSON(
     description = "this is for family",
     is_public = true,

@@ -67,10 +67,10 @@ case class UserExtended(val user: User) extends MdcLoggable {
   }
   /**
     * Also see @`hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean`
-    * Here we need the `view` object, so we need check the exsitence before call this method.
-    * In the method, we will check if the view and user have the record in ViewPrileges table.
+    * Here we need the `view` object, so we need check the existence before call this method.
+    * In the method, we will check if the view and user have the record in AccountAccess table.
     * If it is, return true, otherwise false.
-    * @param view the view object, need check the exsitence before calling the method
+    * @param view the view object, need check the existence before calling the method
     * @return if has the input view access, return true, otherwise false.
     */
   final def hasViewAccess(view: View): Boolean ={
