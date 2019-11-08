@@ -321,17 +321,28 @@ webui_obp_cli_url = https://github.com/OpenBankProject/OBP-CLI
 # API Tester URL, change to your instance
 webui_api_tester_url = https://apitester.openbankproject.com
 
-# Starting page of documentation. Change this if you have a specific landing page.
-webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
+
 
 
 # To display a custom message above the username / password box
 # We currently use this to display example customer login in sandbox etc.
 webui_login_page_special_instructions=
 
-# To display the introduction page for sandbox.It supports the markdown format.It will show the introduction OBP-API home 
-# page `INTRODUCTION` page and also for Glossary `Sandbox Introduction`.  
+
+##################################################################################
+# The following two Props values are related.
+# Defines the the contents of the /introduction page and also the contents of the Glossary Item `Sandbox Introduction`
+#
+# Please NOTE: It is difficult to put markdown in this file because you have to escape characters.
+# HOWEVER, you can easily use the *API Manager / Configure / Web UI Props * to write the value over the API because API Manager takes care of the markdown escaping.
+# Note if webui_api_documentation_url is set, then the User won't be directed to the /introduction page but to the webui_api_documentation_url
 webui_sandbox_introduction=
+# To set an External page for documentation e.g. a wiki page.
+# Change this if you have a specific landing page.
+# NOTE: if this is *not set*, the Introduction Button on /index will link the user to /introduction
+# If this is set, the Introduction Button will link the user to the URL defined above. (but the page /introduction will still exist so you might want to populate webui_sandbox_introduction anyway.)
+webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
+###################################################################################
 
 # Link for SDKs
 webui_sdks_url = https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS
