@@ -1887,5 +1887,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                         userId: String,
                         counterpartyId: String,
                         dateSigned: Date,
+                        dateStarts: Date,
+                        dateExpires: Option[Date],
                         callContext: Option[CallContext]): OBPReturnType[Box[DirectDebitTrait]] = Future{(Failure(setUnimplementedError), callContext)}
 }

@@ -7,7 +7,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankAccountNotFound, BankNotFound, CounterpartyBeneficiaryPermit, DynamicEntityOperationNotAllowed, InsufficientAuthorisationToCreateBank, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NoViewPermission, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserCustomerLinksNotFoundForUser, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
+import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankAccountNotFound, BankNotFound, CounterpartyBeneficiaryPermit, DynamicEntityOperationNotAllowed, InsufficientAuthorisationToCreateBank, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NoViewPermission, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserCustomerLinksNotFoundForUser, UserHasMissingRoles, UserNoPermissionAccessView, UserNotFoundByUserId, UserNotLoggedIn, ViewNotFound}
 import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
@@ -27,6 +27,7 @@ import code.model.toUserExtended
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
+import code.users.Users
 import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
@@ -1497,16 +1498,23 @@ trait APIMethods400 {
                 hasEntitlement(bankId.value, u.userId, ApiRole.canCreateDirectDebitAtOneBank) == true
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostDirectDebitJsonV400 "
-            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostDirectDebitJsonV400]
             }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
+            _ <- Users.users.vend.getUserByUserIdFuture(postJson.user_id) map {
+              x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId(${postJson.user_id})")
+            }
+            // (_, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(postJson.counterparty_id), callContext)
             (directDebit, callContext) <- NewStyle.function.createDirectDebit(
               bankId.value,
               accountId.value, 
-              postedData.customer_id, 
-              postedData.user_id, 
-              postedData.counterparty_id,
-              new Date(),
+              postJson.customer_id, 
+              postJson.user_id, 
+              postJson.counterparty_id,
+              if (postJson.date_signed.isDefined) postJson.date_signed.get else new Date(),
+              postJson.date_starts,
+              postJson.date_expires,
               callContext)
           } yield {
             (JSONFactory400.createDirectDebitJSON(directDebit), HttpCode.`201`(callContext))

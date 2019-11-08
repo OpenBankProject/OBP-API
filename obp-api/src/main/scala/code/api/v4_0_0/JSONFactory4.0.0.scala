@@ -147,7 +147,11 @@ case class PostAccountTagJSON(
 case class PostCustomerPhoneNumberJsonV400(mobile_phone_number: String)
 case class PostDirectDebitJsonV400(customer_id: String,
                                    user_id: String,
-                                   counterparty_id: String)
+                                   counterparty_id: String,
+                                   date_signed: Option[Date],
+                                   date_starts: Date, 
+                                   date_expires: Option[Date]
+                                  )
 
 case class DirectDebitJsonV400(direct_debit_id: String,
                                bank_id: String,
@@ -156,8 +160,9 @@ case class DirectDebitJsonV400(direct_debit_id: String,
                                user_id: String,
                                counterparty_id: String,
                                date_signed: Date,
-                               date_cancelled: Date,
+                               date_starts: Date,
                                date_expires: Date,
+                               date_cancelled: Date,
                                active: Boolean)
 
 object JSONFactory400 {
@@ -303,6 +308,7 @@ object JSONFactory400 {
       counterparty_id = directDebit.counterpartyId,
       date_signed = directDebit.dateSigned,
       date_cancelled = directDebit.dateCancelled,
+      date_starts = directDebit.dateStarts,
       date_expires = directDebit.dateExpires,
       active = directDebit.active)
   }

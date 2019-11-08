@@ -1543,9 +1543,20 @@ object NewStyle {
                           customerId: String,
                           userId: String,
                           couterpartyId: String,
-                          dateSigned: Date, 
+                          dateSigned: Date,
+                          dateStarts: Date,
+                          dateExpires: Option[Date], 
                           callContext: Option[CallContext]): OBPReturnType[DirectDebitTrait] = {
-      Connector.connector.vend.createDirectDebit(bankId, accountId, customerId, userId, couterpartyId, dateSigned, callContext) map {
+      Connector.connector.vend.createDirectDebit(
+        bankId, 
+        accountId, 
+        customerId, 
+        userId, 
+        couterpartyId, 
+        dateSigned, 
+        dateStarts, 
+        dateExpires, 
+        callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }

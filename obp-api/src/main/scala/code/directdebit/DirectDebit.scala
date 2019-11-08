@@ -17,7 +17,9 @@ trait DirectDebitProvider {
                         customerId: String,
                         userId: String,
                         counterpartyId: String,
-                        dateSigned: Date
+                        dateSigned: Date,
+                        dateStarts: Date,
+                        dateExpires: Option[Date]
                        ): Box[DirectDebitTrait]
   def getDirectDebitsByCustomer(customerId: String) : List[DirectDebitTrait]
   def getDirectDebitsByUser(userId: String) : List[DirectDebitTrait]
@@ -32,6 +34,7 @@ trait DirectDebitTrait {
   def counterpartyId: String
   def dateSigned: Date
   def dateCancelled: Date
+  def dateStarts: Date
   def dateExpires: Date
   def active: Boolean
 }

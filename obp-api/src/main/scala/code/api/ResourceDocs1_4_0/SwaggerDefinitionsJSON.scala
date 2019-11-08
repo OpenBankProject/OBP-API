@@ -3505,7 +3505,10 @@ object SwaggerDefinitionsJSON {
   val postDirectDebitJsonV400 = PostDirectDebitJsonV400(
     customer_id = customerIdExample.value,
     user_id = userIdExample.value,
-    counterparty_id = counterpartyIdExample.value
+    counterparty_id = counterpartyIdExample.value,
+    date_signed = Some(DateWithDayExampleObject),
+    date_starts = DateWithDayExampleObject,
+    date_expires = Some(DateWithDayExampleObject)
   )  
   val directDebitJsonV400 = DirectDebitJsonV400(
     direct_debit_id = "aa0533bd-eb22-4bff-af75-d45240361b05",
@@ -3515,8 +3518,9 @@ object SwaggerDefinitionsJSON {
     user_id = userIdExample.value,
     counterparty_id = counterpartyIdExample.value,
     date_signed = new Date(),
-    date_cancelled = new Date(),
+    date_starts = new Date(),
     date_expires = new Date(),
+    date_cancelled = new Date(),
     active = true
   )
     

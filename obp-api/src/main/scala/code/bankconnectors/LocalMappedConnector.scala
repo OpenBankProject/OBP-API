@@ -2872,8 +2872,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                  userId: String,
                                  counterpartyId: String,
                                  dateSigned: Date,
+                                 dateStarts: Date,
+                                 dateExpires: Option[Date],
                                  callContext: Option[CallContext]): OBPReturnType[Box[DirectDebitTrait]] = Future {
-    val result = DirectDebits.directDebitProvider.vend.createDirectDebit(bankId, accountId, customerId, userId, counterpartyId, dateSigned)
+    val result = DirectDebits.directDebitProvider.vend.createDirectDebit(
+      bankId, 
+      accountId, 
+      customerId, 
+      userId, 
+      counterpartyId, 
+      dateSigned, 
+      dateStarts, 
+      dateExpires)
     (result, callContext)
   }
 

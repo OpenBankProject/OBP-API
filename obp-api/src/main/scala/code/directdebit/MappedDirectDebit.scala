@@ -4,7 +4,7 @@ import java.util.Date
 
 import code.api.util.APIUtil
 import code.util.UUIDString
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.Box
 import net.liftweb.mapper._
 
 object MappedDirectDebitProvider extends DirectDebitProvider {
@@ -13,7 +13,9 @@ object MappedDirectDebitProvider extends DirectDebitProvider {
                         customerId: String,
                         userId: String,
                         counterpartyId: String,
-                        dateSigned: Date
+                        dateSigned: Date,
+                        dateStarts: Date,
+                        dateExpires: Option[Date]
                        ): Box[DirectDebit] = Box.tryo {
     DirectDebit.create
       .BankId(bankId)
@@ -22,6 +24,8 @@ object MappedDirectDebitProvider extends DirectDebitProvider {
       .UserId(userId)
       .CounterpartyId(counterpartyId)
       .DateSigned(dateSigned)
+      .DateStarts(dateStarts)
+      .DateExpires(if (dateExpires.isDefined) dateExpires.get else null)
       .Active(true)
       .saveMe()
   }
@@ -57,6 +61,7 @@ class DirectDebit extends DirectDebitTrait with LongKeyedMapper[DirectDebit] wit
   object CounterpartyId extends UUIDString(this)
   object DateSigned extends MappedDateTime(this)
   object DateCancelled extends MappedDateTime(this)
+  object DateStarts extends MappedDateTime(this)
   object DateExpires extends MappedDateTime(this)
   object Active extends MappedBoolean(this)
   
@@ -69,6 +74,7 @@ class DirectDebit extends DirectDebitTrait with LongKeyedMapper[DirectDebit] wit
   override def dateSigned: Date = DateSigned.get
   override def dateCancelled: Date = DateCancelled.get
   override def dateExpires: Date = DateExpires.get
+  override def dateStarts: Date = DateStarts.get
   override def active: Boolean = Active.get
 }
 
