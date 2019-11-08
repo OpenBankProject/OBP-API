@@ -2,9 +2,9 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Open Bank Project API",
-    "description": "An Open Source API for Banks. (c) TESOBE Ltd. 2011 - 2018. Licensed under the AGPL and commercial licences.",
+    "description": "An Open Source API for Banks. (c) TESOBE GmbH. 2011 - 2018. Licensed under the AGPL and commercial licences.",
     "contact": {
-      "name": "TESOBE Ltd. / Open Bank Project",
+      "name": "TESOBE GmbH. / Open Bank Project",
       "url": "https://openbankproject.com",
       "email": "contact@tesobe.com"
     },
