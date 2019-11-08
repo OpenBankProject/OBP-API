@@ -350,6 +350,8 @@ object ErrorMessages {
   val InvalidChallengeAnswer = "OBP-40016: Invalid Challenge Answer. Please specify a valid value for answer in Json body. If it is sandbox mode, the answer must be `123`. If it kafka mode, the answer can be got by phone message or other security ways."
   val InvalidPhoneNumber = "OBP-40017: Invalid Phone Number. Please specify a valid value for PHONE_NUMBER. Eg:+9722398746 "
   val TransactionRequestsNotEnabled = "OBP-40018: Sorry, Transaction Requests are not enabled in this API instance."
+  val InsufficientAuthorisationToCreateDirectDebit  = "OBP-40020: Insufficient authorisation to create Direct Debit. The Direct debit could not be created because you don't have access to the owner view of this account or you don't have access to canCreateDirectDebitAtOneBank."
+
 
 
 

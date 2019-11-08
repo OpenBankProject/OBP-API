@@ -54,6 +54,7 @@ import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraddress.MappedCustomerAddress
 import code.database.authorisation.Authorisation
+import code.directdebit.DirectDebit
 import code.dynamicEntity.DynamicEntity
 import code.entitlement.MappedEntitlement
 import code.entitlementrequest.MappedEntitlementRequest
@@ -663,5 +664,6 @@ object ToSchemify {
     DynamicEntity,
     DynamicData,
     AccountIdMapping,
+    DirectDebit,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }

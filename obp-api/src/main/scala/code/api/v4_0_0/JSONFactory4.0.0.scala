@@ -38,6 +38,7 @@ import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
 import code.api.v3_0_0.ViewBasicV300
 import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
+import code.directdebit.DirectDebitTrait
 import code.model.ModeratedBankAccount
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import com.openbankproject.commons.model._
@@ -144,6 +145,20 @@ case class PostAccountTagJSON(
                                value : String
                              )
 case class PostCustomerPhoneNumberJsonV400(mobile_phone_number: String)
+case class PostDirectDebitJsonV400(customer_id: String,
+                                   user_id: String,
+                                   counterparty_id: String)
+
+case class DirectDebitJsonV400(direct_debit_id: String,
+                               bank_id: String,
+                               account_id: String,
+                               customer_id: String,
+                               user_id: String,
+                               counterparty_id: String,
+                               date_signed: Date,
+                               date_cancelled: Date,
+                               date_expires: Date,
+                               active: Boolean)
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
@@ -277,6 +292,19 @@ object JSONFactory400 {
       date = tag.datePosted,
       user = JSONFactory.createUserJSON(tag.postedBy)
     )
+  }
+
+  def createDirectDebitJSON(directDebit: DirectDebitTrait): DirectDebitJsonV400 = {
+    DirectDebitJsonV400(direct_debit_id = directDebit.directDebitId,
+      bank_id = directDebit.bankId,
+      account_id = directDebit.accountId,
+      customer_id = directDebit.customerId,
+      user_id = directDebit.userId,
+      counterparty_id = directDebit.counterpartyId,
+      date_signed = directDebit.dateSigned,
+      date_cancelled = directDebit.dateCancelled,
+      date_expires = directDebit.dateExpires,
+      active = directDebit.active)
   }
   
 }

@@ -21,6 +21,7 @@ import code.cards.MappedPhysicalCard
 import code.context.{UserAuthContextProvider, UserAuthContextUpdateProvider}
 import code.customer._
 import code.customeraddress.CustomerAddressX
+import code.directdebit.{DirectDebitTrait, DirectDebits}
 import code.dynamicEntity.{DynamicEntityProvider, DynamicEntityT}
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.kycchecks.KycChecks
@@ -2864,4 +2865,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (processResult, callContext)
     }
   }
+
+  override def createDirectDebit(bankId: String,
+                                 accountId: String,
+                                 customerId: String,
+                                 userId: String,
+                                 counterpartyId: String,
+                                 dateSigned: Date,
+                                 callContext: Option[CallContext]): OBPReturnType[Box[DirectDebitTrait]] = Future {
+    val result = DirectDebits.directDebitProvider.vend.createDirectDebit(bankId, accountId, customerId, userId, counterpartyId, dateSigned)
+    (result, callContext)
+  }
+
 }

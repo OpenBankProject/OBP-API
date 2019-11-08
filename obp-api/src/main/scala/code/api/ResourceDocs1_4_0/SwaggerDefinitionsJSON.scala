@@ -15,7 +15,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
 import code.sandbox.SandboxData
@@ -3500,6 +3500,24 @@ object SwaggerDefinitionsJSON {
     accounts = List(accountBalanceV310),
     overall_balance = amountOfMoney,
     overall_balance_date = DateWithMsExampleObject
+  )
+  
+  val postDirectDebitJsonV400 = PostDirectDebitJsonV400(
+    customer_id = customerIdExample.value,
+    user_id = userIdExample.value,
+    counterparty_id = counterpartyIdExample.value
+  )  
+  val directDebitJsonV400 = DirectDebitJsonV400(
+    direct_debit_id = "aa0533bd-eb22-4bff-af75-d45240361b05",
+    bank_id = bankIdExample.value,
+    account_id = accountIdExample.value,
+    customer_id = customerIdExample.value,
+    user_id = userIdExample.value,
+    counterparty_id = counterpartyIdExample.value,
+    date_signed = new Date(),
+    date_cancelled = new Date(),
+    date_expires = new Date(),
+    active = true
   )
     
   //The common error or success format.

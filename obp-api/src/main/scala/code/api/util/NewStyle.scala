@@ -15,6 +15,7 @@ import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.bankconnectors.Connector
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
+import code.directdebit.{DirectDebitTrait, DirectDebits}
 import code.dynamicEntity.{DynamicEntityProvider, DynamicEntityT}
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
@@ -1534,6 +1535,19 @@ object NewStyle {
 
     def invokeDynamicConnector(operation: DynamicEntityOperation, entityName: String, requestBody: Option[JObject], entityId: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
       Connector.connector.vend.dynamicEntityProcess(operation, entityName, requestBody, entityId, callContext)
+    }
+
+
+    def createDirectDebit(bankId : String, 
+                          accountId: String, 
+                          customerId: String,
+                          userId: String,
+                          couterpartyId: String,
+                          dateSigned: Date, 
+                          callContext: Option[CallContext]): OBPReturnType[DirectDebitTrait] = {
+      Connector.connector.vend.createDirectDebit(bankId, accountId, customerId, userId, couterpartyId, dateSigned, callContext) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
     }
 
   }

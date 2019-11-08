@@ -1,5 +1,7 @@
 package code.api.v4_0_0
 
+import java.util.Date
+
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{fullBoxOrException, _}
@@ -1457,6 +1459,57 @@ trait APIMethods400 {
             }
           } yield {
             (JSONFactory220.createBankJSON(success), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      createDirectDebit,
+      implementedInApiVersion,
+      nameOf(createDirectDebit),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/direct-debit",
+      "Create Direct Debit",
+      s"""Create direct debit for an account.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      postDirectDebitJsonV400,
+      directDebitJsonV400,
+      List(
+        UserNotLoggedIn,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDirectDebit, apiTagAccount, apiTagNewStyle))
+
+    lazy val createDirectDebit : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "direct-debit" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(ErrorMessages.InsufficientAuthorisationToCreateDirectDebit) {
+              u.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) == true ||
+                hasEntitlement(bankId.value, u.userId, ApiRole.canCreateDirectDebitAtOneBank) == true
+            }
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostDirectDebitJsonV400 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostDirectDebitJsonV400]
+            }
+            (directDebit, callContext) <- NewStyle.function.createDirectDebit(
+              bankId.value,
+              accountId.value, 
+              postedData.customer_id, 
+              postedData.user_id, 
+              postedData.counterparty_id,
+              new Date(),
+              callContext)
+          } yield {
+            (JSONFactory400.createDirectDebitJSON(directDebit), HttpCode.`201`(callContext))
           }
       }
     }
