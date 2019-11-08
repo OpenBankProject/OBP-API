@@ -6,14 +6,14 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.settings.ConnectionPoolSettings
 import akka.stream.ActorMaterializer
-import code.api.util.CustomJsonFormats
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.util.Helper.MdcLoggable
 
 import scala.concurrent.Future
 
 
 object AkkaHttpClient extends MdcLoggable with CustomJsonFormats {
-
+   val httpRequestTimeout  = APIUtil.getPropsAsIntValue("rest_connector_method.timeout").openOr(59)
   /**
     * This function makes HttpRequest object according to the DB's data related to an account's webhook
     * @param uri In most cases it's a URL
@@ -50,8 +50,8 @@ object AkkaHttpClient extends MdcLoggable with CustomJsonFormats {
 
   def makeHttpRequest(httpRequest: HttpRequest): Future[HttpResponse] = {
     import scala.concurrent.duration.DurationInt
-    val poolSettingsWithHttpsProxy  = 
-      ConnectionPoolSettings.apply(system)
+    val poolSettingsWithHttpsProxy  =
+      ConnectionPoolSettings(system.settings.config).copy(
        /*
         # The minimum duration to backoff new connection attempts after the previous connection attempt failed.
         #
@@ -78,22 +78,27 @@ object AkkaHttpClient extends MdcLoggable with CustomJsonFormats {
         #
         # This setting only applies to the new pool implementation and is ignored for the legacy one.
        */
-      .withBaseConnectionBackoff(1.second)
+        baseConnectionBackoff = 1.second,
        /*
         # Maximum backoff duration between failed connection attempts. For more information see the above comment for the
         # `base-connection-backoff` setting.
         #
         # This setting only applies to the new pool implementation and is ignored for the legacy one.
        */
-      .withMaxConnectionBackoff(1.minute)
+        maxConnectionBackoff = 1.minute,
        /*
         # The maximum number of times failed requests are attempted again,
         # (if the request can be safely retried) before giving up and returning an error.
         # Set to zero to completely disable request retries.
        */
-      .withMaxRetries(5)
+        maxRetries=5)
+
+    //Note: get the timeout setting from here:  https://github.com/akka/akka-http/issues/742
+    val clientSettings = poolSettingsWithHttpsProxy.connectionSettings.withIdleTimeout(httpRequestTimeout seconds) 
     
-    Http().singleRequest(request = httpRequest, settings = poolSettingsWithHttpsProxy)
+    val settings = poolSettingsWithHttpsProxy.copy(connectionSettings = clientSettings)
+
+    Http().singleRequest(request = httpRequest, settings = settings)
   }
 
   
