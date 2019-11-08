@@ -1,7 +1,5 @@
 package code.api.util
 
-import java.util.regex.Pattern
-
 import code.api.util.ApiRole.rolesMappedToClasses
 import code.api.v3_1_0.ListResult
 import com.openbankproject.commons.model.JsonFieldReName

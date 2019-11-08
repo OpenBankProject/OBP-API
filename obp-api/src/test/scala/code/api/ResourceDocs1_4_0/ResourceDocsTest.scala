@@ -1,122 +1,143 @@
 package code.api.v3_1_0
 
-import net.liftweb.json.JValue
-import org.scalatest.Tag
-import io.swagger.parser.OpenAPIParser
 import java.util
+
 import code.api.ResourceDocs1_4_0.ResourceDocsV140ServerSetup
-import code.api.util.{ApiVersion, CustomJsonFormats}
-import code.api.v1_4_0.JSONFactory1_4_0.ImplementedByJson
+import code.api.util.{ApiRole, ApiVersion, CustomJsonFormats}
+import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
+import io.swagger.parser.OpenAPIParser
 import net.liftweb.json
+import net.liftweb.json.JsonAST._
+import net.liftweb.json.{Formats, JString, Serializer, TypeInfo}
+import org.scalatest.Tag
 
-import scala.collection.immutable.List
-class ResourceDocsTest extends ResourceDocsV140ServerSetup with CustomJsonFormats{
-
+class ResourceDocsTest extends ResourceDocsV140ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v1_4_0.toString)
   object ApiEndpoint1 extends Tag("Get Swagger ResourceDoc")
   object ApiEndpoint2 extends Tag("Get OBP ResourceDoc ")
 
+  // here must supply a Serializer of json, to support Product type, because the follow type are Product:
+  //ResourceDocsJson#ResourceDocJson.example_request_body
+  //ResourceDocsJson#ResourceDocJson.success_response_body
+  object ProductSerializer extends Serializer[Product] {
+    private val CLAZZ = classOf[Product]
+
+    override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, json.JValue), Product] = {
+      case (TypeInfo(CLAZZ, _), json) if json == JNull => null
+      case (TypeInfo(CLAZZ, _), json: JObject) => {
+        val keyValues = json.obj.map(pair => {
+          val JField(name, jvalue) = pair
+          val value = jvalue match {
+            case JBool(v) => v
+            case JString(v) => v
+            case JInt(v) => v
+            case JDouble(v) => v
+            case JArray(arr) => arr
+            case JObject(v) => v.map(it => (it.name, it.value))
+          }
+          (name, value)
+        })
+
+        new Product {
+          override def productElement(n: Int): Any = keyValues.lift(n)
+          override def productArity: Int = keyValues.size
+          override def canEqual(that: Any): Boolean = false
+        }
+      }
+    }
+
+    override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = {
+      case null => JNull // not need do serialize
+    }
+  }
+  // here must supply a Serializer of json, to support Product type, because the follow type are ApiRole:
+  //ResourceDocsJson#ResourceDocJson.roles
+  object ApiRoleSerializer extends Serializer[ApiRole] {
+    private val CLAZZ = classOf[ApiRole]
+    override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, json.JValue), ApiRole] = {
+      case (TypeInfo(CLAZZ, _), role) => {
+        val roleName = (role \ "role").asInstanceOf[JString].s
+        ApiRole.valueOf(roleName)
+      }
+    }
+
+    override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = {
+      case null => JNull // not need do serialize
+    }
+  }
+  override implicit val formats = CustomJsonFormats.formats + ProductSerializer + ApiRoleSerializer
 
   feature(s"test ${ApiEndpoint1.name} ") {
-
-    case class RoleJson (
-      role: String,
-      requires_bank_id: Boolean
-    )
-
-    //This case class is for API_Explorer, it should make sure api_explorer can get proper doc.
-    case class ResourceDocJson(operation_id: String,
-      request_verb: String,
-      request_url: String,
-      summary: String, // Summary of call should be 120 characters max
-      description: String,      // Description of call in markdown
-      example_request_body: JValue,  // An example request body
-      success_response_body: JValue, // Success response body
-      error_response_bodies: List[String],
-      implemented_by: ImplementedByJson,
-      is_core : Boolean,
-      is_psd2 : Boolean,
-      is_obwg : Boolean, // This may be tracking isCore
-      tags : List[String],
-      roles: List[RoleJson],
-      is_featured: Boolean,
-      special_instructions: String,
-      specified_url: String // This is the URL that we want people to call.
-    )
-
-    case class ResourceDocsJson (resource_docs : List[ResourceDocJson])
-
-
     scenario(s"We will test ${ApiEndpoint1.name} Api -v4.0.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v4.0.0" / "obp").GET 
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
       responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v3.1.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v3.1.0" / "obp").GET 
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
       responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v3.0.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v3.0.0" / "obp").GET 
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
       responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v2.2.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v2.2.0" / "obp").GET 
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
       responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v2.1.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v2.1.0" / "obp").GET 
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
       responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v2.0.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v2.0.0" / "obp").GET 
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
       responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v1.4.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v1.4.0" / "obp").GET 
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
       responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
     }
     
     scenario(s"We will test ${ApiEndpoint1.name} Api -v1.3.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v1.3.0" / "obp").GET 
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
       responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v1.2.1", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v1.2.1" / "obp").GET 
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
       responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
     }
   }
 
