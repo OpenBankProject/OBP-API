@@ -2444,7 +2444,7 @@ Returns a string showed to the developer
     ResourceDoc(
       null,
       ApiVersion.v3_1_0,
-      messageDoc.process,
+      connectorMethodName,
       requestVerb = {
         getRequestTypeByMethodName(connectorMethodName)
       },

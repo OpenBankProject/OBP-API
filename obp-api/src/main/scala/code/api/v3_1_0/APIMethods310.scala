@@ -5,7 +5,7 @@ import java.util.UUID
 import java.util.regex.Pattern
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, SwaggerDefinitionsJSON, SwaggerJSONFactory}
+import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, ResourceDocsAPIMethodsUtil, SwaggerDefinitionsJSON, SwaggerJSONFactory}
 import code.api.util.APIUtil.{getWebUIPropsPairs, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -3269,14 +3269,16 @@ trait APIMethods310 {
 
     lazy val getMessageDocsSwagger: OBPEndpoint = {
       case "message-docs" :: restConnectorVersion ::"swagger2.0" :: Nil JsonGet _ => {
+          val (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions) = ResourceDocsAPIMethodsUtil.getParams()
         cc => {
           for {
             (_, callContext) <- anonymousAccess(cc)
             messageDocsSwagger = RestConnector_vMar2019.messageDocs.map(toResourceDoc).toList
-            json <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(messageDocsSwagger, ApiVersion.v3_1_0)}
+            resourceDocListFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(messageDocsSwagger, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions)
+            json <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(resourceDocListFiltered, ApiVersion.v3_1_0)}
             //For this connector swagger, it share some basic fields with api swagger, eg: BankId, AccountId. So it need to merge here.
             allSwaggerDefinitionCaseClasses = MessageDocsSwaggerDefinitions.allFields++SwaggerDefinitionsJSON.allFields
-            jsonAST <- Future{SwaggerJSONFactory.loadDefinitions(messageDocsSwagger, allSwaggerDefinitionCaseClasses)}
+            jsonAST <- Future{SwaggerJSONFactory.loadDefinitions(resourceDocListFiltered, allSwaggerDefinitionCaseClasses)}
           } yield {
             // Merge both results and return
             (Extraction.decompose(json) merge jsonAST, HttpCode.`200`(callContext))

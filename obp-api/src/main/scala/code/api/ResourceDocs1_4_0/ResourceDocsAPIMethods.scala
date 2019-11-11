@@ -194,12 +194,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     }
 
 
-    def stringToOptBoolean (x: String) : Option[Boolean] = x.toLowerCase match {
-      case "true" | "yes" | "1" | "-1" => Some(true)
-      case "false" | "no" | "0" => Some(false)
-      case _ => Empty
-    }
-
 
     //implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
     // if upload DynamicEntity, will generate corresponding endpoints, when current cache timeout, the new endpoints will be shown.
@@ -221,7 +215,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             resourceDocs <- getResourceDocsList(requestedApiVersion)
           } yield {
             // Filter
-            val rdFiltered = filterResourceDocs(resourceDocs, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
+            val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
             // Format the data as json
             val innerJson = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
             // Return
@@ -262,73 +256,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     def upperName(name: String): (String, String) = (name.toUpperCase(), name)
 
 
- def getParams() : (Option[Boolean], Option[Boolean], Option[Boolean], Option[List[ResourceDocTag]], Option[List[String]] ) = {
-
-   val showCore: Option[Boolean] = for {
-     x <- S.param("core")
-     y <- stringToOptBoolean(x)
-   } yield y
-
-   val showPSD2: Option[Boolean] = for {
-     x <- S.param("psd2")
-     y <- stringToOptBoolean(x)
-   } yield y
-
-   val showOBWG: Option[Boolean] = for {
-     x <- S.param("obwg")
-     y <- stringToOptBoolean(x)
-   } yield y
-
-
-   val rawTagsParam = S.param("tags")
-
-
-   val tags: Option[List[ResourceDocTag]] =
-       rawTagsParam match {
-       // if tags= is supplied in the url, we want to ignore it
-       case Full("") => None
-       // if tags is not mentioned at all, we want to ignore it
-       case Empty => None
-       case _  => {
-         val commaSeparatedList : String = rawTagsParam.getOrElse("")
-         val tagList : List[String] = commaSeparatedList.trim().split(",").toList
-         val resourceDocTags =
-         for {
-           y <- tagList
-         } yield {
-           ResourceDocTag(y)
-         }
-        Some(resourceDocTags)
-       }
-     }
-   logger.info(s"tagsOption is $tags")
-
-   // So we can produce a reduced list of resource docs to prevent manual editing of swagger files.
-   val rawPartialFunctionNames = S.param("functions")
-
-   val partialFunctionNames: Option[List[String]] =
-     rawPartialFunctionNames match {
-       // if functions= is supplied in the url, we want to ignore it
-       case Full("") => None
-       // if functions is not mentioned at all, we want to ignore it
-       case Empty => None
-       case _  => {
-         val commaSeparatedList : String = rawPartialFunctionNames.getOrElse("")
-         val stringList : List[String] = commaSeparatedList.trim().split(",").toList
-         val pfns =
-           for {
-             y <- stringList
-           } yield {
-             y
-           }
-         Some(pfns)
-       }
-     }
-   logger.info(s"partialFunctionNames is $partialFunctionNames")
-
-
-   (showCore, showPSD2, showOBWG, tags, partialFunctionNames)
- }
 
 
     val exampleResourceDoc =  ResourceDoc(
@@ -437,7 +364,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
       cc =>{
        for {
-        (showCore, showPSD2, showOBWG, tags, partialFunctions) <- Full(getParams())
+        (showCore, showPSD2, showOBWG, tags, partialFunctions) <- Full(ResourceDocsAPIMethodsUtil.getParams())
          requestedApiVersion <- tryo {ApiVersion.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
          _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
          json <- getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags, partialFunctions)
@@ -492,7 +419,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "swagger" :: Nil JsonGet _ => {
         cc =>{
           for {
-            (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions) <- tryo(getParams())
+            (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- tryo(ApiVersion.valueOf(requestedApiVersionString)) ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported Current Version is $requestedApiVersionString")
             json <- getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG, requestedApiVersionString, resourceDocTags, partialFunctions)
@@ -507,100 +434,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
 
 
-
-/*
-Filter Resource Docs based on the query parameters, else return the full list.
-We don't assume a default catalog (as API Explorer does)
-so the caller must specify any required filtering by catalog explicitly.
- */
-def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : List[ResourceDoc] = {
-
-    // Filter (include, exclude or ignore)
-    val filteredResources1 : List[ResourceDoc] = showCore match {
-      case Some(true) => allResources.filter(x => x.catalogs.core == true)
-      case Some(false) => allResources.filter(x => x.catalogs.core == false)
-      case _ => allResources
-    }
-
-  // Check if we have partialFunctionNames as the paramters, and if so filter by them
-    val filteredResources2 : List[ResourceDoc] = partialFunctionNames match {
-      case Some(pfNames) => {
-        // This can create duplicates to use toSet below
-        for {
-          rd <- filteredResources1
-          partialFunctionName <- pfNames
-          if rd.partialFunctionName.contains(partialFunctionName)
-        } yield {
-          rd
-        }
-      }
-      // tags param was not mentioned in url or was empty, so return all
-      case None => filteredResources1
-    }
-
-    val filteredResources3 : List[ResourceDoc] = showOBWG match {
-      case Some(true) => filteredResources2.filter(x => x.catalogs.obwg == true)
-      case Some(false) => filteredResources2.filter(x => x.catalogs.obwg == false)
-      case _ => filteredResources2
-    }
-
-
-  // Check if we have tags, and if so filter by them
-  val filteredResources4: List[ResourceDoc] = resourceDocTags match {
-    // We have tags
-    case Some(tags) => {
-      // This can create duplicates to use toSet below
-      for {
-        r <- filteredResources3
-        t <- tags
-        if r.tags.contains(t)
-      } yield {
-        r
-      }
-    }
-    // tags param was not mentioned in url or was empty, so return all
-    case None => filteredResources3
-  }
-
-
-  //Because the PDS2 will only use one Tag, so it should be the last tag ifwe support the multiple filter parameters.
-  val filteredResources5: List[ResourceDoc] = showPSD2 match {
-    case Some(true) => filteredResources4
-      .filter(x => x.catalogs.psd2 == true)
-      .map(it => {
-        val psd2Tags = Set(apiTagPSD2AIS, apiTagPSD2PIIS, apiTagPSD2PIS)
-        // if the tags contains psd2 tag, just only keep one psd2 tag
-        val psd2Tag = it.tags.find(psd2Tags.contains(_)).toList
-        it.copy(tags = psd2Tag)
-      })
-    case Some(false) => filteredResources4.filter(x => x.catalogs.psd2 == false)
-    case _ => filteredResources4
-  }
-
-
-
-  val resourcesToUse = filteredResources5.toSet.toList
-
-
-  logger.debug(s"allResources count is ${allResources.length}")
-  logger.debug(s"filteredResources1 count is ${filteredResources1.length}")
-  logger.debug(s"filteredResources2 count is ${filteredResources2.length}")
-  logger.debug(s"filteredResources3 count is ${filteredResources3.length}")
-  logger.debug(s"filteredResources4 count is ${filteredResources4.length}")
-  logger.debug(s"filteredResources5 count is ${filteredResources5.length}")
-  logger.debug(s"resourcesToUse count is ${resourcesToUse.length}")
-
-
-  if (filteredResources4.length > 0 && resourcesToUse.length == 0) {
-    logger.info("tags filter reduced the list of resource docs to zero")
-  }
-
-
-
-
-
-  resourcesToUse
-}
 
 
 
@@ -623,7 +456,7 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
             rd <- getResourceDocsList(requestedApiVersion).map(_.filterNot(_.partialFunction == genericEndpoint)) // exclude all DynamicEntity endpoints
           } yield {
             // Filter
-            val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
+            val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
             // Format the data as json
             val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
             //Get definitions of objects of success responses
@@ -705,4 +538,176 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
 
 }
 
+object ResourceDocsAPIMethodsUtil extends MdcLoggable{
+
+
+
+  def stringToOptBoolean (x: String) : Option[Boolean] = x.toLowerCase match {
+    case "true" | "yes" | "1" | "-1" => Some(true)
+    case "false" | "no" | "0" => Some(false)
+    case _ => Empty
+  }
+
+  
+  def getParams() : (Option[Boolean], Option[Boolean], Option[Boolean], Option[List[ResourceDocTag]], Option[List[String]] ) = {
+
+    val showCore: Option[Boolean] = for {
+      x <- S.param("core")
+      y <- stringToOptBoolean(x)
+    } yield y
+
+    val showPSD2: Option[Boolean] = for {
+      x <- S.param("psd2")
+      y <- stringToOptBoolean(x)
+    } yield y
+
+    val showOBWG: Option[Boolean] = for {
+      x <- S.param("obwg")
+      y <- stringToOptBoolean(x)
+    } yield y
+
+
+    val rawTagsParam = S.param("tags")
+
+
+    val tags: Option[List[ResourceDocTag]] =
+      rawTagsParam match {
+        // if tags= is supplied in the url, we want to ignore it
+        case Full("") => None
+        // if tags is not mentioned at all, we want to ignore it
+        case Empty => None
+        case _  => {
+          val commaSeparatedList : String = rawTagsParam.getOrElse("")
+          val tagList : List[String] = commaSeparatedList.trim().split(",").toList
+          val resourceDocTags =
+            for {
+              y <- tagList
+            } yield {
+              ResourceDocTag(y)
+            }
+          Some(resourceDocTags)
+        }
+      }
+    logger.info(s"tagsOption is $tags")
+
+    // So we can produce a reduced list of resource docs to prevent manual editing of swagger files.
+    val rawPartialFunctionNames = S.param("functions")
+
+    val partialFunctionNames: Option[List[String]] =
+      rawPartialFunctionNames match {
+        // if functions= is supplied in the url, we want to ignore it
+        case Full("") => None
+        // if functions is not mentioned at all, we want to ignore it
+        case Empty => None
+        case _  => {
+          val commaSeparatedList : String = rawPartialFunctionNames.getOrElse("")
+          val stringList : List[String] = commaSeparatedList.trim().split(",").toList
+          val pfns =
+            for {
+              y <- stringList
+            } yield {
+              y
+            }
+          Some(pfns)
+        }
+      }
+    logger.info(s"partialFunctionNames is $partialFunctionNames")
+
+
+    (showCore, showPSD2, showOBWG, tags, partialFunctionNames)
+  }
+  
+  
+  /*
+Filter Resource Docs based on the query parameters, else return the full list.
+We don't assume a default catalog (as API Explorer does)
+so the caller must specify any required filtering by catalog explicitly.
+ */
+  def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : List[ResourceDoc] = {
+
+    // Filter (include, exclude or ignore)
+    val filteredResources1 : List[ResourceDoc] = showCore match {
+      case Some(true) => allResources.filter(x => x.catalogs.core == true)
+      case Some(false) => allResources.filter(x => x.catalogs.core == false)
+      case _ => allResources
+    }
+
+    // Check if we have partialFunctionNames as the paramters, and if so filter by them
+    val filteredResources2 : List[ResourceDoc] = partialFunctionNames match {
+      case Some(pfNames) => {
+        // This can create duplicates to use toSet below
+        for {
+          rd <- filteredResources1
+          partialFunctionName <- pfNames
+          if rd.partialFunctionName.contains(partialFunctionName)
+        } yield {
+          rd
+        }
+      }
+      // tags param was not mentioned in url or was empty, so return all
+      case None => filteredResources1
+    }
+
+    val filteredResources3 : List[ResourceDoc] = showOBWG match {
+      case Some(true) => filteredResources2.filter(x => x.catalogs.obwg == true)
+      case Some(false) => filteredResources2.filter(x => x.catalogs.obwg == false)
+      case _ => filteredResources2
+    }
+
+
+    // Check if we have tags, and if so filter by them
+    val filteredResources4: List[ResourceDoc] = resourceDocTags match {
+      // We have tags
+      case Some(tags) => {
+        // This can create duplicates to use toSet below
+        for {
+          r <- filteredResources3
+          t <- tags
+          if r.tags.contains(t)
+        } yield {
+          r
+        }
+      }
+      // tags param was not mentioned in url or was empty, so return all
+      case None => filteredResources3
+    }
+
+
+    //Because the PDS2 will only use one Tag, so it should be the last tag ifwe support the multiple filter parameters.
+    val filteredResources5: List[ResourceDoc] = showPSD2 match {
+      case Some(true) => filteredResources4
+        .filter(x => x.catalogs.psd2 == true)
+        .map(it => {
+          val psd2Tags = Set(apiTagPSD2AIS, apiTagPSD2PIIS, apiTagPSD2PIS)
+          // if the tags contains psd2 tag, just only keep one psd2 tag
+          val psd2Tag = it.tags.find(psd2Tags.contains(_)).toList
+          it.copy(tags = psd2Tag)
+        })
+      case Some(false) => filteredResources4.filter(x => x.catalogs.psd2 == false)
+      case _ => filteredResources4
+    }
+
+
+
+    val resourcesToUse = filteredResources5.toSet.toList
+
+
+    logger.debug(s"allResources count is ${allResources.length}")
+    logger.debug(s"filteredResources1 count is ${filteredResources1.length}")
+    logger.debug(s"filteredResources2 count is ${filteredResources2.length}")
+    logger.debug(s"filteredResources3 count is ${filteredResources3.length}")
+    logger.debug(s"filteredResources4 count is ${filteredResources4.length}")
+    logger.debug(s"filteredResources5 count is ${filteredResources5.length}")
+    logger.debug(s"resourcesToUse count is ${resourcesToUse.length}")
+
+
+    if (filteredResources4.length > 0 && resourcesToUse.length == 0) {
+      logger.info("tags filter reduced the list of resource docs to zero")
+    }
+
+    resourcesToUse
+  }
+
+
+}
 
