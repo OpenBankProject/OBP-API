@@ -1493,9 +1493,10 @@ trait APIMethods400 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(ErrorMessages.InsufficientAuthorisationToCreateDirectDebit) {
-              u.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) == true ||
-                hasEntitlement(bankId.value, u.userId, ApiRole.canCreateDirectDebitAtOneBank) == true
+            (_, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(bankId, accountId), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_direct_debit. Current ViewId($viewId)") {
+              view.canCreateDirectDebit == true
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostDirectDebitJsonV400 "
             postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -1505,12 +1506,66 @@ trait APIMethods400 {
             _ <- Users.users.vend.getUserByUserIdFuture(postJson.user_id) map {
               x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId(${postJson.user_id})")
             }
-            // (_, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(postJson.counterparty_id), callContext)
+            (_, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(postJson.counterparty_id), callContext)
             (directDebit, callContext) <- NewStyle.function.createDirectDebit(
               bankId.value,
               accountId.value, 
               postJson.customer_id, 
               postJson.user_id, 
+              postJson.counterparty_id,
+              if (postJson.date_signed.isDefined) postJson.date_signed.get else new Date(),
+              postJson.date_starts,
+              postJson.date_expires,
+              callContext)
+          } yield {
+            (JSONFactory400.createDirectDebitJSON(directDebit), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createDirectDebitManagement,
+      implementedInApiVersion,
+      nameOf(createDirectDebitManagement),
+      "POST",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/direct-debit",
+      "Create Direct Debit(management)",
+      s"""Create direct debit for an account.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      postDirectDebitJsonV400,
+      directDebitJsonV400,
+      List(
+        UserNotLoggedIn,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDirectDebit, apiTagAccount, apiTagNewStyle))
+
+    lazy val createDirectDebitManagement : OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "direct-debit" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canCreateDirectDebitAtOneBank, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostDirectDebitJsonV400 "
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostDirectDebitJsonV400]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
+            _ <- Users.users.vend.getUserByUserIdFuture(postJson.user_id) map {
+              x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId(${postJson.user_id})")
+            }
+            (_, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(postJson.counterparty_id), callContext)
+            (directDebit, callContext) <- NewStyle.function.createDirectDebit(
+              bankId.value,
+              accountId.value,
+              postJson.customer_id,
+              postJson.user_id,
               postJson.counterparty_id,
               if (postJson.date_signed.isDefined) postJson.date_signed.get else new Date(),
               postJson.date_starts,

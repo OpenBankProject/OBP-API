@@ -266,6 +266,9 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object canSeeBankAccountCreditLimit_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canCreateDirectDebit_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
 
   //Important! If you add a field, be sure to handle it here in this function
   def setFromViewData(viewData : ViewSpecification) = {
@@ -360,6 +363,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     canAddTransactionRequestToOwnAccount_(actions.exists(_ == "can_add_transaction_request_to_own_account")) //added following two for payments
     canAddTransactionRequestToAnyAccount_(actions.exists(_ == "can_add_transaction_request_to_any_account"))
     canSeeBankAccountCreditLimit_(actions.exists(_ == "can_see_bank_account_credit_limit"))
+    canCreateDirectDebit_(actions.exists(_ == "can_create_direct_debit"))
   }
 
   
@@ -470,6 +474,8 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def canAddTransactionRequestToOwnAccount: Boolean = canAddTransactionRequestToOwnAccount_.get //added following two for payments
   def canAddTransactionRequestToAnyAccount: Boolean = canAddTransactionRequestToAnyAccount_.get
   def canSeeBankAccountCreditLimit: Boolean = canSeeBankAccountCreditLimit_.get
+  
+  def canCreateDirectDebit: Boolean = canCreateDirectDebit_.get
   //TODO: if you add new permissions here, remember to set them wherever views are created
   // (e.g. BankAccountCreationDispatcher)
 }

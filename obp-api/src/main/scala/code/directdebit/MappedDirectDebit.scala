@@ -79,5 +79,5 @@ class DirectDebit extends DirectDebitTrait with LongKeyedMapper[DirectDebit] wit
 }
 
 object DirectDebit extends DirectDebit with LongKeyedMetaMapper[DirectDebit] {
-  override def dbIndexes: List[BaseIndex[DirectDebit]] = UniqueIndex(BankId, AccountId, CustomerId) :: super.dbIndexes
+  override def dbIndexes: List[BaseIndex[DirectDebit]] = UniqueIndex(BankId, AccountId, CustomerId, CounterpartyId) :: super.dbIndexes
 }
