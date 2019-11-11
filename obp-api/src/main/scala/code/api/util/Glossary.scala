@@ -411,8 +411,7 @@ object Glossary {
 |
 | The advantage of the Indirect Connector is that you can write the Adapter in any language and the Connector and Adapter are decoupled (you just have to respect the Outbound / Inbound message format).
 |
-| The default Connector in OBP is a Direct Connector called "mapped". It is called the "mapped" connector because it
-|  talks directly to the OBP database (Postgres, MySQL, Oracle, MSSQL etc.) via the Liftweb ORM which is called Mapper.
+| The default Connector in OBP is a Direct Connector called "mapped". It is called the "mapped" connector because it talks directly to the OBP database (Postgres, MySQL, Oracle, MSSQL etc.) via the Liftweb ORM which is called Mapper.
 |
 |If you want to create your own (Direct) Connector you can fork any of the connectors within OBP.
 |
