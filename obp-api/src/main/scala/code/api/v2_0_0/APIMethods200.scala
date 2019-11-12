@@ -267,8 +267,12 @@ trait APIMethods200 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle)
     )
-  
+
+    def processAccounts(privateViewsUserCanAccessAtOneBank: List[View], availablePrivateAccounts: List[BankAccount]) = {
+      privateBankAccountBasicListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank)
+    }
     lazy val getPrivateAccountsAtOneBank : OBPEndpoint = {
+
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
         cc =>
           for{
@@ -277,7 +281,7 @@ trait APIMethods200 {
           } yield {
             val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
             val availablePrivateAccounts = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
-            (privateBankAccountBasicListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank), HttpCode.`200`(callContext))
+            (processAccounts(privateViewsUserCanAccessAtOneBank, availablePrivateAccounts), HttpCode.`200`(callContext))
           }
       }
     }

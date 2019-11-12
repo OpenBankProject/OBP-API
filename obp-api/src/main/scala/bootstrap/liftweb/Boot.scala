@@ -110,6 +110,8 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, Schedule, _}
+import scalapb.demo.HelloWorldServer
+import scala.concurrent.ExecutionContext
 
 
 /**
@@ -664,4 +666,8 @@ object ToSchemify {
     DynamicData,
     AccountIdMapping,
   )++ APIBuilder_Connector.allAPIBuilderModels
+
+  // start grpc server
+  val server = new HelloWorldServer(ExecutionContext.global)
+  server.start()
 }

@@ -393,7 +393,28 @@
       <artifactId>stripe-java</artifactId>
       <version>12.1.0</version>
     </dependency>
-
+    <!-- grpc related begin-->
+    <dependency>
+      <groupId>com.thesamet.scalapb</groupId>
+      <artifactId>scalapb-runtime-grpc_${scala.version}</artifactId>
+      <version>0.8.4</version>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-all</artifactId>
+      <version>1.25.0</version>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-tcnative-boringssl-static</artifactId>
+      <version>2.0.27.Final</version>
+    </dependency>
+    <dependency>
+      <groupId>org.asynchttpclient</groupId>
+      <artifactId>async-http-client</artifactId>
+      <version>2.10.4</version>
+    </dependency>
+    <!-- grpc related end-->
   </dependencies>
 
   <build>
@@ -593,6 +614,27 @@
           <release>${java.version}</release>
         </configuration>
       </plugin>
+      <!--grpc related plugin begin-->
+      <plugin>
+        <groupId>net.catte</groupId>
+        <artifactId>scalapb-maven-plugin</artifactId>
+        <version>1.2</version>
+        <configuration>
+          <javaOutput>false</javaOutput>
+          <inputDirectory>${basedir}/src/main/resources/protobuf</inputDirectory>
+          <outputDirectory>${basedir}/src/main/scala</outputDirectory>
+          <grpc>true</grpc>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <phase>generate-sources</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <!--grpc related plugin end-->
     </plugins>
   </build>
   <reporting>
