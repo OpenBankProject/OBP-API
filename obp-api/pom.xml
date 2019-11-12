@@ -621,7 +621,7 @@
         <version>1.2</version>
         <configuration>
           <javaOutput>false</javaOutput>
-          <inputDirectory>${basedir}/src/main/resources/protobuf</inputDirectory>
+          <inputDirectory>${basedir}/src/main/protobuf</inputDirectory>
           <outputDirectory>${basedir}/src/main/scala</outputDirectory>
           <grpc>true</grpc>
         </configuration>
