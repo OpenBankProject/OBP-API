@@ -3760,7 +3760,7 @@ trait APIMethods310 {
         |
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
         | """,
-      SwaggerDefinitionsJSON.createViewJson,
+      SwaggerDefinitionsJSON.createSystemViewJson,
       viewJsonV300,
       List(
         UserNotLoggedIn,

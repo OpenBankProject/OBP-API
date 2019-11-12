@@ -54,6 +54,7 @@ import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraddress.MappedCustomerAddress
 import code.database.authorisation.Authorisation
+import code.directdebit.DirectDebit
 import code.dynamicEntity.DynamicEntity
 import code.entitlement.MappedEntitlement
 import code.entitlementrequest.MappedEntitlementRequest
@@ -88,6 +89,7 @@ import code.scheduler.DatabaseDriverScheduler
 import code.scope.{MappedScope, MappedUserScope}
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
+import code.standingorders.StandingOrder
 import code.taxresidence.MappedTaxResidence
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
@@ -663,5 +665,7 @@ object ToSchemify {
     DynamicEntity,
     DynamicData,
     AccountIdMapping,
+    DirectDebit,
+    StandingOrder,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }

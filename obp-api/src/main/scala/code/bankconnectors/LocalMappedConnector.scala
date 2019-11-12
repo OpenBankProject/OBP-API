@@ -21,6 +21,7 @@ import code.cards.MappedPhysicalCard
 import code.context.{UserAuthContextProvider, UserAuthContextUpdateProvider}
 import code.customer._
 import code.customeraddress.CustomerAddressX
+import code.directdebit.{DirectDebitTrait, DirectDebits}
 import code.dynamicEntity.{DynamicEntityProvider, DynamicEntityT}
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.kycchecks.KycChecks
@@ -41,6 +42,7 @@ import code.productattribute.ProductAttributeX
 import code.productcollection.ProductCollectionX
 import code.productcollectionitem.ProductCollectionItems
 import code.products.MappedProduct
+import code.standingorders.{StandingOrderTrait, StandingOrders}
 import code.taxresidence.TaxResidenceX
 import code.transaction.MappedTransaction
 import code.transactionChallenge.ExpectedChallengeAnswer
@@ -2864,4 +2866,45 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (processResult, callContext)
     }
   }
+
+  override def createDirectDebit(bankId: String,
+                                 accountId: String,
+                                 customerId: String,
+                                 userId: String,
+                                 counterpartyId: String,
+                                 dateSigned: Date,
+                                 dateStarts: Date,
+                                 dateExpires: Option[Date],
+                                 callContext: Option[CallContext]): OBPReturnType[Box[DirectDebitTrait]] = Future {
+    val result = DirectDebits.directDebitProvider.vend.createDirectDebit(
+      bankId, 
+      accountId, 
+      customerId,
+      counterpartyId,
+      userId,
+      dateSigned, 
+      dateStarts, 
+      dateExpires)
+    (result, callContext)
+  }
+
+  override def createStandingOrder(bankId: String,
+                                   accountId: String,
+                                   customerId: String,
+                                   userId: String,
+                                   dateSigned: Date,
+                                   dateStarts: Date,
+                                   dateExpires: Option[Date],
+                                   callContext: Option[CallContext]): OBPReturnType[Box[StandingOrderTrait]] = Future {
+    val result = StandingOrders.provider.vend.createStandingOrder(
+      bankId,
+      accountId,
+      customerId,
+      userId,
+      dateSigned,
+      dateStarts,
+      dateExpires)
+    (result, callContext)
+  }
+
 }

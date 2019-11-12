@@ -397,6 +397,12 @@ object ApiRole {
 
   case class CanGetAnyKycStatuses(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAnyKycStatuses = CanGetAnyKycStatuses()
+
+  case class CanCreateDirectDebitAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateDirectDebitAtOneBank = CanCreateDirectDebitAtOneBank()
+  
+  case class CanCreateStandingOrderAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateStandingOrderAtOneBank = CanCreateStandingOrderAtOneBank()
   
   private val roles = ReflectUtils.getFieldsNameToValue[ApiRole](this).values.toList
 

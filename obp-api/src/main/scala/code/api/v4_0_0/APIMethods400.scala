@@ -1,11 +1,13 @@
 package code.api.v4_0_0
 
+import java.util.Date
+
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankAccountNotFound, BankNotFound, CounterpartyBeneficiaryPermit, DynamicEntityOperationNotAllowed, InsufficientAuthorisationToCreateBank, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NoViewPermission, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserCustomerLinksNotFoundForUser, UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
+import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankAccountNotFound, BankNotFound, CounterpartyBeneficiaryPermit, CounterpartyNotFoundByCounterpartyId, CustomerNotFoundByCustomerId, DynamicEntityOperationNotAllowed, InsufficientAuthorisationToCreateBank, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NoViewPermission, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserCustomerLinksNotFoundForUser, UserHasMissingRoles, UserNoPermissionAccessView, UserNotFoundByUserId, UserNotLoggedIn, ViewNotFound}
 import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
@@ -25,6 +27,7 @@ import code.model.toUserExtended
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
+import code.users.Users
 import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
@@ -1457,6 +1460,252 @@ trait APIMethods400 {
             }
           } yield {
             (JSONFactory220.createBankJSON(success), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      createDirectDebit,
+      implementedInApiVersion,
+      nameOf(createDirectDebit),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/direct-debit",
+      "Create Direct Debit",
+      s"""Create direct debit for an account.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      postDirectDebitJsonV400,
+      directDebitJsonV400,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        BankAccountNotFound,
+        NoViewPermission,
+        InvalidJsonFormat,
+        CustomerNotFoundByCustomerId,
+        UserNotFoundByUserId,
+        CounterpartyNotFoundByCounterpartyId,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDirectDebit, apiTagAccount, apiTagNewStyle))
+
+    lazy val createDirectDebit : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "direct-debit" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(bankId, accountId), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_direct_debit. Current ViewId($viewId)") {
+              view.canCreateDirectDebit == true
+            }
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostDirectDebitJsonV400 "
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostDirectDebitJsonV400]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
+            _ <- Users.users.vend.getUserByUserIdFuture(postJson.user_id) map {
+              x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId(${postJson.user_id})")
+            }
+            (_, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(postJson.counterparty_id), callContext)
+            (directDebit, callContext) <- NewStyle.function.createDirectDebit(
+              bankId.value,
+              accountId.value, 
+              postJson.customer_id, 
+              postJson.user_id, 
+              postJson.counterparty_id,
+              if (postJson.date_signed.isDefined) postJson.date_signed.get else new Date(),
+              postJson.date_starts,
+              postJson.date_expires,
+              callContext)
+          } yield {
+            (JSONFactory400.createDirectDebitJSON(directDebit), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createDirectDebitManagement,
+      implementedInApiVersion,
+      nameOf(createDirectDebitManagement),
+      "POST",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/direct-debit",
+      "Create Direct Debit(management)",
+      s"""Create direct debit for an account.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      postDirectDebitJsonV400,
+      directDebitJsonV400,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        BankAccountNotFound,
+        NoViewPermission,
+        InvalidJsonFormat,
+        CustomerNotFoundByCustomerId,
+        UserNotFoundByUserId,
+        CounterpartyNotFoundByCounterpartyId,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDirectDebit, apiTagAccount, apiTagNewStyle))
+
+    lazy val createDirectDebitManagement : OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "direct-debit" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canCreateDirectDebitAtOneBank, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostDirectDebitJsonV400 "
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostDirectDebitJsonV400]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
+            _ <- Users.users.vend.getUserByUserIdFuture(postJson.user_id) map {
+              x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId(${postJson.user_id})")
+            }
+            (_, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(postJson.counterparty_id), callContext)
+            (directDebit, callContext) <- NewStyle.function.createDirectDebit(
+              bankId.value,
+              accountId.value,
+              postJson.customer_id,
+              postJson.user_id,
+              postJson.counterparty_id,
+              if (postJson.date_signed.isDefined) postJson.date_signed.get else new Date(),
+              postJson.date_starts,
+              postJson.date_expires,
+              callContext)
+          } yield {
+            (JSONFactory400.createDirectDebitJSON(directDebit), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      createStandingOrder,
+      implementedInApiVersion,
+      nameOf(createStandingOrder),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/standing-order",
+      "Create Standing Order",
+      s"""Create standing order for an account.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      postStandingOrderJsonV400,
+      standingrderJsonV400,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        BankAccountNotFound,
+        NoViewPermission,
+        InvalidJsonFormat,
+        CustomerNotFoundByCustomerId,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagStandingOrder, apiTagAccount, apiTagNewStyle))
+
+    lazy val createStandingOrder : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "standing-order" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(bankId, accountId), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_standing_order. Current ViewId($viewId)") {
+              view.canCreateStandingOrder == true
+            }
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostStandingOrderJsonV400 "
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostStandingOrderJsonV400]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
+            _ <- Users.users.vend.getUserByUserIdFuture(postJson.user_id) map {
+              x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId(${postJson.user_id})")
+            }
+            (directDebit, callContext) <- NewStyle.function.createStandingOrder(
+              bankId.value,
+              accountId.value,
+              postJson.customer_id,
+              postJson.user_id,
+              if (postJson.date_signed.isDefined) postJson.date_signed.get else new Date(),
+              postJson.date_starts,
+              postJson.date_expires,
+              callContext)
+          } yield {
+            (JSONFactory400.createStandingOrderJSON(directDebit), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createStandingOrderManagement,
+      implementedInApiVersion,
+      nameOf(createStandingOrderManagement),
+      "POST",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/standing-order",
+      "Create Standing Order(management)",
+      s"""Create standing order for an account.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      postStandingOrderJsonV400,
+      standingrderJsonV400,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        BankAccountNotFound,
+        NoViewPermission,
+        InvalidJsonFormat,
+        CustomerNotFoundByCustomerId,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagStandingOrder, apiTagAccount, apiTagNewStyle))
+
+    lazy val createStandingOrderManagement : OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "standing-order" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canCreateStandingOrderAtOneBank, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostStandingOrderJsonV400 "
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostStandingOrderJsonV400]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
+            _ <- Users.users.vend.getUserByUserIdFuture(postJson.user_id) map {
+              x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId(${postJson.user_id})")
+            }
+            (directDebit, callContext) <- NewStyle.function.createStandingOrder(
+              bankId.value,
+              accountId.value,
+              postJson.customer_id,
+              postJson.user_id,
+              if (postJson.date_signed.isDefined) postJson.date_signed.get else new Date(),
+              postJson.date_starts,
+              postJson.date_expires,
+              callContext)
+          } yield {
+            (JSONFactory400.createStandingOrderJSON(directDebit), HttpCode.`201`(callContext))
           }
       }
     }

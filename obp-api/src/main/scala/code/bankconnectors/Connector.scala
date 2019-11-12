@@ -20,11 +20,13 @@ import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.bankconnectors.vMay2019.KafkaMappedConnector_vMay2019
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.Branch
+import code.directdebit.DirectDebitTrait
 import code.fx.FXRate
 import code.fx.fx.TTL
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.ResourceUser
 import code.model.toUserExtended
+import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
@@ -1879,4 +1881,25 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                              requestBody: Option[JObject],
                              entityId: Option[String],
                              callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def createDirectDebit(bankId: String,
+                        accountId: String,
+                        customerId: String,
+                        userId: String,
+                        counterpartyId: String,
+                        dateSigned: Date,
+                        dateStarts: Date,
+                        dateExpires: Option[Date],
+                        callContext: Option[CallContext]): OBPReturnType[Box[DirectDebitTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createStandingOrder(bankId: String,
+                          accountId: String,
+                          customerId: String,
+                          userId: String,
+                          dateSigned: Date,
+                          dateStarts: Date,
+                          dateExpires: Option[Date],
+                          callContext: Option[CallContext]): OBPReturnType[Box[StandingOrderTrait]] = Future {
+    (Failure(setUnimplementedError), callContext)
+  }
 }

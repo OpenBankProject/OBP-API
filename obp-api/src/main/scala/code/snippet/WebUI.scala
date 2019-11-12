@@ -182,12 +182,10 @@ class WebUI extends MdcLoggable{
 
   def apiDocumentation: CssSel = {
     val title = "Sandbox Introduction"
-    val description = Glossary.glossaryItems
-      .find(_.title == title)
-      .map(_.htmlDescription)
-      .getOrElse(sys.error(s"not found the title of $title in Glossary"))
+    val propsValue = getWebUiPropsValue("webui_sandbox_introduction", "")
+    val htmlDescription = PegdownOptions.convertPegdownToHtmlTweaked(propsValue)
 
-    "#api_documentation_content *" #> scala.xml.Unparsed(description)
+    "#api_documentation_content *" #> scala.xml.Unparsed(htmlDescription)
   }
 
   // Points to the documentation. Probably a sandbox specific link is good.
