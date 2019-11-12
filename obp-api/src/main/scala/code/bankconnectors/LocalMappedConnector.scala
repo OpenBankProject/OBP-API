@@ -77,7 +77,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.math.BigInt
+import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
 
 
@@ -2892,6 +2892,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                    accountId: String,
                                    customerId: String,
                                    userId: String,
+                                   counterpartyId: String,
+                                   amountValue: BigDecimal,
+                                   amountCurrency: String,
+                                   whenFrequency: String,
+                                   whenDetail: String,
                                    dateSigned: Date,
                                    dateStarts: Date,
                                    dateExpires: Option[Date],
@@ -2901,6 +2906,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       accountId,
       customerId,
       userId,
+      counterpartyId,
+      amountValue,
+      amountCurrency,
+      whenFrequency,
+      whenDetail,
       dateSigned,
       dateStarts,
       dateExpires)
