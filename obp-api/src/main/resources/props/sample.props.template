@@ -646,7 +646,7 @@ featured_apis=elasticSearchWarehouseV300
 # -- Rest connector --------------------------------------------
 # If Rest Connector do not get the response in the following seconds, it will throw the error message back.
 # This props can be omitted, the default value is 59. It should be less than Nginx timeout.
-# rest_connector_method.timeout = 59 
+# rest2019_connector_timeout = 59 
 
 
  

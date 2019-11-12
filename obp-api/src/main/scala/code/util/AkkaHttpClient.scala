@@ -13,7 +13,7 @@ import scala.concurrent.Future
 
 
 object AkkaHttpClient extends MdcLoggable with CustomJsonFormats {
-   val httpRequestTimeout  = APIUtil.getPropsAsIntValue("rest_connector_method.timeout").openOr(59)
+   val httpRequestTimeout  = APIUtil.getPropsAsIntValue("rest2019_connector_timeout").openOr(59)
   /**
     * This function makes HttpRequest object according to the DB's data related to an account's webhook
     * @param uri In most cases it's a URL
