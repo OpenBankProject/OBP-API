@@ -1,0 +1,233 @@
+syntax = "proto3";
+
+package code.obp.grpc;
+//
+//import "scalapb/scalapb.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+//getBanks response
+message BanksJson400Grpc {
+  repeated BankJson400Grpc banks = 1;
+
+  message BankRoutingJsonV121Grpc {
+    string scheme = 1;
+    string address = 2;
+  }
+  message BankJson400Grpc{
+    string id = 1;
+    string short_name = 2;
+    string full_name = 3;
+    string logo = 4;
+    string website = 5;
+    repeated BankRoutingJsonV121Grpc bank_routings = 6;
+  }
+}
+
+message AccountsJSONGrpc {
+  repeated AccountJSONGrpc accounts = 1;
+}
+
+message AccountJSONGrpc {
+  string id = 1;
+  string label = 2;
+  repeated ViewsJSONV121Grpc views_available = 3;
+  string bank_id = 4;
+}
+
+message ViewsJSONV121Grpc{
+  repeated ViewJSONV121Grpc views = 1;
+}
+
+message ViewJSONV121Grpc {
+  string    id = 1;
+  string    short_name = 2;
+  string    description = 3;
+  bool      is_public = 4;
+  string    alias = 5;
+  bool    hide_metadata_if_alias_used = 6;
+  bool    can_add_comment  = 7;
+  bool    can_add_corporate_location  = 8;
+  bool    can_add_image  = 9;
+  bool    can_add_image_url = 10;
+  bool    can_add_more_info = 11;
+  bool    can_add_open_corporates_url  = 12;
+  bool    can_add_physical_location  = 13;
+  bool    can_add_private_alias  = 14;
+  bool    can_add_public_alias  = 15;
+  bool    can_add_tag  = 16;
+  bool    can_add_url = 17;
+  bool    can_add_where_tag  = 18;
+  bool    can_delete_comment = 19;
+  bool    can_delete_corporate_location  = 20;
+  bool    can_delete_image  = 21;
+  bool    can_delete_physical_location  = 22;
+  bool    can_delete_tag  = 23;
+  bool    can_delete_where_tag  = 24;
+  bool    can_edit_owner_comment = 25;
+  bool    can_see_bank_account_balance = 26;
+  bool    can_see_bank_account_bank_name = 27;
+  bool    can_see_bank_account_currency = 28;
+  bool    can_see_bank_account_iban = 29;
+  bool    can_see_bank_account_label = 30;
+  bool    can_see_bank_account_national_identifier = 31;
+  bool    can_see_bank_account_number = 32;
+  bool    can_see_bank_account_owners = 33;
+  bool    can_see_bank_account_swift_bic = 34;
+  bool    can_see_bank_account_type = 35;
+  bool    can_see_comments = 36;
+  bool    can_see_corporate_location = 37;
+  bool    can_see_image_url = 38;
+  bool    can_see_images = 39;
+  bool    can_see_more_info = 40;
+  bool    can_see_open_corporates_url = 41;
+  bool    can_see_other_account_bank_name = 42;
+  bool    can_see_other_account_iban = 43;
+  bool    can_see_other_account_kind = 44;
+  bool    can_see_other_account_metadata = 45;
+  bool    can_see_other_account_national_identifier = 46;
+  bool    can_see_other_account_number = 47;
+  bool    can_see_other_account_swift_bic = 48;
+  bool    can_see_owner_comment = 49;
+  bool    can_see_physical_location = 50;
+  bool    can_see_private_alias = 51;
+  bool    can_see_public_alias = 52;
+  bool    can_see_tags = 53;
+  bool    can_see_transaction_amount = 54;
+  bool    can_see_transaction_balance = 55;
+  bool    can_see_transaction_currency = 56;
+  bool    can_see_transaction_description = 57;
+  bool    can_see_transaction_finish_date = 58;
+  bool    can_see_transaction_metadata = 59;
+  bool    can_see_transaction_other_bank_account = 60;
+  bool    can_see_transaction_start_date = 61;
+  bool    can_see_transaction_this_bank_account = 62;
+  bool    can_see_transaction_type = 63;
+  bool    can_see_url = 64;
+  bool    can_see_where_tag = 65;
+}
+// getAccounts
+message AccountsGrpc {
+  repeated BasicAccountJSONGrpc accounts = 1;
+}
+message BasicAccountJSONGrpc {
+  message BasicViewJson {
+      string id = 1;
+      string short_name = 2;
+      bool is_public = 3;
+  }
+  string id = 1;
+  string label = 2;
+  string bank_id = 3;
+  repeated BasicViewJson views_available = 4;
+}
+
+message BankIdGrpc {
+  string value = 1;
+  string userId = 2;
+}
+
+message BankIdUserIdGrpc {
+  string bankId = 1;
+  string userId = 2;
+}
+message AccountIdGrpc {
+  string value = 1;
+}
+
+message CoreTransactionsJsonV300Grpc {
+  repeated CoreTransactionJsonV300Grpc transactions = 1;
+  message CoreTransactionJsonV300Grpc {
+    string id = 1;
+    ThisAccountJsonV300Grpc this_account = 2;
+    CoreCounterpartyJsonV300Grpc other_account = 3;
+    CoreTransactionDetailsJSONGrpc details = 4;
+  }
+  message AccountHolderJSONGrpc {
+    string name = 1;
+    bool is_alias = 2;
+  }
+  message AccountRoutingJsonV121Grpc {
+     string scheme = 1;
+     string address = 2;
+  }
+  message BankRoutingJsonV121Grpc {
+      string scheme = 1;
+      string address = 2;
+  }
+  message ThisAccountJsonV300Grpc {
+    string id = 1;
+    BankRoutingJsonV121Grpc bank_routing = 2;
+    repeated AccountRoutingJsonV121Grpc account_routings = 3;
+    repeated AccountHolderJSONGrpc holders = 4;
+  }
+  message CoreCounterpartyJsonV300Grpc {
+    string id = 1;
+    AccountHolderJSONGrpc holder = 2;
+    BankRoutingJsonV121Grpc bank_routing = 3;
+    repeated AccountRoutingJsonV121Grpc account_routings = 4;
+  }
+  message AmountOfMoneyJsonV121Grpc{
+       string currency = 1;
+       string amount = 2;
+   }
+  message CoreTransactionDetailsJSONGrpc {
+     string type = 1;
+     string description = 2;
+//     google.protobuf.Timestamp posted = 3;
+//     google.protobuf.Timestamp completed = 4;
+     string posted = 3;
+     string completed = 4;
+     AmountOfMoneyJsonV121Grpc new_balance = 5;
+     AmountOfMoneyJsonV121Grpc value = 6;
+  }
+}
+
+message BankIdAndAccountIdGrpc {
+  string bankId = 1;
+  string accountId = 2;
+}
+
+message BankIdAccountIdAndUserIdGrpc {
+  string bankId = 1;
+  string accountId = 2;
+  string userId = 3;
+}
+
+// getBankAccountsBalances
+message AccountsBalancesV310JsonGrpc {
+  repeated AccountBalanceV310Grpc accounts = 1;
+  AmountOfMoneyGrpc overall_balance = 2;
+  string overall_balance_date = 3;
+
+  message AmountOfMoneyGrpc {
+    string currency = 1;
+    string amount = 2;
+  }
+  message AccountRoutingGrpc {
+    string scheme = 1;
+    string address = 2;
+}
+  message AccountBalanceV310Grpc {
+    string id = 1;
+    string label = 2;
+    string bank_id = 3;
+    repeated AccountRoutingGrpc account_routings = 4;
+    AmountOfMoneyGrpc balance = 5;
+  }
+}
+
+service ObpService {
+  // Sends a greeting
+  rpc getBanks(google.protobuf.Empty) returns (BanksJson400Grpc) {}
+
+  //Returns the list of accounts at BANK_ID that the user has access to.
+  //For each account the API returns the account ID and the available views.
+  rpc getPrivateAccountsAtOneBank(BankIdUserIdGrpc) returns (AccountsGrpc) {}
+
+  //Get the Balances for the Accounts of the current User at one bank.
+  rpc getBankAccountsBalances(BankIdGrpc) returns (AccountsBalancesV310JsonGrpc) {}
+
+  //Returns transactions list (Core info) of the account specified by ACCOUNT_ID.
+  rpc getCoreTransactionsForBankAccount(BankIdAccountIdAndUserIdGrpc) returns (CoreTransactionsJsonV300Grpc) {}
+}

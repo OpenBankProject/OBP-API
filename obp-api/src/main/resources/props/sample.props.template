@@ -642,6 +642,14 @@ featured_apis=elasticSearchWarehouseV300
 # akka_connector.name_of_actor=SOME_ACTOR_NAME
 # --------------------------------------------------------------
 
+
+# -- Rest connector --------------------------------------------
+# If Rest Connector do not get the response in the following seconds, it will throw the error message back.
+# This props can be omitted, the default value is 59. It should be less than Nginx timeout.
+# rest2019_connector_timeout = 59 
+
+
+ 
 # -- Scopes -----------------------------------------------------
 # Scopes are a way to limit the APIs a Consumer can call.
 # In case isn't defined default value is "false"

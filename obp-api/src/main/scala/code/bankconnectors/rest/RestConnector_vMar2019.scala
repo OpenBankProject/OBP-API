@@ -9439,7 +9439,11 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         }
         future.map(_.flatten)
       }
-    }.map(convertToId(_))
+    }.map(convertToId(_)) recoverWith {
+      //Can not catch the `StreamTcpException` here, so I used the contains to show the error.
+      case e: Exception if (e.getMessage.contains(s"$httpRequestTimeout seconds")) => Future.failed(new Exception(s"$AdapterTimeOurError Please Check Adapter Side, the response should be returned to OBP-Side in $httpRequestTimeout seconds. Details: ${e.getMessage}", e))
+      case e: Exception => Future.failed(new Exception(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}", e))
+    }
   }
 
   private[this] def extractBody(responseEntity: ResponseEntity): Future[String] = responseEntity.toStrict(2.seconds) flatMap { e =>
@@ -9488,7 +9492,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       case Full(in) if (in.status.hasNoError) => Full(in.data)
       case Full(inbound) if (inbound.status.hasError) =>
         Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
-      case failureOrEmpty: Failure => failureOrEmpty
+      case failureOrEmpty: Failure => Failure("INTERNAL-1231321 ....CoreBank-Status: NetWork is bad!!!!!" )
     }
     (boxedResult, callContext)
   }

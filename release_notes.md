@@ -3,6 +3,8 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+08/11/2019    13d2e88a      Added props: rest2019_connector_timeout. This set the timeout for all rest-connector methods. If connector do not get 
+                            response by the specified seconds, then obp will throw the adapter timeout error.
 07/11/2019    015d8420      Added props: webui_agree_privacy_policy_html_text makes this text on the sign up page /user_mgt/sign_up configurable.
                             It has the default html format value. 
 04/10/2019    aa9659c7      Added props: es.warehouse.allowed.maximum.pagesize. This is the maximum size in the query for warehouse apis.
