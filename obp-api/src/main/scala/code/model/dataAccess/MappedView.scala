@@ -524,6 +524,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canAddTransactionRequestToAnyAccount: Boolean = canAddTransactionRequestToAnyAccount_.get
   def canSeeBankAccountCreditLimit: Boolean = canSeeBankAccountCreditLimit_.get
   def canCreateDirectDebit: Boolean = false
+  def canCreateStandingOrder: Boolean = false
   //TODO: if you add new permissions here, remember to set them wherever views are created
   // (e.g. BankAccountCreationDispatcher)
 }
