@@ -1600,17 +1600,22 @@ trait APIMethods400 {
       "Create Standing Order",
       s"""Create standing order for an account.
          |
+         |when -> frequency = {‘YEARLY’,’MONTHLY, ‘WEEKLY’, ‘BI-WEEKLY’, DAILY’}
+         |when -> detail = { ‘FIRST_MONDAY’, ‘FIRST_DAY’, ‘LAST_DAY’}}
+         |
          |${authenticationRequiredMessage(true)}
          |
          |""",
       postStandingOrderJsonV400,
-      standingrderJsonV400,
+      standingOrderJsonV400,
       List(
         UserNotLoggedIn,
         BankNotFound,
         BankAccountNotFound,
         NoViewPermission,
         InvalidJsonFormat,
+        InvalidNumber,
+        InvalidISOCurrencyCode,
         CustomerNotFoundByCustomerId,
         UserNotFoundByUserId,
         UnknownError
@@ -1633,15 +1638,27 @@ trait APIMethods400 {
             postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostStandingOrderJsonV400]
             }
+            amountValue <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${postJson.amount.amount} ", 400, callContext) {
+              BigDecimal(postJson.amount.amount)
+            }
+            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${postJson.amount.currency}'") {
+              isValidCurrencyISOCode(postJson.amount.currency)
+            }
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
             _ <- Users.users.vend.getUserByUserIdFuture(postJson.user_id) map {
               x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId(${postJson.user_id})")
             }
+            (_, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(postJson.counterparty_id), callContext)
             (directDebit, callContext) <- NewStyle.function.createStandingOrder(
               bankId.value,
               accountId.value,
               postJson.customer_id,
               postJson.user_id,
+              postJson.counterparty_id,
+              amountValue,
+              postJson.amount.currency,
+              postJson.when.frequency,
+              postJson.when.detail,
               if (postJson.date_signed.isDefined) postJson.date_signed.get else new Date(),
               postJson.date_starts,
               postJson.date_expires,
@@ -1661,17 +1678,22 @@ trait APIMethods400 {
       "Create Standing Order(management)",
       s"""Create standing order for an account.
          |
+         |when -> frequency = {‘YEARLY’,’MONTHLY, ‘WEEKLY’, ‘BI-WEEKLY’, DAILY’}
+         |when -> detail = { ‘FIRST_MONDAY’, ‘FIRST_DAY’, ‘LAST_DAY’}}
+         |
          |${authenticationRequiredMessage(true)}
          |
          |""",
       postStandingOrderJsonV400,
-      standingrderJsonV400,
+      standingOrderJsonV400,
       List(
         UserNotLoggedIn,
         BankNotFound,
         BankAccountNotFound,
         NoViewPermission,
         InvalidJsonFormat,
+        InvalidNumber,
+        InvalidISOCurrencyCode,
         CustomerNotFoundByCustomerId,
         UserNotFoundByUserId,
         UnknownError
@@ -1691,15 +1713,27 @@ trait APIMethods400 {
             postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostStandingOrderJsonV400]
             }
+            amountValue <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${postJson.amount.amount} ", 400, callContext) {
+              BigDecimal(postJson.amount.amount)
+            }
+            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${postJson.amount.currency}'") {
+              isValidCurrencyISOCode(postJson.amount.currency)
+            }
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
             _ <- Users.users.vend.getUserByUserIdFuture(postJson.user_id) map {
               x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId(${postJson.user_id})")
             }
+            (_, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(postJson.counterparty_id), callContext)
             (directDebit, callContext) <- NewStyle.function.createStandingOrder(
               bankId.value,
               accountId.value,
               postJson.customer_id,
               postJson.user_id,
+              postJson.counterparty_id,
+              amountValue,
+              postJson.amount.currency,
+              postJson.when.frequency,
+              postJson.when.detail,
               if (postJson.date_signed.isDefined) postJson.date_signed.get else new Date(),
               postJson.date_starts,
               postJson.date_expires,

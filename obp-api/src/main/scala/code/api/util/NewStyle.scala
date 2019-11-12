@@ -43,6 +43,7 @@ import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
+import scala.math.BigDecimal
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -1566,6 +1567,11 @@ object NewStyle {
                             accountId: String,
                             customerId: String,
                             userId: String,
+                            couterpartyId: String,
+                            amountValue: BigDecimal,
+                            amountCurrency: String,
+                            whenFrequency: String,
+                            whenDetail: String,
                             dateSigned: Date,
                             dateStarts: Date,
                             dateExpires: Option[Date],
@@ -1575,6 +1581,11 @@ object NewStyle {
         accountId,
         customerId,
         userId,
+        couterpartyId,
+        amountValue,
+        amountCurrency,
+        whenFrequency,
+        whenDetail,
         dateSigned,
         dateStarts,
         dateExpires,

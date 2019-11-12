@@ -165,19 +165,24 @@ case class DirectDebitJsonV400(direct_debit_id: String,
                                date_expires: Date,
                                date_cancelled: Date,
                                active: Boolean)
-
+case class When(frequency: String, detail: String)
 case class PostStandingOrderJsonV400(customer_id: String,
                                      user_id: String,
+                                     counterparty_id: String,
+                                     amount : AmountOfMoneyJsonV121,
+                                     when: When,
                                      date_signed: Option[Date],
                                      date_starts: Date,
                                      date_expires: Option[Date]
                                     )
 
-case class StandingOrderJsonV400(direct_debit_id: String,
+case class StandingOrderJsonV400(standing_order_id: String,
                                  bank_id: String,
                                  account_id: String,
                                  customer_id: String,
                                  user_id: String,
+                                 counterparty_id: String,
+                                 amount: AmountOfMoneyJsonV121,
                                  date_signed: Date,
                                  date_starts: Date,
                                  date_expires: Date,
@@ -332,11 +337,13 @@ object JSONFactory400 {
       active = directDebit.active)
   }
   def createStandingOrderJSON(standingOrder: StandingOrderTrait): StandingOrderJsonV400 = {
-    StandingOrderJsonV400(direct_debit_id = standingOrder.standingOrderId,
+    StandingOrderJsonV400(standing_order_id = standingOrder.standingOrderId,
       bank_id = standingOrder.bankId,
       account_id = standingOrder.accountId,
       customer_id = standingOrder.customerId,
       user_id = standingOrder.userId,
+      counterparty_id = standingOrder.counterpartyId,
+      amount = AmountOfMoneyJsonV121(standingOrder.amountValue.toString(), standingOrder.amountCurrency),
       date_signed = standingOrder.dateSigned,
       date_cancelled = standingOrder.dateCancelled,
       date_starts = standingOrder.dateStarts,
