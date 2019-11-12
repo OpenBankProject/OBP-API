@@ -42,6 +42,7 @@ import code.productattribute.ProductAttributeX
 import code.productcollection.ProductCollectionX
 import code.productcollectionitem.ProductCollectionItems
 import code.products.MappedProduct
+import code.standingorders.{StandingOrderTrait, StandingOrders}
 import code.taxresidence.TaxResidenceX
 import code.transaction.MappedTransaction
 import code.transactionChallenge.ExpectedChallengeAnswer
@@ -2878,11 +2879,30 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val result = DirectDebits.directDebitProvider.vend.createDirectDebit(
       bankId, 
       accountId, 
-      customerId, 
-      userId, 
-      counterpartyId, 
+      customerId,
+      counterpartyId,
+      userId,
       dateSigned, 
       dateStarts, 
+      dateExpires)
+    (result, callContext)
+  }
+
+  override def createStandingOrder(bankId: String,
+                                   accountId: String,
+                                   customerId: String,
+                                   userId: String,
+                                   dateSigned: Date,
+                                   dateStarts: Date,
+                                   dateExpires: Option[Date],
+                                   callContext: Option[CallContext]): OBPReturnType[Box[StandingOrderTrait]] = Future {
+    val result = StandingOrders.provider.vend.createStandingOrder(
+      bankId,
+      accountId,
+      customerId,
+      userId,
+      dateSigned,
+      dateStarts,
       dateExpires)
     (result, callContext)
   }

@@ -15,7 +15,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, StandingOrderJsonV400}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
 import code.sandbox.SandboxData
@@ -2619,7 +2619,8 @@ object SwaggerDefinitionsJSON {
     can_add_transaction_request_to_own_account = true, //added following two for payments
     can_add_transaction_request_to_any_account = true,
     can_see_bank_account_credit_limit = true,
-    can_create_direct_debit = true
+    can_create_direct_debit = true,
+    can_create_standing_order = true
   )
   
   val viewsJsonV300 =  ViewsJsonV300(
@@ -3518,6 +3519,25 @@ object SwaggerDefinitionsJSON {
     customer_id = customerIdExample.value,
     user_id = userIdExample.value,
     counterparty_id = counterpartyIdExample.value,
+    date_signed = new Date(),
+    date_starts = new Date(),
+    date_expires = new Date(),
+    date_cancelled = new Date(),
+    active = true
+  )  
+  val postStandingOrderJsonV400 = PostStandingOrderJsonV400(
+    customer_id = customerIdExample.value,
+    user_id = userIdExample.value,
+    date_signed = Some(DateWithDayExampleObject),
+    date_starts = DateWithDayExampleObject,
+    date_expires = Some(DateWithDayExampleObject)
+  )  
+  val standingrderJsonV400 = StandingOrderJsonV400(
+    direct_debit_id = "aa0533bd-eb22-4bff-af75-d45240361b05",
+    bank_id = bankIdExample.value,
+    account_id = accountIdExample.value,
+    customer_id = customerIdExample.value,
+    user_id = userIdExample.value,
     date_signed = new Date(),
     date_starts = new Date(),
     date_expires = new Date(),

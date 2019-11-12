@@ -89,6 +89,7 @@ import code.scheduler.DatabaseDriverScheduler
 import code.scope.{MappedScope, MappedUserScope}
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
+import code.standingorders.StandingOrder
 import code.taxresidence.MappedTaxResidence
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
@@ -665,5 +666,6 @@ object ToSchemify {
     DynamicData,
     AccountIdMapping,
     DirectDebit,
+    StandingOrder,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }

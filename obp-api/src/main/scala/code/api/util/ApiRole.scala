@@ -401,6 +401,9 @@ object ApiRole {
   case class CanCreateDirectDebitAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateDirectDebitAtOneBank = CanCreateDirectDebitAtOneBank()
   
+  case class CanCreateStandingOrderAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateStandingOrderAtOneBank = CanCreateStandingOrderAtOneBank()
+  
   private val roles = ReflectUtils.getFieldsNameToValue[ApiRole](this).values.toList
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

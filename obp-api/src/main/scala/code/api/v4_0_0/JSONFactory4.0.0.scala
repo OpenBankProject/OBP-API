@@ -40,6 +40,7 @@ import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.directdebit.DirectDebitTrait
 import code.model.ModeratedBankAccount
+import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import com.openbankproject.commons.model._
 
@@ -164,6 +165,24 @@ case class DirectDebitJsonV400(direct_debit_id: String,
                                date_expires: Date,
                                date_cancelled: Date,
                                active: Boolean)
+
+case class PostStandingOrderJsonV400(customer_id: String,
+                                     user_id: String,
+                                     date_signed: Option[Date],
+                                     date_starts: Date,
+                                     date_expires: Option[Date]
+                                    )
+
+case class StandingOrderJsonV400(direct_debit_id: String,
+                                 bank_id: String,
+                                 account_id: String,
+                                 customer_id: String,
+                                 user_id: String,
+                                 date_signed: Date,
+                                 date_starts: Date,
+                                 date_expires: Date,
+                                 date_cancelled: Date,
+                                 active: Boolean)
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
@@ -311,6 +330,18 @@ object JSONFactory400 {
       date_starts = directDebit.dateStarts,
       date_expires = directDebit.dateExpires,
       active = directDebit.active)
+  }
+  def createStandingOrderJSON(standingOrder: StandingOrderTrait): StandingOrderJsonV400 = {
+    StandingOrderJsonV400(direct_debit_id = standingOrder.standingOrderId,
+      bank_id = standingOrder.bankId,
+      account_id = standingOrder.accountId,
+      customer_id = standingOrder.customerId,
+      user_id = standingOrder.userId,
+      date_signed = standingOrder.dateSigned,
+      date_cancelled = standingOrder.dateCancelled,
+      date_starts = standingOrder.dateStarts,
+      date_expires = standingOrder.dateExpires,
+      active = standingOrder.active)
   }
   
 }

@@ -23,6 +23,7 @@ import code.fx.{FXRate, MappedFXRate, fx}
 import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingProvider, MethodRoutingT}
 import code.model._
+import code.standingorders.StandingOrderTrait
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
@@ -1556,6 +1557,27 @@ object NewStyle {
         dateSigned, 
         dateStarts, 
         dateExpires, 
+        callContext) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def createStandingOrder(bankId: String,
+                            accountId: String,
+                            customerId: String,
+                            userId: String,
+                            dateSigned: Date,
+                            dateStarts: Date,
+                            dateExpires: Option[Date],
+                            callContext: Option[CallContext]): OBPReturnType[StandingOrderTrait] = {
+      Connector.connector.vend.createStandingOrder(
+        bankId,
+        accountId,
+        customerId,
+        userId,
+        dateSigned,
+        dateStarts,
+        dateExpires,
         callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }

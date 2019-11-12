@@ -26,6 +26,7 @@ import code.fx.fx.TTL
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.ResourceUser
 import code.model.toUserExtended
+import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
@@ -1890,4 +1891,15 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                         dateStarts: Date,
                         dateExpires: Option[Date],
                         callContext: Option[CallContext]): OBPReturnType[Box[DirectDebitTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createStandingOrder(bankId: String,
+                          accountId: String,
+                          customerId: String,
+                          userId: String,
+                          dateSigned: Date,
+                          dateStarts: Date,
+                          dateExpires: Option[Date],
+                          callContext: Option[CallContext]): OBPReturnType[Box[StandingOrderTrait]] = Future {
+    (Failure(setUnimplementedError), callContext)
+  }
 }

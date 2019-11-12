@@ -396,4 +396,6 @@ trait View {
   def canSeeBankAccountCreditLimit: Boolean
   
   def canCreateDirectDebit: Boolean
+  
+  def canCreateStandingOrder: Boolean
 }
