@@ -218,9 +218,9 @@ object MapperViews extends Views with MdcLoggable {
       view(viewId, account)
     }
   }
-  def systemViewFuture(viewId : ViewId) : Future[Box[View]] = {
+  def systemViewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]] = {
     Future {
-      ViewDefinition.findSystemView(viewId.value)
+      ViewDefinition.findSystemView(viewId.value, bankAccountId)
     }
   }
   
@@ -230,7 +230,7 @@ object MapperViews extends Views with MdcLoggable {
   /*
   Create View based on the Specification (name, alias behavior, what fields can be seen, actions are allowed etc. )
   * */
-  def createSystemView(view: CreateViewJson) : Future[Box[View]] = Future {
+  def createSystemView(bankAccountId: BankIdAccountId, view: CreateViewJson) : Future[Box[View]] = Future {
     if(view.is_public && !ALLOW_PUBLIC_VIEWS) {
       Failure(PublicViewsNotAllowedOnThisInstance)
     } else {
@@ -241,16 +241,20 @@ object MapperViews extends Views with MdcLoggable {
           //view-permalink is view.name without spaces and lowerCase.  (view.name = my life) <---> (view-permalink = mylife)
           val newViewPermalink = getNewViewPermalink(view.name)
           val existing = ViewDefinition.count(
-            By(ViewDefinition.view_id, newViewPermalink), 
-            NullRef(ViewDefinition.bank_id),
-            NullRef(ViewDefinition.account_id)
+            By(ViewDefinition.view_id, newViewPermalink),
+            By(ViewDefinition.bank_id, bankAccountId.bankId.value),
+            By(ViewDefinition.account_id, bankAccountId.accountId.value)
           ) == 1
 
           existing match {
             case true =>
               Failure(s"There is already a view with permalink $newViewPermalink")
             case false =>
-              val createdView = ViewDefinition.create.name_(view.name).view_id(newViewPermalink)
+              val createdView = ViewDefinition.create
+                .name_(view.name)
+                .view_id(newViewPermalink)
+                .bank_id(bankAccountId.bankId.value)
+                .account_id(bankAccountId.accountId.value)
               createdView.setFromViewData(view)
               createdView.isSystem_(true)
               createdView.isPublic_(false)
@@ -306,9 +310,9 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
   /* Update the specification of the system view (what data/actions are allowed) */
-  def updateSystemView(viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Future[Box[View]] = Future {
+  def updateSystemView(bankAccountId : BankIdAccountId, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Future[Box[View]] = Future {
     for {
-      view <- ViewDefinition.findSystemView(viewId.value)
+      view <- ViewDefinition.findSystemView(viewId.value, BankIdAccountId(bankAccountId.bankId, bankAccountId.accountId))
     } yield {
       view.setFromViewData(viewUpdateJson)
       view.saveMe
@@ -327,12 +331,12 @@ object MapperViews extends Views with MdcLoggable {
       }
     }
   }
-  def removeSystemView(viewId: ViewId): Future[Box[Boolean]] = Future {
+  def removeSystemView(viewId: ViewId, bankAccountId: BankIdAccountId): Future[Box[Boolean]] = Future {
     if(viewId.value == "owner")
       Failure("you cannot delete the owner view")
     else {
       for {
-        view <- ViewDefinition.findSystemView(viewId.value)
+        view <- ViewDefinition.findSystemView(viewId.value, bankAccountId: BankIdAccountId)
       } yield {
         view.delete_!
       }

@@ -495,11 +495,12 @@ object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefini
       }
   )
 
-  def findSystemView(viewId: String): Box[ViewDefinition] = {
+  def findSystemView(viewId: String, bankAccountId: BankIdAccountId): Box[ViewDefinition] = {
     ViewDefinition.find(
-      NullRef(ViewDefinition.bank_id),
-      NullRef(ViewDefinition.account_id),
-      By(ViewDefinition.view_id, viewId)
+      By(ViewDefinition.view_id, viewId),
+      By(ViewDefinition.bank_id, bankAccountId.bankId.value),
+      By(ViewDefinition.account_id, bankAccountId.accountId.value),
+      By(ViewDefinition.isSystem_, true)
     )
   }
 

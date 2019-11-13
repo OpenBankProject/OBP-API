@@ -48,29 +48,29 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("vieFuture(" + viewId +", "+ bankAccountId + ")")
       sender ! (mapper.view(viewId, bankAccountId))
       
-    case cc.systemViewFuture(viewId: ViewId) =>
+    case cc.systemViewFuture(viewId: ViewId, bankAccountId: BankIdAccountId) =>
       logger.debug("systemViewFuture(" + viewId + ")")
-      (mapper.systemViewFuture(viewId)) pipeTo sender  
+      (mapper.systemViewFuture(viewId, bankAccountId)) pipeTo sender  
       
-    case cc.removeSystemView(viewId : ViewId) =>
+    case cc.removeSystemView(viewId : ViewId, bankAccountId: BankIdAccountId) =>
       logger.debug("removeSystemView(" + viewId +")")
-      (mapper.removeSystemView(viewId)) pipeTo sender
+      (mapper.removeSystemView(viewId, bankAccountId)) pipeTo sender
 
     case cc.createView(bankAccountId : BankIdAccountId, view: CreateViewJson) =>
       logger.debug("createView(" + bankAccountId +","+ view +")")
       sender ! (mapper.createView(bankAccountId, view))
       
-    case cc.createSystemView(view: CreateViewJson) =>
+    case cc.createSystemView(bankAccountId : BankIdAccountId, view: CreateViewJson) =>
       logger.debug("createSystemView(" + view +")")
-      mapper.createSystemView(view) pipeTo sender
+      mapper.createSystemView(bankAccountId, view) pipeTo sender
 
     case cc.updateView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) =>
       logger.debug("updateView(" + bankAccountId +","+ viewId +","+ viewUpdateJson +")")
       sender ! (mapper.updateView(bankAccountId, viewId, viewUpdateJson))
       
-    case cc.updateSystemView(viewId : ViewId, viewUpdateJson : UpdateViewJSON) =>
+    case cc.updateSystemView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) =>
       logger.debug("updateSystemView(" + viewId +","+ viewUpdateJson +")")
-      (mapper.updateSystemView(viewId, viewUpdateJson)) pipeTo sender
+      (mapper.updateSystemView(bankAccountId, viewId, viewUpdateJson)) pipeTo sender
 
     case cc.removeView(viewId : ViewId, bankAccountId: BankIdAccountId) =>
       logger.debug("removeView(" + viewId +","+ bankAccountId +")")
