@@ -1536,7 +1536,7 @@ trait APIMethods400 {
       nameOf(createDirectDebitManagement),
       "POST",
       "/management/banks/BANK_ID/accounts/ACCOUNT_ID/direct-debit",
-      "Create Direct Debit(management)",
+      "Create Direct Debit (management)",
       s"""Create direct debit for an account.
          |
          |${authenticationRequiredMessage(true)}
@@ -1556,7 +1556,9 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagDirectDebit, apiTagAccount, apiTagNewStyle))
+      List(apiTagDirectDebit, apiTagAccount, apiTagNewStyle),
+      Some(List(canCreateDirectDebitAtOneBank))
+    )
 
     lazy val createDirectDebitManagement : OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "direct-debit" ::  Nil JsonPost  json -> _ => {
@@ -1675,7 +1677,7 @@ trait APIMethods400 {
       nameOf(createStandingOrderManagement),
       "POST",
       "/management/banks/BANK_ID/accounts/ACCOUNT_ID/standing-order",
-      "Create Standing Order(management)",
+      "Create Standing Order (management)",
       s"""Create standing order for an account.
          |
          |when -> frequency = {‘YEARLY’,’MONTHLY, ‘WEEKLY’, ‘BI-WEEKLY’, DAILY’}
@@ -1699,7 +1701,9 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagStandingOrder, apiTagAccount, apiTagNewStyle))
+      List(apiTagStandingOrder, apiTagAccount, apiTagNewStyle),
+      Some(List(canCreateStandingOrderAtOneBank))
+    )
 
     lazy val createStandingOrderManagement : OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "standing-order" ::  Nil JsonPost  json -> _ => {

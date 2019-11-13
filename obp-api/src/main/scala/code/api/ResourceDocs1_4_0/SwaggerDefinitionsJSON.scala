@@ -3543,6 +3543,7 @@ object SwaggerDefinitionsJSON {
     user_id = userIdExample.value,
     counterparty_id = counterpartyIdExample.value,
     amount = amountOfMoneyJsonV121,
+    when = When(frequency = "WEEKLY", detail = "FIRST_DAY"),
     date_signed = new Date(),
     date_starts = new Date(),
     date_expires = new Date(),
