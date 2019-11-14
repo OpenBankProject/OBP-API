@@ -675,4 +675,5 @@ object ToSchemify {
   // start grpc server
   val server = new HelloWorldServer(ExecutionContext.global)
   server.start()
+  LiftRules.unloadHooks.append(server.stop)
 }

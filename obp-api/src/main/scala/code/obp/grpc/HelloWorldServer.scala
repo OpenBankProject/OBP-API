@@ -51,9 +51,10 @@ class HelloWorldServer(executionContext: ExecutionContext) { self =>
     }
   }
 
-  private def stop(): Unit = {
+  def stop(): Unit = {
     if (server != null) {
       server.shutdown()
+      server = null
     }
   }
 
