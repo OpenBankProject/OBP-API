@@ -1,4 +1,4 @@
-package scalapb.demo
+package code.obp.grpc
 
 import java.util.logging.Logger
 
@@ -51,9 +51,10 @@ class HelloWorldServer(executionContext: ExecutionContext) { self =>
     }
   }
 
-  private def stop(): Unit = {
+  def stop(): Unit = {
     if (server != null) {
       server.shutdown()
+      server = null
     }
   }
 
@@ -93,7 +94,7 @@ class HelloWorldServer(executionContext: ExecutionContext) { self =>
         (user, _) <- NewStyle.function.findByUserId(userId, callContext)
       } yield {
         val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(user).filter(_.bankId == bankId)
-        val availablePrivateAccounts:List[BankAccount] = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
+        val availablePrivateAccounts = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
         val jValue = OBPAPI4_0_0.Implementations2_0_0.processAccounts(privateViewsUserCanAccessAtOneBank, availablePrivateAccounts)
         val jArray = JArray(
           jValue.asInstanceOf[JArray].arr.map(it => {
