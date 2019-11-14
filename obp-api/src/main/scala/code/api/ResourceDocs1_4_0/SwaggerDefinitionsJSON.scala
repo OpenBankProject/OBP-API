@@ -2544,6 +2544,7 @@ object SwaggerDefinitionsJSON {
     description = "description",
     metadata_view = "owner",
     is_public = true,
+    is_system = true,
     alias = "No",
     hide_metadata_if_alias_used = true,
     can_add_comment = true,
