@@ -34,6 +34,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup {
             case JDouble(v) => v
             case JArray(arr) => arr
             case JObject(v) => v.map(it => (it.name, it.value))
+            case _ => jvalue
           }
           (name, value)
         })
