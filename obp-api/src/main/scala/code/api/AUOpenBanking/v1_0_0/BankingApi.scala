@@ -1,30 +1,22 @@
 package code.api.AUOpenBanking.v1_0_0
 
-import code.api.APIFailureNewStyle
 import code.api.berlin.group.v1_3.JvalueCaseClass
-import net.liftweb.json
-import net.liftweb.json._
 import code.api.util.APIUtil.{defaultBankId, _}
-import code.api.util.{ApiVersion, NewStyle}
-import code.api.util.ErrorMessages._
 import code.api.util.ApiTag._
+import code.api.util.ErrorMessages._
+import code.api.util.{ApiTag, NewStyle}
 import code.api.util.NewStyle.HttpCode
-import code.bankconnectors.Connector
-import code.model._
-import code.util.Helper
 import code.views.Views
+import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.{AccountId, BankId}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
-import com.github.dwickern.macros.NameOf.nameOf
+import net.liftweb.json
+import net.liftweb.json._
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import code.api.AUOpenBanking.v1_0_0.ApiCollector
-import code.api.util.ApiTag
-import code.api.v2_0_0.AccountsHelper.getFilteredCoreAccounts
-import com.openbankproject.commons.model.{AccountId, AccountRouting, BankId}
 
 object APIMethods_BankingApi extends RestHelper {
     val apiVersion =  ApiCollector.apiVersion

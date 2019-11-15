@@ -19,3 +19,4 @@ obp-api/src/main/scripts/kafka/kafka_*
 obp-api/src/main/scripts/kafka/logs/
 obp-api/src/main/scripts/kafka/tmp/
 /obp-commons/src/main/resources/git.properties
+/obp-api2/
