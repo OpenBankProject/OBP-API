@@ -1,13 +1,16 @@
 package code.management
 
-import code.api.{OBPRestHelper}
+private case class PlaceHolderClassToSupressCompileWarning()
+/*
+import code.api.OBPRestHelper
 import code.api.util.APIUtil._
 import code.model._
-import net.liftweb.common.{Full, Failure}
+import net.liftweb.common.{Failure, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
 import code.util.Helper.MdcLoggable
-/*
+import com.openbankproject.commons.model.BankId
+
 object AccountsAPI extends OBPRestHelper with MdcLoggable {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>

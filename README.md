@@ -38,7 +38,7 @@ The project uses Maven 3 as its build tool.
 
 To compile and run jetty, install Maven 3, create your configuration in obp-api/src/main/resources/props/default.props and execute:
 
-     ./mvn.sh install -pl .,obp-commons && ./mvn.sh jetty:run -pl obp-api
+     mvn install -pl .,obp-commons && mvn jetty:run -pl obp-api
 
 ## To run with IntelliJ IDEA
 

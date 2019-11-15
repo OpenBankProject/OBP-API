@@ -1,13 +1,11 @@
-package code.obp.api
+package code.obp.grpc
 
-import code.obp.grpc.api.{AccountsGrpc, BankIdAccountIdAndUserId, BankIdAccountIdAndUserIdGrpc, BankIdAndAccountId, BankIdGrpc, BankIdUserIdGrpc, BanksJson400Grpc, CoreTransactionsJsonV300Grpc, ObpServiceGrpc}
+import code.obp.grpc.api._
 import com.google.protobuf.empty.Empty
 import io.grpc.{ManagedChannel, ManagedChannelBuilder}
-import scalapb.demo.HelloWorldServer
-
 
 object Client extends App {
-  private val channelBuilder = ManagedChannelBuilder.forAddress("127.0.0.1", HelloWorldServer.port)
+  private val channelBuilder = ManagedChannelBuilder.forAddress("demo.openbankproject.com", HelloWorldServer.port)
     .usePlaintext()
     .asInstanceOf[ManagedChannelBuilder[_]]
   val channel: ManagedChannel = channelBuilder.build()
@@ -18,7 +16,7 @@ object Client extends App {
   println(banks)
 
   // get accounts according bankId and userId
-  private val bankIdUserIdGrpc = BankIdUserIdGrpc("psd201-bank-y--uk", "4850d4c3-220a-4a72-9d3c-eeeacaf4b63b")
+  private val bankIdUserIdGrpc = BankIdUserIdGrpc("dmo.07.de.de", "0986f84c-78ce-4ce9-a3b7-fa2451acd882")
   private val accounts: AccountsGrpc = obpService.getPrivateAccountsAtOneBank(bankIdUserIdGrpc)
   println(accounts)
 
