@@ -60,38 +60,6 @@
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
-                <configuration>
-                    <charset>${project.build.sourceEncoding}</charset>
-                    <jvmArgs>
-                        <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
-                    </jvmArgs>
-                    <scalaVersion>${scala.compiler}</scalaVersion>
-                    <scalaCompatVersion>${scala.version}</scalaCompatVersion>
-                    <recompileMode>incremental</recompileMode>
-                    <useZincServer>true</useZincServer>
-                    <compilerPlugins>
-                        <compilerPlugin>
-                            <groupId>com.artima.supersafe</groupId>
-                            <artifactId>supersafe_${scala.compiler}</artifactId>
-                            <version>1.1.8</version>
-                        </compilerPlugin>
-                    </compilerPlugins>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <args>
-                                <arg>-dependencyfile</arg>
-                                <arg>${project.build.directory}/.scala_dependencies</arg>
-                                <arg>-Xmax-classfile-name</arg>
-                                <arg>78</arg>
-                            </args>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <!-- enable the scalatest plugin -->
