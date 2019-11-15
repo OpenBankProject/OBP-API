@@ -45,23 +45,23 @@ object RemotedataViews extends ObpActorInit with Views {
   def viewFuture(viewId : ViewId, account: BankIdAccountId) : Future[Box[View]] = 
     (actor ? cc.viewFuture(viewId, account)).mapTo[Box[View]]
   
-  def systemViewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]] = 
-    (actor ? cc.systemViewFuture(viewId, bankAccountId)).mapTo[Box[View]]
+  def systemViewFuture(viewId : ViewId) : Future[Box[View]] = 
+    (actor ? cc.systemViewFuture(viewId)).mapTo[Box[View]]
 
   def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View] = getValueFromFuture(
     (actor ? cc.createView(bankAccountId, view)).mapTo[Box[View]]
   )
-  def createSystemView(bankAccountId: BankIdAccountId, view: CreateViewJson): Future[Box[View]] = 
-    (actor ? cc.createSystemView(bankAccountId, view)).mapTo[Box[View]]
+  def createSystemView(view: CreateViewJson): Future[Box[View]] = 
+    (actor ? cc.createSystemView(view)).mapTo[Box[View]]
   
-  def removeSystemView(viewId: ViewId, bankAccountId: BankIdAccountId): Future[Box[Boolean]] = 
-    (actor ? cc.removeSystemView(viewId, bankAccountId)).mapTo[Box[Boolean]]
+  def removeSystemView(viewId: ViewId): Future[Box[Boolean]] = 
+    (actor ? cc.removeSystemView(viewId)).mapTo[Box[Boolean]]
 
   def updateView(bankAccountId : BankIdAccountId, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] = getValueFromFuture(
     (actor ? cc.updateView(bankAccountId, viewId, viewUpdateJson)).mapTo[Box[View]]
   )
-  def updateSystemView(bankAccountId : BankIdAccountId, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Future[Box[View]] =
-    (actor ? cc.updateSystemView(bankAccountId, viewId, viewUpdateJson)).mapTo[Box[View]]
+  def updateSystemView(viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Future[Box[View]] =
+    (actor ? cc.updateSystemView(viewId, viewUpdateJson)).mapTo[Box[View]]
 
   def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit] = getValueFromFuture(
     (actor ? cc.removeView(viewId, bankAccountId)).mapTo[Box[Unit]]

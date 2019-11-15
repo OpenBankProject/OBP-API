@@ -237,23 +237,23 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is $viewId")
       }
     }
-    def systemView(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
-      Views.views.vend.systemViewFuture(viewId, bankAccountId) map {
+    def systemView(viewId : ViewId, callContext: Option[CallContext]) : Future[View] = {
+      Views.views.vend.systemViewFuture(viewId) map {
         unboxFullOrFail(_, callContext, s"$SystemViewNotFound. Current ViewId is $viewId")
       }
     }
-    def createSystemView(view: CreateViewJson, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
-      Views.views.vend.createSystemView(bankAccountId, view) map {
+    def createSystemView(view: CreateViewJson, callContext: Option[CallContext]) : Future[View] = {
+      Views.views.vend.createSystemView(view) map {
         unboxFullOrFail(_, callContext, s"$CreateSystemViewError")
       }
     }
-    def updateSystemView(viewId: ViewId, bankAccountId: BankIdAccountId, view: UpdateViewJSON, callContext: Option[CallContext]) : Future[View] = {
-      Views.views.vend.updateSystemView(bankAccountId, viewId, view) map {
+    def updateSystemView(viewId: ViewId, view: UpdateViewJSON, callContext: Option[CallContext]) : Future[View] = {
+      Views.views.vend.updateSystemView(viewId, view) map {
         unboxFullOrFail(_, callContext, s"$UpdateSystemViewError")
       }
     }
-    def deleteSystemView(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[Boolean] = {
-      Views.views.vend.removeSystemView(viewId, bankAccountId) map {
+    def deleteSystemView(viewId : ViewId, callContext: Option[CallContext]) : Future[Boolean] = {
+      Views.views.vend.removeSystemView(viewId) map {
         unboxFullOrFail(_, callContext, s"$DeleteSystemViewError")
       }
     }

@@ -3708,7 +3708,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       "getSystemView",
       "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/system-views/VIEW_ID",
+      "/system-views/VIEW_ID",
       "Get System View",
       s"""Get System View
          |
@@ -3728,12 +3728,12 @@ trait APIMethods310 {
     )
 
     lazy val getSystemView: OBPEndpoint = {
-      case "banks" :: bankId :: "accounts" :: accountId :: "system-views" :: viewId :: Nil JsonGet _ => {
+      case "system-views" :: viewId :: Nil JsonGet _ => {
         cc =>
           for {
             (Full(user), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", user.userId, canGetSystemView, callContext)
-            view <- NewStyle.function.systemView(ViewId(viewId), BankIdAccountId(BankId(bankId), AccountId(accountId)), callContext)
+            view <- NewStyle.function.systemView(ViewId(viewId), callContext)
           } yield {
             (JSONFactory220.createViewJSON(view), HttpCode.`200`(callContext))
           }
@@ -3746,7 +3746,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(createSystemView),
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/system-views",
+      "/system-views",
       "Create System View.",
       s"""Create a system view
         |
@@ -3776,7 +3776,7 @@ trait APIMethods310 {
 
     lazy val createSystemView : OBPEndpoint = {
       //creates a system view
-      case "banks" :: bankId :: "accounts" :: accountId :: "system-views" :: Nil JsonPost json -> _ => {
+      case "system-views" :: Nil JsonPost json -> _ => {
         cc =>
           for {
             (Full(user), callContext) <- authorizedAccess(cc)
@@ -3785,7 +3785,7 @@ trait APIMethods310 {
             createViewJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[CreateViewJson]
             }
-            view <- NewStyle.function.createSystemView(createViewJson, BankIdAccountId(BankId(bankId), AccountId(accountId)), callContext)
+            view <- NewStyle.function.createSystemView(createViewJson, callContext)
           } yield {
             (JSONFactory300.createViewJSON(view),  HttpCode.`201`(callContext))
           }
@@ -3797,7 +3797,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       "deleteSystemView",
       "DELETE",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/system-views/VIEW_ID",
+      "/system-views/VIEW_ID",
       "Delete System View",
       "Deletes the system view specified by VIEW_ID.",
       emptyObjectJson,
@@ -3815,13 +3815,13 @@ trait APIMethods310 {
 
     lazy val deleteSystemView: OBPEndpoint = {
       //deletes a view on an bank account
-      case "banks" :: bankId :: "accounts" :: accountId :: "system-views" :: viewId :: Nil JsonDelete req => {
+      case "system-views" :: viewId :: Nil JsonDelete req => {
         cc =>
           for {
             (Full(user), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", user.userId, canDeleteSystemView, callContext)
-            _ <- NewStyle.function.systemView(ViewId(viewId), BankIdAccountId(BankId(bankId), AccountId(accountId)), callContext)
-            view <- NewStyle.function.deleteSystemView(ViewId(viewId), BankIdAccountId(BankId(bankId), AccountId(accountId)), callContext)
+            _ <- NewStyle.function.systemView(ViewId(viewId), callContext)
+            view <- NewStyle.function.deleteSystemView(ViewId(viewId), callContext)
           } yield {
             (Full(view),  HttpCode.`200`(callContext))
           }
@@ -3834,7 +3834,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(updateSystemView),
       "PUT",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/system-views/VIEW_ID",
+      "/system-views/VIEW_ID",
       "Update System View.",
       s"""Update an existing view on a bank account
          |
@@ -3857,7 +3857,7 @@ trait APIMethods310 {
 
     lazy val updateSystemView : OBPEndpoint = {
       //updates a view on a bank account
-      case "banks" :: bankId :: "accounts" :: accountId :: "system-views" :: viewId :: Nil JsonPut json -> _ => {
+      case "system-views" :: viewId :: Nil JsonPut json -> _ => {
         cc =>
           for {
             (Full(user), callContext) <-  authorizedAccess(cc)
@@ -3866,8 +3866,8 @@ trait APIMethods310 {
               val msg = s"$InvalidJsonFormat The Json body should be the $UpdateViewJSON "
               x => unboxFullOrFail(x, callContext, msg)
             }
-            _ <- NewStyle.function.systemView(ViewId(viewId), BankIdAccountId(BankId(bankId), AccountId(accountId)), callContext)
-            updatedView <- NewStyle.function.updateSystemView(ViewId(viewId),BankIdAccountId(BankId(bankId), AccountId(accountId)) ,updateJson, callContext)
+            _ <- NewStyle.function.systemView(ViewId(viewId), callContext)
+            updatedView <- NewStyle.function.updateSystemView(ViewId(viewId), updateJson, callContext)
           } yield {
             (JSONFactory300.createViewJSON(updatedView), HttpCode.`200`(callContext))
           }
