@@ -3,6 +3,7 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+18/11/2019    de4aec71      Added props: grpc.server.enabled. default is false. 
 18/11/2019    4bd31563      Added props: grpc.server.port. if do not set this props, the grpc port will be set randomly when OBP starts. 
                             And you can call `Get API Configuration` endpoint to see the `grpc_port` there. When you set this props, need to
                             make sure this port is available.  
