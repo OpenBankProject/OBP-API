@@ -704,3 +704,8 @@ database_messages_scheduler_interval=3600
 #hosted_at.organisation_website=
 #energy_source.organisation=
 #energy_source.organisation_website=
+
+# GRPC 
+# if do not set this port, it will be set random port when OBP starts. And you can call `Get API Configuration` endpoint
+# to see the `grpc_port` there. 
+# grpc.server.port = 50051
