@@ -3,6 +3,9 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+18/11/2019    4bd31563      Added props: grpc.server.port. if do not set this props, the grpc port will be set randomly when OBP starts. 
+                            And you can call `Get API Configuration` endpoint to see the `grpc_port` there. When you set this props, need to
+                            make sure this port is available.  
 08/11/2019    13d2e88a      Added props: rest2019_connector_timeout. This set the timeout for all rest-connector methods. If connector do not get 
                             response by the specified seconds, then obp will throw the adapter timeout error.
 07/11/2019    015d8420      Added props: webui_agree_privacy_policy_html_text makes this text on the sign up page /user_mgt/sign_up configurable.
