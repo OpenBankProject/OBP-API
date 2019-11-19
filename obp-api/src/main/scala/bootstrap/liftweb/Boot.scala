@@ -673,7 +673,10 @@ object ToSchemify {
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server
-  val server = new HelloWorldServer(ExecutionContext.global)
-  server.start()
-  LiftRules.unloadHooks.append(server.stop)
+  if (APIUtil.getPropsAsBoolValue("grpc.server.enabled", false)) {
+    val server = new HelloWorldServer(ExecutionContext.global)
+    server.start()
+    LiftRules.unloadHooks.append(server.stop)
+  } 
+  
 }
