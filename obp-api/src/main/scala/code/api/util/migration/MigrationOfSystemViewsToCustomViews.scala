@@ -22,7 +22,6 @@ object UpdateTableViewDefinition {
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         val views = ViewDefinition.findAll(
-          By(ViewDefinition.isSystem_, true),
           NotNullRef(ViewDefinition.bank_id),
           NotNullRef(ViewDefinition.account_id),
           NotNullRef(ViewDefinition.view_id)
@@ -35,11 +34,11 @@ object UpdateTableViewDefinition {
         val updatedRows: List[Boolean] =
           for {
             view <- views
-            (name, view_id) = (view.name, view.view_id)
+            (name, viewId) = (view.name, view.viewId.value)
           } yield {
             view
-              .name_("_" + name)
-              .view_id("_" + view_id)
+              .name_(if (name.startsWith("_")) name else "_" + name)
+              .view_id(if (viewId.startsWith("_")) viewId else "_" + viewId)
               .isSystem_(false)
               .save
           }
