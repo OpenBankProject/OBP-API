@@ -707,7 +707,7 @@ database_messages_scheduler_interval=3600
 
 # GRPC 
 # the default GRPC is disabled
-# grpc.server.enabled = true
+# grpc.server.enabled = false
 # If do not set this props, the grpc port will be set randomly when OBP starts. 
 # And you can call `Get API Configuration` endpoint to see the `grpc_port` there. 
 # When you set this props, need to make sure this port is available.  
