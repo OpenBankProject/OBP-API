@@ -164,7 +164,7 @@ object MapperViews extends Views with MdcLoggable {
 
 
   def accessRemovable(viewDefinition: ViewDefinition, user : User) : Boolean = {
-    if(viewDefinition.viewId == ViewId("owner")) {
+    if(viewDefinition.viewId == ViewId("_owner")) {
       //if the user is an account holder, we can't revoke access to the owner view
       val accountHolders = MapperAccountHolders.getAccountHolders(viewDefinition.bankId, viewDefinition.accountId)
       if(accountHolders.map(h => h.userPrimaryKey).contains(user.userPrimaryKey)) {
@@ -218,9 +218,12 @@ object MapperViews extends Views with MdcLoggable {
       view(viewId, account)
     }
   }
+  def systemView(viewId : ViewId) : Box[View] = {
+    ViewDefinition.findSystemView(viewId.value)
+  }
   def systemViewFuture(viewId : ViewId) : Future[Box[View]] = {
     Future {
-      ViewDefinition.findSystemView(viewId.value)
+      systemView(viewId)
     }
   }
   
@@ -317,7 +320,7 @@ object MapperViews extends Views with MdcLoggable {
 
   def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit] = {
 
-    if(viewId.value == "owner")
+    if(viewId.value == "_owner")
       Failure("you cannot delete the owner view")
     else {
       for {
@@ -394,10 +397,10 @@ object MapperViews extends Views with MdcLoggable {
 
     val bankId = bankIdAccountId.bankId
     val accountId = bankIdAccountId.accountId
-    val ownerView = "owner".equals(viewId.toLowerCase)
-    val publicView = "public".equals(viewId.toLowerCase)
-    val accountantsView = "accountant".equals(viewId.toLowerCase)
-    val auditorsView = "auditor".equals(viewId.toLowerCase)
+    val ownerView = "_owner".equals(viewId.toLowerCase)
+    val publicView = "_public".equals(viewId.toLowerCase)
+    val accountantsView = "_accountant".equals(viewId.toLowerCase)
+    val auditorsView = "_auditor".equals(viewId.toLowerCase)
     
     val theView =
       if (ownerView)
@@ -417,7 +420,7 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {
-    getExistingView(bankId, accountId, "owner") match {
+    getExistingView(bankId, accountId, "_owner") match {
       case Empty => createDefaultOwnerView(bankId, accountId, description)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -442,7 +445,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
-    getExistingView(bankId, accountId, "public") match {
+    getExistingView(bankId, accountId, "_public") match {
       case Empty=> createDefaultPublicView(bankId, accountId, description)
       case Full(v)=> Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -451,7 +454,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String = "Accountants View") : Box[View] = {
-    getExistingView(bankId, accountId, "accountant") match {
+    getExistingView(bankId, accountId, "_accountant") match {
       case Empty => createDefaultAccountantsView(bankId, accountId, description)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -460,7 +463,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String = "Auditors View") : Box[View] = {
-    getExistingView(bankId, accountId, "auditor") match {
+    getExistingView(bankId, accountId, "_auditor") match {
       case Empty => createDefaultAuditorsView(bankId, accountId, description)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -474,7 +477,7 @@ object MapperViews extends Views with MdcLoggable {
       isSystem_(false).
       isFirehose_(false).
       name_(randomString(5)).
-      metadataView_("owner").
+      metadataView_("_owner").
       description_(randomString(3)).
       view_id(randomString(3)).
       isPublic_(false).
@@ -642,12 +645,12 @@ object MapperViews extends Views with MdcLoggable {
 
   def unsavedOwnerView(bankId : BankId, accountId: AccountId, description: String) : ViewDefinition = {
     val entity = create
-      .isSystem_(true)
+      .isSystem_(false)
       .isFirehose_(true) // TODO This should be set to false. i.e. Firehose views should be separate
       .bank_id(bankId.value)
       .account_id(accountId.value)
       .name_("Owner")
-      .view_id("owner")
+      .view_id("_owner")
       .description_(description)
       .isPublic_(false) //(default is false anyways)
       .usePrivateAliasIfOneExists_(false) //(default is false anyways)
@@ -828,11 +831,11 @@ object MapperViews extends Views with MdcLoggable {
 
   def unsavedDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : ViewDefinition = {
     val entity = create.
-      isSystem_(true).
+      isSystem_(false).
       isFirehose_(true). // This View is public so it might as well be firehose too.
       name_("Public").
       description_(description).
-      view_id("public").
+      view_id("_public").
       isPublic_(true).
       bank_id(bankId.value).
       account_id(accountId.value).
@@ -924,11 +927,11 @@ object MapperViews extends Views with MdcLoggable {
 
   def unsavedDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : ViewDefinition = {
     val entityt = create.
-      isSystem_(true).
+      isSystem_(false).
       isFirehose_(true). // TODO This should be set to false. i.e. Firehose views should be separate
       name_("Accountant"). // Use the singular form
       description_(description).
-      view_id("accountant"). // Use the singular form
+      view_id("_accountant"). // Use the singular form
       isPublic_(false).
       bank_id(bankId.value).
       account_id(accountId.value).
@@ -1019,11 +1022,11 @@ Auditors
 
   def unsavedDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : ViewDefinition = {
     val entity = create.
-      isSystem_(true).
+      isSystem_(false).
       isFirehose_(true). // TODO This should be set to false. i.e. Firehose views should be separate
       name_("Auditor"). // Use the singular form
       description_(description).
-      view_id("auditor"). // Use the singular form
+      view_id("_auditor"). // Use the singular form
       isPublic_(false).
       bank_id(bankId.value).
       account_id(accountId.value).

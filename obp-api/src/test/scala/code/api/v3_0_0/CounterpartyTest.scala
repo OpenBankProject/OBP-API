@@ -22,7 +22,7 @@ class CounterpartyTest extends V300ServerSetup {
       Given("We prepare all the parameters, just check the response")
       val bankId = randomBankId
       val accountId = randomPrivateAccountId(bankId)
-      val viewId = "owner"
+      val viewId = "_owner"
       val loginedUser = user1
       
       When("we call the `Get Other Accounts of one Account.`")

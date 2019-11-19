@@ -44,6 +44,7 @@ trait Views {
   def revokeAllPermissions(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
 
   def view(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
+  def systemView(viewId : ViewId) : Box[View]
   def viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]]
   def systemViewFuture(viewId : ViewId) : Future[Box[View]]
 
@@ -126,6 +127,7 @@ class RemotedataViewsCaseClasses {
   case class view(pars: Any*) {
     def apply(viewId: ViewId, bankAccountId: BankIdAccountId): Box[View] = this (viewId, bankAccountId)
   }
+  case class systemView(viewId : ViewId)
   case class viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId)
   case class systemViewFuture(viewId : ViewId)
   case class getOrCreateAccountView(account: BankIdAccountId, viewName: String)

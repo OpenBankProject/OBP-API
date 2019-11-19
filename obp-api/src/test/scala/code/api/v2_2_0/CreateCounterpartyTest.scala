@@ -28,7 +28,7 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       val testBank = createBank("transactions-test-bank1")
       val bankId = testBank.bankId
       val accountId = AccountId("__acc1")
-      val viewId =ViewId("owner")
+      val viewId =ViewId("_owner")
 
 
       // Note: The view created below has can_add_counterparty set to true
@@ -107,7 +107,7 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       val testBank = createBank("transactions-test-bank")
       val bankId = testBank.bankId
       val accountId = AccountId("__acc1")
-      val viewId =ViewId("owner")
+      val viewId =ViewId("_owner")
       val bankAccount = createAccountAndOwnerView(Some(resourceUser1), bankId, accountId, "EUR")
 
       val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)

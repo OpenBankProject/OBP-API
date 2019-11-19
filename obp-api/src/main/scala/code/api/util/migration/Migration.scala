@@ -61,7 +61,7 @@ object Migration extends MdcLoggable {
       generateAndPopulateMissingCustomerUUIDs()
       generateAndPopulateMissingConsumersUUIDs()
       populateTableRateLimiting()
-      // updateTableViewDefinition()
+      updateTableViewDefinition()
     }
     
     private def dummyScript(): Boolean = {

@@ -109,14 +109,14 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         this.transRequestId = transRequestId
         answerJson = ChallengeAnswerJSON(id = challengeId, answer = "123")
         val answerRequestNew = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
+          "_owner" / "transaction-request-types" / transactionRequestType / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
         answerRequest = answerRequestNew
       }
 
       def setCreateTransactionRequestType(transactionRequestType: String) = {
         this.transactionRequestType = transactionRequestType
         val createTransReqRequestNew = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@ (user1)
+          "_owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@ (user1)
         createTransReqRequest = createTransReqRequestNew
       }
 
@@ -124,7 +124,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         * Create Transaction Request. -- V210
         */
       var createTransReqRequest = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-        "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@ (user1)
+        "_owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@ (user1)
 
       def makeCreateTransReqRequest: APIResponse = makePostRequest(createTransReqRequest, write(transactionRequestBody))
       def makeCreateTransReqRequestSEPA: APIResponse = makePostRequest(createTransReqRequest, write(transactionRequestBodySEPA))
@@ -165,7 +165,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         * Get all Transaction Requests. - V210
         */
       var getTransReqRequest = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-        "owner" / "transaction-requests").GET <@ (user1)
+        "_owner" / "transaction-requests").GET <@ (user1)
 
       def makeGetTransReqRequest = makeGetRequest(getTransReqRequest)
 
@@ -201,7 +201,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       /**
         * Get Transactions for Account (Full) -- V210
         */
-      var getTransactionRequest = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value / "owner" / "transactions").GET <@ (user1)
+      var getTransactionRequest = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value / "_owner" / "transactions").GET <@ (user1)
 
       def makeGetTransRequest = makeGetRequest(getTransactionRequest)
 
@@ -263,7 +263,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         */
 
       var answerRequest = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-        "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
+        "_owner" / "transaction-request-types" / transactionRequestType / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
 
       def makeAnswerRequest = makePostRequest(answerRequest, write(answerJson))
 
@@ -294,7 +294,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
         Then("We call the 'Create Transaction Request.' without the login user")
         var request = (v2_1Request / "banks" / helper.fromAccount.bankId.value / "accounts" / helper.fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / helper.transactionRequestType / "transaction-requests").POST
+          "_owner" / "transaction-request-types" / helper.transactionRequestType / "transaction-requests").POST
         var response = makePostRequest(request, write(helper.transactionRequestBody))
 
 
@@ -316,7 +316,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
         Then("We used the login user2, but it does not have the owner view and CreateTransactionRequest role ")
         val request = (v2_1Request / "banks" / helper.testBank.bankId.value / "accounts" / helper.fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / helper.transactionRequestType / "transaction-requests").POST <@ (user2)
+          "_owner" / "transaction-request-types" / helper.transactionRequestType / "transaction-requests").POST <@ (user2)
         val response = makePostRequest(request, write(helper.transactionRequestBody))
 
         Then("we should get a 400 created code")
@@ -340,7 +340,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
         Then("We used the login user3, it does not have the owner view ,but has the  CreateTransactionRequest role ")
         var request = (v2_1Request / "banks" / helper.testBank.bankId.value / "accounts" / helper.fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / helper.transactionRequestType / "transaction-requests").POST <@ (user3)
+          "_owner" / "transaction-request-types" / helper.transactionRequestType / "transaction-requests").POST <@ (user3)
         var response = makePostRequest(request, write(helper.transactionRequestBody))
 
         Then("we should get a 201 created code")
@@ -362,7 +362,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         Then("We call createTransactionRequest with invalid transactionRequestType - V210")
         val invalidTransactionRequestType = "invalidTransactionRequestType"
         var request = (v2_1Request / "banks" / helper.fromAccount.bankId.value / "accounts" / helper.fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / invalidTransactionRequestType / "transaction-requests").POST <@ (user3)
+          "_owner" / "transaction-request-types" / invalidTransactionRequestType / "transaction-requests").POST <@ (user3)
         var response = makePostRequest(request, write(helper.transactionRequestBody))
 
         Then("we should get a 400 created code")

@@ -401,7 +401,7 @@ trait APIMethods300 {
           (Full(u), callContext) <-  authorizedAccess(cc)
           (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
           // Assume owner view was requested
-          view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId), callContext)
+          view <- NewStyle.function.ownerView(BankIdAccountId(account.bankId, account.accountId), callContext)
           _ <- NewStyle.function.hasViewAccess(view, u)
           moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
           (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
@@ -621,7 +621,7 @@ trait APIMethods300 {
             (user, callContext) <-  authorizedAccess(cc)
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             // Assume owner view was requested
-            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+            view <- NewStyle.function.ownerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }

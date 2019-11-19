@@ -1651,7 +1651,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       def getOwnerView() = {
         val views = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
-        views.find(v => v.id == "owner")
+        views.find(v => v.id == "_owner")
       }
 
       Given("The owner view exists")
@@ -1991,7 +1991,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val viewId = "owner"
+      val viewId = "_owner"
       val userId1 = resourceUser2.idGivenByProvider
       val userId2 = resourceUser2.idGivenByProvider
       grantUserAccessToView(bankId, bankAccount.id, userId1, viewId, user1)
@@ -2019,7 +2019,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("A user is the account holder of an account (and has access to the owner view)")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val ownerViewId = ViewId("owner")
+      val ownerViewId = ViewId("_owner")
 
       //set up: make authuser3 the account holder and make sure they have access to the owner view
       grantUserAccessToView(bankId, bankAccount.id, resourceUser3.idGivenByProvider, ownerViewId.value, user1)
@@ -2113,7 +2113,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val viewId = ViewId("owner")
+      val viewId = ViewId("_owner")
       val view = Views.views.vend.view(viewId, BankIdAccountId(BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
       val userId = resourceUser1.idGivenByProvider
 
@@ -2135,7 +2135,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("A user is the account holder of an account (and has access to the owner view)")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val ownerViewId = "owner"
+      val ownerViewId = "_owner"
 
       //set up: make authuser3 the account holder and make sure they have access to the owner view
       grantUserAccessToView(bankId, bankAccount.id, resourceUser3.idGivenByProvider, ownerViewId, user1)
@@ -2148,7 +2148,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       reply.code should equal (400)
 
       And("The user should not have had his access revoked")
-      val view = Views.views.vend.view(ViewId("owner"), BankIdAccountId(BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val view = Views.views.vend.view(ViewId("_owner"), BankIdAccountId(BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
       Views.views.vend.getOwners(view).toList should contain (resourceUser3)
     }
   }
@@ -4788,7 +4788,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "owner"
+      val view = "_owner"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomNarrative = randomString(20)
@@ -4806,7 +4806,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "owner"
+      val view = "_owner"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomNarrative = randomString(20)
       When("the request is sent")
@@ -4825,7 +4825,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "owner"
+      val view = "_owner"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomNarrative = randomString(20)
       When("the request is sent")
@@ -4844,7 +4844,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "owner"
+      val view = "_owner"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomNarrative = randomString(20)
       When("the request is sent")
@@ -4879,7 +4879,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "owner"
+      val view = "_owner"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomNarrative = randomString(20)
@@ -4897,7 +4897,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "owner"
+      val view = "_owner"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomNarrative = randomString(20)
       When("the request is sent")
@@ -4916,7 +4916,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "owner"
+      val view = "_owner"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomNarrative = randomString(20)
       When("the request is sent")
@@ -4952,7 +4952,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token and will set a narrative first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "owner"
+      val view = "_owner"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomNarrative = randomString(20)
       postNarrativeForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomNarrative, user1)
@@ -4970,7 +4970,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will not use an access token and will set a narrative first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "owner"
+      val view = "_owner"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomNarrative = randomString(20)
       postNarrativeForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomNarrative, user1)
@@ -4988,7 +4988,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token and will set a narrative first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "owner"
+      val view = "_owner"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomNarrative = randomString(20)
       postNarrativeForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomNarrative, user1)
@@ -5242,7 +5242,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token and will set a comment first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "public"
+      val view = "_public"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomComment = PostTransactionCommentJSON(randomString(20))
       val postedReply = postCommentForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomComment, user2)
@@ -5302,7 +5302,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token and will set a comment first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val ownerViewId = "owner"
+      val ownerViewId = "_owner"
       val notOwnerViewId = randomViewPermalinkButNotOwner(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, notOwnerViewId)
       
@@ -5583,7 +5583,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token and will set a tag first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "public"
+      val view = "_public"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomTag = PostTransactionTagJSON(randomString(5))
       val postedReply = postTagForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomTag, user2)
@@ -5641,7 +5641,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     scenario("we will get,post and delete view(not owner) Tag of one random transaction if we set the metedata_view = owner", API1_2_1, MeataViewTag) {
       
       Given("We will use an access token and will set a tag first")
-      val ownerViewId = "owner"
+      val ownerViewId = "_owner"
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val notOwnerViewId = randomViewPermalinkButNotOwner(bankId, bankAccount)
@@ -5923,7 +5923,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token and will set an image first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "public"
+      val view = "_public"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
       val postedReply = postImageForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomImage, user1)
@@ -5981,7 +5981,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     scenario("we will get,post and delete view(not owner) iamge of transaction if we set the metedata_view = owner", API1_2_1, MeataViewImage) {
       
       Given("We will use an access token and will set a image first")
-      val ownerViewId = "owner"
+      val ownerViewId = "_owner"
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val notOwnerViewId = randomViewPermalinkButNotOwner(bankId, bankAccount)
@@ -6341,7 +6341,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token and will set a where tag first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "public"
+      val view = "_public"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc, user1)
@@ -6368,7 +6368,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     scenario("we will get,post and delete view(not owner) where of one random transaction if we set the metedata_view = owner", API1_2_1, MeataViewWhere) {
       
       Given("We will use an access token and will set a where first")
-      val ownerViewId = "owner"
+      val ownerViewId = "_owner"
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val notOwnerViewId = randomViewPermalinkButNotOwner(bankId, bankAccount)

@@ -236,6 +236,13 @@ object NewStyle {
       Views.views.vend.viewFuture(viewId, bankAccountId) map {
         unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is $viewId")
       }
+    }    
+    def ownerView(bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
+      Views.views.vend.viewFuture(ViewId("_owner"), bankAccountId) map {
+        x => x.or(Views.views.vend.systemView(ViewId("owner")))
+      } map {
+        unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is owner")
+      }
     }
     def systemView(viewId : ViewId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.systemViewFuture(viewId) map {
