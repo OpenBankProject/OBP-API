@@ -2005,8 +2005,8 @@ object SwaggerDefinitionsJSON {
     kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
     last_ok_date = DateWithDayExampleObject,
     title  = ExampleValue.titleExample.value,
-    branchId = ExampleValue.branchIdExample.value,
-    nameSuffix = ExampleValue.nameSuffixExample.value
+    branch_id = ExampleValue.branchIdExample.value,
+    name_suffix = ExampleValue.nameSuffixExample.value
   )
   
   val customersJsonV300 = code.api.v3_0_0.CustomerJSONs(List(customerJsonV300))
@@ -2028,8 +2028,8 @@ object SwaggerDefinitionsJSON {
       kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
       last_ok_date = DateWithDayExampleObject,
       title  = ExampleValue.titleExample.value,
-      branchId = ExampleValue.branchIdExample.value,
-      nameSuffix = ExampleValue.nameSuffixExample.value
+      branch_id = ExampleValue.branchIdExample.value,
+      name_suffix = ExampleValue.nameSuffixExample.value
     )
   
   val customerJsonV310 = CustomerJsonV310(
@@ -2051,8 +2051,8 @@ object SwaggerDefinitionsJSON {
     kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
     last_ok_date = DateWithDayExampleObject,
     title  = ExampleValue.titleExample.value,
-    branchId = ExampleValue.branchIdExample.value,
-    nameSuffix = ExampleValue.nameSuffixExample.value
+    branch_id = ExampleValue.branchIdExample.value,
+    name_suffix = ExampleValue.nameSuffixExample.value
   )
 
 

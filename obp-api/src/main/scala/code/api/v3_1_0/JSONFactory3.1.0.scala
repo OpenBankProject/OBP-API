@@ -210,8 +210,8 @@ case class PostCustomerJsonV310(
   kyc_status: Boolean,
   last_ok_date: Date,
   title: String,
-  branchId: String,
-  nameSuffix: String
+  branch_id: String,
+  name_suffix: String
 )
 case class PutUpdateCustomerBranchJsonV310(branch_id: String)
 case class PutUpdateCustomerEmailJsonV310(email: String)
@@ -248,8 +248,8 @@ case class CustomerJsonV310(
   kyc_status: lang.Boolean,
   last_ok_date: Date,
   title: String,
-  branchId: String,
-  nameSuffix: String
+  branch_id: String,
+  name_suffix: String
 )
 
 case class UpdateAccountRequestJsonV310(
@@ -925,8 +925,8 @@ object JSONFactory310{
       kyc_status = cInfo.kycStatus,
       last_ok_date = cInfo.lastOkDate,
       title = cInfo.title,
-      branchId = cInfo.branchId,
-      nameSuffix = cInfo.nameSuffix
+      branch_id = cInfo.branchId,
+      name_suffix = cInfo.nameSuffix
     )
   }
 

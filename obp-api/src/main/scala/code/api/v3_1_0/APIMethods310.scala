@@ -1257,8 +1257,8 @@ trait APIMethods310 {
               Option(CreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
               Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount)),
               postedData.title,
-              postedData.branchId,
-              postedData.nameSuffix,
+              postedData.branch_id,
+              postedData.name_suffix,
               callContext,
             ) 
           } yield {

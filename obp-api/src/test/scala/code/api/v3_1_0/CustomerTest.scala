@@ -314,7 +314,7 @@ class CustomerTest extends V310ServerSetup {
       infoGet.legal_name should equal(putCustomerUpdateGeneralDataJson.legal_name)
       infoGet.date_of_birth should equal(putCustomerUpdateGeneralDataJson.date_of_birth)
       infoGet.title should equal(putCustomerUpdateGeneralDataJson.title)
-      infoGet.nameSuffix should equal(putCustomerUpdateGeneralDataJson.name_suffix)
+      infoGet.name_suffix should equal(putCustomerUpdateGeneralDataJson.name_suffix)
     }
   }
 
@@ -448,7 +448,7 @@ class CustomerTest extends V310ServerSetup {
       response310.code should equal(200)
 
       val infoGet = response310.body.extract[CustomerJsonV310]
-      infoGet.branchId should equal(putUpdateCustomerBranch.branch_id)
+      infoGet.branch_id should equal(putUpdateCustomerBranch.branch_id)
     }
   }
 
