@@ -15,7 +15,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, StandingOrderJsonV400, When}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AddAccountJsonV400, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, StandingOrderJsonV400, When}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
 import code.sandbox.SandboxData
@@ -3548,6 +3548,17 @@ object SwaggerDefinitionsJSON {
     date_expires = new Date(),
     date_cancelled = new Date(),
     active = true
+  )
+
+  val addAccountJsonV400 = AddAccountJsonV400(
+    account_id = accountIdExample.value,
+    user_id = userIdExample.value,
+    label   = labelExample.value,
+    product_code = accountTypeExample.value,
+    balance =  amountOfMoneyJsonV121,
+    branch_id  = branchIdExample.value,
+    account_routing = accountRoutingJsonV121,
+    account_attributes=  List(accountAttributeResponseJson)
   )
     
   //The common error or success format.
