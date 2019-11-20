@@ -44,6 +44,7 @@ import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
 import code.api.v3_0_0.{AccountRuleJsonV300, ViewBasicV300}
 import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
+import code.api.v4_0_0.AddAccountJsonV400
 import code.consent.MappedConsent
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
@@ -1293,11 +1294,12 @@ object JSONFactory310{
     )
   }
 
-  def createAccountJSON(userId: String, account: BankAccount, accountAttributes: List[AccountAttribute]): CreateAccountJsonV310 = {
-    CreateAccountJsonV310(
+  def createAccountJSON(userId: String, account: BankAccount, accountAttributes: List[AccountAttribute]): AddAccountJsonV400 = {
+    AddAccountJsonV400(
+      account_id = account.accountId.value,
       user_id = userId,
       label = account.label,
-      `type` = account.accountType,
+      product_code = account.accountType,
       balance = AmountOfMoneyJsonV121(
         account.currency,
         account.balance.toString()

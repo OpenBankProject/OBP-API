@@ -1135,6 +1135,20 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     non-standard calls --do not make sense in the regular context but are used for e.g. tests
   */
 
+  def addBankAccount(
+    bankId: BankId,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    initialBalance: BigDecimal,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[BankAccount]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  
   def updateBankAccount(
                          bankId: BankId,
                          accountId: AccountId,
