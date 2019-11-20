@@ -12,6 +12,7 @@ import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
@@ -23,8 +24,8 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getBankAccountsBalances))
 
   lazy val testBankId = testBankId1
-  lazy val putCreateAccountJSONV310 = SwaggerDefinitionsJSON.createAccountJSONV220.copy(user_id = resourceUser1.userId)
-  lazy val putCreateAccountOtherUserJsonV310 = SwaggerDefinitionsJSON.createAccountJSONV220.copy(user_id = resourceUser2.userId)
+  lazy val putCreateAccountJSONV310 = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
+  lazy val putCreateAccountOtherUserJsonV310 = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser2.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
   
   
   feature("test Update Account") {
@@ -84,8 +85,8 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       val response310 = makePutRequest(request310, write(putCreateAccountJSONV310))
       Then("We should get a 201")
       response310.code should equal(201)
-      val account = response310.body.extract[CreateAccountJSONV220]
-      account.`type` should be (putCreateAccountJSONV310.`type`)
+      val account = response310.body.extract[CreateAccountResponseJsonV310]
+      account.product_code should be (putCreateAccountJSONV310.product_code)
       account.`label` should be (putCreateAccountJSONV310.`label`)
       account.balance.amount.toDouble should be (putCreateAccountJSONV310.balance.amount.toDouble)
       account.balance.currency should be (putCreateAccountJSONV310.balance.currency)
@@ -106,8 +107,8 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.canCreateAccount.toString)
       val responseWithOtherUesrV310 = makePutRequest(request310WithNewAccountId, write(putCreateAccountOtherUserJsonV310))
       
-      val account2 = responseWithOtherUesrV310.body.extract[CreateAccountJsonV310]
-      account2.`type` should be (putCreateAccountOtherUserJsonV310.`type`)
+      val account2 = responseWithOtherUesrV310.body.extract[CreateAccountResponseJsonV310]
+      account2.product_code should be (putCreateAccountOtherUserJsonV310.product_code)
       account2.`label` should be (putCreateAccountOtherUserJsonV310.`label`)
       account2.balance.amount.toDouble should be (putCreateAccountOtherUserJsonV310.balance.amount.toDouble)
       account2.balance.currency should be (putCreateAccountOtherUserJsonV310.balance.currency)

@@ -5,9 +5,11 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{ApiRole, ApiVersion}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
@@ -25,8 +27,8 @@ class AccountTest extends V400ServerSetup {
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.addAccount))
 
   lazy val testBankId = testBankId1
-  lazy val addAccountJson = SwaggerDefinitionsJSON.createAccountJSONV220.copy(user_id = resourceUser1.userId)
-  lazy val addAccountJsonOtherUser = SwaggerDefinitionsJSON.createAccountJSONV220.copy(user_id = resourceUser2.userId)
+  lazy val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
+  lazy val addAccountJsonOtherUser = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser2.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
   
   
   feature(s"test $ApiEndpoint1") {
@@ -77,15 +79,15 @@ class AccountTest extends V400ServerSetup {
     }
   }
   feature(s"test $ApiEndpoint3 - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId.value / "accounts" ).POST <@(user1)
       val response400 = makePostRequest(request400, write(addAccountJson))
       Then("We should get a 201")
       response400.code should equal(201)
-      val account = response400.body.extract[AddAccountJsonV400]
+      val account = response400.body.extract[CreateAccountResponseJsonV310]
       account.account_id should not be empty
-      account.product_code should be (addAccountJson.`type`)
+      account.product_code should be (addAccountJson.product_code)
       account.`label` should be (addAccountJson.`label`)
       account.balance.amount.toDouble should be (addAccountJson.balance.amount.toDouble)
       account.balance.currency should be (addAccountJson.balance.currency)
@@ -106,9 +108,9 @@ class AccountTest extends V400ServerSetup {
       Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.canCreateAccount.toString)
       val responseWithOtherUesr = makePostRequest(requestWithNewAccountId, write(addAccountJsonOtherUser))
 
-      val account2 = responseWithOtherUesr.body.extract[AddAccountJsonV400]
+      val account2 = responseWithOtherUesr.body.extract[CreateAccountResponseJsonV310]
       account2.account_id should not be empty
-      account2.product_code should be (addAccountJson.`type`)
+      account2.product_code should be (addAccountJson.product_code)
       account2.`label` should be (addAccountJson.`label`)
       account2.balance.amount.toDouble should be (addAccountJson.balance.amount.toDouble)
       account2.balance.currency should be (addAccountJson.balance.currency)

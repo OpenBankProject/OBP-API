@@ -188,18 +188,6 @@ case class StandingOrderJsonV400(standing_order_id: String,
                                  date_expires: Date,
                                  date_cancelled: Date,
                                  active: Boolean)
-case class AddAccountJsonV400(
-  account_id : String,
-  user_id : String,
-  label   : String,
-  product_code : String,
-  balance : AmountOfMoneyJsonV121,
-  branch_id : String,
-  account_routing: AccountRoutingJsonV121,
-  account_attributes: List[AccountAttributeResponseJson]
-)
-
-
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {

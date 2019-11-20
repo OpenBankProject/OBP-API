@@ -5070,12 +5070,12 @@ trait APIMethods310 {
         |
         |If the PUT body USER_ID is *not* specified, the account will be owned by the logged in User.
         |
-        |The 'type' field SHOULD be a product_code from Product.
-        |If the type matches a product_code from Product, account attributes will be created that match the Product Attributes.
+        |The 'product_code' field SHOULD be a product_code from Product.
+        |If the 'product_code' matches a product_code from Product, account attributes will be created that match the Product Attributes.
         |
         |Note: The Amount MUST be zero.""".stripMargin,
-      createAccountJSONV220,
-      createAccountJsonV310,
+      createAccountRequestJsonV310,
+      createAccountResponseJsonV310,
       List(
         InvalidJsonFormat,
         BankNotFound,
@@ -5108,9 +5108,9 @@ trait APIMethods310 {
             _ <- Helper.booleanToFuture(AccountIdAlreadyExists){
               account.isEmpty
             }
-            failMsg = s"$InvalidJsonFormat The Json body should be the $CreateAccountJSONV220 "
+            failMsg = s"$InvalidJsonFormat The Json body should be the ${prettyRender(Extraction.decompose(createAccountRequestJsonV310))} "
             createAccountJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[CreateAccountJSONV220]
+              json.extract[CreateAccountRequestJsonV310]
             }
             loggedInUserId = u.userId
             userIdAccountOwner = if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id else loggedInUserId
@@ -5129,7 +5129,7 @@ trait APIMethods310 {
               hasEntitlement(bankId.value, loggedInUserId, canCreateAccount) || userIdAccountOwner == loggedInUserId
             }
             initialBalanceAsString = createAccountJson.balance.amount
-            accountType = createAccountJson.`type`
+            accountType = createAccountJson.product_code
             accountLabel = createAccountJson.label
             initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
               BigDecimal(initialBalanceAsString)

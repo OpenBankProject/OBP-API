@@ -44,7 +44,6 @@ import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
 import code.api.v3_0_0.{AccountRuleJsonV300, ViewBasicV300}
 import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
-import code.api.v4_0_0.AddAccountJsonV400
 import code.consent.MappedConsent
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
@@ -625,10 +624,22 @@ case class PhysicalCardWithAttributesJsonV310(
 case class PhysicalCardsJsonV310(
   cards : List[PhysicalCardJsonV310])
 
-case class CreateAccountJsonV310(
+
+case class CreateAccountRequestJsonV310(
+  user_id : String,
+  label   : String,
+  product_code : String,
+  balance : AmountOfMoneyJsonV121,
+  branch_id : String,
+  account_routing: AccountRoutingJsonV121,
+  account_attributes: List[AccountAttributeResponseJson]
+)
+
+case class CreateAccountResponseJsonV310(
+                                 account_id: String,
                                  user_id : String,
                                  label   : String,
-                                 `type` : String,
+                                 product_code : String,
                                  balance : AmountOfMoneyJsonV121,
                                  branch_id : String,
                                  account_routing: AccountRoutingJsonV121,
@@ -740,6 +751,7 @@ case class AccountBalancesJson(
   overall_balance: AmountOfMoney,
   overall_balance_date: Date
 )
+
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -1294,8 +1306,8 @@ object JSONFactory310{
     )
   }
 
-  def createAccountJSON(userId: String, account: BankAccount, accountAttributes: List[AccountAttribute]): AddAccountJsonV400 = {
-    AddAccountJsonV400(
+  def createAccountJSON(userId: String, account: BankAccount, accountAttributes: List[AccountAttribute]): CreateAccountResponseJsonV310 = {
+    CreateAccountResponseJsonV310(
       account_id = account.accountId.value,
       user_id = userId,
       label = account.label,
