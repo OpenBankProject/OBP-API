@@ -49,6 +49,7 @@ import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, ModeratedBankAccount, UserX}
+import code.obp.grpc.HelloWorldServer
 import code.ratelimiting
 import code.webhook.AccountWebhook
 import com.openbankproject.commons.model.{AccountApplication, AmountOfMoneyJsonV121, Product, ProductCollection, ProductCollectionItem, TaxResidence, User, UserAuthContextUpdate, _}
@@ -190,7 +191,7 @@ case class AccountWebhookPutJson(account_webhook_id: String,
 
 case class AccountWebhooksJson(web_hooks: List[AccountWebhookJson])
 
-case class ConfigurationJsonV310(default_bank_id: String, akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON], scopes: ScopesJSON)
+case class ConfigurationJsonV310(default_bank_id: String, akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON], scopes: ScopesJSON ,grpc_port: Int)
 
 
 case class PostCustomerJsonV310(
@@ -879,12 +880,14 @@ object JSONFactory310{
   def getConfigInfoJSON(): ConfigurationJsonV310 = {
     val configurationJson: ConfigurationJSON = JSONFactory220.getConfigInfoJSON()
     val defaultBankId= APIUtil.defaultBankId
+    val grpcPort = HelloWorldServer.port
     ConfigurationJsonV310(
       defaultBankId,
       configurationJson.akka,
       configurationJson.elastic_search, 
       configurationJson.cache,
-      configurationJson.scopes
+      configurationJson.scopes,
+      grpcPort
     )
   }
 

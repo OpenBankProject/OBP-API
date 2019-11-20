@@ -2,11 +2,12 @@ package code.obp.grpc
 
 import java.util.logging.Logger
 
-import code.api.util.{CallContext, NewStyle}
+import code.api.util.{APIUtil, CallContext, NewStyle}
 import code.api.v3_0_0.CoreTransactionsJsonV300
 import code.api.v4_0_0.{BankJson400, BanksJson400, JSONFactory400, OBPAPI4_0_0}
 import code.obp.grpc.api.BanksJson400Grpc.{BankJson400Grpc, BankRoutingJsonV121Grpc}
 import code.obp.grpc.api._
+import code.util.Helper
 import code.views.Views
 import com.google.protobuf.empty.Empty
 import com.openbankproject.commons.model._
@@ -32,7 +33,7 @@ object HelloWorldServer {
     server.blockUntilShutdown()
   }
 
-  val port = 50051
+  val port = APIUtil.getPropsAsIntValue("grpc.server.port", Helper.findAvailablePort()) 
 }
 
 class HelloWorldServer(executionContext: ExecutionContext) { self =>

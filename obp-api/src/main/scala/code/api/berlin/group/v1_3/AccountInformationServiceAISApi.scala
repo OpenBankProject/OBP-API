@@ -54,7 +54,6 @@ object APIMethods_AccountInformationServiceAISApi extends RestHelper {
       readCardAccount ::
       startConsentAuthorisation ::
       updateConsentsPsuData ::
-      getAccountsBalances ::
       Nil
     lazy val newStyleEndpoints: List[(String, String)] = resourceDocs.map {
       rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
@@ -1303,58 +1302,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
            }
          }
        }
-
-
-  lazy val getAccountsBalances : OBPEndpoint = {
-    case "accounts" :: "balances" :: Nil JsonGet _ => {
-      cc =>
-        for {
-          (Full(u), callContext) <- authorizedAccess(cc)
-        } yield {
-          (json.parse("""{
-    "inboundAdapterCallContext": {
-        "correlationId": "jejtsxmtlngavuk6b38z9c3g"
-    },
-    "status": {
-        "errorCode": "",
-        "backendMessages": [
-            {
-                "source": "",
-                "status": "",
-                "errorCode": "",
-                "text": ""
-            }
-        ]
-    },
-    "data": {
-        "accounts": [
-            {
-                "id": "account-from-remote-id",
-                "label": "remote-account",
-                "bankId": "dmo.01.uk.uk",
-                "accountRoutings": [
-                    {
-                        "scheme": "OBP",
-                        "address": "remote-id"
-                    }
-                ],
-                "balance": {
-                    "currency": "EUR",
-                    "amount": "3000.00"
-                }
-            }
-        ],
-        "overallBalance": {
-            "currency": "EUR",
-            "amount": "3000.00"
-        },
-        "overallBalanceDate": "2019-11-12T21:51:33Z"
-    }
-}"""), callContext)
-        }
-    }
-  }
-
+  
 }
 
 
