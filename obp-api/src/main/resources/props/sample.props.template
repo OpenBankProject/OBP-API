@@ -600,7 +600,7 @@ featured_apis=elasticSearchWarehouseV300
 # ----------------------------------------------
 
 # -- Calls Limit --------------------------------------
-# Define how many calls per time a Customer can make
+# Define how many calls per hour a consumer can make
 # In case isn't defined default value is "false"
 # use_consumer_limits=false
 # In case isn't defined default value is "false"
