@@ -7,7 +7,7 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.ratelimiting.RateLimiting
 import code.views.system.ViewDefinition
-import net.liftweb.mapper.{By, DB, NotNullRef}
+import net.liftweb.mapper.{By, DB, NotNullRef, NullRef}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object UpdateTableViewDefinition {
@@ -25,6 +25,16 @@ object UpdateTableViewDefinition {
           NotNullRef(ViewDefinition.bank_id),
           NotNullRef(ViewDefinition.account_id),
           NotNullRef(ViewDefinition.view_id)
+        )
+        val instanceSpecificSystemViews = ViewDefinition.findAll(
+          NullRef(ViewDefinition.bank_id),
+          NullRef(ViewDefinition.account_id),
+          By(ViewDefinition.isSystem_, true)
+        )
+        val bankSpecificSystemViews = ViewDefinition.findAll(
+          NotNullRef(ViewDefinition.bank_id),
+          NullRef(ViewDefinition.account_id),
+          By(ViewDefinition.isSystem_, true)
         )
 
         // Make back up
@@ -45,7 +55,10 @@ object UpdateTableViewDefinition {
         val isSuccessful = views.forall(_.name.startsWith("_"))
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""Number of updated rows at table ViewDefinition: ${updatedRows.size}""".stripMargin
+          s"""Number of updated rows at table ViewDefinition: ${updatedRows.size}
+             |Number of instance specific system views: ${instanceSpecificSystemViews.size}
+             |Number of bank specific system views: ${bankSpecificSystemViews.size}
+             |""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
         
