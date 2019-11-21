@@ -3,6 +3,8 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+21/11/2019    51f97330      Added props: portal_hostname. default use the same value as hostname. This props is only useful when we split obp to
+                            two instances: apis and portal. So portal one need its own hostname, portal_hostname can be used for it.  
 18/11/2019    de4aec71      Added props: grpc.server.enabled. default is false. 
 18/11/2019    4bd31563      Added props: grpc.server.port. if do not set this props, the grpc port will be set randomly when OBP starts. 
                             And you can call `Get API Configuration` endpoint to see the `grpc_port` there. When you set this props, need to
