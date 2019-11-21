@@ -683,6 +683,8 @@ database_messages_scheduler_interval=3600
 # In case isn't defined default value is "apis,portal"
 # Possible cases: portal, api
 # server_mode=apis,portal
+# If the server_mode set to `portal`, so we need to set its portal hostname. If omit this props, then it will use `hostname` value instead.
+# portal_hostname=http://127.0.0.1:8080
 # -----------------------------------------------
 
 # -- SCA (Strong Customer Authentication) method for OTP challenge-------

@@ -343,7 +343,9 @@ import net.liftweb.util.Helpers._
       // So if the follow case paramter name is "user" will cause compile warnings
       case u if u.validated_? =>
         u.resetUniqueId().save
-        val resetLink = APIUtil.getPropsValue("hostname", "ERROR")+
+        //NOTE: here, if server_mode = portal, so we need modify the resetLink to portal_hostname, then developer can get proper response..
+        val resetLinkProps = APIUtil.getPropsValue("hostname", "ERROR")
+        val resetLink = APIUtil.getPropsValue("portal_hostname", resetLinkProps)+
           passwordResetPath.mkString("/", "/", "/")+urlEncode(u.getUniqueId())
         Mailer.sendMail(From(emailFrom),Subject(passwordResetEmailSubject + " - " + u.username),
           To(u.getEmail) ::
