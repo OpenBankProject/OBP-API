@@ -17,7 +17,7 @@ import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v2_2_0.{BankJSONV220, CreateAccountJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_1_0.{JSONFactory310, ListResult}
+import code.api.v3_1_0.{CreateAccountRequestJsonV310, JSONFactory310, ListResult}
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
 import code.dynamicEntity.DynamicEntityCommons
 import code.entitlement.Entitlement
@@ -993,22 +993,16 @@ trait APIMethods400 {
         |If the product_code matches a product_code from Product, account attributes will be created that match the Product Attributes.
         |
         |Note: The Amount MUST be zero.""".stripMargin,
-      createAccountJSONV220,
-      addAccountJsonV400,
+      createAccountRequestJsonV310,
+      createAccountResponseJsonV310,
       List(
         InvalidJsonFormat,
-        BankNotFound,
         UserNotLoggedIn,
-        InvalidUserId,
-        InvalidAccountIdFormat,
-        InvalidBankIdFormat,
-        UserNotFoundById,
         UserHasMissingRoles,
         InvalidAccountBalanceAmount,
         InvalidAccountInitialBalance,
         InitialBalanceMustBeZero,
         InvalidAccountBalanceCurrency,
-        AccountIdAlreadyExists,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1023,9 +1017,9 @@ trait APIMethods400 {
         cc =>{
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            failMsg = s"$InvalidJsonFormat The Json body should be the ${prettyRender(Extraction.decompose(json))} "
+            failMsg = s"$InvalidJsonFormat The Json body should be the ${prettyRender(Extraction.decompose(createAccountRequestJsonV310))} "
             createAccountJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[CreateAccountJSONV220]
+              json.extract[CreateAccountRequestJsonV310]
             }
             loggedInUserId = u.userId
             userIdAccountOwner = if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id else loggedInUserId
@@ -1034,7 +1028,8 @@ trait APIMethods400 {
               hasEntitlement(bankId.value, loggedInUserId, canCreateAccount) || userIdAccountOwner == loggedInUserId
             }
             initialBalanceAsString = createAccountJson.balance.amount
-            accountType = createAccountJson.`type`
+            //Note: here we map the product_code to account_type 
+            accountType = createAccountJson.product_code
             accountLabel = createAccountJson.label
             initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
               BigDecimal(initialBalanceAsString)
