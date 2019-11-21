@@ -5,7 +5,6 @@ import java.time.{ZoneId, ZonedDateTime}
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.ratelimiting.RateLimiting
 import code.views.system.ViewDefinition
 import net.liftweb.mapper.{By, DB, NotNullRef, NullRef}
 import net.liftweb.util.DefaultConnectionIdentifier
@@ -17,7 +16,7 @@ object UpdateTableViewDefinition {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def populate(name: String): Boolean = {
-    DbFunction.tableExists(RateLimiting, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(ViewDefinition, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
