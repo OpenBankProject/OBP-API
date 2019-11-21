@@ -189,6 +189,8 @@ case class StandingOrderJsonV400(standing_order_id: String,
                                  date_expires: Date,
                                  date_cancelled: Date,
                                  active: Boolean)
+case class PostViewJsonV400(view_id: String, is_system: Boolean)
+case class PostAccountAccessJsonV400(user_id: String, view: PostViewJsonV400)
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {

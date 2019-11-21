@@ -3,6 +3,7 @@ package code.api.util
 import java.util.Date
 import java.util.UUID.randomUUID
 
+import code.accountholders.AccountHolders
 import code.api.APIFailureNewStyle
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
@@ -247,6 +248,23 @@ object NewStyle {
     def systemView(viewId : ViewId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.systemViewFuture(viewId) map {
         unboxFullOrFail(_, callContext, s"$SystemViewNotFound. Current ViewId is $viewId")
+      }
+    }
+    def viewPermission(view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
+      Future(Views.views.vend.addPermission(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId), user)) map {
+        unboxFullOrFail(_, callContext, s"$CannotAddAccountAccess Current ViewId is ${view.viewId.value}")
+      }
+    }
+    def systemViewPermission(view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
+      Future(Views.views.vend.addSystemViewPermission(view, user)) map {
+        unboxFullOrFail(_, callContext, s"$CannotAddAccountAccess Current ViewId is ${view.viewId.value}")
+      }
+    }
+    def isAccountHolder(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[User] = {
+      Future(AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId)) map {
+        u => 
+          val holder: Box[User] = u.filter(_.userId == user.userId).headOption
+          unboxFullOrFail(holder, callContext, s"$NoExistingAccountHolders")
       }
     }
     def createSystemView(view: CreateViewJson, callContext: Option[CallContext]) : Future[View] = {

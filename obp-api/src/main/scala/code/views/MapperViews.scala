@@ -97,6 +97,26 @@ object MapperViews extends Views with MdcLoggable {
         Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
       }
     } else Full(viewDefinition) //privilege already exists, no need to create one
+  }  
+  private def getOrCreateSystemViewPrivilege(user: User, view: View): Box[View] = {
+    if (AccountAccess.count(
+      By(AccountAccess.user_fk, user.userPrimaryKey.value), 
+      NullRef(AccountAccess.bank_id),
+      NullRef(AccountAccess.account_id), 
+      By(AccountAccess.view_fk, view.id)) == 0) {
+      val saved = AccountAccess.create.
+        user_fk(user.userPrimaryKey.value).
+        bank_id(null).
+        account_id(null).
+        view_id(view.viewId.value).
+        view_fk(view.id).
+        save
+      if (saved) {
+        Full(view)
+      } else {
+        Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
+      }
+    } else Full(view) //privilege already exists, no need to create one
   }
   // TODO Accept the whole view as a parameter so we don't have to select it here.
   def addPermission(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
@@ -115,6 +135,12 @@ object MapperViews extends Views with MdcLoggable {
       case _ => {
         Empty ~> APIFailure(s"View $viewIdBankIdAccountId. not found", 404) //TODO: move message + code logic to api level
       }
+    }
+  }
+  def addSystemViewPermission(view: View, user: User): Box[View] = {
+    { view.isPublic && !ALLOW_PUBLIC_VIEWS } match {
+      case true => Failure(PublicViewsNotAllowedOnThisInstance)
+      case false => getOrCreateSystemViewPrivilege(user, view)
     }
   }
 
