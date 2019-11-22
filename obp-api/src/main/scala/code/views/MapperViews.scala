@@ -173,7 +173,22 @@ object MapperViews extends Views with MdcLoggable {
       aa  <- AccountAccess.find(By(AccountAccess.user_fk, user.userPrimaryKey.value),
         By(AccountAccess.bank_id, viewUID.bankId.value),
         By(AccountAccess.account_id, viewUID.accountId.value),
-        By(AccountAccess.view_fk, viewDefinition.id))
+        By(AccountAccess.view_fk, viewDefinition.id)) ?~! CannotFindAccountAccess
+      // Check if we are allowed to remove the View from the User
+      _ <- accessRemovableAsBox(viewDefinition, user)
+    } yield {
+      aa.delete_!
+    }
+    res
+  }
+  def revokeSystemViewPermission(view : View, user : User) : Box[Boolean] = {
+    val res =
+    for {
+      viewDefinition <- ViewDefinition.find(By(ViewDefinition.id_, view.id)) 
+      aa  <- AccountAccess.find(By(AccountAccess.user_fk, user.userPrimaryKey.value),
+        NullRef(AccountAccess.bank_id),
+        NullRef(AccountAccess.account_id),
+        By(AccountAccess.view_fk, viewDefinition.id)) ?~! CannotFindAccountAccess
       // Check if we are allowed to remove the View from the User
       _ <- accessRemovableAsBox(viewDefinition, user)
     } yield {

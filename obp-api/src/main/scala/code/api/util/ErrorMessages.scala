@@ -250,6 +250,8 @@ object ErrorMessages {
   val CardAttributeNotFound = "OBP-30061: Card Attribute not found. Please specify a valid value for CARD_ATTRIBUTE_ID."
   
   val CannotAddAccountAccess = "OBP-30062: Cannot add account access."
+  val CannotRevokeAccountAccess = "OBP-30063: Cannot revoke account access."
+  val CannotFindAccountAccess = "OBP-30064: Cannot find account access."
   
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."

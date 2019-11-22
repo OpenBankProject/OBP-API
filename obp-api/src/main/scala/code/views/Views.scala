@@ -42,6 +42,7 @@ trait Views {
   def addSystemViewPermission(view : View, user : User) : Box[View]
   def addPermissions(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
   def revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
+  def revokeSystemViewPermission(view : View, user : User) : Box[Boolean]
   def revokeAllPermissions(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
 
   def view(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
@@ -111,6 +112,7 @@ class RemotedataViewsCaseClasses {
   case class addSystemViewPermission(view : View, user : User)
   case class addPermissions(views: List[ViewIdBankIdAccountId], user: User)
   case class revokePermission(viewUID: ViewIdBankIdAccountId, user: User)
+  case class revokeSystemViewPermission(view : View, user : User)
   case class revokeAllPermissions(bankId: BankId, accountId: AccountId, user: User)
   case class createView(bankAccountId: BankIdAccountId, view: CreateViewJson)
   case class createSystemView(view: CreateViewJson)

@@ -35,6 +35,10 @@ object RemotedataViews extends ObpActorInit with Views {
   
   def revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean] =  getValueFromFuture(
     (actor ? cc.revokePermission(viewIdBankIdAccountId, user)).mapTo[Box[Boolean]]
+  ) 
+  
+  def revokeSystemViewPermission(view : View, user : User) : Box[Boolean] =  getValueFromFuture(
+    (actor ? cc.revokeSystemViewPermission(view, user)).mapTo[Box[Boolean]]
   )
 
   def revokeAllPermissions(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = getValueFromFuture(
