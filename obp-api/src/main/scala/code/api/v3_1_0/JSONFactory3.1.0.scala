@@ -210,8 +210,8 @@ case class PostCustomerJsonV310(
   kyc_status: Boolean,
   last_ok_date: Date,
   title: String,
-  branchId: String,
-  nameSuffix: String
+  branch_id: String,
+  name_suffix: String
 )
 case class PutUpdateCustomerBranchJsonV310(branch_id: String)
 case class PutUpdateCustomerEmailJsonV310(email: String)
@@ -248,8 +248,8 @@ case class CustomerJsonV310(
   kyc_status: lang.Boolean,
   last_ok_date: Date,
   title: String,
-  branchId: String,
-  nameSuffix: String
+  branch_id: String,
+  name_suffix: String
 )
 
 case class UpdateAccountRequestJsonV310(
@@ -624,10 +624,22 @@ case class PhysicalCardWithAttributesJsonV310(
 case class PhysicalCardsJsonV310(
   cards : List[PhysicalCardJsonV310])
 
-case class CreateAccountJsonV310(
+
+case class CreateAccountRequestJsonV310(
+  user_id : String,
+  label   : String,
+  product_code : String,
+  balance : AmountOfMoneyJsonV121,
+  branch_id : String,
+  account_routing: AccountRoutingJsonV121,
+  account_attributes: List[AccountAttributeResponseJson]
+)
+
+case class CreateAccountResponseJsonV310(
+                                 account_id: String,
                                  user_id : String,
                                  label   : String,
-                                 `type` : String,
+                                 product_code : String,
                                  balance : AmountOfMoneyJsonV121,
                                  branch_id : String,
                                  account_routing: AccountRoutingJsonV121,
@@ -739,6 +751,7 @@ case class AccountBalancesJson(
   overall_balance: AmountOfMoney,
   overall_balance_date: Date
 )
+
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -912,8 +925,8 @@ object JSONFactory310{
       kyc_status = cInfo.kycStatus,
       last_ok_date = cInfo.lastOkDate,
       title = cInfo.title,
-      branchId = cInfo.branchId,
-      nameSuffix = cInfo.nameSuffix
+      branch_id = cInfo.branchId,
+      name_suffix = cInfo.nameSuffix
     )
   }
 
@@ -1293,11 +1306,12 @@ object JSONFactory310{
     )
   }
 
-  def createAccountJSON(userId: String, account: BankAccount, accountAttributes: List[AccountAttribute]): CreateAccountJsonV310 = {
-    CreateAccountJsonV310(
+  def createAccountJSON(userId: String, account: BankAccount, accountAttributes: List[AccountAttribute]): CreateAccountResponseJsonV310 = {
+    CreateAccountResponseJsonV310(
+      account_id = account.accountId.value,
       user_id = userId,
       label = account.label,
-      `type` = account.accountType,
+      product_code = account.accountType,
       balance = AmountOfMoneyJsonV121(
         account.currency,
         account.balance.toString()

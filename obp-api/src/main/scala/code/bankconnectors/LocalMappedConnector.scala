@@ -1300,6 +1300,48 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       transactionsDeleted && privilegesDeleted && viewsDeleted && accountDeleted)
 }
 
+  override def addBankAccount(
+    bankId: BankId,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    initialBalance: BigDecimal,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[BankAccount]] = Future{
+    val accountId = AccountId(APIUtil.generateUUID())
+    val uniqueAccountNumber = {
+      def exists(number : String) = accountExists(bankId, number).openOrThrowException(attemptedToOpenAnEmptyBox)
+
+      def appendUntilOkay(number : String) : String = {
+        val newNumber = number + Random.nextInt(10)
+        if(!exists(newNumber)) newNumber
+        else appendUntilOkay(newNumber)
+      }
+
+      //generates a random 8 digit account number
+      val firstTry = (Random.nextDouble() * 10E8).toInt.toString
+      appendUntilOkay(firstTry)
+    }
+    (createSandboxBankAccount(
+      bankId,
+      accountId,
+      uniqueAccountNumber,
+      accountType,
+      accountLabel,
+      currency,
+      initialBalance,
+      accountHolderName,
+      branchId: String,//added field in V220
+      accountRoutingScheme, //added field in V220
+      accountRoutingAddress //added field in V220
+    ),callContext)
+  }
+  
+  
   override def createBankAccount(
                          bankId: BankId,
                          accountId: AccountId,

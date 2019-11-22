@@ -455,8 +455,8 @@ case class CustomerJsonV300(
                              kyc_status: lang.Boolean,
                              last_ok_date: Date,
                              title: String, 
-                             branchId: String,
-                             nameSuffix: String)
+                             branch_id: String,
+                             name_suffix: String)
 case class CustomerJSONs(customers: List[CustomerJsonV300])
 
 case class EntitlementRequestJSON(entitlement_request_id: String, user: UserJsonV200, role_name: String, bank_id: String, created: Date)
@@ -1171,8 +1171,8 @@ object JSONFactory300{
       kyc_status = cInfo.kycStatus,
       last_ok_date = cInfo.lastOkDate,
       title = cInfo.title,
-      branchId = cInfo.branchId,
-      nameSuffix = cInfo.nameSuffix
+      branch_id = cInfo.branchId,
+      name_suffix = cInfo.nameSuffix
     )
   }
   def createCustomersJson(customers : List[Customer]) : CustomerJSONs = {
