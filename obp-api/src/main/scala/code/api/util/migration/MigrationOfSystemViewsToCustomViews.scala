@@ -5,7 +5,7 @@ import java.time.{ZoneId, ZonedDateTime}
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.views.system.ViewDefinition
+import code.views.system.{AccountAccess, ViewDefinition}
 import net.liftweb.mapper.{By, DB, NotNullRef, NullRef}
 import net.liftweb.util.DefaultConnectionIdentifier
 
@@ -51,12 +51,26 @@ object UpdateTableViewDefinition {
               .isSystem_(false)
               .save
           }
+
+        // Make back up
+        DbFunction.makeBackUpOfTable(AccountAccess)
+
+        // Update rows into table "AccountAccess"
+        val updatedAccountAccessRows =
+          for {
+            view <- views
+            accountAccess <- AccountAccess.find(By(AccountAccess.view_fk, view.id)).toList
+          } yield {
+            accountAccess.view_id(view.viewId.value).save()
+          }
+        
         val isSuccessful = views.forall(_.name.startsWith("_"))
         val endDate = System.currentTimeMillis()
         val comment: String =
           s"""Number of updated rows at table ViewDefinition: ${updatedRows.size}
              |Number of instance specific system views: ${instanceSpecificSystemViews.size}
              |Number of bank specific system views: ${bankSpecificSystemViews.size}
+             |Number of updated rows at table AccountAccess: ${updatedAccountAccessRows.size}
              |""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
