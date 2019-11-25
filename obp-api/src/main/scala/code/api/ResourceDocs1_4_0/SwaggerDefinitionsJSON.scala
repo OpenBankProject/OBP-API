@@ -15,7 +15,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, StandingOrderJsonV400, When}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RevokedJsonV400, StandingOrderJsonV400, When}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
 import code.sandbox.SandboxData
@@ -3562,6 +3562,9 @@ object SwaggerDefinitionsJSON {
     account_routing = accountRoutingJsonV121,
     account_attributes=  List(accountAttributeResponseJson)
   )
+  
+  val postAccountAccessJsonV400 = PostAccountAccessJsonV400(userIdExample.value, PostViewJsonV400(ExampleValue.viewIdExample.value, true))
+  val revokedJsonV400 = RevokedJsonV400(true)
     
   //The common error or success format.
   //Just some helper format to use in Json 

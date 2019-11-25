@@ -272,8 +272,8 @@ object NewStyle {
     }
     def isAccountHolder(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[User] = {
       Future(AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId)) map {
-        u => 
-          val holder: Box[User] = u.filter(_.userId == user.userId).headOption
+        holders => 
+          val holder: Box[User] = holders.filter(_.userId == user.userId).headOption
           unboxFullOrFail(holder, callContext, s"$NoExistingAccountHolders")
       }
     }

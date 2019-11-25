@@ -1859,7 +1859,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)} and the user needs to be account holder.
          |
          |""",
-      PostAccountAccessJsonV400(userIdExample.value, PostViewJsonV400(ExampleValue.viewIdExample.value, true)),
+      postAccountAccessJsonV400,
       viewJsonV300,
       List(
         UserNotLoggedIn,
@@ -1914,8 +1914,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)} and the user needs to be account holder.
          |
          |""",
-      PostAccountAccessJsonV400(userIdExample.value, PostViewJsonV400(ExampleValue.viewIdExample.value, true)),
-      RevokedJsonV400(true),
+      postAccountAccessJsonV400,
+      revokedJsonV400,
       List(
         UserNotLoggedIn,
         ErrorMessages.NoExistingAccountHolders,
