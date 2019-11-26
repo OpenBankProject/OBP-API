@@ -3,9 +3,11 @@ package code.api.v4_0_0
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import code.api.v1_2_1._
 import code.api.v2_0_0.BasicAccountsJSON
-import code.api.v3_0_0.{TransactionJsonV300, TransactionsJsonV300}
+import code.api.v3_0_0.{TransactionJsonV300, TransactionsJsonV300, ViewJsonV300}
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData, User1AllPrivileges}
+import com.openbankproject.commons.model.{CreateViewJson, UpdateViewJSON}
 import dispatch.Req
+import net.liftweb.json.Serialization.write
 
 import scala.util.Random.nextInt
 
@@ -58,7 +60,23 @@ trait V400ServerSetup extends ServerSetupWithTestData with User1AllPrivileges wi
     val randomPosition = nextInt(transactionsJson.size)
     transactionsJson(randomPosition)
   }
-
-
+  
+  def updateView(bankId: String, accountId: String, viewId: String, updateViewJson: UpdateViewJSON, consumerAndToken: Option[(Consumer, Token)]): ViewJsonV300 = {
+    def putView(bankId: String, accountId: String, viewId : String, view: UpdateViewJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+      val request = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
+      makePutRequest(request, write(view))
+    }
+    val reply = putView(bankId, accountId, viewId, updateViewJson, consumerAndToken)
+    reply.body.extract[ViewJsonV300]
+  }
+  
+  def createView(bankId: String, accountId: String, createViewJson: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): ViewJsonV300 = {
+    def postView(bankId: String, accountId: String, view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+      val request = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
+      makePostRequest(request, write(view))
+    }
+    val reply = postView(bankId, accountId, createViewJson, consumerAndToken)
+    reply.body.extract[ViewJsonV300]
+  }
   
 }

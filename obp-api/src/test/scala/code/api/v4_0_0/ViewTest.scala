@@ -6,13 +6,11 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiVersion
 import code.api.util.ErrorMessages.UserNotLoggedIn
-import code.api.v2_2_0.ViewJSONV220
 import code.api.v3_0_0.ViewJsonV300
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
-import code.setup.APIResponse
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, CreateViewJson}
+import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
@@ -33,8 +31,7 @@ class ViewTest extends V400ServerSetup {
   lazy val bankAccount = randomPrivateAccount(bankId)
   lazy val ownerView = randomOwnerViewPermalink(bankId, bankAccount)
   lazy val postAccountAccessJson = PostAccountAccessJsonV400(resourceUser2.userId, PostViewJsonV400("_test_view", false))
-  //Custom view, name starts from `_`
-  val postBodyViewJson = createViewJson
+  lazy val postBodyViewJson = createViewJson
   
   def createAnAccount(bankId: String, user: Option[(Consumer,Token)]): CreateAccountResponseJsonV310 = {
     val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
@@ -45,18 +42,8 @@ class ViewTest extends V400ServerSetup {
     response400.body.extract[CreateAccountResponseJsonV310]
   }
   
-  def createViewForAnAccount(bankId: String, accountId: String) ={
-    
-    def postView(bankId: String, accountId: String, view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-      val request = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
-      makePostRequest(request, write(view))
-    }
-
-    When("the request is sent")
-    val reply = postView(bankId, accountId, postBodyViewJson, user1)
-    Then("we should get a 201 code")
-    reply.code should equal (201)
-    reply.body.extract[ViewJSONV220]
+  def createViewForAnAccount(bankId: String, accountId: String): ViewJsonV300 = {
+    createView(bankId, accountId, postBodyViewJson, user1)
   }
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {

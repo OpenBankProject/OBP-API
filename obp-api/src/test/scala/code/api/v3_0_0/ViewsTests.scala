@@ -60,7 +60,7 @@ class ViewsTests extends V300ServerSetup {
     makePutRequest(request, write(view))
   }
 
-  def getAccountAccesForUser(bankId: String, accountId: String, provider : String, providerId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+  def getAccountAccessForUser(bankId: String, accountId: String, provider : String, providerId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v3_0Request / "banks" / bankId / "accounts" / accountId / "permissions" / provider / providerId).GET <@(consumerAndToken)
     makeGetRequest(request)
   }
@@ -353,7 +353,7 @@ class ViewsTests extends V300ServerSetup {
       val providerId = permission.user.id
   
       When("We use a valid access token and valid put json")
-      val reply = getAccountAccesForUser(bankId, bankAccountId, provider,
+      val reply = getAccountAccessForUser(bankId, bankAccountId, provider,
                                          providerId, user1
       )
       Then("We should get back the updated view")
