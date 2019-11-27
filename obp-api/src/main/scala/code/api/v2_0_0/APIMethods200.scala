@@ -949,7 +949,6 @@ trait APIMethods200 {
             bankAccount <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             // Assume owner view was requested
             view <- Views.views.vend.view( ViewId(CUSTOM_OWNER_VIEW_ID), BankIdAccountId(bankAccount.bankId,bankAccount.accountId))
-              .or(Views.views.vend.systemView(ViewId(SYSTEM_OWNER_VIEW_ID)))
             (transactions, callContext) <- bankAccount.getModeratedTransactions(cc.user, view, None, params)
           } yield {
             val json = JSONFactory200.createCoreTransactionsJSON(transactions)

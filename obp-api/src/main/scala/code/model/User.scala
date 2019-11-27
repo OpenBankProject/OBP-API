@@ -59,7 +59,6 @@ case class UserExtended(val user: User) extends MdcLoggable {
   final def hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean ={
     //find the bankAccount owner view object
     val viewImplBox = Views.views.vend.view(ViewId(CUSTOM_OWNER_VIEW_ID), bankIdAccountId)
-      .or(Views.views.vend.systemView(ViewId(SYSTEM_OWNER_VIEW_ID)))
     viewImplBox match {
       case Full(v) => hasViewAccess(v)
       case _ =>

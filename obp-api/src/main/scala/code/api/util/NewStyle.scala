@@ -239,8 +239,6 @@ object NewStyle {
     }    
     def ownerView(bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.viewFuture(ViewId(CUSTOM_OWNER_VIEW_ID), bankAccountId) map {
-        x => x.or(Views.views.vend.systemView(ViewId(SYSTEM_OWNER_VIEW_ID)))
-      } map {
         unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is owner")
       }
     }
