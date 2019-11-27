@@ -1,7 +1,7 @@
 package code.api.v4_0_0
 
 import code.api.ErrorMessage
-import code.api.util.ApiRole.CanGetEntitlementsForAnyUserAtAnyBank
+import code.api.util.ApiRole.{CanGetEntitlementsForAnyBank, CanGetEntitlementsForAnyUserAtAnyBank, CanGetEntitlementsForOneBank}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, _}
 import code.api.util.{ApiRole, ApiVersion, ErrorMessages}
 import code.entitlement.Entitlement
@@ -30,6 +30,7 @@ class EntitlementTests extends V400ServerSetupAsync with DefaultUsers {
     */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.getEntitlements))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getEntitlementsForBank))
 
   feature("Assuring that endpoint getEntitlements works as expected - v4.0.0") {
 
@@ -66,6 +67,45 @@ class EntitlementTests extends V400ServerSetupAsync with DefaultUsers {
       Then("We should get a 200")
       responseGet map { r =>
           r.code should equal(200)
+      }
+    }
+
+    scenario("We try to get entitlements without roles - getEntitlementsForBank", ApiEndpoint2, VersionOfApi) {
+      When("We make the request")
+      val requestGet = (v4_0_0_Request / "banks" / testBankId1.value / "entitlements").GET <@ (user1)
+      val responseGet = makeGetRequestAsync(requestGet)
+      Then("We should get a 403")
+
+      responseGet map { r =>
+        r.code should equal(403)
+        r.body.extract[ErrorMessage].message contains(CanGetEntitlementsForOneBank.toString()) should be (true)
+        r.body.extract[ErrorMessage].message contains(CanGetEntitlementsForAnyBank.toString) should be (true)
+      }
+    }
+
+    scenario("We try to get entitlements with CanGetEntitlementsForOneBank role - getEntitlementsForBank", ApiEndpoint2, VersionOfApi) {
+      When("We add required entitlement")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanGetEntitlementsForOneBank.toString)
+      And("We make the request")
+      val requestGet = (v4_0_0_Request / "banks" / testBankId1.value / "entitlements").GET <@ (user1)
+      val responseGet = makeGetRequestAsync(requestGet)
+      Then("We should get a 200")
+      responseGet map { r =>
+        r.body.extract[EntitlementsJsonV400]
+        r.code should equal(200)
+      }
+    }
+
+    scenario("We try to get entitlements with CanGetEntitlementsForAnyBank role - getEntitlementsForBank", ApiEndpoint2, VersionOfApi) {
+      When("We add required entitlement")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetEntitlementsForAnyBank.toString)
+      And("We make the request")
+      val requestGet = (v4_0_0_Request / "banks" / testBankId1.value / "entitlements").GET <@ (user1)
+      val responseGet = makeGetRequestAsync(requestGet)
+      Then("We should get a 200")
+      responseGet map { r =>
+        r.body.extract[EntitlementsJsonV400]
+        r.code should equal(200)
       }
     }
   }
