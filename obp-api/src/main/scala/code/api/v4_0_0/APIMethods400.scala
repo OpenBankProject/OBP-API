@@ -980,7 +980,7 @@ trait APIMethods400 {
       nameOf(addAccount),
       "POST",
       "/banks/BANK_ID/accounts",
-      "Add Account",
+      "Create Account (POST)",
       """Create Account at bank specified by BANK_ID.
         |
         |The User can create an Account for himself  - or -  the User that has the USER_ID specified in the POST body.
