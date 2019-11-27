@@ -44,9 +44,9 @@ package com.tesobe.model {
 package code.model.dataAccess {
 
   import code.accountholders.AccountHolders
+  import code.api.Constant._
   import code.api.util.APIUtil
   import code.bankconnectors.Connector
-  import code.model._
   import code.users.Users
   import code.util.Helper.MdcLoggable
   import code.views.Views
@@ -101,7 +101,7 @@ package code.model.dataAccess {
       */
     private def createOwnerView(bankId : BankId, accountId : AccountId, user: User): Unit = {
 
-      val ownerViewUID = ViewIdBankIdAccountId(ViewId("owner"), bankId, accountId)
+      val ownerViewUID = ViewIdBankIdAccountId(ViewId(CUSTOM_OWNER_VIEW_ID), bankId, accountId)
       val existingOwnerView = Views.views.vend.view(ownerViewUID.viewId, BankIdAccountId(ownerViewUID.bankId, ownerViewUID.accountId))
 
       existingOwnerView match {

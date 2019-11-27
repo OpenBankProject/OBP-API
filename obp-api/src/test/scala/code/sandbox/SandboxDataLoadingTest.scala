@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.sandbox
 
 import java.util.Date
-
+import code.api.Constant._
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.api.util.APIUtil._
@@ -291,7 +291,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.userOwners.toList.head.name).openOrThrowException(attemptedToOpenAnEmptyBox)
     //there should be an owner view
     val views = Views.views.vend.privateViewsUserCanAccessForAccount(owner, BankIdAccountId(foundAccount.bankId, foundAccount.accountId))
-    val ownerView = views.find(v => v.viewId.value == "_owner")
+    val ownerView = views.find(v => v.viewId.value == CUSTOM_OWNER_VIEW_ID)
     owner.hasOwnerViewAccess(BankIdAccountId(foundAccount.bankId, foundAccount.accountId)) should equal(true)
 
     //and the owners should have access to it

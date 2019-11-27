@@ -1,5 +1,6 @@
 package code.api.v3_0_0
 
+import code.api.Constant._
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import code.api.v1_2_1.{AccountJSON, AccountsJSON, BanksJSON, ViewsJSONV121}
 import code.api.v2_0_0.BasicAccountsJSON
@@ -76,7 +77,7 @@ trait V300ServerSetup extends ServerSetupWithTestData with User1AllPrivileges wi
     * Get Transactions for Account (Full)-- V300
     */
   def getTransactionsForAccountFull(bankId:String, accountId:String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = (v3_0Request / "banks" / bankId / "accounts" / accountId / "_owner" / "transactions").GET <@ (user1)
+    val request = (v3_0Request / "banks" / bankId / "accounts" / accountId / CUSTOM_OWNER_VIEW_ID / "transactions").GET <@ (user1)
     makeGetRequest(request)
   }
   

@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
 */
 package code.api.v3_1_0
 
+import code.api.Constant._
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
@@ -176,7 +177,7 @@ class TransactionTest extends V310ServerSetup {
       
       Then("We can get the transaction back")
       val transactionNewId = responseJson.transaction_id
-      val getTransactionbyIdRequest = (v3_1_0_Request / "banks" / bankId1/ "accounts" / bankAccountId1 / "_owner" / "transactions" / transactionNewId / "transaction").GET <@ (user1)
+      val getTransactionbyIdRequest = (v3_1_0_Request / "banks" / bankId1/ "accounts" / bankAccountId1 / CUSTOM_OWNER_VIEW_ID / "transactions" / transactionNewId / "transaction").GET <@ (user1)
       val getTransactionbyIdResponse = makeGetRequest(getTransactionbyIdRequest)
 
       getTransactionbyIdResponse.code should equal(200)

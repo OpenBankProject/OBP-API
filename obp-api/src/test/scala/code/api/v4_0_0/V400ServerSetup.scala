@@ -1,5 +1,6 @@
 package code.api.v4_0_0
 
+import code.api.Constant._
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import code.api.v1_2_1._
 import code.api.v2_0_0.BasicAccountsJSON
@@ -45,7 +46,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with User1AllPrivileges wi
   def randomOwnerViewPermalink(bankId: String, account: AccountJSON) : String = {
     val request = v4_0_0_Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
     val reply = makeGetRequest(request)
-    val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views.filterNot(_.is_public==true).filter(_.id == "_owner")
+    val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views.filterNot(_.is_public==true).filter(_.id == CUSTOM_OWNER_VIEW_ID)
     val randomPosition = nextInt(possibleViewsPermalinks.size)
     possibleViewsPermalinks(randomPosition).id
   }

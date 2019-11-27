@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_1_0
 
+import code.api.Constant._
 import _root_.net.liftweb.json.Serialization.write
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -59,7 +60,7 @@ class SystemViewsTests extends V310ServerSetup {
   
   // Custom view, name starts from `_`
   // System view, owner
-  val postBodySystemViewJson = createViewJson.copy(name="owner").copy(metadata_view = "owner")
+  val postBodySystemViewJson = createViewJson.copy(name=SYSTEM_OWNER_VIEW_ID).copy(metadata_view = SYSTEM_OWNER_VIEW_ID)
   val systemViewId = MapperViews.getNewViewPermalink(postBodySystemViewJson.name)
   
   def getSystemView(viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {

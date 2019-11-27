@@ -5,10 +5,10 @@ import java.util.UUID.randomUUID
 
 import code.accountholders.AccountHolders
 import code.api.APIFailureNewStyle
+import code.api.Constant._
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
-import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
@@ -16,7 +16,7 @@ import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.bankconnectors.Connector
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
-import code.directdebit.{DirectDebitTrait, DirectDebits}
+import code.directdebit.DirectDebitTrait
 import code.dynamicEntity.{DynamicEntityProvider, DynamicEntityT}
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
@@ -31,14 +31,13 @@ import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.enums.DynamicEntityOperation.{CREATE, UPDATE}
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.common.{Box, Empty, Full, ParamFailure}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
-import net.liftweb.json
-import net.liftweb.json.{JArray, JBool, JDouble, JInt, JObject, JString, JValue}
+import net.liftweb.json.{JObject, JValue}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
@@ -239,8 +238,8 @@ object NewStyle {
       }
     }    
     def ownerView(bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
-      Views.views.vend.viewFuture(ViewId("_owner"), bankAccountId) map {
-        x => x.or(Views.views.vend.systemView(ViewId("owner")))
+      Views.views.vend.viewFuture(ViewId(CUSTOM_OWNER_VIEW_ID), bankAccountId) map {
+        x => x.or(Views.views.vend.systemView(ViewId(SYSTEM_OWNER_VIEW_ID)))
       } map {
         unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is owner")
       }

@@ -3,11 +3,12 @@ package code.views
 import bootstrap.liftweb.ToSchemify
 import code.accountholders.MapperAccountHolders
 import code.api.APIFailure
+import code.api.Constant._
 import code.api.util.APIUtil
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
-import code.views.system.ViewDefinition.create
 import code.util.Helper.MdcLoggable
+import code.views.system.ViewDefinition.create
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.model.{UpdateViewJSON, _}
 import net.liftweb.common._
@@ -205,7 +206,7 @@ object MapperViews extends Views with MdcLoggable {
 
 
   def accessRemovable(viewDefinition: ViewDefinition, user : User) : Boolean = {
-    if(viewDefinition.viewId == ViewId("_owner")) {
+    if(viewDefinition.viewId == ViewId(CUSTOM_OWNER_VIEW_ID)) {
       //if the user is an account holder, we can't revoke access to the owner view
       val accountHolders = MapperAccountHolders.getAccountHolders(viewDefinition.bankId, viewDefinition.accountId)
       if(accountHolders.map(h => h.userPrimaryKey).contains(user.userPrimaryKey)) {
@@ -361,7 +362,7 @@ object MapperViews extends Views with MdcLoggable {
 
   def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit] = {
 
-    if(viewId.value == "_owner")
+    if(viewId.value == CUSTOM_OWNER_VIEW_ID)
       Failure("you cannot delete the owner view")
     else {
       for {
@@ -372,7 +373,7 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
   def removeSystemView(viewId: ViewId): Future[Box[Boolean]] = Future {
-    if(viewId.value == "owner")
+    if(viewId.value == SYSTEM_OWNER_VIEW_ID)
       Failure("you cannot delete the owner view")
     else {
       for {
@@ -438,7 +439,7 @@ object MapperViews extends Views with MdcLoggable {
 
     val bankId = bankIdAccountId.bankId
     val accountId = bankIdAccountId.accountId
-    val ownerView = "_owner".equals(viewId.toLowerCase)
+    val ownerView = CUSTOM_OWNER_VIEW_ID.equals(viewId.toLowerCase)
     val publicView = "_public".equals(viewId.toLowerCase)
     val accountantsView = "_accountant".equals(viewId.toLowerCase)
     val auditorsView = "_auditor".equals(viewId.toLowerCase)
@@ -461,7 +462,7 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {
-    getExistingView(bankId, accountId, "_owner") match {
+    getExistingView(bankId, accountId, CUSTOM_OWNER_VIEW_ID) match {
       case Empty => createDefaultOwnerView(bankId, accountId, description)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -518,7 +519,7 @@ object MapperViews extends Views with MdcLoggable {
       isSystem_(false).
       isFirehose_(false).
       name_(randomString(5)).
-      metadataView_("_owner").
+      metadataView_(CUSTOM_OWNER_VIEW_ID).
       description_(randomString(3)).
       view_id(randomString(3)).
       isPublic_(false).
@@ -691,7 +692,7 @@ object MapperViews extends Views with MdcLoggable {
       .bank_id(bankId.value)
       .account_id(accountId.value)
       .name_("Owner")
-      .view_id("_owner")
+      .view_id(CUSTOM_OWNER_VIEW_ID)
       .description_(description)
       .isPublic_(false) //(default is false anyways)
       .usePrivateAliasIfOneExists_(false) //(default is false anyways)

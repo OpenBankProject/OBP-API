@@ -1,7 +1,7 @@
 package code.api.v4_0_0
 
 import java.util.Date
-
+import code.api.Constant._
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{fullBoxOrException, _}
@@ -1384,7 +1384,7 @@ trait APIMethods400 {
             (Full(u), callContext) <-  authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             // Assume owner view was requested
-            viewId = ViewId("_owner")
+            viewId = ViewId(CUSTOM_OWNER_VIEW_ID)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             _ <- NewStyle.function.hasViewAccess(view, u)
             moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)

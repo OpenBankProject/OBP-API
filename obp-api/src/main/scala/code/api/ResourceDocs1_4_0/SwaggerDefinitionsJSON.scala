@@ -1,7 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.Date
-
+import code.api.Constant._
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
@@ -170,7 +170,7 @@ object SwaggerDefinitionsJSON {
   val updateViewJSON = UpdateViewJSON(
     description = "this is for family",
     is_public = true,
-    metadata_view = "owner",
+    metadata_view = SYSTEM_OWNER_VIEW_ID,
     which_alias_to_use = "family",
     hide_metadata_if_alias_used = true,
     allowed_actions = List(
@@ -257,7 +257,7 @@ object SwaggerDefinitionsJSON {
 
   val accountIdSwagger = model.AccountId(value = "123")
 
-  val viewIdSwagger = ViewId(value = "owner")
+  val viewIdSwagger = ViewId(value = SYSTEM_OWNER_VIEW_ID)
 
 
   // from code.TransactionTypes.TransactionType, not from normal version Factory
@@ -2340,7 +2340,7 @@ object SwaggerDefinitionsJSON {
     created_by_user_id = ExampleValue.userIdExample.value,
     this_bank_id = bankIdExample.value,
     this_account_id =accountIdExample.value,
-    this_view_id = "owner",
+    this_view_id = SYSTEM_OWNER_VIEW_ID,
     counterparty_id = "1d65db7c-a7b2-4839-af41-958276ab7790",
     other_bank_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
     other_bank_routing_address = postCounterpartyJSON.other_bank_routing_address,
@@ -2371,7 +2371,7 @@ object SwaggerDefinitionsJSON {
     created_by_user_id = ExampleValue.userIdExample.value,
     this_bank_id = bankIdExample.value,
     this_account_id =accountIdExample.value,
-    this_view_id = "owner",
+    this_view_id = SYSTEM_OWNER_VIEW_ID,
     counterparty_id = "1d65db7c-a7b2-4839-af41-958276ab7790",
     other_bank_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
     other_bank_routing_address = postCounterpartyJSON.other_bank_routing_address,
@@ -2542,7 +2542,7 @@ object SwaggerDefinitionsJSON {
     id = "1234",
     short_name = "short_name",
     description = "description",
-    metadata_view = "owner",
+    metadata_view = SYSTEM_OWNER_VIEW_ID,
     is_public = true,
     is_system = true,
     alias = "No",
