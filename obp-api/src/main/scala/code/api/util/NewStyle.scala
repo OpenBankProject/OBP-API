@@ -239,6 +239,8 @@ object NewStyle {
     }    
     def ownerView(bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.viewFuture(ViewId(CUSTOM_OWNER_VIEW_ID), bankAccountId) map {
+        x => x.or(Views.views.vend.systemView(ViewId(SYSTEM_OWNER_VIEW_ID)))
+      } map {
         unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is owner")
       }
     }
@@ -257,13 +259,13 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$CannotRevokeAccountAccess Current ViewId is ${view.viewId.value}")
       }
     }
-    def addSystemViewPermission(view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
-      Future(Views.views.vend.addSystemViewPermission(view, user)) map {
+    def addSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
+      Future(Views.views.vend.addSystemViewPermission(bankId, accountId, view, user)) map {
         unboxFullOrFail(_, callContext, s"$CannotAddAccountAccess Current ViewId is ${view.viewId.value}")
       }
     }
-    def revokeSystemViewPermission(view : View, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
-      Future(Views.views.vend.revokeSystemViewPermission(view, user)) map {
+    def revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
+      Future(Views.views.vend.revokeSystemViewPermission(bankId, accountId, view, user)) map {
         unboxFullOrFail(_, callContext, s"$CannotRevokeAccountAccess Current ViewId is ${view.viewId.value}")
       }
     }

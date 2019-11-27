@@ -205,6 +205,7 @@ class SystemViewsTests extends V310ServerSetup {
       val creationReply = postSystemView(postBodySystemViewJson, user1)
       creationReply.code should equal (201)
       val createdView : ViewJsonV300 = creationReply.body.extract[ViewJsonV300]
+      createdView.id should not startWith("_")
       createdView.can_see_images should equal(true)
       createdView.can_delete_comment should equal(true)
       createdView.can_delete_physical_location should equal(true)

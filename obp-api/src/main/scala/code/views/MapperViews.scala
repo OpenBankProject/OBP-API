@@ -99,16 +99,16 @@ object MapperViews extends Views with MdcLoggable {
       }
     } else Full(viewDefinition) //privilege already exists, no need to create one
   }  
-  private def getOrCreateSystemViewPrivilege(user: User, view: View): Box[View] = {
+  private def getOrCreateSystemViewPrivilege(bankId: BankId, accountId: AccountId, user: User, view: View): Box[View] = {
     if (AccountAccess.count(
       By(AccountAccess.user_fk, user.userPrimaryKey.value), 
-      NullRef(AccountAccess.bank_id),
-      NullRef(AccountAccess.account_id), 
+      By(AccountAccess.bank_id, bankId.value),
+      By(AccountAccess.account_id, accountId.value), 
       By(AccountAccess.view_fk, view.id)) == 0) {
       val saved = AccountAccess.create.
         user_fk(user.userPrimaryKey.value).
-        bank_id(null).
-        account_id(null).
+        bank_id(bankId.value).
+        account_id(accountId.value).
         view_id(view.viewId.value).
         view_fk(view.id).
         save
@@ -138,10 +138,10 @@ object MapperViews extends Views with MdcLoggable {
       }
     }
   }
-  def addSystemViewPermission(view: View, user: User): Box[View] = {
+  def addSystemViewPermission(bankId: BankId, accountId: AccountId, view: View, user: User): Box[View] = {
     { view.isPublic && !ALLOW_PUBLIC_VIEWS } match {
       case true => Failure(PublicViewsNotAllowedOnThisInstance)
-      case false => getOrCreateSystemViewPrivilege(user, view)
+      case false => getOrCreateSystemViewPrivilege(bankId: BankId, accountId: AccountId, user, view)
     }
   }
 
@@ -182,13 +182,14 @@ object MapperViews extends Views with MdcLoggable {
     }
     res
   }
-  def revokeSystemViewPermission(view : View, user : User) : Box[Boolean] = {
+  def revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean] = {
     val res =
     for {
       viewDefinition <- ViewDefinition.find(By(ViewDefinition.id_, view.id)) 
-      aa  <- AccountAccess.find(By(AccountAccess.user_fk, user.userPrimaryKey.value),
-        NullRef(AccountAccess.bank_id),
-        NullRef(AccountAccess.account_id),
+      aa  <- AccountAccess.find(
+        By(AccountAccess.user_fk, user.userPrimaryKey.value),
+        By(AccountAccess.bank_id, bankId.value),
+        By(AccountAccess.account_id, accountId.value),
         By(AccountAccess.view_fk, viewDefinition.id)) ?~! CannotFindAccountAccess
       // Check if we are allowed to remove the View from the User
       _ <- accessRemovableAsBox(viewDefinition, user)

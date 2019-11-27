@@ -1891,7 +1891,7 @@ trait APIMethods400 {
               case false => NewStyle.function.view(ViewId(postJson.view.view_id), BankIdAccountId(bankId, accountId), callContext)
             }
             addedView <- postJson.view.is_system match {
-              case true => NewStyle.function.addSystemViewPermission(view, user, callContext)
+              case true => NewStyle.function.addSystemViewPermission(bankId, accountId, view, user, callContext)
               case false => NewStyle.function.addViewPermission(view, user, callContext)
             }
           } yield {
@@ -1947,7 +1947,7 @@ trait APIMethods400 {
               case false => NewStyle.function.view(ViewId(postJson.view.view_id), BankIdAccountId(bankId, accountId), callContext)
             }
             revoked <- postJson.view.is_system match {
-              case true => NewStyle.function.revokeSystemViewPermission(view, user, callContext)
+              case true => NewStyle.function.revokeSystemViewPermission(bankId, accountId, view, user, callContext)
               case false => NewStyle.function.revokeViewPermission(view, user, callContext)
             }
           } yield {

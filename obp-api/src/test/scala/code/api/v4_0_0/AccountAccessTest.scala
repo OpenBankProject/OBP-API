@@ -14,7 +14,7 @@ import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
-class ViewTest extends V400ServerSetup {
+class AccountAccessTest extends V400ServerSetup {
   /**
     * Test tags
     * Example: To run tests with tag "getPermissions":
@@ -73,13 +73,13 @@ class ViewTest extends V400ServerSetup {
       val account = createAnAccount(bankId, user1)
       grantAccessToAllExistingViews(resourceUser1)
       val view = createViewForAnAccount(bankId, account.account_id)
-      val postJson = PostAccountAccessJsonV400(resourceUser2.userId, PostViewJsonV400(view.id, false))
+      val postJson = PostAccountAccessJsonV400(resourceUser2.userId, PostViewJsonV400(view.id, view.is_system))
       When("We send the request")
       val request = (v4_0_0_Request / "banks" / bankId / "accounts" / account.account_id / "account-access" / "grant").POST <@ (user1)
       val response = makePostRequest(request, write(postJson))
       Then("We should get a 201 and check the response body")
       response.code should equal(201)
-      response.body.extract[ViewJsonV300]      
+      response.body.extract[ViewJsonV300]
       
       When("We send the request")
       val requestRevoke = (v4_0_0_Request / "banks" / bankId / "accounts" / account.account_id / "account-access" / "revoke").POST <@ (user1)
