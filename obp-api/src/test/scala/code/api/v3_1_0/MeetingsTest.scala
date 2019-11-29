@@ -72,7 +72,7 @@ class MeetingsTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + s"$InvalidJsonFormat The Json body should be the $CreateMeetingJson ")
-      response310.body.extract[ErrorMessage].message should equal (s"$InvalidJsonFormat The Json body should be the $CreateMeetingJson ")
+      response310.body.extract[ErrorMessage].message should startWith (s"$InvalidJsonFormat The Json body should be the $CreateMeetingJson ")
     }
     
     scenario("We will Create Meetings and Get meetings back", ApiEndpoint1, VersionOfApi) {
