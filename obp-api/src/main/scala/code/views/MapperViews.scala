@@ -14,6 +14,7 @@ import com.openbankproject.commons.model.{UpdateViewJSON, _}
 import net.liftweb.common._
 import net.liftweb.mapper.{By, NullRef, Schemifier}
 import net.liftweb.util.Helpers._
+import net.liftweb.util.StringHelpers
 
 import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -282,7 +283,7 @@ object MapperViews extends Views with MdcLoggable {
     } else {
       view.name.contentEquals("") match {
         case true => 
-          Failure("You cannot create a View with an empty Name")
+          Failure(EmptyNameOfSystemViewError)
         case false =>
           //view-permalink is view.name without spaces and lowerCase.  (view.name = my life) <---> (view-permalink = mylife)
           val newViewPermalink = getNewViewPermalink(view.name)
@@ -294,7 +295,7 @@ object MapperViews extends Views with MdcLoggable {
 
           existing match {
             case true =>
-              Failure(s"There is already a view with permalink $newViewPermalink")
+              Failure(s"$ExistingSystemViewError $newViewPermalink")
             case false =>
               val createdView = ViewDefinition.create.name_(view.name).view_id(newViewPermalink)
               createdView.setFromViewData(view)
@@ -416,7 +417,9 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def privateViewsUserCanAccess(user: User): List[View] ={
-    AccountAccess.findAll(By(AccountAccess.user_fk, user.userPrimaryKey.value)).map(_.view_fk.obj).flatten.filter(_.isPrivate)
+    AccountAccess.findAll(By(AccountAccess.user_fk, user.userPrimaryKey.value))
+      .map(_.view_fk.obj).flatten
+      .filter(view => view.isPrivate == true && view.isSystem == false)
   }
   
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =
@@ -465,6 +468,14 @@ object MapperViews extends Views with MdcLoggable {
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {
     getExistingView(bankId, accountId, CUSTOM_OWNER_VIEW_ID) match {
       case Empty => createDefaultOwnerView(bankId, accountId, description)
+      case Full(v) => Full(v)
+      case Failure(msg, t, c) => Failure(msg, t, c)
+      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
+    }
+  }  
+  def getOrCreateSystemView(name: String) : Box[View] = {
+    getExistingSystemView(name) match {
+      case Empty => createDefaultSystemView(name)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
@@ -638,6 +649,9 @@ object MapperViews extends Views with MdcLoggable {
   
   def createDefaultOwnerView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
     createAndSaveOwnerView(bankId, accountId, "Owner View")
+  }  
+  def createDefaultSystemView(name: String): Box[View] = {
+    createAndSaveSystemView(name)
   }
 
   def createDefaultPublicView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
@@ -657,6 +671,11 @@ object MapperViews extends Views with MdcLoggable {
 
   def getExistingView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
     val res = ViewDefinition.findByUniqueKey(bankId.value, accountId.value, name)
+    if(res.isDefined && res.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+    res
+  }
+  def getExistingSystemView(name: String): Box[View] = {
+    val res = ViewDefinition.findSystemView(name)
     if(res.isDefined && res.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
     res
   }
@@ -695,6 +714,93 @@ object MapperViews extends Views with MdcLoggable {
       .name_("Owner")
       .view_id(CUSTOM_OWNER_VIEW_ID)
       .description_(description)
+      .isPublic_(false) //(default is false anyways)
+      .usePrivateAliasIfOneExists_(false) //(default is false anyways)
+      .usePublicAliasIfOneExists_(false) //(default is false anyways)
+      .hideOtherAccountMetadataIfAlias_(false) //(default is false anyways)
+      .canSeeTransactionThisBankAccount_(true)
+      .canSeeTransactionOtherBankAccount_(true)
+      .canSeeTransactionMetadata_(true)
+      .canSeeTransactionDescription_(true)
+      .canSeeTransactionAmount_(true)
+      .canSeeTransactionType_(true)
+      .canSeeTransactionCurrency_(true)
+      .canSeeTransactionStartDate_(true)
+      .canSeeTransactionFinishDate_(true)
+      .canSeeTransactionBalance_(true)
+      .canSeeComments_(true)
+      .canSeeOwnerComment_(true)
+      .canSeeTags_(true)
+      .canSeeImages_(true)
+      .canSeeBankAccountOwners_(true)
+      .canSeeBankAccountType_(true)
+      .canSeeBankAccountBalance_(true)
+      .canSeeBankAccountCurrency_(true)
+      .canSeeBankAccountLabel_(true)
+      .canSeeBankAccountNationalIdentifier_(true)
+      .canSeeBankAccountSwift_bic_(true)
+      .canSeeBankAccountIban_(true)
+      .canSeeBankAccountNumber_(true)
+      .canSeeBankAccountBankName_(true)
+      .canSeeBankAccountBankPermalink_(true)
+      .canSeeOtherAccountNationalIdentifier_(true)
+      .canSeeOtherAccountSWIFT_BIC_(true)
+      .canSeeOtherAccountIBAN_(true)
+      .canSeeOtherAccountBankName_(true)
+
+    entity
+      .canSeeOtherAccountNumber_(true)
+      .canSeeOtherAccountMetadata_(true)
+      .canSeeOtherAccountKind_(true)
+      .canSeeMoreInfo_(true)
+      .canSeeUrl_(true)
+      .canSeeImageUrl_(true)
+      .canSeeOpenCorporatesUrl_(true)
+      .canSeeCorporateLocation_(true)
+      .canSeePhysicalLocation_(true)
+      .canSeePublicAlias_(true)
+      .canSeePrivateAlias_(true)
+      .canAddMoreInfo_(true)
+      .canAddURL_(true)
+      .canAddImageURL_(true)
+      .canAddOpenCorporatesUrl_(true)
+      .canAddCorporateLocation_(true)
+      .canAddPhysicalLocation_(true)
+      .canAddPublicAlias_(true)
+      .canAddPrivateAlias_(true)
+      .canAddCounterparty_(true)
+      .canDeleteCorporateLocation_(true)
+      .canDeletePhysicalLocation_(true)
+      .canEditOwnerComment_(true)
+      .canAddComment_(true)
+      .canDeleteComment_(true)
+      .canAddTag_(true)
+      .canDeleteTag_(true)
+      .canAddImage_(true)
+      .canDeleteImage_(true)
+      .canAddWhereTag_(true)
+      .canSeeWhereTag_(true)
+      .canDeleteWhereTag_(true)
+      .canSeeBankRoutingScheme_(true) //added following in V300
+      .canSeeBankRoutingAddress_(true)
+      .canSeeBankAccountRoutingScheme_(true)
+      .canSeeBankAccountRoutingAddress_(true)
+      .canSeeOtherBankRoutingScheme_(true)
+      .canSeeOtherBankRoutingAddress_(true)
+      .canSeeOtherAccountRoutingScheme_(true)
+      .canSeeOtherAccountRoutingAddress_(true)
+      .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
+      .canAddTransactionRequestToAnyAccount_(true)
+  }
+  def unsavedSystemView(name: String) : ViewDefinition = {
+    val entity = create
+      .isSystem_(true)
+      .isFirehose_(true) // TODO This should be set to false. i.e. Firehose views should be separate
+      .bank_id(null)
+      .account_id(null)
+      .name_(StringHelpers.capify(name))
+      .view_id(name)
+      .description_(name)
       .isPublic_(false) //(default is false anyways)
       .usePrivateAliasIfOneExists_(false) //(default is false anyways)
       .usePublicAliasIfOneExists_(false) //(default is false anyways)
@@ -869,6 +975,10 @@ object MapperViews extends Views with MdcLoggable {
   
   def createAndSaveOwnerView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
     val res = unsavedOwnerView(bankId, accountId, description).saveMe
+    Full(res)
+  }  
+  def createAndSaveSystemView(name: String) : Box[View] = {
+    val res = unsavedSystemView(name).saveMe
     Full(res)
   }
 

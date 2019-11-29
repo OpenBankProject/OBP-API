@@ -233,7 +233,9 @@ object NewStyle {
       }
     
     def view(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
-      Views.views.vend.viewFuture(viewId, bankAccountId) map {
+      Views.views.vend.viewFuture(viewId, bankAccountId)  map {
+        x => x.or(Views.views.vend.systemView(viewId))
+      } map {
         unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is $viewId")
       }
     }    

@@ -26,14 +26,13 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_1_0
 
-import code.api.Constant._
 import _root_.net.liftweb.json.Serialization.write
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateSystemView, CanDeleteSystemView, CanGetSystemView, CanUpdateSystemView}
-import code.api.util.ApiVersion
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.{APIUtil, ApiVersion}
 import code.api.v1_2_1.APIInfoJSON
 import code.api.v3_0_0.ViewJsonV300
 import code.api.v3_1_0.APIMethods310.Implementations3_1_0
@@ -60,7 +59,8 @@ class SystemViewsTests extends V310ServerSetup {
   
   // Custom view, name starts from `_`
   // System view, owner
-  val postBodySystemViewJson = createViewJson.copy(name=SYSTEM_OWNER_VIEW_ID).copy(metadata_view = SYSTEM_OWNER_VIEW_ID)
+  val randomSystemViewId = APIUtil.generateUUID()
+  val postBodySystemViewJson = createViewJson.copy(name=randomSystemViewId).copy(metadata_view = randomSystemViewId)
   val systemViewId = MapperViews.getNewViewPermalink(postBodySystemViewJson.name)
   
   def getSystemView(viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
@@ -103,7 +103,7 @@ class SystemViewsTests extends V310ServerSetup {
   
   feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
-      When(s"We make a request $VersionOfApi")
+      When(s"We make a request $ApiEndpoint2")
       val response400 = postSystemView(postBodySystemViewJson, None)
       Then("We should get a 400")
       response400.code should equal(400)
@@ -112,7 +112,7 @@ class SystemViewsTests extends V310ServerSetup {
   }
   feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
-      When(s"We make a request $VersionOfApi")
+      When(s"We make a request $ApiEndpoint2")
       val response400 = postSystemView(postBodySystemViewJson, user1)
       Then("We should get a 403")
       response400.code should equal(403)
@@ -121,7 +121,7 @@ class SystemViewsTests extends V310ServerSetup {
   }
   feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access with proper Role") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
-      When(s"We make a request $VersionOfApi")
+      When(s"We make a request $ApiEndpoint2")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemView.toString)
       val response400 = postSystemView(postBodySystemViewJson, user1)
       Then("We should get a 201")
@@ -133,7 +133,7 @@ class SystemViewsTests extends V310ServerSetup {
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
-      When(s"We make a request $VersionOfApi")
+      When(s"We make a request $ApiEndpoint1")
       val response400 = getSystemView("", None)
       Then("We should get a 400")
       response400.code should equal(400)
@@ -142,7 +142,7 @@ class SystemViewsTests extends V310ServerSetup {
   }
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
-      When(s"We make a request $VersionOfApi")
+      When(s"We make a request $ApiEndpoint1")
       val response400 = getSystemView("", user1)
       Then("We should get a 403")
       response400.code should equal(403)
@@ -152,7 +152,7 @@ class SystemViewsTests extends V310ServerSetup {
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with proper Role") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       createSystemView()
-      When(s"We make a request $VersionOfApi")
+      When(s"We make a request $ApiEndpoint1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemView.toString)
       val response400 = getSystemView(systemViewId, user1)
       Then("We should get a 200")
@@ -165,7 +165,7 @@ class SystemViewsTests extends V310ServerSetup {
 
   feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
-      When(s"We make a request $VersionOfApi")
+      When(s"We make a request $ApiEndpoint3")
       val response400 = getSystemView("", None)
       Then("We should get a 400")
       response400.code should equal(400)
@@ -174,7 +174,7 @@ class SystemViewsTests extends V310ServerSetup {
   }
   feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
-      When(s"We make a request $VersionOfApi")
+      When(s"We make a request $ApiEndpoint3")
       val response400 = getSystemView("", user1)
       Then("We should get a 403")
       response400.code should equal(403)
@@ -230,7 +230,7 @@ class SystemViewsTests extends V310ServerSetup {
 
   feature(s"test $ApiEndpoint4 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
-      When(s"We make a request $VersionOfApi")
+      When(s"We make a request $ApiEndpoint4")
       val response400 = deleteSystemView("", None)
       Then("We should get a 400")
       response400.code should equal(400)
@@ -239,8 +239,18 @@ class SystemViewsTests extends V310ServerSetup {
   }
   feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
-      When(s"We make a request $VersionOfApi")
+      When(s"We make a request $ApiEndpoint4")
       val response400 = deleteSystemView("", user1)
+      Then("We should get a 403")
+      response400.code should equal(403)
+      response400.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanDeleteSystemView)
+    }
+  }
+  feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access with proper Role") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
+      createSystemView()
+      When(s"We make a request $ApiEndpoint4")
+      val response400 = deleteSystemView(randomSystemViewId, user1)
       Then("We should get a 403")
       response400.code should equal(403)
       response400.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanDeleteSystemView)

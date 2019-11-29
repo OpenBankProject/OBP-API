@@ -15,6 +15,8 @@ object Constant extends MdcLoggable {
   
   final val CUSTOM_OWNER_VIEW_ID = "_owner"
   final val SYSTEM_OWNER_VIEW_ID = "owner"
+  final val SYSTEM_AUDITOR_VIEW_ID = "auditor"
+  final val SYSTEM_ACCOUNTANT_VIEW_ID = "accountant"
 }
 
 

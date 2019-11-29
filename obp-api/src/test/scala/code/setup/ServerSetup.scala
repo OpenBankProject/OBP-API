@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.setup
 
+import code.api.Constant._
 import _root_.net.liftweb.json.JsonAST.JObject
 import code.TestServer
 import code.api.util.{APIUtil, CustomJsonFormats}
@@ -89,6 +90,10 @@ trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup
     createTransactions(accounts)
     //fake transactionRequests
     createTransactionRequests(accounts)
+    
+    createSystemView(SYSTEM_OWNER_VIEW_ID)
+    createSystemView(SYSTEM_AUDITOR_VIEW_ID)
+    createSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
   }
 
   override def afterEach() = {
