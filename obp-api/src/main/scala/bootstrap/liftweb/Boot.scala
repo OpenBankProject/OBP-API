@@ -79,6 +79,7 @@ import code.migration.MigrationScriptLog
 import code.model._
 import code.model.dataAccess._
 import code.model.dataAccess.internalMapping.AccountIdMapping
+import code.obp.grpc.HelloWorldServer
 import code.productAttributeattribute.MappedProductAttribute
 import code.productcollection.MappedProductCollection
 import code.productcollectionitem.MappedProductCollectionItem
@@ -112,7 +113,7 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, Schedule, _}
-import scalapb.demo.HelloWorldServer
+
 import scala.concurrent.ExecutionContext
 
 
@@ -672,6 +673,10 @@ object ToSchemify {
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server
-  val server = new HelloWorldServer(ExecutionContext.global)
-  server.start()
+  if (APIUtil.getPropsAsBoolValue("grpc.server.enabled", false)) {
+    val server = new HelloWorldServer(ExecutionContext.global)
+    server.start()
+    LiftRules.unloadHooks.append(server.stop)
+  } 
+  
 }

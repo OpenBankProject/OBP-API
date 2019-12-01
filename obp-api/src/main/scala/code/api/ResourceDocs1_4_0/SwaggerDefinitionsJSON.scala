@@ -2005,8 +2005,8 @@ object SwaggerDefinitionsJSON {
     kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
     last_ok_date = DateWithDayExampleObject,
     title  = ExampleValue.titleExample.value,
-    branchId = ExampleValue.branchIdExample.value,
-    nameSuffix = ExampleValue.nameSuffixExample.value
+    branch_id = ExampleValue.branchIdExample.value,
+    name_suffix = ExampleValue.nameSuffixExample.value
   )
   
   val customersJsonV300 = code.api.v3_0_0.CustomerJSONs(List(customerJsonV300))
@@ -2028,8 +2028,8 @@ object SwaggerDefinitionsJSON {
       kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
       last_ok_date = DateWithDayExampleObject,
       title  = ExampleValue.titleExample.value,
-      branchId = ExampleValue.branchIdExample.value,
-      nameSuffix = ExampleValue.nameSuffixExample.value
+      branch_id = ExampleValue.branchIdExample.value,
+      name_suffix = ExampleValue.nameSuffixExample.value
     )
   
   val customerJsonV310 = CustomerJsonV310(
@@ -2051,8 +2051,8 @@ object SwaggerDefinitionsJSON {
     kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
     last_ok_date = DateWithDayExampleObject,
     title  = ExampleValue.titleExample.value,
-    branchId = ExampleValue.branchIdExample.value,
-    nameSuffix = ExampleValue.nameSuffixExample.value
+    branch_id = ExampleValue.branchIdExample.value,
+    name_suffix = ExampleValue.nameSuffixExample.value
   )
 
 
@@ -3363,10 +3363,11 @@ object SwaggerDefinitionsJSON {
     customer_id = customerIdExample.value
   )
 
-  val createAccountJsonV310 = CreateAccountJsonV310(
+  val createAccountResponseJsonV310 = CreateAccountResponseJsonV310(
+    account_id = accountIdExample.value,
     user_id = userIdExample.value,
     label   = labelExample.value,
-    `type` = accountTypeExample.value,
+    product_code = accountTypeExample.value,
     balance =  amountOfMoneyJsonV121,
     branch_id  = branchIdExample.value,
     account_routing = accountRoutingJsonV121,
@@ -3548,6 +3549,16 @@ object SwaggerDefinitionsJSON {
     date_expires = new Date(),
     date_cancelled = new Date(),
     active = true
+  )
+
+  val createAccountRequestJsonV310 = CreateAccountRequestJsonV310(
+    user_id = userIdExample.value,
+    label   = labelExample.value,
+    product_code = accountTypeExample.value,
+    balance =  amountOfMoneyJsonV121,
+    branch_id  = branchIdExample.value,
+    account_routing = accountRoutingJsonV121,
+    account_attributes=  List(accountAttributeResponseJson)
   )
     
   //The common error or success format.
