@@ -563,7 +563,8 @@ In order to enable an OAuth2 workflow at an instance of OBP-API backend app you 
 # allow_oauth2_login=false
 # URL of Public server JWK set used for validating bearer JWT access tokens
 # It can contain more than one URL i.e. list of uris. Values are comma separated.
-# If MITREId URL is present it must be at 1st place in the list.
+# If MITREId URL is present it must be at 1st place in the list
+# because MITREId URL can be an appropirate value and we cannot rely on it.
 # oauth2.jwk_set.url=http://localhost:8080/jwk.json,https://www.googleapis.com/oauth2/v3/certs
 # ------------------------------------------------------------------------------ OAuth 2 ------
 
