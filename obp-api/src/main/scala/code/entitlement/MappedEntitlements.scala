@@ -39,6 +39,15 @@ object MappedEntitlementsProvider extends EntitlementProvider {
     }
   }
 
+  override def getEntitlementsByBankId(bankId: String): Future[Box[List[Entitlement]]] = {
+    // Return a Box so we can handle errors later.
+    Future {
+      Some(MappedEntitlement.findAll(
+        By(MappedEntitlement.mBankId, bankId),
+        OrderBy(MappedEntitlement.mUserId, Descending)))
+    }
+  }
+
   override def getEntitlements: Box[List[MappedEntitlement]] = {
     // Return a Box so we can handle errors later.
     Some(MappedEntitlement.findAll(OrderBy(MappedEntitlement.updatedAt, Descending)))

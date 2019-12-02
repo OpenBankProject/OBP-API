@@ -435,6 +435,13 @@ object NewStyle {
         connectorEmptyResponse(_, callContext)
       }
     }
+
+    def getEntitlementsByBankId(bankId: String, callContext: Option[CallContext]): Future[List[Entitlement]] = {
+      Entitlement.entitlement.vend.getEntitlementsByBankId(bankId) map {
+        connectorEmptyResponse(_, callContext)
+      }
+    }
+
     def getEntitlementRequestsFuture(userId: String, callContext: Option[CallContext]): Future[List[EntitlementRequest]] = {
       EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(userId) map {
         connectorEmptyResponse(_, callContext)
