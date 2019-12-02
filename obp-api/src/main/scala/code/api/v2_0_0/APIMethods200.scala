@@ -1,9 +1,10 @@
 package code.api.v2_0_0
 
 import java.util.{Calendar, Date}
-
+import code.api.Constant._
 import code.TransactionTypes.TransactionType
 import code.api.APIFailure
+import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -42,11 +43,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 // Makes JValue assignment to Nil work
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import net.liftweb.json.Extraction
-
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
-
 import code.api.v2_0_0.AccountsHelper._
+import com.openbankproject.commons.model.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
+import net.liftweb.json.Extraction
 
 trait APIMethods200 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -899,7 +898,7 @@ trait APIMethods200 {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~ BankAccountNotFound
             // Assume owner view was requested
-            view <- Views.views.vend.view( ViewId("owner"), BankIdAccountId(account.bankId,account.accountId))
+            view <- Views.views.vend.view(ViewId(CUSTOM_OWNER_VIEW_ID), BankIdAccountId(account.bankId,account.accountId))
             moderatedAccount <- account.moderatedBankAccount(view, cc.user, Some(cc))
           } yield {
             val moderatedAccountJson = JSONFactory200.createCoreBankAccountJSON(moderatedAccount)
@@ -949,7 +948,8 @@ trait APIMethods200 {
             params <- createQueriesByHttpParams(req.request.headers)
             bankAccount <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             // Assume owner view was requested
-            view <- Views.views.vend.view( ViewId("owner"), BankIdAccountId(bankAccount.bankId,bankAccount.accountId))
+            view <- Views.views.vend.view( ViewId(CUSTOM_OWNER_VIEW_ID), BankIdAccountId(bankAccount.bankId,bankAccount.accountId))
+              .or(Views.views.vend.systemView(ViewId(SYSTEM_OWNER_VIEW_ID)))
             (transactions, callContext) <- bankAccount.getModeratedTransactions(cc.user, view, None, params)
           } yield {
             val json = JSONFactory200.createCoreTransactionsJSON(transactions)

@@ -12,7 +12,11 @@ object Constant extends MdcLoggable {
 
   // This is the part before the version. Do not change this default!
   final val ApiPathZero = APIUtil.getPropsValue("apiPathZero", ApiStandards.obp.toString)
-
+  
+  final val CUSTOM_OWNER_VIEW_ID = "_owner"
+  final val SYSTEM_OWNER_VIEW_ID = "owner"
+  final val SYSTEM_AUDITOR_VIEW_ID = "auditor"
+  final val SYSTEM_ACCOUNTANT_VIEW_ID = "accountant"
 }
 
 
@@ -41,3 +45,4 @@ object BerlinGroup extends Enumeration {
     val SMS_OTP, CHIP_OTP, PHOTO_OTP, PUSH_OTP = Value
   }
 }
+

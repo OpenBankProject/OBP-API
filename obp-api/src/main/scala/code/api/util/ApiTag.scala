@@ -12,6 +12,7 @@ object ApiTag {
   val apiTagApi = ResourceDocTag("API")
   val apiTagBank = ResourceDocTag("Bank")
   val apiTagAccount = ResourceDocTag("Account")
+  val apiTagAccountAccess = ResourceDocTag("Account-Access")
   val apiTagDirectDebit = ResourceDocTag("Direct-Debit")
   val apiTagStandingOrder = ResourceDocTag("Standing-Order")
   val apiTagAccountMetadata = ResourceDocTag("Account-Metadata")
@@ -74,7 +75,7 @@ object ApiTag {
 
   
   //Note: the followings are for the code generator -- UKOpenBankingV3.1.0
-  val apiTagAccountAccess = ResourceDocTag("UK-AccountAccess")
+  val apiTagUkAccountAccess = ResourceDocTag("UK-AccountAccess")
   val apiTagAccounts = ResourceDocTag("UK-Accounts")
   val apiTagBalances = ResourceDocTag("UK-Balances")
   val apiTagBeneficiaries = ResourceDocTag("UK-Beneficiaries ")

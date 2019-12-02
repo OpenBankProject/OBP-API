@@ -249,6 +249,10 @@ object ErrorMessages {
   val CardAlreadyExists = "OBP-30060: Card already exists. Please specify different values for bankId, card_number and issueNumber."
   val CardAttributeNotFound = "OBP-30061: Card Attribute not found. Please specify a valid value for CARD_ATTRIBUTE_ID."
   
+  val CannotAddAccountAccess = "OBP-30062: Cannot add account access."
+  val CannotRevokeAccountAccess = "OBP-30063: Cannot revoke account access."
+  val CannotFindAccountAccess = "OBP-30064: Cannot find account access."
+  
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
@@ -292,6 +296,8 @@ object ErrorMessages {
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
   val SystemViewNotFound = "OBP-30252: System view not found. Please specify a valid value for VIEW_ID"
   val UpdateSystemViewError = "OBP-30253: Could not update the system view"
+  val ExistingSystemViewError = "OBP-30254: There is already a view with permalink"
+  val EmptyNameOfSystemViewError = "OBP-30255: You cannot create a View with an empty Name"
 
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "

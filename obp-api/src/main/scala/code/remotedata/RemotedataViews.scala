@@ -30,8 +30,16 @@ object RemotedataViews extends ObpActorInit with Views {
     (actor ? cc.addPermission(viewIdBankIdAccountId, user)).mapTo[Box[View]]
   )
   
+  def addSystemViewPermission(bankId: BankId, accountId: AccountId, view: View, user: User): Box[View] = getValueFromFuture(
+    (actor ? cc.addSystemViewPermission(bankId, accountId, view, user)).mapTo[Box[View]]
+  )
+  
   def revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean] =  getValueFromFuture(
     (actor ? cc.revokePermission(viewIdBankIdAccountId, user)).mapTo[Box[Boolean]]
+  ) 
+  
+  def revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean] =  getValueFromFuture(
+    (actor ? cc.revokeSystemViewPermission(bankId, accountId, view, user)).mapTo[Box[Boolean]]
   )
 
   def revokeAllPermissions(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = getValueFromFuture(
@@ -40,6 +48,10 @@ object RemotedataViews extends ObpActorInit with Views {
 
   def view(viewId : ViewId, account: BankIdAccountId) : Box[View] = getValueFromFuture(
     (actor ? cc.view(viewId, account)).mapTo[Box[View]]
+  )
+  
+  def systemView(viewId : ViewId) : Box[View] = getValueFromFuture(
+    (actor ? cc.view(viewId)).mapTo[Box[View]]
   )
 
   def viewFuture(viewId : ViewId, account: BankIdAccountId) : Future[Box[View]] = 
@@ -105,6 +117,10 @@ object RemotedataViews extends ObpActorInit with Views {
   
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
     (actor ? cc.getOrCreateOwnerView(bankId, accountId, description)).mapTo[Box[View]]
+  )
+  
+  def getOrCreateSystemView(name: String) : Box[View] = getValueFromFuture(
+    (actor ? cc.getOrCreateSystemView(name)).mapTo[Box[View]]
   )
   
   def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(

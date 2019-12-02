@@ -23,6 +23,10 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
     case cc.addPermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) =>
       logger.debug("addPermission(" + viewIdBankIdAccountId +"," + user +")")
       sender ! (mapper.addPermission(viewIdBankIdAccountId, user))
+      
+    case cc.addSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) =>
+      logger.debug("addSystemViewPermission(" + bankId +"," + accountId +"," + view +"," + user +")")
+      sender ! (mapper.addSystemViewPermission(bankId, accountId, view, user))
 
     case cc.permission(account : BankIdAccountId, user: User) =>
       logger.debug("permission(" + account +"," + user +")")
@@ -34,7 +38,11 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       
     case cc.revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) =>
       logger.debug("revokePermission(" + viewIdBankIdAccountId +"," + user +")")
-      sender ! (mapper.revokePermission(viewIdBankIdAccountId, user))
+      sender ! (mapper.revokePermission(viewIdBankIdAccountId, user)) 
+      
+    case cc.revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) =>
+      logger.debug("revokeSystemViewPermission(" + bankId +"," + accountId +"," + view +"," + user +")")
+      sender ! (mapper.revokeSystemViewPermission(bankId, accountId, view, user))
 
     case cc.revokeAllPermissions(bankId : BankId, accountId : AccountId, user : User) =>
       logger.debug("revokeAllPermissions(" + bankId +"," + accountId +","+ user +")")
@@ -43,6 +51,10 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
     case cc.view(viewId: ViewId, bankAccountId: BankIdAccountId) =>
       logger.debug("view(" + viewId +", "+ bankAccountId + ")")
       sender ! (mapper.view(viewId, bankAccountId))
+      
+    case cc.systemView(viewId: ViewId) =>
+      logger.debug("view(" + viewId  + ")")
+      sender ! (mapper.systemView(viewId))
 
     case cc.viewFuture(viewId: ViewId, bankAccountId: BankIdAccountId) =>
       logger.debug("vieFuture(" + viewId +", "+ bankAccountId + ")")
@@ -111,7 +123,11 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
     
     case cc.getOrCreateOwnerView(bankId, accountId, description) =>
       logger.debug("getOrCreateOwnerView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! (mapper.getOrCreateOwnerView(bankId, accountId, description))
+      sender ! (mapper.getOrCreateOwnerView(bankId, accountId, description))  
+      
+    case cc.getOrCreateSystemView(name) =>
+      logger.debug("getOrCreateSystemOwnerView(" + name +")")
+      sender ! (mapper.getOrCreateSystemView(name))
 
     case cc.getOrCreateFirehoseView(bankId, accountId, description) =>
       logger.debug("getOrCreateFirehoseView(" + bankId +", "+ accountId +", "+ description +")")

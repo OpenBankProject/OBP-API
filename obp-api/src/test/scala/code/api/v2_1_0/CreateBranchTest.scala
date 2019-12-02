@@ -102,10 +102,6 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       Given("The user ower access and BankAccount")
       val testBank = createBank("testBankId")
       val bankId = testBank.bankId
-      val accountId = AccountId("__acc1")
-      val branchId = BranchId("1234")
-      val viewId =ViewId("owner")
-      val bankAccount = createAccountAndOwnerView(Some(resourceUser1), bankId, accountId, "EUR")
 
       Then("We add entitlement to user1")
       addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
@@ -134,8 +130,6 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       val bankId = testBank.bankId
       val accountId = AccountId("__acc1")
       val branchId = BranchId("1234")
-      val viewId =ViewId("owner")
-      val bankAccount = createAccountAndOwnerView(Some(resourceUser1), bankId, accountId, "EUR")
 
 
       Then("We add `CanCreateBranch`entitlement to user1")

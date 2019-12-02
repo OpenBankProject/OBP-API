@@ -50,7 +50,7 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
       val responseGet = makeGetRequest(requestGet)
       And("We should get a 400")
       responseGet.code should equal(400)
-      responseGet.body.extract[ErrorMessage].message should equal (InvalidISOCurrencyCode)
+      responseGet.body.extract[ErrorMessage].message should startWith (InvalidISOCurrencyCode)
     }
 
     scenario("We Get Current FxRate with wrong ISO to currency code", VersionOfApi, ApiEndpoint1) {
@@ -61,7 +61,7 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
       val responseGet = makeGetRequest(requestGet)
       And("We should get a 400")
       responseGet.code should equal(400)
-      responseGet.body.extract[ErrorMessage].message should equal (InvalidISOCurrencyCode)
+      responseGet.body.extract[ErrorMessage].message should startWith (InvalidISOCurrencyCode)
     }
     
   }

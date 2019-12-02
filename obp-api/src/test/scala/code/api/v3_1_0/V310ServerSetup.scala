@@ -13,6 +13,13 @@ trait V310ServerSetup extends ServerSetupWithTestData with User1AllPrivileges wi
 
   def v3_1_0_Request: Req = baseRequest / "obp" / "v3.1.0"
 
+  //When new version, this would be the first endpoint to test, to make sure it works well. 
+  def getAPIInfo : APIResponse = {
+    val request = v3_1_0_Request
+    makeGetRequest(request)
+    
+  }
+
   def randomBankId : String = {
     def getBanksInfo : APIResponse  = {
       val request = v3_1_0_Request / "banks"

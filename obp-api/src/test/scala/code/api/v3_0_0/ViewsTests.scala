@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_0_0
 
+import code.api.Constant._
 import _root_.net.liftweb.json.Serialization.write
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -43,7 +44,7 @@ class ViewsTests extends V300ServerSetup {
   //Custom view, name starts from `_`
   val postBodyViewJson = createViewJson
   //System view, owner
-  val postBodySystemViewJson = createViewJson.copy(name="owner").copy(metadata_view = "owner")
+  val postBodySystemViewJson = createViewJson.copy(name=SYSTEM_OWNER_VIEW_ID).copy(metadata_view = SYSTEM_OWNER_VIEW_ID)
   
   def getAccountViews(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = v3_0Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)
@@ -60,7 +61,7 @@ class ViewsTests extends V300ServerSetup {
     makePutRequest(request, write(view))
   }
 
-  def getAccountAccesForUser(bankId: String, accountId: String, provider : String, providerId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+  def getAccountAccessForUser(bankId: String, accountId: String, provider : String, providerId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v3_0Request / "banks" / bankId / "accounts" / accountId / "permissions" / provider / providerId).GET <@(consumerAndToken)
     makeGetRequest(request)
   }
@@ -231,7 +232,7 @@ class ViewsTests extends V300ServerSetup {
     def someViewUpdateJson() = {
       UpdateViewJSON(
         description = updatedViewDescription,
-        metadata_view = "owner",
+        metadata_view = SYSTEM_OWNER_VIEW_ID,
         is_public = true,
         which_alias_to_use = updatedAliasToUse,
         hide_metadata_if_alias_used = true,
@@ -325,7 +326,7 @@ class ViewsTests extends V300ServerSetup {
   
       val updateViewJSON = UpdateViewJSON(
         description = "good",
-        metadata_view = "owner",
+        metadata_view = SYSTEM_OWNER_VIEW_ID,
         is_public =false,
         which_alias_to_use ="",
         hide_metadata_if_alias_used= false,
@@ -333,7 +334,7 @@ class ViewsTests extends V300ServerSetup {
       )
       
       When("We use a valid access token and valid put json")
-      val reply = putView(bankId, bankAccountId, "owner", updateViewJSON, user1)
+      val reply = putView(bankId, bankAccountId, SYSTEM_OWNER_VIEW_ID, updateViewJSON, user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -353,7 +354,7 @@ class ViewsTests extends V300ServerSetup {
       val providerId = permission.user.id
   
       When("We use a valid access token and valid put json")
-      val reply = getAccountAccesForUser(bankId, bankAccountId, provider,
+      val reply = getAccountAccessForUser(bankId, bankAccountId, provider,
                                          providerId, user1
       )
       Then("We should get back the updated view")

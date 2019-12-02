@@ -39,11 +39,14 @@ trait Views {
     * And then, call @getOrCreateViewPrivilege(view: View, user: User) for the view and user.
    */
   def addPermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
+  def addSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[View]
   def addPermissions(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
   def revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
+  def revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean]
   def revokeAllPermissions(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
 
   def view(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
+  def systemView(viewId : ViewId) : Box[View]
   def viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]]
   def systemViewFuture(viewId : ViewId) : Future[Box[View]]
 
@@ -83,6 +86,7 @@ trait Views {
   def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View]
   def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def getOrCreateSystemView(name: String) : Box[View]
   def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
@@ -106,8 +110,10 @@ class RemotedataViewsCaseClasses {
   case class getPermissionForUser(user: User)
   case class permission(account: BankIdAccountId, user: User)
   case class addPermission(viewUID: ViewIdBankIdAccountId, user: User)
+  case class addSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User)
   case class addPermissions(views: List[ViewIdBankIdAccountId], user: User)
   case class revokePermission(viewUID: ViewIdBankIdAccountId, user: User)
+  case class revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User)
   case class revokeAllPermissions(bankId: BankId, accountId: AccountId, user: User)
   case class createView(bankAccountId: BankIdAccountId, view: CreateViewJson)
   case class createSystemView(view: CreateViewJson)
@@ -126,10 +132,12 @@ class RemotedataViewsCaseClasses {
   case class view(pars: Any*) {
     def apply(viewId: ViewId, bankAccountId: BankIdAccountId): Box[View] = this (viewId, bankAccountId)
   }
+  case class systemView(viewId : ViewId)
   case class viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId)
   case class systemViewFuture(viewId : ViewId)
   case class getOrCreateAccountView(account: BankIdAccountId, viewName: String)
   case class getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String)
+  case class getOrCreateSystemView(name: String)
   case class getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String)
   case class getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String)
   case class getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String)

@@ -122,7 +122,7 @@ object APIMethods_BalancesApi extends RestHelper {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
 
-            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId), callContext)
+            view <- NewStyle.function.ownerView(BankIdAccountId(account.bankId, account.accountId), callContext)
         
             _ <- Helper.booleanToFuture(failMsg = s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})") {(u.hasViewAccess(view))}
         

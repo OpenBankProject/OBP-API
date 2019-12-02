@@ -125,11 +125,11 @@ class HelloWorldServer(executionContext: ExecutionContext) { self =>
       val callContext: Option[CallContext] = Some(CallContext())
       val bankId = BankId(request.bankId)
       val accountId = AccountId(request.accountId)
-      val viewFuture: Future[View] = NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankId, accountId), callContext)
+      val viewFuture: Future[View] = NewStyle.function.ownerView(BankIdAccountId(bankId, accountId), callContext)
       for {
         (user, _) <- NewStyle.function.findByUserId(request.userId, callContext)
         (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-        view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+        view <- NewStyle.function.ownerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
         (Full(transactionsCore), callContext) <- bankAccount.getModeratedTransactionsCore(Full(user), view, Nil, callContext)
         obpCoreTransactions: CoreTransactionsJsonV300 = code.api.v3_0_0.JSONFactory300.createCoreTransactionsJSON(transactionsCore)
       } yield {

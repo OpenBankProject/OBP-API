@@ -26,7 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v2_2_0
 
-
+import code.api.Constant._
 import _root_.net.liftweb.json.Serialization.write
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
@@ -65,7 +65,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
   /********************* API test methods ********************/
 
   //System view, owner
-  val postBodySystemViewJson = createViewJson.copy(name="owner")
+  val postBodySystemViewJson = createViewJson.copy(name=SYSTEM_OWNER_VIEW_ID)
   
   def randomBank : String = {
     val banksJson = getBanksInfo.body.extract[BanksJSON]
@@ -408,7 +408,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       )
     
       When("We use a valid access token and valid put json")
-      val reply = putView(bankId, bankAccountId, "owner", updateViewJSON, user1)
+      val reply = putView(bankId, bankAccountId, SYSTEM_OWNER_VIEW_ID, updateViewJSON, user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
