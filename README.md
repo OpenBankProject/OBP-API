@@ -557,13 +557,16 @@ There are 3 API's endpoint related to webhooks:
 ## OAuth 2.0
 In order to enable an OAuth2 workflow at an instance of OBP-API backend app you need to setup next props:
 ```
-# -- OAuth 2 ---------------------------------------------------------------
+# -- OAuth 2 ---------------------------------------------------------------------------------
 # Enable/Disable OAuth 2 workflow at a server instance
 # In case isn't defined default value is false
 # allow_oauth2_login=false
 # URL of Public server JWK set used for validating bearer JWT access tokens
-# oauth2.jwk_set.url=http://localhost:8080/jwk.json
-# ----------------------------------------------------------- OAuth 2 ------
+# It can contain more than one URL i.e. list of uris. Values are comma separated.
+# If MITREId URL is present it must be at 1st place in the list
+# because MITREId URL can be an appropirate value and we cannot rely on it.
+# oauth2.jwk_set.url=http://localhost:8080/jwk.json,https://www.googleapis.com/oauth2/v3/certs
+# ------------------------------------------------------------------------------ OAuth 2 ------
 
 OpenID Connect is supported.
 Tested Identity providers: Google, MITREId.

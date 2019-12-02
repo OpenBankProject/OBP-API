@@ -980,7 +980,7 @@ trait APIMethods400 {
       nameOf(addAccount),
       "POST",
       "/banks/BANK_ID/accounts",
-      "Add Account",
+      "Create Account (POST)",
       """Create Account at bank specified by BANK_ID.
         |
         |The User can create an Account for himself  - or -  the User that has the USER_ID specified in the POST body.
@@ -1207,6 +1207,42 @@ trait APIMethods400 {
       }
     }
 
+
+    resourceDocs += ResourceDoc(
+      getEntitlementsForBank,
+      implementedInApiVersion,
+      nameOf(getEntitlementsForBank),
+      "GET",
+      "/banks/BANK_ID/entitlements",
+      "Get Entitlements for One Bank",
+      s"""
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      entitlementJSONs,
+      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
+      Some(List(canGetEntitlementsForOneBank,canGetEntitlementsForAnyBank)))
+
+    val allowedEntitlements = canGetEntitlementsForOneBank:: canGetEntitlementsForAnyBank :: Nil
+    val allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
+
+    lazy val getEntitlementsForBank: OBPEndpoint = {
+      case "banks" :: bankId :: "entitlements" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)(bankId, u.userId, allowedEntitlements)
+            entitlements <- NewStyle.function.getEntitlementsByBankId(bankId, callContext)
+          } yield {
+            val json = JSONFactory400.createEntitlementJSONs(entitlements)
+            (json, HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     resourceDocs += ResourceDoc(
       addTagForViewOnAccount,

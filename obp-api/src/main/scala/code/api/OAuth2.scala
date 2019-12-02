@@ -100,7 +100,8 @@ object OAuth2Login extends RestHelper with MdcLoggable {
     def validateAccessToken(accessToken: String): Box[JWTClaimsSet] = {
       APIUtil.getPropsValue("oauth2.jwk_set.url") match {
         case Full(url) =>
-          JwtUtil.validateAccessToken(accessToken, url)
+          val mitreIdUrl = url.toLowerCase().split(",").toList.head
+          JwtUtil.validateAccessToken(accessToken, mitreIdUrl)
         case ParamFailure(a, b, c, apiFailure : APIFailure) =>
           ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) =>
@@ -252,7 +253,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       *                }
       * @return an existing or a new consumer
       */
-    def getOrCreateConsumerFuture(idToken: String, userId: Box[String]): Box[Consumer] = {
+    def getOrCreateConsumer(idToken: String, userId: Box[String]): Box[Consumer] = {
       val azp = getClaim(name = "azp", idToken = idToken)
       val iss = getClaim(name = "iss", idToken = idToken)
       val sub = getClaim(name = "sub", idToken = idToken)
@@ -279,7 +280,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       validateIdToken(value) match {
         case Full(_) =>
           val user = Google.getOrCreateResourceUser(value)
-          val consumer = Google.getOrCreateConsumerFuture(value, user.map(_.userId))
+          val consumer = Google.getOrCreateConsumer(value, user.map(_.userId))
           (user, Some(cc.copy(consumer = consumer)))
         case ParamFailure(a, b, c, apiFailure : APIFailure) =>
           (ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc))
@@ -294,7 +295,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         case Full(_) =>
           for {
             user <-  Google.getOrCreateResourceUserFuture(value)
-            consumer <-  Future{Google.getOrCreateConsumerFuture(value, user.map(_.userId))}
+            consumer <-  Future{Google.getOrCreateConsumer(value, user.map(_.userId))}
           } yield {
             (user, Some(cc.copy(consumer = consumer)))
           }

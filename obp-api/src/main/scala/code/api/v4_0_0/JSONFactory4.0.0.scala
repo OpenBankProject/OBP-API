@@ -39,6 +39,7 @@ import code.api.v3_0_0.ViewBasicV300
 import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.directdebit.DirectDebitTrait
+import code.entitlement.Entitlement
 import code.model.ModeratedBankAccount
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
@@ -138,6 +139,17 @@ case class AccountTagJSON(
                            date : Date,
                            user : UserJSONV121
                          )
+
+case class EntitlementJsonV400(
+                                entitlement_id: String,
+                                role_name: String,
+                                bank_id: String,
+                                user_id: String
+                              )
+
+case class EntitlementsJsonV400(
+                                list: List[EntitlementJsonV400]
+                              )
 
 case class AccountTagsJSON(
                             tags: List[AccountTagJSON]
@@ -321,6 +333,14 @@ object JSONFactory400 {
       date = tag.datePosted,
       user = JSONFactory.createUserJSON(tag.postedBy)
     )
+  }
+  def createEntitlementJSONs(entitlements: List[Entitlement]): EntitlementsJsonV400 = {
+    EntitlementsJsonV400(entitlements.map(entitlement => EntitlementJsonV400(
+      entitlement_id = entitlement.entitlementId,
+      role_name = entitlement.roleName,
+      bank_id = entitlement.bankId,
+      user_id = entitlement.userId
+    )))
   }
 
   def createDirectDebitJSON(directDebit: DirectDebitTrait): DirectDebitJsonV400 = {
