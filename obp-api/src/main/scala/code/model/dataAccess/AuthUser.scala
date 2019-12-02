@@ -344,12 +344,12 @@ import net.liftweb.util.Helpers._
       case u if u.validated_? =>
         u.resetUniqueId().save
         //NOTE: here, if server_mode = portal, so we need modify the resetLink to portal_hostname, then developer can get proper response..
-        val resetLinkProps = APIUtil.getPropsValue("hostname", "ERROR")
-        val resetLink = APIUtil.getPropsValue("portal_hostname", resetLinkProps)+
+        val resetPasswordLinkProps = APIUtil.getPropsValue("hostname", "ERROR")
+        val resetPasswordLink = APIUtil.getPropsValue("portal_hostname", resetPasswordLinkProps)+
           passwordResetPath.mkString("/", "/", "/")+urlEncode(u.getUniqueId())
         Mailer.sendMail(From(emailFrom),Subject(passwordResetEmailSubject + " - " + u.username),
           To(u.getEmail) ::
-            generateResetEmailBodies(u, resetLink) :::
+            generateResetEmailBodies(u, resetPasswordLink) :::
             (bccEmail.toList.map(BCC(_))) :_*)
       case u =>
         sendValidationEmail(u)
