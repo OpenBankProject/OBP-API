@@ -86,8 +86,18 @@ package code.model.dataAccess {
       * @return This is a procedure, no return value. Just use the side effect.
       */
     def setAsOwner(bankId : BankId, accountId : AccountId, user: User): Unit = {
-      createOwnerView(bankId, accountId, user)
+      addPermissionToSystemOwnerView(bankId, accountId, user)
       val accountHolder = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user: User, BankIdAccountId(bankId, accountId))
+    }
+    
+    private def addPermissionToSystemOwnerView(bankId : BankId, accountId : AccountId, user: User): Unit = {
+      val ownerView = ViewIdBankIdAccountId(ViewId(SYSTEM_OWNER_VIEW_ID), bankId, accountId)
+      Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined match {
+        case true =>
+          Views.views.vend.addPermission(ownerView, user)
+        case false =>
+          logger.debug(s"Cannot create/get system view: ${SYSTEM_OWNER_VIEW_ID}")
+      }
     }
   
     /**

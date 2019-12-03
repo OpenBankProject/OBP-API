@@ -38,17 +38,20 @@ object MapperViews extends Views with MdcLoggable {
     views.flatten
   }  
   private def getViewsForUserAndAccount(user: User, account : BankIdAccountId): List[View] = {
-    val privileges = AccountAccess.findAll(By(AccountAccess.user_fk, user.userPrimaryKey.value))
-    val views: List[ViewDefinition] = privileges.flatMap(x => ViewDefinition.find(By(ViewDefinition.id_, x.view_fk.get))).filter(v =>
-      if (ALLOW_PUBLIC_VIEWS) {
-        v.accountId == account.accountId &&
-          v.bankId == account.bankId
-      } else {
-        v.accountId == account.accountId &&
-          v.bankId == account.bankId &&
-          v.isPrivate
-      }
+    val privileges = AccountAccess.findAll(
+      By(AccountAccess.user_fk, user.userPrimaryKey.value),
+      By(AccountAccess.bank_id, account.bankId.value),
+      By(AccountAccess.account_id, account.accountId.value)
     )
+    val views: List[ViewDefinition] = privileges.flatMap(x => ViewDefinition.find(By(ViewDefinition.id_, x.view_fk.get)))
+      .filter(
+        v =>
+          if (ALLOW_PUBLIC_VIEWS) {
+            true // All views
+          } else {
+            v.isPrivate == true // Only private views
+          }
+      )
     views.map(
       x => x.bank_id(account.bankId.value).account_id(account.accountId.value)
     )
@@ -149,6 +152,7 @@ object MapperViews extends Views with MdcLoggable {
   def addPermissions(views: List[ViewIdBankIdAccountId], user: User): Box[List[View]] = {
     val viewDefinitions: List[(ViewDefinition, ViewIdBankIdAccountId)] = views.map {
       uid => ViewDefinition.findByUniqueKey(uid.bankId.value,uid.accountId.value, uid.viewId.value).map((_, uid))
+          .or(ViewDefinition.findSystemView(uid.viewId.value).map((_, uid)))
     }.collect { case Full(v) => v}
 
     if (viewDefinitions.size != views.size) {
@@ -387,7 +391,9 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def viewsForAccount(bankAccountId : BankIdAccountId) : List[View] = {
-    ViewDefinition.findAll(ViewDefinition.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
+    val customViews = ViewDefinition.findAll(ViewDefinition.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
+    val systemViews = ViewDefinition.findAll(By(ViewDefinition.isSystem_, true))
+    (customViews ::: systemViews).distinct
   }
   
   def publicViews: List[View] = {
