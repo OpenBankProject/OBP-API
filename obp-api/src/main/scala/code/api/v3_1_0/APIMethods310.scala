@@ -2520,7 +2520,7 @@ trait APIMethods310 {
                 Future(Empty)
               case true =>
                 Future(Connector.connector.vend.getProduct(bankId, ProductCode(product.parent_product_code))) map {
-                  getFullBoxOrFail(_, callContext, ProductNotFoundByProductCode + " {" + product.parent_product_code + "}", 400)
+                  getFullBoxOrFail(_, callContext, ParentProductNotFoundByProductCode + " {" + product.parent_product_code + "}", 400)
                 }
             }
             success <- Future(Connector.connector.vend.createOrUpdateProduct(
