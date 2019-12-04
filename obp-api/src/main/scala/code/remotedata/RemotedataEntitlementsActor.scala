@@ -31,6 +31,10 @@ class RemotedataEntitlementsActor extends Actor with ObpActorHelper with MdcLogg
       logger.debug("getEntitlementsByUserIdFuture(" + userId + ")")
       sender ! (mapper.getEntitlementsByUserId(userId))
 
+    case cc.getEntitlementsByBankId(bankId: String) =>
+      logger.debug("getEntitlementsByBankId(" + bankId + ")")
+      (mapper.getEntitlementsByBankId(bankId)) pipeTo sender
+    
     case cc.deleteEntitlement(entitlement: Box[Entitlement]) =>
       logger.debug("deleteEntitlement(" + entitlement + ")")
       sender ! (mapper.deleteEntitlement(entitlement))
