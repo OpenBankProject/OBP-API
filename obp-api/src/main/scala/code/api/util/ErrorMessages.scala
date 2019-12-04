@@ -248,11 +248,11 @@ object ErrorMessages {
   val CardNotFound = "OBP-30059: This Card can not be found for the user "
   val CardAlreadyExists = "OBP-30060: Card already exists. Please specify different values for bankId, card_number and issueNumber."
   val CardAttributeNotFound = "OBP-30061: Card Attribute not found. Please specify a valid value for CARD_ATTRIBUTE_ID."
-  
-  val CannotAddAccountAccess = "OBP-30062: Cannot add account access."
-  val CannotRevokeAccountAccess = "OBP-30063: Cannot revoke account access."
-  val CannotFindAccountAccess = "OBP-30064: Cannot find account access."
-  
+  val ParentProductNotFoundByProductCode = "OBP-30062: Parent product not found. Please specify an existing product code for parent_product_code. Leave empty if no parent product exists."
+  val CannotAddAccountAccess = "OBP-30063: Cannot add account access."
+  val CannotRevokeAccountAccess = "OBP-30064: Cannot revoke account access."
+  val CannotFindAccountAccess = "OBP-30065: Cannot find account access."
+
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
