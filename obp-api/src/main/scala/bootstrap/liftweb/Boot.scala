@@ -533,7 +533,7 @@ class Boot extends MdcLoggable {
       ConnectorEndpoints.registerConnectorEndpoints
     }
 
-    if (APIUtil.getPropsAsBoolValue("system_views.enabled", true)){
+    if (APIUtil.getPropsAsBoolValue("create_system_views_at_boot", true)){
       // Create system views
       val owner = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined
       val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).isDefined

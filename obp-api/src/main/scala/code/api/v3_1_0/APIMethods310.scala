@@ -2515,12 +2515,12 @@ trait APIMethods310 {
             product <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostPutProductJsonV310]
             }
-            parentProductCode <- product.parent_product_code.nonEmpty match {
+            parentProductCode <- product.parent_product_code.trim.nonEmpty match {
               case false => 
                 Future(Empty)
               case true =>
                 Future(Connector.connector.vend.getProduct(bankId, ProductCode(product.parent_product_code))) map {
-                  getFullBoxOrFail(_, callContext, ProductNotFoundByProductCode + " {" + product.parent_product_code + "}", 400)
+                  getFullBoxOrFail(_, callContext, ParentProductNotFoundByProductCode + " {" + product.parent_product_code + "}", 400)
                 }
             }
             success <- Future(Connector.connector.vend.createOrUpdateProduct(

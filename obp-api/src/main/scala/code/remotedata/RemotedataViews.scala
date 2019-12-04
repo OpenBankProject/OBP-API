@@ -51,7 +51,7 @@ object RemotedataViews extends ObpActorInit with Views {
   )
   
   def systemView(viewId : ViewId) : Box[View] = getValueFromFuture(
-    (actor ? cc.view(viewId)).mapTo[Box[View]]
+    (actor ? cc.systemView(viewId)).mapTo[Box[View]]
   )
 
   def viewFuture(viewId : ViewId, account: BankIdAccountId) : Future[Box[View]] = 
