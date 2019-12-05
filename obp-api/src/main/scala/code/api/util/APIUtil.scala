@@ -2708,4 +2708,10 @@ Returns a string showed to the developer
     if(range1.end.before(range2.start) || range1.start.after(range2.end)) false else true
   }
   
+  def checkCustomViewName(name: String): Boolean = name match {
+    case x if x == "_" + SYSTEM_OWNER_VIEW_ID => false // Reserved name
+    case x if x.startsWith("_") => true // Allowed case
+    case _ => false
+  }
+  
 }
