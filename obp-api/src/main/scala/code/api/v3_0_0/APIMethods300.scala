@@ -167,7 +167,7 @@ trait APIMethods300 {
               }
               //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
               _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
-                createViewJson.name.startsWith("_")
+                checkCustomViewName(createViewJson.name)
               }
               (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             } yield {

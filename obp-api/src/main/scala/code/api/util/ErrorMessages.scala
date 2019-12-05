@@ -1,5 +1,7 @@
 package code.api.util
 
+import code.api.Constant._
+
 object ErrorMessages {
   import code.api.util.APIUtil._
   // Notes to developers. Please:
@@ -113,7 +115,7 @@ object ErrorMessages {
 
   val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
   val UserNoOwnerView = "OBP-20019: User does not have access to owner view. "
-  val InvalidCustomViewFormat = "OBP-20020: View name must start with `_`. eg: _work, _life "
+  val InvalidCustomViewFormat = s"OBP-20020: View name must start with `_`. eg: _work, _life. Reserved names: $CUSTOM_OWNER_VIEW_ID "
   val SystemViewsCanNotBeModified = "OBP-20021: System Views can not be modified. Only the created views can be modified."
   val ViewDoesNotPermitAccess = "OBP-20022: View does not permit the access."
 

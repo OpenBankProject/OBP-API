@@ -43,11 +43,8 @@ object UpdateTableViewDefinition {
         val updatedRows: List[Boolean] =
           for {
             view <- views
-            (name, viewId) = (view.name, view.viewId.value)
           } yield {
             view
-              .name_(if (name.startsWith("_")) name else "_" + name)
-              .view_id(if (viewId.startsWith("_")) viewId else "_" + viewId)
               .isSystem_(false)
               .save
           }
@@ -64,7 +61,7 @@ object UpdateTableViewDefinition {
             accountAccess.view_id(view.viewId.value).save()
           }
         
-        val isSuccessful = views.forall(_.name.startsWith("_"))
+        val isSuccessful = views.forall(_.isSystem == false)
         val endDate = System.currentTimeMillis()
         val comment: String =
           s"""Number of updated rows at table ViewDefinition: ${updatedRows.size}
