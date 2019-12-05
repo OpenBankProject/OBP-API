@@ -56,15 +56,17 @@ case class UserExtended(val user: User) extends MdcLoggable {
     * And than call the `hasViewAccess(view: View): Boolean` method
     * @return if the user have the account owner view access return true, otherwise false.
     */
-  final def hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean ={
-    //find the bankAccount owner view object
-    val viewImplBox = Views.views.vend.view(ViewId(CUSTOM_OWNER_VIEW_ID), bankIdAccountId)
-      .or(Views.views.vend.systemView(ViewId(SYSTEM_OWNER_VIEW_ID)))
-    viewImplBox match {
-      case Full(v) => hasViewAccess(v)
-      case _ =>
-        logger.warn(s"It is strange. This bankAccount(${bankIdAccountId.bankId}, ${bankIdAccountId.accountId}) do not have `owner` view.")
-        return false
+  final def hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean = {
+    //We first check if the user has the `SYSTEM_OWNER_VIEW_ID` access, if not then check the `CUSTOM_OWNER_VIEW_ID`
+    val customerViewImplBox = Views.views.vend.view(ViewId(CUSTOM_OWNER_VIEW_ID), bankIdAccountId) 
+    customerViewImplBox match {
+      case Full(v) if hasViewAccess(v) => true
+      case _ => Views.views.vend.systemView(ViewId(SYSTEM_OWNER_VIEW_ID)) match  { 
+        case Full(v)if hasViewAccess(v) => true
+        case _ => 
+          logger.warn(s"It is strange. This bankAccount(${bankIdAccountId.bankId}, ${bankIdAccountId.accountId}) do not have `owner` view.")
+          false
+      }
     }
   }
   /**
@@ -77,7 +79,10 @@ case class UserExtended(val user: User) extends MdcLoggable {
     */
   final def hasViewAccess(view: View): Boolean ={
     val viewDefinition = view.asInstanceOf[ViewDefinition]
-    !(AccountAccess.count(By(AccountAccess.user_fk, this.userPrimaryKey.value), By(AccountAccess.view_fk, viewDefinition.id)) == 0)
+    !(AccountAccess.count(
+      By(AccountAccess.user_fk, this.userPrimaryKey.value), 
+      By(AccountAccess.view_fk, viewDefinition.id)
+    ) == 0)
   }
 
   def assignedEntitlements : List[Entitlement] = {

@@ -499,7 +499,8 @@ object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefini
     ViewDefinition.find(
       NullRef(ViewDefinition.bank_id),
       NullRef(ViewDefinition.account_id),
-      By(ViewDefinition.view_id, viewId)
+      By(ViewDefinition.isSystem_, true),
+      By(ViewDefinition.view_id, viewId),
     )
   }
 
