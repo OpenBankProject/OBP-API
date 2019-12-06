@@ -56,13 +56,15 @@ class DynamicEntityTest extends V400ServerSetup {
     """
       |{
       |    "FooBar": {
+      |       "description": "description of this entity, can be markdown text.",
       |        "required": [
       |            "name"
       |        ],
       |        "properties": {
       |            "name": {
       |                "type": "string",
-      |                "example": "James Brown"
+      |                "example": "James Brown",
+      |                "description":"description of **name** field, can be markdown text."
       |            },
       |            "number": {
       |                "type": "integer",
@@ -72,27 +74,79 @@ class DynamicEntityTest extends V400ServerSetup {
       |    }
       |}
       |""".stripMargin)
-  // wrong metadataJson
-  val wrongEntity = parse(
+  // wrong required name
+  val wrongRequiredEntity = parse(
     """
       |{
-      |   "FooBar": {
-      |       "required": [
-      |           "name"
-      |       ],
-      |       "properties": {
-      |           "name_wrong": {
-      |               "type": "string",
-      |               "example": "James Brown"
-      |           },
-      |           "number": {
-      |               "type": "integer",
-      |               "example": 69876172
-      |           }
-      |       }
-      |   }
+      |    "FooBar": {
+      |       "description": "description of this entity, can be markdown text.",
+      |        "required": [
+      |            "name_wrong"
+      |        ],
+      |        "properties": {
+      |            "name": {
+      |                "type": "string",
+      |                "example": "James Brown",
+      |                "description":"description of **name** field, can be markdown text."
+      |            },
+      |            "number": {
+      |                "type": "integer",
+      |                "example": 69876172,
+      |                "description": "description of **number** field, can be markdown text."
+      |            }
+      |        }
+      |    }
       |}
-      |""".stripMargin) 
+      |""".stripMargin)
+
+  // wrong description value type
+  val wrongDescriptionEntity = parse(
+    """
+      |{
+      |    "FooBar": {
+      |       "description": 1,
+      |        "required": [
+      |            "name_wrong"
+      |        ],
+      |        "properties": {
+      |            "name": {
+      |                "type": "string",
+      |                "example": "James Brown",
+      |                "description":"description of **name** field, can be markdown text."
+      |            },
+      |            "number": {
+      |                "type": "integer",
+      |                "example": 69876172,
+      |                "description": "description of **number** field, can be markdown text."
+      |            }
+      |        }
+      |    }
+      |}
+      |""".stripMargin)
+  // wrong property description value type
+  val wrongPropertyDescriptionEntity = parse(
+    """
+      |{
+      |    "FooBar": {
+      |       "description": 1,
+      |        "required": [
+      |            "name_wrong"
+      |        ],
+      |        "properties": {
+      |            "name": {
+      |                "type": "string",
+      |                "example": "James Brown",
+      |                "description":"description of **name** field, can be markdown text."
+      |            },
+      |            "number": {
+      |                "type": "integer",
+      |                "example": 69876172,
+      |                "description": true
+      |            }
+      |        }
+      |    }
+      |}
+      |""".stripMargin)
 
 
   feature("Add a DynamicEntity v4.0.4- Unauthorized access") {
@@ -208,9 +262,29 @@ class DynamicEntityTest extends V400ServerSetup {
       }
 
       {
-        // update a DynamicEntity with wrong metadataJson
+        // update a DynamicEntity with wrong required field name
         val request400 = (v4_0_0_Request / "management" / "dynamic_entities" / dynamicEntityId ).PUT <@(user1)
-        val response400 = makePutRequest(request400, compactRender(wrongEntity))
+        val response400 = makePutRequest(request400, compactRender(wrongRequiredEntity))
+        Then("We should get a 400")
+
+        response400.code should equal(400)
+        response400.body.extract[ErrorMessage].message should startWith (InvalidJsonFormat)
+      }
+
+      {
+        // update a DynamicEntity with wrong type of description
+        val request400 = (v4_0_0_Request / "management" / "dynamic_entities" / dynamicEntityId ).PUT <@(user1)
+        val response400 = makePutRequest(request400, compactRender(wrongDescriptionEntity))
+        Then("We should get a 400")
+
+        response400.code should equal(400)
+        response400.body.extract[ErrorMessage].message should startWith (InvalidJsonFormat)
+      }
+
+      {
+        // update a DynamicEntity with wrong type of property description
+        val request400 = (v4_0_0_Request / "management" / "dynamic_entities" / dynamicEntityId ).PUT <@(user1)
+        val response400 = makePutRequest(request400, compactRender(wrongPropertyDescriptionEntity))
         Then("We should get a 400")
 
         response400.code should equal(400)

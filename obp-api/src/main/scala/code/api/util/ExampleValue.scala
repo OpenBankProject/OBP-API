@@ -290,17 +290,20 @@ object ExampleValue {
   """
     |{
     |   "FooBar": {
+    |       "description": "description of this entity, can be markdown text."
     |       "required": [
     |           "name"
     |       ],
     |       "properties": {
     |           "name": {
     |               "type": "string",
-    |               "example": "James Brown"
+    |               "example": "James Brown",
+    |               "description":"description of **name** field, can be markdown text."
     |           },
     |           "number": {
     |               "type": "integer",
-    |               "example": "698761728934"
+    |               "example": "698761728934",
+    |               "description": "description of **number** field, can be markdown text."
     |           }
     |       }
     |   }
@@ -309,10 +312,11 @@ object ExampleValue {
 
   lazy val dynamicEntityRequestBodyExample = DynamicEntityFooBar(
     DynamicEntityDefinition(
+      "description of this entity, can be markdown text.",
       List("name"),
       DynamicEntityFullBarFields(
-        DynamicEntityStringTypeExample(DynamicEntityFieldType.string, "James Brown"),
-        DynamicEntityIntTypeExample(DynamicEntityFieldType.integer, 698761728)
+        DynamicEntityStringTypeExample(DynamicEntityFieldType.string, "James Brown", "description of **name** field, can be markdown text."),
+        DynamicEntityIntTypeExample(DynamicEntityFieldType.integer, 698761728, "description of **number** field, can be markdown text.")
       )
     )
   )
