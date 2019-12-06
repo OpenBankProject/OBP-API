@@ -410,7 +410,7 @@ case class AccountApplicationsJsonV310(account_applications: List[AccountApplica
 
 case class RateLimitingInfoV310(enabled: Boolean, technology: String, service_available: Boolean, is_active: Boolean)
 
-case class PostPutProductJsonV310(bank_id: String,
+case class PostPutProductJsonV310(
                                   name : String,
                                   parent_product_code : String,
                                   category: String,
