@@ -96,6 +96,20 @@ class AccountTest extends V400ServerSetup {
       account.label should be (addAccountJson.label)
       account.account_routing should be (addAccountJson.account_routing)
 
+      
+      Then(s"We call $ApiEndpoint1 to get the account back")
+      val request = (v4_0_0_Request /"my" / "banks" / testBankId1.value/ "accounts" / account.account_id / "account").GET <@ (user1)
+      val response = makeGetRequest(request)
+
+      Then("We should get a 200 and check the response body")
+      response.code should equal(200)
+      val moderatedCoreAccountJsonV400 = response.body.extract[ModeratedCoreAccountJsonV400]
+      moderatedCoreAccountJsonV400.account_attributes.length == 0 should be (true)
+      moderatedCoreAccountJsonV400.views_basic.length >= 1 should be (true)
+      
+      
+      
+      
       Then("We make a request v4.0.0 but with other user")
       val requestWithNewAccountId = (v4_0_0_Request / "banks" / testBankId.value / "accounts" ).POST <@(user1)
       val responseWithNoRole = makePostRequest(requestWithNewAccountId, write(addAccountJsonOtherUser))
