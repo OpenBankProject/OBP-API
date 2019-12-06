@@ -29,7 +29,7 @@ package code.model
 
 import code.api.Constant._
 import code.api.UserNotFound
-import code.api.util.ErrorMessages.UserNoPermissionAccessView
+import code.api.util.APIUtil
 import code.entitlement.Entitlement
 import code.model.dataAccess.ResourceUser
 import code.users.Users
@@ -66,27 +66,10 @@ case class UserExtended(val user: User) extends MdcLoggable {
     ) == 0)
   }
 
-  /**
-   * All the get view and check view access must be in one method, can not be separated from now. Because we introduce system views. 
-   * 1st check: if `Custom View is existing` and `have the custom owner view access` ==>  return the customView.
-   * 2rd check: if `Custom view is not find or have no custom owner view access` and `find system owner view` and `have the system owner view access` ==> then return systemView. 
-   * all other cases ==>return no access to the `viewId` 
-   */
-  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId) = {
-    val customerViewImplBox = Views.views.vend.view(viewId, bankIdAccountId)
-    customerViewImplBox match {
-      case Full(v) if(hasViewAccess(v)) => customerViewImplBox
-      case _ => Views.views.vend.systemView(viewId) match  {
-        case Full(v) if (hasViewAccess(v)) => Full(v)
-        case _ => Failure(s"$UserNoPermissionAccessView Current viewId($viewId), userId(${this.userId}), bankId(${bankIdAccountId.bankId}), accountId(${bankIdAccountId.accountId})")
-      }
-    }
-  }
-
   final def checkOwnerViewAccessAndReturnOwnerView(bankIdAccountId: BankIdAccountId) = {
     //Note: now SYSTEM_OWNER_VIEW_ID == CUSTOM_OWNER_VIEW_ID is the same `owner` so we only use one here. 
     //And in side the checkViewAccessAndReturnView, it will first check the customer view and then will check system view.
-    checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), bankIdAccountId)
+    APIUtil.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), bankIdAccountId, Some(this.user))
   }
 
   final def hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean = {

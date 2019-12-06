@@ -58,6 +58,7 @@ import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
+import code.views.Views
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{Customer, _}
@@ -2358,6 +2359,27 @@ Returns a string showed to the developer
           false
       }
   }
+  /**
+   * All the get view and check view access must be in one method, can not be separated from now. Because we introduce system views. 
+   * 1st check: if `Custom View is existing` and `have the custom owner view access` ==>  return the customView.
+   * 2rd check: if `Custom view is not find or have no custom owner view access` and `find system owner view` and `have the system owner view access` ==> then return systemView. 
+   * all other cases ==>return no access to the `viewId`
+   * 
+   * Note: this user is Option, for the public views, there is no need for the user. 
+   */
+  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User]) = {
+    val customerViewImplBox = Views.views.vend.view(viewId, bankIdAccountId)
+    customerViewImplBox match {
+      case Full(v) if(hasPublicAccess(v)) => customerViewImplBox
+      case Full(v) if(user.isDefined && user.get.hasViewAccess(v)) => customerViewImplBox
+      case _ => Views.views.vend.systemView(viewId) match  {
+        case Full(v) if (hasPublicAccess(v)) => Full(v)
+        case Full(v) if (user.isDefined && user.get.hasViewAccess(v)) => Full(v)
+        case _ => Failure(s"$UserNoPermissionAccessView Current viewId($viewId), userId(${user.map(_.userId)}), bankId(${bankIdAccountId.bankId}), accountId(${bankIdAccountId.accountId})")
+      }
+    }
+  }
+  
   /**
     * This view public is true and set `allow_public_views=ture` in props
     */
