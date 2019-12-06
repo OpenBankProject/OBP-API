@@ -236,6 +236,15 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$UserNoOwnerView" +"userId : " + user.userId + ". bankId : " + s"${bankAccountId.bankId}" + ". accountId : " + s"${bankAccountId.accountId}")
       }
     }
+
+    def checkViewAccessAndReturnView(viewId : ViewId, bankAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]) : Future[View] = {
+      Future{
+        APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, user)
+      } map {
+        unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is $viewId")
+      }
+    }
+    
     def view(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.viewFuture(viewId, bankAccountId)  map {
         x => x.or(Views.views.vend.systemView(viewId))
@@ -290,9 +299,6 @@ object NewStyle {
       Views.views.vend.removeSystemView(viewId) map {
         unboxFullOrFail(_, callContext, s"$DeleteSystemViewError")
       }
-    }
-    def hasViewAccess(view: View, user: User): Future[Box[Unit]] = {
-      Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {(user.hasViewAccess(view))}
     }
 
     def getConsumerByConsumerId(consumerId: String, callContext: Option[CallContext]): Future[Consumer] = {

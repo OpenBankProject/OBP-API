@@ -261,7 +261,7 @@ trait APIMethods300 {
                 x => fullBoxOrException(
                   x ~> APIFailureNewStyle(s"$ViewNotFound. Check your post json body, metadata_view = ${updateJson.metadata_view}. It should be an existing VIEW_ID, eg: owner", 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
-              view <- NewStyle.function.view(viewId, BankIdAccountId(bankId, accountId), callContext)
+              view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId),Some(u), callContext)
               _ <- Helper.booleanToFuture(failMsg = SystemViewsCanNotBeModified) {
                 !view.isSystem
               }
@@ -311,8 +311,7 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-            _ <- NewStyle.function.hasViewAccess(view, u)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId),Some(u), callContext)
             moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
           } yield {
             (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
@@ -356,7 +355,7 @@ trait APIMethods300 {
         cc =>
           for {
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, Some(cc))
-            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId),cc.user, callContext)
             moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Empty, callContext)
           } yield {
             (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
@@ -402,7 +401,6 @@ trait APIMethods300 {
           (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
           // Assume owner view was requested
           view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
-          _ <- NewStyle.function.hasViewAccess(view, u)
           moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
           (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
             bankId,
@@ -505,7 +503,7 @@ trait APIMethods300 {
               //3 use view and user to moderate the bankaccount object.
               bankIdAccountId <- availableBankIdAccountIdList
               bankAccount <- Connector.connector.vend.getBankAccount(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
-              view <- Views.views.vend.view(viewId, bankIdAccountId)
+              view <- APIUtil.checkViewAccessAndReturnView(viewId, bankIdAccountId, Some(u))
               moderatedAccount <- bankAccount.moderatedBankAccount(view, Full(u), callContext) //Error handling is in lower method
             } yield {
               moderatedAccount
@@ -564,7 +562,7 @@ trait APIMethods300 {
                canUseFirehose(u)
               }
               (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-              view <- NewStyle.function.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+              view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId),Some(u), callContext)
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
@@ -679,7 +677,7 @@ trait APIMethods300 {
           for {
             (user, callContext) <-  authorizedAccess(cc)
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            view <- NewStyle.function.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), user, callContext)
             params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
@@ -1710,7 +1708,7 @@ trait APIMethods300 {
           for {
             (u, callContext) <- authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), u, callContext)
             otherBankAccounts <- NewStyle.function.moderatedOtherBankAccounts(account, view, u, callContext)
           } yield {
             val otherBankAccountsJson = createOtherBankAccountsJson(otherBankAccounts)
@@ -1747,7 +1745,7 @@ trait APIMethods300 {
           for {
             (u, callContext) <- authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), u, callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, u, callContext)
           } yield {
             val otherBankAccountJson = createOtherBankAccount(otherBankAccount)

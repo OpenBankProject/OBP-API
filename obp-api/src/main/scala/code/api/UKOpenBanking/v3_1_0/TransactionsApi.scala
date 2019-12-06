@@ -1029,7 +1029,7 @@ object APIMethods_TransactionsApi extends RestHelper {
                bankAccount <- accounts
              } yield{
                for{
-                 view <- Views.views.vend.view(ViewId(CUSTOM_OWNER_VIEW_ID), BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
+                 view <- u.checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
                  params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                  (transactionRequests, callContext) <- Connector.connector.vend.getTransactionRequests210(u, bankAccount)
                  (transactions, callContext) <-  bankAccount.getModeratedTransactions(Full(u), view, callContext, params)
