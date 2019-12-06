@@ -477,8 +477,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccountX(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
-              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))
-              _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
+              _ <- booleanToBox( u.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)), UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId)
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
             }
             yield {

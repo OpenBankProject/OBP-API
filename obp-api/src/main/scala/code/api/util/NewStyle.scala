@@ -231,7 +231,11 @@ object NewStyle {
       Connector.connector.vend.getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetTransactions", 400 ), i._2)
       }
-    
+    def checkOwnerViewAccessAndReturnOwnerView(user: User, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
+      Future {user.checkOwnerViewAccessAndReturnOwnerView(bankAccountId)}  map {
+        unboxFullOrFail(_, callContext, s"$UserNoOwnerView" +"userId : " + user.userId + ". bankId : " + s"${bankAccountId.bankId}" + ". accountId : " + s"${bankAccountId.accountId}")
+      }
+    }
     def view(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.viewFuture(viewId, bankAccountId)  map {
         x => x.or(Views.views.vend.systemView(viewId))
@@ -239,13 +243,7 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is $viewId")
       }
     }    
-    def ownerView(bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
-      Views.views.vend.viewFuture(ViewId(CUSTOM_OWNER_VIEW_ID), bankAccountId) map {
-        x => x.or(Views.views.vend.systemView(ViewId(SYSTEM_OWNER_VIEW_ID)))
-      } map {
-        unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is owner")
-      }
-    }
+    
     def systemView(viewId : ViewId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.systemViewFuture(viewId) map {
         unboxFullOrFail(_, callContext, s"$SystemViewNotFound. Current ViewId is $viewId")

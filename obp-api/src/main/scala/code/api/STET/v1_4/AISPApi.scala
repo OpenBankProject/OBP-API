@@ -113,8 +113,7 @@ The ASPSP answers by providing a list of balances on this account.
              _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
              (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
              (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountresourceid), callContext)
-             view <- NewStyle.function.ownerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
-             _ <- Helper.booleanToFuture(failMsg = s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})") {(u.hasViewAccess(view))}
+             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
              moderatedAccount <- Future {bankAccount.moderatedBankAccount(view, Full(u), callContext)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
@@ -303,7 +302,7 @@ The AISP requests the ASPSP on one of the PSU's accounts. It may specify some se
             
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, AccountId(accountresourceid), callContext)
             
-            view <- NewStyle.function.ownerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
+            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
             
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))

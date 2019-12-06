@@ -29,6 +29,7 @@ package code.model
 
 import code.api.Constant._
 import code.api.UserNotFound
+import code.api.util.ErrorMessages.UserNoPermissionAccessView
 import code.entitlement.Entitlement
 import code.model.dataAccess.ResourceUser
 import code.users.Users
@@ -37,7 +38,7 @@ import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.model._
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonDSL._
 import net.liftweb.mapper.By
@@ -51,29 +52,9 @@ case class UserExtended(val user: User) extends MdcLoggable {
   private[this] val name : String = user.name
 
   /**
-    * Also see @`hasViewAccess(view: View): Boolean`
-    * Here only need the bankIdAccountId, it will search for the `owner` view internally.
-    * And than call the `hasViewAccess(view: View): Boolean` method
-    * @return if the user have the account owner view access return true, otherwise false.
-    */
-  final def hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean = {
-    //We first check if the user has the `SYSTEM_OWNER_VIEW_ID` access, if not then check the `CUSTOM_OWNER_VIEW_ID`
-    val customerViewImplBox = Views.views.vend.view(ViewId(CUSTOM_OWNER_VIEW_ID), bankIdAccountId) 
-    customerViewImplBox match {
-      case Full(v) if hasViewAccess(v) => true
-      case _ => Views.views.vend.systemView(ViewId(SYSTEM_OWNER_VIEW_ID)) match  { 
-        case Full(v)if hasViewAccess(v) => true
-        case _ => 
-          logger.warn(s"It is strange. This bankAccount(${bankIdAccountId.bankId}, ${bankIdAccountId.accountId}) do not have `owner` view.")
-          false
-      }
-    }
-  }
-  /**
-    * Also see @`hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean`
-    * Here we need the `view` object, so we need check the existence before call this method.
-    * In the method, we will check if the view and user have the record in AccountAccess table.
-    * If it is, return true, otherwise false.
+    * This will read the AccountAccess table to see if there is a record for the user.primaryKey and view.PrimaryKey.
+    * So it can check both system views and custom views.
+    * But it need the view object in the parameters.   
     * @param view the view object, need check the existence before calling the method
     * @return if has the input view access, return true, otherwise false.
     */
@@ -83,6 +64,33 @@ case class UserExtended(val user: User) extends MdcLoggable {
       By(AccountAccess.user_fk, this.userPrimaryKey.value), 
       By(AccountAccess.view_fk, viewDefinition.id)
     ) == 0)
+  }
+
+  /**
+   * All the get view and check view access must be in one method, can not be separated from now. Because we introduce system views. 
+   * 1st check: if `Custom View is existing` and `have the custom owner view access` ==>  return the customView.
+   * 2rd check: if `Custom view is not find or have no custom owner view access` and `find system owner view` and `have the system owner view access` ==> then return systemView. 
+   * all other cases ==>return no access to the `viewId` 
+   */
+  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId) = {
+    val customerViewImplBox = Views.views.vend.view(viewId, bankIdAccountId)
+    customerViewImplBox match {
+      case Full(v) if(hasViewAccess(v)) => customerViewImplBox
+      case _ => Views.views.vend.systemView(viewId) match  {
+        case Full(v) if (hasViewAccess(v)) => Full(v)
+        case _ => Failure(s"$UserNoPermissionAccessView Current viewId($viewId), userId(${this.userId}), bankId(${bankIdAccountId.bankId}), accountId(${bankIdAccountId.accountId})")
+      }
+    }
+  }
+
+  final def checkOwnerViewAccessAndReturnOwnerView(bankIdAccountId: BankIdAccountId) = {
+    //Note: now SYSTEM_OWNER_VIEW_ID == CUSTOM_OWNER_VIEW_ID is the same `owner` so we only use one here. 
+    //And in side the checkViewAccessAndReturnView, it will first check the customer view and then will check system view.
+    checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), bankIdAccountId)
+  }
+
+  final def hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean = {
+    checkOwnerViewAccessAndReturnOwnerView(bankIdAccountId).isDefined
   }
 
   def assignedEntitlements : List[Entitlement] = {
