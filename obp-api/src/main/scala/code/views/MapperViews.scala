@@ -89,8 +89,8 @@ object MapperViews extends Views with MdcLoggable {
       // SQL Insert ViewPrivileges
       val saved = AccountAccess.create.
         user_fk(user.userPrimaryKey.value).
-        bank_id(viewDefinition.bankId.value).
-        account_id(viewDefinition.accountId.value).
+        bank_id(bankId).
+        account_id(accountId).
         view_id(viewDefinition.viewId.value).
         view_fk(viewDefinition.id).
         save
@@ -130,6 +130,7 @@ object MapperViews extends Views with MdcLoggable {
     val bankId = viewIdBankIdAccountId.bankId.value
     val accountId = viewIdBankIdAccountId.accountId.value
     val viewDefinition = ViewDefinition.findByUniqueKey(bankId, accountId, viewId)
+      .or(ViewDefinition.findSystemView(viewId))
 
     viewDefinition match {
       case Full(v) => {
@@ -424,15 +425,19 @@ object MapperViews extends Views with MdcLoggable {
   def privateViewsUserCanAccess(user: User): List[View] ={
     AccountAccess.findAll(By(AccountAccess.user_fk, user.userPrimaryKey.value))
       .map(_.view_fk.obj).flatten
-      .filter(view => view.isPrivate == true && view.isSystem == false)
+      .filter(view => view.isPrivate == true)
   }
   
-  def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =
-    privateViewsUserCanAccess(user).filter(
-      view =>
-        view.bankId == bankIdAccountId.bankId &&
-          view.accountId == bankIdAccountId.accountId
+  def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =   {
+    val views = AccountAccess.findAll(
+      By(AccountAccess.user_fk, user.userPrimaryKey.value),
+      By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
+      By(AccountAccess.account_id, bankIdAccountId.accountId.value)
     )
+    views
+      .map(_.view_fk.obj).flatten
+      .filter(view => view.isPrivate == true)
+  }
 
   /**
     * @param bankIdAccountId the IncomingAccount from Kafka
@@ -631,7 +636,7 @@ object MapperViews extends Views with MdcLoggable {
     * @return if no exception, it always return true
     */
   def grantAccessToAllExistingViews(user : User) = {
-    ViewDefinition.findAll.foreach(
+    ViewDefinition.findAll.filter(_.isSystem == false).foreach(
       v => {
         //Get All the views from ViewImpl table, and create the link user <--> each view. The link record the access permission. 
         if ( AccountAccess.find(By(AccountAccess.view_fk, v.id_.get), By(AccountAccess.user_fk, user.userPrimaryKey.value) ).isEmpty )

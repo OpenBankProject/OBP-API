@@ -98,7 +98,7 @@ class AccountTest extends V400ServerSetup {
 
       
       Then(s"We call $ApiEndpoint1 to get the account back")
-      val request = (v4_0_0_Request /"my" / "banks" / testBankId1.value/ "accounts" / account.account_id / "account").GET <@ (user1)
+      val request = (v4_0_0_Request /"my" / "banks" / testBankId.value/ "accounts" / account.account_id / "account").GET <@ (user1)
       val response = makeGetRequest(request)
 
       Then("We should get a 200 and check the response body")

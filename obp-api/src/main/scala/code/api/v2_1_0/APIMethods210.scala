@@ -405,13 +405,10 @@ trait APIMethods210 {
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {isValidID(accountId.value)}
             _ <- Helper.booleanToFuture(InvalidBankIdFormat) {isValidID(bankId.value)}
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext) 
-            (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext) 
-            _ <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext) 
+            (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             
-            _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
-              u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
-              hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest) == true
-            }
+            account = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
+            _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, u, callContext)
             
             _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'") {
               APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value)
@@ -619,14 +616,12 @@ trait APIMethods210 {
               }
                 
               (_, callContext) <- NewStyle.function.getBank(bankId, callContext) 
-              (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext) 
-              _ <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext) 
-              
-              _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
-                u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
-                hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest) == true
-              }
-              
+              (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+
+              account = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
+              _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, u, callContext)
+
+
               // Check transReqId is valid
               (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transReqId, callContext)
 

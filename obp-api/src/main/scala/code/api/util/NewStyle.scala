@@ -7,8 +7,9 @@ import code.accountholders.AccountHolders
 import code.api.APIFailureNewStyle
 import code.api.Constant._
 import code.api.cache.Caching
-import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
-import code.api.util.ErrorMessages._
+import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, hasEntitlement, unboxFull, unboxFullOrFail}
+import code.api.util.ApiRole.canCreateAnyTransactionRequest
+import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
@@ -241,7 +242,21 @@ object NewStyle {
       Future{
         APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, user)
       } map {
-        unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is $viewId")
+        unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView")
+      }
+    }
+    
+    def checkAuthorisationToCreateTransactionRequest(viewId : ViewId, bankAccountId: BankIdAccountId, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
+      Future{
+        code.api.util.APIUtil.hasEntitlement(bankAccountId.bankId.value, user.userId, canCreateAnyTransactionRequest) match {
+          case true => Full(true)
+          case false => user.hasOwnerViewAccess(BankIdAccountId(bankAccountId.bankId,bankAccountId.accountId)) match {
+            case true => Full(true)
+            case false => Empty
+          }
+        }
+      } map {
+        unboxFullOrFail(_, callContext, s"$InsufficientAuthorisationToCreateTransactionRequest")
       }
     }
     
