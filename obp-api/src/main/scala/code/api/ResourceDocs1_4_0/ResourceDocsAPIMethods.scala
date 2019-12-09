@@ -19,6 +19,7 @@ import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftRules, S}
+import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
@@ -251,8 +252,17 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         }
       }
     }
-
-
+    private val getChineseVersionResourceDocs : Box[JsonResponse] = {
+      val stream = this.getClass().getResourceAsStream("/code/api/ResourceDocs1_4_0/allResourceDocs-Chinese.json")
+      val chineseVersion = try {
+          val bufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
+          val jsonStringFromFile = bufferedSource.mkString
+          json.parse(jsonStringFromFile);
+        } finally {
+          stream.close()
+        }
+       Full(successJsonResponse(chineseVersion))
+    }
     def upperName(name: String): (String, String) = (name.toUpperCase(), name)
 
 
@@ -339,6 +349,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?tags=Account,Bank
         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?functions=getBanks,bankById
         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?psd2=true&tags=Account,Bank&functions=getBanks,bankById
+        |${getObpApiRoot}/v3.1.0/resource-docs/v4.0.0/obp??tags=Chinese-Version
         |
         |<ul>
         |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
@@ -367,7 +378,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         (showCore, showPSD2, showOBWG, tags, partialFunctions) <- Full(ResourceDocsAPIMethodsUtil.getParams())
          requestedApiVersion <- tryo {ApiVersion.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
          _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
-         json <- getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags, partialFunctions)
+         json <- tags match {
+           case Some(List(ApiTag.apiTagChineseVersion)) => getChineseVersionResourceDocs
+           case _ => getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags, partialFunctions)
+         }
         } yield {
           json
         }
