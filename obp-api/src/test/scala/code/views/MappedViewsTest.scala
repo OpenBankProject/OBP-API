@@ -20,10 +20,10 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
   
   val bankIdAccountId = BankIdAccountId(BankId("1"),AccountId("2"))
   
-  val viewIdOwner = "_Owner"
-  val viewIdPublic = "_Public"
-  val viewIdAccountant = "_Accountant"
-  val viewIdAuditor = "_Auditor"
+  val viewIdOwner = "owner"
+  val viewIdPublic = "public"
+  val viewIdAccountant = "accountant"
+  val viewIdAuditor = "auditor"
   val viewIdNotSupport = "NotSupport"
   
   
@@ -39,10 +39,10 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       var allExistingViewsForOneAccount = MapperViews.viewsForAccount(bankIdAccountId)
       
       Then("Check the result from database. it should have 4 views and with the right viewId")
-      viewOwner.head.viewId.value should equal("_Owner".toLowerCase())
-      viewPublic.head.viewId.value should equal("_public".toLowerCase())
-      viewAccountant.head.viewId.value should equal("_Accountant".toLowerCase())
-      viewAuditor.head.viewId.value should equal("_Auditor".toLowerCase())
+      viewOwner.head.viewId.value should equal("owner".toLowerCase())
+      viewPublic.head.viewId.value should equal("public".toLowerCase())
+      viewAccountant.head.viewId.value should equal("accountant".toLowerCase())
+      viewAuditor.head.viewId.value should equal("auditor".toLowerCase())
       allExistingViewsForOneAccount.length should equal(4)
       
       Then("We set the four normal views again")
@@ -53,10 +53,10 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       allExistingViewsForOneAccount = MapperViews.viewsForAccount(bankIdAccountId)
   
       Then("Check the result from database again. it should have four views and with the right viewId, there should be not changed.")
-      viewOwner.head.viewId.value should equal("_Owner".toLowerCase())
-      viewPublic.head.viewId.value should equal("_public".toLowerCase())
-      viewAccountant.head.viewId.value should equal("_Accountant".toLowerCase())
-      viewAuditor.head.viewId.value should equal("_Auditor".toLowerCase())
+      viewOwner.head.viewId.value should equal("owner".toLowerCase())
+      viewPublic.head.viewId.value should equal("public".toLowerCase())
+      viewAccountant.head.viewId.value should equal("accountant".toLowerCase())
+      viewAuditor.head.viewId.value should equal("auditor".toLowerCase())
       allExistingViewsForOneAccount.length should equal(4)
   
   

@@ -640,7 +640,7 @@ trait APIMethods121 {
             u <- cc.user ?~  UserNotLoggedIn
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u))
+            view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId)) ?~! ViewNotFound
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             updateViewJson = UpdateViewJSON(
               updateJsonV121.description,

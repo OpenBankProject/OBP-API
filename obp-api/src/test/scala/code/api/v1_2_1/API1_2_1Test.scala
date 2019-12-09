@@ -162,7 +162,6 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     val reply = makeGetRequest(request)
     val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views
       .filterNot(_.is_public==true)
-      .filter(_.id.startsWith("_"))
     val randomPosition = nextInt(possibleViewsPermalinks.size)
     possibleViewsPermalinks(randomPosition).id
   }
@@ -173,7 +172,6 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     val possibleViewsPermalinksWithoutOwner = reply.body.extract[ViewsJSONV121].views
       .filterNot(_.is_public==true)
       .filterNot(_.id == SYSTEM_OWNER_VIEW_ID)
-      .filter(_.id.startsWith("_"))
     val randomPosition = nextInt(possibleViewsPermalinksWithoutOwner.size)
     possibleViewsPermalinksWithoutOwner(randomPosition).id
   }
@@ -226,6 +224,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
   def randomTransaction(bankId : String, accountId : String, viewId: String) : TransactionJSON = {
     val transactionsJson = getTransactions(bankId, accountId, viewId, user1).body.extract[TransactionsJSON].transactions
+    org.scalameta.logger.elem(transactionsJson)
     val randomPosition = nextInt(transactionsJson.size)
     transactionsJson(randomPosition)
   }
@@ -234,7 +233,6 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     //get the view ids of the available views on the bank accounts
     val viewsIds = getAccountViews(bankId, accountId, user1).body.extract[ViewsJSONV121].views
       .filterNot(_.is_public)
-      .filter(_.id.startsWith("_"))
       .map(_.id)
     //choose randomly some view ids to grant
     val (viewsIdsToGrant, _) = viewsIds.splitAt(nextInt(viewsIds.size) + 1)
@@ -5249,7 +5247,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token and will set a comment first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "_public"
+      val view = "public"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomComment = PostTransactionCommentJSON(randomString(20))
       val postedReply = postCommentForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomComment, user2)
@@ -5590,7 +5588,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token and will set a tag first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "_public"
+      val view = "public"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomTag = PostTransactionTagJSON(randomString(5))
       val postedReply = postTagForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomTag, user2)
@@ -5930,7 +5928,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token and will set an image first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "_public"
+      val view = "public"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
       val postedReply = postImageForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomImage, user1)
@@ -6348,7 +6346,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token and will set a where tag first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "_public"
+      val view = "public"
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc, user1)

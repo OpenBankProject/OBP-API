@@ -2370,12 +2370,13 @@ Returns a string showed to the developer
   final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User]) = {
     val customerViewImplBox = Views.views.vend.view(viewId, bankIdAccountId)
     customerViewImplBox match {
+      case Full(v) if(v.isPublic && !ALLOW_PUBLIC_VIEWS) => Failure(PublicViewsNotAllowedOnThisInstance)
       case Full(v) if(hasPublicAccess(v)) => customerViewImplBox
       case Full(v) if(user.isDefined && user.get.hasViewAccess(v)) => customerViewImplBox
       case _ => Views.views.vend.systemView(viewId) match  {
         case Full(v) if (hasPublicAccess(v)) => Full(v)
         case Full(v) if (user.isDefined && user.get.hasViewAccess(v)) => Full(v)
-        case _ => Failure(s"$UserNoPermissionAccessView Current viewId($viewId), userId(${user.map(_.userId)}), bankId(${bankIdAccountId.bankId}), accountId(${bankIdAccountId.accountId})")
+        case _ => Empty
       }
     }
   }
