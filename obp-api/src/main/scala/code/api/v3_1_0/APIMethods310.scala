@@ -2520,7 +2520,7 @@ trait APIMethods310 {
                 }
             }
             success <- Future(Connector.connector.vend.createOrUpdateProduct(
-              bankId = product.bank_id,
+              bankId = bankId.value,
               code = productCode.value,
               parentProductCode = parentProductCode.map(_.code.value).toOption,
               name = product.name,
