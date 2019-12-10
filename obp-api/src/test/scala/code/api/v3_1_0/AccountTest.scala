@@ -6,9 +6,12 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.updateAccountRequestJso
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{ApiRole, ApiVersion}
+import code.api.v2_0_0.BasicAccountJSON
 import code.api.v2_2_0.CreateAccountJSONV220
-import code.api.v3_0_0.ModeratedCoreAccountJsonV300
+import code.api.v3_0_0.{CoreAccountsJsonV300, ModeratedCoreAccountJsonV300}
+import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
@@ -22,6 +25,9 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.updateAccount))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.createAccount))
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getBankAccountsBalances))
+  //We need this endpoint to test the result 
+  object ApiEndpoint4 extends Tag(nameOf(Implementations3_0_0.corePrivateAccountsAllBanks))
+  object ApiEndpoint5 extends Tag(nameOf(Implementations2_0_0.getPrivateAccountsAtOneBank))
 
   lazy val testBankId = testBankId1
   lazy val putCreateAccountJSONV310 = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
@@ -95,6 +101,31 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       account.label should be (putCreateAccountJSONV310.label)
       account.account_routing should be (putCreateAccountJSONV310.account_routing)
 
+      
+      Then(s"we call $ApiEndpoint4 to get the account back")
+      val requestApiEndpoint4 = (v3_1_0_Request / "my" / "accounts" ).PUT <@(user1)
+      val responseApiEndpoint4 = makeGetRequest(requestApiEndpoint4)
+
+      responseApiEndpoint4.code should equal(200)
+      val accounts = responseApiEndpoint4.body.extract[CoreAccountsJsonV300].accounts
+      accounts.map(_.id).toList.toString() contains(account.account_id) should be (true)
+
+
+      Then(s"we call $ApiEndpoint5 to get the account back")
+      val requestApiEndpoint5 = (v3_1_0_Request /"banks" / testBankId.value / "accounts").GET <@ (user1)
+      val responseApiEndpoint5 = makeGetRequest(requestApiEndpoint5)
+
+      Then("We should get a 200")
+      responseApiEndpoint5.code should equal(200)
+      responseApiEndpoint5.body.extract[List[BasicAccountJSON]].toList.toString() contains(account.account_id) should be (true)
+
+
+      val requestGetApiEndpoint3 = (v3_1_0_Request / "banks" / testBankId.value / "balances").GET <@ (user1)
+      val responseGetApiEndpoint3 = makeGetRequest(requestGetApiEndpoint3)
+      responseGetApiEndpoint3.code should equal(200)
+      responseGetApiEndpoint3.body.extract[AccountsBalancesV310Json].accounts.toList.toString() contains(account.account_id) should be (true)
+      
+      
       Then("We make a request v3.1.0 but with other user")
       val request310WithNewAccountId = (v3_1_0_Request / "banks" / testBankId.value / "accounts" / "TEST_ACCOUNT_ID2" ).PUT <@(user1)
       val responseWithNoRole = makePutRequest(request310WithNewAccountId, write(putCreateAccountOtherUserJsonV310))
