@@ -231,8 +231,8 @@ trait APIMethods121 {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
-            privateViewsUserCanAccess <- Full(Views.views.vend.privateViewsUserCanAccess(u))
-            availablePrivateAccounts <- Full(BankAccountX.privateAccounts(privateViewsUserCanAccess))
+            (privateViewsUserCanAccess, privateAccountAccesses) <- Full(Views.views.vend.privateViewsUserCanAccess(u))
+            availablePrivateAccounts <- Full(BankAccountX.privateAccounts(privateAccountAccesses))
           } yield {
             successJsonResponse(privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccess))
           }
@@ -264,8 +264,8 @@ trait APIMethods121 {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
-            privateViewsUserCanAccess <- Full(Views.views.vend.privateViewsUserCanAccess(u))
-            privateAccounts <- Full(BankAccountX.privateAccounts(privateViewsUserCanAccess))
+            (privateViewsUserCanAccess, privateAccountAccesses) <- Full(Views.views.vend.privateViewsUserCanAccess(u))
+            privateAccounts <- Full(BankAccountX.privateAccounts(privateAccountAccesses))
           } yield {
             successJsonResponse(privateBankAccountsListToJson(privateAccounts, privateViewsUserCanAccess))
           }
@@ -332,8 +332,8 @@ trait APIMethods121 {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
           } yield {
-            val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
-            val availablePrivateAccounts = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
+            val (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            val availablePrivateAccounts = bank.privateAccounts(privateAccountAccesses)
             successJsonResponse(privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank))
           }
       }
@@ -366,8 +366,8 @@ trait APIMethods121 {
             u <- cc.user ?~  UserNotLoggedIn
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
           } yield {
-            val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
-            val availablePrivateAccounts = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
+            val (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            val availablePrivateAccounts = bank.privateAccounts(privateAccountAccesses)
             successJsonResponse(privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank))
           }
       }

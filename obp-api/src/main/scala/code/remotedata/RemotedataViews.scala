@@ -2,6 +2,7 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
+import code.views.system.AccountAccess
 import code.views.{RemotedataViewsCaseClasses, Views}
 import com.openbankproject.commons.model.{UpdateViewJSON, _}
 import net.liftweb.common.Box
@@ -87,8 +88,12 @@ object RemotedataViews extends ObpActorInit with Views {
     (actor ? cc.viewsForAccount(bankAccountId)).mapTo[List[View]]
   )
   
-  def privateViewsUserCanAccess(user: User): List[View] = getValueFromFuture(
-    (actor ? cc.privateViewsUserCanAccess(user: User)).mapTo[List[View]]
+  def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess]) = getValueFromFuture(
+    (actor ? cc.privateViewsUserCanAccess(user: User)).mapTo[(List[View], List[AccountAccess])]
+  )
+  
+  def privateViewsUserCanAccessAtBank(user: User, bankId: BankId): (List[View], List[AccountAccess]) = getValueFromFuture(
+    (actor ? cc.privateViewsUserCanAccessAtBank(user, bankId)).mapTo[(List[View], List[AccountAccess])]
   )
   
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId): List[View] = getValueFromFuture(

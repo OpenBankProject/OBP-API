@@ -5,6 +5,7 @@ import code.api.util.APIUtil.canUseFirehose
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.remotedata.RemotedataViews
 import code.views.MapperViews.getPrivateBankAccounts
+import code.views.system.AccountAccess
 import com.openbankproject.commons.model.{CreateViewJson, _}
 import net.liftweb.common.Box
 import net.liftweb.mapper.By
@@ -73,12 +74,13 @@ trait Views {
     */
   def viewsForAccount(bankAccountId : BankIdAccountId) : List[View]
   
-  def privateViewsUserCanAccess(user: User): List[View]
+  def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess])
+  def privateViewsUserCanAccessAtBank(user: User, bankId: BankId): (List[View], List[AccountAccess])
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View]
   
   //the following return list[BankIdAccountId], just use the list[View] method, the View object contains enough data for it.
   final def getAllFirehoseAccounts(bankId: BankId, user : User) : List[BankIdAccountId] = firehoseViewsForBank(bankId, user).map(v => BankIdAccountId(v.bankId, v.accountId)).distinct
-  final def getPrivateBankAccounts(user : User) : List[BankIdAccountId] =  privateViewsUserCanAccess(user).map(v => BankIdAccountId(v.bankId, v.accountId)).distinct 
+  final def getPrivateBankAccounts(user : User) : List[BankIdAccountId] =  privateViewsUserCanAccess(user)._2.map(a => BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct 
   final def getPrivateBankAccountsFuture(user : User) : Future[List[BankIdAccountId]] = Future {getPrivateBankAccounts(user)}
   final def getPrivateBankAccounts(user : User, bankId : BankId) : List[BankIdAccountId] = getPrivateBankAccounts(user).filter(_.bankId == bankId).distinct
   final def getPrivateBankAccountsFuture(user : User, bankId : BankId) : Future[List[BankIdAccountId]] = Future {getPrivateBankAccounts(user, bankId)}
@@ -124,6 +126,7 @@ class RemotedataViewsCaseClasses {
   case class viewsForAccount(bankAccountId: BankIdAccountId)
   case class viewsUserCanAccess(user: User)
   case class privateViewsUserCanAccess(user: User)
+  case class privateViewsUserCanAccessAtBank(user: User, bankId: BankId)
   case class privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId)
   case class getAllFirehoseAccounts(bank: Bank, user : User)
   case class publicViews()

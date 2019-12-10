@@ -35,6 +35,7 @@ import code.customer.CustomerX
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
+import code.views.system.AccountAccess
 import com.openbankproject.commons.model.{AccountId, AccountRouting, Bank, BankAccount, BankAccountInMemory, BankId, BankIdAccountId, Counterparty, CounterpartyId, CounterpartyTrait, CreateViewJson, Customer, Permission, TransactionId, UpdateViewJSON, User, UserPrimaryKey, View, ViewId, ViewIdBankIdAccountId}
 import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
@@ -53,9 +54,9 @@ case class BankExtended(bank: Bank) {
       .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 
-  def privateAccounts(privateViewsUserCanAccessAtOneBank : List[View]) : List[BankAccount] = {
-    privateViewsUserCanAccessAtOneBank
-      .map(v=>BankIdAccountId(v.bankId,v.accountId)).distinct
+  def privateAccounts(privateAccountAccessesAtOneBank : List[AccountAccess]) : List[BankAccount] = {
+    privateAccountAccessesAtOneBank
+      .map(a=>BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
       .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 
@@ -562,9 +563,9 @@ object BankAccountX {
       .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 
-  def privateAccounts(privateViewsUserCanAccess: List[View]) : List[BankAccount] = {
+  def privateAccounts(privateViewsUserCanAccess: List[AccountAccess]) : List[BankAccount] = {
     privateViewsUserCanAccess
-      .map(v => BankIdAccountId(v.bankId,v.accountId)).distinct.
+      .map(a => BankIdAccountId(BankId(a.bank_id.get),AccountId(a.account_id.get))).distinct.
       flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 }
