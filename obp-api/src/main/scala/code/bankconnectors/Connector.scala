@@ -15,6 +15,7 @@ import code.api.v2_1_0._
 import code.atms.Atms
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
+import code.bankconnectors.storedprocedure.MsStoredProcedureConnector_vDec2019
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.bankconnectors.vMay2019.KafkaMappedConnector_vMay2019
@@ -80,6 +81,7 @@ object Connector extends SimpleInjector {
       case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
       case "kafka_vMay2019" => KafkaMappedConnector_vMay2019
       case "rest_vMar2019" => RestConnector_vMar2019
+      case "msProc_vDec2019" => MsStoredProcedureConnector_vDec2019
       case "star" => StarConnector
       case _ => throw new RuntimeException(s"Do not Support this connector version: $connectorVersion")
     }
