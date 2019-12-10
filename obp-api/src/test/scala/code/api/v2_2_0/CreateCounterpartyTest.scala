@@ -34,7 +34,7 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
 
       // Note: The view created below has can_add_counterparty set to true
       // TODO Add a test to test the creation of that permission on a view that doesn't have it, and then try to create the Couterparty
-      val bankAccount = createAccountAndOwnerView(Some(resourceUser1), bankId, accountId, "EUR")
+      val bankAccount = createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
   
       val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
 
@@ -109,7 +109,7 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       val bankId = testBank.bankId
       val accountId = AccountId("__acc1")
       val viewId =ViewId(CUSTOM_OWNER_VIEW_ID)
-      val bankAccount = createAccountAndOwnerView(Some(resourceUser1), bankId, accountId, "EUR")
+      val bankAccount = createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
 
       val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
   

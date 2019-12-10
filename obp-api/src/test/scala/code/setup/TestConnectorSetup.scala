@@ -2,6 +2,8 @@ package code.setup
 
 import java.util.{Calendar, Date}
 
+import code.accountholders.AccountHolders
+import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_OWNER_VIEW_ID}
 import code.api.util.{APIUtil, OBPLimit, OBPOffset}
 import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.model._
@@ -21,23 +23,22 @@ trait TestConnectorSetup {
   protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, otherAccountRoutingScheme: String, isBeneficiary: Boolean, createdByUserId:String): CounterpartyTrait
   
   /**
-    * This method, will do three things:
-    * 1 create account by (bankId, accountId, currency), note: no user here.
-    * 2 create the `owner-view` for the created account, note: no user here.
+    * This method, will do 4 things:
+    * 1 create account
+    * 2 create the `owner-view`
     * 3 grant the `owner-view` access to the User. 
+    * 4 create the accountHolder for this account. 
     * @param accountOwner it is just a random user here, the user will have the access to the `owner view`
     * @param bankId one bankId
     * @param accountId one accountId
     * @param currency the currency to create account.
     *                 
-    * @return this method will return a bankAccount, which contains `owner view` and grant the access to the input user.
-    *         
     */
-  final protected def createAccountAndOwnerView(accountOwner: Option[User], bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
-    val account = createAccount(bankId, accountId, currency) //In the test, account has no relevant with owner.Just need bankId, accountId and currency. 
-    val ownerView = createOwnerView(bankId, accountId)//You can create the `owner-view` for the created account.
-    accountOwner.foreach(Views.views.vend.addPermission(ViewIdBankIdAccountId(ViewId(ownerView.viewId.value), BankId(ownerView.bankId.value), AccountId(ownerView.accountId.value)), _)
-    ) //grant access to one user. (Here, this user is not owner for the account, just grant `owner-view` to the user)
+  final protected def createAccountRelevantResource(accountOwner: Option[User], bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
+    val account = createAccount(bankId, accountId, currency) 
+    val ownerView = createOwnerView(bankId, accountId)
+    accountOwner.foreach(AccountHolders.accountHolders.vend.getOrCreateAccountHolder(_, BankIdAccountId(account.bankId, account.accountId)))
+    accountOwner.foreach(Views.views.vend.addPermission(ViewIdBankIdAccountId(ViewId(ownerView.viewId.value), BankId(ownerView.bankId.value), AccountId(ownerView.accountId.value)), _))
     account
   }
 
@@ -50,21 +51,37 @@ trait TestConnectorSetup {
   }
   
   /**
-    * This will create the test accounts for testBanks.
-    * It will also create ownerView, PublicView and RandomView ...
+    * This method will create lots of account relevant resources: accounts, views, accountAccesses, accountHolders
+    * 1st: this will create some accounts,
+    * 2rd: for each account, it will create 3 custom views: ownerView, PublicView and RandomView.
+    *      and plus systemViews: owner, auditor, accountant.(created in boot, please check `create_system_views_at_boot` props.)
+    *      So there will be 6 views for each account
+    * 3rd: for each account create the account holder
+    * 4th: for each account create the account access. 
+    * 
     */
-  final protected def createAccounts(user: User, banks : Traversable[Bank]) : Traversable[BankAccount] = {
+  final protected def createAccountRelevantResources(user: User, banks : Traversable[Bank]) : Traversable[BankAccount] = {
     val testAccountCurrency = "EUR"
     val accounts = banks.flatMap(bank => {
       for { i <- 0 until 2 } yield {
-        createAccountAndOwnerView(Some(user), bank.bankId, AccountId("testAccount"+i), testAccountCurrency)
+        createAccountRelevantResource(Some(user), bank.bankId, AccountId("testAccount"+i), testAccountCurrency)
       }
     })
 
+    val systemOwnerView = getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID)
+    val systemAuditorView = getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID)
+    val systemAccountantView = getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
+    
     accounts.foreach(account => {
-      //create public view and another random view (owner view has already been created
-      createPublicView(account.bankId, account.accountId)
-      createRandomView(account.bankId, account.accountId)
+      Views.views.vend.addSystemViewPermission(account.bankId, account.accountId, systemOwnerView, user)
+      Views.views.vend.addSystemViewPermission(account.bankId, account.accountId, systemAuditorView, user)
+      Views.views.vend.addSystemViewPermission(account.bankId, account.accountId, systemAccountantView, user)
+      
+      val customPublicView = createPublicView(account.bankId, account.accountId) 
+      Views.views.vend.addPermission(customPublicView.uid, user)
+      
+      val customRandomView = createRandomView(account.bankId, account.accountId) 
+      Views.views.vend.addPermission(customRandomView.uid, user)
     })
 
     accounts

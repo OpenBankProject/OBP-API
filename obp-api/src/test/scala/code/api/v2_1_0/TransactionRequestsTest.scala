@@ -52,8 +52,8 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         updateAccountCurrency(bankId, accountId2, toCurrency)
       }
 
-      createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, fromCurrency)
-      createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, toCurrency)
+      createAccountRelevantResource(Some(resourceUser1), bankId, accountId1, fromCurrency)
+      createAccountRelevantResource(Some(resourceUser1), bankId, accountId2, toCurrency)
 
       def getFromAccount: BankAccount = {
         BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))

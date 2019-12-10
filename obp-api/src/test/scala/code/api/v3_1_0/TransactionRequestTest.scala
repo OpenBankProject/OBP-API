@@ -75,7 +75,7 @@ class TransactionRequestTest extends V310ServerSetup {
     scenario("We will try to Get Transaction Requests for someone else account - user is logged in", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val bankId = randomBankId
-      val account = createAccountAndOwnerView(Some(resourceUser1), BankId(bankId), AccountId(APIUtil.generateUUID()), "EUR")
+      val account = createAccountRelevantResource(Some(resourceUser1), BankId(bankId), AccountId(APIUtil.generateUUID()), "EUR")
       val request310 = (
         v3_1_0_Request / "banks" / bankId / "accounts" / account.accountId.value 
         / Constant.CUSTOM_OWNER_VIEW_ID / "transaction-requests").GET <@(user2)

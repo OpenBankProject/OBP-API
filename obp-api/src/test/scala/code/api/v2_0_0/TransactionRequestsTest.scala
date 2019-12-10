@@ -43,8 +43,8 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId1, "EUR")
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId2, "EUR")
 
         addEntitlement(bankId.value, resourceUser3.userId, CanCreateAnyTransactionRequest.toString)
         Then("We add entitlement to user3")
@@ -192,8 +192,8 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId1, "EUR")
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -330,8 +330,8 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId1, "EUR")
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -379,8 +379,8 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         val bankId2 = testBank2.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId1, "EUR")
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId2, "EUR")
         addEntitlement(bankId2.value, resourceUser3.userId, CanCreateAnyTransactionRequest.toString)
 
         Then("We add entitlement to user3")
@@ -447,8 +447,8 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
         val expectedAmtTo = amt * fx.exchangeRate(fromCurrency, toCurrency, Some(bankId.value)).get
 
-        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, fromCurrency)
-        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, toCurrency)
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId1, fromCurrency)
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId2, toCurrency)
 
         def getFromAccount: BankAccount = {
           BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -651,8 +651,8 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId1, "EUR")
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -831,8 +831,8 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
         val expectedAmtTo = amt * fx.exchangeRate(fromCurrency, toCurrency, Some(bankId.value)).get
 
-        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId1, fromCurrency)
-        createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, toCurrency)
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId1, fromCurrency)
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId2, toCurrency)
 
         def getFromAccount: BankAccount = {
           BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))

@@ -84,16 +84,13 @@ trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup
     //create fake data for the tests
     //fake banks
     val banks = createBanks()
-    //fake bank accounts
-    val accounts = createAccounts(resourceUser1, banks)
+    //fake bank accounts, views, accountHolders, AccountAccesses
+    val accounts = createAccountRelevantResources(resourceUser1, banks)
     //fake transactions
     createTransactions(accounts)
     //fake transactionRequests
     createTransactionRequests(accounts)
     
-    getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID)
-    getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID)
-    getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
   }
 
   override def afterEach() = {
