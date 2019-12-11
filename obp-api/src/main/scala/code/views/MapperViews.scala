@@ -380,14 +380,10 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
   def removeSystemView(viewId: ViewId): Future[Box[Boolean]] = Future {
-    if(viewId.value == SYSTEM_OWNER_VIEW_ID)
-      Failure("you cannot delete the owner view")
-    else {
-      for {
-        view <- ViewDefinition.findSystemView(viewId.value)
-      } yield {
-        view.delete_!
-      }
+    for {
+      view <- ViewDefinition.findSystemView(viewId.value)
+    } yield {
+      view.delete_!
     }
   }
 

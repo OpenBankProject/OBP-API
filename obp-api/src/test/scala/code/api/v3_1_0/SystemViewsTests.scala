@@ -28,6 +28,7 @@ package code.api.v3_1_0
 
 import _root_.net.liftweb.json.Serialization.write
 import code.api.ErrorMessage
+import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateSystemView, CanDeleteSystemView, CanGetSystemView, CanUpdateSystemView}
@@ -79,8 +80,9 @@ class SystemViewsTests extends V310ServerSetup {
     val request = (v3_1_0_Request / "system-views" / viewId).DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
-  def createSystemView(): Boolean = {
+  def createSystemView(viewId: String): Boolean = {
     Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemView.toString)
+    val postBodySystemViewJson = createViewJson.copy(name=viewId).copy(metadata_view = viewId)
     val response400 = postSystemView(postBodySystemViewJson, user1)
     response400.code == 201
   }
@@ -151,12 +153,12 @@ class SystemViewsTests extends V310ServerSetup {
   }
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with proper Role") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
-      createSystemView()
+      val viewId =  APIUtil.generateUUID()
+      createSystemView(viewId)
       When(s"We make a request $ApiEndpoint1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemView.toString)
-      val response400 = getSystemView(systemViewId, user1)
+      val response400 = getSystemView(viewId, user1)
       Then("We should get a 200")
-      org.scalameta.logger.elem(response400)
       response400.code should equal(200)
       response400.body.extract[ViewJsonV300]
     }
@@ -248,14 +250,22 @@ class SystemViewsTests extends V310ServerSetup {
   }
   feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access with proper Role") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
-      createSystemView()
+      val viewId = APIUtil.generateUUID()
+      createSystemView(viewId)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemView.toString)
       When(s"We make a request $ApiEndpoint4")
-      val response400 = deleteSystemView(randomSystemViewId, user1)
-      Then("We should get a 403")
-      response400.code should equal(403)
-      response400.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanDeleteSystemView)
+      val response400 = deleteSystemView(viewId, user1)
+      Then("We should get a 200")
+      response400.code should equal(200)
     }
   }
-  
-  
+  feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access with proper Role in order to delete owner view") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemView.toString)
+      When(s"We make a request $ApiEndpoint4")
+      val response400 = deleteSystemView(SYSTEM_OWNER_VIEW_ID, user1)
+      Then("We should get a 200")
+      response400.code should equal(200)
+    }
+  }
 }
