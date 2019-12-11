@@ -296,8 +296,8 @@ trait APIMethods121 {
       case "accounts" :: "public" :: Nil JsonGet req => {
         cc =>
           for{
-            publicViews <- Full(Views.views.vend.publicViews)
-            publicAccounts <- Full(BankAccountX.publicAccounts(publicViews))
+            (publicViews, publicAccountAccesses) <- Full(Views.views.vend.publicViews)
+            publicAccounts <- Full(BankAccountX.publicAccounts(publicAccountAccesses))
             publicAccountsJson <- Full(publicBankAccountsListToJson(publicAccounts, publicViews))
           } yield{
             successJsonResponse(publicAccountsJson)
@@ -397,8 +397,8 @@ trait APIMethods121 {
         cc =>
           for {
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            publicViewsForBank <- Full(Views.views.vend.publicViewsForBank(bank.bankId))
-            publicAccounts<- Full(bank.publicAccounts(publicViewsForBank))
+            (publicViewsForBank, publicAccountAccesses) <- Full(Views.views.vend.publicViewsForBank(bank.bankId))
+            publicAccounts<- Full(bank.publicAccounts(publicAccountAccesses))
           } yield {
             val publicAccountsJson = publicBankAccountsListToJson(publicAccounts, publicViewsForBank)
             successJsonResponse(publicAccountsJson)
@@ -534,9 +534,10 @@ trait APIMethods121 {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId)), UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId)
-            views <- Full(Views.views.vend.viewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
+            views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
           } yield {
-            val viewsJSON = JSONFactory.createViewsJSON(views)
+            // TODO Include system views as well
+            val viewsJSON = JSONFactory.createViewsJSON(views.filterNot(_.isSystem==true))
             successJsonResponse(Extraction.decompose(viewsJSON))
           }
       }

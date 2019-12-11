@@ -48,9 +48,9 @@ import scala.concurrent.Future
 
 case class BankExtended(bank: Bank) {
 
-  def publicAccounts(publicViewsForBank: List[View]) : List[BankAccount] = {
-    publicViewsForBank
-      .map(v=>BankIdAccountId(v.bankId,v.accountId)).distinct
+  def publicAccounts(publicAccountAccessesForBank: List[AccountAccess]) : List[BankAccount] = {
+    publicAccountAccessesForBank
+      .map(a=>BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
       .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 
@@ -557,15 +557,15 @@ object BankAccountX {
   }
 
 
-  def publicAccounts(publicViews: List[View]) : List[BankAccount] = {
-    publicViews
-      .map(v=>BankIdAccountId(v.bankId,v.accountId)).distinct
+  def publicAccounts(publicAccountAccesses: List[AccountAccess]) : List[BankAccount] = {
+    publicAccountAccesses
+      .map(a => BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
       .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 
   def privateAccounts(privateViewsUserCanAccess: List[AccountAccess]) : List[BankAccount] = {
     privateViewsUserCanAccess
-      .map(a => BankIdAccountId(BankId(a.bank_id.get),AccountId(a.account_id.get))).distinct.
+      .map(a => BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct.
       flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 }

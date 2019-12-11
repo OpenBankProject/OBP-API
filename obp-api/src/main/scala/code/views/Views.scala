@@ -65,14 +65,15 @@ trait Views {
     * This will return all the public views, no requirements for accountId or userId.
     * Because the public views are totally open for everyone. 
     */
-  def publicViews: List[View]
-  def publicViewsForBank(bankId: BankId): List[View]
+  def publicViews: (List[View], List[AccountAccess])
+  def publicViewsForBank(bankId: BankId): (List[View], List[AccountAccess])
   def firehoseViewsForBank(bankId: BankId, user : User): List[View]
   /**
     * This will return all the views belong to the bankAccount, its own Public + Private views.
     * Do not contain any other account public views.
     */
   def viewsForAccount(bankAccountId : BankIdAccountId) : List[View]
+  def availableViewsForAccount(bankAccountId : BankIdAccountId) : List[View]
   
   def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess])
   def privateViewsUserCanAccessAtBank(user: User, bankId: BankId): (List[View], List[AccountAccess])
@@ -124,6 +125,7 @@ class RemotedataViewsCaseClasses {
   case class updateView(bankAccountId: BankIdAccountId, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
   case class updateSystemView(viewId : ViewId, viewUpdateJson : UpdateViewJSON)
   case class viewsForAccount(bankAccountId: BankIdAccountId)
+  case class availableViewsForAccount(bankAccountId: BankIdAccountId)
   case class viewsUserCanAccess(user: User)
   case class privateViewsUserCanAccess(user: User)
   case class privateViewsUserCanAccessAtBank(user: User, bankId: BankId)
