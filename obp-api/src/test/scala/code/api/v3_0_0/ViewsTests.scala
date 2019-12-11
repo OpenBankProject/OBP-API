@@ -31,15 +31,26 @@ import _root_.net.liftweb.json.Serialization.write
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiVersion
 import code.api.v1_2_1.{APIInfoJSON, PermissionJSON, PermissionsJSON}
 import code.api.v2_2_0.{ViewJSONV220, ViewsJSONV220}
+import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.setup.APIResponse
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{CreateViewJson, UpdateViewJSON}
 import net.liftweb.util.Helpers._
+import org.scalatest.Tag
 
 import scala.util.Random.nextInt
 
 class ViewsTests extends V300ServerSetup {
+
+  object VersionOfApi extends Tag(ApiVersion.v3_0_0.toString)
+  object ApiEndpoint1 extends Tag(nameOf(Implementations3_0_0.getPermissionForUserForBankAccount))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations3_0_0.getViewsForBankAccount))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations3_0_0.createViewForBankAccount))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations3_0_0.updateViewForBankAccount))
+  
   
   //Custom view, name starts from `_`
   val postBodyViewJson = createViewJson
@@ -67,6 +78,7 @@ class ViewsTests extends V300ServerSetup {
   }
   
   //This will call v1_2_1Request and we need it here to prepare the data for further tests
+  //BK need to check this endpoint....
   def getAccountPermissions(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = v3_0Request / "banks" / bankId / "accounts" / accountId / "permissions" <@(consumerAndToken)
     makeGetRequest(request)
@@ -90,7 +102,7 @@ class ViewsTests extends V300ServerSetup {
     }
   }
 
-  feature("getViewsForBankAccount - V300"){
+  feature(s"$ApiEndpoint2 -getViewsForBankAccount - V300"){
     scenario("All requirements") {
       Given("The BANK_ID, ACCOUNT_ID and Login User")
       val bankId = randomBankId
@@ -134,7 +146,7 @@ class ViewsTests extends V300ServerSetup {
     }
   }
   
-  feature("createViewForBankAccount - V300"){
+  feature(s"$ApiEndpoint3 -createViewForBankAccount - V300"){
     scenario("all requirements") {
       Given("The BANK_ID, ACCOUNT_ID, Login User and postViewBody")
       val bankId = randomBankId
@@ -214,7 +226,7 @@ class ViewsTests extends V300ServerSetup {
     }
   }
 
-  feature("updateViewForBankAccount - v3.0.0") {
+  feature(s"$ApiEndpoint4 -updateViewForBankAccount - v3.0.0") {
 
     val updatedViewDescription = "aloha"
     val updatedAliasToUse = "public"
@@ -345,7 +357,7 @@ class ViewsTests extends V300ServerSetup {
     }
   }
   
-  feature("Get Account access for User. - v3.0.0")
+  feature(s"$ApiEndpoint1 - Get Account access for User. - v3.0.0")
   {
     scenario("we will Get Account access for User.")
     {
@@ -364,6 +376,43 @@ class ViewsTests extends V300ServerSetup {
       reply.code should equal(200)
       val response = reply.body.extract[ViewsJsonV300]
       response.views.length should not equal (0)
+
+      //Note: as to new system view stuff, now the default account should both have some system view accesses and custom view accesses.
+      response.views.filter(_.is_system).length >0  should be (true)
+      response.views.filter(!_.is_system).length >0  should be (true)
+    }
+
+    scenario(s"$ApiEndpoint3 and $ApiEndpoint1, we first create the custom view _test, and get the accesses back. ") {
+      Given("The BANK_ID, ACCOUNT_ID, Login User and postViewBody")
+      val bankId = randomBankId
+      val bankAccountId = randomPrivateAccountId(bankId)
+      val postViewBody = postBodyViewJson
+      val loginedUser = user1
+      val viewsBefore = getAccountViews(bankId, bankAccountId, loginedUser).body.extract[ViewsJsonV300].views
+
+      When("the request is sent")
+      val reply = postView(bankId, bankAccountId, postViewBody, loginedUser)
+      Then("we should get a 201 code")
+      reply.code should equal (201)
+      reply.body.extract[ViewJSONV220]
+      And("we should get a new view")
+      val viewsAfter = getAccountViews(bankId, bankAccountId, loginedUser).body.extract[ViewsJsonV300].views
+      viewsBefore.size should equal (viewsAfter.size -1)
+
+
+      Then("We use a valid access token and valid put json")
+      val provider = defaultProvider
+      val permission = randomAccountPermission(bankId, bankAccountId)
+      val providerId = permission.user.id
+      val accountAccessResponse = getAccountAccessForUser(bankId, bankAccountId, provider, providerId, user1)
+      
+      Then("We should get back the updated view")
+      accountAccessResponse.code should equal(200)
+      val viewsJsonV300 = accountAccessResponse.body.extract[ViewsJsonV300]
+      viewsJsonV300.views.length should not equal (0)
+
+      Then("we should also get the new Custom Views back here. ")
+      viewsJsonV300.views.find(_.description == postBodyViewJson.description).isDefined should be (true)
     }
   }
 
