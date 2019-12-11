@@ -537,7 +537,7 @@ trait APIMethods121 {
             views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
           } yield {
             // TODO Include system views as well
-            val viewsJSON = JSONFactory.createViewsJSON(views.filterNot(_.isSystem==true))
+            val viewsJSON = JSONFactory.createViewsJSON(views)
             successJsonResponse(Extraction.decompose(viewsJSON))
           }
       }

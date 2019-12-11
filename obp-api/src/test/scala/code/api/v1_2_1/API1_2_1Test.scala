@@ -166,12 +166,17 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     possibleViewsPermalinks(randomPosition).id
   }
 
-  def randomCustomViewPermalinkButNotOwner(bankId: String, account: AccountJSON) : String = {
+  //In default for each account, we create 6 views. But for this method, it only return the random view one, not others.
+  //also see `@def createRandomView(bankId: BankId, accountId: AccountId)`. we prepare the metadataView_(CUSTOM_OWNER_VIEW_ID) there.
+  //this  metadataView_(CUSTOM_OWNER_VIEW_ID) is used for some tests.
+  def getTheRandomView(bankId: String, account: AccountJSON) : String = {
     val request = v1_2_1Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
     val reply = makeGetRequest(request)
     val possibleViewsPermalinksWithoutOwner = reply.body.extract[ViewsJSONV121].views
       .filterNot(_.is_public==true)
-      .filterNot(_.id.contains(SYSTEM_OWNER_VIEW_ID))
+      .filterNot(_.id.contains(SYSTEM_OWNER_VIEW_ID)) 
+      .filterNot(_.id.contains(SYSTEM_AUDITOR_VIEW_ID))
+      .filterNot(_.id.contains(SYSTEM_ACCOUNTANT_VIEW_ID))
     val randomPosition = nextInt(possibleViewsPermalinksWithoutOwner.size)
     possibleViewsPermalinksWithoutOwner(randomPosition).id
   }
@@ -236,7 +241,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       .map(_.id)
     //choose randomly some view ids to grant
     val (viewsIdsToGrant, _) = viewsIds.splitAt(nextInt(viewsIds.size) + 1)
-    viewsIdsToGrant
+    viewsIdsToGrant.distinct//there maybe two `owner` views here, no sense to use it this way in v121
   }
 
   def randomView(isPublic: Boolean, alias: String) : CreateViewJsonV121 = {
@@ -1980,7 +1985,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = resourceUser2.idGivenByProvider
-      val viewId = randomCustomViewPermalinkButNotOwner(bankId, bankAccount)
+      val viewId = getTheRandomView(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
@@ -5308,7 +5313,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val ownerViewId = CUSTOM_OWNER_VIEW_ID
-      val notOwnerViewId = randomCustomViewPermalinkButNotOwner(bankId, bankAccount)
+      val notOwnerViewId = getTheRandomView(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, notOwnerViewId)
       
       val randomComment = PostTransactionCommentJSON(randomString(20))
@@ -5649,7 +5654,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val ownerViewId = CUSTOM_OWNER_VIEW_ID
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val notOwnerViewId = randomCustomViewPermalinkButNotOwner(bankId, bankAccount)
+      val notOwnerViewId = getTheRandomView(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, notOwnerViewId)
       val randomTag = PostTransactionTagJSON(randomString(5))
       
@@ -5989,7 +5994,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val ownerViewId = CUSTOM_OWNER_VIEW_ID
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val notOwnerViewId = randomCustomViewPermalinkButNotOwner(bankId, bankAccount)
+      val notOwnerViewId = getTheRandomView(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, notOwnerViewId)
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
       
@@ -6376,7 +6381,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val ownerViewId = CUSTOM_OWNER_VIEW_ID
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val notOwnerViewId = randomCustomViewPermalinkButNotOwner(bankId, bankAccount)
+      val notOwnerViewId = getTheRandomView(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, notOwnerViewId)
       val randomWhere = randomLocation
       

@@ -174,19 +174,34 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def revokePermission(viewUID : ViewIdBankIdAccountId, user : User) : Box[Boolean] = {
-    val res =
+    val isRevokedCustomViewAccess =
     for {
       viewDefinition <- ViewDefinition.findByUniqueKey(viewUID.bankId.value, viewUID.accountId.value, viewUID.viewId.value)
-      aa  <- AccountAccess.find(By(AccountAccess.user_fk, user.userPrimaryKey.value),
-        By(AccountAccess.bank_id, viewUID.bankId.value),
-        By(AccountAccess.account_id, viewUID.accountId.value),
-        By(AccountAccess.view_fk, viewDefinition.id)) ?~! CannotFindAccountAccess
+      accountAccess  <- AccountAccess.find(
+        By(AccountAccess.user_fk, user.userPrimaryKey.value),
+        By(AccountAccess.view_fk, viewDefinition.id)
+      ) ?~! CannotFindAccountAccess
       // Check if we are allowed to remove the View from the User
       _ <- accessRemovableAsBox(viewDefinition, user)
     } yield {
-      aa.delete_!
+      accountAccess.delete_!
     }
-    res
+    val isRevokedSystemViewAccess =
+      for {
+        viewDefinition <- ViewDefinition.findSystemView(viewUID.viewId.value)
+        accountAccess  <- AccountAccess.find(
+          By(AccountAccess.user_fk, user.userPrimaryKey.value),
+          By(AccountAccess.view_fk, viewDefinition.id)
+        ) ?~! CannotFindAccountAccess
+        // Check if we are allowed to remove the View from the User
+        _ <- accessRemovableAsBox(viewDefinition, user)
+      } yield {
+        accountAccess.delete_!
+      }
+    
+    //For the app, there is no difference to see the two views here.
+    //The following mean: it should revoke both, but if one of them is failed, it is also should return true.
+    isRevokedCustomViewAccess or isRevokedSystemViewAccess
   }
   def revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean] = {
     val res =

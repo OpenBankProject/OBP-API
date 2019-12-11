@@ -63,8 +63,7 @@ trait V300ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   def randomViewPermalink(bankId: String, account: AccountJSON) : String = {
     val request = v3_0Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
     val reply = makeGetRequest(request)
-    // TODO Include system views as well
-    val possibleViewsPermalinks = reply.body.extract[ViewsJsonV300].views.filterNot(_.is_public==true).filterNot(_.is_system==true)
+    val possibleViewsPermalinks = reply.body.extract[ViewsJsonV300].views.filterNot(_.is_public==true)
     val randomPosition = nextInt(possibleViewsPermalinks.size)
     possibleViewsPermalinks(randomPosition).id
   }
