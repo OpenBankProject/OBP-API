@@ -233,8 +233,8 @@ trait APIMethods200 {
       case "accounts" :: "public" :: Nil JsonGet req => {
         cc =>
           for {
-            publicViews <- Full(Views.views.vend.publicViews)
-            publicAccountsJson <- tryo{publicBankAccountBasicListToJson(BankAccountX.publicAccounts(publicViews), publicViews)} ?~! "Could not get accounts."
+            (publicViews, publicAccountAccesses) <- Full(Views.views.vend.publicViews)
+            publicAccountsJson <- tryo{publicBankAccountBasicListToJson(BankAccountX.publicAccounts(publicAccountAccesses), publicViews)} ?~! "Could not get accounts."
           } yield {
             Full(successJsonResponse(publicAccountsJson))
           }
@@ -433,8 +433,8 @@ trait APIMethods200 {
             (_, callContext) <- anonymousAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
           } yield {
-            val publicViewsForBank = Views.views.vend.publicViewsForBank(bank.bankId)
-            val publicAccountsJson = publicBankAccountBasicListToJson(bank.publicAccounts(publicViewsForBank), publicViewsForBank)
+            val (publicViewsForBank, publicAccountAccesses) = Views.views.vend.publicViewsForBank(bank.bankId)
+            val publicAccountsJson = publicBankAccountBasicListToJson(bank.publicAccounts(publicAccountAccesses), publicViewsForBank)
             (publicAccountsJson, HttpCode.`200`(callContext))
           }
       }

@@ -171,7 +171,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     val reply = makeGetRequest(request)
     val possibleViewsPermalinksWithoutOwner = reply.body.extract[ViewsJSONV121].views
       .filterNot(_.is_public==true)
-      .filterNot(_.id == SYSTEM_OWNER_VIEW_ID)
+      .filterNot(_.id.contains(SYSTEM_OWNER_VIEW_ID))
     val randomPosition = nextInt(possibleViewsPermalinksWithoutOwner.size)
     possibleViewsPermalinksWithoutOwner(randomPosition).id
   }

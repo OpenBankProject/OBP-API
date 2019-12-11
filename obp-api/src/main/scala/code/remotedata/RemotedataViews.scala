@@ -88,6 +88,10 @@ object RemotedataViews extends ObpActorInit with Views {
     (actor ? cc.viewsForAccount(bankAccountId)).mapTo[List[View]]
   )
   
+  def availableViewsForAccount(bankAccountId : BankIdAccountId) : List[View] = getValueFromFuture(
+    (actor ? cc.availableViewsForAccount(bankAccountId)).mapTo[List[View]]
+  )
+  
   def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess]) = getValueFromFuture(
     (actor ? cc.privateViewsUserCanAccess(user: User)).mapTo[(List[View], List[AccountAccess])]
   )
@@ -100,12 +104,12 @@ object RemotedataViews extends ObpActorInit with Views {
     (actor ? cc.privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId)).mapTo[List[View]]
   )
   
-  def publicViews : List[View] = getValueFromFuture(
-    (actor ? cc.publicViews()).mapTo[List[View]]
+  def publicViews : (List[View], List[AccountAccess]) = getValueFromFuture(
+    (actor ? cc.publicViews()).mapTo[(List[View], List[AccountAccess])]
   )
   
-  def publicViewsForBank(bankId: BankId) : List[View] = getValueFromFuture(
-    (actor ? cc.publicViewsForBank(bankId: BankId)).mapTo[List[View]]
+  def publicViewsForBank(bankId: BankId) : (List[View], List[AccountAccess]) = getValueFromFuture(
+    (actor ? cc.publicViewsForBank(bankId: BankId)).mapTo[(List[View], List[AccountAccess])]
   )
   
   def firehoseViewsForBank(bankId: BankId, user : User): List[View] = getValueFromFuture(

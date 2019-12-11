@@ -12,7 +12,7 @@ import code.views.system.ViewDefinition.create
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.model.{UpdateViewJSON, _}
 import net.liftweb.common._
-import net.liftweb.mapper.{By, NullRef, Schemifier}
+import net.liftweb.mapper.{By, ByList, NullRef, PreCache, Schemifier}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.StringHelpers
 
@@ -392,23 +392,48 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def viewsForAccount(bankAccountId : BankIdAccountId) : List[View] = {
-    val customViews = ViewDefinition.findAll(ViewDefinition.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
-    customViews
+    AccountAccess.findAll(
+      By(AccountAccess.bank_id, bankAccountId.bankId.value),
+      By(AccountAccess.account_id, bankAccountId.accountId.value),
+      PreCache(AccountAccess.view_fk)
+    ).map(_.view_fk.obj).flatten.distinct
   }
   
-  def publicViews: List[View] = {
-    if (APIUtil.ALLOW_PUBLIC_VIEWS)
-      ViewDefinition.findAll(By(ViewDefinition.isPublic_, true))
-    else
-      Nil
+  def availableViewsForAccount(bankAccountId : BankIdAccountId) : List[View] = {
+    ViewDefinition.findAll(
+      By(ViewDefinition.bank_id, bankAccountId.bankId.value), 
+      By(ViewDefinition.account_id, bankAccountId.accountId.value)) ::: // Custom views
+     ViewDefinition.findAll(
+       By(ViewDefinition.bank_id, bankAccountId.bankId.value),
+       NullRef(ViewDefinition.account_id),
+       By(ViewDefinition.isSystem_, true)) ::: // Bank specific system views
+     ViewDefinition.findAll(
+       NullRef(ViewDefinition.bank_id),
+       NullRef(ViewDefinition.account_id), 
+       By(ViewDefinition.isSystem_, true)) // Sandbox specific System views
   }
   
-  def publicViewsForBank(bankId: BankId): List[View] ={
-    if (ALLOW_PUBLIC_VIEWS)
-      ViewDefinition
-        .findAll(By(ViewDefinition.isPublic_, true), By(ViewDefinition.bank_id, bankId.value))
-    else
-      Nil
+  def publicViews: (List[View], List[AccountAccess]) = {
+    if (APIUtil.ALLOW_PUBLIC_VIEWS) {
+      val publicViews = ViewDefinition.findAll(By(ViewDefinition.isPublic_, true)) // Custom and System views
+      val publicAccountAccesses = AccountAccess.findAll(ByList(AccountAccess.view_fk, publicViews.map(_.id)))
+      (publicViews, publicAccountAccesses)
+    } else {
+      (Nil, Nil)
+    }
+  }
+  
+  def publicViewsForBank(bankId: BankId): (List[View], List[AccountAccess]) ={
+    if (APIUtil.ALLOW_PUBLIC_VIEWS) {
+      val publicViews = 
+        ViewDefinition.findAll(By(ViewDefinition.isPublic_, true), By(ViewDefinition.bank_id, bankId.value), By(ViewDefinition.isSystem_, false)) ::: // Custom views
+        ViewDefinition.findAll(By(ViewDefinition.isPublic_, true), By(ViewDefinition.isSystem_, true)) ::: // System views
+        ViewDefinition.findAll(By(ViewDefinition.isPublic_, true), By(ViewDefinition.bank_id, bankId.value), By(ViewDefinition.isSystem_, true)) // System views
+      val publicAccountAccesses = AccountAccess.findAll(ByList(AccountAccess.view_fk, publicViews.map(_.id)))
+      (publicViews.distinct, publicAccountAccesses)
+    } else {
+      (Nil, Nil)
+    }
   }
   
   def firehoseViewsForBank(bankId: BankId, user : User): List[View] ={
@@ -423,15 +448,18 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess]) ={
-    val accountAccesses = AccountAccess.findAll(By(AccountAccess.user_fk, user.userPrimaryKey.value))
-      .filter(r => r.view_fk.obj.isDefined && r.view_fk.obj.map(_.isPrivate).getOrElse(false) == true)
+    val accountAccesses = AccountAccess.findAll(
+      By(AccountAccess.user_fk, user.userPrimaryKey.value),
+      PreCache(AccountAccess.view_fk)
+    ).filter(r => r.view_fk.obj.isDefined && r.view_fk.obj.map(_.isPrivate).getOrElse(false) == true)
     val privateViews  = accountAccesses.map(_.view_fk.obj).flatten.distinct
     (privateViews, accountAccesses)
   }  
   def privateViewsUserCanAccessAtBank(user: User, bankId: BankId): (List[View], List[AccountAccess]) ={
     val accountAccesses = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
-      By(AccountAccess.bank_id, bankId.value)
+      By(AccountAccess.bank_id, bankId.value),
+      PreCache(AccountAccess.view_fk)
     ).filter(r => r.view_fk.obj.isDefined && r.view_fk.obj.map(_.isPrivate).getOrElse(false) == true)
     val privateViews  = accountAccesses.map(_.view_fk.obj).flatten.distinct
     (privateViews, accountAccesses)
@@ -440,7 +468,8 @@ object MapperViews extends Views with MdcLoggable {
     val accountAccesses = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
       By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
-      By(AccountAccess.account_id, bankIdAccountId.accountId.value)
+      By(AccountAccess.account_id, bankIdAccountId.accountId.value),
+      PreCache(AccountAccess.view_fk)
     )
     accountAccesses.map(_.view_fk.obj).flatten.filter(view => view.isPrivate == true).distinct
   }
@@ -642,6 +671,7 @@ object MapperViews extends Views with MdcLoggable {
     * @return if no exception, it always return true
     */
   def grantAccessToAllExistingViews(user : User) = {
+    // TODO Include system views as well
     ViewDefinition.findAll.filter(_.isSystem == false).foreach(
       v => {
         //Get All the views from ViewImpl table, and create the link user <--> each view. The link record the access permission. 

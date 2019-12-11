@@ -283,9 +283,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     foundAccount.userOwners.map(_.name) should equal(account.owners.toSet)
 
     if(account.generate_public_view) {
-      Views.views.vend.viewsForAccount(BankIdAccountId(foundAccount.bankId, foundAccount.accountId)).filter(_.isPublic).size should equal(1)
+      Views.views.vend.availableViewsForAccount(BankIdAccountId(foundAccount.bankId, foundAccount.accountId)).filter(_.isPublic).size should equal(1)
     } else {
-      Views.views.vend.viewsForAccount(BankIdAccountId(foundAccount.bankId, foundAccount.accountId)).filter(_.isPublic).size should equal(0)
+      Views.views.vend.availableViewsForAccount(BankIdAccountId(foundAccount.bankId, foundAccount.accountId)).filter(_.isPublic).size should equal(0)
     }
 
     val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.userOwners.toList.head.name).openOrThrowException(attemptedToOpenAnEmptyBox)

@@ -101,7 +101,7 @@ trait APIMethods220 {
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId) {
               u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
             }
-            views <- Future(Views.views.vend.viewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
+            views <- Future(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
           } yield {
             val viewsJSON = JSONFactory220.createViewsJSON(views)
             (viewsJSON, HttpCode.`200`(callContext))
