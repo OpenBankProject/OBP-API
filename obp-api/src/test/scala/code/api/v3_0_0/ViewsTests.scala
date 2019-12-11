@@ -102,7 +102,10 @@ class ViewsTests extends V300ServerSetup {
       
       Then("we should get a 200 ok code and the right json body")
       httpResponse.code should equal (200)
-      httpResponse.body.extract[ViewsJsonV300]
+      val viewJsonV300 = httpResponse.body.extract[ViewsJsonV300]
+      //Note: as to new system view stuff, now the default account should both have some system view accesses and custom view accesses.
+      viewJsonV300.views.filter(_.is_system).length >0  should be (true)
+      viewJsonV300.views.filter(!_.is_system).length >0  should be (true)
     }
 
     scenario("no Auth") {
