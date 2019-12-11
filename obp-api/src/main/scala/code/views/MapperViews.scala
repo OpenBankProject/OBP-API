@@ -664,31 +664,6 @@ object MapperViews extends Views with MdcLoggable {
   }
   
 
-  //TODO This is used only for tests, but might impose security problem
-  /**
-    * Grant user all views in the ViewDefinition table. It is only used in Scala Tests.
-    * @param user the user who will get the access to all views in ViewImpl table. 
-    * @return if no exception, it always return true
-    */
-  def grantAccessToAllExistingViews(user : User) = {
-    // TODO Include system views as well
-    ViewDefinition.findAll.filter(_.isSystem == false).foreach(
-      v => {
-        //Get All the views from ViewImpl table, and create the link user <--> each view. The link record the access permission. 
-        if ( AccountAccess.find(By(AccountAccess.view_fk, v.id_.get), By(AccountAccess.user_fk, user.userPrimaryKey.value) ).isEmpty )
-          //If the user and one view has no link, it will create one .
-          AccountAccess.create.
-            view_fk(v.id).
-            bank_id(v.bank_id.get).
-            account_id(v.account_id.get).
-            user_fk(user.userPrimaryKey.value).
-            save
-        
-      }
-    )
-    true
-  }
-  
   def createDefaultFirehoseView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
     createAndSaveFirehoseView(bankId, accountId, "Firehose View")
   }

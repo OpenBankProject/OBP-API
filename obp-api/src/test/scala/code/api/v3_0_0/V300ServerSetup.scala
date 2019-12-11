@@ -4,7 +4,7 @@ import code.api.Constant._
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import code.api.v1_2_1.{AccountJSON, AccountsJSON, BanksJSON, ViewsJSONV121}
 import code.api.v2_0_0.BasicAccountsJSON
-import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData, User1AllPrivileges}
+import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import dispatch.Req
 
 import scala.util.Random.nextInt
@@ -12,7 +12,7 @@ import scala.util.Random.nextInt
 /**
  * Created by Hongwei Zhang on 05/05/17.
  */
-trait V300ServerSetup extends ServerSetupWithTestData with User1AllPrivileges with DefaultUsers {
+trait V300ServerSetup extends ServerSetupWithTestData with DefaultUsers {
 
   def v3_0Request: Req = baseRequest / "obp" / "v3.0.0"
   

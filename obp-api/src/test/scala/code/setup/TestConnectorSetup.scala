@@ -150,7 +150,6 @@ trait TestConnectorSetup {
   protected def createRandomView(bankId: BankId, accountId: AccountId) : View
 
   protected def setAccountHolder(user: User, bankId : BankId, accountId : AccountId)
-  protected def grantAccessToAllExistingViews(user : User)
 
   protected def wipeTestData()
 }

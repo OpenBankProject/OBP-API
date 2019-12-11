@@ -157,10 +157,6 @@ object RemotedataViews extends ObpActorInit with Views {
     (actor ? cc.bulkDeleteAllPermissionsAndViews()).mapTo[Boolean]
   )
 
-  def grantAccessToAllExistingViews(user : User): Boolean = getValueFromFuture(
-    (actor ? cc.grantAccessToAllExistingViews(user)).mapTo[Boolean]
-  )
-
   def removeAllViews(bankId: BankId, accountId: AccountId): Boolean = getValueFromFuture(
     (actor ? cc.removeAllViews(bankId, accountId)).mapTo[Boolean]
   )

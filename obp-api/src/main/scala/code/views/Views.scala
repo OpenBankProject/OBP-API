@@ -97,8 +97,6 @@ trait Views {
 
   def getOwners(view: View): Set[User]
   
-  def grantAccessToAllExistingViews(user : User) : Boolean
-
   def removeAllPermissions(bankId: BankId, accountId: AccountId) : Boolean
   def removeAllViews(bankId: BankId, accountId: AccountId) : Boolean
 
@@ -151,8 +149,6 @@ class RemotedataViewsCaseClasses {
 
   case class getOwners(view: View)
   
-  case class grantAccessToAllExistingViews(user : User)
-
   case class removeAllPermissions(bankId: BankId, accountId: AccountId)
   case class removeAllViews(bankId: BankId, accountId: AccountId)
 

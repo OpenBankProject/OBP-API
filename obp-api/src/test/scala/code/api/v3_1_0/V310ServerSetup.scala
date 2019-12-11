@@ -4,12 +4,12 @@ import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import code.api.v1_2_1._
 import code.api.v2_0_0.BasicAccountsJSON
 import code.api.v3_0_0.{TransactionJsonV300, TransactionsJsonV300, ViewsJsonV300}
-import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData, User1AllPrivileges}
+import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import dispatch.Req
 
 import scala.util.Random.nextInt
 
-trait V310ServerSetup extends ServerSetupWithTestData with User1AllPrivileges with DefaultUsers {
+trait V310ServerSetup extends ServerSetupWithTestData with DefaultUsers {
 
   def v3_1_0_Request: Req = baseRequest / "obp" / "v3.1.0"
 

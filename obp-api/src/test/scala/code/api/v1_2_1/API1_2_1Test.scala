@@ -31,7 +31,7 @@ import _root_.net.liftweb.json.Serialization.write
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
 import code.bankconnectors.Connector
-import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, User1AllPrivileges}
+import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, ServerSetupWithTestData}
 import code.views.Views
 import com.openbankproject.commons.model._
 import net.liftweb.json._
@@ -41,7 +41,7 @@ import code.api.util.ErrorMessages._
 
 import scala.util.Random._
 
-class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser2AccountsAndSetUpWithTestData {
+class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with PrivateUser2AccountsAndSetUpWithTestData {
 
   def v1_2_1Request = baseRequest / "obp" / "v1.2.1"
 

@@ -33,7 +33,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2._
 import code.api.v1_2_1.UpdateViewJsonV121
-import code.setup.{APIResponse, DefaultUsers, User1AllPrivileges}
+import code.setup.{APIResponse, DefaultUsers}
 import com.openbankproject.commons.model.CreateViewJson
 import net.liftweb.util.Helpers._
 import org.scalatest._
@@ -43,7 +43,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import scala.util.Random._
 
 
-class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultUsers {
+class API2_2_0Test extends V220ServerSetup with DefaultUsers {
 
   /************************* test tags ************************/
 

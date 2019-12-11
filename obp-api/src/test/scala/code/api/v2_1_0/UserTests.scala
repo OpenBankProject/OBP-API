@@ -7,9 +7,8 @@ import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v2_0_0.JSONFactory200.UsersJsonV200
 import code.entitlement.Entitlement
-import code.setup.User1AllPrivileges
 
-class UserTests extends V210ServerSetup with User1AllPrivileges {
+class UserTests extends V210ServerSetup {
 
   feature("Assuring that endpoint Get all Users works as expected - v2.1.0") 
   {

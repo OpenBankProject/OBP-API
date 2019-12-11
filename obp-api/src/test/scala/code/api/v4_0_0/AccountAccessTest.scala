@@ -71,7 +71,6 @@ class AccountAccessTest extends V400ServerSetup {
     scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
       
       val account = createAnAccount(bankId, user1)
-      grantAccessToAllExistingViews(resourceUser1)
       val view = createViewForAnAccount(bankId, account.account_id)
       val postJson = PostAccountAccessJsonV400(resourceUser2.userId, PostViewJsonV400(view.id, view.is_system))
       When("We send the request")
