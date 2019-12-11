@@ -382,38 +382,6 @@ class ViewsTests extends V300ServerSetup {
       response.views.filter(!_.is_system).length >0  should be (true)
     }
 
-    scenario(s"$ApiEndpoint3 and $ApiEndpoint1, we first create the custom view _test, and get the accesses back. ") {
-      Given("The BANK_ID, ACCOUNT_ID, Login User and postViewBody")
-      val bankId = randomBankId
-      val bankAccountId = randomPrivateAccountId(bankId)
-      val postViewBody = postBodyViewJson
-      val loginedUser = user1
-      val viewsBefore = getAccountViews(bankId, bankAccountId, loginedUser).body.extract[ViewsJsonV300].views
-
-      When("the request is sent")
-      val reply = postView(bankId, bankAccountId, postViewBody, loginedUser)
-      Then("we should get a 201 code")
-      reply.code should equal (201)
-      reply.body.extract[ViewJSONV220]
-      And("we should get a new view")
-      val viewsAfter = getAccountViews(bankId, bankAccountId, loginedUser).body.extract[ViewsJsonV300].views
-      viewsBefore.size should equal (viewsAfter.size -1)
-
-
-      Then("We use a valid access token and valid put json")
-      val provider = defaultProvider
-      val permission = randomAccountPermission(bankId, bankAccountId)
-      val providerId = permission.user.id
-      val accountAccessResponse = getAccountAccessForUser(bankId, bankAccountId, provider, providerId, user1)
-      
-      Then("We should get back the updated view")
-      accountAccessResponse.code should equal(200)
-      val viewsJsonV300 = accountAccessResponse.body.extract[ViewsJsonV300]
-      viewsJsonV300.views.length should not equal (0)
-
-      Then("we should also get the new Custom Views back here. ")
-      viewsJsonV300.views.find(_.description == postBodyViewJson.description).isDefined should be (true)
-    }
   }
 
 }
