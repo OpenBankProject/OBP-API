@@ -343,7 +343,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     }
   }
 
-  final def removeView(userDoingTheRemove : User, viewId: ViewId) : Box[Unit] = {
+  final def removeView(userDoingTheRemove : User, viewId: ViewId) : Box[Boolean] = {
     if(!userDoingTheRemove.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))) {
       return Failure({"user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " does not have owner access"})
     } else {

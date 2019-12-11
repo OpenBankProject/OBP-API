@@ -56,7 +56,7 @@ trait Views {
   
   def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View]
   def createSystemView(view: CreateViewJson): Future[Box[View]]
-  def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit]
+  def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Boolean]
   def removeSystemView(viewId: ViewId): Future[Box[Boolean]]
   def updateView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]
   def updateSystemView(viewId : ViewId, viewUpdateJson : UpdateViewJSON): Future[Box[View]]
