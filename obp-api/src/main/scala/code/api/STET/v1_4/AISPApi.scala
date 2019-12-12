@@ -114,7 +114,7 @@ The ASPSP answers by providing a list of balances on this account.
              (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
              (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountresourceid), callContext)
              view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
-             moderatedAccount <- Future {bankAccount.moderatedBankAccount(view, Full(u), callContext)} map {
+             moderatedAccount <- Future {bankAccount.moderatedBankAccount(view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Full(u), callContext)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
           } yield {
@@ -312,7 +312,7 @@ The AISP requests the ASPSP on one of the PSU's accounts. It may specify some se
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
 
-            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params)} map {
+            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, BankIdAccountId(bankId,bankAccount.accountId), callContext, params)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             

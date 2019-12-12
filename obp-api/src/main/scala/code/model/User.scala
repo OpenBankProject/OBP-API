@@ -37,7 +37,7 @@ import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
-import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.{BankIdAccountId, _}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonDSL._
@@ -52,17 +52,20 @@ case class UserExtended(val user: User) extends MdcLoggable {
   private[this] val name : String = user.name
 
   /**
-    * This will read the AccountAccess table to see if there is a record for the user.primaryKey and view.PrimaryKey.
+    * This will read the AccountAccess table to see if there is a record for the user.primaryKey and view.PrimaryKey for the bankAccount,
     * So it can check both system views and custom views.
     * But it need the view object in the parameters.   
     * @param view the view object, need check the existence before calling the method
+    * @param bankIdAccountId for the system view there is not ids in the view, so we need get it from parameters.
     * @return if has the input view access, return true, otherwise false.
     */
-  final def hasViewAccess(view: View): Boolean ={
+  final def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId): Boolean ={
     val viewDefinition = view.asInstanceOf[ViewDefinition]
     !(AccountAccess.count(
       By(AccountAccess.user_fk, this.userPrimaryKey.value), 
-      By(AccountAccess.view_fk, viewDefinition.id)
+      By(AccountAccess.view_fk, viewDefinition.id),
+      By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
+      By(AccountAccess.account_id, bankIdAccountId.accountId.value),
     ) == 0)
   }
 

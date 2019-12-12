@@ -595,7 +595,7 @@ Reads account data from a given card account addressed by "account-id".
                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
 
-             (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params)} map {
+             (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, BankIdAccountId(bankId,bankAccount.accountId), callContext, params)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
 
@@ -1007,7 +1007,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
 
-            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params)} map {
+            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, BankIdAccountId(bankId,bankAccount.accountId), callContext, params)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
 

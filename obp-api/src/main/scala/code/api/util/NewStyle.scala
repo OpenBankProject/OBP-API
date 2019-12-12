@@ -212,7 +212,7 @@ object NewStyle {
       }
 
     def moderatedBankAccount(account: BankAccount, view: View, user: Box[User], callContext: Option[CallContext]) = Future {
-      account.moderatedBankAccount(view, user, callContext)
+      account.moderatedBankAccount(view, BankIdAccountId(account.bankId, account.accountId), user, callContext)
     } map { fullBoxOrException(_)
     } map { unboxFull(_) }
     
@@ -220,13 +220,13 @@ object NewStyle {
                                    view: View, 
                                    user: Box[User], 
                                    callContext: Option[CallContext]): Future[List[ModeratedOtherBankAccount]] = 
-      Future(account.moderatedOtherBankAccounts(view, user)) map { connectorEmptyResponse(_, callContext) }    
+      Future(account.moderatedOtherBankAccounts(view, BankIdAccountId(account.bankId, account.accountId), user)) map { connectorEmptyResponse(_, callContext) }    
     def moderatedOtherBankAccount(account: BankAccount,
                                   counterpartyId: String, 
                                   view: View, 
                                   user: Box[User], 
                                   callContext: Option[CallContext]): Future[ModeratedOtherBankAccount] = 
-      Future(account.moderatedOtherBankAccount(counterpartyId, view, user, callContext)) map { connectorEmptyResponse(_, callContext) }
+      Future(account.moderatedOtherBankAccount(counterpartyId, view, BankIdAccountId(account.bankId, account.accountId), user, callContext)) map { connectorEmptyResponse(_, callContext) }
 
     def getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[List[TransactionCore]] =
       Connector.connector.vend.getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]) map { i =>

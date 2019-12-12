@@ -2348,13 +2348,13 @@ Returns a string showed to the developer
     * @param user Option User, can be Empty(No Authentication), or Login user.
     *
     */
-  def hasAccess(view: View, user: Option[User]) : Boolean = {
+  def hasAccess(view: View, bankIdAccountId: BankIdAccountId, user: Option[User]) : Boolean = {
     if(hasPublicAccess(view: View))// No need for the Login user and public access
       true
     else
       user match {
         case Some(u) if hasFirehoseAccess(view,u)  => true//Login User and Firehose access
-        case Some(u) if u.hasViewAccess(view)=> true     // Login User and check view access
+        case Some(u) if u.hasAccountAccess(view, bankIdAccountId)=> true     // Login User and check view access
         case _ =>
           false
       }
@@ -2372,10 +2372,10 @@ Returns a string showed to the developer
     customerViewImplBox match {
       case Full(v) if(v.isPublic && !ALLOW_PUBLIC_VIEWS) => Failure(PublicViewsNotAllowedOnThisInstance)
       case Full(v) if(hasPublicAccess(v)) => customerViewImplBox
-      case Full(v) if(user.isDefined && user.get.hasViewAccess(v)) => customerViewImplBox
+      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => customerViewImplBox
       case _ => Views.views.vend.systemView(viewId) match  {
         case Full(v) if (hasPublicAccess(v)) => Full(v)
-        case Full(v) if (user.isDefined && user.get.hasViewAccess(v)) => Full(v)
+        case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => Full(v)
         case _ => Empty
       }
     }

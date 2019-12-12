@@ -504,7 +504,7 @@ trait APIMethods300 {
               bankIdAccountId <- availableBankIdAccountIdList
               bankAccount <- Connector.connector.vend.getBankAccount(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
               view <- APIUtil.checkViewAccessAndReturnView(viewId, bankIdAccountId, Some(u))
-              moderatedAccount <- bankAccount.moderatedBankAccount(view, Full(u), callContext) //Error handling is in lower method
+              moderatedAccount <- bankAccount.moderatedBankAccount(view, bankIdAccountId, Full(u), callContext) //Error handling is in lower method
             } yield {
               moderatedAccount
             }
@@ -567,7 +567,7 @@ trait APIMethods300 {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
-                (transactions, callContext) <- bankAccount.getModeratedTransactions(Full(u), view, callContext, params)
+                (transactions, callContext) <- bankAccount.getModeratedTransactions(Full(u), view, BankIdAccountId(bankId, accountId), callContext, params)
               } yield {
                 (createTransactionsJson(transactions), HttpCode.`200`(callContext))
               }
@@ -623,7 +623,7 @@ trait APIMethods300 {
             params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
-            (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(Some(user), view, params, callContext) map {
+            (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(Some(user), view, BankIdAccountId(bankId, accountId), params, callContext) map {
               i => (unboxFullOrFail(i._1, callContext, UnknownError), i._2)
             }
           } yield {
@@ -682,7 +682,7 @@ trait APIMethods300 {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
             //Note: error handling and messages for getTransactionParams are in the sub method
-            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(user, view, callContext, params) map {
+            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(user, view, BankIdAccountId(bankId, accountId), callContext, params) map {
               connectorEmptyResponse(_, callContext)
             }
           } yield {

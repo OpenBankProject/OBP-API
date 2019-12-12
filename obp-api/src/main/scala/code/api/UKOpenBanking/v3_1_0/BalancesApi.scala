@@ -124,7 +124,7 @@ object APIMethods_BalancesApi extends RestHelper {
 
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
         
-            moderatedAccount <- Future {account.moderatedBankAccount(view, Full(u), callContext)} map {
+            moderatedAccount <- Future {account.moderatedBankAccount(view, BankIdAccountId(account.bankId, accountId), Full(u), callContext)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
         

@@ -899,7 +899,7 @@ trait APIMethods200 {
             account <- BankAccountX(bankId, accountId) ?~ BankAccountNotFound
             // Assume owner view was requested
             view <- u.checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(account.bankId, account.accountId))
-            moderatedAccount <- account.moderatedBankAccount(view, cc.user, Some(cc))
+            moderatedAccount <- account.moderatedBankAccount(view, BankIdAccountId(bankId, accountId), cc.user, Some(cc))
           } yield {
             val moderatedAccountJson = JSONFactory200.createCoreBankAccountJSON(moderatedAccount)
             val response = successJsonResponse(Extraction.decompose(moderatedAccountJson))
@@ -948,7 +948,7 @@ trait APIMethods200 {
             params <- createQueriesByHttpParams(req.request.headers)
             bankAccount <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             view <- u.checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId,bankAccount.accountId))
-            (transactions, callContext) <- bankAccount.getModeratedTransactions(cc.user, view, None, params)
+            (transactions, callContext) <- bankAccount.getModeratedTransactions(cc.user, view, BankIdAccountId(bankId, accountId), None, params)
           } yield {
             val json = JSONFactory200.createCoreTransactionsJSON(transactions)
             successJsonResponse(Extraction.decompose(json))
@@ -999,7 +999,7 @@ trait APIMethods200 {
             account <- BankAccountX(bank.bankId, accountId) ?~ {ErrorMessages.AccountNotFound} // Check Account exists.
             availableViews <- Full(Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId)))
             view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u))
-            moderatedAccount <- account.moderatedBankAccount(view, cc.user, callContext)
+            moderatedAccount <- account.moderatedBankAccount(view, BankIdAccountId(bankId, accountId), cc.user, callContext)
           } yield {
             val viewsAvailable = availableViews.map(JSONFactory121.createViewJSON).sortBy(_.short_name)
             val moderatedAccountJson = JSONFactory121.createBankAccountJSON(moderatedAccount, viewsAvailable)
