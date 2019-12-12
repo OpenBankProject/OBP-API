@@ -4746,7 +4746,7 @@ trait APIMethods310 {
             (card, callContext) <- NewStyle.function.getPhysicalCardForBank(bankId, cardId, callContext)
             (cardAttributes, callContext) <- NewStyle.function.getCardAttributesFromProvider(cardId, callContext)
           } yield {
-            val views: List[View] = Views.views.vend.viewsForAccount(BankIdAccountId(card.account.bankId, card.account.accountId))
+            val views: List[View] = Views.views.vend.assignedViewsForAccount(BankIdAccountId(card.account.bankId, card.account.accountId))
             val commonsData: List[CardAttributeCommons]= cardAttributes
             (createPhysicalCardWithAttributesJson(card, commonsData, u, views), HttpCode.`200`(callContext))
           }

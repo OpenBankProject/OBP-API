@@ -163,7 +163,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
         acc.generate_accountants_view,
         acc.generate_auditors_view
       )}
-      existing_views <- tryo {Views.views.vend.viewsForAccount(BankIdAccountId(BankId(acc.bank), AccountId(acc.id)))}
+      existing_views <- tryo {Views.views.vend.assignedViewsForAccount(BankIdAccountId(BankId(acc.bank), AccountId(acc.id)))}
     } yield {
       setAccountHolder(username, BankId(acc.bank), AccountId(acc.id), acc.owners)
       views.foreach(v => {

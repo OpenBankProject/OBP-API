@@ -405,7 +405,7 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
 
-  def viewsForAccount(bankAccountId : BankIdAccountId) : List[View] = {
+  def assignedViewsForAccount(bankAccountId : BankIdAccountId) : List[View] = {
     AccountAccess.findAll(
       By(AccountAccess.bank_id, bankAccountId.bankId.value),
       By(AccountAccess.account_id, bankAccountId.accountId.value),

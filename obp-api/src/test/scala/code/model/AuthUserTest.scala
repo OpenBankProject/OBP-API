@@ -46,8 +46,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
       accountholders.length should equal(2)
 
       Then("We check the views")  //"Owner"::"Public" :: "Accountant" :: "Auditor"
-      val allViewsForAccount1 = MapperViews.viewsForAccount(bankIdAccountId)
-      val allViewsForAccount2 = MapperViews.viewsForAccount(bankIdAccountId)
+      val allViewsForAccount1 = MapperViews.assignedViewsForAccount(bankIdAccountId)
+      val allViewsForAccount2 = MapperViews.assignedViewsForAccount(bankIdAccountId)
       val allViews = ViewDefinition.findAll()
       allViewsForAccount1.toString().contains("owner") should equal(true)
       allViewsForAccount1.toString().contains("public") should equal(true)

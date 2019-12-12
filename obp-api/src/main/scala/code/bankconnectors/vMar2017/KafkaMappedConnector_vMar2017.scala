@@ -212,7 +212,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         acc.generateAccountantsView,
         acc.generateAuditorsView
       )}
-      existing_views <- tryo {Views.views.vend.viewsForAccount(BankIdAccountId(BankId(acc.bankId), AccountId(acc.accountId)))}
+      existing_views <- tryo {Views.views.vend.assignedViewsForAccount(BankIdAccountId(BankId(acc.bankId), AccountId(acc.accountId)))}
     } yield {
       setAccountHolder(username, BankId(acc.bankId), AccountId(acc.accountId), acc.owners)
       views.foreach(v => {
