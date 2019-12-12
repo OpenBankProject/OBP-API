@@ -1,6 +1,6 @@
 package code.api.v3_1_0
 
-import code.api.ErrorMessage
+import code.api.{Constant, ErrorMessage}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.updateAccountRequestJsonV310
 import code.api.util.APIUtil.OAuth._
@@ -28,6 +28,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
   //We need this endpoint to test the result 
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_0_0.corePrivateAccountsAllBanks))
   object ApiEndpoint5 extends Tag(nameOf(Implementations2_0_0.getPrivateAccountsAtOneBank))
+  object ApiEndpoint6 extends Tag(nameOf(Implementations3_0_0.getPrivateAccountById))
 
   lazy val testBankId = testBankId1
   lazy val putCreateAccountJSONV310 = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
@@ -149,8 +150,50 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       account2.account_routing should be (putCreateAccountOtherUserJsonV310.account_routing)
 
     }
+
+    scenario("Create new account will have system owner view, and other use also have the system owner view should not get the account back", ApiEndpoint2, VersionOfApi) {
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / testBankId.value / "accounts" / "TEST_ACCOUNT_ID" ).PUT <@(user1)
+      val response310 = makePutRequest(request310, write(putCreateAccountJSONV310))
+      Then("We should get a 201")
+      response310.code should equal(201)
+      val account = response310.body.extract[CreateAccountResponseJsonV310]
+      account.product_code should be (putCreateAccountJSONV310.product_code)
+      account.`label` should be (putCreateAccountJSONV310.`label`)
+      account.balance.amount.toDouble should be (putCreateAccountJSONV310.balance.amount.toDouble)
+      account.balance.currency should be (putCreateAccountJSONV310.balance.currency)
+      account.branch_id should be (putCreateAccountJSONV310.branch_id)
+      account.user_id should be (putCreateAccountJSONV310.user_id)
+      account.label should be (putCreateAccountJSONV310.label)
+      account.account_routing should be (putCreateAccountJSONV310.account_routing)
+
+
+      Then(s"we call $ApiEndpoint6 to get the account back")
+      val requestApiEndpoint6 = (v3_1_0_Request /"banks" / testBankId.value / "accounts" / "TEST_ACCOUNT_ID" / Constant.SYSTEM_OWNER_VIEW_ID/ "account" ).GET <@(user1)
+      val responseApiEndpoint6 = makeGetRequest(requestApiEndpoint6)
+
+      responseApiEndpoint6.code should equal(200)
+      val accountEndpoint6 = responseApiEndpoint6.body.extract[ModeratedCoreAccountJsonV300]
+      accountEndpoint6.id should be ("TEST_ACCOUNT_ID")
+      accountEndpoint6.label should be (account.label)
+
+      Then(s"we prepare the user2 will create a new account ($ApiEndpoint2)and he will have system view, and to call  get account ($ApiEndpoint6) and compare the result.")
+      val requestUser2_310 = (v3_1_0_Request / "banks" / testBankId.value / "accounts" / "TEST_ACCOUNT_ID_2" ).PUT <@(user2)
+      val responseUser2_310 = makePutRequest(requestUser2_310, write(putCreateAccountJSONV310.copy(user_id = resourceUser2.userId, balance = AmountOfMoneyJsonV121("EUR","0"))))
+      Then("We should get a 201")
+      responseUser2_310.code should equal(201)
+
+
+      Then(s"we call $ApiEndpoint6 to get the account back by user2")
+      val requestApiUser2Endpoint6 = (v3_1_0_Request /"banks" / testBankId.value / "accounts" / "TEST_ACCOUNT_ID" / Constant.SYSTEM_OWNER_VIEW_ID/ "account" ).GET <@(user2)
+      val responseApiUser2Endpoint6 = makeGetRequest(requestApiUser2Endpoint6)
+      //This mean, the user2 can not get access to user1's account!
+      responseApiUser2Endpoint6.code should not equal(200)
+      
+    }
     
   }
+  
 
   feature(s"test ${ApiEndpoint3.name}") {
     scenario("We will test ${ApiEndpoint3.name}", ApiEndpoint3, VersionOfApi) {
