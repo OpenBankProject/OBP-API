@@ -100,46 +100,6 @@ package code.model.dataAccess {
       }
     }
   
-    /**
-      * 1 Create or Update `Owner` view for Account.
-      * 2 Add Permission to the User
-      * @param bankId
-      * @param accountId
-      * @param user
-      *       
-      * @return This is a procedure, no return value. Just use the side effect.
-      */
-    private def createOwnerView(bankId : BankId, accountId : AccountId, user: User): Unit = {
-
-      val ownerViewUID = ViewIdBankIdAccountId(ViewId(CUSTOM_OWNER_VIEW_ID), bankId, accountId)
-      val existingOwnerView = Views.views.vend.view(ownerViewUID.viewId, BankIdAccountId(ownerViewUID.bankId, ownerViewUID.accountId))
-
-      existingOwnerView match {
-        case Full(v) => {
-          logger.debug(s"account $accountId at bank $bankId has already an owner view")
-          v.users.toList.find(_.userPrimaryKey == user.userPrimaryKey) match {
-            case Some(u) => {
-              logger.debug(s"user ${user.emailAddress} has already an owner view access on account $accountId at bank $bankId")
-            }
-            case _ =>{
-              //TODO: When can this case occur?
-              logger.debug(s"creating owner view access to user ${user.emailAddress}")
-              Views.views.vend.addPermission(ownerViewUID, user)
-            }
-          }
-        }
-        case _ => {
-          {
-            //TODO: if we add more permissions to ViewImpl we need to remember to set them here...
-            logger.debug(s"creating owner view on account account $accountId at bank $bankId")
-            val view = Views.views.vend.getOrCreateOwnerView(bankId, accountId, "Owner View")
-
-            logger.debug(s"creating owner view access to user ${user.emailAddress}")
-            Views.views.vend.addPermission(ownerViewUID, user)
-          }
-        }
-      }
-    }
   }
 
   object BankAccountCreationListener extends MdcLoggable {
