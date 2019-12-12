@@ -300,6 +300,8 @@ object ErrorMessages {
   val UpdateSystemViewError = "OBP-30253: Could not update the system view"
   val ExistingSystemViewError = "OBP-30254: There is already a view with permalink"
   val EmptyNameOfSystemViewError = "OBP-30255: You cannot create a View with an empty Name"
+  val DeleteCustomViewError = "OBP-30256: Could not delete the custom view"
+  val CannotFindCustomViewError = "OBP-30257: Could not find the custom view"
 
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "

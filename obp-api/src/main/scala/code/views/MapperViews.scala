@@ -382,21 +382,24 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
 
-  def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit] = {
-
-    if(viewId.value == CUSTOM_OWNER_VIEW_ID)
-      Failure("you cannot delete the owner view")
-    else {
-      for {
-        view <- ViewDefinition.findByUniqueKey(bankAccountId.bankId.value, bankAccountId.accountId.value, viewId.value)
-        if(view.delete_!)
-      } yield {
+  def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Boolean] = {
+    for {
+      view <- ViewDefinition.findByUniqueKey(bankAccountId.bankId.value, bankAccountId.accountId.value, viewId.value)
+      _ <- AccountAccess.find(By(AccountAccess.view_fk, view.id)).isDefined match {
+        case true => Failure("It is already assigned.")
+        case false => Full()
       }
+    } yield {
+      view.delete_!
     }
   }
   def removeSystemView(viewId: ViewId): Future[Box[Boolean]] = Future {
     for {
       view <- ViewDefinition.findSystemView(viewId.value)
+      _ <- AccountAccess.find(By(AccountAccess.view_fk, view.id)).isDefined match {
+        case true => Failure("It is already assigned.")
+        case false => Full()
+      }
     } yield {
       view.delete_!
     }
