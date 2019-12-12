@@ -40,11 +40,21 @@ import code.api.v3_1_0.APIMethods310.Implementations3_1_0
 import code.entitlement.Entitlement
 import code.setup.APIResponse
 import code.views.MapperViews
+import code.views.system.AccountAccess
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{CreateViewJson, UpdateViewJSON}
+import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 class SystemViewsTests extends V310ServerSetup {
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+  }
+
+  override def afterAll(): Unit = {
+    super.afterAll()
+  }
+  
   /**
     * Test tags
     * Example: To run tests with tag "getPermissions":
@@ -263,8 +273,13 @@ class SystemViewsTests extends V310ServerSetup {
     scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemView.toString)
       When(s"We make a request $ApiEndpoint4")
+      AccountAccess.findAll(
+        By(AccountAccess.view_id, SYSTEM_OWNER_VIEW_ID),
+        By(AccountAccess.user_fk, resourceUser1.id.get)
+      ).forall(_.delete_!) // Remove all rows assigned to the system owner view in order to delete it
       val response400 = deleteSystemView(SYSTEM_OWNER_VIEW_ID, user1)
       Then("We should get a 200")
+      org.scalameta.logger.elem(response400)
       response400.code should equal(200)
     }
   }
