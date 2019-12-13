@@ -302,12 +302,12 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @return a Full(true) if everything is okay, a Failure otherwise
     */
 
-  final def revokeAllPermissions(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
+  final def revokeAllAccountAccesses(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
     //check if the user have access to the owner view in this the account
     if(user.hasOwnerViewAccess(BankIdAccountId(bankId,accountId)))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) ?~ UserNotFoundByUsername
-        isRevoked <- Views.views.vend.revokeAllPermissions(bankId, accountId, otherUser)
+        isRevoked <- Views.views.vend.revokeAllAccountAccesses(bankId, accountId, otherUser)
       } yield isRevoked
     else
       Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
