@@ -79,7 +79,7 @@ object MapperViews extends Views with MdcLoggable {
     Full(Permission(user, getViewsForUser(user)))
   }
   // This is an idempotent function
-  private def getOrGrantAccessToCustomView(user: User, viewDefinition: ViewDefinition, bankId: String, accountId: String): Box[ViewDefinition] = {
+  private def getOrGrantAccessToCustomView(user: User, viewDefinition: View, bankId: String, accountId: String): Box[View] = {
     if (AccountAccess.count(
       By(AccountAccess.user_fk, user.userPrimaryKey.value), 
       By(AccountAccess.bank_id, bankId), 
@@ -102,28 +102,10 @@ object MapperViews extends Views with MdcLoggable {
         Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
       }
     } else Full(viewDefinition) //privilege already exists, no need to create one
-  }  
-  // TODO Unify getOrGrantAccessToSystemView and getOrGrantAccessToCustomView
+  }
   // This is an idempotent function 
   private def getOrGrantAccessToSystemView(bankId: BankId, accountId: AccountId, user: User, view: View): Box[View] = {
-    if (AccountAccess.count(
-      By(AccountAccess.user_fk, user.userPrimaryKey.value), 
-      By(AccountAccess.bank_id, bankId.value),
-      By(AccountAccess.account_id, accountId.value), 
-      By(AccountAccess.view_fk, view.id)) == 0) {
-      val saved = AccountAccess.create.
-        user_fk(user.userPrimaryKey.value).
-        bank_id(bankId.value).
-        account_id(accountId.value).
-        view_id(view.viewId.value).
-        view_fk(view.id).
-        save
-      if (saved) {
-        Full(view)
-      } else {
-        Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
-      }
-    } else Full(view) //privilege already exists, no need to create one
+    getOrGrantAccessToCustomView(user, view, bankId.value, accountId.value)
   }
   // TODO Accept the whole view as a parameter so we don't have to select it here.
   def grantAccess(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
