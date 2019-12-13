@@ -302,6 +302,7 @@ object ErrorMessages {
   val EmptyNameOfSystemViewError = "OBP-30255: You cannot create a View with an empty Name"
   val DeleteCustomViewError = "OBP-30256: Could not delete the custom view"
   val CannotFindCustomViewError = "OBP-30257: Could not find the custom view"
+  val SystemViewCannotBePublicError = "OBP-30258: System view cannot be public"
 
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "
