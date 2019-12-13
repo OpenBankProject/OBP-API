@@ -165,7 +165,7 @@ object SwaggerDefinitionsJSON {
     )
   )
 
-  val createSystemViewJson = createViewJson.copy(name = "test", metadata_view = "test")
+  val createSystemViewJson = createViewJson.copy(name = "test", metadata_view = "test", is_public = false)
 
   val updateViewJSON = UpdateViewJSON(
     description = "this is for family",
@@ -246,6 +246,8 @@ object SwaggerDefinitionsJSON {
       "can_query_available_funds"
     )
   )
+  
+  lazy val updateSystemViewJSON = updateViewJSON.copy(is_public = false)
 
   val transactionTypeIdSwagger = TransactionTypeId(value = "123")
 

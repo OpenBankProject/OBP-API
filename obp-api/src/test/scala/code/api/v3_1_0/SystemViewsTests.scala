@@ -71,7 +71,7 @@ class SystemViewsTests extends V310ServerSetup {
   // Custom view, name starts from `_`
   // System view, owner
   val randomSystemViewId = APIUtil.generateUUID()
-  val postBodySystemViewJson = createViewJson.copy(name=randomSystemViewId).copy(metadata_view = randomSystemViewId)
+  val postBodySystemViewJson = createSystemViewJson.copy(name=randomSystemViewId).copy(metadata_view = randomSystemViewId)
   val systemViewId = MapperViews.getNewViewPermalink(postBodySystemViewJson.name)
   
   def getSystemView(viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
@@ -92,8 +92,8 @@ class SystemViewsTests extends V310ServerSetup {
   }
   def createSystemView(viewId: String): Boolean = {
     Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemView.toString)
-    val postBodySystemViewJson = createViewJson.copy(name=viewId).copy(metadata_view = viewId)
-    val response400 = postSystemView(postBodySystemViewJson, user1)
+    val postBody = postBodySystemViewJson.copy(name=viewId).copy(metadata_view = viewId)
+    val response400 = postSystemView(postBody, user1)
     response400.code == 201
   }
   
@@ -204,7 +204,7 @@ class SystemViewsTests extends V310ServerSetup {
         UpdateViewJSON(
           description = updatedViewDescription,
           metadata_view = originalView.metadata_view,
-          is_public = !originalView.is_public,
+          is_public = originalView.is_public,
           which_alias_to_use = updatedAliasToUse,
           hide_metadata_if_alias_used = !originalView.hide_metadata_if_alias_used,
           allowed_actions = allowedActions

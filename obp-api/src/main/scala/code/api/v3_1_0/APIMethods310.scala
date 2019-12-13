@@ -3781,6 +3781,9 @@ trait APIMethods310 {
             createViewJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[CreateViewJson]
             }
+            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400) {
+              createViewJson.is_public == false
+            }
             view <- NewStyle.function.createSystemView(createViewJson, callContext)
           } yield {
             (JSONFactory300.createViewJSON(view),  HttpCode.`201`(callContext))
@@ -3838,7 +3841,7 @@ trait APIMethods310 {
          |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
          |of a view is not editable (it is only set when a view is created)""",
-      updateViewJSON,
+      updateSystemViewJSON,
       viewJsonV300,
       List(
         InvalidJsonFormat,
@@ -3861,6 +3864,9 @@ trait APIMethods310 {
             updateJson <- Future { tryo{json.extract[UpdateViewJSON]} } map {
               val msg = s"$InvalidJsonFormat The Json body should be the $UpdateViewJSON "
               x => unboxFullOrFail(x, callContext, msg)
+            }
+            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400) {
+              updateJson.is_public == false
             }
             _ <- NewStyle.function.systemView(ViewId(viewId), callContext)
             updatedView <- NewStyle.function.updateSystemView(ViewId(viewId), updateJson, callContext)

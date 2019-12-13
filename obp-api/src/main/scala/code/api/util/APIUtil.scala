@@ -2374,7 +2374,6 @@ Returns a string showed to the developer
       case Full(v) if(hasPublicAccess(v)) => customerViewImplBox
       case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => customerViewImplBox
       case _ => Views.views.vend.systemView(viewId) match  {
-        case Full(v) if (hasPublicAccess(v)) => Full(v)
         case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => Full(v)
         case _ => Empty
       }
