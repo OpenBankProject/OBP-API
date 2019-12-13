@@ -429,11 +429,6 @@
       <version>3.4.0</version>
     </dependency>
     <dependency>
-      <groupId>org.scalikejdbc</groupId>
-      <artifactId>scalikejdbc-config_${scala.version}</artifactId>
-      <version>3.4.0</version>
-    </dependency>
-    <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>
       <version>8.1.0.jre${java.version}-preview</version>

@@ -717,3 +717,15 @@ database_messages_scheduler_interval=3600
 # And you can call `Get API Configuration` endpoint to see the `grpc_port` there. 
 # When you set this props, need to make sure this port is available.  
 # grpc.server.port = 50051
+
+# Stored procedure related JDBC settings
+db.default.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver
+db.default.url=jdbc:sqlserver://localhost:1433;DatabaseName=obp-mapping;currentSchema=dbo
+db.default.user=sa
+db.default.password=VeryComplex123
+# Connection Pool settings
+db.default.poolInitialSize=5
+db.default.poolMaxSize=7
+db.default.poolConnectionTimeoutMillis=1000
+db.default.poolValidationQuery=select 1 as one
+db.default.poolFactoryName=commons-dbcp2
