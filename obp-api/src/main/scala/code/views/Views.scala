@@ -39,11 +39,11 @@ trait Views {
     * It will first find the view object by `viewIdBankIdAccountId`
     * And then, call @getOrCreateViewPrivilege(view: View, user: User) for the view and user.
    */
-  def addPermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
-  def addSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[View]
-  def addPermissions(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
-  def revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
-  def revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean]
+  def grantAccess(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
+  def grantAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[View]
+  def grantAccessToMultipleViews(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
+  def revokeAccess(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
+  def revokeAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean]
   def revokeAllPermissions(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
 
   def customView(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
@@ -56,9 +56,9 @@ trait Views {
   
   def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View]
   def createSystemView(view: CreateViewJson): Future[Box[View]]
-  def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Boolean]
+  def removeCustomView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Boolean]
   def removeSystemView(viewId: ViewId): Future[Box[Boolean]]
-  def updateView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]
+  def updateCustomView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]
   def updateSystemView(viewId : ViewId, viewUpdateJson : UpdateViewJSON): Future[Box[View]]
   
   /**
@@ -118,9 +118,9 @@ class RemotedataViewsCaseClasses {
   case class revokeAllPermissions(bankId: BankId, accountId: AccountId, user: User)
   case class createView(bankAccountId: BankIdAccountId, view: CreateViewJson)
   case class createSystemView(view: CreateViewJson)
-  case class removeView(viewId: ViewId, bankAccountId: BankIdAccountId)
+  case class removeCustomView(viewId: ViewId, bankAccountId: BankIdAccountId)
   case class removeSystemView(viewId: ViewId)
-  case class updateView(bankAccountId: BankIdAccountId, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
+  case class updateCustomView(bankAccountId: BankIdAccountId, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
   case class updateSystemView(viewId : ViewId, viewUpdateJson : UpdateViewJSON)
   case class assignedViewsForAccount(bankAccountId: BankIdAccountId)
   case class availableViewsForAccount(bankAccountId: BankIdAccountId)

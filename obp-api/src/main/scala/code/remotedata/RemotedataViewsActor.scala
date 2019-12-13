@@ -18,15 +18,15 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
 
     case cc.addPermissions(views : List[ViewIdBankIdAccountId], user : User) =>
       logger.debug("addPermissions(" + views +"," + user +")")
-      sender ! (mapper.addPermissions(views, user))
+      sender ! (mapper.grantAccessToMultipleViews(views, user))
 
     case cc.addPermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) =>
       logger.debug("addPermission(" + viewIdBankIdAccountId +"," + user +")")
-      sender ! (mapper.addPermission(viewIdBankIdAccountId, user))
+      sender ! (mapper.grantAccess(viewIdBankIdAccountId, user))
       
     case cc.addSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) =>
       logger.debug("addSystemViewPermission(" + bankId +"," + accountId +"," + view +"," + user +")")
-      sender ! (mapper.addSystemViewPermission(bankId, accountId, view, user))
+      sender ! (mapper.grantAccessToSystemView(bankId, accountId, view, user))
 
     case cc.permission(account : BankIdAccountId, user: User) =>
       logger.debug("permission(" + account +"," + user +")")
@@ -38,11 +38,11 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       
     case cc.revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) =>
       logger.debug("revokePermission(" + viewIdBankIdAccountId +"," + user +")")
-      sender ! (mapper.revokePermission(viewIdBankIdAccountId, user)) 
+      sender ! (mapper.revokeAccess(viewIdBankIdAccountId, user)) 
       
     case cc.revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) =>
       logger.debug("revokeSystemViewPermission(" + bankId +"," + accountId +"," + view +"," + user +")")
-      sender ! (mapper.revokeSystemViewPermission(bankId, accountId, view, user))
+      sender ! (mapper.revokeAccessToSystemView(bankId, accountId, view, user))
 
     case cc.revokeAllPermissions(bankId : BankId, accountId : AccountId, user : User) =>
       logger.debug("revokeAllPermissions(" + bankId +"," + accountId +","+ user +")")
@@ -76,17 +76,17 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("createSystemView(" + view +")")
       mapper.createSystemView(view) pipeTo sender
 
-    case cc.updateView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) =>
-      logger.debug("updateView(" + bankAccountId +","+ viewId +","+ viewUpdateJson +")")
-      sender ! (mapper.updateView(bankAccountId, viewId, viewUpdateJson))
+    case cc.updateCustomView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) =>
+      logger.debug("updateCustomView(" + bankAccountId +","+ viewId +","+ viewUpdateJson +")")
+      sender ! (mapper.updateCustomView(bankAccountId, viewId, viewUpdateJson))
       
     case cc.updateSystemView(viewId : ViewId, viewUpdateJson : UpdateViewJSON) =>
       logger.debug("updateSystemView(" + viewId +","+ viewUpdateJson +")")
       (mapper.updateSystemView(viewId, viewUpdateJson)) pipeTo sender
 
-    case cc.removeView(viewId : ViewId, bankAccountId: BankIdAccountId) =>
-      logger.debug("removeView(" + viewId +","+ bankAccountId +")")
-      sender ! (mapper.removeView(viewId, bankAccountId))
+    case cc.removeCustomView(viewId : ViewId, bankAccountId: BankIdAccountId) =>
+      logger.debug("removeCustomView(" + viewId +","+ bankAccountId +")")
+      sender ! (mapper.removeCustomView(viewId, bankAccountId))
 
     case cc.permissions(bankAccountId : BankIdAccountId) =>
       logger.debug("premissions(" + bankAccountId +")")

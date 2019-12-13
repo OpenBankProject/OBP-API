@@ -78,8 +78,8 @@ object MapperViews extends Views with MdcLoggable {
   def getPermissionForUser(user: User): Box[Permission] = {
     Full(Permission(user, getViewsForUser(user)))
   }
-  
-  private def getOrCreateViewPrivilege(user: User, viewDefinition: ViewDefinition, bankId: String, accountId: String): Box[ViewDefinition] = {
+  // This is an idempotent function
+  private def getOrGrantAccessToCustomView(user: User, viewDefinition: ViewDefinition, bankId: String, accountId: String): Box[ViewDefinition] = {
     if (AccountAccess.count(
       By(AccountAccess.user_fk, user.userPrimaryKey.value), 
       By(AccountAccess.bank_id, bankId), 
@@ -103,7 +103,9 @@ object MapperViews extends Views with MdcLoggable {
       }
     } else Full(viewDefinition) //privilege already exists, no need to create one
   }  
-  private def getOrCreateSystemViewPrivilege(bankId: BankId, accountId: AccountId, user: User, view: View): Box[View] = {
+  // TODO Unify getOrGrantAccessToSystemView and getOrGrantAccessToCustomView
+  // This is an idempotent function 
+  private def getOrGrantAccessToSystemView(bankId: BankId, accountId: AccountId, user: User, view: View): Box[View] = {
     if (AccountAccess.count(
       By(AccountAccess.user_fk, user.userPrimaryKey.value), 
       By(AccountAccess.bank_id, bankId.value),
@@ -124,7 +126,7 @@ object MapperViews extends Views with MdcLoggable {
     } else Full(view) //privilege already exists, no need to create one
   }
   // TODO Accept the whole view as a parameter so we don't have to select it here.
-  def addPermission(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
+  def grantAccess(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
     logger.debug(s"addPermission says viewUID is $viewIdBankIdAccountId user is $user")
     val viewId = viewIdBankIdAccountId.viewId.value
     val bankId = viewIdBankIdAccountId.bankId.value
@@ -136,21 +138,22 @@ object MapperViews extends Views with MdcLoggable {
       case Full(v) => {
         if(v.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
         // SQL Select Count ViewPrivileges where
-        getOrCreateViewPrivilege(user, v, viewIdBankIdAccountId.bankId.value, viewIdBankIdAccountId.accountId.value) //privilege already exists, no need to create one
+        // This is idempotent
+        getOrGrantAccessToCustomView(user, v, viewIdBankIdAccountId.bankId.value, viewIdBankIdAccountId.accountId.value) //privilege already exists, no need to create one
       }
       case _ => {
         Empty ~> APIFailure(s"View $viewIdBankIdAccountId. not found", 404) //TODO: move message + code logic to api level
       }
     }
   }
-  def addSystemViewPermission(bankId: BankId, accountId: AccountId, view: View, user: User): Box[View] = {
+  def grantAccessToSystemView(bankId: BankId, accountId: AccountId, view: View, user: User): Box[View] = {
     { view.isPublic && !ALLOW_PUBLIC_VIEWS } match {
       case true => Failure(PublicViewsNotAllowedOnThisInstance)
-      case false => getOrCreateSystemViewPrivilege(bankId: BankId, accountId: AccountId, user, view)
+      case false => getOrGrantAccessToSystemView(bankId: BankId, accountId: AccountId, user, view)
     }
   }
 
-  def addPermissions(views: List[ViewIdBankIdAccountId], user: User): Box[List[View]] = {
+  def grantAccessToMultipleViews(views: List[ViewIdBankIdAccountId], user: User): Box[List[View]] = {
     val viewDefinitions: List[(ViewDefinition, ViewIdBankIdAccountId)] = views.map {
       uid => ViewDefinition.findCustomView(uid.bankId.value,uid.accountId.value, uid.viewId.value).map((_, uid))
           .or(ViewDefinition.findSystemView(uid.viewId.value).map((_, uid)))
@@ -167,13 +170,14 @@ object MapperViews extends Views with MdcLoggable {
         if(v._1.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
         val viewDefinition = v._1
         val viewIdBankIdAccountId = v._2
-        getOrCreateViewPrivilege(user, viewDefinition, viewIdBankIdAccountId.bankId.value, viewIdBankIdAccountId.accountId.value)
+        // This is idempotent 
+        getOrGrantAccessToCustomView(user, viewDefinition, viewIdBankIdAccountId.bankId.value, viewIdBankIdAccountId.accountId.value)
       })
       Full(viewDefinitions.map(_._1))
     }
   }
 
-  def revokePermission(viewUID : ViewIdBankIdAccountId, user : User) : Box[Boolean] = {
+  def revokeAccess(viewUID : ViewIdBankIdAccountId, user : User) : Box[Boolean] = {
     val isRevokedCustomViewAccess =
     for {
       viewDefinition <- ViewDefinition.findCustomView(viewUID.bankId.value, viewUID.accountId.value, viewUID.viewId.value)
@@ -203,7 +207,7 @@ object MapperViews extends Views with MdcLoggable {
     //The following mean: it should revoke both, but if one of them is failed, it is also should return true.
     isRevokedCustomViewAccess or isRevokedSystemViewAccess
   }
-  def revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean] = {
+  def revokeAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean] = {
     val res =
     for {
       viewDefinition <- ViewDefinition.find(By(ViewDefinition.id_, view.id)) 
@@ -363,7 +367,7 @@ object MapperViews extends Views with MdcLoggable {
 
 
   /* Update the specification of the view (what data/actions are allowed) */
-  def updateView(bankAccountId : BankIdAccountId, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] = {
+  def updateCustomView(bankAccountId : BankIdAccountId, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] = {
 
     for {
       view <- ViewDefinition.findCustomView(bankAccountId.bankId.value, bankAccountId.accountId.value, viewId.value)
@@ -382,11 +386,11 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
 
-  def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Boolean] = {
+  def removeCustomView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Boolean] = {
     for {
       view <- ViewDefinition.findCustomView(bankAccountId.bankId.value, bankAccountId.accountId.value, viewId.value)
       _ <- AccountAccess.find(By(AccountAccess.view_fk, view.id)).isDefined match {
-        case true => Failure("It is already assigned.")
+        case true => Failure("Account Access record uses this View.") // We want to prevent account access orphans
         case false => Full()
       }
     } yield {
@@ -397,7 +401,7 @@ object MapperViews extends Views with MdcLoggable {
     for {
       view <- ViewDefinition.findSystemView(viewId.value)
       _ <- AccountAccess.find(By(AccountAccess.view_fk, view.id)).isDefined match {
-        case true => Failure("It is already assigned.")
+        case true => Failure("Account Access record uses this View.") // We want to prevent account access orphans
         case false => Full()
       }
     } yield {

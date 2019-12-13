@@ -352,11 +352,11 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           //4 set Account link to User
           setAccountHolder(username, BankId(acc.bankId), AccountId(acc.accountId), username::Nil)
           createdNewViewsForTheUser.foreach(v => {
-            Views.views.vend.addPermission(v.uid, user)
+            Views.views.vend.grantAccess(v.uid, user)
             logger.debug(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
           })
           existingViewsNotBelongtoTheUser.foreach (v => {
-            Views.views.vend.addPermission(v.uid, user)
+            Views.views.vend.grantAccess(v.uid, user)
             logger.debug(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
           })
         }

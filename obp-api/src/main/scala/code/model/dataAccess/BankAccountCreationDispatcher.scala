@@ -94,7 +94,7 @@ package code.model.dataAccess {
       val ownerView = ViewIdBankIdAccountId(ViewId(SYSTEM_OWNER_VIEW_ID), bankId, accountId)
       Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined match {
         case true =>
-          Views.views.vend.addPermission(ownerView, user)
+          Views.views.vend.grantAccess(ownerView, user)
         case false =>
           logger.debug(s"Cannot create/get system view: ${SYSTEM_OWNER_VIEW_ID}")
       }

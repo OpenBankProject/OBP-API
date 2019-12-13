@@ -91,7 +91,7 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       val accountId = AccountId("notExistingAccountId")
       val viewId =ViewId(SYSTEM_OWNER_VIEW_ID)
       val ownerView = createOwnerView(bankId, accountId)
-      Views.views.vend.addPermission(ViewIdBankIdAccountId(viewId, bankId, accountId), resourceUser1)
+      Views.views.vend.grantAccess(ViewIdBankIdAccountId(viewId, bankId, accountId), resourceUser1)
 
       val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
   

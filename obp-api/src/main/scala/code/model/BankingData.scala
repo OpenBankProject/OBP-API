@@ -252,7 +252,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     if(user.hasOwnerViewAccess(BankIdAccountId(bankId,accountId)))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        savedView <- Views.views.vend.addPermission(viewUID, otherUser) ?~ "could not save the privilege"
+        savedView <- Views.views.vend.grantAccess(viewUID, otherUser) ?~ "could not save the privilege"
       } yield savedView
     else
       Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
@@ -270,7 +270,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        grantedViews <- Views.views.vend.addPermissions(viewUIDs, otherUser) ?~ "could not save the privilege"
+        grantedViews <- Views.views.vend.grantAccessToMultipleViews(viewUIDs, otherUser) ?~ "could not save the privilege"
       } yield grantedViews
     else
       Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
@@ -288,7 +288,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        isRevoked <- Views.views.vend.revokePermission(viewUID, otherUser) ?~ "could not revoke the privilege"
+        isRevoked <- Views.views.vend.revokeAccess(viewUID, otherUser) ?~ "could not revoke the privilege"
       } yield isRevoked
     else
       Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
@@ -333,7 +333,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     if(!userDoingTheUpdate.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))) {
       Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
     } else {
-      val view = Views.views.vend.updateView(BankIdAccountId(bankId,accountId), viewId, v)
+      val view = Views.views.vend.updateCustomView(BankIdAccountId(bankId,accountId), viewId, v)
       //if(view.isDefined) {
       //  logger.debug("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
       //      " for account " + accountId + "at bank " + bankId)
@@ -347,7 +347,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     if(!userDoingTheRemove.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))) {
       return Failure({"user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " does not have owner access"})
     } else {
-      val deleted = Views.views.vend.removeView(viewId, BankIdAccountId(bankId,accountId))
+      val deleted = Views.views.vend.removeCustomView(viewId, BankIdAccountId(bankId,accountId))
 
       //if (deleted.isDefined) {
       //    logger.debug("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +

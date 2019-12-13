@@ -192,8 +192,8 @@ object Consent {
       for {
         view <- consent.views
       } yield {
-        Views.views.vend.revokePermission(ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id)), user)
-        Views.views.vend.addPermission(ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id)), user)
+        Views.views.vend.revokeAccess(ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id)), user)
+        Views.views.vend.grantAccess(ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id)), user)
         "Added"
       }
     if (result.forall(_ == "Added")) Full(user) else Failure("Cannot add permissions to the user with id: " + user.userId)

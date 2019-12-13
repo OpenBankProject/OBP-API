@@ -2382,7 +2382,7 @@ Returns a string showed to the developer
   }
   
   /**
-    * This view public is true and set `allow_public_views=ture` in props
+    * This view public is true and set `allow_public_views=true` in props
     */
   def hasPublicAccess(view: View) : Boolean = {
     if(view.isPublic && APIUtil.ALLOW_PUBLIC_VIEWS) true

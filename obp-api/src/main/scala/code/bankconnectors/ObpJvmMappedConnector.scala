@@ -167,11 +167,11 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     } yield {
       setAccountHolder(username, BankId(acc.bank), AccountId(acc.id), acc.owners)
       views.foreach(v => {
-        Views.views.vend.addPermission(v.uid, user)
+        Views.views.vend.grantAccess(v.uid, user)
         logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
       })
       existing_views.filterNot(_.users.contains(user.userPrimaryKey)).foreach (v => {
-        Views.views.vend.addPermission(v.uid, user)
+        Views.views.vend.grantAccess(v.uid, user)
         logger.info(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
       })
     }

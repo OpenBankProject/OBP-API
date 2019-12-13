@@ -38,7 +38,7 @@ trait TestConnectorSetup {
     val account = createAccount(bankId, accountId, currency) 
     val ownerView = createOwnerView(bankId, accountId)
     accountOwner.foreach(AccountHolders.accountHolders.vend.getOrCreateAccountHolder(_, BankIdAccountId(account.bankId, account.accountId)))
-    accountOwner.foreach(Views.views.vend.addPermission(ViewIdBankIdAccountId(ViewId(ownerView.viewId.value), BankId(ownerView.bankId.value), AccountId(ownerView.accountId.value)), _))
+    accountOwner.foreach(Views.views.vend.grantAccess(ViewIdBankIdAccountId(ViewId(ownerView.viewId.value), BankId(ownerView.bankId.value), AccountId(ownerView.accountId.value)), _))
     account
   }
 
@@ -73,15 +73,15 @@ trait TestConnectorSetup {
     val systemAccountantView = getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
     
     accounts.foreach(account => {
-      Views.views.vend.addSystemViewPermission(account.bankId, account.accountId, systemOwnerView, user)
-      Views.views.vend.addSystemViewPermission(account.bankId, account.accountId, systemAuditorView, user)
-      Views.views.vend.addSystemViewPermission(account.bankId, account.accountId, systemAccountantView, user)
+      Views.views.vend.grantAccessToSystemView(account.bankId, account.accountId, systemOwnerView, user)
+      Views.views.vend.grantAccessToSystemView(account.bankId, account.accountId, systemAuditorView, user)
+      Views.views.vend.grantAccessToSystemView(account.bankId, account.accountId, systemAccountantView, user)
       
       val customPublicView = createPublicView(account.bankId, account.accountId) 
-      Views.views.vend.addPermission(customPublicView.uid, user)
+      Views.views.vend.grantAccess(customPublicView.uid, user)
       
       val customRandomView = createRandomView(account.bankId, account.accountId) 
-      Views.views.vend.addPermission(customRandomView.uid, user)
+      Views.views.vend.grantAccess(customRandomView.uid, user)
     })
 
     accounts
