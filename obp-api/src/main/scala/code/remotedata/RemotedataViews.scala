@@ -47,16 +47,16 @@ object RemotedataViews extends ObpActorInit with Views {
     (actor ? cc.revokeAllPermissions(bankId, accountId, user)).mapTo[Box[Boolean]]
   )
 
-  def view(viewId : ViewId, account: BankIdAccountId) : Box[View] = getValueFromFuture(
-    (actor ? cc.view(viewId, account)).mapTo[Box[View]]
+  def customView(viewId : ViewId, account: BankIdAccountId) : Box[View] = getValueFromFuture(
+    (actor ? cc.customView(viewId, account)).mapTo[Box[View]]
   )
   
   def systemView(viewId : ViewId) : Box[View] = getValueFromFuture(
     (actor ? cc.systemView(viewId)).mapTo[Box[View]]
   )
 
-  def viewFuture(viewId : ViewId, account: BankIdAccountId) : Future[Box[View]] = 
-    (actor ? cc.viewFuture(viewId, account)).mapTo[Box[View]]
+  def customViewFuture(viewId : ViewId, account: BankIdAccountId) : Future[Box[View]] = 
+    (actor ? cc.customViewFuture(viewId, account)).mapTo[Box[View]]
   
   def systemViewFuture(viewId : ViewId) : Future[Box[View]] = 
     (actor ? cc.systemViewFuture(viewId)).mapTo[Box[View]]

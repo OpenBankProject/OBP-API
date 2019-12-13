@@ -48,17 +48,17 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("revokeAllPermissions(" + bankId +"," + accountId +","+ user +")")
       sender ! (mapper.revokeAllPermissions(bankId, accountId, user))
 
-    case cc.view(viewId: ViewId, bankAccountId: BankIdAccountId) =>
-      logger.debug("view(" + viewId +", "+ bankAccountId + ")")
-      sender ! (mapper.view(viewId, bankAccountId))
+    case cc.customView(viewId: ViewId, bankAccountId: BankIdAccountId) =>
+      logger.debug("customView(" + viewId +", "+ bankAccountId + ")")
+      sender ! (mapper.customView(viewId, bankAccountId))
       
     case cc.systemView(viewId: ViewId) =>
       logger.debug("view(" + viewId  + ")")
       sender ! (mapper.systemView(viewId))
 
-    case cc.viewFuture(viewId: ViewId, bankAccountId: BankIdAccountId) =>
-      logger.debug("vieFuture(" + viewId +", "+ bankAccountId + ")")
-      sender ! (mapper.view(viewId, bankAccountId))
+    case cc.customViewFuture(viewId: ViewId, bankAccountId: BankIdAccountId) =>
+      logger.debug("customViewFuture(" + viewId +", "+ bankAccountId + ")")
+      sender ! (mapper.customView(viewId, bankAccountId))
       
     case cc.systemViewFuture(viewId: ViewId) =>
       logger.debug("systemViewFuture(" + viewId + ")")

@@ -504,6 +504,15 @@ object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefini
     )
   }
 
+  def findCustomView(bankId: String, accountId: String, viewId: String): Box[ViewDefinition] = {
+    ViewDefinition.find(
+      By(ViewDefinition.bank_id, bankId),
+      By(ViewDefinition.account_id, accountId),
+      By(ViewDefinition.isSystem_, false),
+      By(ViewDefinition.view_id, viewId),
+    )
+  }
+  
   def findByUniqueKey(bankId: String, accountId: String, viewId: String): Box[ViewDefinition] = {
     val uniqueKey = getUniqueKey(bankId, accountId, viewId)
     ViewDefinition.find(

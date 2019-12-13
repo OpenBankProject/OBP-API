@@ -257,7 +257,7 @@ trait APIMethods300 {
               _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
                 updateJson.metadata_view.startsWith("_")
               }
-              _ <- Views.views.vend.viewFuture(ViewId(viewId.value), BankIdAccountId(bankId, accountId)) map {
+              _ <- Views.views.vend.customViewFuture(ViewId(viewId.value), BankIdAccountId(bankId, accountId)) map {
                 x => fullBoxOrException(
                   x ~> APIFailureNewStyle(s"$ViewNotFound. Check your post json body, metadata_view = ${updateJson.metadata_view}. It should be an existing VIEW_ID, eg: owner", 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }

@@ -46,13 +46,13 @@ trait Views {
   def revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean]
   def revokeAllPermissions(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
 
-  def view(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
+  def customView(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
   def systemView(viewId : ViewId) : Box[View]
-  def viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]]
+  def customViewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]]
   def systemViewFuture(viewId : ViewId) : Future[Box[View]]
 
   //always return a view id String, not error here. 
-  def getMetadataViewId(bankAccountId: BankIdAccountId, viewId : ViewId) = Views.views.vend.view(viewId, bankAccountId).map(_.metadataView).openOr(viewId.value)
+  def getMetadataViewId(bankAccountId: BankIdAccountId, viewId : ViewId) = Views.views.vend.customView(viewId, bankAccountId).map(_.metadataView).openOr(viewId.value)
   
   def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View]
   def createSystemView(view: CreateViewJson): Future[Box[View]]
@@ -132,11 +132,11 @@ class RemotedataViewsCaseClasses {
   case class publicViews()
   case class publicViewsForBank(bankId: BankId)
   case class firehoseViewsForBank(bankId: BankId, user : User)
-  case class view(pars: Any*) {
+  case class customView(pars: Any*) {
     def apply(viewId: ViewId, bankAccountId: BankIdAccountId): Box[View] = this (viewId, bankAccountId)
   }
   case class systemView(viewId : ViewId)
-  case class viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId)
+  case class customViewFuture(viewId : ViewId, bankAccountId: BankIdAccountId)
   case class systemViewFuture(viewId : ViewId)
   case class getOrCreateAccountView(account: BankIdAccountId, viewName: String)
   case class getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String)

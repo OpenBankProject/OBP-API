@@ -2042,7 +2042,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       reply.code should equal (400)
 
       And("The account holder should still have access to the owner view")
-      val view = Views.views.vend.view(ownerViewId, BankIdAccountId(BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val view = Views.views.vend.customView(ownerViewId, BankIdAccountId(BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
       Views.views.vend.getOwners(view).toList should contain (resourceUser3)
     }
 
@@ -2124,7 +2124,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = ViewId(CUSTOM_OWNER_VIEW_ID)
-      val view = Views.views.vend.view(viewId, BankIdAccountId(BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val view = Views.views.vend.customView(viewId, BankIdAccountId(BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
       val userId = resourceUser1.idGivenByProvider
 
       Views.views.vend.getOwners(view).toList.length should equal(1)
@@ -2158,7 +2158,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       reply.code should equal (400)
 
       And("The user should not have had his access revoked")
-      val view = Views.views.vend.view(ViewId(CUSTOM_OWNER_VIEW_ID), BankIdAccountId(BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val view = Views.views.vend.customView(ViewId(CUSTOM_OWNER_VIEW_ID), BankIdAccountId(BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
       Views.views.vend.getOwners(view).toList should contain (resourceUser3)
     }
   }

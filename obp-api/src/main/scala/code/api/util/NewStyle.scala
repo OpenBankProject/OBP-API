@@ -260,10 +260,8 @@ object NewStyle {
       }
     }
     
-    def view(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
-      Views.views.vend.viewFuture(viewId, bankAccountId)  map {
-        x => x.or(Views.views.vend.systemView(viewId))
-      } map {
+    def customView(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
+      Views.views.vend.customViewFuture(viewId, bankAccountId) map {
         unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is $viewId")
       }
     }    

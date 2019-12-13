@@ -2368,7 +2368,7 @@ Returns a string showed to the developer
    * Note: this user is Option, for the public views, there is no need for the user. 
    */
   final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User]) = {
-    val customerViewImplBox = Views.views.vend.view(viewId, bankIdAccountId)
+    val customerViewImplBox = Views.views.vend.customView(viewId, bankIdAccountId)
     customerViewImplBox match {
       case Full(v) if(v.isPublic && !ALLOW_PUBLIC_VIEWS) => Failure(PublicViewsNotAllowedOnThisInstance)
       case Full(v) if(hasPublicAccess(v)) => customerViewImplBox
