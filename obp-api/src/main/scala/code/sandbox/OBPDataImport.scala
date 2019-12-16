@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.UUID
 
 import code.accountholders.AccountHolders
+import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_FIREHOSE_VIEW_ID, SYSTEM_OWNER_VIEW_ID}
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ErrorMessages}
 import code.bankconnectors.Connector
@@ -103,35 +104,6 @@ trait OBPDataImport extends MdcLoggable {
   protected def createSaveableCrmEvents(data : List[SandboxCrmEventImport]) : Box[List[Saveable[CrmEventType]]]
   
   
-  
-  /**
-    * Create an firehose view for account with BankId @bankId and AccountId @accountId that can be saved.
-    */
-  protected def createFirehoseView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
-  
-  /**
-   * Create an owner view for account with BankId @bankId and AccountId @accountId that can be saved.
-   */
-  protected def createOwnerView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
-
-  /**
-   * Create a public view for account with BankId @bankId and AccountId @accountId that can be saved.
-   */
-  protected def createPublicView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
-
-
-  /**
-   * Create AccountantsView with BankId @bankId and AccountId @accountId that can be saved.
-   */
-  protected def createAccountantsView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
-
-
-  /**
-   * Create AuditorsView with BankId @bankId and AccountId @accountId that can be saved.
-   */
-  protected def createAuditorsView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
-
-
   /**
    * Creates an account that can be saved. This method assumes that @acc has passed validatoin checks and is allowed
    * to be created as is.
@@ -377,44 +349,21 @@ trait OBPDataImport extends MdcLoggable {
         yield for {
           saveableAccount <- createSaveableAccount(acc, banks)
         } yield {
-          (saveableAccount, createViews(acc), acc.owners)
+          (saveableAccount, getOrCreateAllSystemViews, acc.owners)
         }
 
     dataOrFirstFailure(saveableAccounts)
   }
 
   /**
-   * Creates the owner view and a public view (if the public view is requested), for an account.
+   * Now all the accounts will share the same system views
    */
-  final protected def createViews(acc : SandboxAccountImport) : List[ViewType] = {
-    val bankId = BankId(acc.bank)
-    val accountId = AccountId(acc.id)
-  
-    val firehoseView =
-      // Only create Firehose view if they are enabled at instance.
-      if (APIUtil.getPropsAsBoolValue("allow_firehose_views", false))
-        createFirehoseView(bankId, accountId, "Firehose View")
-      else Empty
-    
-    val ownerView =
-        createOwnerView(bankId, accountId, "Owner View")
-
-    val publicView =
-      if(acc.generate_public_view)
-        createPublicView(bankId, accountId, "Public View")
-      else Empty
-
-    val accountantsView =
-      if(acc.generate_accountants_view)
-        createAccountantsView(bankId, accountId, "Accountants View")
-      else Empty
-
-    val auditorsView =
-      if(acc.generate_auditors_view)
-        createAuditorsView(bankId, accountId, "Auditors View")
-      else Empty
-
-    List(firehoseView, ownerView, publicView, accountantsView, auditorsView).flatten
+  val getOrCreateAllSystemViews : List[ViewType] = {
+    val ownerView = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).asInstanceOf[Box[ViewType]]
+    val auditorsView = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).asInstanceOf[Box[ViewType]]
+    val accountantsView = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).asInstanceOf[Box[ViewType]]
+    val firehoseView = Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).asInstanceOf[Box[ViewType]]
+    List(firehoseView, ownerView, accountantsView, auditorsView).flatten
   }
 
   final protected def createTransactions(data : SandboxDataImport, createdBanks : List[BankType], createdAccounts : List[AccountType]) : Box[List[Saveable[TransactionType]]] = {
@@ -544,14 +493,14 @@ trait OBPDataImport extends MdcLoggable {
       }
       logger.info(s"importData is saving ${accountResults.size} accountResults (accounts, views and permissions)..")
       accountResults.foreach {
-        case (account, views, accOwnerUsernames) =>
+        case (account, systemViews, accOwnerUsernames) =>
           account.save()
 
-          views.filterNot(_.isPublic).foreach(v => {
-            //grant the owner access to Private views
+          systemViews.filterNot(_.isPublic).foreach(v => {
+            //grant the owner access to Private systemViews
             //this should always find the owners as that gets verified at an earlier stage, but it's not perfect this way
             val accOwners = us.filter(u => accOwnerUsernames.exists(name => u.name == name))
-            accOwners.foreach(Views.views.vend.grantAccess(v.uid, _))
+            accOwners.foreach(Views.views.vend.grantAccessToSystemView(account.value.bankId,account.value.accountId, v, _))
           })
 
           accOwnerUsernames.foreach(setAccountOwner(_, account.value, us))
