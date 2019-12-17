@@ -44,10 +44,14 @@ trait APIMethods121 {
   private def privateBankAccountsListToJson(bankAccounts: List[BankAccount], privateViewsUserCanAccess: List[View]): JValue = {
     val accJson : List[AccountJSON] = bankAccounts.map( account => {
       val viewsAvailable : List[ViewJSONV121] =
-        privateViewsUserCanAccess
+        (privateViewsUserCanAccess
           .filter(v =>v.bankId==account.bankId && v.accountId ==account.accountId && v.isPrivate)//filter the view for this account.
           .map(JSONFactory.createViewJSON(_))
-          .distinct
+          .distinct) ++ 
+        (privateViewsUserCanAccess
+            .filter(v =>v.accountId.value==null && v.bankId.value == null && v.isSystem && v.isPrivate)//plus the system views.
+            .map(JSONFactory.createViewJSON(_))
+            .distinct)
       JSONFactory.createAccountJSON(account,viewsAvailable)
     })
 
