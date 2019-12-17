@@ -292,14 +292,14 @@ object NewStyle {
       }
     }
     
-    def canGrantAccessToView(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[Box[Unit]] = {
-      Helper.booleanToFuture(UserMissOwnerViewOrNotAccountHolder) {
+    def canGrantAccessToView(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[Box[Boolean]] = {
+      Helper.wrapStatementToFuture(UserMissOwnerViewOrNotAccountHolder) {
         canGrantAccessToViewCommon(bankId, accountId, user)
       }
     }
 
-    def canRevokeAccessToView(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[Box[Unit]] = {
-      Helper.booleanToFuture(UserMissOwnerViewOrNotAccountHolder) {
+    def canRevokeAccessToView(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[Box[Boolean]] = {
+      Helper.wrapStatementToFuture(UserMissOwnerViewOrNotAccountHolder) {
         canRevokeAccessToViewCommon(bankId, accountId, user)
       }
     }
