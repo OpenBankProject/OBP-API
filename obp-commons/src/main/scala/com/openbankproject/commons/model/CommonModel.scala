@@ -246,7 +246,15 @@ case class BankCommons(
                         bankRoutingScheme :String,
                         bankRoutingAddress :String,
                         swiftBic :String,
-                        nationalIdentifier :String) extends Bank
+                        nationalIdentifier :String) extends Bank {
+  def this(bankId :BankId,
+    shortName :String,
+    fullName :String,
+    logoUrl :String,
+    websiteUrl :String,
+    bankRoutingScheme :String,
+    bankRoutingAddress :String) = this(bankId, shortName, fullName, logoUrl, websiteUrl, bankRoutingScheme, bankRoutingAddress, null, null)
+}
 
 
 object BankCommons extends Converter[Bank, BankCommons]
