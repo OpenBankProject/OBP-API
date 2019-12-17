@@ -5252,7 +5252,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       Given("We will use an access token and will set a comment first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "public"
+      val view = CUSTOM_PUBLIC_VIEW_ID
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomComment = PostTransactionCommentJSON(randomString(20))
       val postedReply = postCommentForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomComment, user2)
@@ -5593,7 +5593,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       Given("We will use an access token and will set a tag first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "public"
+      val view = CUSTOM_PUBLIC_VIEW_ID
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomTag = PostTransactionTagJSON(randomString(5))
       val postedReply = postTagForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomTag, user2)
@@ -5933,7 +5933,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       Given("We will use an access token and will set an image first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "public"
+      val view = CUSTOM_PUBLIC_VIEW_ID
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
       val postedReply = postImageForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomImage, user1)
@@ -6351,7 +6351,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       Given("We will use an access token and will set a where tag first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = "public"
+      val view = CUSTOM_PUBLIC_VIEW_ID
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc, user1)

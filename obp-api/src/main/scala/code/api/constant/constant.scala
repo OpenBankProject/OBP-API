@@ -17,6 +17,7 @@ object Constant extends MdcLoggable {
   //eg: one account, already have the owner view with bankId and accountId, so we keep it. actually it is a custom view,
   //    but there is no underscore there. 
   //But for new accounts, we only allow to create with with under score, and all the accounts will share the same System Views. 
+  final val CUSTOM_PUBLIC_VIEW_ID = "_public"
   final val CUSTOM_OWNER_VIEW_ID = "owner"
   final val SYSTEM_OWNER_VIEW_ID = "owner"
   final val SYSTEM_AUDITOR_VIEW_ID = "auditor"
