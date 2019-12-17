@@ -1011,7 +1011,7 @@ object MapperViews extends Views with MdcLoggable {
       isFirehose_(true). // This View is public so it might as well be firehose too.
       name_("Public").
       description_(description).
-      view_id("public").
+      view_id("_public"). //public is only for custom views
       isPublic_(true).
       bank_id(bankId.value).
       account_id(accountId.value).
