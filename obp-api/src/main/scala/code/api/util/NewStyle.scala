@@ -7,7 +7,7 @@ import code.accountholders.AccountHolders
 import code.api.APIFailureNewStyle
 import code.api.Constant._
 import code.api.cache.Caching
-import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, hasEntitlement, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, unboxFull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
@@ -291,16 +291,16 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$CannotRevokeAccountAccess Current ViewId is ${view.viewId.value}")
       }
     }
+    
     def canGrantAccessToView(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[Box[Unit]] = {
       Helper.booleanToFuture(UserMissOwnerViewOrNotAccountHolder) {
-        user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) || // TODO Use an action instead of the owner view
-        AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
+        canGrantAccessToViewCommon(bankId, accountId, user)
       }
     }
+
     def canRevokeAccessToView(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[Box[Unit]] = {
       Helper.booleanToFuture(UserMissOwnerViewOrNotAccountHolder) {
-        user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) || // TODO Use an action instead of the owner view
-        AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
+        canRevokeAccessToViewCommon(bankId, accountId, user)
       }
     }
     def createSystemView(view: CreateViewJson, callContext: Option[CallContext]) : Future[View] = {

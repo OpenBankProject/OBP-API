@@ -137,7 +137,7 @@ object ErrorMessages {
   val GatewayLoginCannotGetOrCreateUser = "OBP-20045: Cannot get or create user during GatewayLogin process."
   val GatewayLoginNoJwtForResponse = "OBP-20046: There is no useful value for JWT."
 
-  val UserMissOwnerViewOrNotAccountHolder = "OBP-20047: User must have access to owner view or to be account holder."
+  val UserMissOwnerViewOrNotAccountHolder = "OBP-20047: User must have access to the owner view or must be an account holder."
 
   val UserNotSuperAdmin = "OBP-20050: Current User is not a Super Admin!"
 

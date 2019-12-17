@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.model
 
 import code.accountholders.AccountHolders
-import code.api.util.APIUtil.{OBPReturnType, unboxFullOrFail}
+import code.api.util.APIUtil.{OBPReturnType, unboxFullOrFail, canGrantAccessToViewCommon, canRevokeAccessToViewCommon}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.bankconnectors.Connector
@@ -248,8 +248,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @return a Full(true) if everything is okay, a Failure otherwise
     */
   final def addPermission(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[View] = {
-    //check if the user have access to the owner view in this the account
-    if(user.hasOwnerViewAccess(BankIdAccountId(bankId,accountId)))
+    if(canGrantAccessToViewCommon(bankId, accountId, user))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         savedView <- Views.views.vend.grantAccess(viewUID, otherUser) ?~ "could not save the privilege"
@@ -266,8 +265,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @return a the list of the granted views if everything is okay, a Failure otherwise
     */
   final def addPermissions(user : User, viewUIDs : List[ViewIdBankIdAccountId], otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[List[View]] = {
-    //check if the user have access to the owner view in this the account
-    if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)))
+    if(canGrantAccessToViewCommon(bankId, accountId, user))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         grantedViews <- Views.views.vend.grantAccessToMultipleViews(viewUIDs, otherUser) ?~ "could not save the privilege"
@@ -285,7 +283,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     */
   final def revokePermission(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
     //check if the user have access to the owner view in this the account
-    if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)))
+    if(canRevokeAccessToViewCommon(bankId, accountId, user))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         isRevoked <- Views.views.vend.revokeAccess(viewUID, otherUser) ?~ "could not revoke the privilege"
@@ -303,8 +301,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     */
 
   final def revokeAllAccountAccesses(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
-    //check if the user have access to the owner view in this the account
-    if(user.hasOwnerViewAccess(BankIdAccountId(bankId,accountId)))
+    if(canRevokeAccessToViewCommon(bankId, accountId, user))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) ?~ UserNotFoundByUsername
         isRevoked <- Views.views.vend.revokeAllAccountAccesses(bankId, accountId, otherUser)
