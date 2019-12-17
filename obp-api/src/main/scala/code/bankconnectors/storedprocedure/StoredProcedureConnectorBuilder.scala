@@ -17,7 +17,7 @@ import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
 import scala.util.Random
 
-object MsStoredProcedureConnectorBuilder extends App {
+object StoredProcedureConnectorBuilder extends App {
   // rewrite method code.webuiprops.MappedWebUiPropsProvider#getWebUiPropsValue, avoid access DB cause dataSource not found exception
   {
     import javassist.ClassPool
@@ -279,7 +279,7 @@ case class MethodBodyGenerator(methodName: String, tp: Type) {
   private[this] val description = s"""
       ||               |${methodName.replaceAll("([a-z])([A-Z])", "$1 $2").capitalize}
       ||               |
-      ||               |The connector name is: msProc_vDec2019
+      ||               |The connector name is: stored_procedure_vDec2019
       ||               |The MS SQL Server stored procedure name is: $procedureName
       """
 

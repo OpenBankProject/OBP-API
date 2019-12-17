@@ -62,11 +62,11 @@ import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 
-trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
+trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   //this one import is for implicit convert, don't delete
   import com.openbankproject.commons.model.{AmountOfMoney, CreditLimit, CreditRating, CustomerFaceImage}
 
-  implicit override val nameOfConnector = MsStoredProcedureConnector_vDec2019.toString
+  implicit override val nameOfConnector = StoredProcedureConnector_vDec2019.toString
 
   // "Versioning" of the messages sent by this or similar connector works like this:
   // Use Case Classes (e.g. KafkaInbound... KafkaOutbound... as below to describe the message structures.
@@ -82,7 +82,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val authInfoExample = AuthInfo(userId = "userId", username = "username", cbsToken = "cbsToken")
   val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: ..."
 
-  val connectorName = "msProc_vDec2019"
+  val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
 // ---------- create on Thu Dec 12 20:57:07 CST 2019
@@ -94,7 +94,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Adapter Info
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_adapter_info
       """.stripMargin,
     outboundTopic = None,
@@ -153,12 +153,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getAdapterInfo(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundGetAdapterInfo => OutBound, InBoundGetAdapterInfo => InBound}
         val procedureName = "get_adapter_info"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull )
         val result: OBPReturnType[Box[InboundAdapterInfoInternal]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getChallengeThresholdDoc30
   private def getChallengeThresholdDoc30 = MessageDoc(
     process = "obp.getChallengeThreshold",
@@ -166,7 +166,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Challenge Threshold
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_challenge_threshold
       """.stripMargin,
     outboundTopic = None,
@@ -225,12 +225,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
         import com.openbankproject.commons.dto.{OutBoundGetChallengeThreshold => OutBound, InBoundGetChallengeThreshold => InBound}
         val procedureName = "get_challenge_threshold"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, viewId, transactionRequestType, currency, userId, userName)
         val result: OBPReturnType[Box[AmountOfMoney]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getChargeLevelDoc5
   private def getChargeLevelDoc5 = MessageDoc(
     process = "obp.getChargeLevel",
@@ -238,7 +238,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Charge Level
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_charge_level
       """.stripMargin,
     outboundTopic = None,
@@ -297,12 +297,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getChargeLevel(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, userName: String, transactionRequestType: String, currency: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
         import com.openbankproject.commons.dto.{OutBoundGetChargeLevel => OutBound, InBoundGetChargeLevel => InBound}
         val procedureName = "get_charge_level"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, viewId, userId, userName, transactionRequestType, currency)
         val result: OBPReturnType[Box[AmountOfMoney]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createChallengeDoc62
   private def createChallengeDoc62 = MessageDoc(
     process = "obp.createChallenge",
@@ -310,7 +310,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Challenge
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_challenge
       """.stripMargin,
     outboundTopic = None,
@@ -367,12 +367,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, scaMethod: Option[SCA], callContext: Option[CallContext]): OBPReturnType[Box[String]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateChallenge => OutBound, InBoundCreateChallenge => InBound}
         val procedureName = "create_challenge"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, userId, transactionRequestType, transactionRequestId, scaMethod)
         val result: OBPReturnType[Box[String]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += validateChallengeAnswerDoc76
   private def validateChallengeAnswerDoc76 = MessageDoc(
     process = "obp.validateChallengeAnswer",
@@ -380,7 +380,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Validate Challenge Answer
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: validate_challenge_answer
       """.stripMargin,
     outboundTopic = None,
@@ -433,12 +433,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
         import com.openbankproject.commons.dto.{OutBoundValidateChallengeAnswer => OutBound, InBoundValidateChallengeAnswer => InBound}
         val procedureName = "validate_challenge_answer"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , challengeId, hashOfSuppliedAnswer)
         val result: OBPReturnType[Box[Boolean]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBankLegacyDoc75
   private def getBankLegacyDoc75 = MessageDoc(
     process = "obp.getBankLegacy",
@@ -446,7 +446,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Bank Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_bank_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -506,12 +506,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]): Box[(Bank, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetBankLegacy => OutBound, InBoundGetBankLegacy => InBound}
         val procedureName = "get_bank_legacy"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId)
         val result: OBPReturnType[Box[BankCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBankDoc38
   private def getBankDoc38 = MessageDoc(
     process = "obp.getBank",
@@ -519,7 +519,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Bank
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_bank
       """.stripMargin,
     outboundTopic = None,
@@ -579,12 +579,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBank(bankId: BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundGetBank => OutBound, InBoundGetBank => InBound}
         val procedureName = "get_bank"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId)
         val result: OBPReturnType[Box[BankCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBanksLegacyDoc48
   private def getBanksLegacyDoc48 = MessageDoc(
     process = "obp.getBanksLegacy",
@@ -592,7 +592,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Banks Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_banks_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -651,12 +651,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBanksLegacy(callContext: Option[CallContext]): Box[(List[Bank], Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetBanksLegacy => OutBound, InBoundGetBanksLegacy => InBound}
         val procedureName = "get_banks_legacy"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull )
         val result: OBPReturnType[Box[List[BankCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBanksDoc77
   private def getBanksDoc77 = MessageDoc(
     process = "obp.getBanks",
@@ -664,7 +664,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Banks
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_banks
       """.stripMargin,
     outboundTopic = None,
@@ -723,12 +723,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBanks(callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundGetBanks => OutBound, InBoundGetBanks => InBound}
         val procedureName = "get_banks"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull )
         val result: OBPReturnType[Box[List[BankCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBankAccountsForUserLegacyDoc21
   private def getBankAccountsForUserLegacyDoc21 = MessageDoc(
     process = "obp.getBankAccountsForUserLegacy",
@@ -736,7 +736,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Bank Accounts For User Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_bank_accounts_for_user_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -802,12 +802,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBankAccountsForUserLegacy(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetBankAccountsForUserLegacy => OutBound, InBoundGetBankAccountsForUserLegacy => InBound}
         val procedureName = "get_bank_accounts_for_user_legacy"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , username)
         val result: OBPReturnType[Box[List[InboundAccountCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBankAccountsForUserDoc50
   private def getBankAccountsForUserDoc50 = MessageDoc(
     process = "obp.getBankAccountsForUser",
@@ -815,7 +815,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Bank Accounts For User
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_bank_accounts_for_user
       """.stripMargin,
     outboundTopic = None,
@@ -881,12 +881,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundGetBankAccountsForUser => OutBound, InBoundGetBankAccountsForUser => InBound}
         val procedureName = "get_bank_accounts_for_user"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , username)
         val result: OBPReturnType[Box[List[InboundAccountCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getUserDoc5
   private def getUserDoc5 = MessageDoc(
     process = "obp.getUser",
@@ -894,7 +894,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get User
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_user
       """.stripMargin,
     outboundTopic = None,
@@ -954,7 +954,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[InboundUser]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBankAccountDoc6
   private def getBankAccountDoc6 = MessageDoc(
     process = "obp.getBankAccount",
@@ -962,7 +962,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Bank Account
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_bank_account
       """.stripMargin,
     outboundTopic = None,
@@ -1037,7 +1037,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBankAccountLegacyDoc66
   private def getBankAccountLegacyDoc66 = MessageDoc(
     process = "obp.getBankAccountLegacy",
@@ -1045,7 +1045,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Bank Account Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_bank_account_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -1115,12 +1115,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBankAccountLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetBankAccountLegacy => OutBound, InBoundGetBankAccountLegacy => InBound}
         val procedureName = "get_bank_account_legacy"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId)
         val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBankAccountDoc62
   private def getBankAccountDoc62 = MessageDoc(
     process = "obp.getBankAccount",
@@ -1128,7 +1128,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Bank Account
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_bank_account
       """.stripMargin,
     outboundTopic = None,
@@ -1198,12 +1198,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
         import com.openbankproject.commons.dto.{OutBoundGetBankAccount => OutBound, InBoundGetBankAccount => InBound}
         val procedureName = "get_bank_account"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId)
         val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBankAccountByIbanDoc10
   private def getBankAccountByIbanDoc10 = MessageDoc(
     process = "obp.getBankAccountByIban",
@@ -1211,7 +1211,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Bank Account By Iban
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_bank_account_by_iban
       """.stripMargin,
     outboundTopic = None,
@@ -1280,12 +1280,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBankAccountByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
         import com.openbankproject.commons.dto.{OutBoundGetBankAccountByIban => OutBound, InBoundGetBankAccountByIban => InBound}
         val procedureName = "get_bank_account_by_iban"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , iban)
         val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBankAccountByRoutingDoc43
   private def getBankAccountByRoutingDoc43 = MessageDoc(
     process = "obp.getBankAccountByRouting",
@@ -1293,7 +1293,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Bank Account By Routing
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_bank_account_by_routing
       """.stripMargin,
     outboundTopic = None,
@@ -1363,12 +1363,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBankAccountByRouting(scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetBankAccountByRouting => OutBound, InBoundGetBankAccountByRouting => InBound}
         val procedureName = "get_bank_account_by_routing"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , scheme, address)
         val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBankAccountsDoc32
   private def getBankAccountsDoc32 = MessageDoc(
     process = "obp.getBankAccounts",
@@ -1376,7 +1376,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Bank Accounts
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_bank_accounts
       """.stripMargin,
     outboundTopic = None,
@@ -1446,12 +1446,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccount]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetBankAccounts => OutBound, InBoundGetBankAccounts => InBound}
         val procedureName = "get_bank_accounts"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankIdAccountIds)
         val result: OBPReturnType[Box[List[BankAccountCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBankAccountsBalancesDoc99
   private def getBankAccountsBalancesDoc99 = MessageDoc(
     process = "obp.getBankAccountsBalances",
@@ -1459,7 +1459,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Bank Accounts Balances
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_bank_accounts_balances
       """.stripMargin,
     outboundTopic = None,
@@ -1521,12 +1521,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[Box[AccountsBalances]] = {
         import com.openbankproject.commons.dto.{OutBoundGetBankAccountsBalances => OutBound, InBoundGetBankAccountsBalances => InBound}
         val procedureName = "get_bank_accounts_balances"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankIdAccountIds)
         val result: OBPReturnType[Box[AccountsBalances]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCoreBankAccountsLegacyDoc99
   private def getCoreBankAccountsLegacyDoc99 = MessageDoc(
     process = "obp.getCoreBankAccountsLegacy",
@@ -1534,7 +1534,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Core Bank Accounts Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_core_bank_accounts_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -1592,12 +1592,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCoreBankAccountsLegacy(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): Box[(List[CoreAccount], Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetCoreBankAccountsLegacy => OutBound, InBoundGetCoreBankAccountsLegacy => InBound}
         val procedureName = "get_core_bank_accounts_legacy"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankIdAccountIds)
         val result: OBPReturnType[Box[List[CoreAccount]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCoreBankAccountsDoc89
   private def getCoreBankAccountsDoc89 = MessageDoc(
     process = "obp.getCoreBankAccounts",
@@ -1605,7 +1605,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Core Bank Accounts
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_core_bank_accounts
       """.stripMargin,
     outboundTopic = None,
@@ -1663,12 +1663,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): Future[Box[(List[CoreAccount], Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundGetCoreBankAccounts => OutBound, InBoundGetCoreBankAccounts => InBound}
         val procedureName = "get_core_bank_accounts"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankIdAccountIds)
         val result: OBPReturnType[Box[List[CoreAccount]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBankAccountsHeldLegacyDoc41
   private def getBankAccountsHeldLegacyDoc41 = MessageDoc(
     process = "obp.getBankAccountsHeldLegacy",
@@ -1676,7 +1676,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Bank Accounts Held Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_bank_accounts_held_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -1733,12 +1733,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBankAccountsHeldLegacy(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): Box[List[AccountHeld]] = {
         import com.openbankproject.commons.dto.{OutBoundGetBankAccountsHeldLegacy => OutBound, InBoundGetBankAccountsHeldLegacy => InBound}
         val procedureName = "get_bank_accounts_held_legacy"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankIdAccountIds)
         val result: OBPReturnType[Box[List[AccountHeld]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBankAccountsHeldDoc49
   private def getBankAccountsHeldDoc49 = MessageDoc(
     process = "obp.getBankAccountsHeld",
@@ -1746,7 +1746,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Bank Accounts Held
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_bank_accounts_held
       """.stripMargin,
     outboundTopic = None,
@@ -1803,12 +1803,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[Box[List[AccountHeld]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetBankAccountsHeld => OutBound, InBoundGetBankAccountsHeld => InBound}
         val procedureName = "get_bank_accounts_held"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankIdAccountIds)
         val result: OBPReturnType[Box[List[AccountHeld]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += checkBankAccountExistsLegacyDoc7
   private def checkBankAccountExistsLegacyDoc7 = MessageDoc(
     process = "obp.checkBankAccountExistsLegacy",
@@ -1816,7 +1816,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Check Bank Account Exists Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: check_bank_account_exists_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -1886,12 +1886,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def checkBankAccountExistsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundCheckBankAccountExistsLegacy => OutBound, InBoundCheckBankAccountExistsLegacy => InBound}
         val procedureName = "check_bank_account_exists_legacy"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId)
         val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += checkBankAccountExistsDoc52
   private def checkBankAccountExistsDoc52 = MessageDoc(
     process = "obp.checkBankAccountExists",
@@ -1899,7 +1899,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Check Bank Account Exists
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: check_bank_account_exists
       """.stripMargin,
     outboundTopic = None,
@@ -1969,12 +1969,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
         import com.openbankproject.commons.dto.{OutBoundCheckBankAccountExists => OutBound, InBoundCheckBankAccountExists => InBound}
         val procedureName = "check_bank_account_exists"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId)
         val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCounterpartyDoc95
   private def getCounterpartyDoc95 = MessageDoc(
     process = "obp.getCounterparty",
@@ -1982,7 +1982,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Counterparty
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_counterparty
       """.stripMargin,
     outboundTopic = None,
@@ -2052,7 +2052,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[Counterparty]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCounterpartyTraitDoc42
   private def getCounterpartyTraitDoc42 = MessageDoc(
     process = "obp.getCounterpartyTrait",
@@ -2060,7 +2060,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Counterparty Trait
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_counterparty_trait
       """.stripMargin,
     outboundTopic = None,
@@ -2131,12 +2131,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, couterpartyId: String, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
         import com.openbankproject.commons.dto.{OutBoundGetCounterpartyTrait => OutBound, InBoundGetCounterpartyTrait => InBound}
         val procedureName = "get_counterparty_trait"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, couterpartyId)
         val result: OBPReturnType[Box[CounterpartyTraitCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCounterpartyByCounterpartyIdLegacyDoc82
   private def getCounterpartyByCounterpartyIdLegacyDoc82 = MessageDoc(
     process = "obp.getCounterpartyByCounterpartyIdLegacy",
@@ -2144,7 +2144,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Counterparty By Counterparty Id Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_counterparty_by_counterparty_id_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -2213,12 +2213,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCounterpartyByCounterpartyIdLegacy(counterpartyId: CounterpartyId, callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetCounterpartyByCounterpartyIdLegacy => OutBound, InBoundGetCounterpartyByCounterpartyIdLegacy => InBound}
         val procedureName = "get_counterparty_by_counterparty_id_legacy"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , counterpartyId)
         val result: OBPReturnType[Box[CounterpartyTraitCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCounterpartyByCounterpartyIdDoc49
   private def getCounterpartyByCounterpartyIdDoc49 = MessageDoc(
     process = "obp.getCounterpartyByCounterpartyId",
@@ -2226,7 +2226,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Counterparty By Counterparty Id
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_counterparty_by_counterparty_id
       """.stripMargin,
     outboundTopic = None,
@@ -2295,12 +2295,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
         import com.openbankproject.commons.dto.{OutBoundGetCounterpartyByCounterpartyId => OutBound, InBoundGetCounterpartyByCounterpartyId => InBound}
         val procedureName = "get_counterparty_by_counterparty_id"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , counterpartyId)
         val result: OBPReturnType[Box[CounterpartyTraitCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCounterpartyByIbanDoc32
   private def getCounterpartyByIbanDoc32 = MessageDoc(
     process = "obp.getCounterpartyByIban",
@@ -2308,7 +2308,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Counterparty By Iban
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_counterparty_by_iban
       """.stripMargin,
     outboundTopic = None,
@@ -2377,12 +2377,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCounterpartyByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
         import com.openbankproject.commons.dto.{OutBoundGetCounterpartyByIban => OutBound, InBoundGetCounterpartyByIban => InBound}
         val procedureName = "get_counterparty_by_iban"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , iban)
         val result: OBPReturnType[Box[CounterpartyTraitCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCounterpartiesLegacyDoc24
   private def getCounterpartiesLegacyDoc24 = MessageDoc(
     process = "obp.getCounterpartiesLegacy",
@@ -2390,7 +2390,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Counterparties Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_counterparties_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -2461,12 +2461,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCounterpartiesLegacy(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext]): Box[(List[CounterpartyTrait], Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetCounterpartiesLegacy => OutBound, InBoundGetCounterpartiesLegacy => InBound}
         val procedureName = "get_counterparties_legacy"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , thisBankId, thisAccountId, viewId)
         val result: OBPReturnType[Box[List[CounterpartyTraitCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCounterpartiesDoc51
   private def getCounterpartiesDoc51 = MessageDoc(
     process = "obp.getCounterparties",
@@ -2474,7 +2474,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Counterparties
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_counterparties
       """.stripMargin,
     outboundTopic = None,
@@ -2545,12 +2545,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext]): OBPReturnType[Box[List[CounterpartyTrait]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetCounterparties => OutBound, InBoundGetCounterparties => InBound}
         val procedureName = "get_counterparties"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , thisBankId, thisAccountId, viewId)
         val result: OBPReturnType[Box[List[CounterpartyTraitCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getTransactionsLegacyDoc73
   private def getTransactionsLegacyDoc73 = MessageDoc(
     process = "obp.getTransactionsLegacy",
@@ -2558,7 +2558,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Transactions Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_transactions_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -2653,12 +2653,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getTransactionsLegacy(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Box[(List[Transaction], Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetTransactionsLegacy => OutBound, InBoundGetTransactionsLegacy => InBound}
         val procedureName = "get_transactions_legacy"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountID, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val result: OBPReturnType[Box[List[TransactionCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getTransactionsDoc43
   private def getTransactionsDoc43 = MessageDoc(
     process = "obp.getTransactions",
@@ -2666,7 +2666,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Transactions
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_transactions
       """.stripMargin,
     outboundTopic = None,
@@ -2761,12 +2761,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getTransactions(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): OBPReturnType[Box[List[Transaction]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetTransactions => OutBound, InBoundGetTransactions => InBound}
         val procedureName = "get_transactions"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountID, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val result: OBPReturnType[Box[List[TransactionCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getTransactionsCoreDoc70
   private def getTransactionsCoreDoc70 = MessageDoc(
     process = "obp.getTransactionsCore",
@@ -2774,7 +2774,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Transactions Core
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_transactions_core
       """.stripMargin,
     outboundTopic = None,
@@ -2867,12 +2867,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionCore]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetTransactionsCore => OutBound, InBoundGetTransactionsCore => InBound}
         val procedureName = "get_transactions_core"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountID, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val result: OBPReturnType[Box[List[TransactionCore]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getTransactionLegacyDoc68
   private def getTransactionLegacyDoc68 = MessageDoc(
     process = "obp.getTransactionLegacy",
@@ -2880,7 +2880,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Transaction Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_transaction_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -2972,12 +2972,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getTransactionLegacy(bankId: BankId, accountID: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): Box[(Transaction, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetTransactionLegacy => OutBound, InBoundGetTransactionLegacy => InBound}
         val procedureName = "get_transaction_legacy"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountID, transactionId)
         val result: OBPReturnType[Box[TransactionCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getTransactionDoc61
   private def getTransactionDoc61 = MessageDoc(
     process = "obp.getTransaction",
@@ -2985,7 +2985,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Transaction
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_transaction
       """.stripMargin,
     outboundTopic = None,
@@ -3077,12 +3077,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = {
         import com.openbankproject.commons.dto.{OutBoundGetTransaction => OutBound, InBoundGetTransaction => InBound}
         val procedureName = "get_transaction"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountID, transactionId)
         val result: OBPReturnType[Box[TransactionCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getPhysicalCardsDoc50
   private def getPhysicalCardsDoc50 = MessageDoc(
     process = "obp.getPhysicalCards",
@@ -3090,7 +3090,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Physical Cards
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_physical_cards
       """.stripMargin,
     outboundTopic = None,
@@ -3191,7 +3191,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[List[PhysicalCard]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getPhysicalCardForBankDoc26
   private def getPhysicalCardForBankDoc26 = MessageDoc(
     process = "obp.getPhysicalCardForBank",
@@ -3199,7 +3199,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Physical Card For Bank
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_physical_card_for_bank
       """.stripMargin,
     outboundTopic = None,
@@ -3291,12 +3291,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getPhysicalCardForBank(bankId: BankId, cardId: String, callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCardTrait]] = {
         import com.openbankproject.commons.dto.{OutBoundGetPhysicalCardForBank => OutBound, InBoundGetPhysicalCardForBank => InBound}
         val procedureName = "get_physical_card_for_bank"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, cardId)
         val result: OBPReturnType[Box[PhysicalCard]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += deletePhysicalCardForBankDoc55
   private def deletePhysicalCardForBankDoc55 = MessageDoc(
     process = "obp.deletePhysicalCardForBank",
@@ -3304,7 +3304,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Delete Physical Card For Bank
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: delete_physical_card_for_bank
       """.stripMargin,
     outboundTopic = None,
@@ -3357,12 +3357,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def deletePhysicalCardForBank(bankId: BankId, cardId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
         import com.openbankproject.commons.dto.{OutBoundDeletePhysicalCardForBank => OutBound, InBoundDeletePhysicalCardForBank => InBound}
         val procedureName = "delete_physical_card_for_bank"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, cardId)
         val result: OBPReturnType[Box[Boolean]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getPhysicalCardsForBankLegacyDoc28
   private def getPhysicalCardsForBankLegacyDoc28 = MessageDoc(
     process = "obp.getPhysicalCardsForBankLegacy",
@@ -3370,7 +3370,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Physical Cards For Bank Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_physical_cards_for_bank_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -3484,7 +3484,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[List[PhysicalCard]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getPhysicalCardsForBankDoc51
   private def getPhysicalCardsForBankDoc51 = MessageDoc(
     process = "obp.getPhysicalCardsForBank",
@@ -3492,7 +3492,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Physical Cards For Bank
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_physical_cards_for_bank
       """.stripMargin,
     outboundTopic = None,
@@ -3601,12 +3601,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getPhysicalCardsForBank(bank: Bank, user: User, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[PhysicalCard]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetPhysicalCardsForBank => OutBound, InBoundGetPhysicalCardsForBank => InBound}
         val procedureName = "get_physical_cards_for_bank"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bank, user, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val result: OBPReturnType[Box[List[PhysicalCard]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createPhysicalCardLegacyDoc40
   private def createPhysicalCardLegacyDoc40 = MessageDoc(
     process = "obp.createPhysicalCardLegacy",
@@ -3614,7 +3614,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Physical Card Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_physical_card_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -3726,12 +3726,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createPhysicalCardLegacy(bankCardNumber: String, nameOnCard: String, cardType: String, issueNumber: String, serialNumber: String, validFrom: Date, expires: Date, enabled: Boolean, cancelled: Boolean, onHotList: Boolean, technology: String, networks: List[String], allows: List[String], accountId: String, bankId: String, replacement: Option[CardReplacementInfo], pinResets: List[PinResetInfo], collected: Option[CardCollectionInfo], posted: Option[CardPostedInfo], customerId: String, callContext: Option[CallContext]): Box[PhysicalCard] = {
         import com.openbankproject.commons.dto.{OutBoundCreatePhysicalCardLegacy => OutBound, InBoundCreatePhysicalCardLegacy => InBound}
         val procedureName = "create_physical_card_legacy"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankCardNumber, nameOnCard, cardType, issueNumber, serialNumber, validFrom, expires, enabled, cancelled, onHotList, technology, networks, allows, accountId, bankId, replacement, pinResets, collected, posted, customerId)
         val result: OBPReturnType[Box[PhysicalCard]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createPhysicalCardDoc79
   private def createPhysicalCardDoc79 = MessageDoc(
     process = "obp.createPhysicalCard",
@@ -3739,7 +3739,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Physical Card
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_physical_card
       """.stripMargin,
     outboundTopic = None,
@@ -3851,12 +3851,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createPhysicalCard(bankCardNumber: String, nameOnCard: String, cardType: String, issueNumber: String, serialNumber: String, validFrom: Date, expires: Date, enabled: Boolean, cancelled: Boolean, onHotList: Boolean, technology: String, networks: List[String], allows: List[String], accountId: String, bankId: String, replacement: Option[CardReplacementInfo], pinResets: List[PinResetInfo], collected: Option[CardCollectionInfo], posted: Option[CardPostedInfo], customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCard]] = {
         import com.openbankproject.commons.dto.{OutBoundCreatePhysicalCard => OutBound, InBoundCreatePhysicalCard => InBound}
         val procedureName = "create_physical_card"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankCardNumber, nameOnCard, cardType, issueNumber, serialNumber, validFrom, expires, enabled, cancelled, onHotList, technology, networks, allows, accountId, bankId, replacement, pinResets, collected, posted, customerId)
         val result: OBPReturnType[Box[PhysicalCard]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += updatePhysicalCardDoc7
   private def updatePhysicalCardDoc7 = MessageDoc(
     process = "obp.updatePhysicalCard",
@@ -3864,7 +3864,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Update Physical Card
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: update_physical_card
       """.stripMargin,
     outboundTopic = None,
@@ -3977,12 +3977,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def updatePhysicalCard(cardId: String, bankCardNumber: String, nameOnCard: String, cardType: String, issueNumber: String, serialNumber: String, validFrom: Date, expires: Date, enabled: Boolean, cancelled: Boolean, onHotList: Boolean, technology: String, networks: List[String], allows: List[String], accountId: String, bankId: String, replacement: Option[CardReplacementInfo], pinResets: List[PinResetInfo], collected: Option[CardCollectionInfo], posted: Option[CardPostedInfo], customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCardTrait]] = {
         import com.openbankproject.commons.dto.{OutBoundUpdatePhysicalCard => OutBound, InBoundUpdatePhysicalCard => InBound}
         val procedureName = "update_physical_card"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , cardId, bankCardNumber, nameOnCard, cardType, issueNumber, serialNumber, validFrom, expires, enabled, cancelled, onHotList, technology, networks, allows, accountId, bankId, replacement, pinResets, collected, posted, customerId)
         val result: OBPReturnType[Box[PhysicalCard]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += makePaymentDoc71
   private def makePaymentDoc71 = MessageDoc(
     process = "obp.makePayment",
@@ -3990,7 +3990,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Make Payment
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: make_payment
       """.stripMargin,
     outboundTopic = None,
@@ -4059,7 +4059,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[TransactionId]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += makePaymentv200Doc60
   private def makePaymentv200Doc60 = MessageDoc(
     process = "obp.makePaymentv200",
@@ -4067,7 +4067,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Make Paymentv200
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: make_paymentv200
       """.stripMargin,
     outboundTopic = None,
@@ -4166,7 +4166,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[TransactionId]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += makePaymentv210Doc26
   private def makePaymentv210Doc26 = MessageDoc(
     process = "obp.makePaymentv210",
@@ -4174,7 +4174,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Make Paymentv210
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: make_paymentv210
       """.stripMargin,
     outboundTopic = None,
@@ -4268,12 +4268,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def makePaymentv210(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amount: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
         import com.openbankproject.commons.dto.{OutBoundMakePaymentv210 => OutBound, InBoundMakePaymentv210 => InBound}
         val procedureName = "make_paymentv210"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , fromAccount, toAccount, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy)
         val result: OBPReturnType[Box[TransactionId]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += makePaymentImplDoc4
   private def makePaymentImplDoc4 = MessageDoc(
     process = "obp.makePaymentImpl",
@@ -4281,7 +4281,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Make Payment Impl
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: make_payment_impl
       """.stripMargin,
     outboundTopic = None,
@@ -4380,7 +4380,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[TransactionId]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createTransactionRequestDoc23
   private def createTransactionRequestDoc23 = MessageDoc(
     process = "obp.createTransactionRequest",
@@ -4388,7 +4388,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Transaction Request
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_transaction_request
       """.stripMargin,
     outboundTopic = None,
@@ -4557,7 +4557,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createTransactionRequestv200Doc10
   private def createTransactionRequestv200Doc10 = MessageDoc(
     process = "obp.createTransactionRequestv200",
@@ -4565,7 +4565,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Transaction Requestv200
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_transaction_requestv200
       """.stripMargin,
     outboundTopic = None,
@@ -4734,7 +4734,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createTransactionRequestv210Doc79
   private def createTransactionRequestv210Doc79 = MessageDoc(
     process = "obp.createTransactionRequestv210",
@@ -4742,7 +4742,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Transaction Requestv210
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_transaction_requestv210
       """.stripMargin,
     outboundTopic = None,
@@ -4909,12 +4909,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createTransactionRequestv210(initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[SCA], callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateTransactionRequestv210 => OutBound, InBoundCreateTransactionRequestv210 => InBound}
         val procedureName = "create_transaction_requestv210"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , initiator, viewId, fromAccount, toAccount, transactionRequestType, transactionRequestCommonBody, detailsPlain, chargePolicy, challengeType, scaMethod)
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createTransactionRequestImplDoc78
   private def createTransactionRequestImplDoc78 = MessageDoc(
     process = "obp.createTransactionRequestImpl",
@@ -4922,7 +4922,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Transaction Request Impl
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_transaction_request_impl
       """.stripMargin,
     outboundTopic = None,
@@ -5090,7 +5090,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createTransactionRequestImpl210Doc24
   private def createTransactionRequestImpl210Doc24 = MessageDoc(
     process = "obp.createTransactionRequestImpl210",
@@ -5098,7 +5098,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Transaction Request Impl210
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_transaction_request_impl210
       """.stripMargin,
     outboundTopic = None,
@@ -5266,7 +5266,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getTransactionRequestsDoc43
   private def getTransactionRequestsDoc43 = MessageDoc(
     process = "obp.getTransactionRequests",
@@ -5274,7 +5274,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Transaction Requests
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_transaction_requests
       """.stripMargin,
     outboundTopic = None,
@@ -5419,7 +5419,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[List[TransactionRequest]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getTransactionRequests210Doc26
   private def getTransactionRequests210Doc26 = MessageDoc(
     process = "obp.getTransactionRequests210",
@@ -5427,7 +5427,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Transaction Requests210
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_transaction_requests210
       """.stripMargin,
     outboundTopic = None,
@@ -5567,12 +5567,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getTransactionRequests210(initiator: User, fromAccount: BankAccount, callContext: Option[CallContext]): Box[(List[TransactionRequest], Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetTransactionRequests210 => OutBound, InBoundGetTransactionRequests210 => InBound}
         val procedureName = "get_transaction_requests210"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , initiator, fromAccount)
         val result: OBPReturnType[Box[List[TransactionRequest]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getTransactionRequestsImplDoc18
   private def getTransactionRequestsImplDoc18 = MessageDoc(
     process = "obp.getTransactionRequestsImpl",
@@ -5580,7 +5580,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Transaction Requests Impl
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_transaction_requests_impl
       """.stripMargin,
     outboundTopic = None,
@@ -5719,7 +5719,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[List[TransactionRequest]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getTransactionRequestsImpl210Doc81
   private def getTransactionRequestsImpl210Doc81 = MessageDoc(
     process = "obp.getTransactionRequestsImpl210",
@@ -5727,7 +5727,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Transaction Requests Impl210
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_transaction_requests_impl210
       """.stripMargin,
     outboundTopic = None,
@@ -5866,7 +5866,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[List[TransactionRequest]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getTransactionRequestImplDoc91
   private def getTransactionRequestImplDoc91 = MessageDoc(
     process = "obp.getTransactionRequestImpl",
@@ -5874,7 +5874,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Transaction Request Impl
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_transaction_request_impl
       """.stripMargin,
     outboundTopic = None,
@@ -5991,12 +5991,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId, callContext: Option[CallContext]): Box[(TransactionRequest, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetTransactionRequestImpl => OutBound, InBoundGetTransactionRequestImpl => InBound}
         val procedureName = "get_transaction_request_impl"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , transactionRequestId)
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getTransactionRequestTypesImplDoc86
   private def getTransactionRequestTypesImplDoc86 = MessageDoc(
     process = "obp.getTransactionRequestTypesImpl",
@@ -6004,7 +6004,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Transaction Request Types Impl
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_transaction_request_types_impl
       """.stripMargin,
     outboundTopic = None,
@@ -6078,7 +6078,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[List[TransactionRequestType]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createTransactionAfterChallengeDoc63
   private def createTransactionAfterChallengeDoc63 = MessageDoc(
     process = "obp.createTransactionAfterChallenge",
@@ -6086,7 +6086,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Transaction After Challenge
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_transaction_after_challenge
       """.stripMargin,
     outboundTopic = None,
@@ -6214,7 +6214,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createTransactionAfterChallengev200Doc63
   private def createTransactionAfterChallengev200Doc63 = MessageDoc(
     process = "obp.createTransactionAfterChallengev200",
@@ -6222,7 +6222,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Transaction After Challengev200
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_transaction_after_challengev200
       """.stripMargin,
     outboundTopic = None,
@@ -6445,7 +6445,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createTransactionAfterChallengeV210Doc26
   private def createTransactionAfterChallengeV210Doc26 = MessageDoc(
     process = "obp.createTransactionAfterChallengeV210",
@@ -6453,7 +6453,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Transaction After Challenge V210
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_transaction_after_challenge_v210
       """.stripMargin,
     outboundTopic = None,
@@ -6653,12 +6653,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createTransactionAfterChallengeV210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateTransactionAfterChallengeV210 => OutBound, InBoundCreateTransactionAfterChallengeV210 => InBound}
         val procedureName = "create_transaction_after_challenge_v210"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , fromAccount, transactionRequest)
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += updateBankAccountDoc3
   private def updateBankAccountDoc3 = MessageDoc(
     process = "obp.updateBankAccount",
@@ -6666,7 +6666,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Update Bank Account
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: update_bank_account
       """.stripMargin,
     outboundTopic = None,
@@ -6741,12 +6741,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def updateBankAccount(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, branchId: String, accountRoutingScheme: String, accountRoutingAddress: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
         import com.openbankproject.commons.dto.{OutBoundUpdateBankAccount => OutBound, InBoundUpdateBankAccount => InBound}
         val procedureName = "update_bank_account"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, accountType, accountLabel, branchId, accountRoutingScheme, accountRoutingAddress)
         val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createBankAccountDoc64
   private def createBankAccountDoc64 = MessageDoc(
     process = "obp.createBankAccount",
@@ -6754,7 +6754,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Bank Account
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_bank_account
       """.stripMargin,
     outboundTopic = None,
@@ -6832,12 +6832,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createBankAccount(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, currency: String, initialBalance: BigDecimal, accountHolderName: String, branchId: String, accountRoutingScheme: String, accountRoutingAddress: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateBankAccount => OutBound, InBoundCreateBankAccount => InBound}
         val procedureName = "create_bank_account"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName, branchId, accountRoutingScheme, accountRoutingAddress)
         val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createBankAccountLegacyDoc77
   private def createBankAccountLegacyDoc77 = MessageDoc(
     process = "obp.createBankAccountLegacy",
@@ -6845,7 +6845,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Bank Account Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_bank_account_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -6928,7 +6928,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getProductsDoc44
   private def getProductsDoc44 = MessageDoc(
     process = "obp.getProducts",
@@ -6936,7 +6936,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Products
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_products
       """.stripMargin,
     outboundTopic = None,
@@ -7004,7 +7004,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[List[ProductCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getProductDoc32
   private def getProductDoc32 = MessageDoc(
     process = "obp.getProduct",
@@ -7012,7 +7012,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Product
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_product
       """.stripMargin,
     outboundTopic = None,
@@ -7081,7 +7081,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[ProductCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createOrUpdateBankDoc78
   private def createOrUpdateBankDoc78 = MessageDoc(
     process = "obp.createOrUpdateBank",
@@ -7089,7 +7089,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Or Update Bank
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_or_update_bank
       """.stripMargin,
     outboundTopic = None,
@@ -7162,7 +7162,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[BankCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createOrUpdateProductDoc90
   private def createOrUpdateProductDoc90 = MessageDoc(
     process = "obp.createOrUpdateProduct",
@@ -7170,7 +7170,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Or Update Product
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_or_update_product
       """.stripMargin,
     outboundTopic = None,
@@ -7249,7 +7249,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[ProductCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBranchLegacyDoc88
   private def getBranchLegacyDoc88 = MessageDoc(
     process = "obp.getBranchLegacy",
@@ -7257,7 +7257,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Branch Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_branch_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -7371,7 +7371,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[BranchTCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBranchDoc57
   private def getBranchDoc57 = MessageDoc(
     process = "obp.getBranch",
@@ -7379,7 +7379,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Branch
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_branch
       """.stripMargin,
     outboundTopic = None,
@@ -7488,12 +7488,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBranch(bankId: BankId, branchId: BranchId, callContext: Option[CallContext]): Future[Box[(BranchT, Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundGetBranch => OutBound, InBoundGetBranch => InBound}
         val procedureName = "get_branch"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, branchId)
         val result: OBPReturnType[Box[BranchTCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getBranchesDoc2
   private def getBranchesDoc2 = MessageDoc(
     process = "obp.getBranches",
@@ -7501,7 +7501,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Branches
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_branches
       """.stripMargin,
     outboundTopic = None,
@@ -7613,12 +7613,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getBranches(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[BranchT], Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundGetBranches => OutBound, InBoundGetBranches => InBound}
         val procedureName = "get_branches"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val result: OBPReturnType[Box[List[BranchTCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getAtmLegacyDoc52
   private def getAtmLegacyDoc52 = MessageDoc(
     process = "obp.getAtmLegacy",
@@ -7626,7 +7626,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Atm Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_atm_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -7720,7 +7720,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val result: OBPReturnType[Box[AtmTCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getAtmDoc78
   private def getAtmDoc78 = MessageDoc(
     process = "obp.getAtm",
@@ -7728,7 +7728,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Atm
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_atm
       """.stripMargin,
     outboundTopic = None,
@@ -7817,12 +7817,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getAtm(bankId: BankId, atmId: AtmId, callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundGetAtm => OutBound, InBoundGetAtm => InBound}
         val procedureName = "get_atm"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, atmId)
         val result: OBPReturnType[Box[AtmTCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getAtmsDoc80
   private def getAtmsDoc80 = MessageDoc(
     process = "obp.getAtms",
@@ -7830,7 +7830,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Atms
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_atms
       """.stripMargin,
     outboundTopic = None,
@@ -7922,12 +7922,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[AtmT], Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundGetAtms => OutBound, InBoundGetAtms => InBound}
         val procedureName = "get_atms"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val result: OBPReturnType[Box[List[AtmTCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createTransactionAfterChallengev300Doc57
   private def createTransactionAfterChallengev300Doc57 = MessageDoc(
     process = "obp.createTransactionAfterChallengev300",
@@ -7935,7 +7935,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Transaction After Challengev300
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_transaction_after_challengev300
       """.stripMargin,
     outboundTopic = None,
@@ -8077,12 +8077,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createTransactionAfterChallengev300(initiator: User, fromAccount: BankAccount, transReqId: TransactionRequestId, transactionRequestType: TransactionRequestType, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateTransactionAfterChallengev300 => OutBound, InBoundCreateTransactionAfterChallengev300 => InBound}
         val procedureName = "create_transaction_after_challengev300"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , initiator, fromAccount, transReqId, transactionRequestType)
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += makePaymentv300Doc10
   private def makePaymentv300Doc10 = MessageDoc(
     process = "obp.makePaymentv300",
@@ -8090,7 +8090,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Make Paymentv300
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: make_paymentv300
       """.stripMargin,
     outboundTopic = None,
@@ -8206,12 +8206,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def makePaymentv300(initiator: User, fromAccount: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, transactionRequestType: TransactionRequestType, chargePolicy: String, callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundMakePaymentv300 => OutBound, InBoundMakePaymentv300 => InBound}
         val procedureName = "make_paymentv300"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , initiator, fromAccount, toAccount, toCounterparty, transactionRequestCommonBody, transactionRequestType, chargePolicy)
         val result: OBPReturnType[Box[TransactionId]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createTransactionRequestv300Doc57
   private def createTransactionRequestv300Doc57 = MessageDoc(
     process = "obp.createTransactionRequestv300",
@@ -8219,7 +8219,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Transaction Requestv300
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_transaction_requestv300
       """.stripMargin,
     outboundTopic = None,
@@ -8402,12 +8402,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createTransactionRequestv300(initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, callContext: Option[CallContext]): Future[Box[(TransactionRequest, Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateTransactionRequestv300 => OutBound, InBoundCreateTransactionRequestv300 => InBound}
         val procedureName = "create_transaction_requestv300"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , initiator, viewId, fromAccount, toAccount, toCounterparty, transactionRequestType, transactionRequestCommonBody, detailsPlain, chargePolicy)
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createCounterpartyDoc23
   private def createCounterpartyDoc23 = MessageDoc(
     process = "obp.createCounterparty",
@@ -8415,7 +8415,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Counterparty
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_counterparty
       """.stripMargin,
     outboundTopic = None,
@@ -8500,12 +8500,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createCounterparty(name: String, description: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, bespoke: List[CounterpartyBespoke], callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundCreateCounterparty => OutBound, InBoundCreateCounterparty => InBound}
         val procedureName = "create_counterparty"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , name, description, createdByUserId, thisBankId, thisAccountId, thisViewId, otherAccountRoutingScheme, otherAccountRoutingAddress, otherAccountSecondaryRoutingScheme, otherAccountSecondaryRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress, otherBranchRoutingScheme, otherBranchRoutingAddress, isBeneficiary, bespoke)
         val result: OBPReturnType[Box[CounterpartyTraitCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += checkCustomerNumberAvailableDoc91
   private def checkCustomerNumberAvailableDoc91 = MessageDoc(
     process = "obp.checkCustomerNumberAvailable",
@@ -8513,7 +8513,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Check Customer Number Available
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: check_customer_number_available
       """.stripMargin,
     outboundTopic = None,
@@ -8566,12 +8566,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def checkCustomerNumberAvailable(bankId: BankId, customerNumber: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
         import com.openbankproject.commons.dto.{OutBoundCheckCustomerNumberAvailable => OutBound, InBoundCheckCustomerNumberAvailable => InBound}
         val procedureName = "check_customer_number_available"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, customerNumber)
         val result: OBPReturnType[Box[Boolean]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createCustomerDoc18
   private def createCustomerDoc18 = MessageDoc(
     process = "obp.createCustomer",
@@ -8579,7 +8579,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Customer
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_customer
       """.stripMargin,
     outboundTopic = None,
@@ -8673,12 +8673,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createCustomer(bankId: BankId, legalName: String, mobileNumber: String, email: String, faceImage: CustomerFaceImageTrait, dateOfBirth: Date, relationshipStatus: String, dependents: Int, dobOfDependents: List[Date], highestEducationAttained: String, employmentStatus: String, kycStatus: Boolean, lastOkDate: Date, creditRating: Option[CreditRatingTrait], creditLimit: Option[AmountOfMoneyTrait], title: String, branchId: String, nameSuffix: String, callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateCustomer => OutBound, InBoundCreateCustomer => InBound}
         val procedureName = "create_customer"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, legalName, mobileNumber, email, faceImage, dateOfBirth, relationshipStatus, dependents, dobOfDependents, highestEducationAttained, employmentStatus, kycStatus, lastOkDate, creditRating, creditLimit, title, branchId, nameSuffix)
         val result: OBPReturnType[Box[CustomerCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += updateCustomerScaDataDoc17
   private def updateCustomerScaDataDoc17 = MessageDoc(
     process = "obp.updateCustomerScaData",
@@ -8686,7 +8686,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Update Customer Sca Data
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: update_customer_sca_data
       """.stripMargin,
     outboundTopic = None,
@@ -8763,12 +8763,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def updateCustomerScaData(customerId: String, mobileNumber: Option[String], email: Option[String], customerNumber: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
         import com.openbankproject.commons.dto.{OutBoundUpdateCustomerScaData => OutBound, InBoundUpdateCustomerScaData => InBound}
         val procedureName = "update_customer_sca_data"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerId, mobileNumber, email, customerNumber)
         val result: OBPReturnType[Box[CustomerCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += updateCustomerCreditDataDoc22
   private def updateCustomerCreditDataDoc22 = MessageDoc(
     process = "obp.updateCustomerCreditData",
@@ -8776,7 +8776,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Update Customer Credit Data
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: update_customer_credit_data
       """.stripMargin,
     outboundTopic = None,
@@ -8854,12 +8854,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def updateCustomerCreditData(customerId: String, creditRating: Option[String], creditSource: Option[String], creditLimit: Option[AmountOfMoney], callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
         import com.openbankproject.commons.dto.{OutBoundUpdateCustomerCreditData => OutBound, InBoundUpdateCustomerCreditData => InBound}
         val procedureName = "update_customer_credit_data"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerId, creditRating, creditSource, creditLimit)
         val result: OBPReturnType[Box[CustomerCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += updateCustomerGeneralDataDoc50
   private def updateCustomerGeneralDataDoc50 = MessageDoc(
     process = "obp.updateCustomerGeneralData",
@@ -8867,7 +8867,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Update Customer General Data
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: update_customer_general_data
       """.stripMargin,
     outboundTopic = None,
@@ -8952,12 +8952,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def updateCustomerGeneralData(customerId: String, legalName: Option[String], faceImage: Option[CustomerFaceImageTrait], dateOfBirth: Option[Date], relationshipStatus: Option[String], dependents: Option[Int], highestEducationAttained: Option[String], employmentStatus: Option[String], title: Option[String], branchId: Option[String], nameSuffix: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
         import com.openbankproject.commons.dto.{OutBoundUpdateCustomerGeneralData => OutBound, InBoundUpdateCustomerGeneralData => InBound}
         val procedureName = "update_customer_general_data"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerId, legalName, faceImage, dateOfBirth, relationshipStatus, dependents, highestEducationAttained, employmentStatus, title, branchId, nameSuffix)
         val result: OBPReturnType[Box[CustomerCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCustomersByUserIdDoc25
   private def getCustomersByUserIdDoc25 = MessageDoc(
     process = "obp.getCustomersByUserId",
@@ -8965,7 +8965,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Customers By User Id
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_customers_by_user_id
       """.stripMargin,
     outboundTopic = None,
@@ -9039,12 +9039,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCustomersByUserId(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundGetCustomersByUserId => OutBound, InBoundGetCustomersByUserId => InBound}
         val procedureName = "get_customers_by_user_id"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , userId)
         val result: OBPReturnType[Box[List[CustomerCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCustomerByCustomerIdLegacyDoc14
   private def getCustomerByCustomerIdLegacyDoc14 = MessageDoc(
     process = "obp.getCustomerByCustomerIdLegacy",
@@ -9052,7 +9052,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Customer By Customer Id Legacy
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_customer_by_customer_id_legacy
       """.stripMargin,
     outboundTopic = None,
@@ -9126,12 +9126,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCustomerByCustomerIdLegacy(customerId: String, callContext: Option[CallContext]): Box[(Customer, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetCustomerByCustomerIdLegacy => OutBound, InBoundGetCustomerByCustomerIdLegacy => InBound}
         val procedureName = "get_customer_by_customer_id_legacy"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerId)
         val result: OBPReturnType[Box[CustomerCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCustomerByCustomerIdDoc84
   private def getCustomerByCustomerIdDoc84 = MessageDoc(
     process = "obp.getCustomerByCustomerId",
@@ -9139,7 +9139,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Customer By Customer Id
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_customer_by_customer_id
       """.stripMargin,
     outboundTopic = None,
@@ -9213,12 +9213,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCustomerByCustomerId(customerId: String, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundGetCustomerByCustomerId => OutBound, InBoundGetCustomerByCustomerId => InBound}
         val procedureName = "get_customer_by_customer_id"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerId)
         val result: OBPReturnType[Box[CustomerCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCustomerByCustomerNumberDoc20
   private def getCustomerByCustomerNumberDoc20 = MessageDoc(
     process = "obp.getCustomerByCustomerNumber",
@@ -9226,7 +9226,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Customer By Customer Number
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_customer_by_customer_number
       """.stripMargin,
     outboundTopic = None,
@@ -9301,12 +9301,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCustomerByCustomerNumber(customerNumber: String, bankId: BankId, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundGetCustomerByCustomerNumber => OutBound, InBoundGetCustomerByCustomerNumber => InBound}
         val procedureName = "get_customer_by_customer_number"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerNumber, bankId)
         val result: OBPReturnType[Box[CustomerCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCustomerAddressDoc80
   private def getCustomerAddressDoc80 = MessageDoc(
     process = "obp.getCustomerAddress",
@@ -9314,7 +9314,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Customer Address
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_customer_address
       """.stripMargin,
     outboundTopic = None,
@@ -9378,12 +9378,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCustomerAddress(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAddress]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetCustomerAddress => OutBound, InBoundGetCustomerAddress => InBound}
         val procedureName = "get_customer_address"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerId)
         val result: OBPReturnType[Box[List[CustomerAddressCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createCustomerAddressDoc66
   private def createCustomerAddressDoc66 = MessageDoc(
     process = "obp.createCustomerAddress",
@@ -9391,7 +9391,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Customer Address
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_customer_address
       """.stripMargin,
     outboundTopic = None,
@@ -9465,12 +9465,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createCustomerAddress(customerId: String, line1: String, line2: String, line3: String, city: String, county: String, state: String, postcode: String, countryCode: String, tags: String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateCustomerAddress => OutBound, InBoundCreateCustomerAddress => InBound}
         val procedureName = "create_customer_address"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerId, line1, line2, line3, city, county, state, postcode, countryCode, tags, status)
         val result: OBPReturnType[Box[CustomerAddressCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += updateCustomerAddressDoc97
   private def updateCustomerAddressDoc97 = MessageDoc(
     process = "obp.updateCustomerAddress",
@@ -9478,7 +9478,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Update Customer Address
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: update_customer_address
       """.stripMargin,
     outboundTopic = None,
@@ -9552,12 +9552,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def updateCustomerAddress(customerAddressId: String, line1: String, line2: String, line3: String, city: String, county: String, state: String, postcode: String, countryCode: String, tags: String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] = {
         import com.openbankproject.commons.dto.{OutBoundUpdateCustomerAddress => OutBound, InBoundUpdateCustomerAddress => InBound}
         val procedureName = "update_customer_address"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerAddressId, line1, line2, line3, city, county, state, postcode, countryCode, tags, status)
         val result: OBPReturnType[Box[CustomerAddressCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += deleteCustomerAddressDoc84
   private def deleteCustomerAddressDoc84 = MessageDoc(
     process = "obp.deleteCustomerAddress",
@@ -9565,7 +9565,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Delete Customer Address
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: delete_customer_address
       """.stripMargin,
     outboundTopic = None,
@@ -9617,12 +9617,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def deleteCustomerAddress(customerAddressId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
         import com.openbankproject.commons.dto.{OutBoundDeleteCustomerAddress => OutBound, InBoundDeleteCustomerAddress => InBound}
         val procedureName = "delete_customer_address"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerAddressId)
         val result: OBPReturnType[Box[Boolean]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createTaxResidenceDoc58
   private def createTaxResidenceDoc58 = MessageDoc(
     process = "obp.createTaxResidence",
@@ -9630,7 +9630,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Tax Residence
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_tax_residence
       """.stripMargin,
     outboundTopic = None,
@@ -9687,12 +9687,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createTaxResidence(customerId: String, domain: String, taxNumber: String, callContext: Option[CallContext]): OBPReturnType[Box[TaxResidence]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateTaxResidence => OutBound, InBoundCreateTaxResidence => InBound}
         val procedureName = "create_tax_residence"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerId, domain, taxNumber)
         val result: OBPReturnType[Box[TaxResidenceCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getTaxResidenceDoc28
   private def getTaxResidenceDoc28 = MessageDoc(
     process = "obp.getTaxResidence",
@@ -9700,7 +9700,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Tax Residence
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_tax_residence
       """.stripMargin,
     outboundTopic = None,
@@ -9755,12 +9755,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getTaxResidence(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[TaxResidence]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetTaxResidence => OutBound, InBoundGetTaxResidence => InBound}
         val procedureName = "get_tax_residence"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerId)
         val result: OBPReturnType[Box[List[TaxResidenceCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += deleteTaxResidenceDoc54
   private def deleteTaxResidenceDoc54 = MessageDoc(
     process = "obp.deleteTaxResidence",
@@ -9768,7 +9768,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Delete Tax Residence
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: delete_tax_residence
       """.stripMargin,
     outboundTopic = None,
@@ -9820,12 +9820,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def deleteTaxResidence(taxResourceId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
         import com.openbankproject.commons.dto.{OutBoundDeleteTaxResidence => OutBound, InBoundDeleteTaxResidence => InBound}
         val procedureName = "delete_tax_residence"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , taxResourceId)
         val result: OBPReturnType[Box[Boolean]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCustomersDoc12
   private def getCustomersDoc12 = MessageDoc(
     process = "obp.getCustomers",
@@ -9833,7 +9833,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Customers
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_customers
       """.stripMargin,
     outboundTopic = None,
@@ -9911,12 +9911,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCustomers(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetCustomers => OutBound, InBoundGetCustomers => InBound}
         val procedureName = "get_customers"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val result: OBPReturnType[Box[List[CustomerCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCheckbookOrdersDoc40
   private def getCheckbookOrdersDoc40 = MessageDoc(
     process = "obp.getCheckbookOrders",
@@ -9924,7 +9924,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Checkbook Orders
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_checkbook_orders
       """.stripMargin,
     outboundTopic = None,
@@ -9990,12 +9990,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCheckbookOrders(bankId: String, accountId: String, callContext: Option[CallContext]): Future[Box[(CheckbookOrdersJson, Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundGetCheckbookOrders => OutBound, InBoundGetCheckbookOrders => InBound}
         val procedureName = "get_checkbook_orders"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId)
         val result: OBPReturnType[Box[CheckbookOrdersJson]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getStatusOfCreditCardOrderDoc96
   private def getStatusOfCreditCardOrderDoc96 = MessageDoc(
     process = "obp.getStatusOfCreditCardOrder",
@@ -10003,7 +10003,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Status Of Credit Card Order
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_status_of_credit_card_order
       """.stripMargin,
     outboundTopic = None,
@@ -10058,12 +10058,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getStatusOfCreditCardOrder(bankId: String, accountId: String, callContext: Option[CallContext]): Future[Box[(List[CardObjectJson], Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{OutBoundGetStatusOfCreditCardOrder => OutBound, InBoundGetStatusOfCreditCardOrder => InBound}
         val procedureName = "get_status_of_credit_card_order"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId)
         val result: OBPReturnType[Box[List[CardObjectJson]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createUserAuthContextDoc5
   private def createUserAuthContextDoc5 = MessageDoc(
     process = "obp.createUserAuthContext",
@@ -10071,7 +10071,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create User Auth Context
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_user_auth_context
       """.stripMargin,
     outboundTopic = None,
@@ -10128,12 +10128,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createUserAuthContext(userId: String, key: String, value: String, callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContext]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateUserAuthContext => OutBound, InBoundCreateUserAuthContext => InBound}
         val procedureName = "create_user_auth_context"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , userId, key, value)
         val result: OBPReturnType[Box[UserAuthContextCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createUserAuthContextUpdateDoc97
   private def createUserAuthContextUpdateDoc97 = MessageDoc(
     process = "obp.createUserAuthContextUpdate",
@@ -10141,7 +10141,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create User Auth Context Update
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_user_auth_context_update
       """.stripMargin,
     outboundTopic = None,
@@ -10200,12 +10200,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createUserAuthContextUpdate(userId: String, key: String, value: String, callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextUpdate]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateUserAuthContextUpdate => OutBound, InBoundCreateUserAuthContextUpdate => InBound}
         val procedureName = "create_user_auth_context_update"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , userId, key, value)
         val result: OBPReturnType[Box[UserAuthContextUpdateCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += deleteUserAuthContextsDoc21
   private def deleteUserAuthContextsDoc21 = MessageDoc(
     process = "obp.deleteUserAuthContexts",
@@ -10213,7 +10213,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Delete User Auth Contexts
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: delete_user_auth_contexts
       """.stripMargin,
     outboundTopic = None,
@@ -10265,12 +10265,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def deleteUserAuthContexts(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
         import com.openbankproject.commons.dto.{OutBoundDeleteUserAuthContexts => OutBound, InBoundDeleteUserAuthContexts => InBound}
         val procedureName = "delete_user_auth_contexts"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , userId)
         val result: OBPReturnType[Box[Boolean]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += deleteUserAuthContextByIdDoc77
   private def deleteUserAuthContextByIdDoc77 = MessageDoc(
     process = "obp.deleteUserAuthContextById",
@@ -10278,7 +10278,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Delete User Auth Context By Id
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: delete_user_auth_context_by_id
       """.stripMargin,
     outboundTopic = None,
@@ -10330,12 +10330,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def deleteUserAuthContextById(userAuthContextId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
         import com.openbankproject.commons.dto.{OutBoundDeleteUserAuthContextById => OutBound, InBoundDeleteUserAuthContextById => InBound}
         val procedureName = "delete_user_auth_context_by_id"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , userAuthContextId)
         val result: OBPReturnType[Box[Boolean]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getUserAuthContextsDoc51
   private def getUserAuthContextsDoc51 = MessageDoc(
     process = "obp.getUserAuthContexts",
@@ -10343,7 +10343,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get User Auth Contexts
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_user_auth_contexts
       """.stripMargin,
     outboundTopic = None,
@@ -10398,12 +10398,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getUserAuthContexts(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAuthContext]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetUserAuthContexts => OutBound, InBoundGetUserAuthContexts => InBound}
         val procedureName = "get_user_auth_contexts"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , userId)
         val result: OBPReturnType[Box[List[UserAuthContextCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createOrUpdateProductAttributeDoc69
   private def createOrUpdateProductAttributeDoc69 = MessageDoc(
     process = "obp.createOrUpdateProductAttribute",
@@ -10411,7 +10411,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Or Update Product Attribute
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_or_update_product_attribute
       """.stripMargin,
     outboundTopic = None,
@@ -10473,12 +10473,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createOrUpdateProductAttribute(bankId: BankId, productCode: ProductCode, productAttributeId: Option[String], name: String, productAttributeType: ProductAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[ProductAttribute]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateProductAttribute => OutBound, InBoundCreateOrUpdateProductAttribute => InBound}
         val procedureName = "create_or_update_product_attribute"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, productCode, productAttributeId, name, productAttributeType, value)
         val result: OBPReturnType[Box[ProductAttributeCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getProductAttributeByIdDoc70
   private def getProductAttributeByIdDoc70 = MessageDoc(
     process = "obp.getProductAttributeById",
@@ -10486,7 +10486,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Product Attribute By Id
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_product_attribute_by_id
       """.stripMargin,
     outboundTopic = None,
@@ -10543,12 +10543,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getProductAttributeById(productAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[ProductAttribute]] = {
         import com.openbankproject.commons.dto.{OutBoundGetProductAttributeById => OutBound, InBoundGetProductAttributeById => InBound}
         val procedureName = "get_product_attribute_by_id"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , productAttributeId)
         val result: OBPReturnType[Box[ProductAttributeCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getProductAttributesByBankAndCodeDoc99
   private def getProductAttributesByBankAndCodeDoc99 = MessageDoc(
     process = "obp.getProductAttributesByBankAndCode",
@@ -10556,7 +10556,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Product Attributes By Bank And Code
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_product_attributes_by_bank_and_code
       """.stripMargin,
     outboundTopic = None,
@@ -10614,12 +10614,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getProductAttributesByBankAndCode(bank: BankId, productCode: ProductCode, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductAttribute]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetProductAttributesByBankAndCode => OutBound, InBoundGetProductAttributesByBankAndCode => InBound}
         val procedureName = "get_product_attributes_by_bank_and_code"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bank, productCode)
         val result: OBPReturnType[Box[List[ProductAttributeCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += deleteProductAttributeDoc43
   private def deleteProductAttributeDoc43 = MessageDoc(
     process = "obp.deleteProductAttribute",
@@ -10627,7 +10627,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Delete Product Attribute
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: delete_product_attribute
       """.stripMargin,
     outboundTopic = None,
@@ -10679,12 +10679,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def deleteProductAttribute(productAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
         import com.openbankproject.commons.dto.{OutBoundDeleteProductAttribute => OutBound, InBoundDeleteProductAttribute => InBound}
         val procedureName = "delete_product_attribute"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , productAttributeId)
         val result: OBPReturnType[Box[Boolean]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getAccountAttributeByIdDoc35
   private def getAccountAttributeByIdDoc35 = MessageDoc(
     process = "obp.getAccountAttributeById",
@@ -10692,7 +10692,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Account Attribute By Id
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_account_attribute_by_id
       """.stripMargin,
     outboundTopic = None,
@@ -10750,12 +10750,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getAccountAttributeById(accountAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountAttribute]] = {
         import com.openbankproject.commons.dto.{OutBoundGetAccountAttributeById => OutBound, InBoundGetAccountAttributeById => InBound}
         val procedureName = "get_account_attribute_by_id"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , accountAttributeId)
         val result: OBPReturnType[Box[AccountAttributeCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createOrUpdateAccountAttributeDoc97
   private def createOrUpdateAccountAttributeDoc97 = MessageDoc(
     process = "obp.createOrUpdateAccountAttribute",
@@ -10763,7 +10763,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Or Update Account Attribute
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_or_update_account_attribute
       """.stripMargin,
     outboundTopic = None,
@@ -10827,12 +10827,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createOrUpdateAccountAttribute(bankId: BankId, accountId: AccountId, productCode: ProductCode, productAttributeId: Option[String], name: String, accountAttributeType: AccountAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountAttribute]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateAccountAttribute => OutBound, InBoundCreateOrUpdateAccountAttribute => InBound}
         val procedureName = "create_or_update_account_attribute"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, productCode, productAttributeId, name, accountAttributeType, value)
         val result: OBPReturnType[Box[AccountAttributeCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createAccountAttributesDoc39
   private def createAccountAttributesDoc39 = MessageDoc(
     process = "obp.createAccountAttributes",
@@ -10840,7 +10840,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Account Attributes
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_account_attributes
       """.stripMargin,
     outboundTopic = None,
@@ -10906,12 +10906,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createAccountAttributes(bankId: BankId, accountId: AccountId, productCode: ProductCode, accountAttributes: List[ProductAttribute], callContext: Option[CallContext]): OBPReturnType[Box[List[AccountAttribute]]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateAccountAttributes => OutBound, InBoundCreateAccountAttributes => InBound}
         val procedureName = "create_account_attributes"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, productCode, accountAttributes)
         val result: OBPReturnType[Box[List[AccountAttributeCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getAccountAttributesByAccountDoc69
   private def getAccountAttributesByAccountDoc69 = MessageDoc(
     process = "obp.getAccountAttributesByAccount",
@@ -10919,7 +10919,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Account Attributes By Account
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_account_attributes_by_account
       """.stripMargin,
     outboundTopic = None,
@@ -10978,12 +10978,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getAccountAttributesByAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[List[AccountAttribute]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetAccountAttributesByAccount => OutBound, InBoundGetAccountAttributesByAccount => InBound}
         val procedureName = "get_account_attributes_by_account"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId)
         val result: OBPReturnType[Box[List[AccountAttributeCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createOrUpdateCardAttributeDoc89
   private def createOrUpdateCardAttributeDoc89 = MessageDoc(
     process = "obp.createOrUpdateCardAttribute",
@@ -10991,7 +10991,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Or Update Card Attribute
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_or_update_card_attribute
       """.stripMargin,
     outboundTopic = None,
@@ -11053,12 +11053,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createOrUpdateCardAttribute(bankId: Option[BankId], cardId: Option[String], cardAttributeId: Option[String], name: String, cardAttributeType: CardAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[CardAttribute]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateCardAttribute => OutBound, InBoundCreateOrUpdateCardAttribute => InBound}
         val procedureName = "create_or_update_card_attribute"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, cardId, cardAttributeId, name, cardAttributeType, value)
         val result: OBPReturnType[Box[CardAttributeCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCardAttributeByIdDoc11
   private def getCardAttributeByIdDoc11 = MessageDoc(
     process = "obp.getCardAttributeById",
@@ -11066,7 +11066,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Card Attribute By Id
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_card_attribute_by_id
       """.stripMargin,
     outboundTopic = None,
@@ -11123,12 +11123,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCardAttributeById(cardAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[CardAttribute]] = {
         import com.openbankproject.commons.dto.{OutBoundGetCardAttributeById => OutBound, InBoundGetCardAttributeById => InBound}
         val procedureName = "get_card_attribute_by_id"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , cardAttributeId)
         val result: OBPReturnType[Box[CardAttributeCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getCardAttributesFromProviderDoc16
   private def getCardAttributesFromProviderDoc16 = MessageDoc(
     process = "obp.getCardAttributesFromProvider",
@@ -11136,7 +11136,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Card Attributes From Provider
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_card_attributes_from_provider
       """.stripMargin,
     outboundTopic = None,
@@ -11193,12 +11193,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getCardAttributesFromProvider(cardId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CardAttribute]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetCardAttributesFromProvider => OutBound, InBoundGetCardAttributesFromProvider => InBound}
         val procedureName = "get_card_attributes_from_provider"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , cardId)
         val result: OBPReturnType[Box[List[CardAttributeCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createAccountApplicationDoc73
   private def createAccountApplicationDoc73 = MessageDoc(
     process = "obp.createAccountApplication",
@@ -11206,7 +11206,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Account Application
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_account_application
       """.stripMargin,
     outboundTopic = None,
@@ -11265,12 +11265,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createAccountApplication(productCode: ProductCode, userId: Option[String], customerId: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateAccountApplication => OutBound, InBoundCreateAccountApplication => InBound}
         val procedureName = "create_account_application"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , productCode, userId, customerId)
         val result: OBPReturnType[Box[AccountApplicationCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getAllAccountApplicationDoc33
   private def getAllAccountApplicationDoc33 = MessageDoc(
     process = "obp.getAllAccountApplication",
@@ -11278,7 +11278,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get All Account Application
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_all_account_application
       """.stripMargin,
     outboundTopic = None,
@@ -11334,12 +11334,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getAllAccountApplication(callContext: Option[CallContext]): OBPReturnType[Box[List[AccountApplication]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetAllAccountApplication => OutBound, InBoundGetAllAccountApplication => InBound}
         val procedureName = "get_all_account_application"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull )
         val result: OBPReturnType[Box[List[AccountApplicationCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getAccountApplicationByIdDoc83
   private def getAccountApplicationByIdDoc83 = MessageDoc(
     process = "obp.getAccountApplicationById",
@@ -11347,7 +11347,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Account Application By Id
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_account_application_by_id
       """.stripMargin,
     outboundTopic = None,
@@ -11404,12 +11404,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getAccountApplicationById(accountApplicationId: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] = {
         import com.openbankproject.commons.dto.{OutBoundGetAccountApplicationById => OutBound, InBoundGetAccountApplicationById => InBound}
         val procedureName = "get_account_application_by_id"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , accountApplicationId)
         val result: OBPReturnType[Box[AccountApplicationCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += updateAccountApplicationStatusDoc26
   private def updateAccountApplicationStatusDoc26 = MessageDoc(
     process = "obp.updateAccountApplicationStatus",
@@ -11417,7 +11417,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Update Account Application Status
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: update_account_application_status
       """.stripMargin,
     outboundTopic = None,
@@ -11475,12 +11475,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def updateAccountApplicationStatus(accountApplicationId: String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] = {
         import com.openbankproject.commons.dto.{OutBoundUpdateAccountApplicationStatus => OutBound, InBoundUpdateAccountApplicationStatus => InBound}
         val procedureName = "update_account_application_status"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , accountApplicationId, status)
         val result: OBPReturnType[Box[AccountApplicationCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getOrCreateProductCollectionDoc67
   private def getOrCreateProductCollectionDoc67 = MessageDoc(
     process = "obp.getOrCreateProductCollection",
@@ -11488,7 +11488,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Or Create Product Collection
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_or_create_product_collection
       """.stripMargin,
     outboundTopic = None,
@@ -11542,12 +11542,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getOrCreateProductCollection(collectionCode: String, productCodes: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetOrCreateProductCollection => OutBound, InBoundGetOrCreateProductCollection => InBound}
         val procedureName = "get_or_create_product_collection"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , collectionCode, productCodes)
         val result: OBPReturnType[Box[List[ProductCollectionCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getProductCollectionDoc57
   private def getProductCollectionDoc57 = MessageDoc(
     process = "obp.getProductCollection",
@@ -11555,7 +11555,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Product Collection
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_product_collection
       """.stripMargin,
     outboundTopic = None,
@@ -11608,12 +11608,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getProductCollection(collectionCode: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetProductCollection => OutBound, InBoundGetProductCollection => InBound}
         val procedureName = "get_product_collection"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , collectionCode)
         val result: OBPReturnType[Box[List[ProductCollectionCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getOrCreateProductCollectionItemDoc68
   private def getOrCreateProductCollectionItemDoc68 = MessageDoc(
     process = "obp.getOrCreateProductCollectionItem",
@@ -11621,7 +11621,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Or Create Product Collection Item
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_or_create_product_collection_item
       """.stripMargin,
     outboundTopic = None,
@@ -11675,12 +11675,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getOrCreateProductCollectionItem(collectionCode: String, memberProductCodes: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItem]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetOrCreateProductCollectionItem => OutBound, InBoundGetOrCreateProductCollectionItem => InBound}
         val procedureName = "get_or_create_product_collection_item"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , collectionCode, memberProductCodes)
         val result: OBPReturnType[Box[List[ProductCollectionItemCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getProductCollectionItemDoc49
   private def getProductCollectionItemDoc49 = MessageDoc(
     process = "obp.getProductCollectionItem",
@@ -11688,7 +11688,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Product Collection Item
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_product_collection_item
       """.stripMargin,
     outboundTopic = None,
@@ -11741,12 +11741,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getProductCollectionItem(collectionCode: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItem]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetProductCollectionItem => OutBound, InBoundGetProductCollectionItem => InBound}
         val procedureName = "get_product_collection_item"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , collectionCode)
         val result: OBPReturnType[Box[List[ProductCollectionItemCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getProductCollectionItemsTreeDoc57
   private def getProductCollectionItemsTreeDoc57 = MessageDoc(
     process = "obp.getProductCollectionItemsTree",
@@ -11754,7 +11754,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Product Collection Items Tree
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_product_collection_items_tree
       """.stripMargin,
     outboundTopic = None,
@@ -11824,12 +11824,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getProductCollectionItemsTree(collectionCode: String, bankId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetProductCollectionItemsTree => OutBound, InBoundGetProductCollectionItemsTree => InBound}
         val procedureName = "get_product_collection_items_tree"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , collectionCode, bankId)
         val result: OBPReturnType[Box[List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createMeetingDoc10
   private def createMeetingDoc10 = MessageDoc(
     process = "obp.createMeeting",
@@ -11837,7 +11837,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Meeting
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_meeting
       """.stripMargin,
     outboundTopic = None,
@@ -11930,12 +11930,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createMeeting(bankId: BankId, staffUser: User, customerUser: User, providerId: String, purposeId: String, when: Date, sessionId: String, customerToken: String, staffToken: String, creator: ContactDetails, invitees: List[Invitee], callContext: Option[CallContext]): OBPReturnType[Box[Meeting]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateMeeting => OutBound, InBoundCreateMeeting => InBound}
         val procedureName = "create_meeting"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, staffUser, customerUser, providerId, purposeId, when, sessionId, customerToken, staffToken, creator, invitees)
         val result: OBPReturnType[Box[MeetingCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getMeetingsDoc82
   private def getMeetingsDoc82 = MessageDoc(
     process = "obp.getMeetings",
@@ -11943,7 +11943,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Meetings
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_meetings
       """.stripMargin,
     outboundTopic = None,
@@ -12017,12 +12017,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getMeetings(bankId: BankId, user: User, callContext: Option[CallContext]): OBPReturnType[Box[List[Meeting]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetMeetings => OutBound, InBoundGetMeetings => InBound}
         val procedureName = "get_meetings"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, user)
         val result: OBPReturnType[Box[List[MeetingCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getMeetingDoc69
   private def getMeetingDoc69 = MessageDoc(
     process = "obp.getMeeting",
@@ -12030,7 +12030,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Meeting
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_meeting
       """.stripMargin,
     outboundTopic = None,
@@ -12105,12 +12105,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getMeeting(bankId: BankId, user: User, meetingId: String, callContext: Option[CallContext]): OBPReturnType[Box[Meeting]] = {
         import com.openbankproject.commons.dto.{OutBoundGetMeeting => OutBound, InBoundGetMeeting => InBound}
         val procedureName = "get_meeting"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, user, meetingId)
         val result: OBPReturnType[Box[MeetingCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createOrUpdateKycCheckDoc28
   private def createOrUpdateKycCheckDoc28 = MessageDoc(
     process = "obp.createOrUpdateKycCheck",
@@ -12118,7 +12118,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Or Update Kyc Check
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_or_update_kyc_check
       """.stripMargin,
     outboundTopic = None,
@@ -12188,12 +12188,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createOrUpdateKycCheck(bankId: String, customerId: String, id: String, customerNumber: String, date: Date, how: String, staffUserId: String, mStaffName: String, mSatisfied: Boolean, comments: String, callContext: Option[CallContext]): OBPReturnType[Box[KycCheck]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycCheck => OutBound, InBoundCreateOrUpdateKycCheck => InBound}
         val procedureName = "create_or_update_kyc_check"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, customerId, id, customerNumber, date, how, staffUserId, mStaffName, mSatisfied, comments)
         val result: OBPReturnType[Box[KycCheckCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createOrUpdateKycDocumentDoc9
   private def createOrUpdateKycDocumentDoc9 = MessageDoc(
     process = "obp.createOrUpdateKycDocument",
@@ -12201,7 +12201,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Or Update Kyc Document
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_or_update_kyc_document
       """.stripMargin,
     outboundTopic = None,
@@ -12269,12 +12269,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createOrUpdateKycDocument(bankId: String, customerId: String, id: String, customerNumber: String, `type`: String, number: String, issueDate: Date, issuePlace: String, expiryDate: Date, callContext: Option[CallContext]): OBPReturnType[Box[KycDocument]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycDocument => OutBound, InBoundCreateOrUpdateKycDocument => InBound}
         val procedureName = "create_or_update_kyc_document"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, customerId, id, customerNumber, `type`, number, issueDate, issuePlace, expiryDate)
         val result: OBPReturnType[Box[KycDocument]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createOrUpdateKycMediaDoc17
   private def createOrUpdateKycMediaDoc17 = MessageDoc(
     process = "obp.createOrUpdateKycMedia",
@@ -12282,7 +12282,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Or Update Kyc Media
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_or_update_kyc_media
       """.stripMargin,
     outboundTopic = None,
@@ -12350,12 +12350,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createOrUpdateKycMedia(bankId: String, customerId: String, id: String, customerNumber: String, `type`: String, url: String, date: Date, relatesToKycDocumentId: String, relatesToKycCheckId: String, callContext: Option[CallContext]): OBPReturnType[Box[KycMedia]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycMedia => OutBound, InBoundCreateOrUpdateKycMedia => InBound}
         val procedureName = "create_or_update_kyc_media"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, customerId, id, customerNumber, `type`, url, date, relatesToKycDocumentId, relatesToKycCheckId)
         val result: OBPReturnType[Box[KycMediaCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createOrUpdateKycStatusDoc23
   private def createOrUpdateKycStatusDoc23 = MessageDoc(
     process = "obp.createOrUpdateKycStatus",
@@ -12363,7 +12363,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Or Update Kyc Status
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_or_update_kyc_status
       """.stripMargin,
     outboundTopic = None,
@@ -12423,12 +12423,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createOrUpdateKycStatus(bankId: String, customerId: String, customerNumber: String, ok: Boolean, date: Date, callContext: Option[CallContext]): OBPReturnType[Box[KycStatus]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycStatus => OutBound, InBoundCreateOrUpdateKycStatus => InBound}
         val procedureName = "create_or_update_kyc_status"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, customerId, customerNumber, ok, date)
         val result: OBPReturnType[Box[KycStatusCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getKycChecksDoc63
   private def getKycChecksDoc63 = MessageDoc(
     process = "obp.getKycChecks",
@@ -12436,7 +12436,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Kyc Checks
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_kyc_checks
       """.stripMargin,
     outboundTopic = None,
@@ -12497,12 +12497,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getKycChecks(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycCheck]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetKycChecks => OutBound, InBoundGetKycChecks => InBound}
         val procedureName = "get_kyc_checks"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerId)
         val result: OBPReturnType[Box[List[KycCheckCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getKycDocumentsDoc38
   private def getKycDocumentsDoc38 = MessageDoc(
     process = "obp.getKycDocuments",
@@ -12510,7 +12510,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Kyc Documents
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_kyc_documents
       """.stripMargin,
     outboundTopic = None,
@@ -12570,12 +12570,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getKycDocuments(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycDocument]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetKycDocuments => OutBound, InBoundGetKycDocuments => InBound}
         val procedureName = "get_kyc_documents"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerId)
         val result: OBPReturnType[Box[List[KycDocumentCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getKycMediasDoc31
   private def getKycMediasDoc31 = MessageDoc(
     process = "obp.getKycMedias",
@@ -12583,7 +12583,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Kyc Medias
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_kyc_medias
       """.stripMargin,
     outboundTopic = None,
@@ -12643,12 +12643,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getKycMedias(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycMedia]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetKycMedias => OutBound, InBoundGetKycMedias => InBound}
         val procedureName = "get_kyc_medias"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerId)
         val result: OBPReturnType[Box[List[KycMediaCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getKycStatusesDoc96
   private def getKycStatusesDoc96 = MessageDoc(
     process = "obp.getKycStatuses",
@@ -12656,7 +12656,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Get Kyc Statuses
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: get_kyc_statuses
       """.stripMargin,
     outboundTopic = None,
@@ -12712,12 +12712,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def getKycStatuses(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycStatus]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetKycStatuses => OutBound, InBoundGetKycStatuses => InBound}
         val procedureName = "get_kyc_statuses"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , customerId)
         val result: OBPReturnType[Box[List[KycStatusCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += createMessageDoc72
   private def createMessageDoc72 = MessageDoc(
     process = "obp.createMessage",
@@ -12725,7 +12725,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Create Message
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: create_message
       """.stripMargin,
     outboundTopic = None,
@@ -12790,12 +12790,12 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def createMessage(user: User, bankId: BankId, message: String, fromDepartment: String, fromPerson: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerMessage]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateMessage => OutBound, InBoundCreateMessage => InBound}
         val procedureName = "create_message"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , user, bankId, message, fromDepartment, fromPerson)
         val result: OBPReturnType[Box[CustomerMessageCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += makeHistoricalPaymentDoc41
   private def makeHistoricalPaymentDoc41 = MessageDoc(
     process = "obp.makeHistoricalPayment",
@@ -12803,7 +12803,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = """
                |Make Historical Payment
                |
-               |The connector name is: msProc_vDec2019
+               |The connector name is: stored_procedure_vDec2019
                |The MS SQL Server stored procedure name is: make_historical_payment
       """.stripMargin,
     outboundTopic = None,
@@ -12896,13 +12896,13 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   override def makeHistoricalPayment(fromAccount: BankAccount, toAccount: BankAccount, posted: Date, completed: Date, amount: BigDecimal, description: String, transactionRequestType: String, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
         import com.openbankproject.commons.dto.{OutBoundMakeHistoricalPayment => OutBound, InBoundMakeHistoricalPayment => InBound}
         val procedureName = "make_historical_payment"
-        
+
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , fromAccount, toAccount, posted, completed, amount, description, transactionRequestType, chargePolicy)
         val result: OBPReturnType[Box[TransactionId]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
-//---------------- dynamic end ---------------------please don't modify this line      
+
+//---------------- dynamic end ---------------------please don't modify this line
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 
@@ -13014,7 +13014,7 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](procedureName: String, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
     //transfer accountId to accountReference and customerId to customerReference in outBound
     this.convertToReference(outBound)
-    Future(MssqlDBUtils.callMsProcedure[T](procedureName, outBound))
+    Future(StoredProcedureUtils.callProcedure[T](procedureName, outBound))
       .map(Box!! _)
       .map(convertToId(_)) recoverWith {
       case e: Exception => Future.failed(new Exception(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}", e))
@@ -13123,6 +13123,6 @@ trait MsStoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     convertId[T](obj, customerIdConverter, accountIdConverter)
   }
 }
-object MsStoredProcedureConnector_vDec2019 extends MsStoredProcedureConnector_vDec2019
+object StoredProcedureConnector_vDec2019 extends StoredProcedureConnector_vDec2019
 
 
