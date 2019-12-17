@@ -59,7 +59,7 @@ class ProductCollectionTest extends V310ServerSetup {
   lazy val testBankId = randomBankId
   lazy val putProductCollectionsV310 = SwaggerDefinitionsJSON.putProductCollectionsV310.copy(parent_product_code = "A", children_product_codes = List("B", "C", "D"))
 
-  lazy val parentPostPutProductJsonV310: PostPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(bank_id = testBankId, parent_product_code ="")
+  lazy val parentPostPutProductJsonV310: PostPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(parent_product_code ="")
   def createProduct(code: String, json: PostPutProductJsonV310) = {
     When("We try to create a product v3.1.0")
     val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / code).PUT <@ (user1)
@@ -69,7 +69,7 @@ class ProductCollectionTest extends V310ServerSetup {
     val product = response310.body.extract[ProductJsonV310]
     product.code shouldBe code
     product.parent_product_code shouldBe json.parent_product_code
-    product.bank_id shouldBe json.bank_id
+    product.bank_id shouldBe testBankId
     product.name shouldBe json.name
     product.category shouldBe json.category
     product.super_family shouldBe json.super_family

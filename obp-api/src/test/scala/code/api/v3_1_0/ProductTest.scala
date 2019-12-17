@@ -64,7 +64,7 @@ class ProductTest extends V310ServerSetup {
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.getProductTree))
 
   lazy val testBankId = randomBankId
-  lazy val parentPostPutProductJsonV310: PostPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(bank_id = testBankId, parent_product_code ="")
+  lazy val parentPostPutProductJsonV310: PostPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(parent_product_code ="")
 
   feature("Create Product v3.1.0") {
     scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
@@ -97,7 +97,7 @@ class ProductTest extends V310ServerSetup {
       val product = response310.body.extract[ProductJsonV310]
       product.code shouldBe code
       product.parent_product_code shouldBe json.parent_product_code
-      product.bank_id shouldBe json.bank_id
+      product.bank_id shouldBe testBankId
       product.name shouldBe json.name
       product.category shouldBe json.category
       product.super_family shouldBe json.super_family
