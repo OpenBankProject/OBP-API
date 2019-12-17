@@ -1912,7 +1912,7 @@ trait APIMethods400 {
             postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostAccountAccessJsonV400]
             }
-            _ <- NewStyle.function.isAccountHolder(bankId, accountId, loggedInUser, callContext)
+            _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, loggedInUser, callContext)
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, callContext)
             view <- postJson.view.is_system match {
               case true => NewStyle.function.systemView(ViewId(postJson.view.view_id), callContext)
@@ -1968,7 +1968,7 @@ trait APIMethods400 {
             postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostAccountAccessJsonV400]
             }
-            _ <- NewStyle.function.isAccountHolder(bankId, accountId, loggedInUser, callContext)
+            _ <- NewStyle.function.canRevokeAccessToView(bankId, accountId, loggedInUser, callContext)
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, callContext)
             view <- postJson.view.is_system match {
               case true => NewStyle.function.systemView(ViewId(postJson.view.view_id), callContext)

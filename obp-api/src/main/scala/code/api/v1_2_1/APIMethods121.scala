@@ -941,7 +941,7 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            isRevoked <- account revokeAllPermissions(u, provider, providerId)
+            isRevoked <- account revokeAllAccountAccesses(u, provider, providerId)
             if(isRevoked)
           } yield noContentJsonResponse
       }

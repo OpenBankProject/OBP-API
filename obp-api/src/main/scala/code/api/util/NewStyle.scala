@@ -291,11 +291,16 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$CannotRevokeAccountAccess Current ViewId is ${view.viewId.value}")
       }
     }
-    def isAccountHolder(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[User] = {
-      Future(AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId)) map {
-        holders => 
-          val holder: Box[User] = holders.filter(_.userId == user.userId).headOption
-          unboxFullOrFail(holder, callContext, s"$NoExistingAccountHolders")
+    def canGrantAccessToView(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[Box[Unit]] = {
+      Helper.booleanToFuture(UserMissOwnerViewOrNotAccountHolder) {
+        user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) || // TODO Use an action instead of the owner view
+        AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
+      }
+    }
+    def canRevokeAccessToView(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[Box[Unit]] = {
+      Helper.booleanToFuture(UserMissOwnerViewOrNotAccountHolder) {
+        user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) || // TODO Use an action instead of the owner view
+        AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
       }
     }
     def createSystemView(view: CreateViewJson, callContext: Option[CallContext]) : Future[View] = {
