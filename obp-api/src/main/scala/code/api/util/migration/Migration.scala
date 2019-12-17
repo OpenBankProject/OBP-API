@@ -61,6 +61,7 @@ object Migration extends MdcLoggable {
       generateAndPopulateMissingCustomerUUIDs()
       generateAndPopulateMissingConsumersUUIDs()
       populateTableRateLimiting()
+      bankAccountHoldersAndOwnerViewAccessInfo()
     }
     
     private def dummyScript(): Boolean = {
@@ -129,7 +130,14 @@ object Migration extends MdcLoggable {
         TableRateLmiting.populate(name)
       }
     }
-    
+
+    private def bankAccountHoldersAndOwnerViewAccessInfo(): Boolean = {
+      val name = nameOf(bankAccountHoldersAndOwnerViewAccessInfo)
+      runOnce(name) {
+        BankAccountHoldersAndOwnerViewAccess.saveInfo(name)
+      }
+    }
+
   }
 
   /**
