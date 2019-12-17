@@ -292,13 +292,13 @@ object NewStyle {
       }
     }
     def canGrantAccessToView(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[Box[Unit]] = {
-      Helper.booleanToFuture(NoExistingAccountHolders) {
+      Helper.booleanToFuture(UserMissOwnerViewOrNotAccountHolder) {
         user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) || // TODO Use an action instead of the owner view
         AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
       }
     }
     def canRevokeAccessToView(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[Box[Unit]] = {
-      Helper.booleanToFuture(NoExistingAccountHolders) {
+      Helper.booleanToFuture(UserMissOwnerViewOrNotAccountHolder) {
         user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) || // TODO Use an action instead of the owner view
         AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
       }
