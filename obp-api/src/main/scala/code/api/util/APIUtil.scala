@@ -2735,5 +2735,14 @@ Returns a string showed to the developer
     case x if x.startsWith("_") => true // Allowed case
     case _ => false
   }
+
+  def canGrantAccessToViewCommon(bankId: BankId, accountId: AccountId, user: User): Boolean = {
+    user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) || // TODO Use an action instead of the owner view
+      AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
+  }
+  def canRevokeAccessToViewCommon(bankId: BankId, accountId: AccountId, user: User): Boolean = {
+    user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) || // TODO Use an action instead of the owner view
+      AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
+  }
   
 }
