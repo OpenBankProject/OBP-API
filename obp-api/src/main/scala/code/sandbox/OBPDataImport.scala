@@ -102,7 +102,12 @@ trait OBPDataImport extends MdcLoggable {
    * Create CRM events that can be saved.
    */
   protected def createSaveableCrmEvents(data : List[SandboxCrmEventImport]) : Box[List[Saveable[CrmEventType]]]
-  
+
+  /**
+   * Create a public view for account with BankId @bankId and AccountId @accountId that can be saved.
+   */
+  protected def createPublicView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
+
   
   /**
    * Creates an account that can be saved. This method assumes that @acc has passed validatoin checks and is allowed
@@ -349,23 +354,36 @@ trait OBPDataImport extends MdcLoggable {
         yield for {
           saveableAccount <- createSaveableAccount(acc, banks)
         } yield {
-          (saveableAccount, getOrCreateAllSystemViews, acc.owners)
+          (saveableAccount, createViews(acc), acc.owners)
         }
 
     dataOrFirstFailure(saveableAccounts)
   }
 
   /**
-   * Now all the accounts will share the same system views
+   * Creates the owner view and a public view (if the public view is requested), for an account.
    */
-  val getOrCreateAllSystemViews : List[ViewType] = {
+  final protected def createViews(acc : SandboxAccountImport) : List[ViewType] = {
+    val bankId = BankId(acc.bank)
+    val accountId = AccountId(acc.id)
+
+    val publicView =
+      if(acc.generate_public_view)
+        createPublicView(bankId, accountId, "Public View")
+      else Empty
+
     val ownerView = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).asInstanceOf[Box[ViewType]]
     val auditorsView = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).asInstanceOf[Box[ViewType]]
     val accountantsView = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).asInstanceOf[Box[ViewType]]
-    val firehoseView = Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).asInstanceOf[Box[ViewType]]
-    List(firehoseView, ownerView, accountantsView, auditorsView).flatten
+    val firehoseView = 
+      if (APIUtil.getPropsAsBoolValue("allow_firehose_views", false))
+        Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).asInstanceOf[Box[ViewType]]
+      else Empty
+    
+    List(firehoseView, ownerView, accountantsView, auditorsView, publicView).flatten
+    
   }
-
+  
   final protected def createTransactions(data : SandboxDataImport, createdBanks : List[BankType], createdAccounts : List[AccountType]) : Box[List[Saveable[TransactionType]]] = {
 
     def accountSpecifiedInImport(t : SandboxTransactionImport) : Boolean = {

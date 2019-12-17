@@ -259,5 +259,7 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
       MappedSaveable(mappedTransaction)
     }
   }
-
+  protected def createPublicView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
+    Views.views.vend.getOrCreatePublicView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+  }
 }
