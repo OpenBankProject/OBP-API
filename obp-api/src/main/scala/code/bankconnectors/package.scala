@@ -5,8 +5,9 @@ import java.lang.reflect.Method
 import code.api.util.NewStyle
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
+import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
-import code.methodrouting.{MethodRouting}
+import code.methodrouting.MethodRouting
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.ReflectUtils.{findMethodByArgs, getConstructorArgs}
 import net.liftweb.common.{Box, EmptyBox}
@@ -100,6 +101,7 @@ package object bankconnectors {
     connectorName.getOrElse("mapped") match {
       case "mapped" => LocalMappedConnector
       case "rest_vMar2019" => RestConnector_vMar2019
+      case "stored_procedure_vDec2019" => StoredProcedureConnector_vDec2019
       case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
       case "akka_vDec2018" => AkkaConnector_vDec2018
       case _ => throw new IllegalStateException(s"config of connector.start.methodName.${methodName} have wrong value, not exists connector of name ${connectorName.get}")

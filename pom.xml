@@ -29,7 +29,7 @@
     <vscaladoc.links.liftweb.baseurl>http://scala-tools.org/mvnsites/liftweb</vscaladoc.links.liftweb.baseurl>
 
     <!--java version, can be: [8,9,10,11,12,13]-->
-    <java.version>13</java.version>
+    <java.version>8</java.version>
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <maven.compiler.target>${java.version}</maven.compiler.target>
   </properties>
