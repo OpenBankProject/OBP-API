@@ -21,7 +21,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
   val bankIdAccountId = BankIdAccountId(BankId("1"),AccountId("2"))
   
   val viewIdOwner = "owner"
-  val viewIdPublic = "public"
+  val viewIdPublic = "_public"
   val viewIdAccountant = "accountant"
   val viewIdAuditor = "auditor"
   val viewIdNotSupport = "NotSupport"
@@ -40,7 +40,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       
       Then("Check the result from database. it should have 4 views and with the right viewId")
       viewOwner.head.viewId.value should equal("owner".toLowerCase())
-      viewPublic.head.viewId.value should equal("public".toLowerCase())
+      viewPublic.head.viewId.value should equal("_public".toLowerCase())
       viewAccountant.head.viewId.value should equal("accountant".toLowerCase())
       viewAuditor.head.viewId.value should equal("auditor".toLowerCase())
       allExistingViewsForOneAccount.length should equal(4)
@@ -54,7 +54,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
   
       Then("Check the result from database again. it should have four views and with the right viewId, there should be not changed.")
       viewOwner.head.viewId.value should equal("owner".toLowerCase())
-      viewPublic.head.viewId.value should equal("public".toLowerCase())
+      viewPublic.head.viewId.value should equal("_public".toLowerCase())
       viewAccountant.head.viewId.value should equal("accountant".toLowerCase())
       viewAuditor.head.viewId.value should equal("auditor".toLowerCase())
       allExistingViewsForOneAccount.length should equal(4)

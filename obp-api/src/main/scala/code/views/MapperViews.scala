@@ -489,7 +489,7 @@ object MapperViews extends Views with MdcLoggable {
     val bankId = bankIdAccountId.bankId
     val accountId = bankIdAccountId.accountId
     val ownerView = CUSTOM_OWNER_VIEW_ID.equals(viewId.toLowerCase)
-    val publicView = "public".equals(viewId.toLowerCase)
+    val publicView = CUSTOM_PUBLIC_VIEW_ID.equals(viewId.toLowerCase)
     val accountantsView = "accountant".equals(viewId.toLowerCase)
     val auditorsView = "auditor".equals(viewId.toLowerCase)
     
@@ -546,7 +546,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
-    getExistingView(bankId, accountId, "public") match {
+    getExistingView(bankId, accountId, CUSTOM_PUBLIC_VIEW_ID) match {
       case Empty=> createDefaultPublicView(bankId, accountId, description)
       case Full(v)=> Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -1009,9 +1009,9 @@ object MapperViews extends Views with MdcLoggable {
     val entity = create.
       isSystem_(false).
       isFirehose_(true). // This View is public so it might as well be firehose too.
-      name_("Public").
+      name_("_Public").
       description_(description).
-      view_id("_public"). //public is only for custom views
+      view_id(CUSTOM_PUBLIC_VIEW_ID). //public is only for custom views
       isPublic_(true).
       bank_id(bankId.value).
       account_id(accountId.value).
