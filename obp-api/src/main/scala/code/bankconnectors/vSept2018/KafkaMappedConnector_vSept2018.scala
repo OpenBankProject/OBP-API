@@ -247,7 +247,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     balanceAmount = balanceAmountExample.value,
     balanceCurrency = currencyExample.value,
     owners = owner1Example.value :: owner1Example.value :: Nil,
-    viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
+    viewsToGenerate = "_Public" :: "Accountant" :: "Auditor" :: Nil,
     bankRoutingScheme = bankRoutingSchemeExample.value,
     bankRoutingAddress = bankRoutingAddressExample.value,
     branchRoutingScheme = branchRoutingSchemeExample.value,
