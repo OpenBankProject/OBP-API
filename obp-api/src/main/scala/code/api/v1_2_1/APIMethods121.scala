@@ -689,7 +689,7 @@ trait APIMethods121 {
       ) :: "views" :: ViewId(viewId) :: Nil JsonDelete req => {
         cc =>
           for {
-            //customer views are started ith `_`,eg _lift, _work, and System views startWith letter, eg: owner
+            //custom views are started ith `_`,eg _lift, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
             view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), cc.user) ?~! CannotFindCustomViewError
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)

@@ -2349,7 +2349,7 @@ Returns a string showed to the developer
     *
     */
   def hasAccess(view: View, bankIdAccountId: BankIdAccountId, user: Option[User]) : Boolean = {
-    if(hasPublicAccess(view: View))// No need for the Login user and public access
+    if(isPublicView(view: View))// No need for the Login user and public access
       true
     else
       user match {
@@ -2371,7 +2371,7 @@ Returns a string showed to the developer
     val customerViewImplBox = Views.views.vend.customView(viewId, bankIdAccountId)
     customerViewImplBox match {
       case Full(v) if(v.isPublic && !ALLOW_PUBLIC_VIEWS) => Failure(PublicViewsNotAllowedOnThisInstance)
-      case Full(v) if(hasPublicAccess(v)) => customerViewImplBox
+      case Full(v) if(isPublicView(v)) => customerViewImplBox
       case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => customerViewImplBox
       case _ => Views.views.vend.systemView(viewId) match  {
         case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => Full(v)
@@ -2380,12 +2380,27 @@ Returns a string showed to the developer
     }
   }
   
+  // TODO Use this in code as a single point of entry whenever we need to check owner view
+  def isOwnerView(view: View): Boolean = {
+    // Sanity check. We don't want a public owner view.
+    if(view.isPublic) {
+      logger.warn(s"Public owner encountered. Primary view id: ${view.id}")
+      false
+    } else {
+      view.viewId.value.contains(SYSTEM_OWNER_VIEW_ID) == true
+    }
+  }
+  
   /**
     * This view public is true and set `allow_public_views=true` in props
     */
-  def hasPublicAccess(view: View) : Boolean = {
-    if(view.isPublic && APIUtil.ALLOW_PUBLIC_VIEWS) true
-    else false
+  def isPublicView(view: View) : Boolean = {
+    isOwnerView(view) match {
+      case true => false
+      case false =>
+        if(view.isPublic && APIUtil.ALLOW_PUBLIC_VIEWS) true
+        else false
+    }
   }
   /**
     * This view Firehose is true and set `allow_firehose_views = true` and the user has  `CanUseFirehoseAtAnyBank` role

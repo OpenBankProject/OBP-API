@@ -1535,6 +1535,10 @@ trait APIMethods400 {
       "/banks",
       "Create Bank",
       s"""Create a new bank (Authenticated access).
+         |
+         |The user creating this will be automatically assigned the Role CanCreateEntitlementAtOneBank.
+         |Thus the User can manage the bank they create and assign Roles to other Users.
+         |
          |${authenticationRequiredMessage(true) }
          |""",
       bankJSONV220,
@@ -1576,7 +1580,8 @@ trait APIMethods400 {
               callContext
               )
             entitlements <- NewStyle.function.getEntitlementsByUserId(u.userId, callContext)
-            _ <- entitlements.filter(_.roleName == CanCreateEntitlementAtOneBank.toString()).size > 0 match {
+            entitlementsByBank = entitlements.filter(_.bankId==bank.id)
+            _ <- entitlementsByBank.filter(_.roleName == CanCreateEntitlementAtOneBank.toString()).size > 0 match {
               case true =>
                 // Already has entitlement
                 Future()
