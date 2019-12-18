@@ -489,7 +489,7 @@ object MapperViews extends Views with MdcLoggable {
     val bankId = bankIdAccountId.bankId
     val accountId = bankIdAccountId.accountId
     val ownerView = CUSTOM_OWNER_VIEW_ID.equals(viewId.toLowerCase)
-    val publicView = "public".equals(viewId.toLowerCase)
+    val publicView = CUSTOM_PUBLIC_VIEW_ID.equals(viewId.toLowerCase)
     val accountantsView = "accountant".equals(viewId.toLowerCase)
     val auditorsView = "auditor".equals(viewId.toLowerCase)
     
