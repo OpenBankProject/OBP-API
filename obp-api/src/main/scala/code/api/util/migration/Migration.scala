@@ -134,7 +134,7 @@ object Migration extends MdcLoggable {
     private def bankAccountHoldersAndOwnerViewAccessInfo(): Boolean = {
       val name = nameOf(bankAccountHoldersAndOwnerViewAccessInfo)
       runOnce(name) {
-        BankAccountHoldersAndOwnerViewAccess.saveInfo(name)
+        BankAccountHoldersAndOwnerViewAccess.saveInfoBankAccountHoldersAndOwnerViewAccessInfo(name)
       }
     }
 

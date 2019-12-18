@@ -17,7 +17,7 @@ object BankAccountHoldersAndOwnerViewAccess {
   val oneYearInFuture = ZonedDateTime.now(ZoneId.of("UTC")).plusYears(1)
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
-  def saveInfo(name: String): Boolean = {
+  def saveInfoBankAccountHoldersAndOwnerViewAccessInfo(name: String): Boolean = {
     DbFunction.tableExists(MapperAccountHolders, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
       case true =>
         val startDate = System.currentTimeMillis()
