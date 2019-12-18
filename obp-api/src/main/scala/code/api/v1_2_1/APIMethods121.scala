@@ -807,7 +807,7 @@ trait APIMethods121 {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
-            addedViews <- account addPermissions(u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), provider, providerId)
+            addedViews <- account grantAccessToMultipleViews(u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), provider, providerId)
           } yield {
             val viewJson = JSONFactory.createViewsJSON(addedViews)
             successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -849,7 +849,7 @@ trait APIMethods121 {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             // TODO Check Error cases
-            addedView <- account addPermission(u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
+            addedView <- account grantAccessToView(u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
           } yield {
             val viewJson = JSONFactory.createViewJSON(addedView)
             successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -909,7 +909,7 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            isRevoked <- account revokePermission(u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
+            isRevoked <- account revokeAccessToView(u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
             if(isRevoked)
           } yield noContentJsonResponse
       }

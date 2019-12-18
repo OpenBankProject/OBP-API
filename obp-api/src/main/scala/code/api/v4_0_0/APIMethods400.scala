@@ -1891,12 +1891,12 @@ trait APIMethods400 {
       viewJsonV300,
       List(
         UserNotLoggedIn,
-        ErrorMessages.NoExistingAccountHolders,
+        UserMissOwnerViewOrNotAccountHolder,
         InvalidJsonFormat,
         UserNotFoundById,
         SystemViewNotFound,
         ViewNotFound,
-        CannotAddAccountAccess,
+        CannotGrantAccountAccess,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1919,8 +1919,8 @@ trait APIMethods400 {
               case false => NewStyle.function.customView(ViewId(postJson.view.view_id), BankIdAccountId(bankId, accountId), callContext)
             }
             addedView <- postJson.view.is_system match {
-              case true => NewStyle.function.addSystemViewPermission(bankId, accountId, view, user, callContext)
-              case false => NewStyle.function.addViewPermission(view, user, callContext)
+              case true => NewStyle.function.grantAccessToSystemView(bankId, accountId, view, user, callContext)
+              case false => NewStyle.function.grantAccessToCustomView(view, user, callContext)
             }
           } yield {
             val viewJson = JSONFactory300.createViewJSON(addedView)
@@ -1946,7 +1946,7 @@ trait APIMethods400 {
       revokedJsonV400,
       List(
         UserNotLoggedIn,
-        ErrorMessages.NoExistingAccountHolders,
+        UserMissOwnerViewOrNotAccountHolder,
         InvalidJsonFormat,
         UserNotFoundById,
         SystemViewNotFound,
@@ -1975,8 +1975,8 @@ trait APIMethods400 {
               case false => NewStyle.function.customView(ViewId(postJson.view.view_id), BankIdAccountId(bankId, accountId), callContext)
             }
             revoked <- postJson.view.is_system match {
-              case true => NewStyle.function.revokeSystemViewPermission(bankId, accountId, view, user, callContext)
-              case false => NewStyle.function.revokeViewPermission(view, user, callContext)
+              case true => NewStyle.function.revokeAccessToSystemView(bankId, accountId, view, user, callContext)
+              case false => NewStyle.function.revokeAccessToCustomView(view, user, callContext)
             }
           } yield {
             (RevokedJsonV400(revoked), HttpCode.`201`(callContext))

@@ -271,22 +271,22 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$SystemViewNotFound. Current ViewId is $viewId")
       }
     }
-    def addViewPermission(view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
+    def grantAccessToCustomView(view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
       Future(Views.views.vend.grantAccess(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId), user)) map {
-        unboxFullOrFail(_, callContext, s"$CannotAddAccountAccess Current ViewId is ${view.viewId.value}")
+        unboxFullOrFail(_, callContext, s"$CannotGrantAccountAccess Current ViewId is ${view.viewId.value}")
       }
     }
-    def revokeViewPermission(view : View, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
+    def revokeAccessToCustomView(view : View, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
       Future(Views.views.vend.revokeAccess(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId), user)) map {
         unboxFullOrFail(_, callContext, s"$CannotRevokeAccountAccess Current ViewId is ${view.viewId.value}")
       }
     }
-    def addSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
+    def grantAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
       Future(Views.views.vend.grantAccessToSystemView(bankId, accountId, view, user)) map {
-        unboxFullOrFail(_, callContext, s"$CannotAddAccountAccess Current ViewId is ${view.viewId.value}")
+        unboxFullOrFail(_, callContext, s"$CannotGrantAccountAccess Current ViewId is ${view.viewId.value}")
       }
     }
-    def revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
+    def revokeAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
       Future(Views.views.vend.revokeAccessToSystemView(bankId, accountId, view, user)) map {
         unboxFullOrFail(_, callContext, s"$CannotRevokeAccountAccess Current ViewId is ${view.viewId.value}")
       }

@@ -247,7 +247,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the view will be granted
     * @return a Full(true) if everything is okay, a Failure otherwise
     */
-  final def addPermission(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[View] = {
+  final def grantAccessToView(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[View] = {
     if(canGrantAccessToViewCommon(bankId, accountId, user))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
@@ -264,7 +264,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the views will be granted
     * @return a the list of the granted views if everything is okay, a Failure otherwise
     */
-  final def addPermissions(user : User, viewUIDs : List[ViewIdBankIdAccountId], otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[List[View]] = {
+  final def grantAccessToMultipleViews(user : User, viewUIDs : List[ViewIdBankIdAccountId], otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[List[View]] = {
     if(canGrantAccessToViewCommon(bankId, accountId, user))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
@@ -281,7 +281,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the view will be revoked
     * @return a Full(true) if everything is okay, a Failure otherwise
     */
-  final def revokePermission(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
+  final def revokeAccessToView(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
     //check if the user have access to the owner view in this the account
     if(canRevokeAccessToViewCommon(bankId, accountId, user))
       for{
