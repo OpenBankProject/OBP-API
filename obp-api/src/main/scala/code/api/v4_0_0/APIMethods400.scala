@@ -1584,7 +1584,8 @@ trait APIMethods400 {
               callContext
               )
             entitlements <- NewStyle.function.getEntitlementsByUserId(u.userId, callContext)
-            _ <- entitlements.filter(_.roleName == CanCreateEntitlementAtOneBank.toString()).size > 0 match {
+            entitlementsByBank = entitlements.filter(_.bankId==bank.id)
+            _ <- entitlementsByBank.filter(_.roleName == CanCreateEntitlementAtOneBank.toString()).size > 0 match {
               case true =>
                 // Already has entitlement
                 Future()
