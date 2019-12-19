@@ -18,8 +18,9 @@ object Constant extends MdcLoggable {
   //    but there is no underscore there. 
   //But for new accounts, we only allow to create with with under score, and all the accounts will share the same System Views. 
   final val CUSTOM_PUBLIC_VIEW_ID = "_public"
-  final val CUSTOM_OWNER_VIEW_ID = "owner"
-  final val SYSTEM_OWNER_VIEW_ID = "owner"
+  // If two owner views exists OBP will return custom owner view. But from this commit custom owner views are forbidden.
+  final val CUSTOM_OWNER_VIEW_ID = "owner" // Legacy custom owner view maybe called this but creation of new custom owner views is now disabled with this commit
+  final val SYSTEM_OWNER_VIEW_ID = "owner" // From this commit new owner views are system views
   final val SYSTEM_AUDITOR_VIEW_ID = "auditor"
   final val SYSTEM_ACCOUNTANT_VIEW_ID = "accountant"
   final val SYSTEM_FIREHOSE_VIEW_ID = "firehose"

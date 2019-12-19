@@ -2382,7 +2382,9 @@ Returns a string showed to the developer
   
   // TODO Use this in code as a single point of entry whenever we need to check owner view
   def isOwnerView(viewId: ViewId): Boolean = {
-    viewId.value.contains(SYSTEM_OWNER_VIEW_ID) == true
+    viewId.value == SYSTEM_OWNER_VIEW_ID ||
+    viewId.value == "_" + SYSTEM_OWNER_VIEW_ID || // New views named like this are forbidden from this commit
+    viewId.value == CUSTOM_OWNER_VIEW_ID // New views named like this are forbidden from this commit
   }
   
   /**
