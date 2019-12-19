@@ -23,7 +23,7 @@ trait PrivateUser2AccountsAndSetUpWithTestData {
 
     def generateAccounts(owner: User) = banks.flatMap(bank => {
       for { i <- 0 until 2 } yield {
-        createAccountAndOwnerView(Some(owner), bank.bankId, AccountId(randomString(10)), randomString(10))
+        createAccountRelevantResource(Some(owner), bank.bankId, AccountId(randomString(10)), randomString(10))
       }
     })
 

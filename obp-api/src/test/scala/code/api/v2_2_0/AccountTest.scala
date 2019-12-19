@@ -128,6 +128,39 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       responseWithOtherUesrV310.code should equal(200)
     }
 
+    scenario("We create an account and check the accountViews") {
+      val createAccountJSONV220 = CreateAccountJSONV220(
+        user_id = resourceUser1.userId,
+        label = "Label",
+        `type` = "CURRENT",
+        balance = AmountOfMoneyJsonV121(
+          "EUR",
+          "0"
+        ),
+        branch_id = "1234",
+        account_routing = AccountRoutingJsonV121(
+          scheme = "OBP",
+          address = "UK123456"
+        )
+      )
+
+      Given("The bank")
+      val testBank = testBankId1
+
+      Then("We create an private account at the bank")
+      val accountPutJSON = createAccountJSONV220
+      val requestPut = (v2_2Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
+      val responsePut = makePutRequest(requestPut, write(accountPutJSON))
+
+      Then("we get the account access for this account")
+      val accountViewsRequest = v2_2Request / "banks" / testBank.value / "accounts" / mockAccountId1 / "views" <@(user1)
+      val accountViewsResponse = makeGetRequest(accountViewsRequest)
+      val accountViews = accountViewsResponse.body.extract[ViewsJSONV220]
+      //Note: now when we create new account, will have the systemOwnerView access to this view.
+      accountViews.views.length > 0 should be (true)
+      accountViews.views.map(_.id).toString() contains("owner") should be (true)
+    }
+
     scenario("We create an account, but with wrong format of account_id ") {
       val createAccountJSONV220 = CreateAccountJSONV220(
         user_id = resourceUser1.userId,

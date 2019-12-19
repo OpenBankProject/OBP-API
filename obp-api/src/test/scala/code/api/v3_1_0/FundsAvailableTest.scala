@@ -134,7 +134,7 @@ class FundsAvailableTest extends V310ServerSetup {
       Then("We should get a 400")
       response310_invalic_ccy.code should equal(400)
       And("error should be " + InvalidISOCurrencyCode)
-      response310_invalic_ccy.body.extract[ErrorMessage].message should equal(InvalidISOCurrencyCode)
+      response310_invalic_ccy.body.extract[ErrorMessage].message startsWith(InvalidISOCurrencyCode)
 
       When("We make a request v3.1.0 with all params but amount is invalid")
       val response310_amount_ccy = makeGetRequest(request310 <<? Map("currency" -> "EUR", "amount" -> "bb"))

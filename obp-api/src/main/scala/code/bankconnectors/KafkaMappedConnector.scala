@@ -139,15 +139,15 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
         acc.generate_accountants_view,
         acc.generate_auditors_view
       )}
-      existing_views <- tryo {Views.views.vend.viewsForAccount(BankIdAccountId(BankId(acc.bankId), AccountId(acc.accountId)))}
+      existing_views <- tryo {Views.views.vend.assignedViewsForAccount(BankIdAccountId(BankId(acc.bankId), AccountId(acc.accountId)))}
     } yield {
       setAccountHolder(username, BankId(acc.bankId), AccountId(acc.accountId), acc.owners)
       views.foreach(v => {
-        Views.views.vend.addPermission(v.uid, user)
+        Views.views.vend.grantAccess(v.uid, user)
         //logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
       })
       existing_views.filterNot(_.users.contains(user.userPrimaryKey)).foreach (v => {
-        Views.views.vend.addPermission(v.uid, user)
+        Views.views.vend.grantAccess(v.uid, user)
         //logger.info(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
       })
     }

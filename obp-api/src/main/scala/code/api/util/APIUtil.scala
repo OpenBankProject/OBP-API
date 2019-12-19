@@ -58,6 +58,7 @@ import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
+import code.views.Views
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{Customer, _}
@@ -2347,23 +2348,55 @@ Returns a string showed to the developer
     * @param user Option User, can be Empty(No Authentication), or Login user.
     *
     */
-  def hasAccess(view: View, user: Option[User]) : Boolean = {
-    if(hasPublicAccess(view: View))// No need for the Login user and public access
+  def hasAccess(view: View, bankIdAccountId: BankIdAccountId, user: Option[User]) : Boolean = {
+    if(isPublicView(view: View))// No need for the Login user and public access
       true
     else
       user match {
         case Some(u) if hasFirehoseAccess(view,u)  => true//Login User and Firehose access
-        case Some(u) if u.hasViewAccess(view)=> true     // Login User and check view access
+        case Some(u) if u.hasAccountAccess(view, bankIdAccountId)=> true     // Login User and check view access
         case _ =>
           false
       }
   }
   /**
-    * This view public is true and set `allow_public_views=ture` in props
+   * All the get view and check view access must be in one method, can not be separated from now. Because we introduce system views. 
+   * 1st check: if `Custom View is existing` and `have the custom owner view access` ==>  return the customView.
+   * 2rd check: if `Custom view is not find or have no custom owner view access` and `find system owner view` and `have the system owner view access` ==> then return systemView. 
+   * all other cases ==>return no access to the `viewId`
+   * 
+   * Note: this user is Option, for the public views, there is no need for the user. 
+   */
+  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User]) = {
+    val customerViewImplBox = Views.views.vend.customView(viewId, bankIdAccountId)
+    customerViewImplBox match {
+      case Full(v) if(v.isPublic && !ALLOW_PUBLIC_VIEWS) => Failure(PublicViewsNotAllowedOnThisInstance)
+      case Full(v) if(isPublicView(v)) => customerViewImplBox
+      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => customerViewImplBox
+      case _ => Views.views.vend.systemView(viewId) match  {
+        case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => Full(v)
+        case _ => Empty
+      }
+    }
+  }
+  
+  // TODO Use this in code as a single point of entry whenever we need to check owner view
+  def isOwnerView(viewId: ViewId): Boolean = {
+    viewId.value == SYSTEM_OWNER_VIEW_ID ||
+    viewId.value == "_" + SYSTEM_OWNER_VIEW_ID || // New views named like this are forbidden from this commit
+    viewId.value == CUSTOM_OWNER_VIEW_ID // New views named like this are forbidden from this commit
+  }
+  
+  /**
+    * This view public is true and set `allow_public_views=true` in props
     */
-  def hasPublicAccess(view: View) : Boolean = {
-    if(view.isPublic && APIUtil.ALLOW_PUBLIC_VIEWS) true
-    else false
+  def isPublicView(view: View) : Boolean = {
+    isOwnerView(view.viewId) match {
+      case true if view.isPublic => // Sanity check. We don't want a public owner view.
+        logger.warn(s"Public owner encountered. Primary view id: ${view.id}")
+        false 
+      case _ => view.isPublic && APIUtil.ALLOW_PUBLIC_VIEWS
+    }
   }
   /**
     * This view Firehose is true and set `allow_firehose_views = true` and the user has  `CanUseFirehoseAtAnyBank` role
@@ -2706,6 +2739,21 @@ Returns a string showed to the developer
   case class DateInterval(start: Date, end: Date)
   def dateRangesOverlap(range1: DateInterval, range2: DateInterval): Boolean = {
     if(range1.end.before(range2.start) || range1.start.after(range2.end)) false else true
+  }
+  
+  def checkCustomViewName(name: String): Boolean = name match {
+    case x if x == "_" + SYSTEM_OWNER_VIEW_ID => false // Reserved name
+    case x if x.startsWith("_") => true // Allowed case
+    case _ => false
+  }
+
+  def canGrantAccessToViewCommon(bankId: BankId, accountId: AccountId, user: User): Boolean = {
+    user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) || // TODO Use an action instead of the owner view
+      AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
+  }
+  def canRevokeAccessToViewCommon(bankId: BankId, accountId: AccountId, user: User): Boolean = {
+    user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) || // TODO Use an action instead of the owner view
+      AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
   }
   
 }

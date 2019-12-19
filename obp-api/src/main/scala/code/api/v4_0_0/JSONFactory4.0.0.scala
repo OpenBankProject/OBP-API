@@ -195,12 +195,15 @@ case class StandingOrderJsonV400(standing_order_id: String,
                                  user_id: String,
                                  counterparty_id: String,
                                  amount: AmountOfMoneyJsonV121,
+                                 when: When,
                                  date_signed: Date,
                                  date_starts: Date,
                                  date_expires: Date,
                                  date_cancelled: Date,
                                  active: Boolean)
-
+case class PostViewJsonV400(view_id: String, is_system: Boolean)
+case class PostAccountAccessJsonV400(user_id: String, view: PostViewJsonV400)
+case class RevokedJsonV400(revoked: Boolean)
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
@@ -364,6 +367,7 @@ object JSONFactory400 {
       user_id = standingOrder.userId,
       counterparty_id = standingOrder.counterpartyId,
       amount = AmountOfMoneyJsonV121(standingOrder.amountValue.toString(), standingOrder.amountCurrency),
+      when = When(frequency = standingOrder.whenFrequency, detail = standingOrder.whenDetail),
       date_signed = standingOrder.dateSigned,
       date_cancelled = standingOrder.dateCancelled,
       date_starts = standingOrder.dateStarts,

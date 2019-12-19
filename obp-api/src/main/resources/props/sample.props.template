@@ -719,6 +719,10 @@ database_messages_scheduler_interval=3600
 # When you set this props, need to make sure this port is available.  
 # grpc.server.port = 50051
 
+# Create System Views At Boot
+# In case is not defined default value is true
+#create_system_views_at_boot=false
+
 # Stored procedure related JDBC settings
 stored_procedure_connector.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver
 stored_procedure_connector.url=jdbc:sqlserver://localhost:1433;DatabaseName=obp-mapping;currentSchema=dbo

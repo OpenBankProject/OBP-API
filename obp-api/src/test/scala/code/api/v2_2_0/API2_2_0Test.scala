@@ -26,22 +26,24 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v2_2_0
 
-
+import code.api.Constant._
 import _root_.net.liftweb.json.Serialization.write
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2._
 import code.api.v1_2_1.UpdateViewJsonV121
-import code.setup.{APIResponse, DefaultUsers, User1AllPrivileges}
+import code.setup.{APIResponse, DefaultUsers}
 import com.openbankproject.commons.model.CreateViewJson
 import net.liftweb.util.Helpers._
 import org.scalatest._
+import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
+import com.github.dwickern.macros.NameOf.nameOf
 
 import scala.util.Random._
 
 
-class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultUsers {
+class API2_2_0Test extends V220ServerSetup with DefaultUsers {
 
   /************************* test tags ************************/
 
@@ -56,16 +58,16 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
   object APIInfo extends Tag("apiInfo")
   object GetHostedBanks extends Tag("hostedBanks")
   object GetHostedBank extends Tag("getHostedBank")
-  object GetViews extends Tag("getViews")
-  object PostView extends Tag("postView")
-  object PutView extends Tag("putView")
-
+  
+  object ApiEndpoint1 extends Tag(nameOf(Implementations2_2_0.getViewsForBankAccount))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations2_2_0.createViewForBankAccount))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations2_2_0.updateViewForBankAccount))
 
 
   /********************* API test methods ********************/
 
   //System view, owner
-  val postBodySystemViewJson = createViewJson.copy(name="owner")
+  val postBodySystemViewJson = createViewJson.copy(name=SYSTEM_OWNER_VIEW_ID)
   
   def randomBank : String = {
     val banksJson = getBanksInfo.body.extract[BanksJSON]
@@ -167,8 +169,8 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
   }
 
 
-  feature("List of the views of specific bank account - v2.2.0"){
-    scenario("We will get the list of the available views on a bank account", API2_2, GetViews) {
+  feature(s"$ApiEndpoint1 -Get Views for Account. - v2.2.0"){
+    scenario("We will get the list of the available views on a bank account", API2_2, ApiEndpoint1) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -179,7 +181,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       reply.body.extract[ViewsJSONV220]
     }
 
-    scenario("We will not get the list of the available views on a bank account due to missing token", API2_2, GetViews) {
+    scenario("We will not get the list of the available views on a bank account due to missing token", API2_2, ApiEndpoint1) {
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -191,7 +193,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
-    scenario("We will not get the list of the available views on a bank account due to insufficient privileges", API2_2, GetViews) {
+    scenario("We will not get the list of the available views on a bank account due to insufficient privileges", API2_2, ApiEndpoint1) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -203,8 +205,8 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
-  feature("Create a view on a bank account - v2.2.0"){
-    scenario("we will create a view on a bank account", API2_2, PostView) {
+  feature(s"$ApiEndpoint2 -Create a view on a bank account - v2.2.0"){
+    scenario("we will create a view on a bank account", API2_2, ApiEndpoint2) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -220,7 +222,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       viewsBefore.size should equal (viewsAfter.size -1)
     }
 
-    scenario("We will not create a view on a bank account due to missing token", API2_2, PostView) {
+    scenario("We will not create a view on a bank account due to missing token", API2_2, ApiEndpoint2) {
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -233,7 +235,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
-    scenario("We will not create a view on a bank account due to insufficient privileges", API2_2, PostView) {
+    scenario("We will not create a view on a bank account due to insufficient privileges", API2_2, ApiEndpoint2) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -246,7 +248,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
-    scenario("We will not create a view because the bank account does not exist", API2_2, PostView) {
+    scenario("We will not create a view because the bank account does not exist", API2_2, ApiEndpoint2) {
       Given("We will use an access token")
       val bankId = randomBank
       val view = randomView(true, "")
@@ -258,7 +260,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
-    scenario("We will not create a view because the view already exists", API2_2, PostView) {
+    scenario("We will not create a view because the view already exists", API2_2, ApiEndpoint2) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -284,8 +286,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
-
-  feature("Update a view on a bank account - v2.2.0") {
+  feature(s"$ApiEndpoint3 -Update a view on a bank account - v2.2.0") {
 
     val updatedViewDescription = "aloha"
     val updatedAliasToUse = "public"
@@ -312,7 +313,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       )
     }
 
-    scenario("we will update a view on a bank account", API2_2, PutView) {
+    scenario("we will update a view on a bank account", API2_2, ApiEndpoint3) {
       Given("A view exists")
       val bankId = randomBank
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -342,7 +343,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       updatedView.hide_metadata_if_alias_used should equal(true)
     }
 
-    scenario("we will not update a view that doesn't exist", API2_2, PutView) {
+    scenario("we will not update a view that doesn't exist", API2_2, ApiEndpoint3) {
       val bankId = randomBank
       val bankAccountId = randomPrivateAccountId(bankId)
 
@@ -359,7 +360,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       reply.code should equal(400)
     }
 
-    scenario("We will not update a view on a bank account due to missing token", API2_2, PutView) {
+    scenario("We will not update a view on a bank account due to missing token", API2_2, ApiEndpoint3) {
       Given("A view exists")
       val bankId = randomBank
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -377,7 +378,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
-    scenario("we will not update a view on a bank account due to insufficient privileges", API2_2, PutView) {
+    scenario("we will not update a view on a bank account due to insufficient privileges", API2_2, ApiEndpoint3) {
       Given("A view exists")
       val bankId = randomBank
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -408,7 +409,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       )
     
       When("We use a valid access token and valid put json")
-      val reply = putView(bankId, bankAccountId, "owner", updateViewJSON, user1)
+      val reply = putView(bankId, bankAccountId, SYSTEM_OWNER_VIEW_ID, updateViewJSON, user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")

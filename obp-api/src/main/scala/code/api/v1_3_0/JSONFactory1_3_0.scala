@@ -94,7 +94,7 @@ object JSONFactory1_3_0 {
   }
 
   def createAccountJson(bankAccount : BankAccount, user : User) : code.api.v1_2_1.AccountJSON = {
-    val views = Views.views.vend.viewsForAccount(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
+    val views = Views.views.vend.assignedViewsForAccount(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
     val viewsJson = views.map(code.api.v1_2_1.JSONFactory.createViewJSON)
     code.api.v1_2_1.JSONFactory.createAccountJSON(bankAccount, viewsJson)
   }

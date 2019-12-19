@@ -5,6 +5,7 @@ import code.api.util.APIUtil.canUseFirehose
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.remotedata.RemotedataViews
 import code.views.MapperViews.getPrivateBankAccounts
+import code.views.system.AccountAccess
 import com.openbankproject.commons.model.{CreateViewJson, _}
 import net.liftweb.common.Box
 import net.liftweb.mapper.By
@@ -38,44 +39,49 @@ trait Views {
     * It will first find the view object by `viewIdBankIdAccountId`
     * And then, call @getOrCreateViewPrivilege(view: View, user: User) for the view and user.
    */
-  def addPermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
-  def addPermissions(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
-  def revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
-  def revokeAllPermissions(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
+  def grantAccess(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
+  def grantAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[View]
+  def grantAccessToMultipleViews(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
+  def revokeAccess(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
+  def revokeAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean]
+  def revokeAllAccountAccesses(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
 
-  def view(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
-  def viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]]
+  def customView(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
+  def systemView(viewId : ViewId) : Box[View]
+  def customViewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]]
   def systemViewFuture(viewId : ViewId) : Future[Box[View]]
 
   //always return a view id String, not error here. 
-  def getMetadataViewId(bankAccountId: BankIdAccountId, viewId : ViewId) = Views.views.vend.view(viewId, bankAccountId).map(_.metadataView).openOr(viewId.value)
+  def getMetadataViewId(bankAccountId: BankIdAccountId, viewId : ViewId) = Views.views.vend.customView(viewId, bankAccountId).map(_.metadataView).openOr(viewId.value)
   
   def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View]
   def createSystemView(view: CreateViewJson): Future[Box[View]]
-  def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit]
+  def removeCustomView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Boolean]
   def removeSystemView(viewId: ViewId): Future[Box[Boolean]]
-  def updateView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]
+  def updateCustomView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]
   def updateSystemView(viewId : ViewId, viewUpdateJson : UpdateViewJSON): Future[Box[View]]
   
   /**
     * This will return all the public views, no requirements for accountId or userId.
     * Because the public views are totally open for everyone. 
     */
-  def publicViews: List[View]
-  def publicViewsForBank(bankId: BankId): List[View]
+  def publicViews: (List[View], List[AccountAccess])
+  def publicViewsForBank(bankId: BankId): (List[View], List[AccountAccess])
   def firehoseViewsForBank(bankId: BankId, user : User): List[View]
   /**
     * This will return all the views belong to the bankAccount, its own Public + Private views.
     * Do not contain any other account public views.
     */
-  def viewsForAccount(bankAccountId : BankIdAccountId) : List[View]
+  def assignedViewsForAccount(bankAccountId : BankIdAccountId) : List[View]
+  def availableViewsForAccount(bankAccountId : BankIdAccountId) : List[View]
   
-  def privateViewsUserCanAccess(user: User): List[View]
+  def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess])
+  def privateViewsUserCanAccessAtBank(user: User, bankId: BankId): (List[View], List[AccountAccess])
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View]
   
   //the following return list[BankIdAccountId], just use the list[View] method, the View object contains enough data for it.
   final def getAllFirehoseAccounts(bankId: BankId, user : User) : List[BankIdAccountId] = firehoseViewsForBank(bankId, user).map(v => BankIdAccountId(v.bankId, v.accountId)).distinct
-  final def getPrivateBankAccounts(user : User) : List[BankIdAccountId] =  privateViewsUserCanAccess(user).map(v => BankIdAccountId(v.bankId, v.accountId)).distinct 
+  final def getPrivateBankAccounts(user : User) : List[BankIdAccountId] =  privateViewsUserCanAccess(user)._2.map(a => BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct 
   final def getPrivateBankAccountsFuture(user : User) : Future[List[BankIdAccountId]] = Future {getPrivateBankAccounts(user)}
   final def getPrivateBankAccounts(user : User, bankId : BankId) : List[BankIdAccountId] = getPrivateBankAccounts(user).filter(_.bankId == bankId).distinct
   final def getPrivateBankAccountsFuture(user : User, bankId : BankId) : Future[List[BankIdAccountId]] = Future {getPrivateBankAccounts(user, bankId)}
@@ -83,6 +89,7 @@ trait Views {
   def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View]
   def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def getOrCreateSystemView(name: String) : Box[View]
   def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
@@ -90,8 +97,6 @@ trait Views {
 
   def getOwners(view: View): Set[User]
   
-  def grantAccessToAllExistingViews(user : User) : Boolean
-
   def removeAllPermissions(bankId: BankId, accountId: AccountId) : Boolean
   def removeAllViews(bankId: BankId, accountId: AccountId) : Boolean
 
@@ -106,30 +111,36 @@ class RemotedataViewsCaseClasses {
   case class getPermissionForUser(user: User)
   case class permission(account: BankIdAccountId, user: User)
   case class addPermission(viewUID: ViewIdBankIdAccountId, user: User)
+  case class addSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User)
   case class addPermissions(views: List[ViewIdBankIdAccountId], user: User)
   case class revokePermission(viewUID: ViewIdBankIdAccountId, user: User)
-  case class revokeAllPermissions(bankId: BankId, accountId: AccountId, user: User)
+  case class revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User)
+  case class revokeAllAccountAccesses(bankId: BankId, accountId: AccountId, user: User)
   case class createView(bankAccountId: BankIdAccountId, view: CreateViewJson)
   case class createSystemView(view: CreateViewJson)
-  case class removeView(viewId: ViewId, bankAccountId: BankIdAccountId)
+  case class removeCustomView(viewId: ViewId, bankAccountId: BankIdAccountId)
   case class removeSystemView(viewId: ViewId)
-  case class updateView(bankAccountId: BankIdAccountId, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
+  case class updateCustomView(bankAccountId: BankIdAccountId, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
   case class updateSystemView(viewId : ViewId, viewUpdateJson : UpdateViewJSON)
-  case class viewsForAccount(bankAccountId: BankIdAccountId)
+  case class assignedViewsForAccount(bankAccountId: BankIdAccountId)
+  case class availableViewsForAccount(bankAccountId: BankIdAccountId)
   case class viewsUserCanAccess(user: User)
   case class privateViewsUserCanAccess(user: User)
+  case class privateViewsUserCanAccessAtBank(user: User, bankId: BankId)
   case class privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId)
   case class getAllFirehoseAccounts(bank: Bank, user : User)
   case class publicViews()
   case class publicViewsForBank(bankId: BankId)
   case class firehoseViewsForBank(bankId: BankId, user : User)
-  case class view(pars: Any*) {
+  case class customView(pars: Any*) {
     def apply(viewId: ViewId, bankAccountId: BankIdAccountId): Box[View] = this (viewId, bankAccountId)
   }
-  case class viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId)
+  case class systemView(viewId : ViewId)
+  case class customViewFuture(viewId : ViewId, bankAccountId: BankIdAccountId)
   case class systemViewFuture(viewId : ViewId)
   case class getOrCreateAccountView(account: BankIdAccountId, viewName: String)
   case class getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String)
+  case class getOrCreateSystemView(name: String)
   case class getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String)
   case class getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String)
   case class getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String)
@@ -138,8 +149,6 @@ class RemotedataViewsCaseClasses {
 
   case class getOwners(view: View)
   
-  case class grantAccessToAllExistingViews(user : User)
-
   case class removeAllPermissions(bankId: BankId, accountId: AccountId)
   case class removeAllViews(bankId: BankId, accountId: AccountId)
 

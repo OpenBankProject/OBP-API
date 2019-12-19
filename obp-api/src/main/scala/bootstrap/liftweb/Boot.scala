@@ -99,6 +99,7 @@ import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper.MdcLoggable
+import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
 import code.webuiprops.WebUiProps
@@ -531,6 +532,27 @@ class Boot extends MdcLoggable {
     if (APIUtil.getPropsAsBoolValue("connector.export.LocalMappedConnector", false)){
       ConnectorEndpoints.registerConnectorEndpoints
     }
+
+    if (APIUtil.getPropsAsBoolValue("create_system_views_at_boot", true)){
+      // Create system views
+      val owner = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined
+      val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).isDefined
+      val accountant = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).isDefined
+      // Only create Firehose view if they are enabled at instance.
+      val firehose = if (APIUtil.getPropsAsBoolValue("allow_firehose_views", false))
+        Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
+      else Empty.isDefined
+      
+      val comment: String =
+        s"""
+           |System view ${SYSTEM_OWNER_VIEW_ID} exists/created at the instance: ${owner}
+           |System view ${SYSTEM_AUDITOR_VIEW_ID} exists/created at the instance: ${auditor}
+           |System view ${SYSTEM_ACCOUNTANT_VIEW_ID} exists/created at the instance: ${accountant}
+           |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${firehose}
+           |""".stripMargin
+      logger.info(comment)
+    }
+    
 
   }
 

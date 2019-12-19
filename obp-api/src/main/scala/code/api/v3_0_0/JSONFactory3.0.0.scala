@@ -78,6 +78,7 @@ case class ViewJsonV300(
   val description: String,
   val metadata_view: String,
   val is_public: Boolean,
+  val is_system: Boolean,
   val alias: String,
   val hide_metadata_if_alias_used: Boolean,
   val can_add_comment : Boolean,
@@ -647,6 +648,7 @@ object JSONFactory300{
       description = stringOrNull(view.description),
       metadata_view= view.metadataView,
       is_public = view.isPublic,
+      is_system = view.isSystem,
       alias = alias,
       hide_metadata_if_alias_used = view.hideOtherAccountMetadataIfAlias,
       can_add_comment = view.canAddComment,
@@ -758,7 +760,7 @@ object JSONFactory300{
       coreAccount.accountType,
       coreAccount.accountRoutings.map(accountRounting =>AccountRoutingJsonV121(accountRounting.scheme, accountRounting.address)),
       views = Views.views.vend
-        .viewsForAccount(BankIdAccountId(BankId(coreAccount.bankId), AccountId(coreAccount.id))).filter(_.isPrivate)
+        .assignedViewsForAccount(BankIdAccountId(BankId(coreAccount.bankId), AccountId(coreAccount.id))).filter(_.isPrivate)
         .map(mappedView =>
           ViewBasicV300(
             mappedView.viewId.value,

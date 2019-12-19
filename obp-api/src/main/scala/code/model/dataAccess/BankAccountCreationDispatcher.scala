@@ -44,9 +44,9 @@ package com.tesobe.model {
 package code.model.dataAccess {
 
   import code.accountholders.AccountHolders
+  import code.api.Constant._
   import code.api.util.APIUtil
   import code.bankconnectors.Connector
-  import code.model._
   import code.users.Users
   import code.util.Helper.MdcLoggable
   import code.views.Views
@@ -86,50 +86,20 @@ package code.model.dataAccess {
       * @return This is a procedure, no return value. Just use the side effect.
       */
     def setAsOwner(bankId : BankId, accountId : AccountId, user: User): Unit = {
-      createOwnerView(bankId, accountId, user)
+      addPermissionToSystemOwnerView(bankId, accountId, user)
       val accountHolder = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user: User, BankIdAccountId(bankId, accountId))
     }
-  
-    /**
-      * 1 Create or Update `Owner` view for Account.
-      * 2 Add Permission to the User
-      * @param bankId
-      * @param accountId
-      * @param user
-      *       
-      * @return This is a procedure, no return value. Just use the side effect.
-      */
-    private def createOwnerView(bankId : BankId, accountId : AccountId, user: User): Unit = {
-
-      val ownerViewUID = ViewIdBankIdAccountId(ViewId("owner"), bankId, accountId)
-      val existingOwnerView = Views.views.vend.view(ownerViewUID.viewId, BankIdAccountId(ownerViewUID.bankId, ownerViewUID.accountId))
-
-      existingOwnerView match {
-        case Full(v) => {
-          logger.debug(s"account $accountId at bank $bankId has already an owner view")
-          v.users.toList.find(_.userPrimaryKey == user.userPrimaryKey) match {
-            case Some(u) => {
-              logger.debug(s"user ${user.emailAddress} has already an owner view access on account $accountId at bank $bankId")
-            }
-            case _ =>{
-              //TODO: When can this case occur?
-              logger.debug(s"creating owner view access to user ${user.emailAddress}")
-              Views.views.vend.addPermission(ownerViewUID, user)
-            }
-          }
-        }
-        case _ => {
-          {
-            //TODO: if we add more permissions to ViewImpl we need to remember to set them here...
-            logger.debug(s"creating owner view on account account $accountId at bank $bankId")
-            val view = Views.views.vend.getOrCreateOwnerView(bankId, accountId, "Owner View")
-
-            logger.debug(s"creating owner view access to user ${user.emailAddress}")
-            Views.views.vend.addPermission(ownerViewUID, user)
-          }
-        }
+    
+    private def addPermissionToSystemOwnerView(bankId : BankId, accountId : AccountId, user: User): Unit = {
+      val ownerView = ViewIdBankIdAccountId(ViewId(SYSTEM_OWNER_VIEW_ID), bankId, accountId)
+      Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined match {
+        case true =>
+          Views.views.vend.grantAccess(ownerView, user)
+        case false =>
+          logger.debug(s"Cannot create/get system view: ${SYSTEM_OWNER_VIEW_ID}")
       }
     }
+  
   }
 
   object BankAccountCreationListener extends MdcLoggable {

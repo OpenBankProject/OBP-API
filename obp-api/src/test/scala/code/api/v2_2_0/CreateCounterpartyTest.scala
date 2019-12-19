@@ -1,5 +1,6 @@
 package code.api.v2_2_0
 
+import code.api.Constant._
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
@@ -28,12 +29,12 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       val testBank = createBank("transactions-test-bank1")
       val bankId = testBank.bankId
       val accountId = AccountId("__acc1")
-      val viewId =ViewId("owner")
+      val viewId =ViewId(CUSTOM_OWNER_VIEW_ID)
 
 
       // Note: The view created below has can_add_counterparty set to true
       // TODO Add a test to test the creation of that permission on a view that doesn't have it, and then try to create the Couterparty
-      val bankAccount = createAccountAndOwnerView(Some(resourceUser1), bankId, accountId, "EUR")
+      val bankAccount = createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
   
       val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
 
@@ -88,9 +89,9 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       val testBank = createBank("transactions-test-bank")
       val bankId = testBank.bankId
       val accountId = AccountId("notExistingAccountId")
-      val viewId =ViewId("owner")
+      val viewId =ViewId(SYSTEM_OWNER_VIEW_ID)
       val ownerView = createOwnerView(bankId, accountId)
-      Views.views.vend.addPermission(ViewIdBankIdAccountId(viewId, bankId, accountId), resourceUser1)
+      Views.views.vend.grantAccess(ViewIdBankIdAccountId(viewId, bankId, accountId), resourceUser1)
 
       val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
   
@@ -107,8 +108,8 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       val testBank = createBank("transactions-test-bank")
       val bankId = testBank.bankId
       val accountId = AccountId("__acc1")
-      val viewId =ViewId("owner")
-      val bankAccount = createAccountAndOwnerView(Some(resourceUser1), bankId, accountId, "EUR")
+      val viewId =ViewId(CUSTOM_OWNER_VIEW_ID)
+      val bankAccount = createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
 
       val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
   

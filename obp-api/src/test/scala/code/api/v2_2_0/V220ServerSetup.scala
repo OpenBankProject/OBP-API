@@ -3,11 +3,11 @@ package code.api.v2_2_0
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2_1.BanksJSON
 import code.api.v2_0_0.BasicAccountsJSON
-import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData, User1AllPrivileges}
+import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 
 import scala.util.Random.nextInt
 
-trait V220ServerSetup extends ServerSetupWithTestData with User1AllPrivileges with DefaultUsers{
+trait V220ServerSetup extends ServerSetupWithTestData with  DefaultUsers{
 
   def v1_2_1Request = baseRequest / "obp" / "v1.2.1"
   def v1_4Request = baseRequest / "obp" / "v1.4.0"

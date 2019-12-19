@@ -433,8 +433,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             (fromAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             failMsg = ErrorMessages.InvalidISOCurrencyCode.concat("Please specify a valid value for CURRENCY of your Bank Account. ")
             _ <- NewStyle.function.isValidCurrencyISOCode(fromAccount.currency, failMsg, callContext)
-            view <- NewStyle.function.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext)
-            _ <- NewStyle.function.hasViewAccess(view, u) 
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
             transactionRequestTypes <- Future(Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)) map {
               connectorEmptyResponse(_, callContext)
             }
@@ -477,8 +476,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccountX(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
-              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))
-              _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
+              _ <- booleanToBox( u.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)), UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId)
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
             }
             yield {
@@ -612,8 +610,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))
-              _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
+              view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u))
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ InvalidJsonFormat
               //TODO check more things here
               _ <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)

@@ -3,11 +3,13 @@ package code.api.util
 import java.util.Date
 import java.util.UUID.randomUUID
 
+import code.accountholders.AccountHolders
 import code.api.APIFailureNewStyle
+import code.api.Constant._
 import code.api.cache.Caching
-import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
-import code.api.util.ErrorMessages._
-import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, unboxFull, unboxFullOrFail}
+import code.api.util.ApiRole.canCreateAnyTransactionRequest
+import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
@@ -15,7 +17,7 @@ import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.bankconnectors.Connector
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
-import code.directdebit.{DirectDebitTrait, DirectDebits}
+import code.directdebit.DirectDebitTrait
 import code.dynamicEntity.{DynamicEntityProvider, DynamicEntityT}
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
@@ -30,14 +32,13 @@ import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.enums.DynamicEntityOperation.{CREATE, UPDATE}
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.common.{Box, Empty, Full, ParamFailure}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
-import net.liftweb.json
-import net.liftweb.json.{JArray, JBool, JDouble, JInt, JObject, JString, JValue}
+import net.liftweb.json.{JObject, JValue}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
@@ -211,7 +212,7 @@ object NewStyle {
       }
 
     def moderatedBankAccount(account: BankAccount, view: View, user: Box[User], callContext: Option[CallContext]) = Future {
-      account.moderatedBankAccount(view, user, callContext)
+      account.moderatedBankAccount(view, BankIdAccountId(account.bankId, account.accountId), user, callContext)
     } map { fullBoxOrException(_)
     } map { unboxFull(_) }
     
@@ -219,27 +220,87 @@ object NewStyle {
                                    view: View, 
                                    user: Box[User], 
                                    callContext: Option[CallContext]): Future[List[ModeratedOtherBankAccount]] = 
-      Future(account.moderatedOtherBankAccounts(view, user)) map { connectorEmptyResponse(_, callContext) }    
+      Future(account.moderatedOtherBankAccounts(view, BankIdAccountId(account.bankId, account.accountId), user)) map { connectorEmptyResponse(_, callContext) }    
     def moderatedOtherBankAccount(account: BankAccount,
                                   counterpartyId: String, 
                                   view: View, 
                                   user: Box[User], 
                                   callContext: Option[CallContext]): Future[ModeratedOtherBankAccount] = 
-      Future(account.moderatedOtherBankAccount(counterpartyId, view, user, callContext)) map { connectorEmptyResponse(_, callContext) }
+      Future(account.moderatedOtherBankAccount(counterpartyId, view, BankIdAccountId(account.bankId, account.accountId), user, callContext)) map { connectorEmptyResponse(_, callContext) }
 
     def getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[List[TransactionCore]] =
       Connector.connector.vend.getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetTransactions", 400 ), i._2)
       }
-    
-    def view(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
-      Views.views.vend.viewFuture(viewId, bankAccountId) map {
-        unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is $viewId")
+    def checkOwnerViewAccessAndReturnOwnerView(user: User, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
+      Future {user.checkOwnerViewAccessAndReturnOwnerView(bankAccountId)}  map {
+        unboxFullOrFail(_, callContext, s"$UserNoOwnerView" +"userId : " + user.userId + ". bankId : " + s"${bankAccountId.bankId}" + ". accountId : " + s"${bankAccountId.accountId}")
       }
     }
+
+    def checkViewAccessAndReturnView(viewId : ViewId, bankAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]) : Future[View] = {
+      Future{
+        APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, user)
+      } map {
+        unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView")
+      }
+    }
+    
+    def checkAuthorisationToCreateTransactionRequest(viewId : ViewId, bankAccountId: BankIdAccountId, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
+      Future{
+        code.api.util.APIUtil.hasEntitlement(bankAccountId.bankId.value, user.userId, canCreateAnyTransactionRequest) match {
+          case true => Full(true)
+          case false => user.hasOwnerViewAccess(BankIdAccountId(bankAccountId.bankId,bankAccountId.accountId)) match {
+            case true => Full(true)
+            case false => Empty
+          }
+        }
+      } map {
+        unboxFullOrFail(_, callContext, s"$InsufficientAuthorisationToCreateTransactionRequest")
+      }
+    }
+    
+    def customView(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
+      Views.views.vend.customViewFuture(viewId, bankAccountId) map {
+        unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is $viewId")
+      }
+    }    
+    
     def systemView(viewId : ViewId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.systemViewFuture(viewId) map {
         unboxFullOrFail(_, callContext, s"$SystemViewNotFound. Current ViewId is $viewId")
+      }
+    }
+    def grantAccessToCustomView(view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
+      Future(Views.views.vend.grantAccess(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId), user)) map {
+        unboxFullOrFail(_, callContext, s"$CannotGrantAccountAccess Current ViewId is ${view.viewId.value}")
+      }
+    }
+    def revokeAccessToCustomView(view : View, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
+      Future(Views.views.vend.revokeAccess(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId), user)) map {
+        unboxFullOrFail(_, callContext, s"$CannotRevokeAccountAccess Current ViewId is ${view.viewId.value}")
+      }
+    }
+    def grantAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
+      Future(Views.views.vend.grantAccessToSystemView(bankId, accountId, view, user)) map {
+        unboxFullOrFail(_, callContext, s"$CannotGrantAccountAccess Current ViewId is ${view.viewId.value}")
+      }
+    }
+    def revokeAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
+      Future(Views.views.vend.revokeAccessToSystemView(bankId, accountId, view, user)) map {
+        unboxFullOrFail(_, callContext, s"$CannotRevokeAccountAccess Current ViewId is ${view.viewId.value}")
+      }
+    }
+    
+    def canGrantAccessToView(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[Box[Boolean]] = {
+      Helper.wrapStatementToFuture(UserMissOwnerViewOrNotAccountHolder) {
+        canGrantAccessToViewCommon(bankId, accountId, user)
+      }
+    }
+
+    def canRevokeAccessToView(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[Box[Boolean]] = {
+      Helper.wrapStatementToFuture(UserMissOwnerViewOrNotAccountHolder) {
+        canRevokeAccessToViewCommon(bankId, accountId, user)
       }
     }
     def createSystemView(view: CreateViewJson, callContext: Option[CallContext]) : Future[View] = {
@@ -256,9 +317,6 @@ object NewStyle {
       Views.views.vend.removeSystemView(viewId) map {
         unboxFullOrFail(_, callContext, s"$DeleteSystemViewError")
       }
-    }
-    def hasViewAccess(view: View, user: User): Future[Box[Unit]] = {
-      Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {(user.hasViewAccess(view))}
     }
 
     def getConsumerByConsumerId(consumerId: String, callContext: Option[CallContext]): Future[Consumer] = {

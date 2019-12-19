@@ -85,7 +85,7 @@ trait ServerSetupWithTestDataAsync extends ServerSetupAsync with DefaultConnecto
     //fake banks
     val banks = createBanks()
     //fake bank accounts
-    val accounts = createAccounts(resourceUser1, banks)
+    val accounts = createAccountRelevantResources(resourceUser1, banks)
     //fake transactions
     createTransactions(accounts)
     //fake transactionRequests
