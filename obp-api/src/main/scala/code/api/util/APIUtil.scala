@@ -2381,25 +2381,19 @@ Returns a string showed to the developer
   }
   
   // TODO Use this in code as a single point of entry whenever we need to check owner view
-  def isOwnerView(view: View): Boolean = {
-    // Sanity check. We don't want a public owner view.
-    if(view.isPublic) {
-      logger.warn(s"Public owner encountered. Primary view id: ${view.id}")
-      false
-    } else {
-      view.viewId.value.contains(SYSTEM_OWNER_VIEW_ID) == true
-    }
+  def isOwnerView(viewId: ViewId): Boolean = {
+    viewId.value.contains(SYSTEM_OWNER_VIEW_ID) == true
   }
   
   /**
     * This view public is true and set `allow_public_views=true` in props
     */
   def isPublicView(view: View) : Boolean = {
-    isOwnerView(view) match {
-      case true => false
-      case false =>
-        if(view.isPublic && APIUtil.ALLOW_PUBLIC_VIEWS) true
-        else false
+    isOwnerView(view.viewId) match {
+      case true if view.isPublic => // Sanity check. We don't want a public owner view.
+        logger.warn(s"Public owner encountered. Primary view id: ${view.id}")
+        false 
+      case _ => view.isPublic && APIUtil.ALLOW_PUBLIC_VIEWS
     }
   }
   /**
