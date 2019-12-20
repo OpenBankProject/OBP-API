@@ -15,8 +15,8 @@ import code.api.v3_1_0.OBPAPI3_1_0
 import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
 import APIMethods400.Implementations4_0_0.genericEndpoint
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.enums.ObpLanguageTag
-import com.openbankproject.commons.model.enums.ObpLanguageTag._
+import com.openbankproject.commons.model.enums.LanguageParam
+import com.openbankproject.commons.model.enums.LanguageParam._
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
@@ -379,10 +379,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
       cc =>{
        for {
-        (showCore, showPSD2, showOBWG, tags, partialFunctions, languageTag) <- Full(ResourceDocsAPIMethodsUtil.getParams())
+        (showCore, showPSD2, showOBWG, tags, partialFunctions, languageParam) <- Full(ResourceDocsAPIMethodsUtil.getParams())
          requestedApiVersion <- tryo {ApiVersion.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
          _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
-         json <- languageTag match {
+         json <- languageParam match {
            case Some(zh) => getChineseVersionResourceDocs
            case _ => getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags, partialFunctions)
          }
@@ -437,7 +437,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "swagger" :: Nil JsonGet _ => {
         cc =>{
           for {
-            (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions, languageTag) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
+            (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions, languageParam) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- tryo(ApiVersion.valueOf(requestedApiVersionString)) ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported Current Version is $requestedApiVersionString")
             json <- getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG, requestedApiVersionString, resourceDocTags, partialFunctions)
@@ -566,13 +566,13 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
     case _ => Empty
   }
 
-  def stringToObpLanguageTag (x: String) : Option[ObpLanguageTag] = x.toLowerCase match {
+  def stringToLanguageParam (x: String) : Option[LanguageParam] = x.toLowerCase match {
     case "en"  => Some(EN)
     case "zh"  => Some(ZH)
     case _ => Empty
   }
 
-  def getParams() : (Option[Boolean], Option[Boolean], Option[Boolean], Option[List[ResourceDocTag]], Option[List[String]], Option[ObpLanguageTag] ) = {
+  def getParams() : (Option[Boolean], Option[Boolean], Option[Boolean], Option[List[ResourceDocTag]], Option[List[String]], Option[LanguageParam] ) = {
 
     val showCore: Option[Boolean] = for {
       x <- S.param("core")
@@ -637,13 +637,13 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
     logger.info(s"partialFunctionNames is $partialFunctionNames")
 
     // So we can produce a reduced list of resource docs to prevent manual editing of swagger files.
-    val languageTag = for {
+    val languageParam = for {
       x <- S.param("language")
-      y <- stringToObpLanguageTag(x)
+      y <- stringToLanguageParam(x)
     } yield y
-    logger.info(s"languageTag is $languageTag")
+    logger.info(s"languageParam is $languageParam")
 
-    (showCore, showPSD2, showOBWG, tags, partialFunctionNames, languageTag)
+    (showCore, showPSD2, showOBWG, tags, partialFunctionNames, languageParam)
   }
   
   

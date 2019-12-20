@@ -77,8 +77,8 @@ object DynamicEntityOperation extends OBPEnumeration[DynamicEntityOperation] {
   object IS_EXISTS_DATA extends Value
 }
 
-sealed trait ObpLanguageTag extends EnumValue
-object ObpLanguageTag extends OBPEnumeration[ObpLanguageTag] {
+sealed trait LanguageParam extends EnumValue
+object LanguageParam extends OBPEnumeration[LanguageParam] {
   object EN extends Value
   object ZH extends Value
 }
