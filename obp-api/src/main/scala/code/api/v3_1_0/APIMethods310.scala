@@ -3758,7 +3758,7 @@ trait APIMethods310 {
         |
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
         | 
-        | Please note that system views cannot be public. In case you try to set it you will get the error. $SystemViewCannotBePublicError
+        | Please note that system views cannot be public. In case you try to set it you will get the error $SystemViewCannotBePublicError
         | """,
       SwaggerDefinitionsJSON.createSystemViewJson,
       viewJsonV300,
