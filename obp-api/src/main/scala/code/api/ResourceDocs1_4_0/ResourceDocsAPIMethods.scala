@@ -383,7 +383,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          requestedApiVersion <- tryo {ApiVersion.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
          _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
          json <- languageParam match {
-           case Some(zh) => getChineseVersionResourceDocs
+           case Some(ZH) => getChineseVersionResourceDocs
            case _ => getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags, partialFunctions)
          }
         } yield {
