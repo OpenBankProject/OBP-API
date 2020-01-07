@@ -1418,7 +1418,7 @@ trait APIMethods400 {
             (Full(u), callContext) <-  authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankId, accountId), callContext) 
-            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
             (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
               bankId,
               accountId,
@@ -1467,7 +1467,7 @@ trait APIMethods400 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext) 
-            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
             (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
               bankId,
               accountId,

@@ -727,7 +727,7 @@ trait APIMethods310 {
               new java.math.BigDecimal(value)
             }
             _ <- NewStyle.function.isValidCurrencyISOCode(httpParams.filter(_.name == currency).map(_.values.head).head, callContext)
-            _ <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            _ <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
           } yield {
             val ccy = httpParams.filter(_.name == currency).map(_.values.head).head
             val fundsAvailable =  (view.canQueryAvailableFunds, account.balance, account.currency) match {
@@ -5209,7 +5209,7 @@ trait APIMethods310 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext) 
-            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
             (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
               bankId,
               accountId,

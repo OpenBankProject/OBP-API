@@ -429,6 +429,14 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
       viewNotAllowed(view)
   }
 
+  final def moderatedBankAccountCore(view: View, bankIdAccountId: BankIdAccountId, user: Box[User], callContext: Option[CallContext]) : Box[ModeratedBankAccountCore] = {
+    if(APIUtil.hasAccess(view, bankIdAccountId, user))
+    //implicit conversion from option to box
+      view.moderateAccountCore(bankAccount)
+    else
+      viewNotAllowed(view)
+  }
+
   /**
     * @param the view that we will use to get the ModeratedOtherBankAccount list
     * @param the user that want access to the ModeratedOtherBankAccount list

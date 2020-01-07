@@ -48,7 +48,7 @@ import code.consent.MappedConsent
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
-import code.model.{Consumer, ModeratedBankAccount, UserX}
+import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore, UserX}
 import code.obp.grpc.HelloWorldServer
 import code.ratelimiting
 import code.webhook.AccountWebhook
@@ -1325,17 +1325,16 @@ object JSONFactory310{
     )
   }
 
-  def createBankAccountJSON(account : ModeratedBankAccount, 
+  def createBankAccountJSON(account : ModeratedBankAccountCore, 
                             viewsAvailable : List[ViewJSONV121], 
                             accountAttributes: List[AccountAttribute]) : ModeratedAccountJSON310 =  {
-    val bankName = account.bankName.getOrElse("")
     new ModeratedAccountJSON310(
       account.accountId.value,
       stringOptionOrNull(account.label),
       stringOptionOrNull(account.number),
-      createOwnersJSON(account.owners.getOrElse(Set()), bankName),
+      createOwnersJSON(account.owners.getOrElse(Set()), ""),
       stringOptionOrNull(account.accountType),
-      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       viewsAvailable,
       stringOrNull(account.bankId.value),
       AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress)),

@@ -312,7 +312,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId),Some(u), callContext)
-            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
           } yield {
             (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
           }
@@ -356,7 +356,7 @@ trait APIMethods300 {
           for {
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, Some(cc))
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId),cc.user, callContext)
-            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Empty, callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Empty, callContext)
           } yield {
             (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
           }
@@ -401,7 +401,7 @@ trait APIMethods300 {
           (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
           // Assume owner view was requested
           view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
-          moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+          moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
           (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
             bankId,
             accountId,

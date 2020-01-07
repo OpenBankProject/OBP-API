@@ -790,32 +790,30 @@ object JSONFactory300{
   }
 
   //Here we added the views and accountAttributes here.
-  def createNewCoreBankAccountJson(account : ModeratedBankAccount, availableViews: List[View],accountAttributes: List[AccountAttribute]) : NewModeratedCoreAccountJsonV300 =  {
-    val bankName = account.bankName.getOrElse("")
+  def createNewCoreBankAccountJson(account : ModeratedBankAccountCore, availableViews: List[View],accountAttributes: List[AccountAttribute]) : NewModeratedCoreAccountJsonV300 =  {
     new NewModeratedCoreAccountJsonV300 (
       account.accountId.value,
       stringOrNull(account.bankId.value),
       stringOptionOrNull(account.label),
       stringOptionOrNull(account.number),
-      createOwnersJSON(account.owners.getOrElse(Set()), bankName),
+      createOwnersJSON(account.owners.getOrElse(Set()), ""),
       stringOptionOrNull(account.accountType),
-      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       createAccountRoutingsJSON(account.accountRoutings),
       views_basic = availableViews.map(view => code.api.v3_0_0.ViewBasicV300(id = view.viewId.value, short_name = view.name, description = view.description, is_public = view.isPublic)),
       accountAttributes.map(createAccountAttributeJson)
     )
   }
   
-  def createCoreBankAccountJSON(account : ModeratedBankAccount) : ModeratedCoreAccountJsonV300 =  {
-    val bankName = account.bankName.getOrElse("")
+  def createCoreBankAccountJSON(account : ModeratedBankAccountCore) : ModeratedCoreAccountJsonV300 =  {
     new ModeratedCoreAccountJsonV300 (
       account.accountId.value,
       stringOrNull(account.bankId.value),
       stringOptionOrNull(account.label),
       stringOptionOrNull(account.number),
-      createOwnersJSON(account.owners.getOrElse(Set()), bankName),
+      createOwnersJSON(account.owners.getOrElse(Set()), ""),
       stringOptionOrNull(account.accountType),
-      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       createAccountRoutingsJSON(account.accountRoutings),
       createAccountRulesJSON(account.accountRules)
     )

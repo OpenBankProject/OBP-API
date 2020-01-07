@@ -350,6 +350,43 @@ case class ViewExtended(val view: View) {
       Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionThisBankAccount` access for the view(${view.viewId.value})")
   }
 
+  def moderateAccountCore(bankAccount: BankAccount) : Box[ModeratedBankAccountCore] = {
+    if(view.canSeeTransactionThisBankAccount)
+    {
+      val owners : Set[User] = if(view.canSeeBankAccountOwners) bankAccount.userOwners else Set()
+      val balance = if(view.canSeeBankAccountBalance) Some(bankAccount.balance.toString) else None
+      val accountType = if(view.canSeeBankAccountType) Some(bankAccount.accountType) else None
+      val currency = if(view.canSeeBankAccountCurrency) Some(bankAccount.currency) else None
+      val label = if(view.canSeeBankAccountLabel) Some(bankAccount.label) else None
+      val number = if(view.canSeeBankAccountNumber) Some(bankAccount.number) else None
+      val bankId = bankAccount.bankId
+      //From V300, use scheme and address stuff...
+      val accountRoutingScheme = if(view.canSeeBankAccountRoutingScheme) Some(bankAccount.accountRoutingScheme) else None
+      val accountRoutingAddress = if(view.canSeeBankAccountRoutingAddress) Some(bankAccount.accountRoutingAddress) else None
+      val accountRoutings = if(view.canSeeBankAccountRoutingScheme && view.canSeeBankAccountRoutingAddress) bankAccount.accountRoutings else Nil
+      val accountRules = if(view.canSeeBankAccountCreditLimit) bankAccount.accountRules else Nil
+
+      Some(
+        ModeratedBankAccountCore(
+          accountId = bankAccount.accountId,
+          owners = Some(owners),
+          accountType = accountType,
+          balance = balance,
+          currency = currency,
+          label = label,
+          number = number,
+          bankId = bankId,
+          accountRoutingScheme = accountRoutingScheme,
+          accountRoutingAddress = accountRoutingAddress,
+          accountRoutings = accountRoutings,
+          accountRules = accountRules
+        )
+      )
+    }
+    else
+      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionThisBankAccount` access for the view(${view.viewId.value})")
+  }
+
   // Moderate the Counterparty side of the Transaction (i.e. the Other Account involved in the transaction)
   def moderateOtherAccount(otherBankAccount : Counterparty) : Box[ModeratedOtherBankAccount] = {
     if (view.canSeeTransactionOtherBankAccount)
