@@ -1089,7 +1089,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           roles: Option[List[ApiRole]] = None,
                           isFeatured: Boolean = false,
                           specialInstructions: Option[String] = None,
-                          specifiedUrl: Option[String] = None // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
+                          specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
+                          connectorMethods: Option[List[String]] = None
   )
 
 

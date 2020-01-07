@@ -79,7 +79,9 @@ trait APIMethods400 {
       banksJSON,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil)
+      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil,
+      connectorMethods = Some(List("obp.getBanks"))
+    )
 
     lazy val getBanks: OBPEndpoint = {
       case "banks" :: Nil JsonGet _ => {
@@ -1551,7 +1553,8 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank),
-      Some(List(canCreateBank))
+      Some(List(canCreateBank)),
+      connectorMethods = Some(List("obp.createOrUpdateBank"))
     )
 
     lazy val createBank: OBPEndpoint = {
