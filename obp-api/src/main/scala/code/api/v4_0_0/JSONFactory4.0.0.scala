@@ -128,7 +128,7 @@ case class ModeratedAccountJSON400(
                                     balance : AmountOfMoneyJsonV121,
                                     views_available : List[ViewJSONV121],
                                     bank_id : String,
-                                    account_routing :AccountRoutingJsonV121,
+                                    account_routing :List[AccountRoutingJsonV121],
                                     account_attributes: List[AccountAttributeResponseJson],
                                     tags: List[AccountTagJSON]
                                   )
@@ -317,7 +317,7 @@ object JSONFactory400 {
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       viewsAvailable,
       stringOrNull(account.bankId.value),
-      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress)),
+      createAccountRoutingsJSON(account.accountRoutings),
       accountAttributes.map(createAccountAttributeJson),
       tags.map(createAccountTagJSON)
     )

@@ -198,8 +198,6 @@ case class ModeratedBankAccountCore(
   label : Moderated[String],
   number: Moderated[String],
   bankId : BankId,
-  accountRoutingScheme : Moderated[String],
-  accountRoutingAddress :Moderated[String],
   accountRoutings: List[AccountRouting],
   accountRules: List[AccountRule]
 )

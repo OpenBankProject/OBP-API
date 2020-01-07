@@ -642,7 +642,7 @@ case class CreateAccountResponseJsonV310(
                                  product_code : String,
                                  balance : AmountOfMoneyJsonV121,
                                  branch_id : String,
-                                 account_routing: AccountRoutingJsonV121,
+                                 account_routings: List[AccountRoutingJsonV121],
                                  account_attributes: List[AccountAttributeResponseJson]
                                 )
 
@@ -655,7 +655,7 @@ case class ModeratedAccountJSON310(
                                     balance : AmountOfMoneyJsonV121,
                                     views_available : List[ViewJSONV121],
                                     bank_id : String,
-                                    account_routing :AccountRoutingJsonV121,
+                                    account_routings :List[AccountRoutingJsonV121],
                                     account_attributes: List[AccountAttributeResponseJson]
                                   )
 
@@ -1317,10 +1317,10 @@ object JSONFactory310{
         account.balance.toString()
       ),
       branch_id = account.branchId,
-      account_routing = AccountRoutingJsonV121(
+      account_routings = List(AccountRoutingJsonV121(
         scheme = account.accountRoutingScheme,
         address = account.accountRoutingAddress
-      ),
+      )),
       accountAttributes.map(createAccountAttributeJson)
     )
   }
@@ -1337,7 +1337,7 @@ object JSONFactory310{
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       viewsAvailable,
       stringOrNull(account.bankId.value),
-      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress)),
+      createAccountRoutingsJSON(account.accountRoutings),
       accountAttributes.map(createAccountAttributeJson)
     )
   }

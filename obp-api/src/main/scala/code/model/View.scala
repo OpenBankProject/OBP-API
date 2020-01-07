@@ -361,8 +361,6 @@ case class ViewExtended(val view: View) {
       val number = if(view.canSeeBankAccountNumber) Some(bankAccount.number) else None
       val bankId = bankAccount.bankId
       //From V300, use scheme and address stuff...
-      val accountRoutingScheme = if(view.canSeeBankAccountRoutingScheme) Some(bankAccount.accountRoutingScheme) else None
-      val accountRoutingAddress = if(view.canSeeBankAccountRoutingAddress) Some(bankAccount.accountRoutingAddress) else None
       val accountRoutings = if(view.canSeeBankAccountRoutingScheme && view.canSeeBankAccountRoutingAddress) bankAccount.accountRoutings else Nil
       val accountRules = if(view.canSeeBankAccountCreditLimit) bankAccount.accountRules else Nil
 
@@ -376,8 +374,6 @@ case class ViewExtended(val view: View) {
           label = label,
           number = number,
           bankId = bankId,
-          accountRoutingScheme = accountRoutingScheme,
-          accountRoutingAddress = accountRoutingAddress,
           accountRoutings = accountRoutings,
           accountRules = accountRules
         )
