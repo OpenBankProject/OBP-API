@@ -1409,7 +1409,9 @@ trait APIMethods400 {
       moderatedCoreAccountJsonV400,
       List(BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
-      apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: Nil)
+      apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: Nil,
+      connectorMethods = Some(List("obp.checkBankAccountExists","obp.getAccountAttributesByAccount"))
+    )
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => {
@@ -1459,7 +1461,9 @@ trait APIMethods400 {
       moderatedAccountJSON400,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      apiTagAccount ::  apiTagNewStyle :: Nil)
+      apiTagAccount ::  apiTagNewStyle :: Nil,
+      connectorMethods = Some(List("obp.checkBankAccountExists","obp.getAccountAttributesByAccount"))
+    )
     lazy val getPrivateAccountByIdFull : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
         cc =>

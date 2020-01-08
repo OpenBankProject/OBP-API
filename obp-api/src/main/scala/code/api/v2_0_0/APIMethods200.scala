@@ -264,7 +264,8 @@ trait APIMethods200 {
       basicAccountsJSON,
       List(BankNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle)
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getBank","obp.getBankAccount"))
     )
 
     def processAccounts(privateViewsUserCanAccessAtOneBank: List[View], availablePrivateAccounts: List[BankAccount]) = {

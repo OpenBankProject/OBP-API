@@ -431,7 +431,8 @@ trait APIMethods300 {
       coreAccountsJsonV300,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagNewStyle))
+      List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getCoreBankAccounts")))
 
 
     apiRelations += ApiRelation(corePrivateAccountsAllBanks, getCoreAccountById, "detail")
@@ -1540,7 +1541,8 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagUser, apiTagNewStyle))
+      List(apiTagCustomer, apiTagUser, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getCustomersByUserId")))
 
 
 
@@ -1618,7 +1620,8 @@ trait APIMethods300 {
       coreAccountsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount,apiTagPSD2AIS, apiTagNewStyle)
+      List(apiTagAccount,apiTagPSD2AIS, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getBank","obp.getCoreBankAccounts"))
     )
   
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
@@ -1658,7 +1661,8 @@ trait APIMethods300 {
       accountsIdsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagNewStyle)
+      List(apiTagAccount, apiTagPSD2AIS, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getBank","obp.getCoreBankAccounts"))
     )
   
     lazy val getPrivateAccountIdsbyBankId : OBPEndpoint = {
@@ -2063,7 +2067,8 @@ trait APIMethods300 {
       coreAccountsHeldJsonV300,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagNewStyle)
+      List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getBank","obp.getBankAccountsHeld","obp.getCoreBankAccounts"))
     )
   
     lazy val getAccountsHeld : OBPEndpoint = {
