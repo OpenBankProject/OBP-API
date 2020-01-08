@@ -16,47 +16,47 @@ class RemotedataEntitlementsActor extends Actor with ObpActorHelper with MdcLogg
   def receive: PartialFunction[Any, Unit] = {
 
     case cc.getEntitlement(bankId: String, userId: String, roleName: String) =>
-      logger.debug("getEntitlement(" + bankId + ", " + userId + ", " + roleName + ")")
+      logger.debug(s"getEntitlement($bankId, $userId, $roleName)")
       sender ! (mapper.getEntitlement(bankId, userId, roleName))
 
     case cc.getEntitlementById(entitlementId: String) =>
-      logger.debug("getEntitlementById(" + entitlementId + ")")
+      logger.debug(s"getEntitlementById($entitlementId)")
       sender ! (mapper.getEntitlementById(entitlementId))
 
     case cc.getEntitlementsByUserId(userId: String) =>
-      logger.debug("getEntitlementsByUserId(" + userId + ")")
+      logger.debug(s"getEntitlementsByUserId($userId)")
       sender ! (mapper.getEntitlementsByUserId(userId))
 
     case cc.getEntitlementsByUserIdFuture(userId: String) =>
-      logger.debug("getEntitlementsByUserIdFuture(" + userId + ")")
+      logger.debug(s"getEntitlementsByUserIdFuture($userId)")
       sender ! (mapper.getEntitlementsByUserId(userId))
 
     case cc.getEntitlementsByBankId(bankId: String) =>
-      logger.debug("getEntitlementsByBankId(" + bankId + ")")
+      logger.debug(s"getEntitlementsByBankId($bankId)")
       (mapper.getEntitlementsByBankId(bankId)) pipeTo sender
     
     case cc.deleteEntitlement(entitlement: Box[Entitlement]) =>
-      logger.debug("deleteEntitlement(" + entitlement + ")")
+      logger.debug(s"deleteEntitlement($entitlement)")
       sender ! (mapper.deleteEntitlement(entitlement))
 
     case cc.getEntitlements() =>
-      logger.debug("getEntitlements(" + ")")
+      logger.debug(s"getEntitlements()")
       sender ! (mapper.getEntitlements())
 
     case cc.getEntitlementsFuture() =>
-      logger.debug("getEntitlementsFuture(" + ")")
+      logger.debug("getEntitlementsFuture()")
       sender ! (mapper.getEntitlements())
 
     case cc.getEntitlementsByRoleFuture(role) =>
-      logger.debug("getEntitlementsByRoleFuture(\"" + role + "\")")
+      logger.debug(s"getEntitlementsByRoleFuture($role)")
       (mapper.getEntitlementsByRoleFuture(role)) pipeTo sender
 
     case cc.getEntitlementsByRole(role) =>
-      logger.debug("getEntitlementsByRole(\"" + role + "\")")
+      logger.debug(s"getEntitlementsByRole($role)")
       sender ! (mapper.getEntitlementsByRole(role))
 
     case cc.addEntitlement(bankId: String, userId: String, roleName: String) =>
-      logger.debug("addEntitlement(" + bankId + ", " + userId + ", " + roleName + ")")
+      logger.debug(s"addEntitlement($bankId, $userId, $roleName)")
       sender ! (mapper.addEntitlement(bankId, userId, roleName))
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
