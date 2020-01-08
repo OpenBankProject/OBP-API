@@ -2170,8 +2170,9 @@ trait APIMethods121 {
           for {
             params <- paramsBox
             bankAccount <- BankAccountX(bankId, accountId)
+            (bank, callContext) <- BankX(bankId, None) ?~! BankNotFound
             view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), user)
-            (transactions, callContext) <- bankAccount.getModeratedTransactions(user, view, BankIdAccountId(bankId, accountId), None, params )
+            (transactions, callContext) <- bankAccount.getModeratedTransactions(bank, user, view, BankIdAccountId(bankId, accountId), None, params )
           } yield {
             val json = JSONFactory.createTransactionsJSON(transactions)
             successJsonResponse(Extraction.decompose(json))
