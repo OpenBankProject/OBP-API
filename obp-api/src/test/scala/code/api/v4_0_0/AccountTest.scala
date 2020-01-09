@@ -94,7 +94,7 @@ class AccountTest extends V400ServerSetup {
       account.branch_id should be (addAccountJson.branch_id)
       account.user_id should be (addAccountJson.user_id)
       account.label should be (addAccountJson.label)
-      account.account_routings should be (addAccountJson.account_routing)
+      account.account_routings should be (List(addAccountJson.account_routing))
 
       
       Then(s"We call $ApiEndpoint1 to get the account back")
@@ -131,7 +131,7 @@ class AccountTest extends V400ServerSetup {
       account2.branch_id should be (addAccountJson.branch_id)
       account2.user_id should be (addAccountJsonOtherUser.user_id)
       account2.label should be (addAccountJson.label)
-      account2.account_routings should be (addAccountJson.account_routing)
+      account2.account_routings should be (List(addAccountJson.account_routing))
     }
   }
   

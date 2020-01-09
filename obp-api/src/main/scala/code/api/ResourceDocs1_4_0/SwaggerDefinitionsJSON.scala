@@ -3413,7 +3413,7 @@ object SwaggerDefinitionsJSON {
     balance = amountOfMoneyJsonV121,
     views_available = List(viewJSONV121),
     bank_id = bankIdExample.value,
-    account_routing = List(accountRoutingJsonV121),
+    account_routings = List(accountRoutingJsonV121),
     account_attributes = List(accountAttributeResponseJson),
     tags = List(accountTagJSON)
   )

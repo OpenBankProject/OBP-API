@@ -100,7 +100,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       account.branch_id should be (putCreateAccountJSONV310.branch_id)
       account.user_id should be (putCreateAccountJSONV310.user_id)
       account.label should be (putCreateAccountJSONV310.label)
-      account.account_routings should be (putCreateAccountJSONV310.account_routing)
+      account.account_routings should be (List(putCreateAccountJSONV310.account_routing))
 
       
       Then(s"we call $ApiEndpoint4 to get the account back")
@@ -147,7 +147,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       account2.branch_id should be (putCreateAccountOtherUserJsonV310.branch_id)
       account2.user_id should be (putCreateAccountOtherUserJsonV310.user_id)
       account2.label should be (putCreateAccountOtherUserJsonV310.label)
-      account2.account_routings should be (putCreateAccountOtherUserJsonV310.account_routing)
+      account2.account_routings should be (List(putCreateAccountOtherUserJsonV310.account_routing))
 
     }
 
@@ -165,7 +165,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       account.branch_id should be (putCreateAccountJSONV310.branch_id)
       account.user_id should be (putCreateAccountJSONV310.user_id)
       account.label should be (putCreateAccountJSONV310.label)
-      account.account_routings should be (putCreateAccountJSONV310.account_routing)
+      account.account_routings should be (List(putCreateAccountJSONV310.account_routing))
 
 
       Then(s"we call $ApiEndpoint6 to get the account back")
