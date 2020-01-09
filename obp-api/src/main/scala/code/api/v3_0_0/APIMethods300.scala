@@ -562,13 +562,14 @@ trait APIMethods300 {
               _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
                canUseFirehose(u)
               }
+              (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
               (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
               view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId),Some(u), callContext)
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
-                (transactions, callContext) <- bankAccount.getModeratedTransactions(Full(u), view, BankIdAccountId(bankId, accountId), callContext, params)
+                (transactions, callContext) <- bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankId, accountId), callContext, params)
               } yield {
                 (createTransactionsJson(transactions), HttpCode.`200`(callContext))
               }
@@ -610,7 +611,8 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransaction, apiTagPSD2AIS, apiTagAccount, apiTagNewStyle)
+      List(apiTagTransaction, apiTagPSD2AIS, apiTagAccount, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getBank","obp.checkBankAccountExists", "obp.getTransactionsCore"))
     )
 
     lazy val getCoreTransactionsForBankAccount : OBPEndpoint = {
@@ -618,13 +620,14 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(user), callContext) <-  authorizedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             // Assume owner view was requested
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
-            (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(Some(user), view, BankIdAccountId(bankId, accountId), params, callContext) map {
+            (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(bank, Some(user), view, BankIdAccountId(bankId, accountId), params, callContext) map {
               i => (unboxFullOrFail(i._1, callContext, UnknownError), i._2)
             }
           } yield {
@@ -669,7 +672,8 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransaction, apiTagAccount, apiTagNewStyle)
+      List(apiTagTransaction, apiTagAccount, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getBank","obp.checkBankAccountExists", "obp.getTransactions"))
     )
 
     lazy val getTransactionsForBankAccount: OBPEndpoint = {
@@ -677,13 +681,14 @@ trait APIMethods300 {
         cc =>
           for {
             (user, callContext) <-  authorizedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), user, callContext)
             params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
             //Note: error handling and messages for getTransactionParams are in the sub method
-            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(user, view, BankIdAccountId(bankId, accountId), callContext, params) map {
+            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, user, view, BankIdAccountId(bankId, accountId), callContext, params) map {
               connectorEmptyResponse(_, callContext)
             }
           } yield {
