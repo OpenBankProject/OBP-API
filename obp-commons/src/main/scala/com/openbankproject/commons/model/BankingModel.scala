@@ -180,14 +180,16 @@ trait BankAccount{
   def currency : String
   def name : String // Is this used?
   def label : String
-  @deprecated("Used the account scheme and address instead")
+  @deprecated("We should use accountRoutings instead")
   def iban : Option[String]
   def number : String
   def bankId : BankId
   //It means last transaction refresh date only used for HBCI now.
   def lastUpdate : Date
   def branchId: String
+  @deprecated("We should use accountRoutings instead")
   def accountRoutingScheme: String
+  @deprecated("We should use accountRoutings instead")
   def accountRoutingAddress: String
   def accountRoutings: List[AccountRouting] // Introduced in v3.0.0
   def accountRules: List[AccountRule]

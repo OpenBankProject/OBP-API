@@ -211,8 +211,8 @@ object NewStyle {
         (unboxFullOrFail(i._1, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId"), i._2)
       }
 
-    def moderatedBankAccount(account: BankAccount, view: View, user: Box[User], callContext: Option[CallContext]) = Future {
-      account.moderatedBankAccount(view, BankIdAccountId(account.bankId, account.accountId), user, callContext)
+    def moderatedBankAccountCore(account: BankAccount, view: View, user: Box[User], callContext: Option[CallContext]) = Future {
+      account.moderatedBankAccountCore(view, BankIdAccountId(account.bankId, account.accountId), user, callContext)
     } map { fullBoxOrException(_)
     } map { unboxFull(_) }
     

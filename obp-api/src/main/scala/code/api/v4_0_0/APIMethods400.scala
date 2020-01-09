@@ -79,7 +79,9 @@ trait APIMethods400 {
       banksJSON,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil)
+      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil,
+      connectorMethods = Some(List("obp.getBanks"))
+    )
 
     lazy val getBanks: OBPEndpoint = {
       case "banks" :: Nil JsonGet _ => {
@@ -1407,7 +1409,9 @@ trait APIMethods400 {
       moderatedCoreAccountJsonV400,
       List(BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
-      apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: Nil)
+      apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: Nil,
+      connectorMethods = Some(List("obp.checkBankAccountExists","obp.getAccountAttributesByAccount"))
+    )
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => {
@@ -1416,7 +1420,7 @@ trait APIMethods400 {
             (Full(u), callContext) <-  authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankId, accountId), callContext) 
-            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
             (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
               bankId,
               accountId,
@@ -1457,7 +1461,9 @@ trait APIMethods400 {
       moderatedAccountJSON400,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      apiTagAccount ::  apiTagNewStyle :: Nil)
+      apiTagAccount ::  apiTagNewStyle :: Nil,
+      connectorMethods = Some(List("obp.checkBankAccountExists","obp.getAccountAttributesByAccount"))
+    )
     lazy val getPrivateAccountByIdFull : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
         cc =>
@@ -1465,7 +1471,7 @@ trait APIMethods400 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext) 
-            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
             (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
               bankId,
               accountId,
@@ -1551,7 +1557,8 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank),
-      Some(List(canCreateBank))
+      Some(List(canCreateBank)),
+      connectorMethods = Some(List("obp.createOrUpdateBank"))
     )
 
     lazy val createBank: OBPEndpoint = {
