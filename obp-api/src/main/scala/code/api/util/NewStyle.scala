@@ -272,23 +272,51 @@ object NewStyle {
       }
     }
     def grantAccessToCustomView(view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
-      Future(Views.views.vend.grantAccess(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId), user)) map {
-        unboxFullOrFail(_, callContext, s"$CannotGrantAccountAccess Current ViewId is ${view.viewId.value}")
+      view.isSystem match {
+        case false =>
+          Future(Views.views.vend.grantAccess(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId), user)) map {
+            unboxFullOrFail(_, callContext, s"$CannotGrantAccountAccess Current ViewId is ${view.viewId.value}")
+          }
+        case true =>
+          Future(Empty) map {
+            unboxFullOrFail(_, callContext, s"This function cannot be used for system views.")
+          }
       }
     }
     def revokeAccessToCustomView(view : View, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
-      Future(Views.views.vend.revokeAccess(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId), user)) map {
-        unboxFullOrFail(_, callContext, s"$CannotRevokeAccountAccess Current ViewId is ${view.viewId.value}")
+      view.isSystem match {
+        case false =>
+          Future(Views.views.vend.revokeAccess(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId), user)) map {
+            unboxFullOrFail(_, callContext, s"$CannotRevokeAccountAccess Current ViewId is ${view.viewId.value}")
+          }
+        case true =>
+          Future(Empty) map {
+            unboxFullOrFail(_, callContext, s"This function cannot be used for system views.")
+          }
       }
     }
     def grantAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
-      Future(Views.views.vend.grantAccessToSystemView(bankId, accountId, view, user)) map {
-        unboxFullOrFail(_, callContext, s"$CannotGrantAccountAccess Current ViewId is ${view.viewId.value}")
+      view.isSystem match {
+        case true =>
+          Future(Views.views.vend.grantAccessToSystemView(bankId, accountId, view, user)) map {
+            unboxFullOrFail(_, callContext, s"$CannotGrantAccountAccess Current ViewId is ${view.viewId.value}")
+          }
+        case false =>
+          Future(Empty) map {
+            unboxFullOrFail(_, callContext, s"This function cannot be used for custom views.")
+          }
       }
     }
     def revokeAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
-      Future(Views.views.vend.revokeAccessToSystemView(bankId, accountId, view, user)) map {
-        unboxFullOrFail(_, callContext, s"$CannotRevokeAccountAccess Current ViewId is ${view.viewId.value}")
+      view.isSystem match {
+        case true =>
+          Future(Views.views.vend.revokeAccessToSystemView(bankId, accountId, view, user)) map {
+            unboxFullOrFail(_, callContext, s"$CannotRevokeAccountAccess Current ViewId is ${view.viewId.value}")
+          }
+        case false =>
+          Future(Empty) map {
+            unboxFullOrFail(_, callContext, s"This function cannot be used for custom views.")
+          }
       }
     }
     

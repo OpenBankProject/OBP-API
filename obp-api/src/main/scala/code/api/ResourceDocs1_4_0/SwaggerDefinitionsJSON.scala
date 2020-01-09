@@ -161,7 +161,13 @@ object SwaggerDefinitionsJSON {
       "can_see_other_account_routing_scheme",
       "can_see_other_account_routing_address",
       //v310
-      "can_query_available_funds"
+      "can_query_available_funds",
+      "can_add_transaction_request_to_own_account",
+      "can_add_transaction_request_to_any_account",
+      "can_see_bank_account_credit_limit",
+      //v400
+      "can_create_direct_debit",
+      "can_create_standing_order"
     )
   )
 
