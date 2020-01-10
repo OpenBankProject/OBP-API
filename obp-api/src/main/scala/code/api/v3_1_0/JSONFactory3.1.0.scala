@@ -48,7 +48,7 @@ import code.consent.MappedConsent
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
-import code.model.{Consumer, ModeratedBankAccount, UserX}
+import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore, UserX}
 import code.obp.grpc.HelloWorldServer
 import code.ratelimiting
 import code.webhook.AccountWebhook
@@ -642,7 +642,7 @@ case class CreateAccountResponseJsonV310(
                                  product_code : String,
                                  balance : AmountOfMoneyJsonV121,
                                  branch_id : String,
-                                 account_routing: AccountRoutingJsonV121,
+                                 account_routings: List[AccountRoutingJsonV121],
                                  account_attributes: List[AccountAttributeResponseJson]
                                 )
 
@@ -655,7 +655,7 @@ case class ModeratedAccountJSON310(
                                     balance : AmountOfMoneyJsonV121,
                                     views_available : List[ViewJSONV121],
                                     bank_id : String,
-                                    account_routing :AccountRoutingJsonV121,
+                                    account_routings :List[AccountRoutingJsonV121],
                                     account_attributes: List[AccountAttributeResponseJson]
                                   )
 
@@ -1317,28 +1317,27 @@ object JSONFactory310{
         account.balance.toString()
       ),
       branch_id = account.branchId,
-      account_routing = AccountRoutingJsonV121(
+      account_routings = List(AccountRoutingJsonV121(
         scheme = account.accountRoutingScheme,
         address = account.accountRoutingAddress
-      ),
+      )),
       accountAttributes.map(createAccountAttributeJson)
     )
   }
 
-  def createBankAccountJSON(account : ModeratedBankAccount, 
+  def createBankAccountJSON(account : ModeratedBankAccountCore, 
                             viewsAvailable : List[ViewJSONV121], 
                             accountAttributes: List[AccountAttribute]) : ModeratedAccountJSON310 =  {
-    val bankName = account.bankName.getOrElse("")
     new ModeratedAccountJSON310(
       account.accountId.value,
       stringOptionOrNull(account.label),
       stringOptionOrNull(account.number),
-      createOwnersJSON(account.owners.getOrElse(Set()), bankName),
+      createOwnersJSON(account.owners.getOrElse(Set()), ""),
       stringOptionOrNull(account.accountType),
-      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       viewsAvailable,
       stringOrNull(account.bankId.value),
-      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress)),
+      createAccountRoutingsJSON(account.accountRoutings),
       accountAttributes.map(createAccountAttributeJson)
     )
   }

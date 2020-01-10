@@ -13036,7 +13036,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
             }
             ParamFailure(errorMessage, Empty, Empty, APIFailure(errorMessage, errorCode))
         }
-      case failureOrEmpty: Failure => Failure("INTERNAL-1231321 ....CoreBank-Status: NetWork is bad!!!!!")
+      case failureOrEmpty: Failure => 
+        logger.debug(s"StoredProcedureConnector_vDec2019.convertToTuple.failureOrEmpty: $failureOrEmpty")
+        Failure(s"INTERNAL-$AdapterUnknownError")
     }
 
     (boxedResult, callContext)

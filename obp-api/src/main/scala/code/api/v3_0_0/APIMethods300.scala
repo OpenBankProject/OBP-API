@@ -312,7 +312,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId),Some(u), callContext)
-            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
           } yield {
             (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
           }
@@ -356,7 +356,7 @@ trait APIMethods300 {
           for {
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, Some(cc))
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId),cc.user, callContext)
-            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Empty, callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Empty, callContext)
           } yield {
             (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
           }
@@ -401,7 +401,7 @@ trait APIMethods300 {
           (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
           // Assume owner view was requested
           view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
-          moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+          moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
           (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
             bankId,
             accountId,
@@ -431,7 +431,8 @@ trait APIMethods300 {
       coreAccountsJsonV300,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagNewStyle))
+      List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getCoreBankAccounts")))
 
 
     apiRelations += ApiRelation(corePrivateAccountsAllBanks, getCoreAccountById, "detail")
@@ -561,13 +562,14 @@ trait APIMethods300 {
               _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
                canUseFirehose(u)
               }
+              (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
               (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
               view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId),Some(u), callContext)
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
-                (transactions, callContext) <- bankAccount.getModeratedTransactions(Full(u), view, BankIdAccountId(bankId, accountId), callContext, params)
+                (transactions, callContext) <- bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankId, accountId), callContext, params)
               } yield {
                 (createTransactionsJson(transactions), HttpCode.`200`(callContext))
               }
@@ -609,7 +611,8 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransaction, apiTagPSD2AIS, apiTagAccount, apiTagNewStyle)
+      List(apiTagTransaction, apiTagPSD2AIS, apiTagAccount, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getBank","obp.checkBankAccountExists", "obp.getTransactionsCore"))
     )
 
     lazy val getCoreTransactionsForBankAccount : OBPEndpoint = {
@@ -617,13 +620,14 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(user), callContext) <-  authorizedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             // Assume owner view was requested
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
-            (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(Some(user), view, BankIdAccountId(bankId, accountId), params, callContext) map {
+            (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(bank, Some(user), view, BankIdAccountId(bankId, accountId), params, callContext) map {
               i => (unboxFullOrFail(i._1, callContext, UnknownError), i._2)
             }
           } yield {
@@ -668,7 +672,8 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransaction, apiTagAccount, apiTagNewStyle)
+      List(apiTagTransaction, apiTagAccount, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getBank","obp.checkBankAccountExists", "obp.getTransactions"))
     )
 
     lazy val getTransactionsForBankAccount: OBPEndpoint = {
@@ -676,13 +681,14 @@ trait APIMethods300 {
         cc =>
           for {
             (user, callContext) <-  authorizedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), user, callContext)
             params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
             //Note: error handling and messages for getTransactionParams are in the sub method
-            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(user, view, BankIdAccountId(bankId, accountId), callContext, params) map {
+            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, user, view, BankIdAccountId(bankId, accountId), callContext, params) map {
               connectorEmptyResponse(_, callContext)
             }
           } yield {
@@ -1540,7 +1546,8 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagUser, apiTagNewStyle))
+      List(apiTagCustomer, apiTagUser, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getCustomersByUserId")))
 
 
 
@@ -1618,7 +1625,8 @@ trait APIMethods300 {
       coreAccountsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount,apiTagPSD2AIS, apiTagNewStyle)
+      List(apiTagAccount,apiTagPSD2AIS, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getBank","obp.getCoreBankAccounts"))
     )
   
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
@@ -1658,7 +1666,8 @@ trait APIMethods300 {
       accountsIdsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagNewStyle)
+      List(apiTagAccount, apiTagPSD2AIS, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getBank","obp.getCoreBankAccounts"))
     )
   
     lazy val getPrivateAccountIdsbyBankId : OBPEndpoint = {
@@ -2063,7 +2072,8 @@ trait APIMethods300 {
       coreAccountsHeldJsonV300,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagNewStyle)
+      List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getBank","obp.getBankAccountsHeld","obp.getCoreBankAccounts"))
     )
   
     lazy val getAccountsHeld : OBPEndpoint = {
@@ -2374,7 +2384,9 @@ trait APIMethods300 {
       bankJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil)
+      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil,
+      connectorMethods = Some(List("obp.getBank"))
+    )
 
     //The Json Body is totally the same as V121, just use new style endpoint.
     lazy val bankById : OBPEndpoint = {

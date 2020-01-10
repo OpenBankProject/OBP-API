@@ -189,7 +189,18 @@ object ModeratedTransactionMetadata {
     JObject(JField("blah", JString("test")) :: Nil)
   }
 }
-
+case class ModeratedBankAccountCore(
+  accountId : AccountId,
+  owners : Moderated[Set[User]],
+  accountType : Moderated[String],
+  balance: Moderated[String],
+  currency : Moderated[String],
+  label : Moderated[String],
+  number: Moderated[String],
+  bankId : BankId,
+  accountRoutings: List[AccountRouting],
+  accountRules: List[AccountRule]
+)
 
 class ModeratedBankAccount(
                             val accountId : AccountId,

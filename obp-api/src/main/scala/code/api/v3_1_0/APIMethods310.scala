@@ -727,7 +727,7 @@ trait APIMethods310 {
               new java.math.BigDecimal(value)
             }
             _ <- NewStyle.function.isValidCurrencyISOCode(httpParams.filter(_.name == currency).map(_.values.head).head, callContext)
-            _ <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            _ <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
           } yield {
             val ccy = httpParams.filter(_.name == currency).map(_.values.head).head
             val fundsAvailable =  (view.canQueryAvailableFunds, account.balance, account.currency) match {
@@ -1220,7 +1220,8 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagPerson, apiTagNewStyle),
-      Some(List(canCreateCustomer,canCreateCustomerAtAnyBank)))
+      Some(List(canCreateCustomer,canCreateCustomerAtAnyBank)),
+      connectorMethods = Some(List("obp.getBank","obp.createCustomer")))
     lazy val createCustomer : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
         cc =>
@@ -3265,7 +3266,7 @@ trait APIMethods310 {
 
     lazy val getMessageDocsSwagger: OBPEndpoint = {
       case "message-docs" :: restConnectorVersion ::"swagger2.0" :: Nil JsonGet _ => {
-          val (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions) = ResourceDocsAPIMethodsUtil.getParams()
+          val (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions, languageParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc => {
           for {
             (_, callContext) <- anonymousAccess(cc)
@@ -4496,7 +4497,8 @@ trait APIMethods310 {
       List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagAccount),
-      Some(List(canUpdateAccount))
+      Some(List(canUpdateAccount)), 
+      connectorMethods = Some(List("obp.getBank","obp.getBankAccount","obp.updateBankAccount"))
     )
 
     lazy val updateAccount : OBPEndpoint = {
@@ -5211,7 +5213,7 @@ trait APIMethods310 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext) 
-            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
             (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
               bankId,
               accountId,
@@ -5532,7 +5534,8 @@ trait APIMethods310 {
       accountBalancesV310Json,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
+      apiTagAccount :: apiTagPSD2AIS :: apiTagNewStyle :: Nil,
+      connectorMethods = Some(List("obp.getBank","obp.getBankAccountsBalances"))
     )
 
     lazy val getBankAccountsBalances : OBPEndpoint = {

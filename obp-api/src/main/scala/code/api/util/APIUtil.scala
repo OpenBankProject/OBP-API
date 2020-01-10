@@ -28,7 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.util
 
 import java.io.InputStream
-import java.net.URLDecoder
+import java.net.{URL, URLDecoder}
 import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.{Date, UUID}
@@ -1089,7 +1089,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           roles: Option[List[ApiRole]] = None,
                           isFeatured: Boolean = false,
                           specialInstructions: Option[String] = None,
-                          specifiedUrl: Option[String] = None // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
+                          specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
+                          connectorMethods: Option[List[String]] = None
   )
 
 
@@ -2423,14 +2424,15 @@ Returns a string showed to the developer
       APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET_Test")
     else
       APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET")
-      
-  
+
   def getJValueFromFile (path: String) = {
     val bufferedSource: BufferedSource = scala.io.Source.fromFile(path)
-    val jsonStringFromFile =  bufferedSource.mkString 
-    val Jvalue = json.parse(jsonStringFromFile)
-    bufferedSource.close() //close the source manually
-    Jvalue
+    try {
+      val jsonStringFromFile = bufferedSource.mkString
+      json.parse(jsonStringFromFile);
+    } finally {
+      bufferedSource.close() //close the source manually
+    }
   }
 
   //This method will read sample.props.template file, and get all the fields which start with the webui_
