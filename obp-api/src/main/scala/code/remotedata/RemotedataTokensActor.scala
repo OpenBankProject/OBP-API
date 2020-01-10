@@ -18,19 +18,19 @@ class RemotedataTokensActor extends Actor with ObpActorHelper with MdcLoggable {
   def receive = {
 
     case cc.getTokenByKey(key: String) =>
-      logger.debug("getTokenByKey(" + key +")")
+      logger.debug(s"getTokenByKey($key)")
       sender ! (mapper.getTokenByKey(key))
 
     case cc.getTokenByKeyFuture(key: String) =>
-      logger.debug("getTokenByKeyFuture(" + key +")")
+      logger.debug(s"getTokenByKeyFuture($key)")
       sender ! (mapper.getTokenByKey(key))
 
     case cc.getTokenByKeyAndType(key: String, tokenType: TokenType) =>
-      logger.debug("getTokenByKeyAndType(" + key + ", " + tokenType + ")")
+      logger.debug(s"getTokenByKeyAndType($key, $tokenType)")
       sender ! (mapper.getTokenByKeyAndType(key, tokenType))
 
     case cc.getTokenByKeyAndTypeFuture(key: String, tokenType: TokenType) =>
-      logger.debug("getTokenByKeyAndTypeFuture(" + key + ", " + tokenType + ")")
+      logger.debug(s"getTokenByKeyAndTypeFuture($key, $tokenType)")
       sender ! (mapper.getTokenByKeyAndType(key, tokenType))
 
     case cc.createToken(tokenType: TokenType,
@@ -42,31 +42,23 @@ class RemotedataTokensActor extends Actor with ObpActorHelper with MdcLoggable {
                         expirationDate: Option[Date],
                         insertDate: Option[Date],
                         callbackUrl: Option[String]) =>
-      logger.debug("createToken(" + tokenType + ", " +
-                                    consumerId + ", " +
-                                    userId + ", " +
-                                    key + ", " +
-                                    secret + ", " +
-                                    duration + ", " +
-                                    insertDate + ", " +
-                                    tokenType + ", " +
-                                    callbackUrl + ")")
+      logger.debug(s"createToken($tokenType,$consumerId, $userId, $key, $secret, $duration, $insertDate, $tokenType, $callbackUrl)")
       sender ! (mapper.createToken(tokenType, consumerId, userId, key, secret, duration, expirationDate, insertDate, callbackUrl))
 
     case cc.gernerateVerifier(id: Long) =>
-      logger.debug("gernerateVerifier(" + id +")")
+      logger.debug(s"gernerateVerifier($id)")
       sender ! (mapper.gernerateVerifier(id))
 
     case cc.updateToken(id: Long, userId: Long) =>
-      logger.debug("updateToken(" + id + ", " + userId + ")")
+      logger.debug(s"updateToken($id, $userId")
       sender ! (mapper.updateToken(id, userId))
 
     case cc.deleteToken(id: Long) =>
-      logger.debug("deleteToken(" + id +")")
+      logger.debug(s"deleteToken($id)")
       sender ! (mapper.deleteToken(id))
 
     case cc.deleteExpiredTokens(currentDate: Date) =>
-      logger.debug("deleteExpiredTokens(" + currentDate +")")
+      logger.debug(s"deleteExpiredTokens($currentDate)")
       sender ! (mapper.deleteExpiredTokens(currentDate))
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)

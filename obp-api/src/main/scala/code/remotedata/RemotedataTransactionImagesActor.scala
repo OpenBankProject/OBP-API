@@ -18,19 +18,19 @@ class RemotedataTransactionImagesActor extends Actor with ObpActorHelper with Md
   def receive: PartialFunction[Any, Unit] = {
 
     case cc.getImagesForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId, viewId : ViewId) =>
-      logger.debug("getImagesForTransaction(" + bankId +", "+ accountId +", "+ transactionId +", "+ viewId +")")
+      logger.debug(s"getImagesForTransaction($bankId, $accountId, $transactionId, $viewId)")
       sender ! (mapper.getImagesForTransaction(bankId, accountId, transactionId)(viewId))
 
     case cc.addTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserPrimaryKey, viewId : ViewId, description : String, datePosted : Date, imageURL: String) =>
-      logger.debug("addTransactionImage( " + bankId +", "+ accountId +", "+ transactionId +", "+ userId +", "+ viewId + ", "+ description + ", " + datePosted + ", " + imageURL + ")")
+      logger.debug(s"addTransactionImage($bankId, $accountId, $transactionId, $userId, $viewId, $description, $datePosted, $imageURL)")
       sender ! (mapper.addTransactionImage(bankId, accountId, transactionId)(userId, viewId, description, datePosted, imageURL))
 
     case cc.deleteTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId, imageId : String) =>
-      logger.debug("deleteTransactionImage(" + bankId +", "+ accountId +", "+ transactionId + imageId +")")
+      logger.debug(s"deleteTransactionImage($bankId, $accountId, $transactionId, $imageId)")
       sender ! (mapper.deleteTransactionImage(bankId, accountId, transactionId)(imageId))
 
     case cc.bulkDeleteTransactionImage(bankId: BankId, accountId: AccountId) =>
-      logger.debug("bulkDeleteTransactionImage(" + bankId +", "+ accountId + ")")
+      logger.debug(s"bulkDeleteTransactionImage($bankId, $accountId)")
       sender ! (mapper.bulkDeleteTransactionImage(bankId, accountId))
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)

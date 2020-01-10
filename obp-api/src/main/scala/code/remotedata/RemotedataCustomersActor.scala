@@ -23,51 +23,51 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
   def receive: PartialFunction[Any, Unit] = {
 
     case cc.getCustomersFuture(bankId: BankId, queryParams: List[OBPQueryParam]) =>
-      logger.debug("getCustomersFuture(" + bankId + ", " + queryParams + ")")
+      logger.debug(s"getCustomersFuture($bankId, $queryParams)")
       (mapper.getCustomersFuture(bankId, queryParams)) pipeTo sender
 
     case cc.getCustomersByCustomerPhoneNumber(bankId: BankId, phoneNumber: String) =>
-      logger.debug("getCustomersByCustomerPhoneNumber(" + bankId +  ", " + phoneNumber + ")")
+      logger.debug(s"getCustomersByCustomerPhoneNumber($bankId, $phoneNumber)")
       mapper.getCustomersByCustomerPhoneNumber(bankId, phoneNumber) pipeTo sender
 
     case cc.getCustomerByUserId(bankId: BankId, userId: String) =>
-      logger.debug("getCustomerByUserId(" + bankId + ", " + userId + ")")
+      logger.debug(s"getCustomerByUserId($bankId, $userId)")
       sender ! (mapper.getCustomerByUserId(bankId, userId))
 
     case cc.getCustomersByUserId(userId: String) =>
-      logger.debug("getCustomersByUserId(" + userId + ")")
+      logger.debug(s"getCustomersByUserId($userId)")
       sender ! (mapper.getCustomersByUserId(userId))
 
     case cc.getCustomersByUserIdFuture(userId: String) =>
-      logger.debug("getCustomersByUserIdFuture(" + userId + ")")
+      logger.debug(s"getCustomersByUserIdFuture($userId)")
       sender ! (mapper.getCustomersByUserIdBoxed(userId))
 
     case cc.getCustomerByCustomerIdFuture(customerId: String) =>
-      logger.debug("getCustomerByCustomerIdFuture(" + customerId + ")")
+      logger.debug(s"getCustomerByCustomerIdFuture($customerId)")
       sender ! (mapper.getCustomerByCustomerId(customerId))
 
     case cc.getCustomerByCustomerId(customerId: String) =>
-      logger.debug("getCustomerByCustomerId(" + customerId + ")")
+      logger.debug(s"getCustomerByCustomerId($customerId)")
       sender ! (mapper.getCustomerByCustomerId(customerId))
 
     case cc.getBankIdByCustomerId(customerId: String) =>
-      logger.debug("getBankIdByCustomerId(" + customerId + ")")
+      logger.debug(s"getBankIdByCustomerId(customerId)")
       sender ! (mapper.getBankIdByCustomerId(customerId))
 
     case cc.getCustomerByCustomerNumber(customerNumber: String, bankId: BankId) =>
-      logger.debug("getCustomerByCustomerNumber(" + customerNumber + ", " + bankId + ")")
+      logger.debug(s"getCustomerByCustomerNumber($customerNumber, $bankId)")
       sender ! (mapper.getCustomerByCustomerNumber(customerNumber, bankId))
 
     case cc.getCustomerByCustomerNumberFuture(customerNumber: String, bankId: BankId) =>
-      logger.debug("getCustomerByCustomerNumberFuture(" + customerNumber + ", " + bankId + ")")
+      logger.debug(s"getCustomerByCustomerNumberFuture($customerNumber, $bankId)")
       sender ! (mapper.getCustomerByCustomerNumber(customerNumber, bankId))
 
     case cc.getUser(bankId: BankId, customerNumber: String) =>
-      logger.debug("getUser(" + bankId + ", " + customerNumber + ")")
+      logger.debug(s"getUser($bankId, $customerNumber)")
       sender ! (mapper.getUser(bankId, customerNumber))
 
     case cc.checkCustomerNumberAvailable(bankId: BankId, customerNumber: String) =>
-      logger.debug("checkCustomerNumberAvailable(" + bankId + ", " + customerNumber + ")")
+      logger.debug(s"checkCustomerNumberAvailable($bankId, $customerNumber)")
       sender ! (mapper.checkCustomerNumberAvailable(bankId, customerNumber))
 
     case cc.addCustomer(bankId: BankId,
@@ -90,7 +90,7 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
                         branchId: String,  
                         nameSuffix: String
                         ) =>
-      logger.debug("addCustomer(" + bankId + ", " + number + ")")
+      logger.debug(s"addCustomer($bankId, $number)")
       sender ! (mapper.addCustomer(bankId,
                                     number,
                                     legalName,
@@ -113,14 +113,14 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
                                   ))
       
     case cc.updateCustomerScaData(customerId: String, mobileNumber: Option[String], email: Option[String], customerNumber: Option[String]) =>
-      logger.debug("updateCustomerScaData(" + customerId + ", " + mobileNumber + ", " + email + ")")
+      logger.debug(s"updateCustomerScaData($customerId, $mobileNumber, $email)")
       (mapper.updateCustomerScaData(customerId, mobileNumber, email, customerNumber)) pipeTo sender
       
     case cc.updateCustomerCreditData(customerId: String,
                                     creditRating: Option[String],
                                     creditSource: Option[String],
                                     creditLimit: Option[AmountOfMoney]) =>
-      logger.debug("updateCustomerCreditData(" + customerId + ", " + creditRating + ", "  + creditSource + ", " + creditLimit + ")")
+      logger.debug(s"updateCustomerCreditData($customerId, $creditRating, $creditSource, $creditLimit)")
       (mapper.updateCustomerCreditData(customerId, creditRating, creditSource, creditLimit)) pipeTo sender
 
     case cc.updateCustomerGeneralData(customerId: String,

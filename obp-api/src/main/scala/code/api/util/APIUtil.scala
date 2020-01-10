@@ -28,7 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.util
 
 import java.io.InputStream
-import java.net.URLDecoder
+import java.net.{URL, URLDecoder}
 import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.{Date, UUID}
