@@ -23,10 +23,9 @@ Berlin 13359, Germany
   This product includes software developed at
   TESOBE (http://www.tesobe.com/)
  */
-package code.api.APIBuilder.apiResourceDoc;
+package code.api.APIBuilder
 
 import code.api.APIBuilder.APIBuilderModel._
-import code.api.APIBuilder.APIBuilderModel
 import code.api.util.APIUtil
 import scala.meta._
 import net.liftweb.json.JsonAST.{JObject, JString}

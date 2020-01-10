@@ -23,10 +23,9 @@ Berlin 13359, Germany
   This product includes software developed at
   TESOBE (http://www.tesobe.com/)
  */
-package code.api.APIBuilder.swagger
+package code.api.APIBuilder
 
 import code.api.APIBuilder.APIBuilderModel._
-import code.api.APIBuilder.APIBuilderModel
 import code.api.util.APIUtil
 import net.liftweb.json.JsonAST.{JObject, JString}
 import net.liftweb.json.{JArray, JValue}
