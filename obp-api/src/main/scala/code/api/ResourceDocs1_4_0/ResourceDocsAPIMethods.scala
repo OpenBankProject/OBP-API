@@ -255,7 +255,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       }
     }
     private val getChineseVersionResourceDocs : Box[JsonResponse] = {
-      val stream = this.getClass().getResourceAsStream("/code/api/ResourceDocs1_4_0/allResourceDocs-Chinese.json")
+      val stream = getClass().getClassLoader().getResourceAsStream("ResourceDocs/ResourceDocs-Chinese.json")
       val chineseVersion = try {
           val bufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
           val jsonStringFromFile = bufferedSource.mkString
