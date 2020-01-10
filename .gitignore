@@ -10,7 +10,7 @@
 .project
 .cache
 target
-#obp-api/src/main/resources/
+obp-api/src/main/resources/
 obp-api/src/test/resources/**
 !obp-api/src/test/resources/frozen_type_meta_data
 *.iml
