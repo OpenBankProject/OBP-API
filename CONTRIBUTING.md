@@ -159,7 +159,7 @@ OBP-API/src/main/scala/code/api/APIBuilder/apiResourceDoc/APIBuilder.scala
 ```
 Type3: If you use `swaggerResource.json`, please run `APIBuilderSwagger.scala` main method
 ```
-OBP-API/src/main/scala/code/api/APIBuilder/swagger/swaggerResource.json
+/OBP-API/obp-api/src/main/resources/apiBuilder/swaggerResource.json
 OBP-API/src/main/scala/code/api/APIBuilder/swagger/APIBuilderSwagger.scala
 ```
 

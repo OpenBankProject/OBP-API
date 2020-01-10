@@ -35,7 +35,7 @@ import scala.meta._
 
 object APIBuilderSwagger {
   def main(args: Array[String]): Unit = overwriteApiCode(apiSource,jsonFactorySource)
-  val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("obp-api/src/main/scala/code/api/APIBuilder/swagger/swaggerResource.json")
+  val jsonJValueFromFile: JValue = APIUtil.getJValueFromJsonFile("apiBuilder/swaggerResource.json")
 
   val getSingleApiResponseBody: JValue = jsonJValueFromFile \\("foo")\"foo"\"value"
   //"template"
