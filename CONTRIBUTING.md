@@ -149,8 +149,8 @@ Here are the three types:
 
 Type1: If you use `modelSource.json`, please run `APIBuilderModel.scala` main method
 ```
-OBP-API/src/main/scala/code/api/APIBuilder/APIModelSource.json
-OBP-API/src/main/scala/code/api/APIBuilder/APIBuilderModel.scala
+/OBP-API/obp-api/src/main/resources/apiBuilder/APIModelSource.json
+/OBP-API/obp-api/src/main/scala/code/api/APIBuilder/APIBuilderModel.scala
 ```
 Type2: If you use `apisResource.json`, please run `APIBuilder.scala` main method
 ```

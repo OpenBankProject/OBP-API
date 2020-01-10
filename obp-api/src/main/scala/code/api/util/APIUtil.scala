@@ -2756,5 +2756,16 @@ Returns a string showed to the developer
     user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) || // TODO Use an action instead of the owner view
       AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
   }
+
+  val APIModelSourceJValue = {
+    val stream = getClass().getClassLoader().getResourceAsStream("apiBuilder/APIModelSource.json")
+    try {
+      val bufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
+      val jsonStringFromFile = bufferedSource.mkString
+      json.parse(jsonStringFromFile);
+    } finally {
+      stream.close()
+    }
+  }
   
 }
