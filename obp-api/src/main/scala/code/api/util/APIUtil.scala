@@ -2757,8 +2757,8 @@ Returns a string showed to the developer
       AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
   }
 
-  val APIModelSourceJValue = {
-    val stream = getClass().getClassLoader().getResourceAsStream("apiBuilder/APIModelSource.json")
+  def getJValueFromJsonFile(path: String) = {
+    val stream = getClass().getClassLoader().getResourceAsStream(path)
     try {
       val bufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
       val jsonStringFromFile = bufferedSource.mkString

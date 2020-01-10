@@ -36,7 +36,7 @@ object APIBuilder
 {
   def main(args: Array[String]): Unit = overwriteApiCode(apiSource,jsonFactorySource)
 
-  val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("obp-api/src/main/scala/code/api/APIBuilder/apiResourceDoc/apisResource.json")
+  val jsonJValueFromFile: JValue = APIUtil.getJValueFromJsonFile("apiBuilder/apisResource.json") 
 
   val resourceDocsJObject= jsonJValueFromFile.\("resource_docs").children.asInstanceOf[List[JObject]]
     
@@ -210,9 +210,7 @@ object APIBuilder
         cc => {
           for {
             u <- $getMultipleAuthenticationStatement
-            jsonStringFromFile = scala.io.Source.fromFile("obp-api/src/main/scala/code/api/APIBuilder/apisResource.json").mkString 
-            jsonJValueFromFile = json.parse(jsonStringFromFile)
-            resourceDocsJObject= jsonJValueFromFile.\("resource_docs").children.asInstanceOf[List[JObject]]
+            resourceDocsJObject= jsonFromApisResource.\("resource_docs").children.asInstanceOf[List[JObject]]
             getMethodJValue = resourceDocsJObject.filter(jObject => jObject.\("request_verb") == JString("GET")&& !jObject.\("request_url").asInstanceOf[JString].values.contains("_ID")).head
             jsonObject = getMethodJValue \ "success_response_body"
           } yield {
@@ -388,7 +386,8 @@ trait APIMethods_APIBuilder
 
     $errorMessageVal;
     def endpointsOfBuilderAPI = getTemplatesFromFile :: getTemplate :: createTemplate :: getTemplates :: deleteTemplate :: Nil
-    
+    val jsonFromApisResource: JValue = getJValueFromJsonFile("apiBuilder/apisResource.json")
+      
     $getTemplateFromFileResourceCode
     $getTemplateFromFilePartialFunction
  

@@ -265,7 +265,7 @@ object APIBuilderModel
     println("Congratulations! You make the new APIs. Please restart OBP-API server!")
   }
   
-  val jsonJValueFromFile: JValue = APIUtil.APIModelSourceJValue 
+  val jsonJValueFromFile: JValue = APIUtil.getJValueFromJsonFile("apiBuilder/APIModelSource.json") 
   
   //"/templates"
   val apiUrl= getApiUrl(jsonJValueFromFile)

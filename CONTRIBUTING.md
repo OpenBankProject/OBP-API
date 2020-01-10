@@ -154,7 +154,7 @@ Type1: If you use `modelSource.json`, please run `APIBuilderModel.scala` main me
 ```
 Type2: If you use `apisResource.json`, please run `APIBuilder.scala` main method
 ```
-OBP-API/src/main/scala/code/api/APIBuilder/apiResourceDoc/apisResource.json
+/OBP-API/obp-api/src/main/resources/apiBuilder/apisResource.json
 OBP-API/src/main/scala/code/api/APIBuilder/apiResourceDoc/APIBuilder.scala
 ```
 Type3: If you use `swaggerResource.json`, please run `APIBuilderSwagger.scala` main method
