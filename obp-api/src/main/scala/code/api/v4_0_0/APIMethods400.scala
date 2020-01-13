@@ -1419,13 +1419,13 @@ trait APIMethods400 {
           for {
             (Full(u), callContext) <-  authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankId, accountId), callContext) 
+            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext) 
             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
             (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
               bankId,
-              accountId,
+              account.accountId,
               callContext: Option[CallContext])
-            tags <- Future(Tags.tags.vend.getTagsOnAccount(bankId, accountId)(view.viewId))
+            tags <- Future(Tags.tags.vend.getTagsOnAccount(bankId, account.accountId)(view.viewId))
           } yield {
             val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
             (createNewCoreBankAccountJson(moderatedAccount, availableViews, accountAttributes, tags), HttpCode.`200`(callContext))
