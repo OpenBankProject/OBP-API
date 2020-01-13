@@ -45,9 +45,9 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
       accountholder2.head.userPrimaryKey should equal(resourceUser1.userPrimaryKey)
       accountholders.length should equal(2)
 
-      Then("We check the views")  //"Owner"::"Public" :: "Accountant" :: "Auditor"
-      val allViewsForAccount1 = MapperViews.assignedViewsForAccount(bankIdAccountId)
-      val allViewsForAccount2 = MapperViews.assignedViewsForAccount(bankIdAccountId)
+      Then("We check the views")  //"Owner"::"_Public" :: "Accountant" :: "Auditor"
+      val allViewsForAccount1 = MapperViews.availableViewsForAccount(bankIdAccountId)
+      val allViewsForAccount2 = MapperViews.availableViewsForAccount(bankIdAccountId)
       val allViews = ViewDefinition.findAll()
       allViewsForAccount1.toString().contains("owner") should equal(true)
       allViewsForAccount1.toString().contains("_public") should equal(true)
@@ -57,11 +57,11 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
       allViewsForAccount2.toString().contains("_public") should equal(true)
       allViewsForAccount2.toString().contains("accountant") should equal(true)
       allViewsForAccount2.toString().contains("auditor") should equal(true)
-      allViews.length should equal(8)
+      allViews.length should equal(5) // 3 system views + 2 custom views
 
-      Then("We check the ViewPrivileges")
-      val numberOfPrivileges = AccountAccess.findAll().length
-      numberOfPrivileges should equal(8)
+      Then("We check the AccountAccesses")
+      val numberOfAccountAccesses = AccountAccess.findAll().length
+      numberOfAccountAccesses should equal(8) 
 
     }
 

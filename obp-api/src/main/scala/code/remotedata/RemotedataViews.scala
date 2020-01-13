@@ -136,7 +136,7 @@ object RemotedataViews extends ObpActorInit with Views {
     (actor ? cc.getOrCreateFirehoseView(bankId, accountId, description)).mapTo[Box[View]]
   )
   
-  def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
+  def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
     (actor ? cc.getOrCreatePublicView(bankId, accountId, description)).mapTo[Box[View]]
   )
 
@@ -148,7 +148,7 @@ object RemotedataViews extends ObpActorInit with Views {
    (actor ? cc.getOrCreateAuditorsView(bankId, accountId, description)).mapTo[Box[View]]
   )
 
-  def createRandomView(bankId: BankId, accountId: AccountId) : Box[View] = getValueFromFuture(
+  def createCustomRandomView(bankId: BankId, accountId: AccountId) : Box[View] = getValueFromFuture(
     (actor ? cc.createRandomView(bankId, accountId)).mapTo[Box[View]]
   )
 
