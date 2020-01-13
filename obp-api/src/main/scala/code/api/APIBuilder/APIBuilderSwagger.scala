@@ -33,6 +33,7 @@ import net.liftweb.json.{JArray, JValue}
 import scala.meta._
 
 object APIBuilderSwagger {
+  // you can modify this json file: OBP-API/obp-api/src/main/resources/apiBuilder/swaggerResource.json
   def main(args: Array[String]): Unit = overwriteApiCode(apiSource,jsonFactorySource)
   val jsonJValueFromFile: JValue = APIUtil.getJValueFromJsonFile("apiBuilder/swaggerResource.json")
 

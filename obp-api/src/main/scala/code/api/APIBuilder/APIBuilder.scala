@@ -33,6 +33,7 @@ import net.liftweb.json.JValue
 
 object APIBuilder
 {
+  //you can modify this json file: OBP-API/obp-api/src/main/resources/apiBuilder/apisResource.json
   def main(args: Array[String]): Unit = overwriteApiCode(apiSource,jsonFactorySource)
 
   val jsonJValueFromFile: JValue = APIUtil.getJValueFromJsonFile("apiBuilder/apisResource.json") 

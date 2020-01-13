@@ -34,6 +34,7 @@ import scala.meta._
 
 object APIBuilderModel
 {
+  // you can modify this json file: OBP-API/obp-api/src/main/resources/apiBuilder/APIModelSource.json
   def main(args: Array[String]) = overwriteApiCode(apiSource, jsonFactorySource)
   
   def createTemplateJsonClass(className: String, templateJsonClassParams: List[Term.Param]) = q"""case class TemplateJson(..$templateJsonClassParams) """.copy(name = Type.Name(className))
