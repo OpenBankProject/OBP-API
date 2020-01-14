@@ -867,7 +867,7 @@ def restoreSomeSessions(): Unit = {
       view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)
     } yield {
       Views.views.vend.grantAccessToSystemView(BankId(account.bankId), AccountId(account.accountId), view, user)
-      Views.views.vend.grantAccess(view.uid, user)
+      Views.views.vend.grantAccessToCustomView(view.uid, user)
       AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
     }
   }

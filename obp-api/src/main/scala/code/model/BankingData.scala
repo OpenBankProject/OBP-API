@@ -255,7 +255,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     if(canGrantAccessToViewCommon(bankId, accountId, user))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        savedView <- Views.views.vend.grantAccess(viewUID, otherUser) ?~ "could not save the privilege"
+        savedView <- Views.views.vend.grantAccessToCustomView(viewUID, otherUser) ?~ "could not save the privilege"
       } yield savedView
     else
       Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)

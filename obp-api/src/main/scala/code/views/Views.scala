@@ -39,7 +39,7 @@ trait Views {
     * It will first find the view object by `viewIdBankIdAccountId`
     * And then, call @getOrCreateViewPrivilege(view: View, user: User) for the view and user.
    */
-  def grantAccess(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
+  def grantAccessToCustomView(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
   def grantAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[View]
   def grantAccessToMultipleViews(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
   def revokeAccess(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]

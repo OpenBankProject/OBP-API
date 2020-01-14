@@ -108,13 +108,12 @@ object MapperViews extends Views with MdcLoggable {
     getOrGrantAccessToCustomView(user, view, bankId.value, accountId.value)
   }
   // TODO Accept the whole view as a parameter so we don't have to select it here.
-  def grantAccess(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
+  def grantAccessToCustomView(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
     logger.debug(s"addPermission says viewUID is $viewIdBankIdAccountId user is $user")
     val viewId = viewIdBankIdAccountId.viewId.value
     val bankId = viewIdBankIdAccountId.bankId.value
     val accountId = viewIdBankIdAccountId.accountId.value
     val viewDefinition = ViewDefinition.findCustomView(bankId, accountId, viewId)
-      .or(ViewDefinition.findSystemView(viewId))
 
     viewDefinition match {
       case Full(v) => {
