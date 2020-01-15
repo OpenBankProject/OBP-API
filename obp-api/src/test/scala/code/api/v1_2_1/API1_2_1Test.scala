@@ -162,6 +162,9 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     val reply = makeGetRequest(request)
     val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views
       .filterNot(_.is_public==true)
+      .filterNot(_.id.contains(SYSTEM_OWNER_VIEW_ID))
+      .filterNot(_.id.contains(SYSTEM_AUDITOR_VIEW_ID))
+      .filterNot(_.id.contains(SYSTEM_ACCOUNTANT_VIEW_ID))
     val randomPosition = nextInt(possibleViewsPermalinks.size)
     possibleViewsPermalinks(randomPosition).id
   }
