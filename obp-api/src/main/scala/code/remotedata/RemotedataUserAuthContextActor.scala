@@ -13,15 +13,15 @@ class RemotedataUserAuthContextActor extends Actor with ObpActorHelper with MdcL
   def receive = {
 
     case cc.createUserAuthContext(userId: String, key: String, value: String) =>
-      logger.debug("createUserAuthContext(" + userId + ", " + key + ", " + value + ")")
+      logger.debug(s"createUserAuthContext($userId, $key, $value)")
       sender ! (mapper.createUserAuthContextAkka(userId, key, value))
 
     case cc.getUserAuthContexts(userId: String) =>
-      logger.debug("getUserAuthContexts(" + userId + ")")
+      logger.debug(s"getUserAuthContexts($userId)")
       sender ! (mapper.getUserAuthContextsBox(userId))
       
     case cc.getUserAuthContextsBox(userId: String) =>
-      logger.debug("getUserAuthContextsBox(" + userId + ")")
+      logger.debug(s"getUserAuthContextsBox($userId)")
       sender ! (mapper.getUserAuthContextsBox(userId))
       
     case cc.deleteUserAuthContexts(userId: String) =>

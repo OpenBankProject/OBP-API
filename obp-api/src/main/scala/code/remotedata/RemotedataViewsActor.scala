@@ -22,7 +22,7 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
 
     case cc.addPermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) =>
       logger.debug("addPermission(" + viewIdBankIdAccountId +"," + user +")")
-      sender ! (mapper.grantAccess(viewIdBankIdAccountId, user))
+      sender ! (mapper.grantAccessToCustomView(viewIdBankIdAccountId, user))
       
     case cc.addSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) =>
       logger.debug("addSystemViewPermission(" + bankId +"," + accountId +"," + view +"," + user +")")
@@ -142,7 +142,7 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
 
     case cc.getOrCreatePublicView(bankId, accountId, description) =>
       logger.debug("getOrCreatePublicView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! (mapper.getOrCreatePublicView(bankId, accountId, description))
+      sender ! (mapper.getOrCreateCustomPublicView(bankId, accountId, description))
 
     case cc.getOrCreateAccountantsView(bankId, accountId, description) =>
       logger.debug("getOrCreateAccountantsView(" + bankId +", "+ accountId +", "+ description +")")
@@ -154,7 +154,7 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
 
     case cc.createRandomView(bankId, accountId) =>
       logger.debug("createRandomView(" + bankId +", "+ accountId +")")
-      sender ! (mapper.createRandomView(bankId, accountId))
+      sender ! (mapper.createCustomRandomView(bankId, accountId))
 
     case cc.getOwners(view) =>
       logger.debug("getOwners(" + view +")")

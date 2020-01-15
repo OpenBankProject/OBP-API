@@ -38,7 +38,7 @@ trait TestConnectorSetup {
     val account = createAccount(bankId, accountId, currency) 
     val ownerView = createOwnerView(bankId, accountId)
     accountOwner.foreach(AccountHolders.accountHolders.vend.getOrCreateAccountHolder(_, BankIdAccountId(account.bankId, account.accountId)))
-    accountOwner.foreach(Views.views.vend.grantAccess(ViewIdBankIdAccountId(ViewId(ownerView.viewId.value), BankId(ownerView.bankId.value), AccountId(ownerView.accountId.value)), _))
+    accountOwner.foreach(Views.views.vend.grantAccessToCustomView(ViewIdBankIdAccountId(ViewId(ownerView.viewId.value), BankId(ownerView.bankId.value), AccountId(ownerView.accountId.value)), _))
     account
   }
 
@@ -78,10 +78,10 @@ trait TestConnectorSetup {
       Views.views.vend.grantAccessToSystemView(account.bankId, account.accountId, systemAccountantView, user)
       
       val customPublicView = createPublicView(account.bankId, account.accountId) 
-      Views.views.vend.grantAccess(customPublicView.uid, user)
+      Views.views.vend.grantAccessToCustomView(customPublicView.uid, user)
       
       val customRandomView = createRandomView(account.bankId, account.accountId) 
-      Views.views.vend.grantAccess(customRandomView.uid, user)
+      Views.views.vend.grantAccessToCustomView(customRandomView.uid, user)
     })
 
     accounts

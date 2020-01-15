@@ -1393,7 +1393,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
 
     val publicView: Box[View]  =
       if(public_view)
-        Views.views.vend.getOrCreatePublicView(bankId, accountId, "Public View")
+        Views.views.vend.getOrCreateCustomPublicView(bankId, accountId, "Public View")
       else Empty
 
     val accountantsView: Box[View]  =

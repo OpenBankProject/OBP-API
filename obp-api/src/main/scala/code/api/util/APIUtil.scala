@@ -2424,17 +2424,7 @@ Returns a string showed to the developer
       APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET_Test")
     else
       APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET")
-
-  def getJValueFromFile (path: String) = {
-    val bufferedSource: BufferedSource = scala.io.Source.fromFile(path)
-    try {
-      val jsonStringFromFile = bufferedSource.mkString
-      json.parse(jsonStringFromFile);
-    } finally {
-      bufferedSource.close() //close the source manually
-    }
-  }
-
+      
   //This method will read sample.props.template file, and get all the fields which start with the webui_
   //it will return the webui_ props paris: 
   //eg: List(("webui_get_started_text","Get started building your application using this sandbox now"),
@@ -2756,6 +2746,17 @@ Returns a string showed to the developer
   def canRevokeAccessToViewCommon(bankId: BankId, accountId: AccountId, user: User): Boolean = {
     user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) || // TODO Use an action instead of the owner view
       AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
+  }
+
+  def getJValueFromJsonFile(path: String) = {
+    val stream = getClass().getClassLoader().getResourceAsStream(path)
+    try {
+      val bufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
+      val jsonStringFromFile = bufferedSource.mkString
+      json.parse(jsonStringFromFile);
+    } finally {
+      stream.close()
+    }
   }
   
 }

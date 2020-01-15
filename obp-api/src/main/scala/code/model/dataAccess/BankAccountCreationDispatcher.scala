@@ -91,11 +91,10 @@ package code.model.dataAccess {
     }
     
     private def addPermissionToSystemOwnerView(bankId : BankId, accountId : AccountId, user: User): Unit = {
-      val ownerView = ViewIdBankIdAccountId(ViewId(SYSTEM_OWNER_VIEW_ID), bankId, accountId)
-      Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined match {
-        case true =>
-          Views.views.vend.grantAccess(ownerView, user)
-        case false =>
+      Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID) match {
+        case Full(ownerView) =>
+          Views.views.vend.grantAccessToSystemView(bankId, accountId, ownerView, user)
+        case _ =>
           logger.debug(s"Cannot create/get system view: ${SYSTEM_OWNER_VIEW_ID}")
       }
     }

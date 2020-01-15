@@ -17,11 +17,11 @@ class RemotedataProductCollectionActor extends Actor with ObpActorHelper with Md
   def receive: PartialFunction[Any, Unit] = {
 
     case cc.getProductCollection(collectionCode: String) =>
-      logger.debug("getProductCollection(" + collectionCode + ")")
+      logger.debug(s"getProductCollection($collectionCode)")
       mapper.getProductCollection(collectionCode) pipeTo sender
       
     case cc.getOrCreateProductCollection(collectionCode: String, productCodes: List[String]) =>
-      logger.debug("getOrCreateProductCollection(" + collectionCode +  ", " + productCodes + ")")
+      logger.debug(s"getOrCreateProductCollection($collectionCode, $productCodes)")
       mapper.getOrCreateProductCollection(collectionCode, productCodes) pipeTo sender
       
 

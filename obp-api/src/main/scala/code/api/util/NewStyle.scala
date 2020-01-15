@@ -274,7 +274,7 @@ object NewStyle {
     def grantAccessToCustomView(view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
       view.isSystem match {
         case false =>
-          Future(Views.views.vend.grantAccess(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId), user)) map {
+          Future(Views.views.vend.grantAccessToCustomView(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId), user)) map {
             unboxFullOrFail(_, callContext, s"$CannotGrantAccountAccess Current ViewId is ${view.viewId.value}")
           }
         case true =>

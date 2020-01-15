@@ -108,13 +108,12 @@ object MapperViews extends Views with MdcLoggable {
     getOrGrantAccessToCustomView(user, view, bankId.value, accountId.value)
   }
   // TODO Accept the whole view as a parameter so we don't have to select it here.
-  def grantAccess(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
+  def grantAccessToCustomView(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
     logger.debug(s"addPermission says viewUID is $viewIdBankIdAccountId user is $user")
     val viewId = viewIdBankIdAccountId.viewId.value
     val bankId = viewIdBankIdAccountId.bankId.value
     val accountId = viewIdBankIdAccountId.accountId.value
     val viewDefinition = ViewDefinition.findCustomView(bankId, accountId, viewId)
-      .or(ViewDefinition.findSystemView(viewId))
 
     viewDefinition match {
       case Full(v) => {
@@ -488,20 +487,20 @@ object MapperViews extends Views with MdcLoggable {
 
     val bankId = bankIdAccountId.bankId
     val accountId = bankIdAccountId.accountId
-    val ownerView = CUSTOM_OWNER_VIEW_ID.equals(viewId.toLowerCase)
+    val ownerView = SYSTEM_OWNER_VIEW_ID.equals(viewId.toLowerCase)
     val publicView = CUSTOM_PUBLIC_VIEW_ID.equals(viewId.toLowerCase)
-    val accountantsView = "accountant".equals(viewId.toLowerCase)
-    val auditorsView = "auditor".equals(viewId.toLowerCase)
+    val accountantsView = SYSTEM_ACCOUNTANT_VIEW_ID.equals(viewId.toLowerCase)
+    val auditorsView = SYSTEM_AUDITOR_VIEW_ID.equals(viewId.toLowerCase)
     
     val theView =
       if (ownerView)
-        getOrCreateOwnerView(bankId, accountId, "Owner View")
+        getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID)
       else if (publicView)
-        getOrCreatePublicView(bankId, accountId, "Public View")
+        getOrCreateCustomPublicView(bankId, accountId, "Public View")
       else if (accountantsView)
-        getOrCreateAccountantsView(bankId, accountId, "Accountants View")
+        getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
       else if (auditorsView)
-        getOrCreateAuditorsView(bankId, accountId, "Auditors View")
+        getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID)
       else 
         Failure(ViewIdNotSupported+ s"Your input viewId is :$viewId")
     
@@ -545,7 +544,7 @@ object MapperViews extends Views with MdcLoggable {
     users.toSet
   }
 
-  def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
+  def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
     getExistingView(bankId, accountId, CUSTOM_PUBLIC_VIEW_ID) match {
       case Empty=> createDefaultPublicView(bankId, accountId, description)
       case Full(v)=> Full(v)
@@ -573,14 +572,14 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   //Note: this method is only for scala-test,
-  def createRandomView(bankId: BankId, accountId: AccountId) : Box[View] = {
+  def createCustomRandomView(bankId: BankId, accountId: AccountId) : Box[View] = {
     val entity = ViewDefinition.create.
       isSystem_(false).
       isFirehose_(false).
       name_(randomString(5)).
       metadataView_(CUSTOM_OWNER_VIEW_ID).
       description_(randomString(3)).
-      view_id(randomString(3)).
+      view_id("_"+randomString(3)).
       isPublic_(false).
       bank_id(bankId.value).
       account_id(accountId.value).

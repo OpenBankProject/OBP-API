@@ -216,11 +216,11 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     } yield {
       setAccountHolder(username, BankId(acc.bankId), AccountId(acc.accountId), acc.owners)
       views.foreach(v => {
-        Views.views.vend.grantAccess(v.uid, user)
+        Views.views.vend.grantAccessToCustomView(v.uid, user)
         logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
       })
       existing_views.filterNot(_.users.contains(user.userPrimaryKey)).foreach (v => {
-        Views.views.vend.grantAccess(v.uid, user)
+        Views.views.vend.grantAccessToCustomView(v.uid, user)
         logger.info(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
       })
     }

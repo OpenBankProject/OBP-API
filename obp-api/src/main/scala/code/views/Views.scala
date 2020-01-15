@@ -39,7 +39,7 @@ trait Views {
     * It will first find the view object by `viewIdBankIdAccountId`
     * And then, call @getOrCreateViewPrivilege(view: View, user: User) for the view and user.
    */
-  def grantAccess(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
+  def grantAccessToCustomView(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
   def grantAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[View]
   def grantAccessToMultipleViews(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
   def revokeAccess(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
@@ -88,12 +88,17 @@ trait Views {
   
   def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View]
   def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
-  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  
   def getOrCreateSystemView(name: String) : Box[View]
-  def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  def createCustomRandomView(bankId: BankId, accountId: AccountId) : Box[View]
+
+  @deprecated("There is no custom `Accountant` view, only support system owner view now","2020-01-13")
   def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+  @deprecated("There is no custom `Auditor` view, only support system owner view now","2020-01-13")
   def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
-  def createRandomView(bankId: BankId, accountId: AccountId) : Box[View]
+  @deprecated("There is no custom `owner` view, only support system owner view now","2020-01-13")
+  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
 
   def getOwners(view: View): Set[User]
   

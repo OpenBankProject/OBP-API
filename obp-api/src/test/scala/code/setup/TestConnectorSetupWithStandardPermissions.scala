@@ -30,11 +30,11 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
   }
 
   protected def createPublicView(bankId: BankId, accountId: AccountId) : View = {
-    Views.views.vend.getOrCreatePublicView(bankId, accountId, randomString(3)).openOrThrowException(attemptedToOpenAnEmptyBox)
+    Views.views.vend.getOrCreateCustomPublicView(bankId, accountId, randomString(3)).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
 
   protected def createRandomView(bankId: BankId, accountId: AccountId) : View = {
-    Views.views.vend.createRandomView(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+    Views.views.vend.createCustomRandomView(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
 
 
