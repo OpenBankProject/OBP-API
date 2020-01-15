@@ -862,12 +862,14 @@ def restoreSomeSessions(): Unit = {
   def updateUserAccountViews(user: User, accounts: List[InboundAccount]): Unit = {
     for {
       account <- accounts
-      viewId <- account.viewsToGenerate
+      viewId <- account.viewsToGenerate // for now, we support four views here: Owner, Accountant, Auditor, _Public, first three are system views, the last is custom view.
       bankAccountUID <- Full(BankIdAccountId(BankId(account.bankId), AccountId(account.accountId)))
-      view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)
+      view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)//this method will return both system views and custom views back.
     } yield {
-      Views.views.vend.grantAccessToSystemView(BankId(account.bankId), AccountId(account.accountId), view, user)
-      Views.views.vend.grantAccessToCustomView(view.uid, user)
+      if (view.isSystem)//if the view is a system view, we will call `grantAccessToSystemView`
+        Views.views.vend.grantAccessToSystemView(BankId(account.bankId), AccountId(account.accountId), view, user)
+      else //otherwise, we will call `grantAccessToCustomView`
+        Views.views.vend.grantAccessToCustomView(view.uid, user)
       AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
     }
   }
