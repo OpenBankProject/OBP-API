@@ -754,6 +754,7 @@ object APIMethods_TransactionsApi extends RestHelper {
          cc =>
            for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
             (bankAccount, callContext) <- Future { BankAccountX(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
@@ -766,7 +767,7 @@ object APIMethods_TransactionsApi extends RestHelper {
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           
-            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, BankIdAccountId(BankId(defaultBankId), accountId), callContext, params)} map {
+            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(BankId(defaultBankId), accountId), callContext, params)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           
@@ -1020,7 +1021,9 @@ object APIMethods_TransactionsApi extends RestHelper {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
-  
+
+             (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
+
              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
   
              (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
@@ -1032,7 +1035,7 @@ object APIMethods_TransactionsApi extends RestHelper {
                  view <- u.checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
                  params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                  (transactionRequests, callContext) <- Connector.connector.vend.getTransactionRequests210(u, bankAccount)
-                 (transactions, callContext) <-  bankAccount.getModeratedTransactions(Full(u), view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext, params)
+                 (transactions, callContext) <-  bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext, params)
                } yield{
                  (transactionRequests,transactions)
                } 

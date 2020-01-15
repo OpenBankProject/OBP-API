@@ -340,7 +340,8 @@ object JSONFactory1_4_0 {
                              roles: Option[List[ApiRole]] = None,
                              is_featured: Boolean,
                              special_instructions: String,
-                             specified_url: String // Derived value. The Url when called under a certain version.
+                             specified_url: String, // Derived value. The Url when called under a certain version.
+                             connector_methods: List[String] // this is the connector methods which need to be connected by this endpoint.
                             )
 
 
@@ -376,7 +377,8 @@ object JSONFactory1_4_0 {
       roles = rd.roles,
       is_featured = rd.isFeatured,
       special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(rd.specialInstructions.getOrElse("").stripMargin),
-      specified_url = rd.specifiedUrl.getOrElse("")
+      specified_url = rd.specifiedUrl.getOrElse(""),
+      connector_methods = rd.connectorMethods.getOrElse(List(""))
       )
   }
 

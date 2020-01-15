@@ -466,7 +466,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      accountRoutings=List(AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),

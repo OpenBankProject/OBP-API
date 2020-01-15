@@ -40,7 +40,7 @@ case class ViewExtended(val view: View) {
   val viewLogger = Logger(classOf[ViewExtended])
 
   def moderateTransaction(transaction : Transaction): Box[ModeratedTransaction] = {
-    moderateTransactionUsingModeratedAccount(transaction, moderateAccount(transaction.thisAccount))
+    moderateTransactionUsingModeratedAccount(transaction, moderateAccountLegacy(transaction.thisAccount))
   }
 
   // In the future we can add a method here to allow someone to show only transactions over a certain limit
@@ -261,7 +261,7 @@ case class ViewExtended(val view: View) {
   }
 
 
-  def moderateTransactionsWithSameAccount(transactions : List[Transaction]) : Box[List[ModeratedTransaction]] = {
+  def moderateTransactionsWithSameAccount(bank: Bank, transactions : List[Transaction]) : Box[List[ModeratedTransaction]] = {
 
     val accountUids = transactions.map(t => BankIdAccountId(t.bankId, t.accountId))
 
@@ -273,7 +273,7 @@ case class ViewExtended(val view: View) {
       transactions.headOption match {
         case Some(firstTransaction) =>
           // Moderate the *This Account* based on the first transaction, Because all the transactions share the same thisAccount. So we only need modetaed one account is enough for all the transctions.
-          val moderatedAccount = moderateAccount(firstTransaction.thisAccount)
+          val moderatedAccount = moderateAccount(bank, firstTransaction.thisAccount)
           // Moderate each *Transaction* based on the moderated Account
           Full(transactions.flatMap(transaction => moderateTransactionUsingModeratedAccount(transaction, moderatedAccount)))
         case None =>
@@ -282,7 +282,7 @@ case class ViewExtended(val view: View) {
     }
   }
 
-  def moderateTransactionsWithSameAccountCore(transactionsCore : List[TransactionCore]) : Box[List[ModeratedTransactionCore]] = {
+  def moderateTransactionsWithSameAccountCore(bank: Bank, transactionsCore : List[TransactionCore]) : Box[List[ModeratedTransactionCore]] = {
 
     val accountUids = transactionsCore.map(t => BankIdAccountId(t.thisAccount.bankId, t.thisAccount.accountId))
 
@@ -294,7 +294,7 @@ case class ViewExtended(val view: View) {
       transactionsCore.headOption match {
         case Some(firstTransaction) =>
           // Moderate the *This Account* based on the first transaction, Because all the transactions share the same thisAccount. So we only need modetaed one account is enough for all the transctions.
-          val moderatedAccount = moderateAccount(firstTransaction.thisAccount)
+          val moderatedAccount = moderateAccount(bank, firstTransaction.thisAccount)
           // Moderate each *Transaction* based on the moderated Account
           Full(transactionsCore.flatMap(transactionCore => moderateCore(transactionCore, moderatedAccount)))
         case None =>
@@ -303,7 +303,61 @@ case class ViewExtended(val view: View) {
     }
   }
 
-  def moderateAccount(bankAccount: BankAccount) : Box[ModeratedBankAccount] = {
+  /**
+   * this is the new function to replace the @moderateAccountLegacy, we will get the bank object from parameter,
+   * no need to call the Connector.connector.vend.getBankLegacy several times.
+   */
+  def moderateAccount(bank: Bank, bankAccount: BankAccount) : Box[ModeratedBankAccount] = {
+    if(view.canSeeTransactionThisBankAccount)
+    {
+      val owners : Set[User] = if(view.canSeeBankAccountOwners) bankAccount.userOwners else Set()
+      val balance = if(view.canSeeBankAccountBalance) bankAccount.balance.toString else ""
+      val accountType = if(view.canSeeBankAccountType) Some(bankAccount.accountType) else None
+      val currency = if(view.canSeeBankAccountCurrency) Some(bankAccount.currency) else None
+      val label = if(view.canSeeBankAccountLabel) Some(bankAccount.label) else None
+      val iban = if(view.canSeeBankAccountIban) bankAccount.iban else None
+      val number = if(view.canSeeBankAccountNumber) Some(bankAccount.number) else None
+      //From V300, use scheme and address stuff...
+      val accountRoutingScheme = if(view.canSeeBankAccountRoutingScheme) Some(bankAccount.accountRoutingScheme) else None
+      val accountRoutingAddress = if(view.canSeeBankAccountRoutingAddress) Some(bankAccount.accountRoutingAddress) else None
+      val accountRoutings = if(view.canSeeBankAccountRoutingScheme && view.canSeeBankAccountRoutingAddress) bankAccount.accountRoutings else Nil
+      val accountRules = if(view.canSeeBankAccountCreditLimit) bankAccount.accountRules else Nil
+
+      //followings are from the bank object.
+      val bankId = bank.bankId
+      val bankName = if(view.canSeeBankAccountBankName) Some(bank.fullName) else None
+      val nationalIdentifier = if(view.canSeeBankAccountNationalIdentifier) Some(bank.nationalIdentifier) else None
+      val bankRoutingScheme = if(view.canSeeBankRoutingScheme) Some(bank.bankRoutingScheme) else None
+      val bankRoutingAddress = if(view.canSeeBankRoutingAddress) Some(bank.bankRoutingAddress) else None
+
+      Some(
+        new ModeratedBankAccount(
+          accountId = bankAccount.accountId,
+          owners = Some(owners),
+          accountType = accountType,
+          balance = balance,
+          currency = currency,
+          label = label,
+          nationalIdentifier = nationalIdentifier,
+          iban = iban,
+          number = number,
+          bankName = bankName,
+          bankId = bankId,
+          bankRoutingScheme = bankRoutingScheme,
+          bankRoutingAddress = bankRoutingAddress,
+          accountRoutingScheme = accountRoutingScheme,
+          accountRoutingAddress = accountRoutingAddress,
+          accountRoutings = accountRoutings,
+          accountRules = accountRules
+        )
+      )
+    }
+    else
+      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionThisBankAccount` access for the view(${view.viewId.value})")
+  }
+
+  @deprecated("This have the performance issue, call `Connector.connector.vend.getBankLegacy` four times in the backend. use @moderateAccount instead ","08-01-2020")
+  def moderateAccountLegacy(bankAccount: BankAccount) : Box[ModeratedBankAccount] = {
     if(view.canSeeTransactionThisBankAccount)
     {
       val owners : Set[User] = if(view.canSeeBankAccountOwners) bankAccount.userOwners else Set()
@@ -341,6 +395,39 @@ case class ViewExtended(val view: View) {
           bankRoutingAddress = bankRoutingAddress,
           accountRoutingScheme = accountRoutingScheme,
           accountRoutingAddress = accountRoutingAddress,
+          accountRoutings = accountRoutings,
+          accountRules = accountRules
+        )
+      )
+    }
+    else
+      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionThisBankAccount` access for the view(${view.viewId.value})")
+  }
+
+  def moderateAccountCore(bankAccount: BankAccount) : Box[ModeratedBankAccountCore] = {
+    if(view.canSeeTransactionThisBankAccount)
+    {
+      val owners : Set[User] = if(view.canSeeBankAccountOwners) bankAccount.userOwners else Set()
+      val balance = if(view.canSeeBankAccountBalance) Some(bankAccount.balance.toString) else None
+      val accountType = if(view.canSeeBankAccountType) Some(bankAccount.accountType) else None
+      val currency = if(view.canSeeBankAccountCurrency) Some(bankAccount.currency) else None
+      val label = if(view.canSeeBankAccountLabel) Some(bankAccount.label) else None
+      val number = if(view.canSeeBankAccountNumber) Some(bankAccount.number) else None
+      val bankId = bankAccount.bankId
+      //From V300, use scheme and address stuff...
+      val accountRoutings = if(view.canSeeBankAccountRoutingScheme && view.canSeeBankAccountRoutingAddress) bankAccount.accountRoutings else Nil
+      val accountRules = if(view.canSeeBankAccountCreditLimit) bankAccount.accountRules else Nil
+
+      Some(
+        ModeratedBankAccountCore(
+          accountId = bankAccount.accountId,
+          owners = Some(owners),
+          accountType = accountType,
+          balance = balance,
+          currency = currency,
+          label = label,
+          number = number,
+          bankId = bankId,
           accountRoutings = accountRoutings,
           accountRules = accountRules
         )

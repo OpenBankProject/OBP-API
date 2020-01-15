@@ -264,7 +264,8 @@ trait APIMethods200 {
       basicAccountsJSON,
       List(BankNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle)
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getBank","obp.getBankAccount"))
     )
 
     def processAccounts(privateViewsUserCanAccessAtOneBank: List[View], availablePrivateAccounts: List[BankAccount]) = {
@@ -946,9 +947,10 @@ trait APIMethods200 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             params <- createQueriesByHttpParams(req.request.headers)
+            (bank, callContext) <- BankX(bankId, Some(cc)) ?~ BankNotFound
             bankAccount <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             view <- u.checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId,bankAccount.accountId))
-            (transactions, callContext) <- bankAccount.getModeratedTransactions(cc.user, view, BankIdAccountId(bankId, accountId), None, params)
+            (transactions, callContext) <- bankAccount.getModeratedTransactions(bank, cc.user, view, BankIdAccountId(bankId, accountId), None, params)
           } yield {
             val json = JSONFactory200.createCoreTransactionsJSON(transactions)
             successJsonResponse(Extraction.decompose(json))

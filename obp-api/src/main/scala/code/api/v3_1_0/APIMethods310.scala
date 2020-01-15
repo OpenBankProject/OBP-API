@@ -727,7 +727,7 @@ trait APIMethods310 {
               new java.math.BigDecimal(value)
             }
             _ <- NewStyle.function.isValidCurrencyISOCode(httpParams.filter(_.name == currency).map(_.values.head).head, callContext)
-            _ <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            _ <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
           } yield {
             val ccy = httpParams.filter(_.name == currency).map(_.values.head).head
             val fundsAvailable =  (view.canQueryAvailableFunds, account.balance, account.currency) match {
@@ -1220,7 +1220,8 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagPerson, apiTagNewStyle),
-      Some(List(canCreateCustomer,canCreateCustomerAtAnyBank)))
+      Some(List(canCreateCustomer,canCreateCustomerAtAnyBank)),
+      connectorMethods = Some(List("obp.getBank","obp.createCustomer")))
     lazy val createCustomer : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
         cc =>
@@ -3266,7 +3267,7 @@ trait APIMethods310 {
 
     lazy val getMessageDocsSwagger: OBPEndpoint = {
       case "message-docs" :: restConnectorVersion ::"swagger2.0" :: Nil JsonGet _ => {
-          val (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions) = ResourceDocsAPIMethodsUtil.getParams()
+          val (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions, languageParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc => {
           for {
             (_, callContext) <- anonymousAccess(cc)
@@ -3747,8 +3748,8 @@ trait APIMethods310 {
       "Create System View.",
       s"""Create a system view
         |
-        | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
-        | The 'alias' field in the JSON can take one of three values:
+        | ${authenticationRequiredMessage(true)} and the user needs to have access to the $canCreateSystemView entitlement.
+        | The 'alias' field in the JSON can take one of two values:
         |
         | * _public_: to use the public alias if there is one specified for the other account.
         | * _private_: to use the public alias if there is one specified for the other account.
@@ -3758,6 +3759,8 @@ trait APIMethods310 {
         | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
         |
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
+        | 
+        | Please note that system views cannot be public. In case you try to set it you will get the error $SystemViewCannotBePublicError
         | """,
       SwaggerDefinitionsJSON.createSystemViewJson,
       viewJsonV300,
@@ -4495,7 +4498,8 @@ trait APIMethods310 {
       List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagAccount),
-      Some(List(canUpdateAccount))
+      Some(List(canUpdateAccount)), 
+      connectorMethods = Some(List("obp.getBank","obp.getBankAccount","obp.updateBankAccount"))
     )
 
     lazy val updateAccount : OBPEndpoint = {
@@ -5210,7 +5214,7 @@ trait APIMethods310 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext) 
-            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
             (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
               bankId,
               accountId,
@@ -5531,7 +5535,8 @@ trait APIMethods310 {
       accountBalancesV310Json,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
+      apiTagAccount :: apiTagPSD2AIS :: apiTagNewStyle :: Nil,
+      connectorMethods = Some(List("obp.getBank","obp.getBankAccountsBalances"))
     )
 
     lazy val getBankAccountsBalances : OBPEndpoint = {

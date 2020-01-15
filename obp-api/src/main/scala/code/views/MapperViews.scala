@@ -284,8 +284,8 @@ object MapperViews extends Views with MdcLoggable {
   Create View based on the Specification (name, alias behavior, what fields can be seen, actions are allowed etc. )
   * */
   def createSystemView(view: CreateViewJson) : Future[Box[View]] = Future {
-    if(view.is_public && !ALLOW_PUBLIC_VIEWS) {
-      Failure(PublicViewsNotAllowedOnThisInstance)
+    if(view.is_public) {
+      Failure(SystemViewCannotBePublicError)
     } else {
       view.name.contentEquals("") match {
         case true => 

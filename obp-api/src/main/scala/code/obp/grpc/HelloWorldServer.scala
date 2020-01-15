@@ -128,8 +128,9 @@ class HelloWorldServer(executionContext: ExecutionContext) { self =>
       for {
         (user, _) <- NewStyle.function.findByUserId(request.userId, callContext)
         (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+        (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
         view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
-        (Full(transactionsCore), callContext) <- bankAccount.getModeratedTransactionsCore(Full(user), view, BankIdAccountId(bankId, accountId), Nil, callContext)
+        (Full(transactionsCore), callContext) <- bankAccount.getModeratedTransactionsCore(bank, Full(user), view, BankIdAccountId(bankId, accountId), Nil, callContext)
         obpCoreTransactions: CoreTransactionsJsonV300 = code.api.v3_0_0.JSONFactory300.createCoreTransactionsJSON(transactionsCore)
       } yield {
         val jValue = Extraction.decompose(obpCoreTransactions)

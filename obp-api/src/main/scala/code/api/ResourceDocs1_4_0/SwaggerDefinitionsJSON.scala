@@ -161,7 +161,13 @@ object SwaggerDefinitionsJSON {
       "can_see_other_account_routing_scheme",
       "can_see_other_account_routing_address",
       //v310
-      "can_query_available_funds"
+      "can_query_available_funds",
+      "can_add_transaction_request_to_own_account",
+      "can_add_transaction_request_to_any_account",
+      "can_see_bank_account_credit_limit",
+      //v400
+      "can_create_direct_debit",
+      "can_create_standing_order"
     )
   )
 
@@ -3166,7 +3172,7 @@ object SwaggerDefinitionsJSON {
     balance = amountOfMoneyJsonV121,
     views_available = List(viewJSONV121),
     bank_id = bankIdExample.value,
-    account_routing = accountRoutingJsonV121,
+    account_routings = List(accountRoutingJsonV121),
     account_attributes = List(accountAttributeResponseJson)
   )
 
@@ -3372,7 +3378,7 @@ object SwaggerDefinitionsJSON {
     product_code = accountTypeExample.value,
     balance =  amountOfMoneyJsonV121,
     branch_id  = branchIdExample.value,
-    account_routing = accountRoutingJsonV121,
+    account_routings = List(accountRoutingJsonV121),
     account_attributes=  List(accountAttributeResponseJson)
   )
   
@@ -3413,7 +3419,7 @@ object SwaggerDefinitionsJSON {
     balance = amountOfMoneyJsonV121,
     views_available = List(viewJSONV121),
     bank_id = bankIdExample.value,
-    account_routing = accountRoutingJsonV121,
+    account_routings = List(accountRoutingJsonV121),
     account_attributes = List(accountAttributeResponseJson),
     tags = List(accountTagJSON)
   )

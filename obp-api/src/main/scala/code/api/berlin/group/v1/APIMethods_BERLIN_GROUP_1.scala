@@ -162,7 +162,7 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
             
             bankId = BankId(defaultBankId)
             
-            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             
@@ -176,7 +176,7 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
 
-            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, BankIdAccountId(bankId, accountId), callContext, params)} map {
+            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankId, accountId), callContext, params)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             
