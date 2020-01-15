@@ -1939,7 +1939,8 @@ trait APIMethods310 {
           for {
             (_, callContext) <- anonymousAccess(cc)
             connectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")
-            obpApiLoopback <- connectorVersion.contains("kafka") match {
+            starConnectorProps = APIUtil.getPropsValue("starConnector_supported_types").openOr("notfound")
+            obpApiLoopback <- connectorVersion.contains("kafka") ||  (connectorVersion.contains("star") && starConnectorProps.contains("kafka")) match {
               case false => throw new IllegalStateException(s"${NotImplemented}for connector ${connectorVersion}")
               case true => KafkaHelper.echoKafkaServer.recover {
                 case e: Throwable => throw new IllegalStateException(s"${KafkaServerUnavailable} Timeout error, because kafka do not return message to OBP-API. ${e.getMessage}")
