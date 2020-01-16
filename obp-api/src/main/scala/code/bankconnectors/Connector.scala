@@ -39,15 +39,15 @@ import com.openbankproject.commons.model.{AccountApplication, Bank, Counterparty
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.json.Extraction.decompose
-import net.liftweb.json.JObject
-import net.liftweb.json.JValue
+import net.liftweb.json.{Formats, JObject, JValue}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.SimpleInjector
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.math.{BigDecimal, BigInt}
@@ -97,9 +97,8 @@ object Connector extends SimpleInjector {
 
 }
 
-trait Connector extends MdcLoggable with CustomJsonFormats{
-
-  protected val emptyObjectJson: JValue = decompose(Nil)
+trait Connector extends MdcLoggable {
+  implicit val formats: Formats = CustomJsonFormats.nullTolerateFormats
 
   val messageDocs = ArrayBuffer[MessageDoc]()
   protected implicit val nameOfConnector = Connector.getClass.getSimpleName
@@ -143,7 +142,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   /**
     * convert OBPReturnType return type to original future type
     *
-    * @param future OBPReturnType return type
+    * @param value OBPReturnType return type
     * @tparam T future success value type
     * @return original future type
     */
@@ -485,7 +484,6 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     *
     * @param fromAccount The unique identifier of the account sending money
     * @param toAccount The unique identifier of the account receiving money
-    * @param toCounterparty The unique identifier of the acounterparty receiving money
     * @param amount The amount of money to send ( > 0 )
     * @param transactionRequestType user input: SEPA, SANDBOX_TAN, FREE_FORM, COUNTERPARTY
     * @return The id of the sender's new transaction,
@@ -688,7 +686,6 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     * @param viewId
     * @param fromAccount
     * @param toAccount
-    * @param toCounterparty
     * @param transactionRequestType Support Types: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY
     * @param transactionRequestCommonBody Body from http request: should have common fields
     * @param chargePolicy  SHARED, SENDER, RECEIVER
@@ -798,7 +795,6 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     * @param transactionRequestType Support Types: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY
     * @param fromAccount
     * @param toAccount
-    * @param toCounterparty
     * @param transactionRequestCommonBody Body from http request: should have common fields:
     * @param details  This is the details / body of the request (contains all fields in the body)
     * @param status   "INITIATED" "PENDING" "FAILED"  "COMPLETED"

@@ -41,7 +41,7 @@ import scalacache.memoization._
 
 import scala.collection.JavaConversions._
 import scala.collection.immutable.{List, Seq}
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps

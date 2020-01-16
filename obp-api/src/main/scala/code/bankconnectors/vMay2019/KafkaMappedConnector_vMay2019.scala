@@ -56,7 +56,7 @@ import net.liftweb.json.{MappingException, parse}
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps

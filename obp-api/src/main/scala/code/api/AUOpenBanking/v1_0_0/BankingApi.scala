@@ -16,7 +16,7 @@ import net.liftweb.json._
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 object APIMethods_BankingApi extends RestHelper {
     val apiVersion =  ApiCollector.apiVersion

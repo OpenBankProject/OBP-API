@@ -7,7 +7,7 @@ import scalacache.memoization.{cacheKeyExclude, memoize, memoizeSync}
 import scalacache.redis._
 import scalacache.serialization.Codec
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.language.postfixOps

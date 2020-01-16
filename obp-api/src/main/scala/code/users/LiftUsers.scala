@@ -9,7 +9,7 @@ import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 
 import scala.collection.immutable.List
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object LiftUsers extends Users with MdcLoggable{

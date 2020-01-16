@@ -18,7 +18,7 @@ import net.liftweb.http.rest.RestHelper
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object APIMethods_BERLIN_GROUP_1 extends RestHelper{

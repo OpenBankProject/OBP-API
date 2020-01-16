@@ -15,7 +15,7 @@ import net.liftweb.mapper.{Index, _}
 import net.liftweb.util.Helpers.tryo
 import scala.concurrent.duration._
 import scala.collection.immutable.List
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object MappedMetrics extends APIMetrics with MdcLoggable{

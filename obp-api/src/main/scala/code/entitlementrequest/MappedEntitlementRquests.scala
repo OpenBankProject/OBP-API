@@ -10,7 +10,7 @@ import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 object MappedEntitlementRequestsProvider extends EntitlementRequestProvider {
 

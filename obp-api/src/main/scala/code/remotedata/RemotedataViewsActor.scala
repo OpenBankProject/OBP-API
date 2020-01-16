@@ -7,7 +7,7 @@ import code.util.Helper.MdcLoggable
 import code.views.{MapperViews, RemotedataViewsCaseClasses}
 import com.openbankproject.commons.model._
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
 

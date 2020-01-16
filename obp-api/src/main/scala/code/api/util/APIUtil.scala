@@ -79,7 +79,7 @@ import net.liftweb.util.{Helpers, Props, StringHelpers}
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.io.BufferedSource
 import scala.xml.{Elem, XML}

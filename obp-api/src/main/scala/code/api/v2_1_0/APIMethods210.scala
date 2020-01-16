@@ -51,7 +51,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 trait APIMethods210 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.

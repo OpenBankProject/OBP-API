@@ -1,6 +1,6 @@
 package code.bankconnectors.storedprocedure
 
-import java.sql.{Connection, PreparedStatement}
+import java.sql.Connection
 
 import code.api.util.APIUtil
 import com.openbankproject.commons.model.TopicTrait
@@ -15,7 +15,8 @@ import scalikejdbc.{DB, _}
  * stored procedure will not be initialized.
  */
 object StoredProcedureUtils {
-  private implicit val formats = code.api.util.CustomJsonFormats.formats
+
+  private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
 
   // lazy initial DB connection
   {

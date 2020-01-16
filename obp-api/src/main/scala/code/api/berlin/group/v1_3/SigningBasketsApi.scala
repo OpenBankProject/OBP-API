@@ -19,7 +19,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object APIMethods_SigningBasketsApi extends RestHelper {

@@ -31,7 +31,7 @@ import org.asynchttpclient.Response
 import org.scalatest.Tag
 
 import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 class OPTIONSTest extends V400ServerSetup {

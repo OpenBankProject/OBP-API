@@ -7,7 +7,7 @@ import code.util.Helper.MdcLoggable
 import akka.pattern.pipe
 import com.openbankproject.commons.model.ProductCode
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class RemotedataAccountApplicationActor extends Actor with ObpActorHelper with MdcLoggable {
 

@@ -1,6 +1,7 @@
 package code.api.util
 
 import code.api.Constant.ApiPathZero
+import com.openbankproject.commons.util.ObpVersion
 
 object ApiStandards extends Enumeration {
     type ApiStandards = Value
@@ -22,7 +23,7 @@ object ApiShortVersions extends Enumeration {
   val b1 = Value
 }
 
-sealed trait ApiVersion {
+sealed trait ApiVersion extends ObpVersion{
   def dottedApiVersion() : String = this.toString.replace("_", ".").replace("v","")
   def vDottedApiVersion() : String = this.toString.replace("_", ".")
   def noV() : String = this.toString.replace("v", "").replace("V","")
@@ -56,8 +57,8 @@ object ApiVersion {
   lazy val accountsApi = AccountsApi()
   case class BankMockApi() extends ApiVersion
   lazy val bankMockApi = BankMockApi()
-  
-  //OBP Standard 
+
+  //OBP Standard
   val v1_2_1 = ScannedApiVersion(ApiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v1.2.1`.toString)
   val v1_3_0 = ScannedApiVersion(ApiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v1.3.0`.toString)
   val v1_4_0 = ScannedApiVersion(ApiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v1.4.0`.toString)

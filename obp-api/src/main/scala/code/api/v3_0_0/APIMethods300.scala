@@ -38,7 +38,7 @@ import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import code.api.v2_0_0.AccountsHelper._
 import net.liftweb.json.JsonAST.JField

@@ -39,7 +39,7 @@ import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 // Makes JValue assignment to Nil work
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._

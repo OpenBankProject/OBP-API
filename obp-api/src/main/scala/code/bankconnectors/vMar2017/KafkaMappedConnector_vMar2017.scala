@@ -57,7 +57,7 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 
 import scala.collection.immutable.{Nil, Seq}
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcLoggable {

@@ -18,7 +18,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{Extraction, JArray}
 
 import scala.collection.immutable.List
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 /**

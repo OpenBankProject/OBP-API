@@ -93,7 +93,7 @@ object NewStyle {
 
   object function {
 
-    import scala.concurrent.ExecutionContext.Implicits.global
+    import com.openbankproject.commons.ExecutionContext.Implicits.global
 
     def getBranch(bankId : BankId, branchId : BranchId, callContext: Option[CallContext]): OBPReturnType[BranchT] = {
       Connector.connector.vend.getBranch(bankId, branchId, callContext) map {

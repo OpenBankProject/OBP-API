@@ -4,7 +4,7 @@ import code.util.{MappedUUID, UUIDString}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object MappedScopesProvider extends ScopeProvider {

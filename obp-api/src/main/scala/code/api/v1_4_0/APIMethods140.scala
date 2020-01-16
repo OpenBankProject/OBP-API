@@ -43,7 +43,7 @@ import code.model._
 import code.products.Products
 import code.util.Helper._
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
