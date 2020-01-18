@@ -1067,7 +1067,7 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/views
+			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/views
 			|
 			|Body:
 			|
@@ -1079,15 +1079,44 @@ object Glossary {
 			|
 			|	Authorization: DirectLogin token="your-token"
 			|
-			|### 3) Grant user access to view
+			|### 3) Get User (Current)
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/permissions/PROVIDER/PROVIDER_ID/views/view-id-from-step-2
+			|	GET $getObpApiRoot/v4.0.0/users/current
+			|
+			|
+			| Headers:
+			|
+			|	Content-Type:  application/json
+			|
+			|	Authorization: DirectLogin token="your-token"
+			|
+			|### 4) Grant user access to himself
+			|
+			|Action:
+			|
+			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/account-access/grant 
 			|
 			|Body:
 			|
-			|	{  "json_string":"{}"}
+			|	{  "user_id":"your-user-id-from-step3",  "view":{    "view_id":"_test",    "is_system":false  }}
+			|
+			| Headers:
+			|
+			|	Content-Type:  application/json
+			|
+			|	Authorization: DirectLogin token="your-token"			
+			| 
+			|### 5) Grant user access to view to another user
+			|
+			|Action:
+			|
+			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/account-access/grant 
+			|
+			|Body:
+			|
+			|	{  "user_id":"another-user-id",  "view":{    "view_id":"_test",    "is_system":false  }}
 			|
 			| Headers:
 			|
