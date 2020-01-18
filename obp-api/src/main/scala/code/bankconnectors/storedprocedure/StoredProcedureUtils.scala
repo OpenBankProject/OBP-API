@@ -1,6 +1,6 @@
 package code.bankconnectors.storedprocedure
 
-import java.sql.PreparedStatement
+import java.sql.{Connection, PreparedStatement}
 
 import code.api.util.APIUtil
 import com.openbankproject.commons.model.TopicTrait
@@ -16,7 +16,6 @@ import scalikejdbc.{DB, _}
  */
 object StoredProcedureUtils {
   private implicit val formats = code.api.util.CustomJsonFormats.formats
-  private val before: PreparedStatement => Unit = _ => ()
 
   // lazy initial DB connection
   {
@@ -47,18 +46,27 @@ object StoredProcedureUtils {
   def callProcedure[T: Manifest](procedureName: String, outBound: TopicTrait): T = {
     val procedureParam: String = write(outBound) // convert OutBound to json string
 
-    var responseJson: String = ""
-    DB autoCommit { implicit session =>
+    val responseJson: String =
+      DB autoCommit { implicit session =>
+        val conn: Connection = session.connection
+        // postgresql DB is different with other DB, it need a special way to call procedure.
+        if(conn.getMetaData().getDatabaseProductName() == "PostgreSQL") {
+          val st = conn.createStatement
+          val rs = st.executeQuery(s"CALL $procedureName('$procedureParam', '')")
+          rs.next
+          rs.getString(1)
+        } else {
+          val sql = s"{ CALL $procedureName(?, ?) }"
 
-      sql"{ CALL ? (?) }"
-        .bind(procedureName, procedureParam)
-        .executeWithFilters(before,
-          statement => {
-            val resultSet = statement.getResultSet()
-            require(resultSet.next(), s"stored procedure $procedureName must return a json response")
-            responseJson = resultSet.getString(1)
-          }).apply()
-    }
+          val callableStatement = conn.prepareCall(sql)
+          callableStatement.setString(1, procedureParam)
+
+          callableStatement.registerOutParameter(2, java.sql.Types.LONGVARCHAR)
+          callableStatement.setString(2, "")
+          callableStatement.executeUpdate()
+          callableStatement.getString(2)
+        }
+     }
     if(classOf[JValue].isAssignableFrom(manifest[T].runtimeClass)) {
       json.parse(responseJson).asInstanceOf[T]
     } else {
