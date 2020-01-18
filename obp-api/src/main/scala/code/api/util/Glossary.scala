@@ -823,7 +823,7 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v3.0.0/users
+			|	POST $getObpApiRoot/v4.0.0/users
 			|
 			|Body:
 			|
@@ -843,11 +843,11 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/customers
+			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/customers
 			|
 			|Body:
 			|
-			|	{  "user_id":"user-id-from-step-1", "customer_number":"687687678", "legal_name":"NONE",  "mobile_phone_number":"+44 07972 444 876", "email":"person@example.com", "face_image":{    "url":"www.openbankproject",    "date":"2013-01-22T00:08:00Z"  },  "date_of_birth":"2013-01-22T00:08:00Z",  "relationship_status":"Single",  "dependants":5,  "dob_of_dependants":["2013-01-22T00:08:00Z"],  "credit_rating":{    "rating":"OBP",    "source":"OBP"  },  "credit_limit":{    "currency":"EUR",    "amount":"10"  },  "highest_education_attained":"Bachelor’s Degree",  "employment_status":"Employed",  "kyc_status":true,  "last_ok_date":"2013-01-22T00:08:00Z"}
+			|	{  "legal_name":"Eveline Tripman",  "mobile_phone_number":"+44 07972 444 876",  "email":"eveline@example.com",  "face_image":{    "url":"www.openbankproject",    "date":"2017-09-19T00:00:00Z"  },  "date_of_birth":"2017-09-19T00:00:00Z",  "relationship_status":"single",  "dependants":10,  "dob_of_dependants":["2017-09-19T00:00:00Z"],  "credit_rating":{    "rating":"OBP",    "source":"OBP"  },  "credit_limit":{    "currency":"EUR",    "amount":"10"  },  "highest_education_attained":"Master",  "employment_status":"worker",  "kyc_status":true,  "last_ok_date":"2017-09-19T00:00:00Z",  "title":"Dr.",  "branch_id":"DERBY6",  "name_suffix":"Sr"}
 			|
 			|Headers:
 			|
@@ -859,7 +859,7 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	GET $getObpApiRoot/v3.0.0/users/current/customers
+			|	GET $getObpApiRoot/v4.0.0/users/current/customers
 			|
 			|Body:
 			|
@@ -877,7 +877,7 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/user_customer_links
+			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/user_customer_links
 			|
 			|Body:
 			|
@@ -895,11 +895,11 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	PUT $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/ACCOUNT_ID
+			|	PUT $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID
 			|
 			|Body:
 			|
-			|	{  "user_id":"user-id-from-step-1",  "label":"Label",  "type":"CURRENT",  "balance":{    "currency":"EUR",    "amount":"0"  },  "branch_id":"1234",  "account_routing":{    "scheme":"OBP",    "address":"UK123456"  }}
+			|	{  "user_id":"userid-from-step-1",  "label":"My Account",  "product_code":"AC",  "balance":{    "currency":"EUR",    "amount":"10"  },  "branch_id":"DERBY6",  "account_routing":{    "scheme":"AccountNumber",    "address":"4930396"  },  "account_attributes":[{    "product_code":"saving1",    "account_attribute_id":"613c83ea-80f9-4560-8404-b9cd4ec42a7f",    "name":"OVERDRAFT_START_DATE",    "type":"DATE_WITH_DAY",    "value":"2012-04-23"  }]}
 			|
 			|Headers:
 			|
@@ -911,7 +911,7 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	GET $getObpApiRoot/v3.0.0/my/banks/BANK_ID/accounts/account-id-from-step-2/account
+			|	GET $getObpApiRoot/v4.0.0/my/banks/BANK_ID/accounts/account-id-from-step-5/account
 			|
 			|Body:
 			|
@@ -929,12 +929,12 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/cards
+			|	POST $getObpApiRoot/v4.0.0/management/banks/BANK_ID/cards
 			|
 			|Body:
 			|
-			|	{  "account_id":"account-id-from-step-4","bank_card_number":"String",  "name_on_card":"String",  "issue_number":"String",  "serial_number":"String",  "valid_from_date":"2013-01-22T00:08:00Z",  "expires_date":"2013-01-22T00:08:00Z",  "enabled":true,  "cancelled":true,  "on_hot_list":false,  "technology":"String",  "networks":["String"],  "allows":["credit"],  "account_id":"String",  "replacement":{    "requested_date":"2013-01-22T00:08:00Z",    "reason_requested":"Good Point"  },  "pin_reset":[{    "requested_date":"2013-01-22T00:08:00Z",    "reason_requested":"forgot"  }],  "collected":"2013-01-22T00:08:00Z",  "posted":"2013-01-22T00:08:00Z"}
-			|
+      | {  "card_number":"364435172576215",  "card_type":"Credit",  "name_on_card":"SusanSmith",  "issue_number":"1",  "serial_number":"1324234",  "valid_from_date":"2017-09-19T00:00:00Z",  "expires_date":"2017-09-19T00:00:00Z",  "enabled":true,  "technology":"technology1",  "networks":["network1","network2"],  "allows":["credit","debit"],  "account_id":"account_id from step 5",  "replacement":{    "requested_date":"2017-09-19T00:00:00Z",    "reason_requested":"RENEW"  },  "pin_reset":[{    "requested_date":"2017-09-19T00:00:00Z",    "reason_requested":"FORGOT"  },{    "requested_date":"2020-01-18T16:39:23Z",    "reason_requested":"GOOD_SECURITY_PRACTICE"  }],  "collected":"2017-09-19T00:00:00Z",  "posted":"2017-09-19T00:00:00Z",  "customer_id":"customer_id from step 2"}
+      |
 			|Headers:
 			|
 			|	Content-Type:  application/json
