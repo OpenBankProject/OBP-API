@@ -1,8 +1,9 @@
 package code.util
 
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
-import code.api.util.{ApiVersion, CustomJsonFormats}
-import com.openbankproject.commons.util.{OBPRequired, ObpVersion}
+import com.openbankproject.commons.util.ApiVersion
+import code.api.util.{ CustomJsonFormats}
+import com.openbankproject.commons.util.OBPRequired
 import net.liftweb.json
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{Formats, JObject}
@@ -78,7 +79,7 @@ class CustomJsonFormatsTest extends FeatureSpec with Matchers with GivenWhenThen
 
 
 trait Foo {
-  @OBPRequired(value = Array(ObpVersion.allVersion))
+  @OBPRequired(value = Array(ApiVersion.allVersion))
   def name:String
   @OBPRequired(value = Array(OBP_UKOpenBanking_200.apiVersion, ApiVersion.v1_2_1, ApiVersion.v1_4_0))
   val age: Int
@@ -86,6 +87,6 @@ trait Foo {
   val email: String
 }
 
-case class Bar(@OBPRequired(Array(ObpVersion.allVersion), Array(ApiVersion.v3_0_0)) name: String, age: Int, email: String) extends Foo {
+case class Bar(@OBPRequired(Array(ApiVersion.allVersion), Array(ApiVersion.v3_0_0)) name: String, age: Int, email: String) extends Foo {
   def this(@OBPRequired name: String, @OBPRequired email: String) = this(name, 0, email)
 }

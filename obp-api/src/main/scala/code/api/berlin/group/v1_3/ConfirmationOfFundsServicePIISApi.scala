@@ -6,7 +6,7 @@ import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import net.liftweb.json
 import net.liftweb.json._
 import code.api.util.APIUtil.{defaultBankId, _}
-import code.api.util.{ApiTag, ApiVersion, NewStyle}
+import code.api.util.{ApiTag, NewStyle}
 import code.api.util.ErrorMessages._
 import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode

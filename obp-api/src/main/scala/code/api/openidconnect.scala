@@ -31,11 +31,12 @@ import java.util.Date
 
 import javax.net.ssl.HttpsURLConnection
 import code.api.util.APIUtil._
-import code.api.util.{APIUtil, ApiVersion}
+import code.api.util.APIUtil
 import code.model.UserX
 import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.token.Tokens
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.json

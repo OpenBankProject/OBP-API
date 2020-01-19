@@ -2,7 +2,8 @@ package code.api.v1_3_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.{ApiVersion, VersionedOBPApis}
+import com.openbankproject.commons.util.ApiVersion
+import code.api.util.{ VersionedOBPApis}
 import code.api.v1_2_1.APIMethods121
 import code.util.Helper.MdcLoggable
 

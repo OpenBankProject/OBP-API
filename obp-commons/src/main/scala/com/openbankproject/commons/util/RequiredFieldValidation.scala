@@ -1,6 +1,8 @@
 package com.openbankproject.commons.util
 
-import com.openbankproject.commons.util.ObpVersion.allVersion
+import com.openbankproject.commons.util.ApiVersion.allVersion
+import net.liftweb.json.JValue
+import net.liftweb.json.JsonAST.{JArray, JString}
 
 import scala.annotation.StaticAnnotation
 import scala.collection.immutable.ListMap
@@ -19,36 +21,25 @@ import scala.reflect.runtime.universe._
  *  > @OBPRequired(Array(ApiVersion.v3_0_0, ApiVersion.v4_1_0))
  *
  *  required for all versions except some versions: [-v3_0_0, -v4_1_0]
- *  > @OBPRequired(include=Array(ObpVersion.allVersion), exclude=Array(ApiVersion.v3_0_0, ApiVersion.v4_1_0))
+ *  > @OBPRequired(include=Array(ApiVersion.allVersion), exclude=Array(ApiVersion.v3_0_0, ApiVersion.v4_1_0))
  *
  * Note: The include and exclude parameter should not change order, because this is not a real class, it is annotation, scala's
  * annotation not allowed switch parameter's order as these:
- *    > @OBPRequired(exclude = Array(ObpVersion.allVersion), include = Array(ApiVersion.v3_0_0)
- *    > @OBPRequired(exclude = Array(ObpVersion.allVersion))
+ *    > @OBPRequired(exclude = Array(ApiVersion.allVersion), include = Array(ApiVersion.v3_0_0)
+ *    > @OBPRequired(exclude = Array(ApiVersion.allVersion))
  *
  * @param value do validate for these apiVersions
  * @param exclude not do validate for these apiVersions
  */
 @scala.annotation.meta.field
 @scala.annotation.meta.param
-class OBPRequired(value: Array[ObpVersion] = Array(ObpVersion.allVersion),
-                  exclude: Array[ObpVersion] = Array.empty
+class OBPRequired(value: Array[ApiVersion] = Array(ApiVersion.allVersion),
+                  exclude: Array[ApiVersion] = Array.empty
                  ) extends StaticAnnotation
 
-/**
- * the type code.api.util.ApiVersion is in obp-api project,
- * but current project need it in OBPRequired, a avoid cycle dependency, define the ObpVersion trait.
- */
-trait ObpVersion
-object ObpVersion{
-  val allVersion = new ObpVersion {
-    override def toString: String = "allVersion"
-  }
-}
 
-
-case class RequiredArgs(include: Array[ObpVersion],
-                        exclude: Array[ObpVersion] = Array.empty) {
+case class RequiredArgs(include: Array[ApiVersion],
+                        exclude: Array[ApiVersion] = Array.empty) extends JsonAble {
   {
     val includeAll = include.contains(allVersion)
     val excludeAll = exclude.contains(allVersion)
@@ -63,7 +54,7 @@ case class RequiredArgs(include: Array[ObpVersion],
     assertNot(include.isEmpty && exclude.isEmpty, s"OBPRequired's should not both include and exclude are empty.")
   }
 
-  def isNeedValidate(version: ObpVersion): Boolean = {
+  def isNeedValidate(version: ApiVersion): Boolean = {
     if(include.contains(allVersion)) {
       !exclude.contains(version)
     } else {
@@ -81,6 +72,14 @@ case class RequiredArgs(include: Array[ObpVersion],
     case RequiredArgs(inc, exc) => include.sameElements(inc) && exclude.sameElements(exc)
     case _ => false
   }
+  override def toJValue: JValue = (include, exclude) match {
+    case (_, Array()) =>
+      val includeList = include.toList.map(_.toString).map(JString(_))
+      JArray(includeList)
+    case _ =>
+      val excludeList = include.toList.map("-" + _.toString).map(JString(_))
+      JArray(excludeList)
+  }
 }
 
 object RequiredFieldValidation {
@@ -89,7 +88,7 @@ object RequiredFieldValidation {
   //OBPRequired's first default param and second default param name, they are end with 1 and 2 accordingly
   val defaultParam = """\$lessinit\$greater\$default\$([1,2])""".r
 
-  private def getVersions(tree: Tree): Array[ObpVersion] = tree match {
+  private def getVersions(tree: Tree): Array[ApiVersion] = tree match {
     // match default parameter value
     case Select(Select(_: Tree, TermName(OBP_REQUIRED_NAME)), TermName(defaultParam(num))) => {
       if(num == "1") Array(allVersion) else Array.empty
@@ -102,14 +101,14 @@ object RequiredFieldValidation {
     case Apply(Apply(TypeApply(Select(Select(Ident(TermName("scala")),TermName("Array")), TermName("apply")), TypeTree()::Nil), versionList:List[Tree]), _) => {
       versionList.toArray.map({
         case Select(Select(packageName: Select, TermName(typeName)), TermName(versionName)) =>
-          ReflectUtils.getField(s"$packageName.$typeName", versionName).asInstanceOf[ObpVersion]
+          ReflectUtils.getField(s"$packageName.$typeName", versionName).asInstanceOf[ApiVersion]
 
         case Select(outer: Ident, TermName(versionName)) =>
           val outerName = outer.tpe.toString.replace(".type", "")
-          ReflectUtils.getField(outerName, versionName).asInstanceOf[ObpVersion]
+          ReflectUtils.getField(outerName, versionName).asInstanceOf[ApiVersion]
 
         case ident: Ident =>
-          ReflectUtils.getObject(ident.tpe.toString).asInstanceOf[ObpVersion]
+          ReflectUtils.getObject(ident.tpe.toString).asInstanceOf[ApiVersion]
 
         case _ => throw new IllegalArgumentException(s"$OBP_REQUIRED_NAME's parameter not correct: $versionList")
       })
@@ -169,6 +168,11 @@ object RequiredFieldValidation {
                                fieldName: String,
                                predicate: Type => Boolean
                               ): Map[String, RequiredArgs] = {
+
+    if(!predicate(tp)) {
+      return Map.empty
+    }
+
     val fieldToRequiredInfo: Map[String, RequiredArgs] = getAnnotations(tp)
 
     // current type's fields full path to RequiredInfo

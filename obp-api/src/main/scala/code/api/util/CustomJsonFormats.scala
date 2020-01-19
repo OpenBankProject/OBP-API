@@ -9,7 +9,7 @@ import code.api.util.ApiRole.rolesMappedToClasses
 import code.api.v3_1_0.ListResult
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.JsonFieldReName
-import com.openbankproject.commons.util.{EnumValue, OBPEnumeration, ReflectUtils}
+import com.openbankproject.commons.util.{EnumValue, JsonAbleSerializer, OBPEnumeration, ReflectUtils}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{TypeInfo, _}
@@ -25,7 +25,7 @@ trait CustomJsonFormats {
 
 object CustomJsonFormats {
 
-  val formats: Formats = net.liftweb.json.DefaultFormats + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer
+  val formats: Formats = net.liftweb.json.DefaultFormats + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer + JsonAbleSerializer
 
   val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer
 

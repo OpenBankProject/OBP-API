@@ -1,6 +1,7 @@
 package code.api.v4_0_0
 
 import java.util.Date
+
 import code.api.Constant._
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -45,6 +46,8 @@ import org.atteo.evo.inflector.English
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.util.ApiVersion
+
 import scala.concurrent.Future
 
 trait APIMethods400 {

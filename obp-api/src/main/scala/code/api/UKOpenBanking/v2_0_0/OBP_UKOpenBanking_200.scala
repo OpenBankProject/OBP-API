@@ -28,11 +28,12 @@ package code.api.UKOpenBanking.v2_0_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.{ScannedApiVersion, ScannedApis}
+import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.Nil
 import code.api.UKOpenBanking.v2_0_0.APIMethods_UKOpenBanking_200._
+import com.openbankproject.commons.util.ScannedApiVersion
 
 
 /*

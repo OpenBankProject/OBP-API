@@ -4,7 +4,8 @@ import java.io._
 import java.net.URI
 
 import code.TestServer
-import code.api.util.{ApiVersion, VersionedOBPApis}
+import com.openbankproject.commons.util.ApiVersion
+import code.api.util.{ VersionedOBPApis}
 import com.openbankproject.commons.util.ReflectUtils
 import org.apache.commons.io.IOUtils
 

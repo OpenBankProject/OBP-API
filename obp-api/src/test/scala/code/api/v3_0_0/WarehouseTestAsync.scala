@@ -5,7 +5,7 @@ package code.api.v3_0_0
 import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanSearchWarehouse
-import code.api.util.ApiVersion
+import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.setup.{APIResponse, DefaultUsers}

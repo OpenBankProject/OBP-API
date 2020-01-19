@@ -25,7 +25,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v4_0_0
 
-import code.api.util.ApiVersion
+import com.openbankproject.commons.util.ApiVersion
 import dispatch.{Http, as}
 import org.asynchttpclient.Response
 import org.scalatest.Tag

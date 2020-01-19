@@ -6,7 +6,7 @@ import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
-import code.api.util.ApiStandards._
+import  com.openbankproject.commons.util.ApiStandards._
 import code.api.util._
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
@@ -17,6 +17,7 @@ import APIMethods400.Implementations4_0_0.genericEndpoint
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.enums.LanguageParam
 import com.openbankproject.commons.model.enums.LanguageParam._
+import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
@@ -380,7 +381,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       cc =>{
        for {
         (showCore, showPSD2, showOBWG, tags, partialFunctions, languageParam) <- Full(ResourceDocsAPIMethodsUtil.getParams())
-         requestedApiVersion <- tryo {ApiVersion.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
+         requestedApiVersion <- tryo {ApiVersionUtils.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
          _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
          json <- languageParam match {
            case Some(ZH) => getChineseVersionResourceDocs
@@ -438,7 +439,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         cc =>{
           for {
             (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions, languageParam) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
-            requestedApiVersion <- tryo(ApiVersion.valueOf(requestedApiVersionString)) ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
+            requestedApiVersion <- tryo(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported Current Version is $requestedApiVersionString")
             json <- getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG, requestedApiVersionString, resourceDocTags, partialFunctions)
           } yield {
@@ -469,7 +470,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL millisecond) {
           logger.debug(s"Generating Swagger showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersionString")
           val jsonOut = for {
-              requestedApiVersion <- Full(ApiVersion.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
+              requestedApiVersion <- Full(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
               _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
             rd <- getResourceDocsList(requestedApiVersion).map(_.filterNot(_.partialFunction == genericEndpoint)) // exclude all DynamicEntity endpoints
           } yield {

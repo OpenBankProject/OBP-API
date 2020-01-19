@@ -27,9 +27,10 @@ package code.api.v3_1_0
 
 import code.api.ErrorMessage
 import code.api.util.ErrorMessages.NotImplemented
-import code.api.util.{APIUtil, ApiVersion, ErrorMessages}
+import code.api.util.APIUtil
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
 
 class ObpApiLoopbackTest extends V310ServerSetup {

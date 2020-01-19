@@ -5,7 +5,7 @@ import java.util.{Date, Objects}
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages._
 import code.api.util._
-import com.openbankproject.commons.util.{EnumValue, OBPEnumeration, ReflectUtils}
+import com.openbankproject.commons.util.{ApiVersion, EnumValue, OBPEnumeration, ReflectUtils}
 import net.liftweb
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._

@@ -1,6 +1,7 @@
 package code.api.v2_0_0
 
 import java.util.{Calendar, Date}
+
 import code.api.Constant._
 import code.TransactionTypes.TransactionType
 import code.api.APIFailure
@@ -40,6 +41,7 @@ import net.liftweb.util.Helpers.tryo
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.util.ApiVersion
 // Makes JValue assignment to Nil work
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._

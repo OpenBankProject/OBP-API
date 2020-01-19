@@ -2,7 +2,7 @@ package com.openbankproject.commons
 
 import com.alibaba.ttl.TtlRunnable
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ ExecutionContext => ScalaExecutionContext}
 
 object ExecutionContext {
   object Implicits {
@@ -14,7 +14,7 @@ object ExecutionContext {
      * the thread pool uses a target number of worker threads equal to the number of
      * [[https://docs.oracle.com/javase/8/docs/api/java/lang/Runtime.html#availableProcessors-- available processors]].
      */
-    implicit lazy val global: ExecutionContext = wrapExecutionContext(scala.concurrent.ExecutionContext.Implicits.global)
+    implicit lazy val global: ScalaExecutionContext = wrapExecutionContext(scala.concurrent.ExecutionContext.Implicits.global)
   }
 
   /**
@@ -22,8 +22,8 @@ object ExecutionContext {
    * @param executionContext original executionContext
    * @return new wrapped executionContext that support TransmittableThreadLocal
    */
-  def wrapExecutionContext(executionContext: ExecutionContext): ExecutionContext = {
-    new ExecutionContext{
+  def wrapExecutionContext(executionContext: ScalaExecutionContext): ScalaExecutionContext = {
+    new ScalaExecutionContext{
       override def execute(runnable: Runnable): Unit = executionContext.execute(TtlRunnable.get(runnable, true, true))
       override def reportFailure(cause: Throwable): Unit = executionContext.reportFailure(cause)
     }
