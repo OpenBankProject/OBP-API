@@ -15,23 +15,187 @@ import scala.collection.immutable.List
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
-
 import code.api.util.CodeGenerateUtils.createDocExample
+import javassist.ClassPool
 
 object KafkaConnectorBuilder extends App {
+  // rewrite method code.webuiprops.MappedWebUiPropsProvider#getWebUiPropsValue, avoid access DB cause dataSource not found exception
+  {
+    val pool = ClassPool.getDefault
+    val ct = pool.getCtClass("code.webuiprops.MappedWebUiPropsProvider$")
+    val m = ct.getDeclaredMethod("getWebUiPropsValue")
+    m.insertBefore("""return ""; """)
+    ct.toClass
+  }
 
   val genMethodNames = List(
     "getAdapterInfo",
     "getBank",
     "getBanks",
+    "getBankAccountsForUser",
+    //// "getUser",
+    "getBankAccount",
     "getBankAccountsBalances",
+    "getCoreBankAccounts",
+    "getBankAccountsHeld",
+    "checkBankAccountExists",
+    //// "getCounterparty",
+    "getCounterpartyTrait",
+    "getCounterpartyByCounterpartyId",
+    "getCounterpartyByIban",
+    "getCounterparties",
+    "getTransactions",
+    "getTransactionsCore",
+    "getTransaction",
+    //// "getPhysicalCards",
+    "getPhysicalCardForBank",
+    "deletePhysicalCardForBank",
+    "getPhysicalCardsForBank",
+    "createPhysicalCard",
+    "updatePhysicalCard",
+    //// "makePayment",
+    //// "makePaymentv200",
+    "makePaymentv210",
+    //// "makePaymentImpl",
+    //// "createTransactionRequest",
+    //// "createTransactionRequestv200",
+    //// "getStatus",
+    //// "getChargeValue",
+    "createTransactionRequestv210",
+    //// "createTransactionRequestImpl",
+    //// "createTransactionRequestImpl210",
+    //// "saveTransactionRequestTransaction",
+    //// "saveTransactionRequestTransactionImpl",
+    //// "saveTransactionRequestChallenge",
+    //// "saveTransactionRequestChallengeImpl",
+    //// "saveTransactionRequestStatusImpl",
+    //// "getTransactionRequests",
+    //// "getTransactionRequests210",
+    //// "getTransactionRequestStatuses",
+    //// "getTransactionRequestStatusesImpl",
+    //// "getTransactionRequestsImpl",
+    //// "getTransactionRequestsImpl210",
+    //// "getTransactionRequestImpl",
+    //// "getTransactionRequestTypes",
+    //// "getTransactionRequestTypesImpl",
+    //// "answerTransactionRequestChallenge",
+    //// "createTransactionAfterChallenge",
+    //// "createTransactionAfterChallengev200",
+    "createTransactionAfterChallengeV210",
+    "updateBankAccount",
+    //// "createBankAndAccount",
+    //// "createBankAccount",
+    //// "createSandboxBankAccount",
+    //// "setAccountHolder",
+    //// "accountExists",
+    //// "removeAccount",
+    //// "getMatchingTransactionCount",
+    //// "createImportedTransaction",
+    //// "updateAccountBalance",
+    //// "setBankAccountLastUpdated",
+    //// "updateAccountLabel",
+    //// "updateAccount",
+    //// "getProducts",
+    //// "getProduct",
+    //// "createOrUpdateBranch",
+    //// "createOrUpdateBank",
+    //// "createOrUpdateAtm",
+    //// "createOrUpdateProduct",
+    //// "createOrUpdateFXRate",
     "getBranch",
     "getBranches",
     "getAtm",
     "getAtms",
+    //// "accountOwnerExists",
+    //// "createViews",
+    //// "getCurrentFxRate",
+    //// "getCurrentFxRateCached",
+    //// "getTransactionRequestTypeCharge",
+    //// "UpdateUserAccoutViewsByUsername",
+    "createTransactionAfterChallengev300",
+    //// "makePaymentv300",
+    //// "createTransactionRequestv300",
+    //// "getTransactionRequestTypeCharges",
+    //// "createCounterparty",
+    "checkCustomerNumberAvailable",
+    "createCustomer",
+    "updateCustomerScaData",
+    "updateCustomerCreditData",
+    "updateCustomerGeneralData",
     "getCustomersByUserId",
     "getCustomerByCustomerId",
-    "getCustomerByCustomerNumber"
+    "getCustomerByCustomerNumber",
+    "getCustomerAddress",
+    "createCustomerAddress",
+    "updateCustomerAddress",
+    "deleteCustomerAddress",
+    "createTaxResidence",
+    "getTaxResidence",
+    "deleteTaxResidence",
+    //// "getCustomers",
+    "getCheckbookOrders",
+    "getStatusOfCreditCardOrder",
+    "createUserAuthContext",
+    "createUserAuthContextUpdate",
+    "deleteUserAuthContexts",
+    "deleteUserAuthContextById",
+    "getUserAuthContexts",
+    "createOrUpdateProductAttribute",
+    "getProductAttributeById",
+    "getProductAttributesByBankAndCode",
+    "deleteProductAttribute",
+    "getAccountAttributeById",
+    "createOrUpdateAccountAttribute",
+    "createAccountAttributes",
+    "getAccountAttributesByAccount",
+    "createOrUpdateCardAttribute",
+    "getCardAttributeById",
+    "getCardAttributesFromProvider",
+    "createAccountApplication",
+    "getAllAccountApplication",
+    "getAccountApplicationById",
+    "updateAccountApplicationStatus",
+    "getOrCreateProductCollection",
+    "getProductCollection",
+    "getOrCreateProductCollectionItem",
+    "getProductCollectionItem",
+    "getProductCollectionItemsTree",
+    "createMeeting",
+    "getMeetings",
+    "getMeeting",
+    "createOrUpdateKycCheck",
+    "createOrUpdateKycDocument",
+    "createOrUpdateKycMedia",
+    "createOrUpdateKycStatus",
+    "getKycChecks",
+    "getKycDocuments",
+    "getKycMedias",
+    "getKycStatuses",
+    "createMessage",
+    "makeHistoricalPayment",
+    // new removed comments
+    "validateChallengeAnswer",
+    //// "getBankLegacy",
+    //// "getBanksLegacy",
+    //// "getBankAccountsForUserLegacy",
+    //// "updateUserAccountViewsOld",
+    //// "getBankAccountLegacy",
+    "getBankAccountByIban",
+    //// "getBankAccountByRouting",
+    "getBankAccounts",
+    //// "getCoreBankAccountsLegacy",
+    //// "getBankAccountsHeldLegacy",
+    //// "checkBankAccountExistsLegacy",
+    //// "getCounterpartyByCounterpartyIdLegacy",
+    //// "getCounterpartiesLegacy",
+    //// "getTransactionsLegacy",
+    //// "getTransactionLegacy",
+    //// "getPhysicalCardsForBankLegacy",
+    //// "createPhysicalCardLegacy",
+    //// "createBankAccountLegacy",
+    //// "getBranchLegacy",
+    //// "getAtmLegacy",
+    //// "getCustomerByCustomerIdLegacy",
   )
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -51,7 +215,7 @@ object KafkaConnectorBuilder extends App {
 
   if(genMethodNames.size > nameSignature.size) {
     val foundMehotdNames = nameSignature.map(_.methodName).toList
-    val notFoundMethodNames = genMethodNames.filterNot(foundMehotdNames.contains(_))
+    val notFoundMethodNames = genMethodNames.diff(foundMehotdNames)
     throw new IllegalArgumentException(s"some method not found, please check typo: ${notFoundMethodNames.mkString(", ")}")
   }
 
@@ -84,13 +248,14 @@ object KafkaConnectorBuilder extends App {
 
 class CommonGenerator(val methodName: String, tp: Type) {
   protected[this] def paramAnResult = tp.toString
-    .replaceAll("(\\w+\\.)+", "")
+    .replaceAll("""(\w+\.)+(\w+\.Value)""", "$2")
+    .replaceAll("""(\w+\.){2,}""", "")
     .replaceFirst("\\)", "): ")
     .replaceFirst("""\btype\b""", "`type`")
 
   val queryParamsListName = tp.paramLists(0).find(symbol => symbol.info <:< typeOf[List[OBPQueryParam]]).map(_.name.toString)
 
-  private[this] val params = tp.paramLists(0)
+  private[this] val params: String = tp.paramLists(0)
     .filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]])
     .map(_.name.toString)
     .map(it => if(it =="type") "`type`" else it)
