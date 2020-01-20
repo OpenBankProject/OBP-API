@@ -601,7 +601,7 @@
           <release>${java.version}</release>
         </configuration>
       </plugin>
-      <!--grpc related plugin begin-->
+      <!--grpc related plugin begin
       <plugin>
         <groupId>net.catte</groupId>
         <artifactId>scalapb-maven-plugin</artifactId>
@@ -621,7 +621,7 @@
           </execution>
         </executions>
       </plugin>
-      <!--grpc related plugin end-->
+      grpc related plugin end-->
     </plugins>
   </build>
   <reporting>
