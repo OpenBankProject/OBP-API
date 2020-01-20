@@ -29,6 +29,7 @@ package code.api.v4_0_0
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
 import code.api.util.{ApiVersion, VersionedOBPApis}
+import code.api.v1_2_1.OBPAPI1_2_1.Implementations1_2_1
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
@@ -59,6 +60,9 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   def allResourceDocs = collectResourceDocs(OBPAPI3_1_0.allResourceDocs,
                                             Implementations4_0_0.resourceDocs,
                                             MockerConnector.doc)
+     .filterNot(it => it.partialFunctionName.matches("addPermissionForUserForBankAccountForMultipleViews|removePermissionForUserForBankAccountForAllViews"))
+    //TODO exclude two endpoints, after training we need add logic to exclude endpoints
+
   // all endpoints
   private val endpoints: List[OBPEndpoint] = OBPAPI3_1_0.routes ++ endpointsOf4_0_0
 
