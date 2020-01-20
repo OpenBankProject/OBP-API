@@ -6,6 +6,9 @@ import code.api.util.NewStyle
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
+import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
+import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
+import code.bankconnectors.vMay2019.KafkaMappedConnector_vMay2019
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.methodrouting.MethodRouting
 import com.openbankproject.commons.model.BankId
@@ -100,10 +103,15 @@ package object bankconnectors {
 
     connectorName.getOrElse("mapped") match {
       case "mapped" => LocalMappedConnector
+      case "akka_vDec2018" => AkkaConnector_vDec2018
+      case "kafka" => KafkaMappedConnector
+      case "kafka_JVMcompatible" => KafkaMappedConnector_JVMcompatible
+      case "kafka_vMar2017" => KafkaMappedConnector_vMar2017
+      case "kafka_vJune2017" => KafkaMappedConnector_vJune2017
+      case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
+      case "kafka_vMay2019" => KafkaMappedConnector_vMay2019
       case "rest_vMar2019" => RestConnector_vMar2019
       case "stored_procedure_vDec2019" => StoredProcedureConnector_vDec2019
-      case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
-      case "akka_vDec2018" => AkkaConnector_vDec2018
       case _ => throw new IllegalStateException(s"config of connector.start.methodName.${methodName} have wrong value, not exists connector of name ${connectorName.get}")
     }
   }
