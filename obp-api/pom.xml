@@ -602,26 +602,27 @@
         </configuration>
       </plugin>
       <!--grpc related plugin begin-->
+      <!-- currently not need, enable this plugin when need generate new grpc code.
       <plugin>
-        <groupId>net.catte</groupId>
-        <artifactId>scalapb-maven-plugin</artifactId>
-        <version>1.2</version>
-        <configuration>
-          <javaOutput>false</javaOutput>
-          <inputDirectory>${basedir}/src/main/protobuf</inputDirectory>
-          <outputDirectory>${basedir}/src/main/scala</outputDirectory>
-          <grpc>true</grpc>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-            <phase>generate-sources</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <!--grpc related plugin end-->
+       <groupId>net.catte</groupId>
+       <artifactId>scalapb-maven-plugin</artifactId>
+       <version>1.2</version>
+       <configuration>
+         <javaOutput>false</javaOutput>
+         <inputDirectory>${basedir}/src/main/protobuf</inputDirectory>
+         <outputDirectory>${basedir}/src/main/scala</outputDirectory>
+         <grpc>true</grpc>
+       </configuration>
+       <executions>
+         <execution>
+           <goals>
+             <goal>compile</goal>
+           </goals>
+           <phase>generate-sources</phase>
+         </execution>
+       </executions>
+     </plugin>-->
+     <!--grpc related plugin end-->
     </plugins>
   </build>
   <reporting>
