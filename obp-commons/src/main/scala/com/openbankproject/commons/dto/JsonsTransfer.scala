@@ -43,8 +43,8 @@ trait InBoundTrait[T] {
 
 //--------generated
 
-case class OutBoundGetObpApiLoopback(outboundAdapterCallContext: OutboundAdapterCallContext) extends TopicTrait
-case class InBoundGetObpApiLoopback(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ObpApiLoopback) extends InBoundTrait[ObpApiLoopback]
+case class OutBoundGetObpConnectorLoopback(outboundAdapterCallContext: OutboundAdapterCallContext) extends TopicTrait
+case class InBoundGetObpConnectorLoopback(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ObpApiLoopback) extends InBoundTrait[ObpApiLoopback]
 
 case class OutBoundGetChallengeThreshold(outboundAdapterCallContext: OutboundAdapterCallContext,
                                          bankId: String,

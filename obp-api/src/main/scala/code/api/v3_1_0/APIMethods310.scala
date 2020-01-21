@@ -1913,9 +1913,9 @@ trait APIMethods310 {
     }
     
     resourceDocs += ResourceDoc(
-      getObpApiLoopback,
+      getObpConnectorLoopback,
       implementedInApiVersion,
-      nameOf(getObpApiLoopback),
+      nameOf(getObpConnectorLoopback),
       "GET",
       "/connector/loopback",
       "Get Connector Status (Loopback)",
@@ -1939,7 +1939,7 @@ trait APIMethods310 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApi, apiTagNewStyle))
 
-    lazy val getObpApiLoopback : OBPEndpoint = {
+    lazy val getObpConnectorLoopback : OBPEndpoint = {
       case "connector" :: "loopback" :: Nil JsonGet _ => {
         cc =>
           for {
