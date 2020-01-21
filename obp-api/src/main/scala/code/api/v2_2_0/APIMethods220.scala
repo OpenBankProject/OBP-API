@@ -410,7 +410,7 @@ trait APIMethods220 {
             messageDocs <- Full{connectorObject.messageDocs.toList} 
           } yield {
             val json = JSONFactory220.createMessageDocsJson(messageDocs)
-            successJsonResponse(Extraction.decompose(json))
+            successJsonResponse(Extraction.decompose(json)(CustomJsonFormats.formats))
           }
         }
       }

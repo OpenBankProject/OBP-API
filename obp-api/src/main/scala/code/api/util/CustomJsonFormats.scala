@@ -27,9 +27,9 @@ object CustomJsonFormats {
 
   val formats: Formats = net.liftweb.json.DefaultFormats + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer + JsonAbleSerializer
 
-  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer
+  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer + JsonAbleSerializer
 
-  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer
+  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer + JsonAbleSerializer
 
   implicit val nullTolerateFormats = formats + JNothingSerializer
 
@@ -37,7 +37,7 @@ object CustomJsonFormats {
     val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
 
     override val typeHints = ShortTypeHints(rolesMappedToClasses)
-  } + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer
+  } + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer + JsonAbleSerializer
 }
 
 object BigDecimalSerializer extends Serializer[BigDecimal] {

@@ -1,6 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.Date
+
 import code.api.Constant._
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
@@ -25,7 +26,7 @@ import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
 import com.openbankproject.commons.model.enums.CardAttributeType
 import com.openbankproject.commons.model.{UserAuthContextUpdateStatus, ViewBasic, _}
-import com.openbankproject.commons.util.ReflectUtils
+import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, ReflectUtils, RequiredArgs, RequiredInfo}
 
 import scala.collection.immutable.List
 
@@ -432,7 +433,12 @@ object SwaggerDefinitionsJSON {
     example_inbound_message = defaultJValue,
     outboundAvroSchema = Some(defaultJValue),
     inboundAvroSchema = Some(defaultJValue),
-    adapter_implementation = adapterImplementationJson
+    adapter_implementation = adapterImplementationJson,
+    requiredFieldInfo = {
+      val fieldNameApiVersions = FieldNameApiVersions("data.bankId", List(ApiVersion.v3_1_0.toString))
+      val requiredInfo = RequiredInfo(List(fieldNameApiVersions))
+      Some(requiredInfo)
+    }
   )
 
   val messageDocsJson = MessageDocsJson(message_docs = List(messageDocJson))

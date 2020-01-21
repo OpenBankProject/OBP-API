@@ -1,12 +1,13 @@
 package com.openbankproject.commons.util
 
+import java.util.Objects
+
 import com.openbankproject.commons.util.ApiVersion.allVersion
-import net.liftweb.json.JValue
-import net.liftweb.json.JsonAST.{JArray, JString}
+import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 
 import scala.annotation.StaticAnnotation
-import scala.collection.immutable.ListMap
 import scala.reflect.runtime.universe._
+import Functions.RichCollection
 
 
 /**
@@ -37,8 +38,36 @@ class OBPRequired(value: Array[ApiVersion] = Array(ApiVersion.allVersion),
                   exclude: Array[ApiVersion] = Array.empty
                  ) extends StaticAnnotation
 
+/**
+ * cooperate with RequiredInfo to deal with generate swagger doc and json serialization problem (show wrong structure of json)
+ * @param filedName
+ * @param apiVersions
+ */
+case class FieldNameApiVersions(filedName: String, apiVersions: List[String])
 
-case class RequiredArgs(include: Array[ApiVersion],
+/**
+ * cooperate with RequiredInfo to deal with generate swagger doc and json serialization problem (show wrong structure of json)
+ * @param infos
+ */
+case class RequiredInfo(infos: List[FieldNameApiVersions]) extends JsonAble {
+
+  override def toJValue: JObject = {
+    val jFields = infos.map(info => JField(
+      info.filedName,
+      JArray(info.apiVersions.map(JString(_))))
+    )
+    JObject(jFields)
+  }
+}
+
+object RequiredInfo {
+  def apply(requiredArgs: Seq[RequiredArgs]): RequiredInfo = {
+    val fieldNameApiVersionses = requiredArgs.toList.map(arg => FieldNameApiVersions(arg.fieldPath, arg.apiVersions))
+    RequiredInfo(fieldNameApiVersionses)
+  }
+}
+
+case class RequiredArgs(fieldPath:String, include: Array[ApiVersion],
                         exclude: Array[ApiVersion] = Array.empty) extends JsonAble {
   {
     val includeAll = include.contains(allVersion)
@@ -69,16 +98,20 @@ case class RequiredArgs(include: Array[ApiVersion],
   }
 
   override def equals(obj: Any): Boolean = obj match {
-    case RequiredArgs(inc, exc) => include.sameElements(inc) && exclude.sameElements(exc)
+    case RequiredArgs(path, inc, exc) => Objects.equals(fieldPath, path) && include.sameElements(inc) && exclude.sameElements(exc)
     case _ => false
   }
-  override def toJValue: JValue = (include, exclude) match {
+  override val toJValue: JArray = (include, exclude) match {
     case (_, Array()) =>
       val includeList = include.toList.map(_.toString).map(JString(_))
       JArray(includeList)
     case _ =>
       val excludeList = include.toList.map("-" + _.toString).map(JString(_))
       JArray(excludeList)
+  }
+  val apiVersions: List[String] = (include, exclude) match {
+    case (_, Array()) => include.toList.map(_.toString)
+    case _ => include.toList.map("-" + _.toString)
   }
 }
 
@@ -123,35 +156,43 @@ object RequiredFieldValidation {
    * @param tp to process type
    * @return map of field name to RequiredArgs
    */
-  def getAnnotations(tp: Type): Map[String, RequiredArgs] = {
+  def getAnnotations(tp: Type): Iterable[RequiredArgs] = {
     val members = tp.members
 
     val constructors = members.filter(_.isConstructor).map(_.asMethod)
 
-    def getFieldNameAndAnnotation(symbol: Symbol): List[(String, RequiredArgs)] =  {
-      (symbol.name.decodedName, getAnnotation(symbol)) match{
-        case (TermName(name), Some(requiredArgs)) => List(name.trim -> requiredArgs)
-        case _ => Nil
+    def getFieldNameAndAnnotation(symbol: Symbol): Option[RequiredArgs] =  {
+      val fieldName = symbol.name.decodedName.toString.trim
+      getAnnotation(fieldName, symbol) match{
+        case some: Some[RequiredArgs] => some
+        case _ => None
       }
     }
 
     // constructor param name to RequiredArgs
-    val constructorParamToRequiredArgs: Map[String, RequiredArgs] = constructors
+    val constructorParamToRequiredArgs: Iterable[RequiredArgs] = constructors
       .flatMap(_.paramLists.head) // all the constructor's parameters
-      .flatMap(getFieldNameAndAnnotation)
-      .toMap
+      .map(getFieldNameAndAnnotation)
+      .collect {
+        case Some(requiredArgs) => requiredArgs
+      }
+    val constructorParamNames = constructorParamToRequiredArgs.map(_.fieldPath).toSet
     // those annotated field name to RequiredArgs
-    val annotatedFieldNameToRequiredArgs: Map[String, RequiredArgs] =
-      members.filter(it => {
-        !it.isConstructor && !constructorParamToRequiredArgs.contains(it.name.decodedName.toString.trim)
-      })
-        .flatMap(getFieldNameAndAnnotation)
-        .toMap
-    val requiredFields: Map[String, RequiredArgs] = constructorParamToRequiredArgs ++ annotatedFieldNameToRequiredArgs
-    requiredFields
+    val annotatedFieldNameToRequiredArgs: Iterable[RequiredArgs] =
+      members
+        .filter(it => {
+          !it.isConstructor && !constructorParamNames.contains(it.name.decodedName.toString.trim)
+        })
+        .map(getFieldNameAndAnnotation)
+        .collect {
+          case Some(requiredArgs) => requiredArgs
+        }
+        .distinctBy(_.fieldPath)
+
+    constructorParamToRequiredArgs ++ annotatedFieldNameToRequiredArgs
   }
 
-  def getAnnotation(symbol: Symbol): Option[RequiredArgs] = {
+  def getAnnotation(fieldName: String, symbol: Symbol): Option[RequiredArgs] = {
     val annotation: Option[Annotation] =
       (symbol :: symbol.overrides)
         .flatMap(_.annotations)
@@ -159,47 +200,45 @@ object RequiredFieldValidation {
 
     annotation.map { it: Annotation =>
       it.tree.children.tail match {
-        case (include: Tree)::(exclude: Tree)::Nil => RequiredArgs(getVersions(include), getVersions(exclude))
+        case (include: Tree)::(exclude: Tree)::Nil => RequiredArgs(fieldName, getVersions(include), getVersions(exclude))
       }
     }
   }
 
-  private def getAllNestedRequiredInfo(tp: Type,
-                               fieldName: String,
-                               predicate: Type => Boolean
-                              ): Map[String, RequiredArgs] = {
+  def getAllNestedRequiredInfo(tp: Type,
+                               predicate: Type => Boolean = Functions.isOBPType,
+                               fieldName: String = null
+  ): Seq[RequiredArgs] = {
 
     if(!predicate(tp)) {
-      return Map.empty
+      return Nil
     }
 
-    val fieldToRequiredInfo: Map[String, RequiredArgs] = getAnnotations(tp)
+    val fieldToRequiredInfo: Iterable[RequiredArgs] = getAnnotations(tp)
 
     // current type's fields full path to RequiredInfo
     val currentPathToRequiredInfo = fieldName match {
       case null => fieldToRequiredInfo
-      case _ => fieldToRequiredInfo.map(it=> (s"$fieldName.${it._1}", it._2))
+      case _ => fieldToRequiredInfo.map(it=> it.copy(fieldPath = s"$fieldName.${it.fieldPath}"))
     }
 
     // find all sub fields RequiredInfo
-    val subPathToRequiredInfo: Map[String, RequiredArgs] = tp.members.collect {
-      case m: MethodSymbolApi if m.isGetter => (m.name.decodedName.toString.trim, ReflectUtils.getNestFirstTypeArg(m.returnType))
-      case m: TermSymbolApi if m.isCaseAccessor || m.isVal => (m.name.decodedName.toString.trim, m.info)
-    }.filter(tuple => predicate(tuple._2))
+    val subPathToRequiredInfo: Iterable[RequiredArgs] = tp.members.collect {
+      case m: MethodSymbolApi if m.isGetter => {
+        (m.name.decodedName.toString.trim, ReflectUtils.getNestFirstTypeArg(m.returnType))
+      }
+      case m: TermSymbolApi if m.isCaseAccessor || m.isVal => {
+        (m.name.decodedName.toString.trim, ReflectUtils.getNestFirstTypeArg(m.info))
+      }
+    } .filter(tuple => predicate(tuple._2))
+      .distinctBy(_._1)
       .flatMap(pair => {
         val (memberName, membersType) = pair
         val subFieldName = if(fieldName == null) memberName else s"$fieldName.$memberName"
-        getAllNestedRequiredInfo(membersType, subFieldName, predicate)
-      }).toMap
+        getAllNestedRequiredInfo(membersType, predicate, subFieldName)
+      })
 
-    currentPathToRequiredInfo ++ subPathToRequiredInfo
-  }
-
-  def getAllNestedRequiredInfo(tp: Type,
-                               predicate: Type => Boolean =  _ => true
-                              ): Map[String, RequiredArgs] =  {
-    val unSortedResult = getAllNestedRequiredInfo(tp, null, predicate)
-    ListMap(unSortedResult.toSeq.sortBy(_._1): _*)
+    (currentPathToRequiredInfo ++ subPathToRequiredInfo).toSeq.sortBy(_.fieldPath)
   }
 }
 

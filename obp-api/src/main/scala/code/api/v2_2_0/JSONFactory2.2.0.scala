@@ -46,7 +46,7 @@ import code.model._
 import com.openbankproject.commons.model.Product
 import code.users.Users
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.util.{ReflectUtils, RequiredArgs, RequiredFieldValidation}
+import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, RequiredInfo}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction.decompose
 import net.liftweb.json.JsonAST.JValue
@@ -830,7 +830,7 @@ object JSONFactory220 extends CustomJsonFormats {
                              outboundAvroSchema: Option[JValue] = None,
                              inboundAvroSchema: Option[JValue] = None,
                              adapter_implementation : AdapterImplementationJson,
-                             requiredFieldInfo: Map[String, RequiredArgs] = Map.empty
+                             requiredFieldInfo: Option[RequiredInfo] = None
                            )
 
   case class AdapterImplementationJson(
@@ -849,8 +849,6 @@ object JSONFactory220 extends CustomJsonFormats {
 
   def createMessageDocJson(md: MessageDoc): MessageDocJson = {
     val inBoundType = ReflectUtils.getType(md.exampleInboundMessage)
-    val regex = Pattern.compile("""(code|com\.openbankproject\.commons)\..+""")
-    def findRequiredInfoFor(tp: Type): Boolean = regex.matcher(tp.toString).matches()
 
     MessageDocJson(
       process = md.process,
@@ -868,7 +866,11 @@ object JSONFactory220 extends CustomJsonFormats {
                             md.adapterImplementation.map(_.group).getOrElse(""),
                             md.adapterImplementation.map(_.suggestedOrder).getOrElse(100)
       ),
-      requiredFieldInfo = RequiredFieldValidation.getAllNestedRequiredInfo(inBoundType, findRequiredInfoFor)
+      requiredFieldInfo = {
+        val requiredArgses = RequiredFieldValidation.getAllNestedRequiredInfo(inBoundType)
+        val requiredInfo = RequiredInfo(requiredArgses)
+        Some(requiredInfo)
+      }
     )
   }
 

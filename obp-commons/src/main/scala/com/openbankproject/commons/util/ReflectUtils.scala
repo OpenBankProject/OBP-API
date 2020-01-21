@@ -58,9 +58,9 @@ object ReflectUtils {
         val TermName(fieldName) = it.name
         if(it.isLazy) {
           // get lazy value
-          fieldName -> instanceMirror.reflectMethod(it.asMethod)()
+          fieldName.trim -> instanceMirror.reflectMethod(it.asMethod)()
         } else {
-          fieldName -> instanceMirror.reflectField(it).get
+          fieldName.trim -> instanceMirror.reflectField(it).get
         }
       })
       .toMap
