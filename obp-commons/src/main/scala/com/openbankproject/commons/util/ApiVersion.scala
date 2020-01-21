@@ -1,5 +1,7 @@
 package com.openbankproject.commons.util
 
+import java.io.{ObjectInputStream, ObjectOutputStream}
+
 object ApiStandards extends Enumeration {
   type ApiStandards = Value
   val obp = Value
@@ -38,13 +40,40 @@ sealed trait ApiVersion {
  * @param apiShortVersion eg: `v1.2.1` or `v2.0`
  * note: why not use case class? because case class can't have call by name parameter. this is work around for
  */
-class ScannedApiVersion(urlPrefixFn: => String, val apiStandard: String, val apiShortVersion: String) extends ApiVersion{
+class ScannedApiVersion(@transient urlPrefixFn: => String, var apiStandard: String, var apiShortVersion: String) extends ApiVersion with java.io.Serializable {
 
   def urlPrefix: String = urlPrefixFn
 
   val fullyQualifiedVersion = s"${apiStandard.toUpperCase}$apiShortVersion"
 
   override def toString() = apiShortVersion
+  //-----start  Serializable related methods for support Frozen feature, we can serialize this object and deSerialize to do compare.
+  private def writeObject(out: ObjectOutputStream): Unit = {
+    out.defaultWriteObject()
+    out.writeObject(apiStandard)
+    out.writeObject(apiShortVersion)
+  }
+  private def readObject(in: ObjectInputStream): Unit = {
+    in.defaultReadObject()
+    apiStandard = in.readObject().asInstanceOf[String]
+    apiShortVersion = in.readObject().asInstanceOf[String]
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[ScannedApiVersion]
+
+  override def equals(other: Any): Boolean = other match {
+    case that: ScannedApiVersion =>
+      (that canEqual this) &&
+        apiStandard == that.apiStandard &&
+        apiShortVersion == that.apiShortVersion
+    case _ => false
+  }
+
+  override def hashCode(): Int = {
+    val state = Seq(apiStandard, apiShortVersion)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+  //-----end  Serializable related methods for support Frozen feature, we can serialize this object and deSerialize to do compare.
 }
 
 object ScannedApiVersion {
@@ -83,13 +112,13 @@ object ApiVersion {
   // and affect the follow OBP Standard versions
   var apiPathZero: String = ApiStandards.obp.toString
   //OBP Standard
-  val v1_2_1 = ScannedApiVersion({apiPathZero},ApiStandards.obp.toString,ApiShortVersions.`v1.2.1`.toString)
-  val v1_3_0 = ScannedApiVersion({apiPathZero},ApiStandards.obp.toString,ApiShortVersions.`v1.3.0`.toString)
-  val v1_4_0 = ScannedApiVersion({apiPathZero},ApiStandards.obp.toString,ApiShortVersions.`v1.4.0`.toString)
-  val v2_0_0 = ScannedApiVersion({apiPathZero},ApiStandards.obp.toString,ApiShortVersions.`v2.0.0`.toString)
-  val v2_1_0 = ScannedApiVersion({apiPathZero},ApiStandards.obp.toString,ApiShortVersions.`v2.1.0`.toString)
-  val v2_2_0 = ScannedApiVersion({apiPathZero},ApiStandards.obp.toString,ApiShortVersions.`v2.2.0`.toString)
-  val v3_0_0 = ScannedApiVersion({apiPathZero},ApiStandards.obp.toString,ApiShortVersions.`v3.0.0`.toString)
-  val v3_1_0 = ScannedApiVersion({apiPathZero},ApiStandards.obp.toString,ApiShortVersions.`v3.1.0`.toString)
-  val v4_0_0 = ScannedApiVersion({apiPathZero},ApiStandards.obp.toString,ApiShortVersions.`v4.0.0`.toString)
+  val v1_2_1 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v1.2.1`.toString)
+  val v1_3_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v1.3.0`.toString)
+  val v1_4_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v1.4.0`.toString)
+  val v2_0_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v2.0.0`.toString)
+  val v2_1_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v2.1.0`.toString)
+  val v2_2_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v2.2.0`.toString)
+  val v3_0_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v3.0.0`.toString)
+  val v3_1_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v3.1.0`.toString)
+  val v4_0_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v4.0.0`.toString)
 }
