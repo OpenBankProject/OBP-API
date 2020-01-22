@@ -55,12 +55,12 @@ object ReflectUtils {
       .withFilter(it => it.isLazy || it.isVal || it.isVar)
       .withFilter(predicate)
       .map(it => {
-        val TermName(fieldName) = it.name
+        val fieldName = it.name.decodedName.toString.trim
         if(it.isLazy) {
           // get lazy value
-          fieldName.trim -> instanceMirror.reflectMethod(it.asMethod)()
+          fieldName -> instanceMirror.reflectMethod(it.asMethod)()
         } else {
-          fieldName.trim -> instanceMirror.reflectField(it).get
+          fieldName -> instanceMirror.reflectField(it).get
         }
       })
       .toMap

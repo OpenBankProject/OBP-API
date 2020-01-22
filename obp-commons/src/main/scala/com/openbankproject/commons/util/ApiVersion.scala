@@ -35,30 +35,19 @@ sealed trait ApiVersion {
 /**
  * We need more fields for the versions. now, we support many standards: UKOpenBanking, BerlinGroup.
  * For each standard, we need its own `fullyQualifiedVersion`
- * @param urlPrefixFn : eg: `obp` or 'berlin`-group``
+ * @param urlPrefix : eg: `obp` or 'berlin`-group``
  * @param apiStandard eg: obp or `BG` or `UK`
  * @param apiShortVersion eg: `v1.2.1` or `v2.0`
- * note: why not use case class? because case class can't have call by name parameter. this is work around for
  */
-class ScannedApiVersion(@transient urlPrefixFn: => String, var apiStandard: String, var apiShortVersion: String) extends ApiVersion with java.io.Serializable {
-
-  def urlPrefix: String = urlPrefixFn
+@SerialVersionUID(2319477438367593617L)
+case class ScannedApiVersion(urlPrefix: String, apiStandard: String, apiShortVersion: String) extends ApiVersion  {
 
   val fullyQualifiedVersion = s"${apiStandard.toUpperCase}$apiShortVersion"
 
   override def toString() = apiShortVersion
-  //-----start  Serializable related methods for support Frozen feature, we can serialize this object and deSerialize to do compare.
-  private def writeObject(out: ObjectOutputStream): Unit = {
-    out.defaultWriteObject()
-    out.writeObject(apiStandard)
-    out.writeObject(apiShortVersion)
-  }
-  private def readObject(in: ObjectInputStream): Unit = {
-    in.defaultReadObject()
-    apiStandard = in.readObject().asInstanceOf[String]
-    apiShortVersion = in.readObject().asInstanceOf[String]
-  }
 
+  // The deserialization instance is just for FrozenClassTest, to do check Frozen type whether be modified.
+  // urlPrefix maybe changed by code.api.Constant.ApiPathZero, that is count as modify, So equals and hashCode not omit urlPrefix field
   def canEqual(other: Any): Boolean = other.isInstanceOf[ScannedApiVersion]
 
   override def equals(other: Any): Boolean = other match {
@@ -73,15 +62,7 @@ class ScannedApiVersion(@transient urlPrefixFn: => String, var apiStandard: Stri
     val state = Seq(apiStandard, apiShortVersion)
     state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
-  //-----end  Serializable related methods for support Frozen feature, we can serialize this object and deSerialize to do compare.
-}
 
-object ScannedApiVersion {
-
-  def apply(urlPrefix: => String, apiStandard: String, apiShortVersion: String) = new ScannedApiVersion(urlPrefix, apiStandard, apiShortVersion)
-
-  def unapply(version: ScannedApiVersion): Option[(String, String, String)] =
-    Option(version).map(v => (v.urlPrefix, v.apiStandard, v.apiShortVersion))
 }
 
 object ApiVersion {
@@ -108,17 +89,28 @@ object ApiVersion {
   //Fixed the apiBuild apis as `api-builder` standard .
   lazy val apiBuilder = ScannedApiVersion("api-builder",ApiStandards.`api-builder`.toString, ApiShortVersions.b1.toString)
 
-  // the ApiPathZero value must get by obp-api project, so here is a workaround, let obp-api project modify this value
-  // and affect the follow OBP Standard versions
-  var apiPathZero: String = ApiStandards.obp.toString
+  val urlPrefix: String = ApiStandards.obp.toString
   //OBP Standard
-  val v1_2_1 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v1.2.1`.toString)
-  val v1_3_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v1.3.0`.toString)
-  val v1_4_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v1.4.0`.toString)
-  val v2_0_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v2.0.0`.toString)
-  val v2_1_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v2.1.0`.toString)
-  val v2_2_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v2.2.0`.toString)
-  val v3_0_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v3.0.0`.toString)
-  val v3_1_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v3.1.0`.toString)
-  val v4_0_0 = ScannedApiVersion(apiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v4.0.0`.toString)
+  val v1_2_1 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v1.2.1`.toString)
+  val v1_3_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v1.3.0`.toString)
+  val v1_4_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v1.4.0`.toString)
+  val v2_0_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v2.0.0`.toString)
+  val v2_1_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v2.1.0`.toString)
+  val v2_2_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v2.2.0`.toString)
+  val v3_0_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v3.0.0`.toString)
+  val v3_1_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v3.1.0`.toString)
+  val v4_0_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v4.0.0`.toString)
+
+  private val standardVersions = v1_2_1 :: v1_3_0 :: v1_4_0 :: v2_0_0 :: v2_1_0 :: v2_2_0 :: v3_0_0 :: v3_1_0 :: v4_0_0 :: Nil
+
+  /**
+   * the ApiPathZero value must be got by obp-api project, so here is a workaround, let obp-api project modify this value
+   * and affect the follow OBP Standard versions.
+   * @param apiPathZero
+   */
+  def setUrlPrefix(apiPathZero: String) = {
+    val urlPrefixField = classOf[ScannedApiVersion].getDeclaredField("urlPrefix")
+    urlPrefixField.setAccessible(true)
+    standardVersions.foreach(urlPrefixField.set(_, apiPathZero))
+  }
 }
