@@ -28,11 +28,14 @@ package com.openbankproject.commons.model
 
 import java.util.Date
 
+import com.openbankproject.commons.util.OBPRequired
+
 import scala.collection.immutable.List
 import scala.math.BigDecimal
 
 
 trait Bank {
+  @OBPRequired
   def bankId: BankId
 
   def shortName: String

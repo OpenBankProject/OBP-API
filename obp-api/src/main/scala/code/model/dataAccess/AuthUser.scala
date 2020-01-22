@@ -46,7 +46,7 @@ import net.liftweb.util._
 
 import scala.collection.immutable.List
 import scala.xml.{NodeSeq, Text}
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 /**

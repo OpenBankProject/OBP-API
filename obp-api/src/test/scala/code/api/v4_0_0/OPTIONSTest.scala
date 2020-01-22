@@ -25,13 +25,13 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v4_0_0
 
-import code.api.util.ApiVersion
+import com.openbankproject.commons.util.ApiVersion
 import dispatch.{Http, as}
 import org.asynchttpclient.Response
 import org.scalatest.Tag
 
 import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 class OPTIONSTest extends V400ServerSetup {

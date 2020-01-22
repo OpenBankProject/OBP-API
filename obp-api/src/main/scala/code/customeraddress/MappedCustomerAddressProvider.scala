@@ -11,7 +11,7 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 object MappedCustomerAddressProvider extends CustomerAddressProvider {
 

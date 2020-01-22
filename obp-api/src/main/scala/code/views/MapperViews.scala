@@ -17,7 +17,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.StringHelpers
 
 import scala.collection.immutable.List
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 //TODO: Replace BankAccountUIDs with bankPermalink + accountPermalink

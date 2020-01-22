@@ -7,7 +7,7 @@ import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider with MdcLoggable {

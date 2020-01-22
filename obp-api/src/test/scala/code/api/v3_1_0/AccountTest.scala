@@ -5,7 +5,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.updateAccountRequestJsonV310
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{ApiRole, ApiVersion}
+import code.api.util.ApiRole
 import code.api.v2_0_0.BasicAccountJSON
 import code.api.v2_2_0.CreateAccountJSONV220
 import code.api.v3_0_0.{CoreAccountsJsonV300, ModeratedCoreAccountJsonV300}
@@ -16,6 +16,7 @@ import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.AmountOfMoneyJsonV121
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 

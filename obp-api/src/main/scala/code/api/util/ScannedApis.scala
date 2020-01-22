@@ -2,6 +2,7 @@ package code.api.util
 
 import code.api.util.APIUtil.{ApiRelation, OBPEndpoint, ResourceDoc}
 import code.util.ClassScanUtils
+import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.http.LiftRules
 
 import scala.collection.mutable.ArrayBuffer

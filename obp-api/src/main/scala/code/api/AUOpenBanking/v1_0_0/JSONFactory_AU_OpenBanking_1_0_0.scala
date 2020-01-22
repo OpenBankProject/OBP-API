@@ -1,8 +1,9 @@
 package code.api.AUOpenBanking.v1_0_0
 
 import code.api.util.APIUtil.getServerUrl
-import code.api.util.{CustomJsonFormats, ScannedApiVersion}
+import code.api.util.CustomJsonFormats
 import com.openbankproject.commons.model.{BankAccount, CoreAccount}
+import com.openbankproject.commons.util.ScannedApiVersion
 
 import scala.collection.immutable.List
 

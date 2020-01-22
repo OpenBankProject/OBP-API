@@ -45,7 +45,7 @@ import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 sealed trait AppType
 object AppType {

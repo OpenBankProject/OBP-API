@@ -1,5 +1,7 @@
 package com.openbankproject.commons.util
 
+import java.lang.reflect.Field
+
 import net.liftweb.common.{Box, Empty, Failure, Full}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -31,11 +33,17 @@ object ReflectUtils {
   private def operateField[T](obj: AnyRef, fieldName: String, fn: ru.FieldMirror => Unit = _=>()): T = {
     val instanceMirror: ru.InstanceMirror = mirror.reflect(obj)
     val fieldTerm: ru.TermName = ru.TermName(fieldName)
-    val fieldSymbol: ru.TermSymbol = getType(obj).member(fieldTerm).asTerm.accessed.asTerm
-    val fieldMirror: ru.FieldMirror = instanceMirror.reflectField(fieldSymbol)
-    val originValue = fieldMirror.get
-    fn(fieldMirror)
-    originValue.asInstanceOf[T]
+    val field: ru.Symbol = getType(obj).member(fieldTerm)
+    if(field.isMethod) {// the field is a lazy val
+      val method = field.asMethod
+      instanceMirror.reflectMethod(method).apply().asInstanceOf[T]
+    } else {
+      val fieldSymbol: ru.TermSymbol = field.asTerm.accessed.asTerm
+      val fieldMirror: ru.FieldMirror = instanceMirror.reflectField(fieldSymbol)
+      val originValue = fieldMirror.get
+      fn(fieldMirror)
+      originValue.asInstanceOf[T]
+    }
   }
 
   def getFieldValues(obj: AnyRef)(predicate: TermSymbol => Boolean = _=>true): Map[String, Any] = {
@@ -50,9 +58,9 @@ object ReflectUtils {
         val TermName(fieldName) = it.name
         if(it.isLazy) {
           // get lazy value
-          fieldName -> instanceMirror.reflectMethod(it.asMethod)()
+          fieldName.trim -> instanceMirror.reflectMethod(it.asMethod)()
         } else {
-          fieldName -> instanceMirror.reflectField(it).get
+          fieldName.trim -> instanceMirror.reflectField(it).get
         }
       })
       .toMap
@@ -82,6 +90,33 @@ object ReflectUtils {
    * @return the field value of obj
    */
   def getField(obj: AnyRef, fieldName: String): Any = operateField[Any](obj, fieldName)
+
+  /**
+   * according object name get corresponding field value
+   * @param objName object name
+   * @param fieldName field name
+   * @return field value
+   */
+  def getField(objName: String, fieldName: String): Any = getField(getObject(objName), fieldName)
+
+  /**
+   * get given instance by full name.
+   * example:
+   * {{{
+   *  package com.foo.bar
+   *  object Hello {}
+   *  getObject("com.foo.bar.Hello") == Hello
+   * }}}
+   * @param fullName full name of object
+   * @return object value
+   */
+  def getObject(fullName: String): AnyRef = {
+    val regex = "(.+?)(\\.type)?".r
+    val regex(typeName, _) = fullName
+    val objClazz = Class.forName(typeName + "$")
+    val instanceField: Field = objClazz.getDeclaredField("MODULE$")
+    instanceField.get(null)
+  }
 
   /**
    * set given instance given field to a new value, and return the original value

@@ -13,7 +13,7 @@ import net.liftweb.json._
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 object APIMethods_DomesticStandingOrdersApi extends RestHelper {
     val apiVersion = OBP_UKOpenBanking_310.apiVersion

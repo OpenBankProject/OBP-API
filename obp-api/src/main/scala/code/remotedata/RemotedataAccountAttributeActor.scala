@@ -8,7 +8,7 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.enums.AccountAttributeType
 import com.openbankproject.commons.model.{AccountId, BankId, ProductAttribute, ProductCode}
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class RemotedataAccountAttributeActor extends Actor with ObpActorHelper with MdcLoggable {
 

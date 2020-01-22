@@ -29,7 +29,7 @@ import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ApiVersion
+import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages._
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.customer.CustomerX

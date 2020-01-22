@@ -13,7 +13,7 @@ import scala.collection.immutable.List
 import akka.pattern.pipe
 import com.openbankproject.commons.model.{AmountOfMoney, AmountOfMoneyTrait, BankId, CreditRatingTrait, CustomerFaceImageTrait}
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggable {
 

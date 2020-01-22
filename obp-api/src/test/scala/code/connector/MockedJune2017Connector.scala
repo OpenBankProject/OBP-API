@@ -3,14 +3,15 @@ package code.connector
 import code.api.util.{CallContext, CustomJsonFormats}
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.InboundAccountJune2017
-import code.model._
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import net.liftweb.json.Formats
+
 import scala.concurrent.Future
 
 /**
@@ -19,7 +20,7 @@ import scala.concurrent.Future
 object MockedJune2017Connector extends ServerSetup  
   with Connector with DefaultUsers  
   with DefaultConnectorTestSetup with MdcLoggable {
-  
+  override implicit val formats: Formats = CustomJsonFormats.nullTolerateFormats
   implicit override val nameOfConnector = "MockedCardConnector"
   
   //These bank id and account ids are real data over adapter  

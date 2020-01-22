@@ -8,7 +8,7 @@ import code.actorsystem.ObpActorHelper
 import code.ratelimiting.{MappedRateLimitingProvider, RemotedataRateLimitingCaseClasses}
 import code.util.Helper.MdcLoggable
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class RemotedataRateLimitingActor extends Actor with ObpActorHelper with MdcLoggable {
 

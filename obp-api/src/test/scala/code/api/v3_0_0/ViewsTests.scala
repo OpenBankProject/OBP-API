@@ -31,7 +31,7 @@ import _root_.net.liftweb.json.Serialization.write
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiVersion
+import com.openbankproject.commons.util.ApiVersion
 import code.api.v1_2_1.{APIInfoJSON, PermissionJSON, PermissionsJSON}
 import code.api.v2_2_0.{ViewJSONV220, ViewsJSONV220}
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0

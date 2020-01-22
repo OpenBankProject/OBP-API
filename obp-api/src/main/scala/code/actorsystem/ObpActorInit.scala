@@ -6,7 +6,7 @@ import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.reflect.ClassTag

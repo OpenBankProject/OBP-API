@@ -28,7 +28,8 @@ package code.api.v1_2_1
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.{ApiVersion, VersionedOBPApis}
+import com.openbankproject.commons.util.ApiVersion
+import code.api.util.{ VersionedOBPApis}
 import code.util.Helper.MdcLoggable
 
 // Added so we can add resource docs for this version of the API

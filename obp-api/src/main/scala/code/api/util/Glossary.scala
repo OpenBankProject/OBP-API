@@ -247,7 +247,7 @@ object Glossary {
 					|
 					|
 					|* You have OBP-API running and it is connected to a Kafka installation.
-					| You can check OBP -> Kafka connectivity using the <a href="/#OBPv3_1_0-getObpApiLoopback">"loopback" endpoint</a>.
+					| You can check OBP -> Kafka connectivity using the <a href="/#OBPv3_1_0-getObpConnectorLoopback">"loopback" endpoint</a>.
 					|
 					|* Ideally you have API Explorer running (the application serving this page) but its not necessary - you could use any other REST client.
 					|* You might want to also run API Manager as it makes it easier to grant yourself roles, but its not necessary - you could use the API Explorer / any REST client instead.
