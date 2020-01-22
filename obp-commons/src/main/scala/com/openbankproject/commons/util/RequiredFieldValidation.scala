@@ -8,6 +8,7 @@ import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import scala.annotation.StaticAnnotation
 import scala.reflect.runtime.universe._
 import Functions.RichCollection
+import net.liftweb.json.JsonDSL._
 
 
 /**
@@ -38,32 +39,33 @@ class OBPRequired(value: Array[ApiVersion] = Array(ApiVersion.allVersion),
                   exclude: Array[ApiVersion] = Array.empty
                  ) extends StaticAnnotation
 
+
+sealed class RequiredFields
 /**
  * cooperate with RequiredInfo to deal with generate swagger doc and json serialization problem (show wrong structure of json)
- * @param filedName
- * @param apiVersions
+ * field `data.bankId`: it is special identifier name that just for ResourceDoc definitions
  */
-case class FieldNameApiVersions(filedName: String, apiVersions: List[String])
+object FieldNameApiVersions extends RequiredFields with JsonAble {
+  val `data.bankId`: List[String] = List(ApiVersion.v2_2_0.toString, ApiVersion.v3_1_0.toString)
 
-/**
- * cooperate with RequiredInfo to deal with generate swagger doc and json serialization problem (show wrong structure of json)
- * @param infos
- */
-case class RequiredInfo(infos: List[FieldNameApiVersions]) extends JsonAble {
-
-  override def toJValue: JObject = {
-    val jFields = infos.map(info => JField(
-      info.filedName,
-      JArray(info.apiVersions.map(JString(_))))
-    )
-    JObject(jFields)
-  }
+  override def toJValue: JObject = "data.bankId" -> JArray(this.`data.bankId`.map(JString(_)))
 }
 
-object RequiredInfo {
-  def apply(requiredArgs: Seq[RequiredArgs]): RequiredInfo = {
-    val fieldNameApiVersionses = requiredArgs.toList.map(arg => FieldNameApiVersions(arg.fieldPath, arg.apiVersions))
-    RequiredInfo(fieldNameApiVersionses)
+/**
+ * cooperate with RequiredInfo to deal with generate swagger doc and json serialization problem (show wrong structure of json)
+ * @param requiredArgs
+ */
+case class RequiredInfo(requiredArgs: Seq[RequiredArgs]) extends RequiredFields with JsonAble {
+
+  override def toJValue: JObject = {
+    val jFields = requiredArgs
+        .toList
+        .map(info => JField(
+                      info.fieldPath,
+                      JArray(info.apiVersions.map(JString(_)))
+                    )
+        )
+    JObject(jFields)
   }
 }
 

@@ -46,7 +46,7 @@ import code.model._
 import com.openbankproject.commons.model.Product
 import code.users.Users
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, RequiredInfo}
+import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, RequiredFields, RequiredInfo}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction.decompose
 import net.liftweb.json.JsonAST.JValue
@@ -830,7 +830,7 @@ object JSONFactory220 extends CustomJsonFormats {
                              outboundAvroSchema: Option[JValue] = None,
                              inboundAvroSchema: Option[JValue] = None,
                              adapter_implementation : AdapterImplementationJson,
-                             requiredFieldInfo: Option[RequiredInfo] = None
+                             requiredFieldInfo: Option[RequiredFields] = None
                            )
 
   case class AdapterImplementationJson(
@@ -867,8 +867,8 @@ object JSONFactory220 extends CustomJsonFormats {
                             md.adapterImplementation.map(_.suggestedOrder).getOrElse(100)
       ),
       requiredFieldInfo = {
-        val requiredArgses = RequiredFieldValidation.getAllNestedRequiredInfo(inBoundType)
-        val requiredInfo = RequiredInfo(requiredArgses)
+        val requiredArgs = RequiredFieldValidation.getAllNestedRequiredInfo(inBoundType)
+        val requiredInfo = RequiredInfo(requiredArgs)
         Some(requiredInfo)
       }
     )
