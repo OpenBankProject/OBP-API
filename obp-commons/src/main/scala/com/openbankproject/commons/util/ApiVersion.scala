@@ -108,9 +108,6 @@ object ApiVersion {
    * and affect the follow OBP Standard versions.
    * @param apiPathZero
    */
-  def setUrlPrefix(apiPathZero: String) = {
-    val urlPrefixField = classOf[ScannedApiVersion].getDeclaredField("urlPrefix")
-    urlPrefixField.setAccessible(true)
-    standardVersions.foreach(urlPrefixField.set(_, apiPathZero))
-  }
+  def setUrlPrefix(apiPathZero: String): Unit =
+    standardVersions.foreach(ReflectUtils.setField(_, "urlPrefix", apiPathZero))
 }

@@ -30,20 +30,31 @@ object ReflectUtils {
    * @param fn a callback to operate field, default value is do nothing
    * @return the given value given field original value
    */
-  private def operateField[T](obj: AnyRef, fieldName: String, fn: ru.FieldMirror => Unit = _=>()): T = {
+  private def operateField[T](obj: AnyRef, fieldName: String)(fn: (InstanceMirror, TermSymbol) => Unit): T = {
     val instanceMirror: ru.InstanceMirror = mirror.reflect(obj)
-    val fieldTerm: ru.TermName = ru.TermName(fieldName)
-    val field: ru.Symbol = getType(obj).member(fieldTerm)
-    if(field.isMethod) {// the field is a lazy val
+    val tp = getType(obj)
+
+    def isFieldOrCallByPath(term: ru.TermSymbol) = {
+      term.name.decodedName.toString.trim == fieldName &&
+        (term.isVal || term.isVal || term.isLazy || (term.isMethod && term.asMethod.paramLists.isEmpty))
+    }
+
+    val fields: Iterable[ru.TermSymbol] = tp.members.collect({
+      case term: TermSymbol if isFieldOrCallByPath(term) => term
+    })
+    assert(fields.nonEmpty, s"${tp.typeSymbol.fullName} have not field kind member '$fieldName'")
+    val field = fields.find(it => it.isVal || it.isVar).getOrElse(fields.head)
+
+    val result: T = if(field.isVal || field.isVar) {
+      val fieldMirror: ru.FieldMirror = instanceMirror.reflectField(field)
+      val originValue = fieldMirror.get
+      originValue.asInstanceOf[T]
+    } else {// the field is a lazy val or call by name or empty param list method
       val method = field.asMethod
       instanceMirror.reflectMethod(method).apply().asInstanceOf[T]
-    } else {
-      val fieldSymbol: ru.TermSymbol = field.asTerm.accessed.asTerm
-      val fieldMirror: ru.FieldMirror = instanceMirror.reflectField(fieldSymbol)
-      val originValue = fieldMirror.get
-      fn(fieldMirror)
-      originValue.asInstanceOf[T]
     }
+    fn(instanceMirror, field)
+    result
   }
 
   def getFieldValues(obj: AnyRef)(predicate: TermSymbol => Boolean = _=>true): Map[String, Any] = {
@@ -89,7 +100,7 @@ object ReflectUtils {
    * @param fieldName field name
    * @return the field value of obj
    */
-  def getField(obj: AnyRef, fieldName: String): Any = operateField[Any](obj, fieldName)
+  def getField(obj: AnyRef, fieldName: String): Any = operateField[Any](obj, fieldName)(Functions.doNothingFn)
 
   /**
    * according object name get corresponding field value
@@ -126,7 +137,10 @@ object ReflectUtils {
    * @tparam T field type
    * @return the original field value
    */
-  def setField[T](obj: AnyRef, fieldName: String, fieldValue: T): T = operateField[T](obj, fieldName, _.set(fieldValue))
+  def setField[T](obj: AnyRef, fieldName: String, fieldValue: T): T = operateField[T](obj, fieldName) { (instanceMirror, term) =>
+    assert(term.isVal || term.isVar, s"${obj.getClass.getName} have no field name is '$fieldName'")
+    instanceMirror.reflectField(term).set(fieldValue)
+  }
 
   /**
    * modify given instance nested fields value

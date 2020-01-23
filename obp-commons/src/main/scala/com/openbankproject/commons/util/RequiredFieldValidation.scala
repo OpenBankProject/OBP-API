@@ -23,7 +23,7 @@ import net.liftweb.json.JsonDSL._
  *  > @OBPRequired(Array(ApiVersion.v3_0_0, ApiVersion.v4_1_0))
  *
  *  required for all versions except some versions: [-v3_0_0, -v4_1_0]
- *  > @OBPRequired(include=Array(ApiVersion.allVersion), exclude=Array(ApiVersion.v3_0_0, ApiVersion.v4_1_0))
+ *  > @OBPRequired(value=Array(ApiVersion.allVersion), exclude=Array(ApiVersion.v3_0_0, ApiVersion.v4_1_0))
  *
  * Note: The include and exclude parameter should not change order, because this is not a real class, it is annotation, scala's
  * annotation not allowed switch parameter's order as these:
@@ -113,7 +113,7 @@ case class RequiredArgs(fieldPath:String, include: Array[ApiVersion],
   }
   val apiVersions: List[String] = (include, exclude) match {
     case (_, Array()) => include.toList.map(_.toString)
-    case _ => include.toList.map("-" + _.toString)
+    case _ => exclude.toList.map("-" + _.toString)
   }
 }
 
@@ -153,52 +153,51 @@ object RequiredFieldValidation {
     case _ => throw new IllegalArgumentException(s"$OBP_REQUIRED_NAME's parameter not correct.")
   }
 
+
+
   /**
    * get all field name to OBPRequired annotation info
    * @param tp to process type
    * @return map of field name to RequiredArgs
    */
   def getAnnotations(tp: Type): Iterable[RequiredArgs] = {
-    val members = tp.members
 
-    val constructors = members.filter(_.isConstructor).map(_.asMethod)
+    def isField(symbol: TermSymbol): Boolean =
+    symbol.isVal || symbol.isVal || symbol.isLazy || (symbol.isMethod && symbol.asMethod.paramLists.isEmpty)
 
-    def getFieldNameAndAnnotation(symbol: Symbol): Option[RequiredArgs] =  {
-      val fieldName = symbol.name.decodedName.toString.trim
-      getAnnotation(fieldName, symbol) match{
-        case some: Some[RequiredArgs] => some
-        case _ => None
-      }
-    }
-
-    // constructor param name to RequiredArgs
-    val constructorParamToRequiredArgs: Iterable[RequiredArgs] = constructors
-      .flatMap(_.paramLists.head) // all the constructor's parameters
-      .map(getFieldNameAndAnnotation)
-      .collect {
-        case Some(requiredArgs) => requiredArgs
-      }
-    val constructorParamNames = constructorParamToRequiredArgs.map(_.fieldPath).toSet
-    // those annotated field name to RequiredArgs
-    val annotatedFieldNameToRequiredArgs: Iterable[RequiredArgs] =
-      members
-        .filter(it => {
-          !it.isConstructor && !constructorParamNames.contains(it.name.decodedName.toString.trim)
+    // constructor's parameters and fields
+    val members: Iterable[Symbol] =
+        tp.decls.filter(_.isConstructor).flatMap(_.asMethod.paramLists.head) ++
+        tp.members
+        .collect({
+          case t: TermSymbol if isField(t) => t
         })
-        .map(getFieldNameAndAnnotation)
-        .collect {
-          case Some(requiredArgs) => requiredArgs
-        }
-        .distinctBy(_.fieldPath)
 
-    constructorParamToRequiredArgs ++ annotatedFieldNameToRequiredArgs
+    val directAnnotated = members.map(member => getAnnotation(member.name.decodedName.toString.trim, member, false))
+      .collect({case Some(requiredArgs) => requiredArgs})
+      .distinctBy(_.fieldPath)
+
+    val directAnnotatedNames = directAnnotated.map(_.fieldPath).toSet
+
+    val inDirectAnnotated = members.collect({
+        case member if !directAnnotatedNames.contains(member.name.decodedName.toString.trim) =>
+          getAnnotation(member.name.decodedName.toString.trim, member, true)
+      })
+      .collect({case Some(requiredArgs) => requiredArgs})
+      .distinctBy(_.fieldPath)
+    directAnnotated ++ inDirectAnnotated
   }
 
-  def getAnnotation(fieldName: String, symbol: Symbol): Option[RequiredArgs] = {
+  private def getAnnotation(fieldName: String, symbol: Symbol, findOverrides: Boolean): Option[RequiredArgs] = {
     val annotation: Option[Annotation] =
-      (symbol :: symbol.overrides)
-        .flatMap(_.annotations)
-        .find(_.tree.tpe <:< typeOf[OBPRequired])
+      if(findOverrides) {
+        symbol.overrides.
+          flatMap(_.annotations)
+          .find(_.tree.tpe <:< typeOf[OBPRequired])
+      } else {
+        symbol.annotations
+          .find(_.tree.tpe <:< typeOf[OBPRequired])
+      }
 
     annotation.map { it: Annotation =>
       it.tree.children.tail match {
@@ -226,13 +225,13 @@ object RequiredFieldValidation {
 
     // find all sub fields RequiredInfo
     val subPathToRequiredInfo: Iterable[RequiredArgs] = tp.members.collect {
-      case m: MethodSymbolApi if m.isGetter => {
-        (m.name.decodedName.toString.trim, ReflectUtils.getNestFirstTypeArg(m.returnType))
+      case m: TermSymbol if m.isLazy=> {
+        (m.name.decodedName.toString.trim, ReflectUtils.getNestFirstTypeArg(m.asMethod.returnType))
       }
-      case m: TermSymbolApi if m.isCaseAccessor || m.isVal => {
+      case m: TermSymbol if m.isVal || m.isVar => {
         (m.name.decodedName.toString.trim, ReflectUtils.getNestFirstTypeArg(m.info))
       }
-    } .filter(tuple => predicate(tuple._2))
+    } .collect({case tuple @(_, fieldType) if predicate(fieldType) => tuple})
       .distinctBy(_._1)
       .flatMap(pair => {
         val (memberName, membersType) = pair
