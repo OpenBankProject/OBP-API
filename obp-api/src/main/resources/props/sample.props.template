@@ -721,7 +721,7 @@ database_messages_scheduler_interval=3600
 
 # Create System Views At Boot
 # In case is not defined default value is true
-#create_system_views_at_boot=false
+#create_system_views_at_boot=true
 
 # Stored procedure related JDBC settings
 stored_procedure_connector.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver
