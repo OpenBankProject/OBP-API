@@ -283,7 +283,7 @@ class Boot extends MdcLoggable {
 
     // here must modify apiPathZero: initiate the value, because obp-commons can't get apiPathZero value.
     // obp-api depends obp-commons, but obp-commons should not depends obp-api
-    ApiVersion.apiPathZero = ApiPathZero
+    ApiVersion.setUrlPrefix(ApiPathZero)
 
     // Add the various API versions
     ScannedApis.versionMapScannedApis.keys.foreach(enableVersionIfAllowed) // process all scanned apis versions

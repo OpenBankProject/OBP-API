@@ -434,11 +434,7 @@ object SwaggerDefinitionsJSON {
     outboundAvroSchema = Some(defaultJValue),
     inboundAvroSchema = Some(defaultJValue),
     adapter_implementation = adapterImplementationJson,
-    requiredFieldInfo = {
-      val fieldNameApiVersions = FieldNameApiVersions("data.bankId", List(ApiVersion.v3_1_0.toString))
-      val requiredInfo = RequiredInfo(List(fieldNameApiVersions))
-      Some(requiredInfo)
-    }
+    requiredFieldInfo = Some(FieldNameApiVersions)
   )
 
   val messageDocsJson = MessageDocsJson(message_docs = List(messageDocJson))

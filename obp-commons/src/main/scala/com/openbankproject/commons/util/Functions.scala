@@ -19,6 +19,9 @@ object Functions {
     case _ if false => ???
   }
 
+  def doNothingFn[T](t: T): Unit = ()
+  def doNothingFn[T, D](t: T, d: D): Unit = ()
+
   def truePredicate[T]: T => Boolean = _ => true
   def falsePredicate[T]: T => Boolean = _ => false
 
