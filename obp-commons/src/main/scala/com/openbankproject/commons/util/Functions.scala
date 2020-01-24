@@ -64,5 +64,21 @@ object Functions {
 
       b.result()
     }
+
+    /**
+     * split collection to tuple of two collections, left is predicate check is true, right is predicate check is false
+     * @param predicate check element function
+     * @param canBuildFrom
+     * @tparam That to collection's type
+     * @return tuple
+     */
+    def classify[That](predicate: A => Boolean)(implicit canBuildFrom: CanBuildFrom[Repr, A, That]): (That, That) = {
+      val builderLeft = canBuildFrom(iterable.repr)
+      val builderRight = canBuildFrom(iterable.repr)
+      for (x <- iterable) {
+        if(predicate(x)) builderLeft += x else builderRight += x
+      }
+      (builderLeft.result(), builderRight.result())
+    }
   }
 }

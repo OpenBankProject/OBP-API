@@ -46,13 +46,12 @@ import code.model._
 import com.openbankproject.commons.model.Product
 import code.users.Users
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, RequiredFields, RequiredInfo}
+import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, RequiredFields}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction.decompose
 import net.liftweb.json.JsonAST.JValue
 
 import scala.collection.immutable.List
-import scala.reflect.runtime.universe._
 
 
 case class ViewsJSONV220(
@@ -867,8 +866,7 @@ object JSONFactory220 extends CustomJsonFormats {
                             md.adapterImplementation.map(_.suggestedOrder).getOrElse(100)
       ),
       requiredFieldInfo = {
-        val requiredArgs = RequiredFieldValidation.getAllNestedRequiredInfo(inBoundType)
-        val requiredInfo = RequiredInfo(requiredArgs)
+        val requiredInfo = RequiredFieldValidation.getRequiredInfo(inBoundType)
         Some(requiredInfo)
       }
     )
