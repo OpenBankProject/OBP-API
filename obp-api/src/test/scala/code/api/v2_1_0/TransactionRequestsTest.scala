@@ -2,7 +2,8 @@ package code.api.v2_1_0
 
 import java.util.UUID
 import code.api.Constant._
-import code.api.{ChargePolicy, ErrorMessage}
+import code.api.ChargePolicy
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateAnyTransactionRequest
 import code.api.util.ErrorMessages._

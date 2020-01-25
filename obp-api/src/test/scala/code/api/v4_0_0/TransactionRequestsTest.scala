@@ -11,7 +11,8 @@ import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequest
 import code.api.v2_0_0.TransactionRequestBodyJsonV200
 import code.api.v2_1_0.{CounterpartyIdJson, IbanJson, TransactionRequestBodyCounterpartyJSON, TransactionRequestBodySEPAJSON}
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
-import code.api.{ChargePolicy, ErrorMessage}
+import code.api.ChargePolicy
+import com.openbankproject.commons.model.ErrorMessage
 import code.bankconnectors.Connector
 import code.fx.fx
 import code.model.BankAccountX

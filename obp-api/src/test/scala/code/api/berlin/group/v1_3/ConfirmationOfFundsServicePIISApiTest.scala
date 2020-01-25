@@ -1,6 +1,6 @@
 package code.api.berlin.group.v1_3
 
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_ConfirmationOfFundsServicePIISApi
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.{BankAccountNotFound, InvalidJsonContent, InvalidJsonFormat}

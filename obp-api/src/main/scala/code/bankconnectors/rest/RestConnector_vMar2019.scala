@@ -30,7 +30,8 @@ import java.util.Date
 import akka.http.scaladsl.model.{HttpProtocol, _}
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.util.ByteString
-import code.api.{APIFailureNewStyle, ErrorMessage}
+import code.api.{APIFailureNewStyle}
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.cache.Caching
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric}
 import code.api.util.ErrorMessages._

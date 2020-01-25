@@ -35,7 +35,8 @@ import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, 
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
 import code.api.util.{APIUtil, CallContext, NewStyle, OBPQueryParam}
-import code.api.{APIFailure, APIFailureNewStyle, ErrorMessage}
+import code.api.{APIFailure, APIFailureNewStyle, ApiVersionHolder}
+import com.openbankproject.commons.model.ErrorMessage
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
@@ -13014,6 +13015,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](procedureName: String, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
     //transfer accountId to accountReference and customerId to customerReference in outBound
     this.convertToReference(outBound)
+    val apiVersion = ApiVersionHolder.getApiVersion
     Future(StoredProcedureUtils.callProcedure[T](procedureName, outBound))
       .map(Box!! _)
       .map(convertToId(_)) recoverWith {

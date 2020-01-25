@@ -25,7 +25,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_1_0
 
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.ErrorMessages.NotImplemented
 import code.api.util.APIUtil
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
