@@ -16,8 +16,6 @@ import scalikejdbc.{DB, _}
  */
 object StoredProcedureUtils {
 
-  private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
-
   // lazy initial DB connection
   {
     val driver = APIUtil.getPropsValue("stored_procedure_connector.driver").openOrThrowException("mandatory property stored_procedure_connector.driver is missing!")
@@ -44,7 +42,8 @@ object StoredProcedureUtils {
   }
 
 
-  def callProcedure[T: Manifest](procedureName: String, outBound: TopicTrait): T = {
+  def callProcedure(procedureName: String, outBound: TopicTrait): JValue = {
+    implicit val formats = code.api.util.CustomJsonFormats.formats
     val procedureParam: String = write(outBound) // convert OutBound to json string
 
     val responseJson: String =
@@ -73,12 +72,8 @@ object StoredProcedureUtils {
           callableStatement.getString(2)
         }
      }
-    if(classOf[JValue].isAssignableFrom(manifest[T].runtimeClass)) {
-      json.parse(responseJson).asInstanceOf[T]
-    } else {
-      json.parse(responseJson).extract[T]
-    }
 
+    json.parse(responseJson)
   }
 
 }

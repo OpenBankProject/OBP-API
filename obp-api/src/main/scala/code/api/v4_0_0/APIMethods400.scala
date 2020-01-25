@@ -1094,7 +1094,7 @@ trait APIMethods400 {
 
       val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
 
-      APIInfoJson400(apiVersion.vDottedApiVersion(), apiVersionStatus, gitCommit, connector, hostedBy, hostedAt, energySource)
+      APIInfoJson400(apiVersion.vDottedApiVersion, apiVersionStatus, gitCommit, connector, hostedBy, hostedAt, energySource)
     }
 
 

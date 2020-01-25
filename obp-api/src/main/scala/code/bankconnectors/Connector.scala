@@ -4,6 +4,7 @@ import java.util.Date
 import java.util.UUID.randomUUID
 
 import code.accountholders.{AccountHolders, MapperAccountHolders}
+import code.api.ApiVersionHolder
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, _}
 import code.api.util.ApiRole._
@@ -38,7 +39,6 @@ import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttrib
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.json.Extraction.decompose
 import net.liftweb.json.{Formats, JObject, JValue}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
@@ -47,6 +47,7 @@ import net.liftweb.util.SimpleInjector
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.util.ApiVersion
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -127,6 +128,8 @@ trait Connector extends MdcLoggable {
   protected val statusOfCheckbookOrders = getSecondsCache("getStatusOfCheckbookOrdersFuture")
   protected val statusOfCreditcardOrders = getSecondsCache("getStatusOfCreditCardOrderFuture")
   protected val bankAccountsBalancesTTL = getSecondsCache("getBankAccountsBalances")
+
+  protected def apiVersion: ApiVersion = ApiVersionHolder.getApiVersion
 
   /**
     * convert original return type future to OBPReturnType

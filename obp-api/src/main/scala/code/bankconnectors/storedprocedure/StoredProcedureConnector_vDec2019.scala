@@ -34,7 +34,7 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric, _}
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
-import code.api.util.{APIUtil, CallContext, NewStyle, OBPQueryParam}
+import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle, OBPQueryParam}
 import code.api.{APIFailure, APIFailureNewStyle, ApiVersionHolder}
 import com.openbankproject.commons.model.ErrorMessage
 import code.bankconnectors._
@@ -42,6 +42,7 @@ import code.bankconnectors.vJune2017.AuthInfo
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.kafka.KafkaHelper
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
+import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto.{InBoundTrait, _}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
@@ -13016,9 +13017,31 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     //transfer accountId to accountReference and customerId to customerReference in outBound
     this.convertToReference(outBound)
     val apiVersion = ApiVersionHolder.getApiVersion
-    Future(StoredProcedureUtils.callProcedure[T](procedureName, outBound))
-      .map(Box!! _)
-      .map(convertToId(_)) recoverWith {
+    val tp = typeTag[T].tpe
+    Future{
+      val jValue = StoredProcedureUtils.callProcedure(procedureName, outBound)
+      val box: Box[T] = jValue match {
+            case v if ErrorMessage.isErrorMessage(v) =>
+              val ErrorMessage(code, message) = v.extract[ErrorMessage]
+              ParamFailure(message, Empty, Empty, APIFailure(message, code))
+            case _ => {
+              val box: Box[Box[T]] = tryo {
+                implicit val formats: Formats = CustomJsonFormats.nullTolerateFormats
+                val extractResult: Either[List[String], T] = Helper.getRequiredFieldInfo(tp).validateAndExtract[T](jValue, apiVersion)
+                extractResult match {
+                  case Left(missingFields) =>
+                    val message = missingFields.mkString(s"$InvalidConnectorResponseForMissingRequiredValues The missing fields: [", ", ", "]")
+                    logger.error(message)
+                    ParamFailure(message, Empty, Empty, APIFailure(message, 400))
+                  case Right(entity) => Full(entity)
+                }
+              } ~> APIFailureNewStyle(s"$InvalidJsonFormat The Json body should be the ${tp.typeSymbol.fullName} ", 400)
+
+              box.flatten
+            }
+          }
+     box
+    }.map(convertToId(_)) recoverWith {
       case e: Exception => Future.failed(new Exception(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}", e))
     }
   }

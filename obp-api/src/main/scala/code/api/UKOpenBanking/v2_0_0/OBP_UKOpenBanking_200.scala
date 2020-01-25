@@ -66,7 +66,7 @@ object OBP_UKOpenBanking_200 extends OBPRestHelper with MdcLoggable with Scanned
 
   // Make them available for use!
   routes.foreach(route => {
-    oauthServe((apiVersion.urlPrefix / version.vDottedApiVersion()).oPrefix{route}, findResourceDoc(route))
+    oauthServe((apiVersion.urlPrefix / version.vDottedApiVersion).oPrefix{route}, findResourceDoc(route))
   })
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")

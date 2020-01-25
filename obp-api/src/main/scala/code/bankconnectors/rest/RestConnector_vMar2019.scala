@@ -30,7 +30,7 @@ import java.util.Date
 import akka.http.scaladsl.model.{HttpProtocol, _}
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.util.ByteString
-import code.api.{APIFailureNewStyle}
+import code.api.{APIFailure, APIFailureNewStyle}
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.cache.Caching
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric}
@@ -58,8 +58,9 @@ import code.api.util.APIUtil._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
+import code.util.Helper
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
-import com.openbankproject.commons.util.ReflectUtils
+import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation}
 import net.liftweb.json._
 
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
@@ -9453,14 +9454,27 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       .map(_.utf8String)
   }
 
-  private[this] def extractEntity[T: Manifest](responseEntity: ResponseEntity): Future[Box[T]] = {
+  private[this] def extractEntity[T: TypeTag: Manifest](responseEntity: ResponseEntity): Future[Box[T]] = {
+    val tp = typeTag[T].tpe
     this.extractBody(responseEntity)
       .map({
         case null => Empty
-        case str => tryo {
-          implicit val formats: Formats = CustomJsonFormats.nullTolerateFormats
-          parse(str).extract[T]
-        } ~> APIFailureNewStyle(s"$InvalidJsonFormat The Json body should be the ${manifest[T]} ", 400)
+        case str => {
+          val box: Box[Box[T]] = tryo {
+            implicit val formats: Formats = CustomJsonFormats.nullTolerateFormats
+            val jValue = parse(str)
+            val extractResult: Either[List[String], T] = Helper.getRequiredFieldInfo(tp).validateAndExtract[T](jValue, apiVersion)
+            extractResult match {
+              case Left(missingFields) =>
+                val message = missingFields.mkString(s"$InvalidConnectorResponseForMissingRequiredValues The missing fields: [", ", ", "]")
+                logger.error(message)
+                ParamFailure(message, Empty, Empty, APIFailure(message, 400))
+              case Right(entity) => Full(entity)
+            }
+          } ~> APIFailureNewStyle(s"$InvalidJsonFormat The Json body should be the ${tp.typeSymbol.fullName} ", 400)
+
+          box.flatten
+        }
       })
   }
 

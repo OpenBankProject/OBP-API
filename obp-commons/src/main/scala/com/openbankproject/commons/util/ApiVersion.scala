@@ -23,9 +23,9 @@ object ApiShortVersions extends Enumeration {
 }
 
 sealed trait ApiVersion {
-  def dottedApiVersion() : String = this.toString.replace("_", ".").replace("v","")
-  def vDottedApiVersion() : String = this.toString.replace("_", ".")
-  def noV() : String = this.toString.replace("v", "").replace("V","")
+  lazy val dottedApiVersion: String = this.toString.replace("_", ".").replace("v","")
+  lazy val vDottedApiVersion: String = this.toString.replace("_", ".")
+  lazy val noV: String = this.toString.replace("v", "").replace("V","")
   override def toString() = {
     val (head, tail) = getClass().getSimpleName.splitAt(1)
     head.toLowerCase() + tail
