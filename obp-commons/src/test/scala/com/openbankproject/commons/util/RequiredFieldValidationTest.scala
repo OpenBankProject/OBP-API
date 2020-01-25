@@ -67,6 +67,7 @@ class RequiredFieldValidationTest extends FlatSpec with Matchers {
     stringToArgs should have size (20)
   }
 
+  // this test be grouped, every group is more complex than former.
   "method RequiredFieldValidation.getRequiredInfo" should "extract instance of T or invalid path names" taggedAs tag in {
     implicit val formats = net.liftweb.json.DefaultFormats
     val tp = typeOf[LevelFirst]
@@ -181,9 +182,6 @@ class RequiredFieldValidationTest extends FlatSpec with Matchers {
       val json = Extraction.decompose(
         first
       )
-      val value = requiredInfo.validateAndExtract[LevelFirst](json, v1_2_1)
-      value shouldBe a [Left[_, _]]
-      val Left(left) = value
 
       val expected = List(
         "email",
@@ -217,7 +215,18 @@ class RequiredFieldValidationTest extends FlatSpec with Matchers {
         "arraySecond.arrayThird.arrayForth.email",
         "arraySecond.arrayThird.arrayForth.name",
         )
+
+      val value  = requiredInfo.validateAndExtract[LevelFirst](json, v1_2_1)
+      val value2 = requiredInfo.validate(first, v1_2_1)
+
+      value shouldBe a [Left[_, _]]
+      value2 shouldBe a [Left[_, _]]
+
+      val Left(left) = value
+      val Left(left2) = value2
+
       left should contain theSameElementsAs expected
+      left2 should contain theSameElementsAs expected
     }
 
     {
@@ -235,11 +244,10 @@ class RequiredFieldValidationTest extends FlatSpec with Matchers {
       val json = Extraction.decompose(
         first
       )
-      val value = requiredInfo.validateAndExtract[LevelFirst](json, v1_2_1)
-      value shouldBe a [Right[_, _]]
-      val Right(entity) = value
 
-      entity should be equals(first)
+      requiredInfo.validateAndExtract[LevelFirst](json, v1_2_1) should be equals Right(first)
+
+      requiredInfo.validate[LevelFirst](first, v1_2_1) should be equals Right(first)
     }
 
   }

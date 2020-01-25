@@ -11,6 +11,8 @@ import Functions.RichCollection
 import net.liftweb.json.{Formats, JValue}
 import net.liftweb.json.JsonDSL._
 
+import scala.collection.GenTraversableOnce
+
 /**
  * Mark given type's field or constructor variable is required for some apiVersion
  *
@@ -128,6 +130,62 @@ case class RequiredInfo(requiredArgs: Seq[RequiredArgs]) extends RequiredFields 
     } else {
       Left(noValuePath.toList)
     }
+  }
+
+ def validate[T: Manifest](entity: T, apiVersion: ApiVersion)(implicit formats: Formats): Either[List[String], T] = {
+
+    val noValuePath = scala.collection.mutable.ListBuffer[String]()
+    val map = scala.collection.mutable.Map[String, Any]()
+    for {
+        arg <- this.requiredArgs
+        if arg.isNeedValidate(apiVersion)
+        fieldPath = arg.fieldPath
+        fieldPathParts = fieldPath.split('.')
+        scannedPath <- fieldPathParts.tail.scan(fieldPathParts.head)((pre, cur) => s"$pre.$cur") //e.g: Array("data", "data.user", "data.user.name")
+    } {
+      val (prePathOption, currentPath) = splitPath(scannedPath)
+      val prePathValue = prePathOption match {
+        case Some(prePath) => map(prePath)
+        case None => flatten(entity)
+      }
+
+      val scannedPathValue: Any = prePathValue match {
+          case null => null
+          case arr: Array[_] => arr.filterNot(null ==).map(ele => ReflectUtils.getField(ele.asInstanceOf[AnyRef], currentPath))
+          case any: AnyRef => ReflectUtils.getField(any, currentPath)
+        }
+
+      map(scannedPath) = flatten(scannedPathValue)
+
+      // if fieldPath corresponding value is empty, add to result.
+      if(scannedPath == fieldPath) {
+        if(prePathValue != JNull) {
+          (prePathValue, scannedPathValue) match {
+            case (_: Array[_], arr: Array[_]) if arr.exists(null ==) => noValuePath += fieldPath
+            case (_: AnyRef, null) => noValuePath += fieldPath
+            case _ =>  () // do nothing
+          }
+        }
+      }
+
+    }
+
+    if(noValuePath.isEmpty) {
+      Right(entity)
+    } else {
+      Left(noValuePath.toList)
+    }
+  }
+
+  /**
+   * when parameter is Array or collection, do deep flatten; when it is other type, return itself
+   * @param any
+   * @return
+   */
+  private def flatten(any: Any): Any = any match {
+    case a:Array[_] => Functions.deepFlatten(a)
+    case coll: GenTraversableOnce[_] => Functions.deepFlatten(coll.toArray[Any])
+    case _ => any
   }
 
   /**

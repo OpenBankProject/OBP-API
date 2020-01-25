@@ -1,7 +1,7 @@
 package com.openbankproject.commons.util
 import java.util.regex.Pattern
 
-import scala.collection.{IterableLike, immutable}
+import scala.collection.{GenTraversableLike, GenTraversableOnce, IterableLike, TraversableLike, immutable}
 import scala.collection.generic.CanBuildFrom
 import scala.reflect.runtime.universe.Type
 /**
@@ -30,7 +30,7 @@ object Functions {
   def isOBPType(tp: Type) = obpTypeNamePattern.matcher(tp.typeSymbol.fullName).matches()
   def isOBPClass(clazz: Class[_]) = obpTypeNamePattern.matcher(clazz.getName).matches()
 
-  implicit class RichCollection[A, Repr](iterable: IterableLike[A, Repr]){
+  implicit class RichCollection[A, Repr](iterable: GenTraversableLike[A, Repr]){
     def distinctBy[B, That](f: A => B)(implicit canBuildFrom: CanBuildFrom[Repr, A, That]) = {
       val builder = canBuildFrom(iterable.repr)
       val set = scala.collection.mutable.Set[B]()
@@ -80,5 +80,21 @@ object Functions {
       }
       (builderLeft.result(), builderRight.result())
     }
+  }
+
+  def deepFlatten(arr: Array[_]): Array[Any] = {
+    arr.collect {
+      case a:Array[_] => a
+      case coll: GenTraversableOnce[_] => coll.toArray[Any]
+    }.flatMap(deepFlatten(_)) ++
+    arr.filterNot(it => it.isInstanceOf[Array[_]] || it.isInstanceOf[GenTraversableOnce[_]])
+  }
+
+  def deepFlatten[A](coll: Traversable[A]): Traversable[Any] = {
+    coll.collect {
+      case a:Array[_] => a.toTraversable
+      case coll: Traversable[_] => coll
+    }.flatMap(deepFlatten(_)) ++
+     coll.filterNot(it => it.isInstanceOf[Array[_]] || it.isInstanceOf[GenTraversableOnce[_]])
   }
 }
