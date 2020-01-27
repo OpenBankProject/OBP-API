@@ -71,6 +71,7 @@ import scala.concurrent.TimeoutException
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
+@deprecated("we do not use obp-jvm any more, so we do not maintain this connector now","2020-01-27")
 object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper with MdcLoggable {
 
   implicit override val nameOfConnector = KafkaMappedConnector_JVMcompatible.getClass.getSimpleName
