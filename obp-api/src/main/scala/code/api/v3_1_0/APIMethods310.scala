@@ -3322,7 +3322,7 @@ trait APIMethods310 {
          |
          |The Consent is created in an ${ConsentStatus.INITIATED} state.
          |
-         |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of band (OOB) to the User via the transport defined in SCA_METHOD
          |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
          |
          |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
@@ -3357,7 +3357,7 @@ trait APIMethods310 {
          |
          |The Consent is created in an ${ConsentStatus.INITIATED} state.
          |
-         |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
          |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
          |
          |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
@@ -3392,6 +3392,24 @@ trait APIMethods310 {
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostConsentBodyCommonJson]
+            }
+            requestedEntitlements = consentJson.entitlements
+            myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
+            _ <- Helper.booleanToFuture(ConsentAllowedRoles){
+              requestedEntitlements.forall(
+                re => myEntitlements.getOrElse(Nil).exists(
+                  e => e.roleName == re.role_name && e.bankId == re.bank_id
+                )
+              )
+            }
+            requestedViews = consentJson.views
+            (_, assignedViews) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
+            _ <- Helper.booleanToFuture(ConsentAllowedViews){
+              requestedViews.forall(
+                rv => assignedViews.exists(
+                  e => e.view_id == rv.view_id && e.bank_id == rv.bank_id
+                )
+              )
             }
             createdConsent <- Future(Consents.consentProvider.vend.createConsent(user)) map {
               i => connectorEmptyResponse(i, callContext)
@@ -3601,7 +3619,7 @@ trait APIMethods310 {
       s"""Create User Auth Context Update.
          |${authenticationRequiredMessage(true)}
          |
-         |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
          |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
          |
          |""",

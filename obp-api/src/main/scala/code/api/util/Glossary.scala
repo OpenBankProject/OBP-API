@@ -1931,7 +1931,7 @@ object Glossary {
 			s"""|
 |SCA is the process by which a Customer of the Bank securely identifies him/her self to the Bank.
 |
-|Generally this involves using an Out Of Bounds (OOB) form of communication e.g. a One Time Password (OTP) / code sent to a mobile phone.
+|Generally this involves using an Out Of Band (OOB) form of communication e.g. a One Time Password (OTP) / code sent to a mobile phone.
 |
 |In the OBP APIs, SCA is invoked during Transaction Requests and Consent creation.
 |

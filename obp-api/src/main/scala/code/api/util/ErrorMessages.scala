@@ -336,6 +336,8 @@ object ErrorMessages {
   val SmsServerNotResponding = "OBP-35010: SMS server is not working or SMS server can not send the message to the phone number: "
   val AuthorizationNotFound = "OBP-35011: Resource identification of the related Consent authorisation sub-resource not found by AUTHORIZATION_ID. "
   val ConsentAlreadyRevoked = "OBP-35012: Consent is already revoked. "
+  val ConsentAllowedRoles = "OBP-35013: Only roles you already have you can assign to this consent. "
+  val ConsentAllowedViews = "OBP-35014: Only views you already have you can assign to this consent. "
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
