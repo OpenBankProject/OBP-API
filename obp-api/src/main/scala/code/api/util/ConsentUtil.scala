@@ -316,7 +316,7 @@ object Consent {
                        consent: PostConsentBodyCommonJson,
                        secret: String, 
                        consentId: String): String = {
-    val consumerKey = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.key.get).headOption.getOrElse("")
+    val consumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     val views: Seq[ConsentView] = 
       for {
@@ -340,7 +340,7 @@ object Consent {
       createdByUserId=user.userId,
       sub=APIUtil.generateUUID(),
       iss="https://www.openbankproject.com",
-      aud=consumerKey,
+      aud=consumerId,
       jti=consentId,
       iat=currentTimeInSeconds,
       nbf=currentTimeInSeconds,
