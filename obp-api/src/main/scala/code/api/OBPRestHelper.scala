@@ -40,7 +40,8 @@ import code.api.v3_1_0.APIMethods310
 import code.api.v4_0_0.APIMethods400
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.util.ReflectUtils
+import com.alibaba.ttl.TransmittableThreadLocal
+import com.openbankproject.commons.util.{ApiVersion, ReflectUtils, ScannedApiVersion}
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
@@ -83,6 +84,24 @@ case class UserNotFound(providerId : String, userId: String) extends APIFailure 
   //so that they can provide a useful message to their users. Obviously in the future this should be redesigned in a better
   //way, perhaps by using error codes.
   val msg = s"user $userId not found at provider $providerId"
+}
+
+object ApiVersionHolder {
+  private val threadLocal: ThreadLocal[ApiVersion] = new TransmittableThreadLocal()
+
+  def setApiVersion(apiVersion: ApiVersion) = threadLocal.set(apiVersion)
+
+  def getApiVersion = threadLocal.get()
+
+  /**
+   * remove apiVersion from threadLocal, and return removed value
+   * @return be removed apiVersion
+   */
+  def removeApiVersion(): ApiVersion = {
+    val apiVersion = threadLocal.get()
+    threadLocal.remove()
+    apiVersion
+  }
 }
 
 trait OBPRestHelper extends RestHelper with MdcLoggable {
@@ -204,7 +223,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         ApiVersion.v1_4_0.toString, 
         ApiVersion.v2_0_0.toString, 
         ApiVersion.v2_1_0.toString, 
-        ApiVersion.v2_2_0.toString
+        ApiVersion.v2_2_0.toString,
+        ApiVersion.apiBuilder.toString, //apiBuilder is the old style.
       ).exists(_ == e.implementedInApiVersion.toString()) =>
         false
       case Some(e) if APIMethods300.oldStyleEndpoints.exists(_ == e.partialFunctionName) =>
@@ -332,8 +352,17 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
             pf.isDefinedAt(req.withNewPath(req.path.drop(listLen)))
           }
 
-        def apply(req: Req): CallContext => Box[JsonResponse] =
-          pf.apply(req.withNewPath(req.path.drop(listLen)))
+        def apply(req: Req): CallContext => Box[JsonResponse] = {
+          val function: CallContext => Box[JsonResponse] = pf.apply(req.withNewPath(req.path.drop(listLen)))
+
+          callContext: CallContext => {
+            // set endpoint apiVersion
+            ApiVersionHolder.setApiVersion(version)
+            val value = function(callContext)
+            ApiVersionHolder.removeApiVersion()
+            value
+          }
+        }
       }
   }
 

@@ -6,7 +6,7 @@ import scala.reflect.runtime.universe._
 import org.scalatest.Tag
 import org.scalatest.matchers.Matcher
 
-class ReflectUtilsTest  extends FlatSpec with Matchers {
+class ReflectUtilsTest extends FlatSpec with Matchers {
   object ReflectUtilsTag extends Tag("ReflectUtils")
 
   case class Aperson(id: String, age: Int)

@@ -28,7 +28,7 @@ package code.api.v3_1_0
 import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.canCheckFundsAvailable
-import code.api.util.ApiVersion
+import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages._
 import code.api.v1_2_1.{CreateViewJsonV121, ViewJSONV121}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
@@ -134,7 +134,7 @@ class FundsAvailableTest extends V310ServerSetup {
       Then("We should get a 400")
       response310_invalic_ccy.code should equal(400)
       And("error should be " + InvalidISOCurrencyCode)
-      response310_invalic_ccy.body.extract[ErrorMessage].message should equal(InvalidISOCurrencyCode)
+      response310_invalic_ccy.body.extract[ErrorMessage].message startsWith(InvalidISOCurrencyCode)
 
       When("We make a request v3.1.0 with all params but amount is invalid")
       val response310_amount_ccy = makeGetRequest(request310 <<? Map("currency" -> "EUR", "amount" -> "bb"))

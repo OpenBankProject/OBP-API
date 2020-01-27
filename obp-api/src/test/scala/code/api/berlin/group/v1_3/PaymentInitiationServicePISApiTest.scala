@@ -54,7 +54,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(400)
       val error = s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfers "
       And("error should be " + error)
-      response.body.extract[code.api.ErrorMessage].message should equal (error)
+      response.body.extract[code.api.ErrorMessage].message should startWith (error)
     }
     scenario("Failed Case - wrong amount", BerlinGroupV1_3, PIS, initiatePayment) {
       val wrongAmountInitiatePaymentJson =

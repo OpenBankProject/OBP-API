@@ -2,12 +2,13 @@ package code.api.v2_2_0
 
 import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{ApiRole, ApiVersion}
+import code.api.util.ApiRole
 import code.api.util.ErrorMessages.InvalidISOCurrencyCode
 import code.consumer.Consumers
 import code.scope.Scope
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
 
 class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
@@ -50,7 +51,7 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
       val responseGet = makeGetRequest(requestGet)
       And("We should get a 400")
       responseGet.code should equal(400)
-      responseGet.body.extract[ErrorMessage].message should equal (InvalidISOCurrencyCode)
+      responseGet.body.extract[ErrorMessage].message should startWith (InvalidISOCurrencyCode)
     }
 
     scenario("We Get Current FxRate with wrong ISO to currency code", VersionOfApi, ApiEndpoint1) {
@@ -61,7 +62,7 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
       val responseGet = makeGetRequest(requestGet)
       And("We should get a 400")
       responseGet.code should equal(400)
-      responseGet.body.extract[ErrorMessage].message should equal (InvalidISOCurrencyCode)
+      responseGet.body.extract[ErrorMessage].message should startWith (InvalidISOCurrencyCode)
     }
     
   }

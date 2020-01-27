@@ -2,7 +2,7 @@ package code.api.v3_0_0.custom
 
 
 import code.api.util.APIUtil.{ApiRelation, CodeContext, ResourceDoc}
-import code.api.util.ApiVersion
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.http.rest.RestHelper
 
 import scala.collection.mutable.ArrayBuffer

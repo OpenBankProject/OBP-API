@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.sandbox
 
 import java.util.Date
-
+import code.api.Constant._
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.api.util.APIUtil._
@@ -283,19 +283,21 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     foundAccount.userOwners.map(_.name) should equal(account.owners.toSet)
 
     if(account.generate_public_view) {
-      Views.views.vend.viewsForAccount(BankIdAccountId(foundAccount.bankId, foundAccount.accountId)).filter(_.isPublic).size should equal(1)
+      Views.views.vend.availableViewsForAccount(BankIdAccountId(foundAccount.bankId, foundAccount.accountId)).filter(_.isPublic).size should equal(1)
     } else {
-      Views.views.vend.viewsForAccount(BankIdAccountId(foundAccount.bankId, foundAccount.accountId)).filter(_.isPublic).size should equal(0)
+      Views.views.vend.availableViewsForAccount(BankIdAccountId(foundAccount.bankId, foundAccount.accountId)).filter(_.isPublic).size should equal(0)
     }
 
     val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.userOwners.toList.head.name).openOrThrowException(attemptedToOpenAnEmptyBox)
     //there should be an owner view
-    val views = Views.views.vend.privateViewsUserCanAccessForAccount(owner, BankIdAccountId(foundAccount.bankId, foundAccount.accountId))
-    val ownerView = views.find(v => v.viewId.value == "owner")
+    //Note: system views not bankId, accountId, so here, we need to get all the views 
+    val (views,accountAccess) = Views.views.vend.privateViewsUserCanAccess(owner)
+    val ownerView = views.find(v => v.viewId.value == CUSTOM_OWNER_VIEW_ID)
     owner.hasOwnerViewAccess(BankIdAccountId(foundAccount.bankId, foundAccount.accountId)) should equal(true)
 
-    //and the owners should have access to it
-    Views.views.vend.getOwners(ownerView.get).map(_.idGivenByProvider) should equal(account.owners.toSet)
+    //and the owners should have access to it 
+    //Now, the owner is the system view, so all the users/accounts should have the access to this view
+    (account.owners.toSet).subsetOf(Views.views.vend.getOwners(ownerView.get).map(_.idGivenByProvider)) should be (true)
   }
 
   def verifyTransactionCreated(transaction : SandboxTransactionImport, accountsUsed : List[SandboxAccountImport]) = {

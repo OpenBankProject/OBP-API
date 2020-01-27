@@ -3,7 +3,8 @@ package code.api.v4_0_0
 import code.api.util.APIUtil.{Catalogs, ResourceDoc, authenticationRequiredMessage, emptyObjectJson, generateUUID, notCore, notOBWG, notPSD2}
 import code.api.util.ApiTag.{apiTagApi, apiTagNewStyle}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{ApiTag, ApiVersion, NewStyle}
+import code.api.util.{ApiTag, NewStyle}
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.util.StringHelpers
@@ -51,7 +52,11 @@ object MockerConnector {
       "GET",
       s"/${entityName}",
       s"Get all $pluralEntityName",
-      s"""Get all $pluralEntityName.""",
+      s"""Get all $pluralEntityName.
+         |${dynamicEntityInfo.description}
+         |
+         |${dynamicEntityInfo.fieldsDescription}
+         |""".stripMargin,
       emptyObjectJson,
       dynamicEntityInfo.getExampleList,
       List(
@@ -70,7 +75,11 @@ object MockerConnector {
       "GET",
       s"/${entityName}/$idNameInUrl",
       s"Get one $entityName",
-      s"""Get one $entityName.""",
+      s"""Get one $entityName.
+         |${dynamicEntityInfo.description}
+         |
+         |${dynamicEntityInfo.fieldsDescription}
+         |""".stripMargin,
       emptyObjectJson,
       dynamicEntityInfo.getSingleExample,
       List(
@@ -91,7 +100,9 @@ object MockerConnector {
       s"/${entityName}",
       s"Add $entityName",
       s"""Add a $entityName.
+         |${dynamicEntityInfo.description}
          |
+         |${dynamicEntityInfo.fieldsDescription}
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -116,7 +127,9 @@ object MockerConnector {
       s"/${entityName}/$idNameInUrl",
       s"Update $entityName",
       s"""Update a $entityName.
+         |${dynamicEntityInfo.description}
          |
+         |${dynamicEntityInfo.fieldsDescription}
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -182,6 +195,34 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
 
   val definitionJson = json.parse(definition).asInstanceOf[JObject]
   val entity = (definitionJson \ entityName).asInstanceOf[JObject]
+
+  val description = entity \ "description" match {
+    case JString(s) if StringUtils.isNotBlank(s) =>
+      s"""
+        |**Entity Description:**
+        |$s
+        |""".stripMargin
+    case _ => ""
+  }
+
+  val fieldsDescription = {
+    val descriptions = (entity \ "properties")
+      .asInstanceOf[JObject]
+      .obj
+      .filter(field =>
+        field.value \ "description" match {
+          case JString(s) if StringUtils.isNotBlank(s) => true
+          case _ => false
+        }
+      )
+      if(descriptions.nonEmpty) {
+        descriptions
+          .map(field => s"""* ${field.name}: ${(field.value \ "description").asInstanceOf[JString].s}""")
+          .mkString("**Properties Description:** \n", "\n", "")
+      } else {
+        ""
+      }
+  }
 
   def toResponse(result: JObject, id: Option[String]): JObject = {
 

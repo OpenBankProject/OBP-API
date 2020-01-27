@@ -73,7 +73,7 @@ import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 
 import scala.collection.immutable.List
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps

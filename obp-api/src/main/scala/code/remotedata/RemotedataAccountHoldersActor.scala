@@ -17,23 +17,23 @@ class RemotedataAccountHoldersActor extends Actor with ObpActorHelper with MdcLo
   def receive = {
 
     case cc.getOrCreateAccountHolder(user: User, account :BankIdAccountId) =>
-      logger.debug("getOrCreateAccountHolder(" + user +", "+ account +", " +")")
+      logger.debug(s"getOrCreateAccountHolder($user, $account)")
       sender ! (mapper.getOrCreateAccountHolder(user: User, account :BankIdAccountId))
       
     case cc.getAccountHolders(bankId: BankId, accountId: AccountId) =>
-      logger.debug("getAccountHolders(" + bankId +", "+ accountId +")")
+      logger.debug(s"getAccountHolders($bankId, $accountId)")
       sender ! (mapper.getAccountHolders(bankId, accountId))
 
     case cc.getAccountsHeld(bankId: BankId, user: User) =>
-      logger.debug("getAccountsHeld(" + bankId +", "+ user+")")
+      logger.debug(s"getAccountsHeld($bankId, $user)")
       sender ! (mapper.getAccountsHeld(bankId: BankId, user: User))
 
     case cc.getAccountsHeldByUser(user: User) =>
-      logger.debug("getAccountsHeldByUser(" + user+")")
+      logger.debug(s"getAccountsHeldByUser($user)")
       sender ! (mapper.getAccountsHeldByUser(user: User))
       
     case cc.bulkDeleteAllAccountHolders() =>
-      logger.debug("bulkDeleteAllAccountHolders()")
+      logger.debug(s"bulkDeleteAllAccountHolders()")
       sender ! (mapper.bulkDeleteAllAccountHolders())
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)

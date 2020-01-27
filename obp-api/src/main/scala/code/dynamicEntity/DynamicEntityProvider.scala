@@ -92,17 +92,20 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
    * {{{
    *   {
    *     "FooBar": {
+   *         "description": "description of this entity, can be markdown text.",
    *         "required": [
    *             "name"
    *         ],
    *         "properties": {
    *             "name": {
    *                 "type": "string",
-   *                 "example": "James Brown"
+   *                 "example": "James Brown",
+   *                 "description":"description of **name** field, can be markdown text."
    *             },
    *             "number": {
    *                 "type": "integer",
-   *                 "example": "698761728934"
+   *                 "example": "698761728934",
+   *                 "description": "description of **number** field, can be markdown text."
    *             }
    *         }
    *     }
@@ -134,6 +137,14 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
     // validate 'required' field exists and is a json array[string]
     checkFormat(required != JNothing , s"$InvalidJsonFormat There must be 'required' field in $entityName, and type is json array[string]")
     checkFormat(required.isInstanceOf[JArray] && required.asInstanceOf[JArray].arr.forall(_.isInstanceOf[JString]), s"$InvalidJsonFormat The 'required' field's type of $entityName should be array[string]")
+
+    val description = metadataJson \ "description"
+    // validate 'description' field, if exists it must be JString type and not blank
+    if(description != JNothing) {
+      checkFormat(description.isInstanceOf[JString] , s"$InvalidJsonFormat The 'description' field in $entityName must be string type.")
+      val JString(entityDescription) = description.asInstanceOf[JString]
+      checkFormat(entityDescription.nonEmpty , s"$InvalidJsonFormat The 'description' field in $entityName must be a not empty string value.")
+    }
 
     val properties = metadataJson \ "properties"
 
@@ -171,6 +182,14 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       // example type is correct
       val dEntityFieldType: DynamicEntityFieldType = DynamicEntityFieldType.withName(fieldType.asInstanceOf[JString].s)
       checkFormat(dEntityFieldType.isJValueValid(fieldExample), s"$InvalidJsonFormat The property of $fieldName's 'example' field should be type $dEntityFieldType")
+
+      val propertyDescription = value \ "description"
+      // validate 'description' field, if exists it must be JString type and not blank
+      if(propertyDescription != JNothing) {
+        checkFormat(propertyDescription.isInstanceOf[JString] , s"$InvalidJsonFormat The property of $fieldName's 'description' field in $entityName must be string type.")
+        val JString(descriptionValue) = propertyDescription.asInstanceOf[JString]
+        checkFormat(descriptionValue.nonEmpty , s"$InvalidJsonFormat The property of $fieldName's 'description' field in $entityName must be a not empty string value.")
+      }
     })
 
     DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId)
@@ -184,10 +203,10 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
  * @param FooBar
  */
 case class DynamicEntityFooBar(FooBar: DynamicEntityDefinition, dynamicEntityId: Option[String] = None)
-case class DynamicEntityDefinition(required: List[String],properties: DynamicEntityFullBarFields)
+case class DynamicEntityDefinition(description: String, required: List[String],properties: DynamicEntityFullBarFields)
 case class DynamicEntityFullBarFields(name: DynamicEntityStringTypeExample, number: DynamicEntityIntTypeExample)
-case class DynamicEntityStringTypeExample(`type`: DynamicEntityFieldType, example: String)
-case class DynamicEntityIntTypeExample(`type`: DynamicEntityFieldType, example: Int)
+case class DynamicEntityStringTypeExample(`type`: DynamicEntityFieldType, example: String, description: String)
+case class DynamicEntityIntTypeExample(`type`: DynamicEntityFieldType, example: Int, description: String)
 //-------------------example case class end
 
 

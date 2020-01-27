@@ -18,7 +18,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{Extraction, JArray}
 
 import scala.collection.immutable.List
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -94,8 +94,8 @@ class HelloWorldServer(executionContext: ExecutionContext) { self =>
         (bank, _) <- NewStyle.function.getBank(bankId, callContext)
         (user, _) <- NewStyle.function.findByUserId(userId, callContext)
       } yield {
-        val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(user).filter(_.bankId == bankId)
-        val availablePrivateAccounts = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
+        val (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(user, bankId)
+        val availablePrivateAccounts = bank.privateAccounts(privateAccountAccesses)
         val jValue = OBPAPI4_0_0.Implementations2_0_0.processAccounts(privateViewsUserCanAccessAtOneBank, availablePrivateAccounts)
         val jArray = JArray(
           jValue.asInstanceOf[JArray].arr.map(it => {
@@ -125,12 +125,12 @@ class HelloWorldServer(executionContext: ExecutionContext) { self =>
       val callContext: Option[CallContext] = Some(CallContext())
       val bankId = BankId(request.bankId)
       val accountId = AccountId(request.accountId)
-      val viewFuture: Future[View] = NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankId, accountId), callContext)
       for {
         (user, _) <- NewStyle.function.findByUserId(request.userId, callContext)
         (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-        view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
-        (Full(transactionsCore), callContext) <- bankAccount.getModeratedTransactionsCore(Full(user), view, Nil, callContext)
+        (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+        view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+        (Full(transactionsCore), callContext) <- bankAccount.getModeratedTransactionsCore(bank, Full(user), view, BankIdAccountId(bankId, accountId), Nil, callContext)
         obpCoreTransactions: CoreTransactionsJsonV300 = code.api.v3_0_0.JSONFactory300.createCoreTransactionsJSON(transactionsCore)
       } yield {
         val jValue = Extraction.decompose(obpCoreTransactions)

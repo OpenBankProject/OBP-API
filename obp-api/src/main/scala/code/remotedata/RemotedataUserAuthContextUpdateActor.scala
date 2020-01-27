@@ -6,7 +6,7 @@ import code.actorsystem.ObpActorHelper
 import code.context.{MappedUserAuthContextUpdateProvider, RemotedataUserAuthContextUpdateCaseClasses}
 import code.util.Helper.MdcLoggable
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class RemotedataUserAuthContextUpdateActor extends Actor with ObpActorHelper with MdcLoggable {
 

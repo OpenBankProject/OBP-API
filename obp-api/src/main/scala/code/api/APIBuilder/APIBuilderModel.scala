@@ -34,6 +34,7 @@ import scala.meta._
 
 object APIBuilderModel
 {
+  // you can modify this json file: OBP-API/obp-api/src/main/resources/apiBuilder/APIModelSource.json
   def main(args: Array[String]) = overwriteApiCode(apiSource, jsonFactorySource)
   
   def createTemplateJsonClass(className: String, templateJsonClassParams: List[Term.Param]) = q"""case class TemplateJson(..$templateJsonClassParams) """.copy(name = Type.Name(className))
@@ -265,7 +266,7 @@ object APIBuilderModel
     println("Congratulations! You make the new APIs. Please restart OBP-API server!")
   }
   
-  val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("src/main/scala/code/api/APIBuilder/APIModelSource.json")
+  val jsonJValueFromFile: JValue = APIUtil.getJValueFromJsonFile("apiBuilder/APIModelSource.json") 
   
   //"/templates"
   val apiUrl= getApiUrl(jsonJValueFromFile)
@@ -525,7 +526,7 @@ import java.util.UUID
 import code.api.builder.JsonFactory_APIBuilder._
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
-import code.api.util.ApiVersion
+import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages._
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper

@@ -43,7 +43,7 @@ import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{CreditLimit, Product, _}
-import com.openbankproject.commons.util.ReflectUtils
+import com.openbankproject.commons.util.{ApiVersion, ReflectUtils}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.S
 import net.liftweb.http.provider.HTTPParam
@@ -56,7 +56,8 @@ import org.apache.commons.lang3.{StringUtils, Validate}
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.Future
 
 trait APIMethods310 {
@@ -104,8 +105,7 @@ trait APIMethods310 {
 
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
 
-            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-            _ <- NewStyle.function.hasViewAccess(view, u)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext) 
             
             (checkbookOrders, callContext)<- Connector.connector.vend.getCheckbookOrders(bankId.value,accountId.value, callContext) map {
               unboxFullOrFail(_, callContext, InvalidConnectorResponseForGetCheckbookOrdersFuture)
@@ -147,8 +147,7 @@ trait APIMethods310 {
 
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
 
-            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-            _ <- NewStyle.function.hasViewAccess(view, u)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext) 
             
             //TODO need error handling here
             (checkbookOrders,callContext) <- Connector.connector.vend.getStatusOfCreditCardOrder(bankId.value,accountId.value, callContext) map {
@@ -713,8 +712,7 @@ trait APIMethods310 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-            _ <- NewStyle.function.hasViewAccess(view, u)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext) 
             _ <- Helper.booleanToFuture(failMsg = ViewDoesNotPermitAccess + " You need the view canQueryAvailableFunds.") {
               view.canQueryAvailableFunds
             }
@@ -730,7 +728,7 @@ trait APIMethods310 {
               new java.math.BigDecimal(value)
             }
             _ <- NewStyle.function.isValidCurrencyISOCode(httpParams.filter(_.name == currency).map(_.values.head).head, callContext)
-            _ <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            _ <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
           } yield {
             val ccy = httpParams.filter(_.name == currency).map(_.values.head).head
             val fundsAvailable =  (view.canQueryAvailableFunds, account.balance, account.currency) match {
@@ -1120,7 +1118,7 @@ trait APIMethods310 {
             _ <- passesPsd2Pisp(callContext)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), user, callContext) 
             (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(bankId, accountId, transactionId, view, user, callContext) map {
               unboxFullOrFail(_, callContext, GetTransactionsException)
             }
@@ -1182,10 +1180,9 @@ trait APIMethods310 {
             _ <- NewStyle.function.isEnabledTransactionRequests()
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            view <- NewStyle.function.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext)
-            _ <- NewStyle.function.hasViewAccess(view, u)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView) {
-              u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId))
+              u.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))
             }
             (transactionRequests, callContext) <- Future(Connector.connector.vend.getTransactionRequests210(u, fromAccount, callContext)) map {
               unboxFullOrFail(_, callContext, GetTransactionRequestsException)
@@ -1224,7 +1221,8 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagPerson, apiTagNewStyle),
-      Some(List(canCreateCustomer,canCreateCustomerAtAnyBank)))
+      Some(List(canCreateCustomer,canCreateCustomerAtAnyBank)),
+      connectorMethods = Some(List("obp.getBank","obp.createCustomer")))
     lazy val createCustomer : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
         cc =>
@@ -1374,7 +1372,9 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagKyc ,apiTagNewStyle))
+      List(apiTagCustomer, apiTagKyc ,apiTagNewStyle),
+      Some(List(canGetCustomer))
+    )
 
     lazy val getCustomerByCustomerNumber : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: "customer-number" ::  Nil JsonPost  json -> _ => {
@@ -1414,7 +1414,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canCreateUserAuthContext)))
 
     lazy val createUserAuthContext : OBPEndpoint = {
       case "users" :: userId ::"auth-context" :: Nil JsonPost  json -> _ => {
@@ -1496,7 +1497,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canDeleteUserAuthContext)))
 
     lazy val deleteUserAuthContexts : OBPEndpoint = {
       case "users" :: userId :: "auth-context" :: Nil JsonDelete _ => {
@@ -1534,7 +1536,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canDeleteUserAuthContext)))
 
     lazy val deleteUserAuthContextById : OBPEndpoint = {
       case "users" :: userId :: "auth-context" :: userAuthContextId :: Nil JsonDelete _ => {
@@ -1910,9 +1913,9 @@ trait APIMethods310 {
     }
     
     resourceDocs += ResourceDoc(
-      getObpApiLoopback,
+      getObpConnectorLoopback,
       implementedInApiVersion,
-      nameOf(getObpApiLoopback),
+      nameOf(getObpConnectorLoopback),
       "GET",
       "/connector/loopback",
       "Get Connector Status (Loopback)",
@@ -1936,13 +1939,14 @@ trait APIMethods310 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApi, apiTagNewStyle))
 
-    lazy val getObpApiLoopback : OBPEndpoint = {
+    lazy val getObpConnectorLoopback : OBPEndpoint = {
       case "connector" :: "loopback" :: Nil JsonGet _ => {
         cc =>
           for {
             (_, callContext) <- anonymousAccess(cc)
             connectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")
-            obpApiLoopback <- connectorVersion.contains("kafka") match {
+            starConnectorProps = APIUtil.getPropsValue("starConnector_supported_types").openOr("notfound")
+            obpApiLoopback <- connectorVersion.contains("kafka") ||  (connectorVersion.contains("star") && starConnectorProps.contains("kafka")) match {
               case false => throw new IllegalStateException(s"${NotImplemented}for connector ${connectorVersion}")
               case true => KafkaHelper.echoKafkaServer.recover {
                 case e: Throwable => throw new IllegalStateException(s"${KafkaServerUnavailable} Timeout error, because kafka do not return message to OBP-API. ${e.getMessage}")
@@ -2515,16 +2519,16 @@ trait APIMethods310 {
             product <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostPutProductJsonV310]
             }
-            parentProductCode <- product.parent_product_code.nonEmpty match {
+            parentProductCode <- product.parent_product_code.trim.nonEmpty match {
               case false => 
                 Future(Empty)
               case true =>
                 Future(Connector.connector.vend.getProduct(bankId, ProductCode(product.parent_product_code))) map {
-                  getFullBoxOrFail(_, callContext, ProductNotFoundByProductCode + " {" + product.parent_product_code + "}", 400)
+                  getFullBoxOrFail(_, callContext, ParentProductNotFoundByProductCode + " {" + product.parent_product_code + "}", 400)
                 }
             }
             success <- Future(Connector.connector.vend.createOrUpdateProduct(
-              bankId = product.bank_id,
+              bankId = bankId.value,
               code = productCode.value,
               parentProductCode = parentProductCode.map(_.code.value).toOption,
               name = product.name,
@@ -3269,7 +3273,7 @@ trait APIMethods310 {
 
     lazy val getMessageDocsSwagger: OBPEndpoint = {
       case "message-docs" :: restConnectorVersion ::"swagger2.0" :: Nil JsonGet _ => {
-          val (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions) = ResourceDocsAPIMethodsUtil.getParams()
+          val (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions, languageParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc => {
           for {
             (_, callContext) <- anonymousAccess(cc)
@@ -3735,7 +3739,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", user.userId, canGetSystemView, callContext)
             view <- NewStyle.function.systemView(ViewId(viewId), callContext)
           } yield {
-            (JSONFactory220.createViewJSON(view), HttpCode.`200`(callContext))
+            (JSONFactory300.createViewJSON(view), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3750,8 +3754,8 @@ trait APIMethods310 {
       "Create System View.",
       s"""Create a system view
         |
-        | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
-        | The 'alias' field in the JSON can take one of three values:
+        | ${authenticationRequiredMessage(true)} and the user needs to have access to the $canCreateSystemView entitlement.
+        | The 'alias' field in the JSON can take one of two values:
         |
         | * _public_: to use the public alias if there is one specified for the other account.
         | * _private_: to use the public alias if there is one specified for the other account.
@@ -3761,6 +3765,8 @@ trait APIMethods310 {
         | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
         |
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
+        | 
+        | Please note that system views cannot be public. In case you try to set it you will get the error $SystemViewCannotBePublicError
         | """,
       SwaggerDefinitionsJSON.createSystemViewJson,
       viewJsonV300,
@@ -3784,6 +3790,9 @@ trait APIMethods310 {
             failMsg = s"$InvalidJsonFormat The Json body should be the $CreateViewJson "
             createViewJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[CreateViewJson]
+            }
+            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400) {
+              createViewJson.is_public == false
             }
             view <- NewStyle.function.createSystemView(createViewJson, callContext)
           } yield {
@@ -3842,7 +3851,7 @@ trait APIMethods310 {
          |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
          |of a view is not editable (it is only set when a view is created)""",
-      updateViewJSON,
+      updateSystemViewJSON,
       viewJsonV300,
       List(
         InvalidJsonFormat,
@@ -3865,6 +3874,9 @@ trait APIMethods310 {
             updateJson <- Future { tryo{json.extract[UpdateViewJSON]} } map {
               val msg = s"$InvalidJsonFormat The Json body should be the $UpdateViewJSON "
               x => unboxFullOrFail(x, callContext, msg)
+            }
+            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400) {
+              updateJson.is_public == false
             }
             _ <- NewStyle.function.systemView(ViewId(viewId), callContext)
             updatedView <- NewStyle.function.updateSystemView(ViewId(viewId), updateJson, callContext)
@@ -4492,7 +4504,8 @@ trait APIMethods310 {
       List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagAccount),
-      Some(List(canUpdateAccount))
+      Some(List(canUpdateAccount)), 
+      connectorMethods = Some(List("obp.getBank","obp.getBankAccount","obp.updateBankAccount"))
     )
 
     lazy val updateAccount : OBPEndpoint = {
@@ -4750,7 +4763,7 @@ trait APIMethods310 {
             (card, callContext) <- NewStyle.function.getPhysicalCardForBank(bankId, cardId, callContext)
             (cardAttributes, callContext) <- NewStyle.function.getCardAttributesFromProvider(cardId, callContext)
           } yield {
-            val views: List[View] = Views.views.vend.viewsForAccount(BankIdAccountId(card.account.bankId, card.account.accountId))
+            val views: List[View] = Views.views.vend.assignedViewsForAccount(BankIdAccountId(card.account.bankId, card.account.accountId))
             val commonsData: List[CardAttributeCommons]= cardAttributes
             (createPhysicalCardWithAttributesJson(card, commonsData, u, views), HttpCode.`200`(callContext))
           }
@@ -5206,9 +5219,8 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-            _ <- NewStyle.function.hasViewAccess(view, u)
-            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext) 
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
             (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
               bankId,
               accountId,
@@ -5529,7 +5541,8 @@ trait APIMethods310 {
       accountBalancesV310Json,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
+      apiTagAccount :: apiTagPSD2AIS :: apiTagNewStyle :: Nil,
+      connectorMethods = Some(List("obp.getBank","obp.getBankAccountsBalances"))
     )
 
     lazy val getBankAccountsBalances : OBPEndpoint = {

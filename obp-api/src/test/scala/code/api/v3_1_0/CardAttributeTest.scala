@@ -5,11 +5,12 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createPhysicalCardJsonV310
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateCustomer
-import code.api.util.{ApiRole, ApiVersion}
+import code.api.util.ApiRole
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 

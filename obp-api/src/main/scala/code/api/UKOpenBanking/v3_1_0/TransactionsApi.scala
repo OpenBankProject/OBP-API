@@ -1,6 +1,7 @@
 package code.api.UKOpenBanking.v3_1_0
 
 import code.api.APIFailureNewStyle
+import code.api.Constant._
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil.{defaultBankId, _}
 import code.api.util.ApiTag._
@@ -18,7 +19,7 @@ import net.liftweb.json._
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object APIMethods_TransactionsApi extends RestHelper {
@@ -753,10 +754,11 @@ object APIMethods_TransactionsApi extends RestHelper {
          cc =>
            for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
             (bankAccount, callContext) <- Future { BankAccountX(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
@@ -765,7 +767,7 @@ object APIMethods_TransactionsApi extends RestHelper {
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           
-            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params)} map {
+            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(BankId(defaultBankId), accountId), callContext, params)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           
@@ -1019,7 +1021,9 @@ object APIMethods_TransactionsApi extends RestHelper {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
-  
+
+             (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
+
              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
   
              (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
@@ -1028,10 +1032,10 @@ object APIMethods_TransactionsApi extends RestHelper {
                bankAccount <- accounts
              } yield{
                for{
-                 view <- Views.views.vend.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
+                 view <- u.checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
                  params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                  (transactionRequests, callContext) <- Connector.connector.vend.getTransactionRequests210(u, bankAccount)
-                 (transactions, callContext) <-  bankAccount.getModeratedTransactions(Full(u), view, callContext, params)
+                 (transactions, callContext) <-  bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext, params)
                } yield{
                  (transactionRequests,transactions)
                } 

@@ -33,8 +33,9 @@ package code.api.Polish.v2_1_1_1
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.{ScannedApiVersion, ScannedApis}
+import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.util.ScannedApiVersion
 
 import scala.collection.mutable.ArrayBuffer
 

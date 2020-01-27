@@ -32,9 +32,9 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
     )
   }
 
-  feature("Assuring that create customer, v2.0.0, feedback and get customer, v1.4.0, feedback are the same") {
+  feature("Assuring that create customer, v2.1.0, feedback and get customer, v1.4.0, feedback are the same") {
 
-    scenario("There is a user, and the bank in questions has customer info for that user - v2.0.0") {
+    scenario("There is a user, and the bank in questions has customer info for that user - v2.1.0") {
       Given("The bank in question has customer info")
 
       val customerPostJSON = createCustomerJson(mockCustomerNumber1)
@@ -82,7 +82,7 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
       Then("We should get a 400")
       secondResponsePost.code should equal(400)
       And("We should get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
-      secondResponsePost.body.extract[ErrorMessage].message should equal (ErrorMessages.CustomerNumberAlreadyExists)
+      secondResponsePost.body.extract[ErrorMessage].message should startWith (ErrorMessages.CustomerNumberAlreadyExists)
       And("User is linked to 1 customer")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON.user_id).size should equal(1)
 
@@ -112,7 +112,7 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
       Then("We should get a 400")
       secondResponsePost4.code should equal(400)
       And("We should get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
-      secondResponsePost4.body.extract[ErrorMessage].message should equal (ErrorMessages.CustomerNumberAlreadyExists)
+      secondResponsePost4.body.extract[ErrorMessage].message should startWith (ErrorMessages.CustomerNumberAlreadyExists)
       And("User is linked to 3 customers")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON.user_id).size should equal(3)
     }

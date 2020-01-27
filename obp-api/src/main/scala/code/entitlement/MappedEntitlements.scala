@@ -6,8 +6,7 @@ import net.liftweb.common.Box
 import net.liftweb.mapper._
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.tools.scalap.scalax.util.StringUtil
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 object MappedEntitlementsProvider extends EntitlementProvider {
   override def getEntitlement(bankId: String, userId: String, roleName: String): Box[MappedEntitlement] = {
@@ -36,6 +35,15 @@ object MappedEntitlementsProvider extends EntitlementProvider {
     // Return a Box so we can handle errors later.
     Future {
       getEntitlementsByUserId(userId)
+    }
+  }
+
+  override def getEntitlementsByBankId(bankId: String): Future[Box[List[Entitlement]]] = {
+    // Return a Box so we can handle errors later.
+    Future {
+      Some(MappedEntitlement.findAll(
+        By(MappedEntitlement.mBankId, bankId),
+        OrderBy(MappedEntitlement.mUserId, Descending)))
     }
   }
 

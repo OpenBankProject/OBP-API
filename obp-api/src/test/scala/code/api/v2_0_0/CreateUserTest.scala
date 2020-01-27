@@ -11,7 +11,7 @@ import net.liftweb.util.Helpers._
 import org.scalatest.{BeforeAndAfter, Tag}
 
 import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 

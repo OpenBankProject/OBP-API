@@ -7,7 +7,7 @@
         <groupId>com.tesobe</groupId>
         <artifactId>obp-parent</artifactId>
         <relativePath>../pom.xml</relativePath>
-        <version>1.1.0</version>
+        <version>1.2.0</version>
     </parent>
     <artifactId>obp-commons</artifactId>
     <packaging>jar</packaging>
@@ -44,6 +44,12 @@
             <groupId>net.liftweb</groupId>
             <artifactId>lift-json_${scala.version}</artifactId>
             <version>${lift.version}</version>
+        </dependency>
+        <!-- InheritableThreadLocal enhancement-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>transmittable-thread-local</artifactId>
+            <version>2.11.2</version>
         </dependency>
     </dependencies>
 

@@ -24,6 +24,8 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     override def defaultValue: Null = null
   }
   object view_id extends UUIDString(this)
+  
+  @deprecated("This field is not used in api code anymore","13-12-2019")
   object composite_unique_key extends MappedString(this, 512)
   object metadataView_ extends UUIDString(this)
   object isSystem_ extends MappedBoolean(this){
@@ -374,6 +376,8 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
 
   def id: Long = id_.get
   def viewId : ViewId = ViewId(view_id.get)
+  
+  @deprecated("This field is not used in api code anymore","13-12-2019")
   def viewIdInternal: String = composite_unique_key.get
   //if metadataView_ = null or empty, we need use the current view's viewId.
   def metadataView = if (metadataView_.get ==null || metadataView_.get == "") view_id.get else metadataView_.get
@@ -499,10 +503,21 @@ object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefini
     ViewDefinition.find(
       NullRef(ViewDefinition.bank_id),
       NullRef(ViewDefinition.account_id),
-      By(ViewDefinition.view_id, viewId)
+      By(ViewDefinition.isSystem_, true),
+      By(ViewDefinition.view_id, viewId),
     )
   }
 
+  def findCustomView(bankId: String, accountId: String, viewId: String): Box[ViewDefinition] = {
+    ViewDefinition.find(
+      By(ViewDefinition.bank_id, bankId),
+      By(ViewDefinition.account_id, accountId),
+      By(ViewDefinition.isSystem_, false),
+      By(ViewDefinition.view_id, viewId),
+    )
+  }
+  
+  @deprecated("This is method only used for migration stuff, please use @findCustomView and @findSystemView instead.","13-12-2019")
   def findByUniqueKey(bankId: String, accountId: String, viewId: String): Box[ViewDefinition] = {
     val uniqueKey = getUniqueKey(bankId, accountId, viewId)
     ViewDefinition.find(
@@ -513,5 +528,7 @@ object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefini
   def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[ViewDefinition]] = {
     By(bank_id, bankId.value) :: By(account_id, accountId.value) :: Nil
   }
+  
+  @deprecated("This is method only used for migration stuff, do not use api code.","13-12-2019")
   def getUniqueKey(bankId: String, accountId: String, viewId: String) = List(bankId, accountId, viewId).mkString("|","|--|","|")
 }

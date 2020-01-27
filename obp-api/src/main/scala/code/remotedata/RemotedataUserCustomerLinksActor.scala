@@ -16,27 +16,27 @@ class RemotedataUserCustomerLinksActor extends Actor with ObpActorHelper with Md
   def receive: PartialFunction[Any, Unit] = {
 
     case cc.createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean) =>
-      logger.debug("createUserCustomerLink(" + userId + ", " + dateInserted + ", " + isActive + ")")
+      logger.debug(s"createUserCustomerLink($userId, $dateInserted, $isActive)")
       sender ! (mapper.createUserCustomerLink(userId, customerId, dateInserted, isActive))
 
     case cc.getUserCustomerLinkByCustomerId(customerId: String) =>
-      logger.debug("getUserCustomerLinkByCustomerId(" + customerId + ")")
+      logger.debug(s"getUserCustomerLinkByCustomerId($customerId)")
       sender ! (mapper.getUserCustomerLinkByCustomerId(customerId))
 
     case cc.getUserCustomerLinksByUserId(userId: String) =>
-      logger.debug("getUserCustomerLinksByUserId(" + userId + ")")
+      logger.debug(s"getUserCustomerLinksByUserId($userId)")
       sender ! (mapper.getUserCustomerLinksByUserId(userId))
 
     case cc.getUserCustomerLink(userId: String, customerId: String) =>
-      logger.debug("getUserCustomerLink(" + userId + ", " + customerId + ")")
+      logger.debug(s"getUserCustomerLink($userId, $customerId)")
       sender ! (mapper.getUserCustomerLink(userId, customerId))
 
     case cc.getUserCustomerLinks() =>
-      logger.debug("getUserCustomerLinks()")
+      logger.debug(s"getUserCustomerLinks()")
       sender ! (mapper.getUserCustomerLinks)
 
     case cc.bulkDeleteUserCustomerLinks() =>
-      logger.debug("bulkDeleteUserCustomerLinks()")
+      logger.debug(s"bulkDeleteUserCustomerLinks()")
       sender ! (mapper.bulkDeleteUserCustomerLinks())
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)

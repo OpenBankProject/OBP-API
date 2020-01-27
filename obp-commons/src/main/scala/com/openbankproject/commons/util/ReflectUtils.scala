@@ -1,5 +1,7 @@
 package com.openbankproject.commons.util
 
+import java.lang.reflect.Field
+
 import net.liftweb.common.{Box, Empty, Failure, Full}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -28,14 +30,31 @@ object ReflectUtils {
    * @param fn a callback to operate field, default value is do nothing
    * @return the given value given field original value
    */
-  private def operateField[T](obj: AnyRef, fieldName: String, fn: ru.FieldMirror => Unit = _=>()): T = {
+  private def operateField[T](obj: AnyRef, fieldName: String)(fn: (InstanceMirror, TermSymbol) => Unit): T = {
     val instanceMirror: ru.InstanceMirror = mirror.reflect(obj)
-    val fieldTerm: ru.TermName = ru.TermName(fieldName)
-    val fieldSymbol: ru.TermSymbol = getType(obj).member(fieldTerm).asTerm.accessed.asTerm
-    val fieldMirror: ru.FieldMirror = instanceMirror.reflectField(fieldSymbol)
-    val originValue = fieldMirror.get
-    fn(fieldMirror)
-    originValue.asInstanceOf[T]
+    val tp = getType(obj)
+
+    def isFieldOrCallByPath(term: ru.TermSymbol) = {
+      term.name.decodedName.toString.trim == fieldName &&
+        (term.isVal || term.isVal || term.isLazy || (term.isMethod && term.asMethod.paramLists.isEmpty))
+    }
+
+    val fields: Iterable[ru.TermSymbol] = tp.members.collect({
+      case term: TermSymbol if isFieldOrCallByPath(term) => term
+    })
+    assert(fields.nonEmpty, s"${tp.typeSymbol.fullName} have not field kind member '$fieldName'")
+    val field = fields.find(it => it.isVal || it.isVar).getOrElse(fields.head)
+
+    val result: T = if(field.isVal || field.isVar) {
+      val fieldMirror: ru.FieldMirror = instanceMirror.reflectField(field)
+      val originValue = fieldMirror.get
+      originValue.asInstanceOf[T]
+    } else {// the field is a lazy val or call by name or empty param list method
+      val method = field.asMethod
+      instanceMirror.reflectMethod(method).apply().asInstanceOf[T]
+    }
+    fn(instanceMirror, field)
+    result
   }
 
   def getFieldValues(obj: AnyRef)(predicate: TermSymbol => Boolean = _=>true): Map[String, Any] = {
@@ -47,7 +66,7 @@ object ReflectUtils {
       .withFilter(it => it.isLazy || it.isVal || it.isVar)
       .withFilter(predicate)
       .map(it => {
-        val TermName(fieldName) = it.name
+        val fieldName = it.name.decodedName.toString.trim
         if(it.isLazy) {
           // get lazy value
           fieldName -> instanceMirror.reflectMethod(it.asMethod)()
@@ -81,7 +100,34 @@ object ReflectUtils {
    * @param fieldName field name
    * @return the field value of obj
    */
-  def getField(obj: AnyRef, fieldName: String): Any = operateField[Any](obj, fieldName)
+  def getField(obj: AnyRef, fieldName: String): Any = operateField[Any](obj, fieldName)(Functions.doNothingFn)
+
+  /**
+   * according object name get corresponding field value
+   * @param objName object name
+   * @param fieldName field name
+   * @return field value
+   */
+  def getField(objName: String, fieldName: String): Any = getField(getObject(objName), fieldName)
+
+  /**
+   * get given instance by full name.
+   * example:
+   * {{{
+   *  package com.foo.bar
+   *  object Hello {}
+   *  getObject("com.foo.bar.Hello") == Hello
+   * }}}
+   * @param fullName full name of object
+   * @return object value
+   */
+  def getObject(fullName: String): AnyRef = {
+    val regex = "(.+?)(\\.type)?".r
+    val regex(typeName, _) = fullName
+    val objClazz = Class.forName(typeName + "$")
+    val instanceField: Field = objClazz.getDeclaredField("MODULE$")
+    instanceField.get(null)
+  }
 
   /**
    * set given instance given field to a new value, and return the original value
@@ -91,7 +137,10 @@ object ReflectUtils {
    * @tparam T field type
    * @return the original field value
    */
-  def setField[T](obj: AnyRef, fieldName: String, fieldValue: T): T = operateField[T](obj, fieldName, _.set(fieldValue))
+  def setField[T](obj: AnyRef, fieldName: String, fieldValue: T): T = operateField[T](obj, fieldName) { (instanceMirror, term) =>
+    assert(term.isVal || term.isVar, s"${obj.getClass.getName} have no field name is '$fieldName'")
+    instanceMirror.reflectField(term).set(fieldValue)
+  }
 
   /**
    * modify given instance nested fields value

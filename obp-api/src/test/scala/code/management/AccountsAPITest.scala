@@ -1,10 +1,10 @@
 package code.management
 
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
-import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, User1AllPrivileges}
+import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, ServerSetupWithTestData}
 import org.scalatest.Tag
 
-class AccountsAPITest extends User1AllPrivileges with DefaultUsers  with PrivateUser2AccountsAndSetUpWithTestData {
+class AccountsAPITest extends ServerSetupWithTestData with DefaultUsers  with PrivateUser2AccountsAndSetUpWithTestData {
 
   //define Tags
   object Management extends Tag("Management")

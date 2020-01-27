@@ -25,13 +25,15 @@ TESOBE (http://www.tesobe.com/)
 */
 package code.api.v3_1_0
 
-import code.api.ErrorMessage
+import code.api.{Constant, ErrorMessage}
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiVersion
-import code.api.util.ErrorMessages.UserNotLoggedIn
+import code.api.util.APIUtil
+import code.api.util.ErrorMessages._
 import code.api.v2_1_0.TransactionRequestWithChargeJSONs210
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.{AccountId, BankId}
+import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
 
 class TransactionRequestTest extends V310ServerSetup {
@@ -52,7 +54,7 @@ class TransactionRequestTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
-      val view = randomViewPermalink(bankId, bankAccount)
+      val view = bankAccount.views_available.map(_.id).headOption.getOrElse("owner")
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transaction-requests").GET
       val response310 = makeGetRequest(request310)
       Then("We should get a 400")
@@ -64,12 +66,25 @@ class TransactionRequestTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
-      val view = randomViewPermalink(bankId, bankAccount)
+      val view = bankAccount.views_available.map(_.id).headOption.getOrElse("owner")
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transaction-requests").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 200")
       response310.code should equal(200)
       response310.body.extract[TransactionRequestWithChargeJSONs210]
+    }
+    scenario("We will try to Get Transaction Requests for someone else account - user is logged in", ApiEndpoint1, VersionOfApi) {
+      When("We make a request v3.1.0")
+      val bankId = randomBankId
+      val account = createAccountRelevantResource(Some(resourceUser1), BankId(bankId), AccountId(APIUtil.generateUUID()), "EUR")
+      val request310 = (
+        v3_1_0_Request / "banks" / bankId / "accounts" / account.accountId.value 
+        / Constant.CUSTOM_OWNER_VIEW_ID / "transaction-requests").GET <@(user2)
+      val response310 = makeGetRequest(request310)
+      Then("We should get a 400")
+      response310.code should equal(400)
+      And("error should be " + UserNoPermissionAccessView)
+      response310.body.extract[ErrorMessage].message should equal (UserNoPermissionAccessView)
     }
   }
 

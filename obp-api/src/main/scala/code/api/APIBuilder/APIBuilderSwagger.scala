@@ -23,10 +23,9 @@ Berlin 13359, Germany
   This product includes software developed at
   TESOBE (http://www.tesobe.com/)
  */
-package code.api.APIBuilder.swagger
+package code.api.APIBuilder
 
 import code.api.APIBuilder.APIBuilderModel._
-import code.api.APIBuilder.APIBuilderModel
 import code.api.util.APIUtil
 import net.liftweb.json.JsonAST.{JObject, JString}
 import net.liftweb.json.{JArray, JValue}
@@ -34,8 +33,9 @@ import net.liftweb.json.{JArray, JValue}
 import scala.meta._
 
 object APIBuilderSwagger {
+  // you can modify this json file: OBP-API/obp-api/src/main/resources/apiBuilder/swaggerResource.json
   def main(args: Array[String]): Unit = overwriteApiCode(apiSource,jsonFactorySource)
-  val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("obp-api/src/main/scala/code/api/APIBuilder/swagger/swaggerResource.json")
+  val jsonJValueFromFile: JValue = APIUtil.getJValueFromJsonFile("apiBuilder/swaggerResource.json")
 
   val getSingleApiResponseBody: JValue = jsonJValueFromFile \\("foo")\"foo"\"value"
   //"template"
@@ -310,7 +310,7 @@ import java.util.UUID
 import code.api.builder.JsonFactory_APIBuilder._
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
-import code.api.util.ApiVersion
+import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages._
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper

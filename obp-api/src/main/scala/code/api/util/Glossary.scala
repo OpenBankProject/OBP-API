@@ -247,7 +247,7 @@ object Glossary {
 					|
 					|
 					|* You have OBP-API running and it is connected to a Kafka installation.
-					| You can check OBP -> Kafka connectivity using the <a href="/#OBPv3_1_0-getObpApiLoopback">"loopback" endpoint</a>.
+					| You can check OBP -> Kafka connectivity using the <a href="/#OBPv3_1_0-getObpConnectorLoopback">"loopback" endpoint</a>.
 					|
 					|* Ideally you have API Explorer running (the application serving this page) but its not necessary - you could use any other REST client.
 					|* You might want to also run API Manager as it makes it easier to grant yourself roles, but its not necessary - you could use the API Explorer / any REST client instead.
@@ -823,7 +823,7 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v3.0.0/users
+			|	POST $getObpApiRoot/v4.0.0/users
 			|
 			|Body:
 			|
@@ -843,11 +843,11 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/customers
+			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/customers
 			|
 			|Body:
 			|
-			|	{  "user_id":"user-id-from-step-1", "customer_number":"687687678", "legal_name":"NONE",  "mobile_phone_number":"+44 07972 444 876", "email":"person@example.com", "face_image":{    "url":"www.openbankproject",    "date":"2013-01-22T00:08:00Z"  },  "date_of_birth":"2013-01-22T00:08:00Z",  "relationship_status":"Single",  "dependants":5,  "dob_of_dependants":["2013-01-22T00:08:00Z"],  "credit_rating":{    "rating":"OBP",    "source":"OBP"  },  "credit_limit":{    "currency":"EUR",    "amount":"10"  },  "highest_education_attained":"Bachelor’s Degree",  "employment_status":"Employed",  "kyc_status":true,  "last_ok_date":"2013-01-22T00:08:00Z"}
+			|	{  "legal_name":"Eveline Tripman",  "mobile_phone_number":"+44 07972 444 876",  "email":"eveline@example.com",  "face_image":{    "url":"www.openbankproject",    "date":"2017-09-19T00:00:00Z"  },  "date_of_birth":"2017-09-19T00:00:00Z",  "relationship_status":"single",  "dependants":10,  "dob_of_dependants":["2017-09-19T00:00:00Z"],  "credit_rating":{    "rating":"OBP",    "source":"OBP"  },  "credit_limit":{    "currency":"EUR",    "amount":"10"  },  "highest_education_attained":"Master",  "employment_status":"worker",  "kyc_status":true,  "last_ok_date":"2017-09-19T00:00:00Z",  "title":"Dr.",  "branch_id":"DERBY6",  "name_suffix":"Sr"}
 			|
 			|Headers:
 			|
@@ -859,7 +859,7 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	GET $getObpApiRoot/v3.0.0/users/current/customers
+			|	GET $getObpApiRoot/v4.0.0/users/current/customers
 			|
 			|Body:
 			|
@@ -877,7 +877,7 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/user_customer_links
+			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/user_customer_links
 			|
 			|Body:
 			|
@@ -895,11 +895,11 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	PUT $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/ACCOUNT_ID
+			|	PUT $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID
 			|
 			|Body:
 			|
-			|	{  "user_id":"user-id-from-step-1",  "label":"Label",  "type":"CURRENT",  "balance":{    "currency":"EUR",    "amount":"0"  },  "branch_id":"1234",  "account_routing":{    "scheme":"OBP",    "address":"UK123456"  }}
+			|	{  "user_id":"userid-from-step-1",  "label":"My Account",  "product_code":"AC",  "balance":{    "currency":"EUR",    "amount":"10"  },  "branch_id":"DERBY6",  "account_routing":{    "scheme":"AccountNumber",    "address":"4930396"  },  "account_attributes":[{    "product_code":"saving1",    "account_attribute_id":"613c83ea-80f9-4560-8404-b9cd4ec42a7f",    "name":"OVERDRAFT_START_DATE",    "type":"DATE_WITH_DAY",    "value":"2012-04-23"  }]}
 			|
 			|Headers:
 			|
@@ -911,7 +911,7 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	GET $getObpApiRoot/v3.0.0/my/banks/BANK_ID/accounts/account-id-from-step-2/account
+			|	GET $getObpApiRoot/v4.0.0/my/banks/BANK_ID/accounts/account-id-from-step-5/account
 			|
 			|Body:
 			|
@@ -929,12 +929,12 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/cards
+			|	POST $getObpApiRoot/v4.0.0/management/banks/BANK_ID/cards
 			|
 			|Body:
 			|
-			|	{  "account_id":"account-id-from-step-4","bank_card_number":"String",  "name_on_card":"String",  "issue_number":"String",  "serial_number":"String",  "valid_from_date":"2013-01-22T00:08:00Z",  "expires_date":"2013-01-22T00:08:00Z",  "enabled":true,  "cancelled":true,  "on_hot_list":false,  "technology":"String",  "networks":["String"],  "allows":["credit"],  "account_id":"String",  "replacement":{    "requested_date":"2013-01-22T00:08:00Z",    "reason_requested":"Good Point"  },  "pin_reset":[{    "requested_date":"2013-01-22T00:08:00Z",    "reason_requested":"forgot"  }],  "collected":"2013-01-22T00:08:00Z",  "posted":"2013-01-22T00:08:00Z"}
-			|
+      | {  "card_number":"364435172576215",  "card_type":"Credit",  "name_on_card":"SusanSmith",  "issue_number":"1",  "serial_number":"1324234",  "valid_from_date":"2017-09-19T00:00:00Z",  "expires_date":"2017-09-19T00:00:00Z",  "enabled":true,  "technology":"technology1",  "networks":["network1","network2"],  "allows":["credit","debit"],  "account_id":"account_id from step 5",  "replacement":{    "requested_date":"2017-09-19T00:00:00Z",    "reason_requested":"RENEW"  },  "pin_reset":[{    "requested_date":"2017-09-19T00:00:00Z",    "reason_requested":"FORGOT"  },{    "requested_date":"2020-01-18T16:39:23Z",    "reason_requested":"GOOD_SECURITY_PRACTICE"  }],  "collected":"2017-09-19T00:00:00Z",  "posted":"2017-09-19T00:00:00Z",  "customer_id":"customer_id from step 2"}
+      |
 			|Headers:
 			|
 			|	Content-Type:  application/json
@@ -975,8 +975,7 @@ object Glossary {
 			 |
 			 |Body:
 			 |
-			 |	{  "name":"_test", "description":"good", "is_public":true, "which_alias_to_use":"good", "hide_metadata_if_alias_used":false,  "allowed_actions": ["can_see_transaction_this_bank_account", "can_see_transaction_other_bank_account", "can_see_transaction_metadata", "can_see_transaction_label", "can_see_transaction_amount", "can_see_transaction_type", "can_see_transaction_currency", "can_see_transaction_start_date", "can_see_transaction_finish_date", "can_see_transaction_balance", "can_see_comments", "can_see_narrative", "can_see_tags", "can_see_images", "can_see_bank_account_owners", "can_see_bank_account_type", "can_see_bank_account_balance", "can_see_bank_account_currency", "can_see_bank_account_label", "can_see_bank_account_national_identifier", "can_see_bank_account_swift_bic", "can_see_bank_account_iban", "can_see_bank_account_number", "can_see_bank_account_bank_name", "can_see_other_account_national_identifier", "can_see_other_account_swift_bic", "can_see_other_account_iban", "can_see_other_account_bank_name", "can_see_other_account_number", "can_see_other_account_metadata", "can_see_other_account_kind", "can_see_more_info", "can_see_url", "can_see_image_url", "can_see_open_corporates_url", "can_see_corporate_location", "can_see_physical_location", "can_see_public_alias", "can_see_private_alias", "can_add_more_info", "can_add_url", "can_add_image_url", "can_add_open_corporates_url", "can_add_corporate_location", "can_add_physical_location", "can_add_public_alias", "can_add_private_alias", "can_delete_corporate_location", "can_delete_physical_location", "can_edit_narrative", "can_add_comment", "can_delete_comment", "can_add_tag", "can_delete_tag", "can_add_image", "can_delete_image", "can_add_where_tag", "can_see_where_tag", "can_delete_where_tag", "can_create_counterparty", "can_see_bank_routing_scheme", "can_see_bank_routing_address", "can_see_bank_account_routing_scheme", "can_see_bank_account_routing_address", "can_see_other_bank_routing_scheme", "can_see_other_bank_routing_address", "can_see_other_account_routing_scheme", "can_see_other_account_routing_address"]}
-			 |
+       | {  "name":"_test",  "description":"This view is for family",  "metadata_view":"_test",  "is_public":true,  "which_alias_to_use":"family",  "hide_metadata_if_alias_used":false,  "allowed_actions":["can_see_transaction_this_bank_account","can_see_transaction_other_bank_account","can_see_transaction_metadata","can_see_transaction_label","can_see_transaction_amount","can_see_transaction_type","can_see_transaction_currency","can_see_transaction_start_date","can_see_transaction_finish_date","can_see_transaction_balance","can_see_comments","can_see_narrative","can_see_tags","can_see_images","can_see_bank_account_owners","can_see_bank_account_type","can_see_bank_account_balance","can_see_bank_account_currency","can_see_bank_account_label","can_see_bank_account_national_identifier","can_see_bank_account_swift_bic","can_see_bank_account_iban","can_see_bank_account_number","can_see_bank_account_bank_name","can_see_other_account_national_identifier","can_see_other_account_swift_bic","can_see_other_account_iban","can_see_other_account_bank_name","can_see_other_account_number","can_see_other_account_metadata","can_see_other_account_kind","can_see_more_info","can_see_url","can_see_image_url","can_see_open_corporates_url","can_see_corporate_location","can_see_physical_location","can_see_public_alias","can_see_private_alias","can_add_more_info","can_add_url","can_add_image_url","can_add_open_corporates_url","can_add_corporate_location","can_add_physical_location","can_add_public_alias","can_add_private_alias","can_delete_corporate_location","can_delete_physical_location","can_edit_narrative","can_add_comment","can_delete_comment","can_add_tag","can_delete_tag","can_add_image","can_delete_image","can_add_where_tag","can_see_where_tag","can_delete_where_tag","can_create_counterparty","can_see_bank_routing_scheme","can_see_bank_routing_address","can_see_bank_account_routing_scheme","can_see_bank_account_routing_address","can_see_other_bank_routing_scheme","can_see_other_bank_routing_address","can_see_other_account_routing_scheme","can_see_other_account_routing_address","can_query_available_funds","can_add_transaction_request_to_own_account","can_add_transaction_request_to_any_account","can_see_bank_account_credit_limit","can_create_direct_debit","can_create_standing_order"]}			 |
 			 | Headers:
 			 |
 			 |	Content-Type:  application/json
@@ -1009,12 +1008,11 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/account-id-from-account-creation/VIEW_ID/counterparties
+			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/account-id-from-account-creation/VIEW_ID/counterparties
 			|
 			|Body:
 			|
-			|	{  "name":"CounterpartyName",  "description":"My landlord",  "other_account_routing_scheme":"IBAN",  "other_account_routing_address":"7987987-2348987-234234",  "other_account_secondary_routing_scheme":"accountNumber",  "other_account_secondary_routing_address":"BIC201483",  "other_bank_routing_scheme":"bankCode",  "other_bank_routing_address":"10",  "other_branch_routing_scheme":"branchNumber",  "other_branch_routing_address":"10010",  "is_beneficiary":true,  "bespoke":[{    "key":"englishName",    "value":"english Name"  }]}
-			|
+      | {  "name":"CounterpartyName",  "description":"My landlord",  "other_account_routing_scheme":"accountNumber",  "other_account_routing_address":"7987987-2348987-234234",  "other_account_secondary_routing_scheme":"IBAN",  "other_account_secondary_routing_address":"DE89370400440532013000",  "other_bank_routing_scheme":"bankCode",  "other_bank_routing_address":"10",  "other_branch_routing_scheme":"branchNumber",  "other_branch_routing_address":"10010",  "is_beneficiary":true,  "bespoke":[{    "key":"englishName",    "value":"english Name"  }]}			|
 			| Headers:
 			|
 			|	Content-Type:  application/json
@@ -1025,7 +1023,7 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SEPA/transaction-requests
+			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SEPA/transaction-requests
 			|
 			|Body:
 			|
@@ -1042,7 +1040,7 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests
+			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests
 			|
 			|Body:
 			|
@@ -1069,7 +1067,7 @@ object Glossary {
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/views
+			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/views
 			|
 			|Body:
 			|
@@ -1081,15 +1079,44 @@ object Glossary {
 			|
 			|	Authorization: DirectLogin token="your-token"
 			|
-			|### 3) Grant user access to view
+			|### 3) Get User (Current)
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/permissions/PROVIDER/PROVIDER_ID/views/view-id-from-step-2
+			|	GET $getObpApiRoot/v4.0.0/users/current
+			|
+			|
+			| Headers:
+			|
+			|	Content-Type:  application/json
+			|
+			|	Authorization: DirectLogin token="your-token"
+			|
+			|### 4) Grant user access to himself
+			|
+			|Action:
+			|
+			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/account-access/grant 
 			|
 			|Body:
 			|
-			|	{  "json_string":"{}"}
+			|	{  "user_id":"your-user-id-from-step3",  "view":{    "view_id":"_test",    "is_system":false  }}
+			|
+			| Headers:
+			|
+			|	Content-Type:  application/json
+			|
+			|	Authorization: DirectLogin token="your-token"			
+			| 
+			|### 5) Grant user access to view to another user
+			|
+			|Action:
+			|
+			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/account-access/grant 
+			|
+			|Body:
+			|
+			|	{  "user_id":"another-user-id",  "view":{    "view_id":"_test",    "is_system":false  }}
 			|
 			| Headers:
 			|

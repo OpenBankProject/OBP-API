@@ -62,9 +62,9 @@ class KafkaMappedConnector_vMay2019Test extends KafkaSetup with ServerSetupWithT
 
   feature("Send and retrieve message") {
     if (PropsConnectorVersion == "mapped") {
-      ignore("ignore test getObpApiLoopback, if it is mapped connector", kafkaTest) {}
+      ignore("ignore test getObpConnectorLoopback, if it is mapped connector", kafkaTest) {}
     } else
-      scenario("1st test `getObpApiLoopback` method, there no need Adapter message for this method!", kafkaTest) {
+      scenario("1st test `getObpConnectorLoopback` method, there no need Adapter message for this method!", kafkaTest) {
         //This method is only used for `kafka` connector, should first set `connector=kafka_vSept2018` in test.default.props. 
         //and also need to set up `api_instance_id` and `remotedata.timeout` field for it.
         val propsApiInstanceId = APIUtil.getPropsValue("api_instance_id").openOrThrowException("connector props filed `api_instance_id` not set")
