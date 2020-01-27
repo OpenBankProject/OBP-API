@@ -7,7 +7,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankAccountNotFound, BankNotFound, CounterpartyBeneficiaryPermit, CounterpartyNotFoundByCounterpartyId, CustomerNotFoundByCustomerId, DynamicEntityOperationNotAllowed, InsufficientAuthorisationToCreateBank, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NoViewPermission, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserCustomerLinksNotFoundForUser, UserHasMissingRoles, UserNoPermissionAccessView, UserNotFoundByUserId, UserNotLoggedIn, ViewNotFound}
+import code.api.util.ErrorMessages.{AccountIdAlreadyExists, AccountNotFound, AllowedAttemptsUsedUp, BankAccountNotFound, BankNotFound, CounterpartyBeneficiaryPermit, CounterpartyNotFoundByCounterpartyId, CustomerNotFoundByCustomerId, DynamicEntityOperationNotAllowed, InitialBalanceMustBeZero, InsufficientAuthorisationToCreateBank, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountBalanceAmount, InvalidAccountBalanceCurrency, InvalidAccountIdFormat, InvalidAccountInitialBalance, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, InvalidUserId, NoViewPermission, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserCustomerLinksNotFoundForUser, UserHasMissingRoles, UserNoPermissionAccessView, UserNotFoundById, UserNotFoundByUserId, UserNotLoggedIn, ViewNotFound}
 import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
@@ -15,14 +15,14 @@ import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
-import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
+import code.api.v2_2_0.{BankJSONV220, CreateAccountJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_1_0.ListResult
+import code.api.v3_1_0.{CreateAccountRequestJsonV310, JSONFactory310, ListResult}
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
 import code.dynamicEntity.DynamicEntityCommons
 import code.entitlement.Entitlement
 import code.metadata.tags.Tags
-import code.model.dataAccess.AuthUser
+import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.model.toUserExtended
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
@@ -974,7 +974,104 @@ trait APIMethods400 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      addAccount,
+      implementedInApiVersion,
+      nameOf(addAccount),
+      "POST",
+      "/banks/BANK_ID/accounts",
+      "Add Account",
+      """Create Account at bank specified by BANK_ID.
+        |
+        |The User can create an Account for himself  - or -  the User that has the USER_ID specified in the POST body.
+        |
+        |If the POST body USER_ID *is* specified, the logged in user must have the Role CanCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
+        |
+        |If the POST body USER_ID is *not* specified, the account will be owned by the logged in User.
+        |
+        |The 'product_code' field SHOULD be a product_code from Product.
+        |If the product_code matches a product_code from Product, account attributes will be created that match the Product Attributes.
+        |
+        |Note: The Amount MUST be zero.""".stripMargin,
+      createAccountRequestJsonV310,
+      createAccountResponseJsonV310,
+      List(
+        InvalidJsonFormat,
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidAccountBalanceAmount,
+        InvalidAccountInitialBalance,
+        InitialBalanceMustBeZero,
+        InvalidAccountBalanceCurrency,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount,apiTagOnboarding),
+      Some(List(canCreateAccount))
+    )
 
+
+    lazy val addAccount : OBPEndpoint = {
+      // Create a new account
+      case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonPost json -> _ => {
+        cc =>{
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the ${prettyRender(Extraction.decompose(createAccountRequestJsonV310))} "
+            createAccountJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CreateAccountRequestJsonV310]
+            }
+            loggedInUserId = u.userId
+            userIdAccountOwner = if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id else loggedInUserId
+            (postedOrLoggedInUser,callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, callContext)
+            _ <- Helper.booleanToFuture(s"${UserHasMissingRoles} $canCreateAccount or create account for self") {
+              hasEntitlement(bankId.value, loggedInUserId, canCreateAccount) || userIdAccountOwner == loggedInUserId
+            }
+            initialBalanceAsString = createAccountJson.balance.amount
+            //Note: here we map the product_code to account_type 
+            accountType = createAccountJson.product_code
+            accountLabel = createAccountJson.label
+            initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
+              BigDecimal(initialBalanceAsString)
+            }
+            _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero){0 == initialBalanceAsNumber}
+            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(createAccountJson.balance.currency)}
+            currency = createAccountJson.balance.currency
+            (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
+            (bankAccount,callContext) <- NewStyle.function.addBankAccount(
+              bankId,
+              accountType,
+              accountLabel,
+              currency,
+              initialBalanceAsNumber,
+              postedOrLoggedInUser.name,
+              createAccountJson.branch_id,
+              createAccountJson.account_routing.scheme,
+              createAccountJson.account_routing.address,
+              callContext
+            )
+            accountId = bankAccount.accountId
+            (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, ProductCode(accountType), callContext)
+            (accountAttributes, callContext) <- NewStyle.function.createAccountAttributes(
+              bankId,
+              accountId,
+              ProductCode(accountType),
+              productAttributes,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            //1 Create or Update the `Owner` for the new account
+            //2 Add permission to the user
+            //3 Set the user as the account holder
+            BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
+            (JSONFactory310.createAccountJSON(userIdAccountOwner, bankAccount, accountAttributes), HttpCode.`201`(callContext))
+          }
+        }
+      }
+    }
+    
+    
+    
     private def getApiInfoJSON() = {
       val (apiVersion, apiVersionStatus) = (implementedInApiVersion, OBPAPI4_0_0.versionStatus)
       val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
