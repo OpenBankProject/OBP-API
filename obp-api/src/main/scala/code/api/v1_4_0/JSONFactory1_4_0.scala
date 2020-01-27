@@ -8,15 +8,12 @@ import code.api.v3_1_0.ListResult
 import code.crm.CrmEvent.CrmEvent
 import code.transactionrequests.TransactionRequestTypeCharge
 import com.openbankproject.commons.model.{Product, _}
-import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
+import com.openbankproject.commons.util.{EnumValue, OBPEnumeration, ReflectUtils}
 import net.liftweb.common.Full
 import net.liftweb.json
 import net.liftweb.json.{JDouble, JInt, JString}
 import net.liftweb.json.JsonAST.{JArray, JBool, JObject, JValue}
 import net.liftweb.util.StringHelpers
-
-import scala.reflect.runtime.currentMirror
-import scala.reflect.runtime.universe._
 
 object JSONFactory1_4_0 {
 
@@ -403,18 +400,12 @@ object JSONFactory1_4_0 {
       case v => v
     }
 
-    val r = currentMirror.reflect(extractedEntity)
     val mapOfFields: Map[String, Any] = extractedEntity match {
 
       case ListResult(name, results) => Map((name, results))
       case JObject(jFields) => jFields.map(it => (it.name, it.value)).toMap
-      case _ => r.symbol.typeSignature.members.toStream
-        .collect { case s: TermSymbol if !s.isMethod => r.reflectField(s)}
-        .map(r => r.symbol.name.toString.trim -> r.get)
-        .toMap
+      case _ => ReflectUtils.getFieldValues(extractedEntity.asInstanceOf[AnyRef])()
     }
-
-
 
     val convertParamName = (name: String) =>  extractedEntity match {
       case _ : JsonFieldReName => StringHelpers.snakify(name)
@@ -457,7 +448,9 @@ object JSONFactory1_4_0 {
         case Some(i: String)               => "\""  + key + """": {"type":"string"}"""
         case List(i: String, _*)           => "\""  + key + """": {"type": "array","items": {"type": "string"}}""" 
         case Some(List(i: String, _*))     => "\""  + key + """": {"type": "array","items": {"type": "string"}}"""
-        //Int 
+        case Array(i: String, _*)           => "\""  + key + """": {"type": "array","items": {"type": "string"}}"""
+        case Some(Array(i: String, _*))     => "\""  + key + """": {"type": "array","items": {"type": "string"}}"""
+        //Int
         case _: Int | _:JInt               => "\""  + key + """": {"type":"integer"}"""
         case Some(i: Int)                  => "\""  + key + """": {"type":"integer"}"""
         case List(i: Int, _*)              => "\""  + key + """": {"type": "array","items": {"type": "integer"}}"""

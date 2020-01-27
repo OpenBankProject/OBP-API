@@ -28,7 +28,8 @@ package code.api.v3_0_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.{ApiVersion, VersionedOBPApis}
+import com.openbankproject.commons.util.ApiVersion
+import code.api.util.{ VersionedOBPApis}
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200

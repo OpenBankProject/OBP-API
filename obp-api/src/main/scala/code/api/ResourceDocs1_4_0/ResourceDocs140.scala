@@ -1,7 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.OBPRestHelper
-import code.api.util.ApiVersion
+import com.openbankproject.commons.util.ApiVersion
 import code.util.Helper.MdcLoggable
 
 

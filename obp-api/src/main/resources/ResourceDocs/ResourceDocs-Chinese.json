@@ -11542,10 +11542,10 @@
       "specified_url": "/obp/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images"
     },
     {
-      "operation_id": "OBPv3.1.0-getObpApiLoopback",
+      "operation_id": "OBPv3.1.0-getObpConnectorLoopback",
       "implemented_by": {
         "version": "OBPv3.1.0",
-        "function": "getObpApiLoopback"
+        "function": "getObpConnectorLoopback"
       },
       "request_verb": "GET",
       "request_url": "/obp/v3.1.0/connector/loopback",
@@ -13343,6 +13343,12 @@
           }
         }
       },
+      "roles": [
+        {
+          "role": "CanDeleteUserAuthContext",
+          "requires_bank_id": false
+        }
+      ],
       "is_featured": false,
       "special_instructions": "",
       "specified_url": "/obp/v4.0.0/users/USER_ID/auth-context/USER_AUTH_CONTEXT_ID"
@@ -20106,6 +20112,12 @@
           }
         }
       },
+      "roles": [
+        {
+          "role": "CanCreateUserAuthContext",
+          "requires_bank_id": false
+        }
+      ],
       "is_featured": false,
       "special_instructions": "",
       "specified_url": "/obp/v4.0.0/users/USER_ID/auth-context"
@@ -36703,6 +36715,12 @@
           }
         }
       },
+      "roles": [
+        {
+          "role": "CanDeleteUserAuthContext",
+          "requires_bank_id": false
+        }
+      ],
       "is_featured": false,
       "special_instructions": "",
       "specified_url": "/obp/v4.0.0/users/USER_ID/auth-context"

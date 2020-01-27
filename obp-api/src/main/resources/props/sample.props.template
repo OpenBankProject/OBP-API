@@ -68,7 +68,8 @@ resourceDocsObp.cache.ttl.seconds=3600
 #kafka.bootstrap_hosts=localhost:9092
 # WARNING: if this number does not match the partitions in Kafka config, you will SUFFER !
 #kafka.partitions=3
-#kafka.client.id=obp.api.1
+#This is the api instance, we create kafka topic based on this number, each instance should have each own id. use it in load balancing + Kafka setup
+#api_instance_id=1
 
 ## Enable user authentication via kafka
 #kafka.user.authentication=true

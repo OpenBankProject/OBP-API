@@ -42,7 +42,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JArray, JObject}
 
 import scala.collection.immutable.{List, Set}
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 

@@ -103,6 +103,7 @@ import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
 import code.webuiprops.WebUiProps
+import com.openbankproject.commons.util.ApiVersion
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
@@ -279,7 +280,10 @@ class Boot extends MdcLoggable {
 
 
 
-    
+
+    // here must modify apiPathZero: initiate the value, because obp-commons can't get apiPathZero value.
+    // obp-api depends obp-commons, but obp-commons should not depends obp-api
+    ApiVersion.setUrlPrefix(ApiPathZero)
 
     // Add the various API versions
     ScannedApis.versionMapScannedApis.keys.foreach(enableVersionIfAllowed) // process all scanned apis versions
@@ -691,7 +695,7 @@ object ToSchemify {
     DynamicData,
     AccountIdMapping,
     DirectDebit,
-    StandingOrder,
+    StandingOrder
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server

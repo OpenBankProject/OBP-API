@@ -48,7 +48,7 @@ import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 
 import scala.compat.Platform
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 /**

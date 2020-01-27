@@ -8,6 +8,7 @@ import akka.http.scaladsl.settings.ConnectionPoolSettings
 import akka.stream.ActorMaterializer
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.ExecutionContext
 
 import scala.concurrent.Future
 
@@ -46,7 +47,7 @@ object AkkaHttpClient extends MdcLoggable with CustomJsonFormats {
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
   // needed for the future flatMap/onComplete in the end
-  implicit val executionContext = system.dispatcher
+  implicit val executionContext =ExecutionContext.wrapExecutionContext(system.dispatcher)
 
   def makeHttpRequest(httpRequest: HttpRequest): Future[HttpResponse] = {
     import scala.concurrent.duration.DurationInt

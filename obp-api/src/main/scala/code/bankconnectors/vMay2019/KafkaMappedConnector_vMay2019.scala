@@ -56,11 +56,13 @@ import net.liftweb.json.{MappingException, parse}
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType}
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 
 trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcLoggable {
   //this one import is for implicit convert, don't delete
@@ -78,18 +80,8 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
   val messageFormat: String = "May2019"
 
 
-
-
-
-
-
-
-
-
-
-
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Thu Jun 13 10:52:43 CST 2019
+// ---------- create on Mon Jan 20 22:01:14 CET 2020
 
   messageDocs += MessageDoc(
     process = s"obp.${nameOf(getAdapterInfo _)}",
@@ -324,185 +316,13 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
     
     
   messageDocs += MessageDoc(
-    process = s"obp.${nameOf(getBankAccountsForUser _)}",
+    process = s"obp.${nameOf(getBankAccountsBalances _)}",
     messageFormat = messageFormat,
-    description = "Get Bank Accounts For User",
-    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBankAccountsForUser.getClass.getSimpleName).request),
-    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBankAccountsForUser.getClass.getSimpleName).response),
+    description = "Get Bank Accounts Balances",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBankAccountsBalances.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBankAccountsBalances.getClass.getSimpleName).response),
     exampleOutboundMessage = (
-     OutBoundGetBankAccountsForUser(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
-      username=usernameExample.value)
-    ),
-    exampleInboundMessage = (
-     InBoundGetBankAccountsForUser(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
-      status= Status(errorCode=statusErrorCodeExample.value,
-      backendMessages=List( InboundStatusMessage(source=sourceExample.value,
-      status=inboundStatusMessageStatusExample.value,
-      errorCode=inboundStatusMessageErrorCodeExample.value,
-      text=inboundStatusMessageTextExample.value))),
-      data=List( InboundAccountCommons(bankId=bankIdExample.value,
-      branchId=branchIdExample.value,
-      accountId=accountIdExample.value,
-      accountNumber=accountNumberExample.value,
-      accountType=accountTypeExample.value,
-      balanceAmount=balanceAmountExample.value,
-      balanceCurrency=balanceCurrencyExample.value,
-      owners=inboundAccountOwnersExample.value.split("[,;]").toList,
-      viewsToGenerate=inboundAccountViewsToGenerateExample.value.split("[,;]").toList,
-      bankRoutingScheme=bankRoutingSchemeExample.value,
-      bankRoutingAddress=bankRoutingAddressExample.value,
-      branchRoutingScheme=branchRoutingSchemeExample.value,
-      branchRoutingAddress=branchRoutingAddressExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value)))
-    ),
-    adapterImplementation = Some(AdapterImplementation("Account", 1))
-  )
-  override def getBankAccountsForUser(username: String, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(accountTTL second) {
-        import com.openbankproject.commons.dto.{OutBoundGetBankAccountsForUser => OutBound, InBoundGetBankAccountsForUser => InBound}
-
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , username)
-        logger.debug(s"Kafka getBankAccountsForUser Req is: $req")
-        processRequest[InBound](req) map (convertToTuple(callContext))
-      }
-        
-    }
-  }("getBankAccountsForUser")
-    
-    
-  messageDocs += MessageDoc(
-    process = s"obp.${nameOf(getBankAccount _)}",
-    messageFormat = messageFormat,
-    description = "Get Bank Account",
-    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBankAccount.getClass.getSimpleName).request),
-    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBankAccount.getClass.getSimpleName).response),
-    exampleOutboundMessage = (
-     OutBoundGetBankAccount(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
-      bankId=BankId(bankIdExample.value),
-      accountId=AccountId(accountIdExample.value))
-    ),
-    exampleInboundMessage = (
-     InBoundGetBankAccount(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
-      status= Status(errorCode=statusErrorCodeExample.value,
-      backendMessages=List( InboundStatusMessage(source=sourceExample.value,
-      status=inboundStatusMessageStatusExample.value,
-      errorCode=inboundStatusMessageErrorCodeExample.value,
-      text=inboundStatusMessageTextExample.value))),
-      data= BankAccountCommons(accountId=AccountId(accountIdExample.value),
-      accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
-      currency=currencyExample.value,
-      name=bankAccountNameExample.value,
-      label=labelExample.value,
-      iban=Some(ibanExample.value),
-      number=bankAccountNumberExample.value,
-      bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
-      branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
-      accountRoutings=List(AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
-      value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value))
-    ),
-    adapterImplementation = Some(AdapterImplementation("Account", 1))
-  )
-  override def getBankAccount(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(accountTTL second) {
-        import com.openbankproject.commons.dto.{OutBoundGetBankAccount => OutBound, InBoundGetBankAccount => InBound}
-
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, accountId)
-        logger.debug(s"Kafka getBankAccount Req is: $req")
-        processRequest[InBound](req) map (convertToTuple(callContext))
-      }
-        
-    }
-  }("getBankAccount")
-    
-    
-  messageDocs += MessageDoc(
-    process = s"obp.${nameOf(getCoreBankAccounts _)}",
-    messageFormat = messageFormat,
-    description = "Get Core Bank Accounts",
-    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetCoreBankAccounts.getClass.getSimpleName).request),
-    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetCoreBankAccounts.getClass.getSimpleName).response),
-    exampleOutboundMessage = (
-     OutBoundGetCoreBankAccounts(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
+     OutBoundGetBankAccountsBalances(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
       sessionId=Some(sessionIdExample.value),
       consumerId=Some(consumerIdExample.value),
       generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
@@ -532,7 +352,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       accountId=AccountId(accountIdExample.value))))
     ),
     exampleInboundMessage = (
-     InBoundGetCoreBankAccounts(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
+     InBoundGetBankAccountsBalances(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
       sessionId=Some(sessionIdExample.value),
       generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
       value=valueExample.value)))),
@@ -541,16 +361,20 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       status=inboundStatusMessageStatusExample.value,
       errorCode=inboundStatusMessageErrorCodeExample.value,
       text=inboundStatusMessageTextExample.value))),
-      data=List( CoreAccount(id=accountIdExample.value,
+      data= AccountsBalances(accounts=List( AccountBalance(id=accountIdExample.value,
       label=labelExample.value,
       bankId=bankIdExample.value,
-      accountType=accountTypeExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)))))
+      address=accountRoutingAddressExample.value)),
+      balance= AmountOfMoney(currency=balanceCurrencyExample.value,
+      amount=balanceAmountExample.value))),
+      overallBalance= AmountOfMoney(currency=currencyExample.value,
+      amount="string"),
+      overallBalanceDate=new Date()))
     ),
     adapterImplementation = Some(AdapterImplementation("Account", 1))
   )
-  override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[CoreAccount], Option[CallContext])]] = saveConnectorMetric {
+  override def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]): OBPReturnType[Box[AccountsBalances]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -559,26 +383,26 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(accountTTL second) {
-        import com.openbankproject.commons.dto.{OutBoundGetCoreBankAccounts => OutBound, InBoundGetCoreBankAccounts => InBound}
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(bankAccountsBalancesTTL second) {
+        import com.openbankproject.commons.dto.{OutBoundGetBankAccountsBalances => OutBound, InBoundGetBankAccountsBalances => InBound}
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankIdAccountIds)
-        logger.debug(s"Kafka getCoreBankAccounts Req is: $req")
+        logger.debug(s"Kafka getBankAccountsBalances Req is: $req")
         processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
-  }("getCoreBankAccounts")
+  }("getBankAccountsBalances")
     
     
   messageDocs += MessageDoc(
-    process = s"obp.${nameOf(checkBankAccountExists _)}",
+    process = s"obp.${nameOf(getBranch _)}",
     messageFormat = messageFormat,
-    description = "Check Bank Account Exists",
-    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCheckBankAccountExists.getClass.getSimpleName).request),
-    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCheckBankAccountExists.getClass.getSimpleName).response),
+    description = "Get Branch",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBranch.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBranch.getClass.getSimpleName).response),
     exampleOutboundMessage = (
-     OutBoundCheckBankAccountExists(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
+     OutBoundGetBranch(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
       sessionId=Some(sessionIdExample.value),
       consumerId=Some(consumerIdExample.value),
       generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
@@ -605,10 +429,10 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       emailAddress=emailExample.value,
       name=usernameExample.value))))))))),
       bankId=BankId(bankIdExample.value),
-      accountId=AccountId(accountIdExample.value))
+      branchId=BranchId(branchIdExample.value))
     ),
     exampleInboundMessage = (
-     InBoundCheckBankAccountExists(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
+     InBoundGetBranch(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
       sessionId=Some(sessionIdExample.value),
       generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
       value=valueExample.value)))),
@@ -617,28 +441,67 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       status=inboundStatusMessageStatusExample.value,
       errorCode=inboundStatusMessageErrorCodeExample.value,
       text=inboundStatusMessageTextExample.value))),
-      data= BankAccountCommons(accountId=AccountId(accountIdExample.value),
-      accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
-      currency=currencyExample.value,
-      name=bankAccountNameExample.value,
-      label=labelExample.value,
-      iban=Some(ibanExample.value),
-      number=bankAccountNumberExample.value,
+      data= BranchTCommons(branchId=BranchId(branchIdExample.value),
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
-      branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
-      value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value))
+      name="string",
+      address= Address(line1="string",
+      line2="string",
+      line3="string",
+      city="string",
+      county=Some("string"),
+      state="string",
+      postCode="string",
+      countryCode="string"),
+      location= Location(latitude=123.123,
+      longitude=123.123,
+      date=Some(new Date()),
+      user=Some( BasicResourceUser(userId=userIdExample.value,
+      provider="string",
+      username=usernameExample.value))),
+      lobbyString=Some(LobbyString("string")),
+      driveUpString=Some(DriveUpString("string")),
+      meta=Meta( License(id="string",
+      name="string")),
+      branchRouting=Some( Routing(scheme=branchRoutingSchemeExample.value,
+      address=branchRoutingAddressExample.value)),
+      lobby=Some( Lobby(monday=List( OpeningTimes(openingTime="string",
+      closingTime="string")),
+      tuesday=List( OpeningTimes(openingTime="string",
+      closingTime="string")),
+      wednesday=List( OpeningTimes(openingTime="string",
+      closingTime="string")),
+      thursday=List( OpeningTimes(openingTime="string",
+      closingTime="string")),
+      friday=List( OpeningTimes(openingTime="string",
+      closingTime="string")),
+      saturday=List( OpeningTimes(openingTime="string",
+      closingTime="string")),
+      sunday=List( OpeningTimes(openingTime="string",
+      closingTime="string")))),
+      driveUp=Some( DriveUp(monday= OpeningTimes(openingTime="string",
+      closingTime="string"),
+      tuesday= OpeningTimes(openingTime="string",
+      closingTime="string"),
+      wednesday= OpeningTimes(openingTime="string",
+      closingTime="string"),
+      thursday= OpeningTimes(openingTime="string",
+      closingTime="string"),
+      friday= OpeningTimes(openingTime="string",
+      closingTime="string"),
+      saturday= OpeningTimes(openingTime="string",
+      closingTime="string"),
+      sunday= OpeningTimes(openingTime="string",
+      closingTime="string"))),
+      isAccessible=Some(true),
+      accessibleFeatures=Some("string"),
+      branchType=Some("string"),
+      moreInfo=Some("string"),
+      phoneNumber=Some("string"),
+      isDeleted=Some(true)))
     ),
-    adapterImplementation = Some(AdapterImplementation("Account", 1))
+    adapterImplementation = Some(AdapterImplementation("Branch", 1))
   )
-  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = saveConnectorMetric {
+  override def getBranch(bankId: BankId, branchId: BranchId, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(BranchT, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -647,26 +510,26 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(accountTTL second) {
-        import com.openbankproject.commons.dto.{OutBoundCheckBankAccountExists => OutBound, InBoundCheckBankAccountExists => InBound}
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(branchTTL second) {
+        import com.openbankproject.commons.dto.{OutBoundGetBranch => OutBound, InBoundGetBranch => InBound}
 
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, accountId)
-        logger.debug(s"Kafka checkBankAccountExists Req is: $req")
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, branchId)
+        logger.debug(s"Kafka getBranch Req is: $req")
         processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
-  }("checkBankAccountExists")
+  }("getBranch")
     
     
   messageDocs += MessageDoc(
-    process = s"obp.${nameOf(getTransactions _)}",
+    process = s"obp.${nameOf(getBranches _)}",
     messageFormat = messageFormat,
-    description = "Get Transactions",
-    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetTransactions.getClass.getSimpleName).request),
-    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetTransactions.getClass.getSimpleName).response),
+    description = "Get Branches",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBranches.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBranches.getClass.getSimpleName).response),
     exampleOutboundMessage = (
-     OutBoundGetTransactions(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
+     OutBoundGetBranches(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
       sessionId=Some(sessionIdExample.value),
       consumerId=Some(consumerIdExample.value),
       generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
@@ -693,14 +556,13 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       emailAddress=emailExample.value,
       name=usernameExample.value))))))))),
       bankId=BankId(bankIdExample.value),
-      accountId=AccountId(accountIdExample.value),
       limit=limitExample.value.toInt,
       offset=offsetExample.value.toInt,
-      fromDate=outBoundGetTransactionsFromDateExample.value,
-      toDate=outBoundGetTransactionsToDateExample.value)
+      fromDate="string",
+      toDate="string")
     ),
     exampleInboundMessage = (
-     InBoundGetTransactions(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
+     InBoundGetBranches(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
       sessionId=Some(sessionIdExample.value),
       generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
       value=valueExample.value)))),
@@ -709,49 +571,67 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       status=inboundStatusMessageStatusExample.value,
       errorCode=inboundStatusMessageErrorCodeExample.value,
       text=inboundStatusMessageTextExample.value))),
-      data=List( TransactionCommons(uuid=transactionUuidExample.value,
-      id=TransactionId(transactionIdExample.value),
-      thisAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
-      accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
-      currency=currencyExample.value,
-      name=bankAccountNameExample.value,
-      label=labelExample.value,
-      iban=Some(ibanExample.value),
-      number=bankAccountNumberExample.value,
+      data=List( BranchTCommons(branchId=BranchId(branchIdExample.value),
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
-      branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
-      value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      otherAccount= Counterparty(nationalIdentifier=counterpartyNationalIdentifierExample.value,
-      kind=counterpartyKindExample.value,
-      counterpartyId=counterpartyIdExample.value,
-      counterpartyName=counterpartyNameExample.value,
-      thisBankId=BankId(bankIdExample.value),
-      thisAccountId=AccountId(accountIdExample.value),
-      otherBankRoutingScheme=counterpartyOtherBankRoutingSchemeExample.value,
-      otherBankRoutingAddress=Some(counterpartyOtherBankRoutingAddressExample.value),
-      otherAccountRoutingScheme=counterpartyOtherAccountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=Some(counterpartyOtherAccountRoutingAddressExample.value),
-      otherAccountProvider=counterpartyOtherAccountProviderExample.value,
-      isBeneficiary=isBeneficiaryExample.value.toBoolean),
-      transactionType=transactionTypeExample.value,
-      amount=BigDecimal(transactionAmountExample.value),
-      currency=currencyExample.value,
-      description=Some(transactionDescriptionExample.value),
-      startDate=parseDate(transactionStartDateExample.value).getOrElse(sys.error("transactionStartDateExample.value is not validate date format.")),
-      finishDate=parseDate(transactionFinishDateExample.value).getOrElse(sys.error("transactionFinishDateExample.value is not validate date format.")),
-      balance=BigDecimal(balanceAmountExample.value))))
+      name="string",
+      address= Address(line1="string",
+      line2="string",
+      line3="string",
+      city="string",
+      county=Some("string"),
+      state="string",
+      postCode="string",
+      countryCode="string"),
+      location= Location(latitude=123.123,
+      longitude=123.123,
+      date=Some(new Date()),
+      user=Some( BasicResourceUser(userId=userIdExample.value,
+      provider="string",
+      username=usernameExample.value))),
+      lobbyString=Some(LobbyString("string")),
+      driveUpString=Some(DriveUpString("string")),
+      meta=Meta( License(id="string",
+      name="string")),
+      branchRouting=Some( Routing(scheme=branchRoutingSchemeExample.value,
+      address=branchRoutingAddressExample.value)),
+      lobby=Some( Lobby(monday=List( OpeningTimes(openingTime="string",
+      closingTime="string")),
+      tuesday=List( OpeningTimes(openingTime="string",
+      closingTime="string")),
+      wednesday=List( OpeningTimes(openingTime="string",
+      closingTime="string")),
+      thursday=List( OpeningTimes(openingTime="string",
+      closingTime="string")),
+      friday=List( OpeningTimes(openingTime="string",
+      closingTime="string")),
+      saturday=List( OpeningTimes(openingTime="string",
+      closingTime="string")),
+      sunday=List( OpeningTimes(openingTime="string",
+      closingTime="string")))),
+      driveUp=Some( DriveUp(monday= OpeningTimes(openingTime="string",
+      closingTime="string"),
+      tuesday= OpeningTimes(openingTime="string",
+      closingTime="string"),
+      wednesday= OpeningTimes(openingTime="string",
+      closingTime="string"),
+      thursday= OpeningTimes(openingTime="string",
+      closingTime="string"),
+      friday= OpeningTimes(openingTime="string",
+      closingTime="string"),
+      saturday= OpeningTimes(openingTime="string",
+      closingTime="string"),
+      sunday= OpeningTimes(openingTime="string",
+      closingTime="string"))),
+      isAccessible=Some(true),
+      accessibleFeatures=Some("string"),
+      branchType=Some("string"),
+      moreInfo=Some("string"),
+      phoneNumber=Some("string"),
+      isDeleted=Some(true))))
     ),
-    adapterImplementation = Some(AdapterImplementation("Transaction", 1))
+    adapterImplementation = Some(AdapterImplementation("Branch", 1))
   )
-  override def getTransactions(bankId: BankId, accountID: AccountId, @CacheKeyOmit callContext: Option[CallContext], queryParams: List[OBPQueryParam]): OBPReturnType[Box[List[Transaction]]] = saveConnectorMetric {
+  override def getBranches(bankId: BankId, @CacheKeyOmit callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[BranchT], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -760,26 +640,26 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(transactionsTTL second) {
-        import com.openbankproject.commons.dto.{OutBoundGetTransactions => OutBound, InBoundGetTransactions => InBound}
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(branchesTTL second) {
+        import com.openbankproject.commons.dto.{OutBoundGetBranches => OutBound, InBoundGetBranches => InBound}
 
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, accountID, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
-        logger.debug(s"Kafka getTransactions Req is: $req")
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
+        logger.debug(s"Kafka getBranches Req is: $req")
         processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
-  }("getTransactions")
+  }("getBranches")
     
     
   messageDocs += MessageDoc(
-    process = s"obp.${nameOf(getTransaction _)}",
+    process = s"obp.${nameOf(getAtm _)}",
     messageFormat = messageFormat,
-    description = "Get Transaction",
-    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetTransaction.getClass.getSimpleName).request),
-    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetTransaction.getClass.getSimpleName).response),
+    description = "Get Atm",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetAtm.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetAtm.getClass.getSimpleName).response),
     exampleOutboundMessage = (
-     OutBoundGetTransaction(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
+     OutBoundGetAtm(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
       sessionId=Some(sessionIdExample.value),
       consumerId=Some(consumerIdExample.value),
       generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
@@ -806,11 +686,10 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       emailAddress=emailExample.value,
       name=usernameExample.value))))))))),
       bankId=BankId(bankIdExample.value),
-      accountId=AccountId(accountIdExample.value),
-      transactionId=TransactionId(transactionIdExample.value))
+      atmId=AtmId("string"))
     ),
     exampleInboundMessage = (
-     InBoundGetTransaction(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
+     InBoundGetAtm(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
       sessionId=Some(sessionIdExample.value),
       generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
       value=valueExample.value)))),
@@ -819,49 +698,47 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       status=inboundStatusMessageStatusExample.value,
       errorCode=inboundStatusMessageErrorCodeExample.value,
       text=inboundStatusMessageTextExample.value))),
-      data= TransactionCommons(uuid=transactionUuidExample.value,
-      id=TransactionId(transactionIdExample.value),
-      thisAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
-      accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
-      currency=currencyExample.value,
-      name=bankAccountNameExample.value,
-      label=labelExample.value,
-      iban=Some(ibanExample.value),
-      number=bankAccountNumberExample.value,
+      data= AtmTCommons(atmId=AtmId("string"),
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
-      branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
-      value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      otherAccount= Counterparty(nationalIdentifier=counterpartyNationalIdentifierExample.value,
-      kind=counterpartyKindExample.value,
-      counterpartyId=counterpartyIdExample.value,
-      counterpartyName=counterpartyNameExample.value,
-      thisBankId=BankId(bankIdExample.value),
-      thisAccountId=AccountId(accountIdExample.value),
-      otherBankRoutingScheme=counterpartyOtherBankRoutingSchemeExample.value,
-      otherBankRoutingAddress=Some(counterpartyOtherBankRoutingAddressExample.value),
-      otherAccountRoutingScheme=counterpartyOtherAccountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=Some(counterpartyOtherAccountRoutingAddressExample.value),
-      otherAccountProvider=counterpartyOtherAccountProviderExample.value,
-      isBeneficiary=isBeneficiaryExample.value.toBoolean),
-      transactionType=transactionTypeExample.value,
-      amount=BigDecimal(transactionAmountExample.value),
-      currency=currencyExample.value,
-      description=Some(transactionDescriptionExample.value),
-      startDate=parseDate(transactionStartDateExample.value).getOrElse(sys.error("transactionStartDateExample.value is not validate date format.")),
-      finishDate=parseDate(transactionFinishDateExample.value).getOrElse(sys.error("transactionFinishDateExample.value is not validate date format.")),
-      balance=BigDecimal(balanceAmountExample.value)))
+      name="string",
+      address= Address(line1="string",
+      line2="string",
+      line3="string",
+      city="string",
+      county=Some("string"),
+      state="string",
+      postCode="string",
+      countryCode="string"),
+      location= Location(latitude=123.123,
+      longitude=123.123,
+      date=Some(new Date()),
+      user=Some( BasicResourceUser(userId=userIdExample.value,
+      provider="string",
+      username=usernameExample.value))),
+      meta=Meta( License(id="string",
+      name="string")),
+      OpeningTimeOnMonday=Some("string"),
+      ClosingTimeOnMonday=Some("string"),
+      OpeningTimeOnTuesday=Some("string"),
+      ClosingTimeOnTuesday=Some("string"),
+      OpeningTimeOnWednesday=Some("string"),
+      ClosingTimeOnWednesday=Some("string"),
+      OpeningTimeOnThursday=Some("string"),
+      ClosingTimeOnThursday=Some("string"),
+      OpeningTimeOnFriday=Some("string"),
+      ClosingTimeOnFriday=Some("string"),
+      OpeningTimeOnSaturday=Some("string"),
+      ClosingTimeOnSaturday=Some("string"),
+      OpeningTimeOnSunday=Some("string"),
+      ClosingTimeOnSunday=Some("string"),
+      isAccessible=Some(true),
+      locatedAt=Some("string"),
+      moreInfo=Some("string"),
+      hasDepositCapability=Some(true)))
     ),
-    adapterImplementation = Some(AdapterImplementation("Transaction", 1))
+    adapterImplementation = Some(AdapterImplementation("ATM", 1))
   )
-  override def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId, @CacheKeyOmit callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = saveConnectorMetric {
+  override def getAtm(bankId: BankId, atmId: AtmId, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -870,16 +747,126 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(transactionTTL second) {
-        import com.openbankproject.commons.dto.{OutBoundGetTransaction => OutBound, InBoundGetTransaction => InBound}
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(atmTTL second) {
+        import com.openbankproject.commons.dto.{OutBoundGetAtm => OutBound, InBoundGetAtm => InBound}
 
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, accountID, transactionId)
-        logger.debug(s"Kafka getTransaction Req is: $req")
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, atmId)
+        logger.debug(s"Kafka getAtm Req is: $req")
         processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
-  }("getTransaction")
+  }("getAtm")
+    
+    
+  messageDocs += MessageDoc(
+    process = s"obp.${nameOf(getAtms _)}",
+    messageFormat = messageFormat,
+    description = "Get Atms",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetAtms.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetAtms.getClass.getSimpleName).response),
+    exampleOutboundMessage = (
+     OutBoundGetAtms(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
+      sessionId=Some(sessionIdExample.value),
+      consumerId=Some(consumerIdExample.value),
+      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
+      value=valueExample.value))),
+      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
+      username=Some(usernameExample.value),
+      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
+      customerNumber=customerNumberExample.value,
+      legalName=legalNameExample.value))),
+      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
+      value=valueExample.value))),
+      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
+      name=viewNameExample.value,
+      description=viewDescriptionExample.value),
+      account= AccountBasic(id=accountIdExample.value,
+      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)),
+      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
+      customerId=customerIdExample.value,
+      customerNumber=customerNumberExample.value,
+      legalName=legalNameExample.value,
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
+      userOwners=List( InternalBasicUser(userId=userIdExample.value,
+      emailAddress=emailExample.value,
+      name=usernameExample.value))))))))),
+      bankId=BankId(bankIdExample.value),
+      limit=limitExample.value.toInt,
+      offset=offsetExample.value.toInt,
+      fromDate="string",
+      toDate="string")
+    ),
+    exampleInboundMessage = (
+     InBoundGetAtms(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
+      sessionId=Some(sessionIdExample.value),
+      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
+      value=valueExample.value)))),
+      status= Status(errorCode=statusErrorCodeExample.value,
+      backendMessages=List( InboundStatusMessage(source=sourceExample.value,
+      status=inboundStatusMessageStatusExample.value,
+      errorCode=inboundStatusMessageErrorCodeExample.value,
+      text=inboundStatusMessageTextExample.value))),
+      data=List( AtmTCommons(atmId=AtmId("string"),
+      bankId=BankId(bankIdExample.value),
+      name="string",
+      address= Address(line1="string",
+      line2="string",
+      line3="string",
+      city="string",
+      county=Some("string"),
+      state="string",
+      postCode="string",
+      countryCode="string"),
+      location= Location(latitude=123.123,
+      longitude=123.123,
+      date=Some(new Date()),
+      user=Some( BasicResourceUser(userId=userIdExample.value,
+      provider="string",
+      username=usernameExample.value))),
+      meta=Meta( License(id="string",
+      name="string")),
+      OpeningTimeOnMonday=Some("string"),
+      ClosingTimeOnMonday=Some("string"),
+      OpeningTimeOnTuesday=Some("string"),
+      ClosingTimeOnTuesday=Some("string"),
+      OpeningTimeOnWednesday=Some("string"),
+      ClosingTimeOnWednesday=Some("string"),
+      OpeningTimeOnThursday=Some("string"),
+      ClosingTimeOnThursday=Some("string"),
+      OpeningTimeOnFriday=Some("string"),
+      ClosingTimeOnFriday=Some("string"),
+      OpeningTimeOnSaturday=Some("string"),
+      ClosingTimeOnSaturday=Some("string"),
+      OpeningTimeOnSunday=Some("string"),
+      ClosingTimeOnSunday=Some("string"),
+      isAccessible=Some(true),
+      locatedAt=Some("string"),
+      moreInfo=Some("string"),
+      hasDepositCapability=Some(true))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("ATM", 1))
+  )
+  override def getAtms(bankId: BankId, @CacheKeyOmit callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[AtmT], Option[CallContext])]] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(atmsTTL second) {
+        import com.openbankproject.commons.dto.{OutBoundGetAtms => OutBound, InBoundGetAtms => InBound}
+
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
+        logger.debug(s"Kafka getAtms Req is: $req")
+        processRequest[InBound](req) map (convertToTuple(callContext))
+      }
+        
+    }
+  }("getAtms")
     
     
   messageDocs += MessageDoc(
@@ -947,7 +934,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
       lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
-      title=titleExample.value,
+      title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value)))
     ),
@@ -974,11 +961,194 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
   }("getCustomersByUserId")
     
     
+  messageDocs += MessageDoc(
+    process = s"obp.${nameOf(getCustomerByCustomerId _)}",
+    messageFormat = messageFormat,
+    description = "Get Customer By Customer Id",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetCustomerByCustomerId.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetCustomerByCustomerId.getClass.getSimpleName).response),
+    exampleOutboundMessage = (
+     OutBoundGetCustomerByCustomerId(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
+      sessionId=Some(sessionIdExample.value),
+      consumerId=Some(consumerIdExample.value),
+      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
+      value=valueExample.value))),
+      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
+      username=Some(usernameExample.value),
+      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
+      customerNumber=customerNumberExample.value,
+      legalName=legalNameExample.value))),
+      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
+      value=valueExample.value))),
+      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
+      name=viewNameExample.value,
+      description=viewDescriptionExample.value),
+      account= AccountBasic(id=accountIdExample.value,
+      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)),
+      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
+      customerId=customerIdExample.value,
+      customerNumber=customerNumberExample.value,
+      legalName=legalNameExample.value,
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
+      userOwners=List( InternalBasicUser(userId=userIdExample.value,
+      emailAddress=emailExample.value,
+      name=usernameExample.value))))))))),
+      customerId=customerIdExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundGetCustomerByCustomerId(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
+      sessionId=Some(sessionIdExample.value),
+      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
+      value=valueExample.value)))),
+      status= Status(errorCode=statusErrorCodeExample.value,
+      backendMessages=List( InboundStatusMessage(source=sourceExample.value,
+      status=inboundStatusMessageStatusExample.value,
+      errorCode=inboundStatusMessageErrorCodeExample.value,
+      text=inboundStatusMessageTextExample.value))),
+      data= CustomerCommons(customerId=customerIdExample.value,
+      bankId=bankIdExample.value,
+      number=customerNumberExample.value,
+      legalName=legalNameExample.value,
+      mobileNumber=mobileNumberExample.value,
+      email=emailExample.value,
+      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      url=urlExample.value),
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      relationshipStatus=relationshipStatusExample.value,
+      dependents=dependentsExample.value.toInt,
+      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      highestEducationAttained=highestEducationAttainedExample.value,
+      employmentStatus=employmentStatusExample.value,
+      creditRating= CreditRating(rating=ratingExample.value,
+      source=sourceExample.value),
+      creditLimit= CreditLimit(currency=currencyExample.value,
+      amount=creditLimitAmountExample.value),
+      kycStatus=kycStatusExample.value.toBoolean,
+      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      title=customerTitleExample.value,
+      branchId=branchIdExample.value,
+      nameSuffix=nameSuffixExample.value))
+    ),
+    adapterImplementation = Some(AdapterImplementation("Customer", 1))
+  )
+  override def getCustomerByCustomerId(customerId: String, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(accountTTL second) {
+        import com.openbankproject.commons.dto.{OutBoundGetCustomerByCustomerId => OutBound, InBoundGetCustomerByCustomerId => InBound}
+
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , customerId)
+        logger.debug(s"Kafka getCustomerByCustomerId Req is: $req")
+        processRequest[InBound](req) map (convertToTuple(callContext))
+      }
+        
+    }
+  }("getCustomerByCustomerId")
+    
+    
+  messageDocs += MessageDoc(
+    process = s"obp.${nameOf(getCustomerByCustomerNumber _)}",
+    messageFormat = messageFormat,
+    description = "Get Customer By Customer Number",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetCustomerByCustomerNumber.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetCustomerByCustomerNumber.getClass.getSimpleName).response),
+    exampleOutboundMessage = (
+     OutBoundGetCustomerByCustomerNumber(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
+      sessionId=Some(sessionIdExample.value),
+      consumerId=Some(consumerIdExample.value),
+      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
+      value=valueExample.value))),
+      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
+      username=Some(usernameExample.value),
+      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
+      customerNumber=customerNumberExample.value,
+      legalName=legalNameExample.value))),
+      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
+      value=valueExample.value))),
+      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
+      name=viewNameExample.value,
+      description=viewDescriptionExample.value),
+      account= AccountBasic(id=accountIdExample.value,
+      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)),
+      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
+      customerId=customerIdExample.value,
+      customerNumber=customerNumberExample.value,
+      legalName=legalNameExample.value,
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
+      userOwners=List( InternalBasicUser(userId=userIdExample.value,
+      emailAddress=emailExample.value,
+      name=usernameExample.value))))))))),
+      customerNumber=customerNumberExample.value,
+      bankId=BankId(bankIdExample.value))
+    ),
+    exampleInboundMessage = (
+     InBoundGetCustomerByCustomerNumber(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
+      sessionId=Some(sessionIdExample.value),
+      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
+      value=valueExample.value)))),
+      status= Status(errorCode=statusErrorCodeExample.value,
+      backendMessages=List( InboundStatusMessage(source=sourceExample.value,
+      status=inboundStatusMessageStatusExample.value,
+      errorCode=inboundStatusMessageErrorCodeExample.value,
+      text=inboundStatusMessageTextExample.value))),
+      data= CustomerCommons(customerId=customerIdExample.value,
+      bankId=bankIdExample.value,
+      number=customerNumberExample.value,
+      legalName=legalNameExample.value,
+      mobileNumber=mobileNumberExample.value,
+      email=emailExample.value,
+      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      url=urlExample.value),
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      relationshipStatus=relationshipStatusExample.value,
+      dependents=dependentsExample.value.toInt,
+      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      highestEducationAttained=highestEducationAttainedExample.value,
+      employmentStatus=employmentStatusExample.value,
+      creditRating= CreditRating(rating=ratingExample.value,
+      source=sourceExample.value),
+      creditLimit= CreditLimit(currency=currencyExample.value,
+      amount=creditLimitAmountExample.value),
+      kycStatus=kycStatusExample.value.toBoolean,
+      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      title=customerTitleExample.value,
+      branchId=branchIdExample.value,
+      nameSuffix=nameSuffixExample.value))
+    ),
+    adapterImplementation = Some(AdapterImplementation("Customer", 1))
+  )
+  override def getCustomerByCustomerNumber(customerNumber: String, bankId: BankId, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(accountTTL second) {
+        import com.openbankproject.commons.dto.{OutBoundGetCustomerByCustomerNumber => OutBound, InBoundGetCustomerByCustomerNumber => InBound}
+
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , customerNumber, bankId)
+        logger.debug(s"Kafka getCustomerByCustomerNumber Req is: $req")
+        processRequest[InBound](req) map (convertToTuple(callContext))
+      }
+        
+    }
+  }("getCustomerByCustomerNumber")
+    
+    
 //---------------- dynamic end ---------------------please don't modify this line
     
-    
-    
-    
+
 
   //-----helper methods
 

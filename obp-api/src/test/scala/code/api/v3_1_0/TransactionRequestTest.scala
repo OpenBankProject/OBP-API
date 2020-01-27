@@ -27,12 +27,13 @@ package code.api.v3_1_0
 
 import code.api.{Constant, ErrorMessage}
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{APIUtil, ApiVersion}
+import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
 import code.api.v2_1_0.TransactionRequestWithChargeJSONs210
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountId, BankId}
+import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
 
 class TransactionRequestTest extends V310ServerSetup {

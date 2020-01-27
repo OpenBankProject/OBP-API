@@ -5,7 +5,8 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{InvalidConnectorResponseForGetTransactionRequests210, UnknownError, UserNotLoggedIn, _}
-import code.api.util.{ApiVersion, ErrorMessages, NewStyle}
+import com.openbankproject.commons.util.ApiVersion
+import code.api.util.{ ErrorMessages, NewStyle}
 import code.bankconnectors.Connector
 import code.model._
 import code.util.Helper
@@ -16,7 +17,7 @@ import net.liftweb.http.rest.RestHelper
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object APIMethods_UKOpenBanking_200 extends RestHelper{

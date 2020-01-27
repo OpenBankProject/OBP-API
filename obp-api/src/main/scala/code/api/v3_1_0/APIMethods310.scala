@@ -43,7 +43,7 @@ import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{CreditLimit, Product, _}
-import com.openbankproject.commons.util.ReflectUtils
+import com.openbankproject.commons.util.{ApiVersion, ReflectUtils}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.S
 import net.liftweb.http.provider.HTTPParam
@@ -56,7 +56,8 @@ import org.apache.commons.lang3.{StringUtils, Validate}
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.Future
 
 trait APIMethods310 {
@@ -1413,7 +1414,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canCreateUserAuthContext)))
 
     lazy val createUserAuthContext : OBPEndpoint = {
       case "users" :: userId ::"auth-context" :: Nil JsonPost  json -> _ => {
@@ -1495,7 +1497,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canDeleteUserAuthContext)))
 
     lazy val deleteUserAuthContexts : OBPEndpoint = {
       case "users" :: userId :: "auth-context" :: Nil JsonDelete _ => {
@@ -1533,7 +1536,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canDeleteUserAuthContext)))
 
     lazy val deleteUserAuthContextById : OBPEndpoint = {
       case "users" :: userId :: "auth-context" :: userAuthContextId :: Nil JsonDelete _ => {
@@ -1909,9 +1913,9 @@ trait APIMethods310 {
     }
     
     resourceDocs += ResourceDoc(
-      getObpApiLoopback,
+      getObpConnectorLoopback,
       implementedInApiVersion,
-      nameOf(getObpApiLoopback),
+      nameOf(getObpConnectorLoopback),
       "GET",
       "/connector/loopback",
       "Get Connector Status (Loopback)",
@@ -1935,7 +1939,7 @@ trait APIMethods310 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApi, apiTagNewStyle))
 
-    lazy val getObpApiLoopback : OBPEndpoint = {
+    lazy val getObpConnectorLoopback : OBPEndpoint = {
       case "connector" :: "loopback" :: Nil JsonGet _ => {
         cc =>
           for {

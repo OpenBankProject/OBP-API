@@ -9,7 +9,7 @@ import code.util.Helper.MdcLoggable
 import akka.pattern.pipe
 import code.api.util.OBPQueryParam
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable {
 

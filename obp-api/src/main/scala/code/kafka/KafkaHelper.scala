@@ -64,7 +64,6 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
     * This function is used for Old Style Endpoints at Kafka connector.
     * It processes Kafka's Outbound message to JValue wrapped into Box.
     * @param request The request we send to Kafka
-    * @tparam T the type of the Outbound message
     * @return Kafka's Inbound message as JValue wrapped into Box
     */
   def processToBox(request: Any): Box[JValue] = {
@@ -89,9 +88,9 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
     * @return Kafka's Inbound message into Future
     */
   def processRequest[T: Manifest](request: TopicTrait): Future[Box[T]] = {
-    import scala.concurrent.ExecutionContext.Implicits.global
+    import com.openbankproject.commons.ExecutionContext.Implicits.global
     import liftweb.json.compactRender
-    implicit val formats = CustomJsonFormats.formats
+    implicit val formats = CustomJsonFormats.nullTolerateFormats
     val tp = manifest[T].runtimeClass
 
     (actor ? request)
@@ -153,7 +152,7 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
     * @return ObpApiLoopback with duration
     */
   def echoKafkaServer: Future[ObpApiLoopback] = {
-    import scala.concurrent.ExecutionContext.Implicits.global
+    import com.openbankproject.commons.ExecutionContext.Implicits.global
     implicit val formats = CustomJsonFormats.formats
     for{
       connectorVersion <- Future {APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")}

@@ -6,8 +6,7 @@ import net.liftweb.common.Box
 import net.liftweb.mapper._
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.tools.scalap.scalax.util.StringUtil
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 object MappedEntitlementsProvider extends EntitlementProvider {
   override def getEntitlement(bankId: String, userId: String, roleName: String): Box[MappedEntitlement] = {

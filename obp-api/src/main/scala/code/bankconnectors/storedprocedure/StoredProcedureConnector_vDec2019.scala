@@ -41,7 +41,6 @@ import code.bankconnectors.vJune2017.AuthInfo
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.kafka.KafkaHelper
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
-import code.util.AkkaHttpClient._
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto.{InBoundTrait, _}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
@@ -61,6 +60,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   //this one import is for implicit convert, don't delete

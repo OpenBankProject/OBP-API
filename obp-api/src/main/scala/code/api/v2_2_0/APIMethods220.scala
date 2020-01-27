@@ -30,7 +30,9 @@ import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.util.ApiVersion
+
 import scala.concurrent.Future
 
 
@@ -408,7 +410,7 @@ trait APIMethods220 {
             messageDocs <- Full{connectorObject.messageDocs.toList} 
           } yield {
             val json = JSONFactory220.createMessageDocsJson(messageDocs)
-            successJsonResponse(Extraction.decompose(json))
+            successJsonResponse(Extraction.decompose(json)(CustomJsonFormats.formats))
           }
         }
       }

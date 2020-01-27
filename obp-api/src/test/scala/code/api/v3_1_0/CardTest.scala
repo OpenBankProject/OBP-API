@@ -6,7 +6,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{createPhysicalCardJsonV310, updatePhysicalCardJsonV310}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateCustomer
-import code.api.util.{ApiRole, ApiVersion}
+import code.api.util.ApiRole
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
@@ -16,6 +16,7 @@ import org.scalatest.Tag
 import code.api.util.ErrorMessages._
 import code.api.v1_3_0.ReplacementJSON
 import com.openbankproject.commons.model.{CardAction, CardReplacementReason}
+import com.openbankproject.commons.util.ApiVersion
 
 class CardTest extends V310ServerSetup with DefaultUsers {
 

@@ -28,7 +28,8 @@ package code.api.berlin.group.v1
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.{ApiVersion, ScannedApiVersion, ScannedApis}
+import com.openbankproject.commons.util.ScannedApiVersion
+import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
 import code.api.berlin.group.v1.APIMethods_BERLIN_GROUP_1._
 

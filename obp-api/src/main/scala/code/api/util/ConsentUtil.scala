@@ -15,7 +15,7 @@ import net.liftweb.json.{Extraction, MappingException, compactRender}
 import net.liftweb.mapper.By
 
 import scala.collection.immutable.List
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 case class ConsentJWT(createdByUserId: String,

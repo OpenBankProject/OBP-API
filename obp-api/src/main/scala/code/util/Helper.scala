@@ -13,7 +13,7 @@ import net.liftweb.json.{DateFormat, Formats}
 import net.liftweb.util.Helpers._
 import org.apache.commons.lang3.StringUtils
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Random
 

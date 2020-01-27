@@ -6,7 +6,7 @@ import code.entitlement.{ Entitlement, MappedEntitlementsProvider, RemotedataEnt
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Box
 import akka.pattern.pipe
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class RemotedataEntitlementsActor extends Actor with ObpActorHelper with MdcLoggable {
 

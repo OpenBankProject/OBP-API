@@ -15,7 +15,7 @@ import net.liftweb.http.LiftRules
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.Props
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 

@@ -1,6 +1,6 @@
 package code.util
 
-import code.api.util.ApiVersion
+import com.openbankproject.commons.util.ApiVersion
 import code.setup.ServerSetup
 import org.scalatest.Tag
 

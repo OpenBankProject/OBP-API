@@ -1,6 +1,6 @@
 package code.bankconnectors.storedprocedure
 
-import java.sql.{Connection, PreparedStatement}
+import java.sql.Connection
 
 import code.api.util.APIUtil
 import com.openbankproject.commons.model.TopicTrait
@@ -15,7 +15,8 @@ import scalikejdbc.{DB, _}
  * stored procedure will not be initialized.
  */
 object StoredProcedureUtils {
-  private implicit val formats = code.api.util.CustomJsonFormats.formats
+
+  private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
 
   // lazy initial DB connection
   {
@@ -50,9 +51,14 @@ object StoredProcedureUtils {
       DB autoCommit { implicit session =>
         val conn: Connection = session.connection
         // postgresql DB is different with other DB, it need a special way to call procedure.
-        if(conn.getMetaData().getDatabaseProductName() == "PostgreSQL") {
-          val st = conn.createStatement
-          val rs = st.executeQuery(s"CALL $procedureName('$procedureParam', '')")
+        val dbName = conn.getMetaData().getDatabaseProductName()
+        if(dbName.equalsIgnoreCase("PostgreSQL")) {
+
+          val preparedStatement = conn.prepareStatement(s" CALL $procedureName (?, '')")
+
+          preparedStatement.setString(1, procedureParam)
+          preparedStatement.execute()
+          val rs = preparedStatement.getResultSet()
           rs.next
           rs.getString(1)
         } else {
