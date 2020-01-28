@@ -63,6 +63,7 @@ object Migration extends MdcLoggable {
       populateTableRateLimiting()
       updateTableViewDefinition()
       bankAccountHoldersAndOwnerViewAccessInfo()
+      alterTableMappedConsent()
     }
     
     private def dummyScript(): Boolean = {
@@ -145,6 +146,12 @@ object Migration extends MdcLoggable {
         BankAccountHoldersAndOwnerViewAccess.saveInfoBankAccountHoldersAndOwnerViewAccessInfo(name)
       }
     }
+    private def alterTableMappedConsent(): Boolean = {
+      val name = nameOf(alterTableMappedConsent)
+      runOnce(name) {
+        MigrationOfMappedConsent.alterColumnJsonWebToken(name)
+      }
+    }
     
   }
 
@@ -180,6 +187,30 @@ object Migration extends MdcLoggable {
 
         hasTable(rs)
       }
+    }
+
+    /**
+      * This function is copied from the module "net.liftweb.mapper.Schemifier".
+      * 
+      * Creates an SQL command and optionally executes it.
+      *
+      * @param performWrite Whether the SQL command should be executed.
+      * @param logFunc Logger.
+      * @param connection Database connection.
+      * @param makeSql Factory for SQL command.
+      *
+      * @return SQL command.
+      */
+    def maybeWrite(performWrite: Boolean, logFunc: (=> AnyRef) => Unit, connection: SuperConnection) (makeSql: () => String) : String ={
+      val ct = makeSql()
+      logger.trace("maybeWrite DDL: "+ct)
+      if (performWrite) {
+        logFunc(ct)
+        val st = connection.createStatement
+        st.execute(ct)
+        st.close
+      }
+      ct
     }
 
     /**

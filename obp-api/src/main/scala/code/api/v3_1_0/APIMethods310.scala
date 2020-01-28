@@ -3351,8 +3351,6 @@ trait APIMethods310 {
       "Create Consent (SMS)",
       s"""
          |
-         |$generalObpConsentText
-         |
          |This endpoint starts the process of creating a Consent.
          |
          |The Consent is created in an ${ConsentStatus.INITIATED} state.
@@ -3361,6 +3359,8 @@ trait APIMethods310 {
          |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
          |
          |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
+         |
+         |$generalObpConsentText
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -3395,7 +3395,7 @@ trait APIMethods310 {
             }
             requestedEntitlements = consentJson.entitlements
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
-            _ <- Helper.booleanToFuture(ConsentAllowedRoles){
+            _ <- Helper.booleanToFuture(RolesAllowedInConsent){
               requestedEntitlements.forall(
                 re => myEntitlements.getOrElse(Nil).exists(
                   e => e.roleName == re.role_name && e.bankId == re.bank_id
@@ -3404,11 +3404,14 @@ trait APIMethods310 {
             }
             requestedViews = consentJson.views
             (_, assignedViews) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
-            _ <- Helper.booleanToFuture(ConsentAllowedViews){
+            _ <- Helper.booleanToFuture(ViewsAllowedInConsent){
               requestedViews.forall(
-                rv => assignedViews.exists(
-                  e => e.view_id == rv.view_id && e.bank_id == rv.bank_id
-                )
+                rv => assignedViews.exists{
+                  e => 
+                    e.view_id == rv.view_id && 
+                    e.bank_id == rv.bank_id && 
+                    e.account_id == rv.account_id
+                }
               )
             }
             createdConsent <- Future(Consents.consentProvider.vend.createConsent(user)) map {

@@ -192,8 +192,9 @@ object Consent {
       for {
         view <- consent.views
       } yield {
-        Views.views.vend.revokeAccess(ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id)), user)
-        Views.views.vend.grantAccessToCustomView(ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id)), user)
+        val viewIdBankIdAccountId = ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id))
+        Views.views.vend.revokeAccess(viewIdBankIdAccountId, user)
+        Views.views.vend.grantAccessToCustomView(viewIdBankIdAccountId, user)
         "Added"
       }
     if (result.forall(_ == "Added")) Full(user) else Failure("Cannot add permissions to the user with id: " + user.userId)
