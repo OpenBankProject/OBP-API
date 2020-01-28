@@ -3160,7 +3160,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
     val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName, branchId, accountRoutingScheme, accountRoutingAddress)
     logger.debug(s"Kafka createBankAccount Req is: $req")
-    processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+    processRequest[InBound](req) map (convertToTuple(callContext))
   }
     
     
@@ -3260,7 +3260,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
     val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, legalName, mobileNumber, email, faceImage, dateOfBirth, relationshipStatus, dependents, dobOfDependents, highestEducationAttained, employmentStatus, kycStatus, lastOkDate, creditRating, creditLimit, title, branchId, nameSuffix)
     logger.debug(s"Kafka createCustomer Req is: $req")
-    processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+    processRequest[InBound](req) map (convertToTuple(callContext))
   }
     
     
@@ -3336,7 +3336,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
     val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, customerId, id, customerNumber, date, how, staffUserId, mStaffName, mSatisfied, comments)
     logger.debug(s"Kafka createOrUpdateKycCheck Req is: $req")
-    processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+    processRequest[InBound](req) map (convertToTuple(callContext))
   }
     
     
@@ -3410,7 +3410,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
     val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, customerId, id, customerNumber, `type`, number, issueDate, issuePlace, expiryDate)
     logger.debug(s"Kafka createOrUpdateKycDocument Req is: $req")
-    processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+    processRequest[InBound](req) map (convertToTuple(callContext))
   }
     
     
@@ -3484,7 +3484,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
     val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, customerId, id, customerNumber, `type`, url, date, relatesToKycDocumentId, relatesToKycCheckId)
     logger.debug(s"Kafka createOrUpdateKycMedia Req is: $req")
-    processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+    processRequest[InBound](req) map (convertToTuple(callContext))
   }
     
     
@@ -3550,7 +3550,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
     val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, customerId, customerNumber, ok, date)
     logger.debug(s"Kafka createOrUpdateKycStatus Req is: $req")
-    processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+    processRequest[InBound](req) map (convertToTuple(callContext))
   }
     
     
@@ -3626,7 +3626,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , customerId)
         logger.debug(s"Kafka getKycChecks Req is: $req")
-        processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+        processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
@@ -3704,7 +3704,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , customerId)
         logger.debug(s"Kafka getKycDocuments Req is: $req")
-        processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+        processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
@@ -3782,7 +3782,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , customerId)
         logger.debug(s"Kafka getKycMedias Req is: $req")
-        processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+        processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
@@ -3856,7 +3856,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , customerId)
         logger.debug(s"Kafka getKycStatuses Req is: $req")
-        processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+        processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
@@ -3876,22 +3876,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     
 
   //-----helper methods
-
-  private[this] def validateRequiredFields[T: TypeTag: Manifest](version: ApiVersion)(box: Box[T]): Box[T] =
-    box match {
-      case Full(entity) => {
-        val value: Either[List[String], T] = RequiredFieldValidation.getRequiredInfo(typeTag[T].tpe).validate(entity, version)
-        value match {
-          case Left(missingFields) =>
-            val message = missingFields.mkString(s"INTERNAL-$InvalidConnectorResponseForMissingRequiredValues The missing fields: [", ", ", "]")
-            logger.error(message)
-            ParamFailure(message, Empty, Empty, APIFailure(message, 400))
-          case _ => box
-        }
-      }
-      case _ => box
-    }
-
 
   private[this] def convertToTuple[T](callContext: Option[CallContext]) (inbound: Box[InBoundTrait[T]]): (Box[T], Option[CallContext]) = {
     val boxedResult = inbound match {

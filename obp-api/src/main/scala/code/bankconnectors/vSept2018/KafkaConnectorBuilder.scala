@@ -204,7 +204,7 @@ class CommonGenerator(val methodName: String, typeSignature: Type) {
       |
       |    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get ${parametersNamesString})
       |    logger.debug(s"Kafka ${methodName} Req is: $$req")
-      |    processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+      |    processRequest[InBound](req) map (convertToTuple(callContext))
       |  }
     """.stripMargin
 

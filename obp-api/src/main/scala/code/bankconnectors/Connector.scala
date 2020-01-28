@@ -4,7 +4,7 @@ import java.util.Date
 import java.util.UUID.randomUUID
 
 import code.accountholders.{AccountHolders, MapperAccountHolders}
-import code.api.ApiVersionHolder
+import code.api.{APIFailure, APIFailureNewStyle}
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, _}
 import code.api.util.ApiRole._
@@ -38,7 +38,7 @@ import code.views.Views
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full, ParamFailure}
 import net.liftweb.json.{Formats, JObject, JValue}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
@@ -47,7 +47,7 @@ import net.liftweb.util.SimpleInjector
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.json
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -96,6 +96,29 @@ object Connector extends SimpleInjector {
 
   }
 
+
+  def extractAdapterResponse[T: Manifest](responseJson: String): Box[T] = {
+    val clazz = manifest[T].runtimeClass
+    val boxJValue: Box[Box[JValue]] = tryo {
+      val jValue = json.parse(responseJson)
+      if (ErrorMessage.isErrorMessage(jValue)) {
+        val ErrorMessage(code, message) = jValue.extract[ErrorMessage]
+        ParamFailure(message, Empty, Empty, APIFailure(message, code))
+      } else {
+        Box !! jValue
+      }
+    } ~> APIFailureNewStyle(s"INTERNAL-$InvalidJsonFormat The Json body should be the ${clazz.getName} ", 400)
+
+    boxJValue match {
+      case Full(Full(jValue)) =>
+        tryo {
+          jValue.extract[T](CustomJsonFormats.nullTolerateFormats, manifest[T])
+        } ~> APIFailureNewStyle(s"INTERNAL-$InvalidJsonFormat The Json body should be the ${clazz.getName} ", 400)
+
+      case Full(failure) => failure.asInstanceOf[Box[T]]
+      case empty: EmptyBox => empty
+    }
+  }
 }
 
 trait Connector extends MdcLoggable {
@@ -128,8 +151,6 @@ trait Connector extends MdcLoggable {
   protected val statusOfCheckbookOrders = getSecondsCache("getStatusOfCheckbookOrdersFuture")
   protected val statusOfCreditcardOrders = getSecondsCache("getStatusOfCreditCardOrderFuture")
   protected val bankAccountsBalancesTTL = getSecondsCache("getBankAccountsBalances")
-
-  protected def apiVersion: ApiVersion = ApiVersionHolder.getApiVersion
 
   /**
     * convert original return type future to OBPReturnType

@@ -2128,7 +2128,7 @@ Returns a string showed to the developer
     * @param box Some boxed type
     * @return Boxed value or throw some exception
     */
-  def fullBoxOrException[T](box: Box[T])(implicit m: Manifest[T]) : Box[T]= {
+  def fullBoxOrException[T](box: Box[T]) : Box[T]= {
     box match {
       case Full(v) => // Just forwarding
         Full(v)

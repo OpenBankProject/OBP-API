@@ -9458,26 +9458,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }
 
   private[this] def extractEntity[T: TypeTag: Manifest](responseEntity: ResponseEntity): Future[Box[T]] = {
-    val tp = typeTag[T].tpe
     this.extractBody(responseEntity)
       .map({
         case null => Empty
-        case str => {
-          val box: Box[Box[T]] = tryo {
-            implicit val formats: Formats = CustomJsonFormats.nullTolerateFormats
-            val jValue = parse(str)
-            val extractResult: Either[List[String], T] = Helper.getRequiredFieldInfo(tp).validateAndExtract[T](jValue, apiVersion)
-            extractResult match {
-              case Left(missingFields) =>
-                val message = missingFields.mkString(s"INTERNAL-$InvalidConnectorResponseForMissingRequiredValues The missing fields: [", ", ", "]")
-                logger.error(message)
-                ParamFailure(message, Empty, Empty, APIFailure(message, 400))
-              case Right(entity) => Full(entity)
-            }
-          } ~> APIFailureNewStyle(s"$InvalidJsonFormat The Json body should be the ${tp.typeSymbol.fullName} ", 400)
-
-          box.flatten
-        }
+        case str => Connector.extractAdapterResponse[T](str)
       })
   }
 

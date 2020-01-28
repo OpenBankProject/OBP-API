@@ -12,6 +12,7 @@ import net.liftweb.json.{Formats, JValue}
 import net.liftweb.json.JsonDSL._
 
 import scala.collection.GenTraversableOnce
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * Mark given type's field or constructor variable is required for some apiVersion
@@ -100,8 +101,8 @@ case class RequiredInfo(requiredArgs: Seq[RequiredArgs]) extends RequiredFields 
 
       val scannedPathValue: JValue = prePathValue match {
           case JArray(arr) => {
-            val (jArrayList: List[JArray], jValueList) = arr.classify(_.isInstanceOf[JArray])
-            val newArr: List[JValue] = jArrayList.flatMap(_.arr) :: jValueList
+            val (jArrayList: List[_], jValueList) = arr.classify(_.isInstanceOf[JArray])
+            val newArr: List[JValue] = jArrayList.flatMap(_.asInstanceOf[JArray].arr) :: jValueList
 
             val noEmpties = newArr.filterNot(isEmpty)
             JArray(noEmpties) \ currentPath
@@ -132,7 +133,7 @@ case class RequiredInfo(requiredArgs: Seq[RequiredArgs]) extends RequiredFields 
     }
   }
 
- def validate[T: Manifest](entity: T, apiVersion: ApiVersion)(implicit formats: Formats): Either[List[String], T] = {
+ def validate[T](entity: T, apiVersion: ApiVersion): Either[List[String], T] = {
 
     val noValuePath = scala.collection.mutable.ListBuffer[String]()
     val map = scala.collection.mutable.Map[String, Any]()
@@ -184,6 +185,7 @@ case class RequiredInfo(requiredArgs: Seq[RequiredArgs]) extends RequiredFields 
    */
   private def flatten(any: Any): Any = any match {
     case a:Array[_] => Functions.deepFlatten(a)
+    case ab: ArrayBuffer[_] => Functions.deepFlatten(ab.toArray[Any])
     case coll: GenTraversableOnce[_] => Functions.deepFlatten(coll.toArray[Any])
     case _ => any
   }

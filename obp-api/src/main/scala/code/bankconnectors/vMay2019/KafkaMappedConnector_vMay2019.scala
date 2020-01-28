@@ -158,7 +158,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get )
         logger.debug(s"Kafka getAdapterInfo Req is: $req")
-        processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+        processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
@@ -236,7 +236,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId)
         logger.debug(s"Kafka getBank Req is: $req")
-        processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+        processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
@@ -313,7 +313,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get )
         logger.debug(s"Kafka getBanks Req is: $req")
-        processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+        processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
@@ -393,7 +393,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankIdAccountIds)
         logger.debug(s"Kafka getBankAccountsBalances Req is: $req")
-        processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+        processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
@@ -520,7 +520,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, branchId)
         logger.debug(s"Kafka getBranch Req is: $req")
-        processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+        processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
@@ -650,7 +650,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         logger.debug(s"Kafka getBranches Req is: $req")
-        processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+        processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
@@ -757,7 +757,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, atmId)
         logger.debug(s"Kafka getAtm Req is: $req")
-        processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+        processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
@@ -867,7 +867,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         logger.debug(s"Kafka getAtms Req is: $req")
-        processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+        processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
@@ -959,7 +959,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , userId)
         logger.debug(s"Kafka getCustomersByUserId Req is: $req")
-        processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+        processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
@@ -1051,7 +1051,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , customerId)
         logger.debug(s"Kafka getCustomerByCustomerId Req is: $req")
-        processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+        processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
@@ -1144,7 +1144,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , customerNumber, bankId)
         logger.debug(s"Kafka getCustomerByCustomerNumber Req is: $req")
-        processRequest[InBound](req) map(validateRequiredFields(apiVersion)) map (convertToTuple(callContext))
+        processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
     }
@@ -1152,21 +1152,6 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
     
     
 //---------------- dynamic end ---------------------please don't modify this line
-    
-  private[this] def validateRequiredFields[T: TypeTag: Manifest](version: ApiVersion)(box: Box[T]): Box[T] =
-    box match {
-      case Full(entity) => {
-          val value: Either[List[String], T] = RequiredFieldValidation.getRequiredInfo(typeTag[T].tpe).validate(entity, version)
-          value match {
-            case Left(missingFields) =>
-              val message = missingFields.mkString(s"INTERNAL-$InvalidConnectorResponseForMissingRequiredValues The missing fields: [", ", ", "]")
-              logger.error(message)
-              ParamFailure(message, Empty, Empty, APIFailure(message, 400))
-            case _ => box
-          }
-      }
-      case _ => box
-  }
 
   //-----helper methods
 

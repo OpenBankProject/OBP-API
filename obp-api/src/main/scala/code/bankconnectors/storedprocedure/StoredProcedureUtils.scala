@@ -3,9 +3,9 @@ package code.bankconnectors.storedprocedure
 import java.sql.Connection
 
 import code.api.util.APIUtil
+import code.bankconnectors.Connector
 import com.openbankproject.commons.model.TopicTrait
-import net.liftweb.json
-import net.liftweb.json.JValue
+import net.liftweb.common.Box
 import net.liftweb.json.Serialization.write
 import scalikejdbc.{DB, _}
 
@@ -15,6 +15,8 @@ import scalikejdbc.{DB, _}
  * stored procedure will not be initialized.
  */
 object StoredProcedureUtils {
+
+  private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
 
   // lazy initial DB connection
   {
@@ -42,8 +44,7 @@ object StoredProcedureUtils {
   }
 
 
-  def callProcedure(procedureName: String, outBound: TopicTrait): JValue = {
-    implicit val formats = code.api.util.CustomJsonFormats.formats
+  def callProcedure[T: Manifest](procedureName: String, outBound: TopicTrait): Box[T] = {
     val procedureParam: String = write(outBound) // convert OutBound to json string
 
     val responseJson: String =
@@ -72,8 +73,6 @@ object StoredProcedureUtils {
           callableStatement.getString(2)
         }
      }
-
-    json.parse(responseJson)
+    Connector.extractAdapterResponse[T](responseJson)
   }
-
 }

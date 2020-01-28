@@ -13016,34 +13016,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](procedureName: String, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
     //transfer accountId to accountReference and customerId to customerReference in outBound
     this.convertToReference(outBound)
-    val apiVersion = ApiVersionHolder.getApiVersion
-    val tp = typeTag[T].tpe
     Future{
-      val jValue = StoredProcedureUtils.callProcedure(procedureName, outBound)
-      val box: Box[T] = jValue match {
-            case v if ErrorMessage.isErrorMessage(v) =>
-              val ErrorMessage(code, message) = v.extract[ErrorMessage]
-              ParamFailure(message, Empty, Empty, APIFailure(message, code))
-            case _ => {
-              val boxBox: Box[Box[T]] = tryo {
-                implicit val formats: Formats = CustomJsonFormats.nullTolerateFormats
-                val extractResult: Either[List[String], T] = Helper.getRequiredFieldInfo(tp).validateAndExtract[T](jValue, apiVersion)
-                extractResult match {
-                  case Left(missingFields) =>
-                    val message = missingFields.mkString(s"INTERNAL-$InvalidConnectorResponseForMissingRequiredValues The missing fields: [", ", ", "]")
-                    logger.error(message)
-                    ParamFailure(message, Empty, Empty, APIFailure(message, 400))
-                  case Right(entity) => Full(entity)
-                }
-              } ~> APIFailureNewStyle(s"INTERNAL-$InvalidJsonFormat The Json body should be the ${tp.typeSymbol.fullName} ", 400)
-
-              boxBox match {
-                case Full(v) => v
-                case e: EmptyBox => e
-              }
-            }
-          }
-     box
+      StoredProcedureUtils.callProcedure[T](procedureName, outBound)
     }.map(convertToId(_)) recoverWith {
       case e: Exception => Future.failed(new Exception(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}", e))
     }
