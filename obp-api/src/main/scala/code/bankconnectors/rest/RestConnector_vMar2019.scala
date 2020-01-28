@@ -9435,11 +9435,14 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           val future: Future[Box[Box[T]]] = extractBody(entity) map { msg =>
             tryo {
             val errorMsg = parse(msg).extract[ErrorMessage]
-            val failure: Box[T] = ParamFailure("", APIFailureNewStyle(errorMsg.message, status.intValue()))
+            val failure: Box[T] = ParamFailure(errorMsg.message, APIFailureNewStyle(errorMsg.message, status.intValue()))
             failure
           } ~> APIFailureNewStyle(msg, status.intValue())
         }
-        future.map(_.flatten)
+        future.map{
+          case Full(v) => v
+          case e: EmptyBox => e
+        }
       }
     }.map(convertToId(_)) recoverWith {
       //Can not catch the `StreamTcpException` here, so I used the contains to show the error.
@@ -9466,7 +9469,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
             val extractResult: Either[List[String], T] = Helper.getRequiredFieldInfo(tp).validateAndExtract[T](jValue, apiVersion)
             extractResult match {
               case Left(missingFields) =>
-                val message = missingFields.mkString(s"$InvalidConnectorResponseForMissingRequiredValues The missing fields: [", ", ", "]")
+                val message = missingFields.mkString(s"INTERNAL-$InvalidConnectorResponseForMissingRequiredValues The missing fields: [", ", ", "]")
                 logger.error(message)
                 ParamFailure(message, Empty, Empty, APIFailure(message, 400))
               case Right(entity) => Full(entity)
@@ -9508,9 +9511,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       case Full(in) if (in.status.hasNoError) => Full(in.data)
       case Full(inbound) if (inbound.status.hasError) =>
         Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
-      case failureOrEmpty: Failure => 
-        logger.debug(s"RestConnector_vMar2019.convertToTuple.failureOrEmpty: $failureOrEmpty")
-        Failure(s"INTERNAL-$AdapterUnknownError" )
+      case failureOrEmpty: Failure => failureOrEmpty
     }
     (boxedResult, callContext)
   }
@@ -9593,7 +9594,11 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     def accountIdConverter(accountReference: String): String = MappedAccountIdMappingProvider
       .getOrCreateAccountId(accountReference)
       .map(_.value).openOrThrowException(s"$InvalidAccountIdFormat the invalid accountReference is $accountReference")
-    convertId[T](obj, customerIdConverter, accountIdConverter)
+    if(obj.isInstanceOf[EmptyBox]) {
+      obj
+    } else {
+      convertId[T](obj, customerIdConverter, accountIdConverter)
+    }
   }
 }
 

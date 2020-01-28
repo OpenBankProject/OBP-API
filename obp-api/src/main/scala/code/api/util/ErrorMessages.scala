@@ -1,5 +1,8 @@
 package code.api.util
 
+import java.util.Objects
+import java.util.regex.Pattern
+
 import code.api.Constant._
 
 object ErrorMessages {
@@ -429,7 +432,9 @@ object ErrorMessages {
 
   ///////////
 
+  private val ObpErrorMsgPattern = Pattern.compile("OBP-\\d+:.+")
 
+  def isObpErrorMsg(str: String) = Objects.nonNull(str) && ObpErrorMsgPattern.matcher(str).matches()
 
   //For Swagger, used reflect to  list all the varible names and values.
   // eg : val InvalidUserId = "OBP-30107: Invalid User Id."

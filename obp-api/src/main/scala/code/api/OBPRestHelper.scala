@@ -64,6 +64,8 @@ object APIFailure {
     val msg = message
     val responseCode = httpResponseCode
   }
+
+  def unapply(arg: APIFailure): Option[(String, Int)] = Some(arg.msg, arg.responseCode)
 }
 
 case class APIFailureNewStyle(failMsg: String,
@@ -118,7 +120,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   /*
   An implicit function to convert magically between a Boxed JsonResponse and a JsonResponse
   If we have something good, return it. Else log and return an error.
-  Please note that behaviour of this function depends om property display_internal_errors=true/false in case of Failure
+  Please note that behaviour of this function depends on property display_internal_errors=true/false in case of Failure
   # When is disabled we show only last message which should be a user friendly one. For instance:
   # {
   #   "error": "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."

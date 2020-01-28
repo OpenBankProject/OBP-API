@@ -1159,7 +1159,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
           val value: Either[List[String], T] = RequiredFieldValidation.getRequiredInfo(typeTag[T].tpe).validate(entity, version)
           value match {
             case Left(missingFields) =>
-              val message = missingFields.mkString(s"$InvalidConnectorResponseForMissingRequiredValues The missing fields: [", ", ", "]")
+              val message = missingFields.mkString(s"INTERNAL-$InvalidConnectorResponseForMissingRequiredValues The missing fields: [", ", ", "]")
               logger.error(message)
               ParamFailure(message, Empty, Empty, APIFailure(message, 400))
             case _ => box

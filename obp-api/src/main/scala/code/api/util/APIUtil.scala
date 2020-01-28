@@ -2108,16 +2108,18 @@ Returns a string showed to the developer
       if (x.msg != null) true else { logger.info("Failure: " + obj); false }
     }
 
+    // Remove duplicated content, because in the process of box, the FailBox will be wrapped may multiple times, and message is same.
     getPropsAsBoolValue("display_internal_errors", false) match {
       case true => // Show all error in a chain
-        obj.messageChain
+        obj.messageChain.split(" <- ").distinct.mkString(" <- ")
       case false => // Do not display internal errors
         val obpFailures = obj.failureChain.filter(x => messageIsNotNull(x, obj) && x.msg.startsWith("OBP-"))
         obpFailures match {
           case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
-          case _ => obpFailures.map(_.msg).mkString(" <- ")
+          case _ => obpFailures.map(_.msg).distinct.mkString(" <- ")
         }
     }
+
   }
 
   /**

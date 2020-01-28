@@ -13025,19 +13025,22 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
               val ErrorMessage(code, message) = v.extract[ErrorMessage]
               ParamFailure(message, Empty, Empty, APIFailure(message, code))
             case _ => {
-              val box: Box[Box[T]] = tryo {
+              val boxBox: Box[Box[T]] = tryo {
                 implicit val formats: Formats = CustomJsonFormats.nullTolerateFormats
                 val extractResult: Either[List[String], T] = Helper.getRequiredFieldInfo(tp).validateAndExtract[T](jValue, apiVersion)
                 extractResult match {
                   case Left(missingFields) =>
-                    val message = missingFields.mkString(s"$InvalidConnectorResponseForMissingRequiredValues The missing fields: [", ", ", "]")
+                    val message = missingFields.mkString(s"INTERNAL-$InvalidConnectorResponseForMissingRequiredValues The missing fields: [", ", ", "]")
                     logger.error(message)
                     ParamFailure(message, Empty, Empty, APIFailure(message, 400))
                   case Right(entity) => Full(entity)
                 }
-              } ~> APIFailureNewStyle(s"$InvalidJsonFormat The Json body should be the ${tp.typeSymbol.fullName} ", 400)
+              } ~> APIFailureNewStyle(s"INTERNAL-$InvalidJsonFormat The Json body should be the ${tp.typeSymbol.fullName} ", 400)
 
-              box.flatten
+              boxBox match {
+                case Full(v) => v
+                case e: EmptyBox => e
+              }
             }
           }
      box
@@ -13061,9 +13064,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
             }
             ParamFailure(errorMessage, Empty, Empty, APIFailure(errorMessage, errorCode))
         }
-      case failureOrEmpty: Failure => 
-        logger.debug(s"StoredProcedureConnector_vDec2019.convertToTuple.failureOrEmpty: $failureOrEmpty")
-        Failure(s"INTERNAL-$AdapterUnknownError")
+      case failureOrEmpty: Failure => failureOrEmpty
     }
 
     (boxedResult, callContext)
@@ -13147,7 +13148,11 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     def accountIdConverter(accountReference: String): String = MappedAccountIdMappingProvider
       .getOrCreateAccountId(accountReference)
       .map(_.value).openOrThrowException(s"$InvalidAccountIdFormat the invalid accountReference is $accountReference")
-    convertId[T](obj, customerIdConverter, accountIdConverter)
+    if(obj.isInstanceOf[EmptyBox]) {
+        obj
+    } else {
+      convertId[T](obj, customerIdConverter, accountIdConverter)
+    }
   }
 }
 object StoredProcedureConnector_vDec2019 extends StoredProcedureConnector_vDec2019
