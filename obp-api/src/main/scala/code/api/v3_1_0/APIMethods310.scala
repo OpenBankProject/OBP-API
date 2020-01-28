@@ -3414,10 +3414,14 @@ trait APIMethods310 {
                 }
               )
             }
+            consumerId <- consentJson.consumer_id match {
+              case Some(id) => NewStyle.function.getConsumerByConsumerId(id, callContext).map(_.consumerId.get)
+              case None => Future("")
+            }
             createdConsent <- Future(Consents.consentProvider.vend.createConsent(user)) map {
               i => connectorEmptyResponse(i, callContext)
             }
-            consentJWT = Consent.createConsentJWT(user, consentJson, createdConsent.secret, createdConsent.consentId)
+            consentJWT = Consent.createConsentJWT(user, consentJson, createdConsent.secret, createdConsent.consentId, consumerId)
             _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
               i => connectorEmptyResponse(i, callContext)
             }

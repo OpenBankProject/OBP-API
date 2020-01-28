@@ -497,18 +497,21 @@ trait PostConsentCommonBody{
   val everything: Boolean
   val views: List[ViewJsonV400]
   val entitlements: List[EntitlementJsonV400]
+  val consumer_id: Option[String]
 }
 
 case class PostConsentBodyCommonJson(
                                       everything: Boolean,
                                       views:  List[ViewJsonV400],
-                                      entitlements: List[EntitlementJsonV400]
+                                      entitlements: List[EntitlementJsonV400],
+                                      consumer_id: Option[String]
 ) extends PostConsentCommonBody
 
 case class PostConsentEmailJsonV310(
                                      everything: Boolean,
                                      views:  List[ViewJsonV400],
                                      entitlements: List[EntitlementJsonV400],
+                                     consumer_id: Option[String],
                                      email: String
 ) extends PostConsentCommonBody
 
@@ -516,6 +519,7 @@ case class PostConsentPhoneJsonV310(
                                      everything: Boolean,
                                      views:  List[ViewJsonV400],
                                      entitlements: List[EntitlementJsonV400],
+                                     consumer_id: Option[String],
                                      phone_number: String
 ) extends PostConsentCommonBody
 

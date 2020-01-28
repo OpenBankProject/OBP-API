@@ -4,18 +4,17 @@ import code.api.v3_1_0.{EntitlementJsonV400, PostConsentBodyCommonJson, ViewJson
 import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
 import code.entitlement.Entitlement
-import code.model.Consumer
 import code.users.Users
+import code.util.Helper
 import code.views.Views
 import com.nimbusds.jwt.JWTClaimsSet
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, MappingException, compactRender}
-import net.liftweb.mapper.By
 
 import scala.collection.immutable.List
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 case class ConsentJWT(createdByUserId: String,
@@ -316,8 +315,8 @@ object Consent {
   def createConsentJWT(user: User,
                        consent: PostConsentBodyCommonJson,
                        secret: String, 
-                       consentId: String): String = {
-    val consumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
+                       consentId: String,
+                       consumerId: String): String = {
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     val views: Seq[ConsentView] = 
       for {
@@ -340,7 +339,7 @@ object Consent {
     val json = ConsentJWT(
       createdByUserId=user.userId,
       sub=APIUtil.generateUUID(),
-      iss="https://www.openbankproject.com",
+      iss=Helper.getHostname,
       aud=consumerId,
       jti=consentId,
       iat=currentTimeInSeconds,

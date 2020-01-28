@@ -3279,6 +3279,7 @@ object SwaggerDefinitionsJSON {
     everything = false,
     views = List(ViewJsonV400(bankIdExample.value, accountIdExample.value, viewIdExample.value)),
     entitlements = List(EntitlementJsonV400(bankIdExample.value, "CanQueryOtherUser")),
+    consumer_id = Some(consumerIdExample.value),
     email = emailExample.value
   )
   
@@ -3286,6 +3287,7 @@ object SwaggerDefinitionsJSON {
     everything = false,
     views = List(ViewJsonV400(bankIdExample.value, accountIdExample.value, viewIdExample.value)),
     entitlements = List(EntitlementJsonV400(bankIdExample.value, "CanQueryOtherUser")),
+    consumer_id = Some(consumerIdExample.value),
     phone_number = mobileNumberExample.value
   )
   
