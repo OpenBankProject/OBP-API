@@ -3492,9 +3492,11 @@ trait APIMethods310 {
                 }
               )
             }
-            consumerId <- consentJson.consumer_id match {
-              case Some(id) => NewStyle.function.getConsumerByConsumerId(id, callContext).map(_.consumerId.get)
-              case None => Future("")
+            (consumerId, applicationText) <- consentJson.consumer_id match {
+              case Some(id) => NewStyle.function.getConsumerByConsumerId(id, callContext) map {
+                c => (c.consumerId.get, c.description)
+              }
+              case None => Future("", "Any application")
             }
             createdConsent <- Future(Consents.consentProvider.vend.createConsent(user)) map {
               i => connectorEmptyResponse(i, callContext)
@@ -3503,6 +3505,7 @@ trait APIMethods310 {
             _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
               i => connectorEmptyResponse(i, callContext)
             }
+            challengeText = s"Your consent challenge : ${createdConsent.challenge}, Application: $applicationText"
             _ <- scaMethod match {
             case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
               for{
@@ -3510,7 +3513,7 @@ trait APIMethods310 {
                 postConsentEmailJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                   json.extract[PostConsentEmailJsonV310]
                 }
-                params = PlainMailBodyType(s"Your consent challenge : ${createdConsent.challenge}") :: List(To(postConsentEmailJson.email))
+                params = PlainMailBodyType(challengeText) :: List(To(postConsentEmailJson.email))
                 _ <- Future{Mailer.sendMail(From("challenge@tesobe.com"), Subject("Challenge challenge"), params :_*)}
               } yield Future{true}
             case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
@@ -3534,7 +3537,7 @@ trait APIMethods310 {
                   .apiKey(smsProviderApiKey)
                   .apiSecret(smsProviderApiSecret)
                   .build();
-                messageText = s"Your consent challenge : ${createdConsent.challenge}";
+                messageText = challengeText;
                 message = new TextMessage("OBP-API", phoneNumber, messageText);
                 response <- Future{client.getSmsClient().submitMessage(message)}
                 failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first." 
