@@ -353,6 +353,16 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$ConsumerNotFoundByConsumerId Current ConsumerId is $consumerId")
       }
     }
+    def checkConsumerByConsumerId(consumerId: String, callContext: Option[CallContext]): Future[Consumer] = {
+      Consumers.consumers.vend.getConsumerByConsumerIdFuture(consumerId) map {
+        unboxFullOrFail(_, callContext, s"$ConsumerNotFoundByConsumerId Current ConsumerId is $consumerId")
+      } map {
+        c => c.isActive.get match {
+          case true => c
+          case false => unboxFullOrFail(Empty, callContext, s"$ConsumerIsDisabled ConsumerId: $consumerId")
+        }
+      }
+    }
 
     def getAccountWebhooks(queryParams: List[OBPQueryParam], callContext: Option[CallContext]): Future[List[AccountWebhook]] = {
       AccountWebhook.accountWebhook.vend.getAccountWebhooksFuture(queryParams) map {

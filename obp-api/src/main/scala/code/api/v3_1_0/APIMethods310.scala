@@ -3375,6 +3375,11 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
         InvalidConnectorResponse,
         UnknownError
       ),
@@ -3449,6 +3454,13 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
+        MissingPropsValueAtThisInstance,
+        SmsServerNotResponding,
         InvalidConnectorResponse,
         UnknownError
       ),
@@ -3493,7 +3505,7 @@ trait APIMethods310 {
               )
             }
             (consumerId, applicationText) <- consentJson.consumer_id match {
-              case Some(id) => NewStyle.function.getConsumerByConsumerId(id, callContext) map {
+              case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContext) map {
                 c => (c.consumerId.get, c.description)
               }
               case None => Future("", "Any application")

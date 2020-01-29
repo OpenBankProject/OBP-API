@@ -148,6 +148,7 @@ object ErrorMessages {
   val MissingQueryParams = "OBP-20055: These query parameters are missing: "
   val ElasticSearchDisabled  = "OBP-20056: Elasticsearch is disabled for this API instance."
   val UserNotFoundByUserId = "OBP-20057: User not found by userId."
+  val ConsumerIsDisabled = "OBP-20058: Consumer is disabled."
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
 
