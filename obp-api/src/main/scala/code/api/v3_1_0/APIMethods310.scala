@@ -3316,8 +3316,6 @@ trait APIMethods310 {
       "Create Consent (EMAIL)",
       s"""
          |
-         |$generalObpConsentText
-         |
          |This endpoint starts the process of creating a Consent.
          |
          |The Consent is created in an ${ConsentStatus.INITIATED} state.
@@ -3327,7 +3325,48 @@ trait APIMethods310 {
          |
          |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
          |
+         |$generalObpConsentText
+         |
          |${authenticationRequiredMessage(true)}
+         |
+         |Example 1: 
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note that consumer_id is optional field
+         |Example 2:
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note if everything=false you need to explicitly specify views and entitlements
+         |Example 3:
+         |{
+         |  "everything": false,
+         |  "views": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+         |      "view_id": "owner"
+         |    }
+         |  ],
+         |  "entitlements": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "role_name": "CanGetCustomer"
+         |    }
+         |  ],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
          |
          |""",
       postConsentEmailJsonV310,
@@ -3363,6 +3402,45 @@ trait APIMethods310 {
          |$generalObpConsentText
          |
          |${authenticationRequiredMessage(true)}
+         |
+         |Example 1: 
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note that consumer_id is optional field
+         |Example 2:
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note if everything=false you need to explicitly specify views and entitlements
+         |Example 3:
+         |{
+         |  "everything": false,
+         |  "views": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+         |      "view_id": "owner"
+         |    }
+         |  ],
+         |  "entitlements": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "role_name": "CanGetCustomer"
+         |    }
+         |  ],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
          |
          |""",
       postConsentPhoneJsonV310,

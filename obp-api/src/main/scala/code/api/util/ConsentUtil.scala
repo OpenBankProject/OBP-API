@@ -318,6 +318,8 @@ object Consent {
                        consentId: String,
                        consumerId: String): String = {
     val currentTimeInSeconds = System.currentTimeMillis / 1000
+    // 1. Add views
+    // Please note that consents can only contain Views that the User already has access to.
     val views: Seq[ConsentView] = 
       for {
         view <- Views.views.vend.getPermissionForUser(user).map(_.views).getOrElse(Nil)
@@ -329,6 +331,8 @@ object Consent {
           view_id = view.viewId.value
         )
       }
+    // 2. Add Roles
+    // Please note that consents can only contain Roles that the User already has access to.
     val entitlements: Seq[Role] = 
       for {
         entitlement <- Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).getOrElse(Nil)
