@@ -37,7 +37,7 @@ trait APIMethods121 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
 
-  val apiMethods121GetTransactionsTTL = APIUtil.getPropsValue("connector.cache.ttl.seconds.APIMethods121.getTransactions", "0").toInt * 1000 // Miliseconds
+  val apiMethods121GetTransactionsTTL = APIUtil.getPropsValue("api.cache.ttl.seconds.APIMethods121.getTransactions", "0").toInt * 1000 // Miliseconds
 
   // helper methods begin here
 
