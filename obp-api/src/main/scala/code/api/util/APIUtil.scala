@@ -1929,13 +1929,17 @@ Returns a string showed to the developer
     */
   def futureToBoxedResponse[T](in: LAFuture[(T, Option[CallContext])]): Box[JsonResponse] = {
     RestContinuation.async(reply => {
-      in.onSuccess(
-        t => Full(logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight))))))
-      )
+      in.onSuccess{ _ match {
+          case (Full(jsonResponse: JsonResponse), _: Option[_]) =>
+            reply(jsonResponse)
+          case t => Full(logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight))))))
+        }
+      }
       in.onFail {
         case Failure("Continuation", Full(e), _) if e.isInstanceOf[LiftFlowOfControlException] =>
           val f: ((=> LiftResponse) => Unit) => Unit = ReflectUtils.getFieldByType(e, "f")
               f(reply(_))
+
         case Failure(null, _, _) =>
           val errorResponse: JsonResponse = errorJsonResponse(UnknownError)
           Full(reply.apply(errorResponse))
