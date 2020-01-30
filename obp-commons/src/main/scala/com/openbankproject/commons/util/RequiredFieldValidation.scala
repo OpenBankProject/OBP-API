@@ -101,7 +101,7 @@ case class RequiredInfo(requiredArgs: Seq[RequiredArgs]) extends RequiredFields 
 
       val scannedPathValue: JValue = prePathValue match {
           case JArray(arr) => {
-            val (jArrayList: List[_], jValueList) = arr.classify(_.isInstanceOf[JArray])
+            val (jArrayList, jValueList) = arr.classify(_.isInstanceOf[JArray])
             val newArr: List[JValue] = jArrayList.flatMap(_.asInstanceOf[JArray].arr) :: jValueList
 
             val noEmpties = newArr.filterNot(isEmpty)
@@ -152,7 +152,8 @@ case class RequiredInfo(requiredArgs: Seq[RequiredArgs]) extends RequiredFields 
 
       val scannedPathValue: Any = prePathValue match {
           case null => null
-          case arr: Array[_] => arr.filterNot(null ==).map(ele => ReflectUtils.getField(ele.asInstanceOf[AnyRef], currentPath))
+          case arr: Array[_] => arr.filterNot(null ==)
+            .map(ele => ReflectUtils.getField(ele.asInstanceOf[AnyRef], currentPath))
           case any: AnyRef => ReflectUtils.getField(any, currentPath)
         }
 

@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v2_1_0
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
+import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
 import code.api.util.{APIUtil, VersionedOBPApis}
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
@@ -213,10 +213,6 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                         Implementations1_4_0.resourceDocs ++
                         Implementations1_3_0.resourceDocs ++
                         Implementations1_2_1.resourceDocs
-  
-  def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
-    allResourceDocs.find(_.partialFunction==pf)
-  }
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
@@ -228,7 +224,7 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
       getAllowedEndpoints(endpointsOf2_1_0, Implementations2_1_0.resourceDocs)
 
   routes.foreach(route => {
-    oauthServe(apiPrefix{route}, findResourceDoc(route))
+    oauthServe(apiPrefix{route}, findResourceDoc(route, allResourceDocs))
   })
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")

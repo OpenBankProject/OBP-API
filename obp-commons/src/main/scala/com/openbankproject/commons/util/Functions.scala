@@ -1,7 +1,7 @@
 package com.openbankproject.commons.util
 import java.util.regex.Pattern
 
-import scala.collection.{GenTraversableLike, GenTraversableOnce, IterableLike, TraversableLike, immutable}
+import scala.collection.{GenSetLike, GenTraversableOnce, SeqLike, TraversableLike, immutable}
 import scala.collection.generic.CanBuildFrom
 import scala.reflect.runtime.universe.Type
 /**
@@ -30,7 +30,7 @@ object Functions {
   def isOBPType(tp: Type) = obpTypeNamePattern.matcher(tp.typeSymbol.fullName).matches()
   def isOBPClass(clazz: Class[_]) = obpTypeNamePattern.matcher(clazz.getName).matches()
 
-  implicit class RichCollection[A, Repr](iterable: GenTraversableLike[A, Repr]){
+  implicit class RichCollection[A, Repr](iterable: TraversableLike[A, Repr]){
     def distinctBy[B, That](f: A => B)(implicit canBuildFrom: CanBuildFrom[Repr, A, That]) = {
       val builder = canBuildFrom(iterable.repr)
       val set = scala.collection.mutable.Set[B]()
@@ -80,6 +80,24 @@ object Functions {
       }
       (builderLeft.result(), builderRight.result())
     }
+
+    def addIfAbsent[That](ele: A)(implicit canBuildFrom: CanBuildFrom[Repr, A, That]): That = {
+      val isExists = iterable match {
+        case seq: SeqLike[A, Repr] => seq.contains(ele)
+        case set: GenSetLike[A, Repr] => set.contains(ele)
+        case _ => iterable.exists(ele ==)
+      }
+
+      if(isExists) {
+        iterable.asInstanceOf[That]
+      } else {
+        val builder = canBuildFrom(iterable.repr)
+        builder ++= iterable
+        builder += ele
+        builder.result()
+      }
+    }
+    def ?+ [That](ele: A)(implicit canBuildFrom: CanBuildFrom[Repr, A, That]): That = addIfAbsent[That](ele)(canBuildFrom)
   }
 
   def deepFlatten(arr: Array[_]): Array[Any] = {

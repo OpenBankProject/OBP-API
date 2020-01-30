@@ -110,6 +110,11 @@ object ReflectUtils {
    */
   def getField(objName: String, fieldName: String): Any = getField(getObject(objName), fieldName)
 
+
+  def getFieldByType[T](obj: AnyRef, fieldName: String): T = getField(obj, fieldName).asInstanceOf[T]
+
+  def getFieldByType[T](objName: String, fieldName: String): T = getField(objName, fieldName).asInstanceOf[T]
+
   /**
    * get given instance by full name.
    * example:

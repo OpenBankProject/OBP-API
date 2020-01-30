@@ -115,7 +115,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   val versionStatus : String // TODO this should be property of ApiVersion
   //def vDottedVersion = vDottedApiVersion(version)
 
- def apiPrefix = (ApiPathZero / version.vDottedApiVersion).oPrefix(_)
+  def apiPrefix = (ApiPathZero / version.vDottedApiVersion).oPrefix(_)
 
   /*
   An implicit function to convert magically between a Boxed JsonResponse and a JsonResponse
@@ -384,6 +384,9 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
    */
 
   def oauthServe(handler: PartialFunction[Req, CallContext => Box[JsonResponse]], rd: Option[ResourceDoc] = None): Unit = {
+    // if rd contains ResourceDoc, just wrapped to auth check handler
+    val authCheckHandler = rd.map(_.wrappedWithAuthCheck(handler)).openOr(handler)
+
     val obpHandler : PartialFunction[Req, () => Box[LiftResponse]] = {
       new PartialFunction[Req, () => Box[LiftResponse]] {
         def apply(r : Req): () => Box[LiftResponse] = {
@@ -393,7 +396,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           //if request has correct oauth headers
           val startTime = Helpers.now
           val response = failIfBadAuthorizationHeader(rd) {
-                          failIfBadJSON(r, handler)
+                          failIfBadJSON(r, authCheckHandler)
                         }
           val endTime = Helpers.now
           logAPICall(startTime, endTime.getTime - startTime.getTime, rd)
@@ -407,9 +410,9 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
               //Try to evaluate the json
               r.json match {
                 case Failure(msg, _, _) => true
-                case _ => handler.isDefinedAt(r)
+                case _ => authCheckHandler.isDefinedAt(r)
               }
-            case false => handler.isDefinedAt(r)
+            case false => authCheckHandler.isDefinedAt(r)
           }
         }
       }
@@ -465,5 +468,9 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       }
     }
     result
+  }
+
+  protected def findResourceDoc(pf: OBPEndpoint, allResourceDocs: ArrayBuffer[ResourceDoc]): Option[ResourceDoc] = {
+    allResourceDocs.find(_.partialFunction == pf)
   }
 }
