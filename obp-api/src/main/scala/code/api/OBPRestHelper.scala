@@ -115,7 +115,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   val versionStatus : String // TODO this should be property of ApiVersion
   //def vDottedVersion = vDottedApiVersion(version)
 
-  def apiPrefix = version match {
+  def apiPrefix: OBPEndpoint => OBPEndpoint = version match {
     case ScannedApiVersion(urlPrefix, _, _) =>
       (urlPrefix / version.vDottedApiVersion).oPrefix(_)
     case _ =>
