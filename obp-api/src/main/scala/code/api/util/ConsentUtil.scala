@@ -1,11 +1,12 @@
 package code.api.util
 
+import code.api.Constant
 import code.api.v3_1_0.{EntitlementJsonV400, PostConsentBodyCommonJson, ViewJsonV400}
 import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
 import code.entitlement.Entitlement
+import code.model.Consumer
 import code.users.Users
-import code.util.Helper
 import code.views.Views
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -13,6 +14,7 @@ import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, MappingException, compactRender}
+import net.liftweb.mapper.By
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
@@ -93,13 +95,13 @@ object Consent {
   }
   
   private def checkConsumerIsActive(consent: ConsentJWT): Box[Boolean] = {
-    Consumers.consumers.vend.getConsumerByConsumerKey(consent.aud) match {
+    Consumers.consumers.vend.getConsumerByConsumerId(consent.aud) match {
       case Full(consumer) if consumer.isActive.get == true => 
         Full(true)
       case Full(consumer) if consumer.isActive.get == false =>
-        Failure("The Consumer with key: " + consent.aud + " is disabled.")
+        Failure("The Consumer with id: " + consent.aud + " is disabled.")
       case _ => 
-        Failure("There is no the Consumer with key: " + consent.aud)
+        Failure("There is no the Consumer with id: " + consent.aud)
     }
   }
   
@@ -186,7 +188,7 @@ object Consent {
 
   }
 
-  private def addPermissions(user: User, consent: ConsentJWT): Box[User] = {
+  private def grantAccessToViews(user: User, consent: ConsentJWT): Box[User] = {
     val result = 
       for {
         view <- consent.views
@@ -194,6 +196,12 @@ object Consent {
         val viewIdBankIdAccountId = ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id))
         Views.views.vend.revokeAccess(viewIdBankIdAccountId, user)
         Views.views.vend.grantAccessToCustomView(viewIdBankIdAccountId, user)
+        Views.views.vend.systemView(ViewId(view.view_id)) match {
+          case Full(systemView) =>
+            Views.views.vend.grantAccessToSystemView(BankId(view.bank_id), AccountId(view.account_id), systemView, user)
+          case _ => 
+            // It's not system view
+        }
         "Added"
       }
     if (result.forall(_ == "Added")) Full(user) else Failure("Cannot add permissions to the user with id: " + user.userId)
@@ -210,7 +218,7 @@ object Consent {
           addEntitlements(user, consent) match {
             case (Full(user)) =>
               // 3. Assign views to the User
-              addPermissions(user, consent)
+              grantAccessToViews(user, consent)
             case everythingElse =>
               everythingElse
           }
@@ -254,7 +262,7 @@ object Consent {
           addEntitlements(user, consent) match {
             case (Full(user)) =>
               // 3. Assign views to the User
-              addPermissions(user, consent)
+              grantAccessToViews(user, consent)
             case everythingElse =>
               everythingElse
           }
@@ -316,7 +324,8 @@ object Consent {
                        consent: PostConsentBodyCommonJson,
                        secret: String, 
                        consentId: String,
-                       consumerId: String): String = {
+                       consumerId: Option[String]): String = {
+    lazy val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     // 1. Add views
     // Please note that consents can only contain Views that the User already has access to.
@@ -343,8 +352,8 @@ object Consent {
     val json = ConsentJWT(
       createdByUserId=user.userId,
       sub=APIUtil.generateUUID(),
-      iss=Helper.getHostname,
-      aud=consumerId,
+      iss=Constant.HostName,
+      aud=consumerId.getOrElse(currentConsumerId),
       jti=consentId,
       iat=currentTimeInSeconds,
       nbf=currentTimeInSeconds,

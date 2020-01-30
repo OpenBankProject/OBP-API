@@ -3506,9 +3506,9 @@ trait APIMethods310 {
             }
             (consumerId, applicationText) <- consentJson.consumer_id match {
               case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContext) map {
-                c => (c.consumerId.get, c.description)
+                c => (Some(c.consumerId.get), c.description)
               }
-              case None => Future("", "Any application")
+              case None => Future(None, "Any application")
             }
             createdConsent <- Future(Consents.consentProvider.vend.createConsent(user)) map {
               i => connectorEmptyResponse(i, callContext)
