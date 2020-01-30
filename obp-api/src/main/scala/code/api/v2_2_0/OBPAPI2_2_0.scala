@@ -218,9 +218,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
       getAllowedEndpoints(endpointsOf2_2_0, Implementations2_2_0.resourceDocs)
 
 
-  routes.foreach(route => {
-    oauthServe(apiPrefix{route}, findResourceDoc(route, allResourceDocs))
-  })
+  registerRoutes(routes, allResourceDocs, apiPrefix)
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 

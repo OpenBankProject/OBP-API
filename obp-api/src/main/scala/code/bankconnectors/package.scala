@@ -61,7 +61,7 @@ package object bankconnectors extends MdcLoggable {
         val connectorMethodResult = method.invoke(objToCall, args: _*)
         logger.debug(s"do required field validation for ${methodSymbol.typeSignature}")
         val apiVersion = ApiVersionHolder.getApiVersion
-        validatRequiredFields(connectorMethodResult, methodSymbol.returnType, apiVersion)
+        validateRequiredFields(connectorMethodResult, methodSymbol.returnType, apiVersion)
       }
     }
     val enhancer: Enhancer = new Enhancer()
@@ -195,7 +195,7 @@ package object bankconnectors extends MdcLoggable {
     }
   }
 
-  private def validatRequiredFields(value: AnyRef, returnType: Type, apiVersion: ApiVersion): AnyRef = {
+  private def validateRequiredFields(value: AnyRef, returnType: Type, apiVersion: ApiVersion): AnyRef = {
     value match {
       case Unit => value
       case coll @(_:Array[_] | _: ArrayBuffer[_] | _: GenTraversableOnce[_]) =>
@@ -255,7 +255,7 @@ package object bankconnectors extends MdcLoggable {
 
       case future: Future[_]  =>
         val futureType = returnType.typeArgs.head
-        future.map(v => validatRequiredFields(v.asInstanceOf[AnyRef], futureType, apiVersion))
+        future.map(v => validateRequiredFields(v.asInstanceOf[AnyRef], futureType, apiVersion))
 
       case _ => validate(value, returnType, value, apiVersion, None, false)
     }

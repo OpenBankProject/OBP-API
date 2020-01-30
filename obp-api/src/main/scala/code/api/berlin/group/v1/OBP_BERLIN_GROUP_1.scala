@@ -61,9 +61,7 @@ object OBP_BERLIN_GROUP_1 extends OBPRestHelper with MdcLoggable with ScannedApi
 
 
   // Make them available for use!
-  routes.foreach(route => {
-    oauthServe((apiVersion.urlPrefix / apiVersion.toString).oPrefix{route}, findResourceDoc(route, allResourceDocs))
-  })
+  registerRoutes(routes, allResourceDocs, apiPrefix)
 
   logger.info(s"version $apiVersion has been run! There are ${routes.length} routes.")
 

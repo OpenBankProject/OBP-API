@@ -1101,29 +1101,36 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       val authenticationIsRequired = authenticationRequiredMessage(true)
       val authenticationIsOptional = authenticationRequiredMessage(false)
 
+      val rolesNonEmpty = roles match {
+        case Some(list) => list.nonEmpty
+        case _ => false
+      }
       // if required roles not empty, add UserHasMissingRoles to errorResponseBodies
-      if(roles.filter(_.nonEmpty).isDefined) {
+      if(rolesNonEmpty) {
         errorResponseBodies ?+= UserNotLoggedIn
         errorResponseBodies ?+= UserHasMissingRoles
+      } else {
+        errorResponseBodies ?-= UserHasMissingRoles
       }
       // if authentication is required, add UserNotLoggedIn to errorResponseBodies
       if(description.contains(authenticationIsRequired)) {
         errorResponseBodies ?+= UserNotLoggedIn
-      }
-
-      if(errorResponseBodies.contains(UserNotLoggedIn) && !description.contains(authenticationIsRequired)) {
+      } else if(description.contains(authenticationIsOptional) && !rolesNonEmpty) {
+        errorResponseBodies ?-= UserNotLoggedIn
+      } else if(errorResponseBodies.contains(UserNotLoggedIn)) {
         description +=
               s"""
                |
                |$authenticationIsRequired
                |"""
-      } else if(!errorResponseBodies.contains(UserNotLoggedIn) && !description.contains(authenticationIsOptional)) {
+      } else if(!errorResponseBodies.contains(UserNotLoggedIn)) {
         description +=
               s"""
                |
                |$authenticationIsOptional
                |"""
       }
+
     }
 
     /**
@@ -2775,7 +2782,7 @@ Returns a string showed to the developer
   /**
     * This function finds the phone numbers of an Customer in accordance to next rule:
     * - User -> User Customer Links -> Customer.phone_number
-    * @param bankId The USER_ID
+    * @param userId The USER_ID
     * @return The phone numbers of a Customer
     */
   def getPhoneNumbersByUserId(userId: String): List[(String, String)] = {
