@@ -143,7 +143,6 @@ trait Connector extends MdcLoggable {
   protected val customersByUserIdTTL = getSecondsCache("getCustomersByUserId")
   protected val memoryCounterpartyTTL = getSecondsCache("createMemoryCounterparty")
   protected val memoryTransactionTTL = getSecondsCache("createMemoryTransaction")
-  protected val createCustomerTTL = getSecondsCache("createCustomer")
   protected val branchesTTL = getSecondsCache("getBranches")
   protected val branchTTL = getSecondsCache("getBranch")
   protected val atmsTTL = getSecondsCache("getAtms")
