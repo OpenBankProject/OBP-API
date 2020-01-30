@@ -1,6 +1,6 @@
 package com.openbankproject.commons.util
 
-import com.openbankproject.commons.util.Functions.{deepFlatten, RichCollection}
+import com.openbankproject.commons.util.Functions.{RichCollection, deepFlatten}
 import org.scalatest.{FlatSpec, Matchers, Tag}
 
 class FunctionsTest extends FlatSpec with Matchers {
@@ -26,5 +26,24 @@ class FunctionsTest extends FlatSpec with Matchers {
 
     list ?+= "good"
     list should contain theSameElementsAs  List("hello", "world", "good")
+  }
+
+  "removeIfAbsent" should "add element to collection if not contains." taggedAs FunctionsTag in {
+     var list = List("hello", "world")
+
+    (list ?- "good") should contain theSameElementsAs list
+
+    (list ?- "world") should contain theSameElementsAs  List("hello")
+
+    list ?-= "hello"
+    list should contain theSameElementsAs  List("world")
+  }
+
+  case class FPerson(name: String, age: Int)
+
+  "distinctBy" should "distinct elements by given calculate role." taggedAs FunctionsTag in {
+    val list = List(FPerson("foo", 12), FPerson("bar", 15), FPerson("foo", 16))
+
+    list.distinctBy(_.name) should contain theSameElementsAs  List(FPerson("foo", 12), FPerson("bar", 15))
   }
 }
