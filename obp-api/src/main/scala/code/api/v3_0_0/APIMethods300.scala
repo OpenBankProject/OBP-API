@@ -2396,8 +2396,7 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: Nil JsonGet _ => {
         cc =>
           for {
-            (_, callContext) <- anonymousAccess(cc)
-            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, Option(cc))
           } yield
             (JSONFactory.createBankJSON(bank), HttpCode.`200`(callContext))
       }

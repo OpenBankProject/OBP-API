@@ -1,5 +1,8 @@
 package code.api.util
 
+import java.util.Objects
+import java.util.regex.Pattern
+
 import code.api.Constant._
 
 object ErrorMessages {
@@ -405,6 +408,7 @@ object ErrorMessages {
   val InvalidConnectorResponseForGetCheckbookOrdersFuture = "OBP-50211: Connector did not return the set of check book."
   val InvalidConnectorResponseForGetStatusOfCreditCardOrderFuture = "OBP-50212: Connector did not return the set of status of credit card."
   val InvalidConnectorResponseForCreateTransactionAfterChallengev300 = "OBP-50213: The Connector did not return a valid response for payments."
+  val InvalidConnectorResponseForMissingRequiredValues = "OBP-50214: Connector return the data, but the data have missing required values."
 
 
   // Adapter Exceptions (OBP-6XXXX)
@@ -431,7 +435,9 @@ object ErrorMessages {
 
   ///////////
 
+  private val ObpErrorMsgPattern = Pattern.compile("OBP-\\d+:.+")
 
+  def isObpErrorMsg(str: String) = Objects.nonNull(str) && ObpErrorMsgPattern.matcher(str).matches()
 
   //For Swagger, used reflect to  list all the varible names and values.
   // eg : val InvalidUserId = "OBP-30107: Invalid User Id."

@@ -74,13 +74,15 @@ import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{Helpers, Props, StringHelpers}
+import net.liftweb.util.{Helpers, LiftFlowOfControlException, Props, StringHelpers}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
+import com.openbankproject.commons.util.{ApiVersion, ReflectUtils, ScannedApiVersion}
+import com.openbankproject.commons.util.Functions.RichCollection
+import org.apache.commons.lang3.StringUtils
 
 import scala.concurrent.Future
 import scala.io.BufferedSource
@@ -1082,10 +1084,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
                           requestUrl: String, // The URL. THIS GETS MODIFIED TO include the implemented in prefix e.g. /obp/vX.X). Starts with / No trailing slash.
                           summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
-                          description: String, // Longer description (originally taken from github wiki)
+                          var description: String, // Longer description (originally taken from github wiki)
                           exampleRequestBody: scala.Product, // An example of the body required (maybe empty)
                           successResponseBody: scala.Product, // A successful response body
-                          errorResponseBodies: List[String], // Possible error responses
+                          var errorResponseBodies: List[String], // Possible error responses
                           catalogs: Catalogs,
                           tags: List[ResourceDocTag],
                           roles: Option[List[ApiRole]] = None,
@@ -1093,7 +1095,99 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           specialInstructions: Option[String] = None,
                           specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
                           connectorMethods: Option[List[String]] = None
-  )
+  ) {
+    // this code block will be merged to constructor.
+    {
+      val authenticationIsRequired = authenticationRequiredMessage(true)
+      val authenticationIsOptional = authenticationRequiredMessage(false)
+
+      val rolesNonEmpty = roles match {
+        case Some(list) => list.nonEmpty
+        case _ => false
+      }
+      // if required roles not empty, add UserHasMissingRoles to errorResponseBodies
+      if(rolesNonEmpty) {
+        errorResponseBodies ?+= UserNotLoggedIn
+        errorResponseBodies ?+= UserHasMissingRoles
+      } else {
+        errorResponseBodies ?-= UserHasMissingRoles
+      }
+      // if authentication is required, add UserNotLoggedIn to errorResponseBodies
+      if(description.contains(authenticationIsRequired)) {
+        errorResponseBodies ?+= UserNotLoggedIn
+      } else if(description.contains(authenticationIsOptional) && !rolesNonEmpty) {
+        errorResponseBodies ?-= UserNotLoggedIn
+      } else if(errorResponseBodies.contains(UserNotLoggedIn)) {
+        description +=
+              s"""
+               |
+               |$authenticationIsRequired
+               |"""
+      } else if(!errorResponseBodies.contains(UserNotLoggedIn)) {
+        description +=
+              s"""
+               |
+               |$authenticationIsOptional
+               |"""
+      }
+
+    }
+
+    /**
+     * According errorResponseBodies whether contains UserNotLoggedIn and UserHasMissingRoles do validation.
+     * So can avoid duplicate code in endpoint body for expression do check.
+     * Note: maybe this will be misused, So currently just comment out.
+     */
+    //lazy val wrappedEndpoint: OBPEndpoint = wrappedWithAuthCheck(partialFunction)
+
+    /**
+     * wrapped an endpoint to a new one, let it do auth check before execute the endpoint body
+     * @param obpEndpoint original endpoint
+     * @return wrapped endpoint
+     */
+    def wrappedWithAuthCheck(obpEndpoint : OBPEndpoint): OBPEndpoint = {
+      val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
+      val requestUrlBankId = requestUrlPartPath.indexOf("BANK_ID")
+
+      val entitlements =  roles.getOrElse(Nil)
+
+      if(errorResponseBodies.contains(UserNotLoggedIn)) {
+        new OBPEndpoint {
+          override def isDefinedAt(x: Req): Boolean = obpEndpoint.isDefinedAt(x)
+
+          override def apply(req: Req): CallContext => Box[JsonResponse] = {
+            val originFn: CallContext => Box[JsonResponse] = obpEndpoint.apply(req)
+            val bankId: String =
+              if(requestUrlBankId == -1) {
+                ""
+              } else {
+                val url = req.path.partPath
+                val apiPrefixLength = url.size - requestUrlPartPath.size
+                val idIndex = apiPrefixLength + requestUrlBankId
+                url(idIndex)
+              }
+            val request: Box[Req] = S.request
+            val session: Box[LiftSession] = S.session
+            cc: CallContext => {
+              val placeholderFuture = Future.successful[Box[Unit]](Empty)
+              for {
+                (userBox @Full(u), _) <- authorizedAccess(cc)
+                _ <- (placeholderFuture /: entitlements) { (pre, cur) =>
+                  pre.flatMap(_ => NewStyle.function.hasEntitlement(bankId, u.userId, cur))
+                }
+                callContextWithUser = cc.copy(user = userBox)
+                //must pass session and request to originFn invocation.
+                boxResponse = S.init(request, session.orNull)(originFn(callContextWithUser))
+              } yield (boxResponse, Option(callContextWithUser))
+
+            }
+          }
+        }
+      } else {
+        obpEndpoint
+      }
+    }
+  }
 
 
   def getGlossaryItems : List[GlossaryItem] = {
@@ -1839,6 +1933,9 @@ Returns a string showed to the developer
         t => Full(logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight))))))
       )
       in.onFail {
+        case Failure("Continuation", Full(e), _) if e.isInstanceOf[LiftFlowOfControlException] =>
+          val f: ((=> LiftResponse) => Unit) => Unit = ReflectUtils.getFieldByType(e, "f")
+              f(reply(_))
         case Failure(null, _, _) =>
           val errorResponse: JsonResponse = errorJsonResponse(UnknownError)
           Full(reply.apply(errorResponse))
@@ -2108,16 +2205,18 @@ Returns a string showed to the developer
       if (x.msg != null) true else { logger.info("Failure: " + obj); false }
     }
 
+    // Remove duplicated content, because in the process of box, the FailBox will be wrapped may multiple times, and message is same.
     getPropsAsBoolValue("display_internal_errors", false) match {
       case true => // Show all error in a chain
-        obj.messageChain
+        obj.messageChain.split(" <- ").distinct.mkString(" <- ")
       case false => // Do not display internal errors
         val obpFailures = obj.failureChain.filter(x => messageIsNotNull(x, obj) && x.msg.startsWith("OBP-"))
         obpFailures match {
           case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
-          case _ => obpFailures.map(_.msg).mkString(" <- ")
+          case _ => obpFailures.map(_.msg).distinct.mkString(" <- ")
         }
     }
+
   }
 
   /**
@@ -2126,7 +2225,7 @@ Returns a string showed to the developer
     * @param box Some boxed type
     * @return Boxed value or throw some exception
     */
-  def fullBoxOrException[T](box: Box[T])(implicit m: Manifest[T]) : Box[T]= {
+  def fullBoxOrException[T](box: Box[T]) : Box[T]= {
     box match {
       case Full(v) => // Just forwarding
         Full(v)
@@ -2683,7 +2782,7 @@ Returns a string showed to the developer
   /**
     * This function finds the phone numbers of an Customer in accordance to next rule:
     * - User -> User Customer Links -> Customer.phone_number
-    * @param bankId The USER_ID
+    * @param userId The USER_ID
     * @return The phone numbers of a Customer
     */
   def getPhoneNumbersByUserId(userId: String): List[(String, String)] = {

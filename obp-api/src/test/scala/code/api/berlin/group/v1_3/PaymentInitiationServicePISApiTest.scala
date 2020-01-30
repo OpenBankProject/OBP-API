@@ -9,7 +9,7 @@ import code.model.dataAccess.MappedBankAccount
 import code.setup.{APIResponse, DefaultUsers}
 import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.SepaCreditTransfers
+import com.openbankproject.commons.model.{ErrorMessage, SepaCreditTransfers}
 import net.liftweb.json.Serialization.write
 import net.liftweb.mapper.By
 import org.scalatest.Tag
@@ -54,7 +54,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(400)
       val error = s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfers "
       And("error should be " + error)
-      response.body.extract[code.api.ErrorMessage].message should startWith (error)
+      response.body.extract[ErrorMessage].message should startWith (error)
     }
     scenario("Failed Case - wrong amount", BerlinGroupV1_3, PIS, initiatePayment) {
       val wrongAmountInitiatePaymentJson =
@@ -78,7 +78,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(400)
       val error = s"${NotPositiveAmount} Current input is: '-1234'"
       And("error should be " + error)
-      response.body.extract[code.api.ErrorMessage].message should equal (error)
+      response.body.extract[ErrorMessage].message should equal (error)
     }
     scenario("Successful case - small amount -- change the balance", BerlinGroupV1_3, PIS, initiatePayment) {
       val accounts = MappedBankAccount.findAll().map(_.accountIban.get).filter(_ != null)
@@ -247,7 +247,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val response: APIResponse = makePostRequest(requestPost, """""")
       Then("We should get a 400 ")
       response.code should equal(400)
-      response.body.extract[code.api.ErrorMessage].message should startWith (InvalidTransactionRequestId)
+      response.body.extract[ErrorMessage].message should startWith (InvalidTransactionRequestId)
     }
     scenario(s"Successful Case ", BerlinGroupV1_3, PIS, startPaymentAuthorisation) {
 
@@ -344,7 +344,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val response: APIResponse = makePostRequest(requestPost, """""")
       Then("We should get a 400 ")
       response.code should equal(400)
-      response.body.extract[code.api.ErrorMessage].message should startWith (InvalidTransactionRequestId)
+      response.body.extract[ErrorMessage].message should startWith (InvalidTransactionRequestId)
     }
     scenario(s"Successful Case ", BerlinGroupV1_3, PIS) {
 
@@ -434,7 +434,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(400)
       val error = s"$InvalidTransactionRequestId Current TransactionRequestId(PAYMENT_ID) "
       And("error should be " + error)
-      response.body.extract[code.api.ErrorMessage].message should equal (error)
+      response.body.extract[ErrorMessage].message should equal (error)
     }
   }
   feature("test the BG v1.3 getPaymentInitiationAuthorisation") {
@@ -450,7 +450,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(400)
       val error = s"$InvalidTransactionRequestId Current TransactionRequestId(NON_EXISTING_PAYMENT_ID) "
       And("error should be " + error)
-      response.body.extract[code.api.ErrorMessage].message should equal (error)
+      response.body.extract[ErrorMessage].message should equal (error)
     }
   }
   feature("test the BG v1.3 getPaymentInitiationCancellationAuthorisationInformation") {
