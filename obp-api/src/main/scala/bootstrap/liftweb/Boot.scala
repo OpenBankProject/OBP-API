@@ -103,6 +103,7 @@ import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
 import code.webuiprops.WebUiProps
+import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._

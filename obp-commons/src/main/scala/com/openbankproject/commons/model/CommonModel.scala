@@ -30,6 +30,8 @@ import java.util.Date
 
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.ReflectUtils
+import net.liftweb.json.{JInt, JString}
+import net.liftweb.json.JsonAST.{JObject, JValue}
 
 import scala.collection.immutable.List
 import scala.reflect.runtime.universe._
@@ -725,3 +727,17 @@ case class InboundUser(
                         password: String,
                         displayName: String
                       )
+
+
+case class ErrorMessage(code: Int, message: String)
+
+object ErrorMessage {
+
+  def isErrorMessage(jValue: JValue) = jValue match {
+    case jObj @JObject(fields) =>
+      fields.size == 2 &&
+        (jObj \ "code").isInstanceOf[JInt] &&
+        (jObj \ "message").isInstanceOf[JString]
+    case _ => false
+  }
+}

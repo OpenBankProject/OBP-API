@@ -41,6 +41,7 @@ import code.api.v4_0_0.APIMethods400
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
 import com.alibaba.ttl.TransmittableThreadLocal
+import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.{ApiVersion, ReflectUtils, ScannedApiVersion}
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
@@ -63,6 +64,8 @@ object APIFailure {
     val msg = message
     val responseCode = httpResponseCode
   }
+
+  def unapply(arg: APIFailure): Option[(String, Int)] = Some(arg.msg, arg.responseCode)
 }
 
 case class APIFailureNewStyle(failMsg: String,
@@ -112,12 +115,17 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   val versionStatus : String // TODO this should be property of ApiVersion
   //def vDottedVersion = vDottedApiVersion(version)
 
- def apiPrefix = (ApiPathZero / version.vDottedApiVersion).oPrefix(_)
+  def apiPrefix = version match {
+    case ScannedApiVersion(urlPrefix, _, _) =>
+      (urlPrefix / version.vDottedApiVersion).oPrefix(_)
+    case _ =>
+    (ApiPathZero / version.vDottedApiVersion).oPrefix(_)
+  }
 
   /*
   An implicit function to convert magically between a Boxed JsonResponse and a JsonResponse
   If we have something good, return it. Else log and return an error.
-  Please note that behaviour of this function depends om property display_internal_errors=true/false in case of Failure
+  Please note that behaviour of this function depends on property display_internal_errors=true/false in case of Failure
   # When is disabled we show only last message which should be a user friendly one. For instance:
   # {
   #   "error": "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
@@ -462,5 +470,22 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       }
     }
     result
+  }
+
+  protected def findResourceDoc(pf: OBPEndpoint, allResourceDocs: ArrayBuffer[ResourceDoc]): Option[ResourceDoc] = {
+    allResourceDocs.find(_.partialFunction == pf)
+  }
+
+  protected def registerRoutes(routes: List[OBPEndpoint], allResourceDocs: ArrayBuffer[ResourceDoc], apiPrefix:OBPEndpoint => OBPEndpoint) = {
+    routes.foreach(route => {
+      val maybeResourceDoc = findResourceDoc(route, allResourceDocs)
+
+      // if rd contains ResourceDoc, just wrapped to auth check endpoint
+      val authCheckRoute = maybeResourceDoc match {
+        case Some(doc) => doc.wrappedWithAuthCheck(route)
+        case _ => route
+      }
+      oauthServe(apiPrefix(authCheckRoute), maybeResourceDoc)
+    })
   }
 }

@@ -25,7 +25,8 @@ TESOBE (http://www.tesobe.com/)
 */
 package code.api.v3_1_0
 
-import code.api.{Constant, ErrorMessage}
+import code.api.Constant
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages._

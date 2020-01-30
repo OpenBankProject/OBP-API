@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_1_0
 
 import _root_.net.liftweb.json.Serialization.write
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.OAuth._
