@@ -1,6 +1,6 @@
 package code.api.util
 
-import code.api.Constant
+import code.api.{Constant, RequestHeader}
 import code.api.v3_1_0.{EntitlementJsonV400, PostConsentBodyCommonJson, ViewJsonV400}
 import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
@@ -12,11 +12,12 @@ import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Failure, Full}
+import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, MappingException, compactRender}
 import net.liftweb.mapper.By
 
-import scala.collection.immutable.List
+import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
 
 case class ConsentJWT(createdByUserId: String,
@@ -89,23 +90,47 @@ case class Consent(createdByUserId: String,
 }
 
 object Consent {
+
+  /**
+    * Purpose of this helper function is to get the Consumer-Key value from a Request Headers.
+    * @return the Consent-Id value from a Request Header as a String
+    */
+  def getConsumerKey(requestHeaders: List[HTTPParam]): Option[String] = {
+    requestHeaders.toSet.filter(_.name == RequestHeader.`Consumer-Key`).toList match {
+      case x :: Nil => Some(x.values.mkString(", "))
+      case _ => None
+    }
+  }
   
   private def verifyHmacSignedJwt(jwtToken: String, c: MappedConsent): Boolean = {
     JwtUtil.verifyHmacSignedJwt(jwtToken, c.secret)
   }
   
-  private def checkConsumerIsActive(consent: ConsentJWT): Box[Boolean] = {
+  private def checkConsumerIsActiveAndMatched(consent: ConsentJWT, requestHeaderConsumerKey: Option[String]): Box[Boolean] = {
     Consumers.consumers.vend.getConsumerByConsumerId(consent.aud) match {
-      case Full(consumer) if consumer.isActive.get == true => 
-        Full(true)
-      case Full(consumer) if consumer.isActive.get == false =>
-        Failure("The Consumer with id: " + consent.aud + " is disabled.")
-      case _ => 
-        Failure("There is no the Consumer with id: " + consent.aud)
+      case Full(consumerFromConsent) if consumerFromConsent.isActive.get == true => // Consumer is active
+        val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="allow_consumer_key_header_for_consent_validation", defaultValue=false)
+        allowed match {
+          case true =>
+            requestHeaderConsumerKey match {
+              case Some(reqHeaderConsumerKey) =>
+                if(reqHeaderConsumerKey == consumerFromConsent.key.get)
+                  Full(true) // This consent can be used by current application
+                else // This consent can NOT be used by current application
+                  Failure(ErrorMessages.ConsentDoesntMatchApp)
+              case None => Failure(ErrorMessages.ConsumerKeyHeaderMissing) // There is no header `Consumer-Key` in request headers
+            }
+          case false => // This instance does NOT require header `Consumer-Key` in request headers
+            Full(true)
+        }
+      case Full(consumer) if consumer.isActive.get == false => // Consumer is NOT active
+        Failure(ErrorMessages.ConsumerAtConsentDisabled + " aud: " + consent.aud)
+      case _ => // There is NO Consumer
+        Failure(ErrorMessages.ConsumerAtConsentCannotBeFond + " aud: " + consent.aud)
     }
   }
   
-  private def checkConsent(consent: ConsentJWT, consentIdAsJwt: String): Box[Boolean] = {
+  private def checkConsent(consent: ConsentJWT, consentIdAsJwt: String, calContext: CallContext): Box[Boolean] = {
     Consents.consentProvider.vend.getConsentByConsentId(consent.jti) match {
       case Full(c) if c.mStatus == ConsentStatus.ACCEPTED.toString =>
         verifyHmacSignedJwt(consentIdAsJwt, c) match {
@@ -116,7 +141,8 @@ object Consent {
               case currentTimeInSeconds if currentTimeInSeconds > consent.exp =>
                 Failure(ErrorMessages.ConsentExpiredIssue)
               case _ =>
-                checkConsumerIsActive(consent)
+                val requestHeaderConsumerKey = getConsumerKey(calContext.requestHeaders)
+                checkConsumerIsActiveAndMatched(consent, requestHeaderConsumerKey)
             }
           case false =>
             Failure(ErrorMessages.ConsentVerificationIssue)
@@ -207,7 +233,7 @@ object Consent {
     if (result.forall(_ == "Added")) Full(user) else Failure("Cannot add permissions to the user with id: " + user.userId)
   }
  
-  private def hasConsentInternalOldStyle(consentIdAsJwt: String): Box[User] = {
+  private def hasConsentInternalOldStyle(consentIdAsJwt: String, calContext: CallContext): Box[User] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Box[User] = {
@@ -231,7 +257,7 @@ object Consent {
       case Full(jsonAsString) =>
         try {
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-          checkConsent(consent, consentIdAsJwt) match { // Check is it Consent-Id expired
+          checkConsent(consent, consentIdAsJwt, calContext) match { // Check is it Consent-Id expired
             case (Full(true)) => // OK
               applyConsentRules(consent)
             case failure@Failure(_, _, _) => // Handled errors
@@ -251,7 +277,7 @@ object Consent {
     }
   } 
   
-  private def hasConsentInternal(consentIdAsJwt: String): Future[Box[User]] = {
+  private def hasConsentInternal(consentIdAsJwt: String, calContext: CallContext): Future[Box[User]] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[Box[User]] = {
@@ -275,7 +301,7 @@ object Consent {
       case Full(jsonAsString) =>
         try {
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-          checkConsent(consent, consentIdAsJwt) match { // Check is it Consent-Id expired
+          checkConsent(consent, consentIdAsJwt, calContext) match { // Check is it Consent-Id expired
             case (Full(true)) => // OK
               applyConsentRules(consent)
             case failure@Failure(_, _, _) => // Handled errors
@@ -295,19 +321,19 @@ object Consent {
     }
   }
   
-  private def hasConsentOldStyle(consentIdAsJwt: String, calContext: CallContext): (Box[User], CallContext) = {
-    (hasConsentInternalOldStyle(consentIdAsJwt), calContext)
+  private def hasConsentOldStyle(consentIdAsJwt: String, callContext: CallContext): (Box[User], CallContext) = {
+    (hasConsentInternalOldStyle(consentIdAsJwt, callContext), callContext)
   }  
-  private def hasConsent(consentIdAsJwt: String, calContext: Option[CallContext]): Future[(Box[User], Option[CallContext])] = {
-    hasConsentInternal(consentIdAsJwt) map (result => (result, calContext))
+  private def hasConsent(consentIdAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
+    hasConsentInternal(consentIdAsJwt, callContext) map (result => (result, Some(callContext)))
   }
   
-  def applyRules(consentId: Option[String], callContext: Option[CallContext]): Future[(Box[User], Option[CallContext])] = {
+  def applyRules(consentId: Option[String], callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
     (consentId, allowed) match {
       case (Some(consentId), true) => hasConsent(consentId, callContext)
-      case (_, false) => Future((Failure(ErrorMessages.ConsentDisabled), callContext))
-      case (None, _) => Future((Failure(ErrorMessages.ConsentHeaderNotFound), callContext))
+      case (_, false) => Future((Failure(ErrorMessages.ConsentDisabled), Some(callContext)))
+      case (None, _) => Future((Failure(ErrorMessages.ConsentHeaderNotFound), Some(callContext)))
     }
   }  
   def applyRulesOldStyle(consentId: Option[String], callContext: CallContext): (Box[User], CallContext) = {

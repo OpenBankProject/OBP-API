@@ -342,6 +342,10 @@ object ErrorMessages {
   val ConsentAlreadyRevoked = "OBP-35012: Consent is already revoked. "
   val RolesAllowedInConsent = "OBP-35013: Consents can only contain Roles that you already have access to."
   val ViewsAllowedInConsent = "OBP-35014: Consents can only contain Views that you already have access to."
+  val ConsentDoesntMatchApp = "OBP-35015: Consent doesn't match your application."
+  val ConsumerKeyHeaderMissing = "OBP-35016: Consumer-Key Header is not defined at request header."
+  val ConsumerAtConsentDisabled = "OBP-35016: The Consumer specified in this consent is disabled."
+  val ConsumerAtConsentCannotBeFond = "OBP-35017: The Consumer specified in this consent cannot be found."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
