@@ -1147,17 +1147,19 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
      */
     def wrappedWithAuthCheck(obpEndpoint : OBPEndpoint): OBPEndpoint = {
 
-      if(!errorResponseBodies.contains(UserNotLoggedIn)) {
-        obpEndpoint
-      } else {
         val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
         val requestUrlBankId = requestUrlPartPath.indexOf("BANK_ID")
+
+        val bankFuturePlaceHolder: Future[(Bank, Option[CallContext])] = Future.successful(null.asInstanceOf[Bank] -> None)
 
         new OBPEndpoint {
           override def isDefinedAt(x: Req): Boolean = obpEndpoint.isDefinedAt(x)
 
           override def apply(req: Req): CallContext => Box[JsonResponse] = {
             val originFn: CallContext => Box[JsonResponse] = obpEndpoint.apply(req)
+
+            val doLoginCheck = errorResponseBodies.contains(UserNotLoggedIn)
+
             val bankId = if(requestUrlBankId == -1) {
               ""
             } else {
@@ -1171,18 +1173,38 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             val session: Box[LiftSession] = S.session
 
             cc: CallContext => {
+              // if authentication check, do authorizedAccess, else do Rate Limit check
               for {
-                (userBox @Full(u), _) <- authorizedAccess(cc)
-                _ <- NewStyle.function.hasAtLeastOneEntitlement(bankId, u.userId, roles.getOrElse(Nil))
-                callContextWithUser = cc.copy(user = userBox)
+                (boxUser, _) <- if(doLoginCheck) {
+                              authorizedAccess(cc)
+                            } else {
+                              anonymousAccess(cc)
+                            }
+
+                // if current login user exists, add to callContext
+                newCallContext = if(boxUser.isDefined) cc.copy(user = boxUser) else cc
+                callContext = Option(newCallContext)
+
+                // bank exists check
+                (_, _) <- if(StringUtils.isBlank(bankId)) {
+                            bankFuturePlaceHolder
+                          } else {
+                            NewStyle.function.getBank(BankId(bankId), callContext)
+                          }
+
+                // roles check
+                _ <- NewStyle.function.hasAtLeastOneEntitlement(bankId, boxUser.map(_.userId).openOr(""), roles.getOrElse(Nil))
+              } yield {
+
                 //must pass session and request to originFn invocation.
-                boxResponse = S.init(request, session.orNull)(originFn(callContextWithUser))
-              } yield (boxResponse, Option(callContextWithUser))
+                val boxResponse = S.init(request, session.orNull)(originFn(newCallContext))
+                (boxResponse, callContext)
+              }
 
             }
           }
         }
-      }
+
     }
   }
 
@@ -1485,12 +1507,14 @@ Returns a string showed to the developer
   
   // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned at least one role from the list
+  // when roles is empty, that means no access control, treat as pass auth check
   def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
-    roles.exists(hasEntitlement(bankId, userId, _))
+    roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
 
 
   // Function checks does a user specified by a parameter userId has all roles provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned all roles from the list
+  // when roles is empty, that means no access control, treat as pass auth check
   // TODO Should we accept Option[BankId] for bankId  instead of String ?
   def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
     roles.forall(hasEntitlement(bankId, userId, _))
