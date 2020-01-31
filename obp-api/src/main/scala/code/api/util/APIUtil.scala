@@ -28,7 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.util
 
 import java.io.InputStream
-import java.net.{URL, URLDecoder}
+import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.{Date, UUID}
@@ -1146,35 +1146,34 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
      * @return wrapped endpoint
      */
     def wrappedWithAuthCheck(obpEndpoint : OBPEndpoint): OBPEndpoint = {
-      val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
-      val requestUrlBankId = requestUrlPartPath.indexOf("BANK_ID")
 
-      val entitlements =  roles.getOrElse(Nil)
+      if(!errorResponseBodies.contains(UserNotLoggedIn)) {
+        obpEndpoint
+      } else {
+        val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
+        val requestUrlBankId = requestUrlPartPath.indexOf("BANK_ID")
 
-      if(errorResponseBodies.contains(UserNotLoggedIn)) {
         new OBPEndpoint {
           override def isDefinedAt(x: Req): Boolean = obpEndpoint.isDefinedAt(x)
 
           override def apply(req: Req): CallContext => Box[JsonResponse] = {
             val originFn: CallContext => Box[JsonResponse] = obpEndpoint.apply(req)
-            val bankId: String =
-              if(requestUrlBankId == -1) {
-                ""
-              } else {
-                val url = req.path.partPath
-                val apiPrefixLength = url.size - requestUrlPartPath.size
-                val idIndex = apiPrefixLength + requestUrlBankId
-                url(idIndex)
-              }
+            val bankId = if(requestUrlBankId == -1) {
+              ""
+            } else {
+              val url = req.path.partPath
+              val apiPrefixLength = url.size - requestUrlPartPath.size
+              val idIndex = apiPrefixLength + requestUrlBankId
+              url(idIndex)
+            }
+
             val request: Box[Req] = S.request
             val session: Box[LiftSession] = S.session
+
             cc: CallContext => {
-              val placeholderFuture = Future.successful[Box[Unit]](Empty)
               for {
                 (userBox @Full(u), _) <- authorizedAccess(cc)
-                _ <- (placeholderFuture /: entitlements) { (pre, cur) =>
-                  pre.flatMap(_ => NewStyle.function.hasEntitlement(bankId, u.userId, cur))
-                }
+                _ <- NewStyle.function.hasAtLeastOneEntitlement(bankId, u.userId, roles.getOrElse(Nil))
                 callContextWithUser = cc.copy(user = userBox)
                 //must pass session and request to originFn invocation.
                 boxResponse = S.init(request, session.orNull)(originFn(callContextWithUser))
@@ -1183,8 +1182,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             }
           }
         }
-      } else {
-        obpEndpoint
       }
     }
   }
@@ -1446,10 +1443,10 @@ Returns a string showed to the developer
     list.exists(_ == true)
   }
 
-
-
-  def hasEntitlement(bankId: String, userId: String, role: ApiRole): Boolean = {
-    !Entitlement.entitlement.vend.getEntitlement(bankId, userId, role.toString).isEmpty
+  def hasEntitlement(bankId: String, userId: String, apiRole: ApiRole): Boolean = apiRole match {
+      case AndRole(roles) => roles.forall(hasEntitlement(bankId, userId, _))
+      case role =>
+        Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId) bankId else "", userId, role.toString).isDefined
   }
 
   case class EntitlementAndScopeStatus(
@@ -1488,22 +1485,15 @@ Returns a string showed to the developer
   
   // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned at least one role from the list
-  def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean = {
-    val list: List[Boolean] = for (role <- roles) yield {
-      !Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId == true) bankId else "", userId, role.toString).isEmpty
-    }
-    list.exists(_ == true)
-  }
+  def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
+    roles.exists(hasEntitlement(bankId, userId, _))
+
 
   // Function checks does a user specified by a parameter userId has all roles provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned all roles from the list
   // TODO Should we accept Option[BankId] for bankId  instead of String ?
-  def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean = {
-    val list: List[Boolean] = for (role <- roles) yield {
-      !Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId == true) bankId else "", userId, role.toString).isEmpty
-    }
-    list.forall(_ == true)
-  }
+  def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
+    roles.forall(hasEntitlement(bankId, userId, _))
 
   def getCustomers(ids: List[String]): List[Customer] = {
     val customers = {

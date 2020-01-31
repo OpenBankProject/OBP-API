@@ -476,13 +476,16 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     allResourceDocs.find(_.partialFunction == pf)
   }
 
-  protected def registerRoutes(routes: List[OBPEndpoint], allResourceDocs: ArrayBuffer[ResourceDoc], apiPrefix:OBPEndpoint => OBPEndpoint) = {
+  protected def registerRoutes(routes: List[OBPEndpoint],
+                               allResourceDocs: ArrayBuffer[ResourceDoc],
+                               apiPrefix:OBPEndpoint => OBPEndpoint,
+                               doAuthCheck: Boolean = false): Unit = {
     routes.foreach(route => {
       val maybeResourceDoc = findResourceDoc(route, allResourceDocs)
 
       // if rd contains ResourceDoc, just wrapped to auth check endpoint
-      val authCheckRoute = maybeResourceDoc match {
-        case Some(doc) => doc.wrappedWithAuthCheck(route)
+      val authCheckRoute = (maybeResourceDoc, doAuthCheck) match {
+        case (Some(doc), true) => doc.wrappedWithAuthCheck(route)
         case _ => route
       }
       oauthServe(apiPrefix(authCheckRoute), maybeResourceDoc)
