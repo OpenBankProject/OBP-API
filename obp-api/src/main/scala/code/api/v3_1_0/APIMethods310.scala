@@ -3316,18 +3316,57 @@ trait APIMethods310 {
       "Create Consent (EMAIL)",
       s"""
          |
-         |$generalObpConsentText
-         |
          |This endpoint starts the process of creating a Consent.
          |
          |The Consent is created in an ${ConsentStatus.INITIATED} state.
          |
-         |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of band (OOB) to the User via the transport defined in SCA_METHOD
          |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
          |
          |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
          |
+         |$generalObpConsentText
+         |
          |${authenticationRequiredMessage(true)}
+         |
+         |Example 1: 
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note that consumer_id is optional field
+         |Example 2:
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note if everything=false you need to explicitly specify views and entitlements
+         |Example 3:
+         |{
+         |  "everything": false,
+         |  "views": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+         |      "view_id": "owner"
+         |    }
+         |  ],
+         |  "entitlements": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "role_name": "CanGetCustomer"
+         |    }
+         |  ],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
          |
          |""",
       postConsentEmailJsonV310,
@@ -3336,6 +3375,11 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
         InvalidConnectorResponse,
         UnknownError
       ),
@@ -3351,18 +3395,57 @@ trait APIMethods310 {
       "Create Consent (SMS)",
       s"""
          |
-         |$generalObpConsentText
-         |
          |This endpoint starts the process of creating a Consent.
          |
          |The Consent is created in an ${ConsentStatus.INITIATED} state.
          |
-         |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
          |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
          |
          |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
          |
+         |$generalObpConsentText
+         |
          |${authenticationRequiredMessage(true)}
+         |
+         |Example 1: 
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note that consumer_id is optional field
+         |Example 2:
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note if everything=false you need to explicitly specify views and entitlements
+         |Example 3:
+         |{
+         |  "everything": false,
+         |  "views": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+         |      "view_id": "owner"
+         |    }
+         |  ],
+         |  "entitlements": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "role_name": "CanGetCustomer"
+         |    }
+         |  ],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
          |
          |""",
       postConsentPhoneJsonV310,
@@ -3371,6 +3454,13 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
+        MissingPropsValueAtThisInstance,
+        SmsServerNotResponding,
         InvalidConnectorResponse,
         UnknownError
       ),
@@ -3393,13 +3483,41 @@ trait APIMethods310 {
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostConsentBodyCommonJson]
             }
+            requestedEntitlements = consentJson.entitlements
+            myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
+            _ <- Helper.booleanToFuture(RolesAllowedInConsent){
+              requestedEntitlements.forall(
+                re => myEntitlements.getOrElse(Nil).exists(
+                  e => e.roleName == re.role_name && e.bankId == re.bank_id
+                )
+              )
+            }
+            requestedViews = consentJson.views
+            (_, assignedViews) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
+            _ <- Helper.booleanToFuture(ViewsAllowedInConsent){
+              requestedViews.forall(
+                rv => assignedViews.exists{
+                  e => 
+                    e.view_id == rv.view_id && 
+                    e.bank_id == rv.bank_id && 
+                    e.account_id == rv.account_id
+                }
+              )
+            }
+            (consumerId, applicationText) <- consentJson.consumer_id match {
+              case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContext) map {
+                c => (Some(c.consumerId.get), c.description)
+              }
+              case None => Future(None, "Any application")
+            }
             createdConsent <- Future(Consents.consentProvider.vend.createConsent(user)) map {
               i => connectorEmptyResponse(i, callContext)
             }
-            consentJWT = Consent.createConsentJWT(user, consentJson, createdConsent.secret, createdConsent.consentId)
+            consentJWT = Consent.createConsentJWT(user, consentJson, createdConsent.secret, createdConsent.consentId, consumerId)
             _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
               i => connectorEmptyResponse(i, callContext)
             }
+            challengeText = s"Your consent challenge : ${createdConsent.challenge}, Application: $applicationText"
             _ <- scaMethod match {
             case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
               for{
@@ -3407,7 +3525,7 @@ trait APIMethods310 {
                 postConsentEmailJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                   json.extract[PostConsentEmailJsonV310]
                 }
-                params = PlainMailBodyType(s"Your consent challenge : ${createdConsent.challenge}") :: List(To(postConsentEmailJson.email))
+                params = PlainMailBodyType(challengeText) :: List(To(postConsentEmailJson.email))
                 _ <- Future{Mailer.sendMail(From("challenge@tesobe.com"), Subject("Challenge challenge"), params :_*)}
               } yield Future{true}
             case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
@@ -3431,7 +3549,7 @@ trait APIMethods310 {
                   .apiKey(smsProviderApiKey)
                   .apiSecret(smsProviderApiSecret)
                   .build();
-                messageText = s"Your consent challenge : ${createdConsent.challenge}";
+                messageText = challengeText;
                 message = new TextMessage("OBP-API", phoneNumber, messageText);
                 response <- Future{client.getSmsClient().submitMessage(message)}
                 failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first." 
@@ -3601,7 +3719,7 @@ trait APIMethods310 {
       s"""Create User Auth Context Update.
          |${authenticationRequiredMessage(true)}
          |
-         |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
          |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
          |
          |""",

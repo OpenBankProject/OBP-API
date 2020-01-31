@@ -730,7 +730,7 @@ trait Connector extends MdcLoggable {
                                    callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
 
     for{
-      // Get the threshold for a challenge. i.e. over what value do we require an out of bounds security challenge to be sent?
+      // Get the threshold for a challenge. i.e. over what value do we require an out of Band security challenge to be sent?
       (challengeThreshold, callContext) <- Connector.connector.vend.getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold ", 400), i._2)
       }

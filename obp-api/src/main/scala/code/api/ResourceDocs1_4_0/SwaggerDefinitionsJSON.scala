@@ -3278,14 +3278,16 @@ object SwaggerDefinitionsJSON {
   val postConsentEmailJsonV310 = PostConsentEmailJsonV310(
     everything = false,
     views = List(ViewJsonV400(bankIdExample.value, accountIdExample.value, viewIdExample.value)),
-    entitlements = List(EntitlementJsonV400(bankIdExample.value, "CanQueryOtherUser")),
+    entitlements = List(EntitlementJsonV400(bankIdExample.value, "CanGetCustomer")),
+    consumer_id = Some(consumerIdExample.value),
     email = emailExample.value
   )
   
   val postConsentPhoneJsonV310 = PostConsentPhoneJsonV310(
     everything = false,
     views = List(ViewJsonV400(bankIdExample.value, accountIdExample.value, viewIdExample.value)),
-    entitlements = List(EntitlementJsonV400(bankIdExample.value, "CanQueryOtherUser")),
+    entitlements = List(EntitlementJsonV400(bankIdExample.value, "CanGetCustomer")),
+    consumer_id = Some(consumerIdExample.value),
     phone_number = mobileNumberExample.value
   )
   

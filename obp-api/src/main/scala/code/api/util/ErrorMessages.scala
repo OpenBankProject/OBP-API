@@ -151,6 +151,7 @@ object ErrorMessages {
   val MissingQueryParams = "OBP-20055: These query parameters are missing: "
   val ElasticSearchDisabled  = "OBP-20056: Elasticsearch is disabled for this API instance."
   val UserNotFoundByUserId = "OBP-20057: User not found by userId."
+  val ConsumerIsDisabled = "OBP-20058: Consumer is disabled."
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
 
@@ -339,6 +340,8 @@ object ErrorMessages {
   val SmsServerNotResponding = "OBP-35010: SMS server is not working or SMS server can not send the message to the phone number: "
   val AuthorizationNotFound = "OBP-35011: Resource identification of the related Consent authorisation sub-resource not found by AUTHORIZATION_ID. "
   val ConsentAlreadyRevoked = "OBP-35012: Consent is already revoked. "
+  val RolesAllowedInConsent = "OBP-35013: Consents can only contain Roles that you already have access to."
+  val ViewsAllowedInConsent = "OBP-35014: Consents can only contain Views that you already have access to."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
