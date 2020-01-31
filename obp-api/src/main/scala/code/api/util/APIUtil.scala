@@ -74,7 +74,7 @@ import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{Helpers, LiftFlowOfControlException, Props, StringHelpers}
+import net.liftweb.util.{Helpers, LiftFlowOfControlException, Props, StringHelpers, ThreadGlobal}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{List, Nil}
@@ -1148,9 +1148,37 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     def wrappedWithAuthCheck(obpEndpoint : OBPEndpoint): OBPEndpoint = {
 
         val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
+
         val requestUrlBankId = requestUrlPartPath.indexOf("BANK_ID")
+        val requestUrlAccountId = requestUrlPartPath.indexOf("ACCOUNT_ID")
+        val requestUrlViewId = requestUrlPartPath.indexOf("VIEW_ID")
+
+        def getIds(url: List[String]): (Option[BankId], Option[AccountId], Option[ViewId]) = {
+          val apiPrefixLength = url.size - requestUrlPartPath.size
+
+          val bankId = if(requestUrlBankId != -1) {
+            url.lift(apiPrefixLength + requestUrlBankId).map(BankId(_))
+          } else {
+            None
+          }
+          val accountId = if(bankId.isDefined && requestUrlAccountId != -1) {
+            url.lift(apiPrefixLength + requestUrlAccountId).map(AccountId(_))
+          } else {
+            None
+          }
+
+          val viewId = if(accountId.isDefined && requestUrlViewId != -1) {
+            url.lift(apiPrefixLength + requestUrlViewId).map(ViewId(_))
+          } else {
+            None
+          }
+
+          (bankId, accountId, viewId)
+        }
 
         val bankFuturePlaceHolder: Future[(Bank, Option[CallContext])] = Future.successful(null.asInstanceOf[Bank] -> None)
+        val accountFuturePlaceHolder: Future[(BankAccount, Option[CallContext])] = Future.successful(null.asInstanceOf[BankAccount] -> None)
+        val viewFuturePlaceHolder: Future[View] = Future.successful(null.asInstanceOf[View])
 
         new OBPEndpoint {
           override def isDefinedAt(x: Req): Boolean = obpEndpoint.isDefinedAt(x)
@@ -1160,14 +1188,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
             val doLoginCheck = errorResponseBodies.contains(UserNotLoggedIn)
 
-            val bankId = if(requestUrlBankId == -1) {
-              ""
-            } else {
-              val url = req.path.partPath
-              val apiPrefixLength = url.size - requestUrlPartPath.size
-              val idIndex = apiPrefixLength + requestUrlBankId
-              url(idIndex)
-            }
+            val (bankId, accountId, viewId) = getIds(req.path.partPath)
 
             val request: Box[Req] = S.request
             val session: Box[LiftSession] = S.session
@@ -1185,19 +1206,28 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                 newCallContext = if(boxUser.isDefined) cc.copy(user = boxUser) else cc
                 callContext = Option(newCallContext)
 
-                // bank exists check
-                (_, _) <- if(StringUtils.isBlank(bankId)) {
-                            bankFuturePlaceHolder
-                          } else {
-                            NewStyle.function.getBank(BankId(bankId), callContext)
-                          }
-
                 // roles check
-                _ <- NewStyle.function.hasAtLeastOneEntitlement(bankId, boxUser.map(_.userId).openOr(""), roles.getOrElse(Nil))
+                bankIdStr = bankId.map(_.value).getOrElse("")
+                requiredRoles = roles.getOrElse(Nil)
+                _ <- NewStyle.function.hasAtLeastOneEntitlement(bankIdStr, boxUser.map(_.userId).openOr(""), requiredRoles)
+
+                // bank exists check
+                (bank, _) <- bankId.map(NewStyle.function.getBank(_, callContext)).getOrElse(bankFuturePlaceHolder)
+
+                (account, _) <- accountId.map(NewStyle.function.getBankAccount(bankId.orNull, _, callContext)).getOrElse(accountFuturePlaceHolder)
+
+                view      <- viewId.map(NewStyle.function.checkViewAccessAndReturnView(_, BankIdAccountId(bankId.orNull, accountId.orNull), boxUser, callContext))
+                            .getOrElse(viewFuturePlaceHolder)
+
               } yield {
 
-                //must pass session and request to originFn invocation.
-                val boxResponse = S.init(request, session.orNull)(originFn(newCallContext))
+                //pass session and request to endpoint body
+                val boxResponse = S.init(request, session.orNull){
+                  // pass user, bank, account and view to endpoint body
+                  SS.init(boxUser, bank, account, view) {
+                    originFn(newCallContext)
+                  }
+                }
                 (boxResponse, callContext)
               }
 
@@ -1208,6 +1238,30 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  // simulate S pass request and session, this object pass user, bank, account and view
+  object SS {
+    private val _user = new ThreadGlobal[User]
+    private val _bank = new ThreadGlobal[Bank]
+    private val _bankAccount = new ThreadGlobal[BankAccount]
+    private val _view = new ThreadGlobal[View]
+
+    def user: Box[User] = _user.box
+    def bank: Box[Bank] = _bank.box
+    def bankAccount: Box[BankAccount] = _bankAccount.box
+    def view: Box[View] = _view.box
+
+    def init[B](user: Box[User], bank: Bank, bankAccount: BankAccount, view: View)(f: => B):B = {
+      _user.doWith(user.orNull){
+        _bank.doWith(bank) {
+          _bankAccount.doWith(bankAccount) {
+            _view.doWith(view) {
+              f
+            }
+          }
+        }
+      }
+    }
+  }
 
   def getGlossaryItems : List[GlossaryItem] = {
     Glossary.glossaryItems.toList.sortBy(_.title)
