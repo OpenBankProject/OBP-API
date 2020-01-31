@@ -485,7 +485,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
 
       // if rd contains ResourceDoc, just wrapped to auth check endpoint
       val authCheckRoute = (maybeResourceDoc, doAuthCheck) match {
-        case (Some(doc), true) => doc.wrappedWithAuthCheck(route)
+        case (Some(doc), true) if doc.implementedInApiVersion == version => doc.wrappedWithAuthCheck(route)
         case _ => route
       }
       oauthServe(apiPrefix(authCheckRoute), maybeResourceDoc)

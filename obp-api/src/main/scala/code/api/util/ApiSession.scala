@@ -5,7 +5,7 @@ import java.util.{Date, UUID}
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages.BankAccountNotFound
+import code.api.util.ErrorMessages.{BankAccountNotFound, UserNotLoggedIn}
 import code.api.util.RateLimitingJson.CallLimit
 import code.context.UserAuthContextProvider
 import code.customer.CustomerX
@@ -131,7 +131,13 @@ case class CallContext(
   def hasConsentId(): Boolean = {
     APIUtil.hasConsentId(this.requestHeaders)
   }
-  
+
+  // for endpoint body convenient get userId
+  def userId: String  = user.map(_.userId).openOrThrowException(UserNotLoggedIn)
+  def userPrimaryKey: UserPrimaryKey = user.map(_.userPrimaryKey).openOrThrowException(UserNotLoggedIn)
+  def loggedInUser: User = user.openOrThrowException(UserNotLoggedIn)
+  // for endpoint body convenient get cc.callContext
+  def callContext: Option[CallContext] = Option(this)
 }
 
 case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None,
