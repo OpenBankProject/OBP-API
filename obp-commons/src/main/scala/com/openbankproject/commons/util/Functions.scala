@@ -117,6 +117,8 @@ object Functions {
         case _ => iterable.exists(ele ==)
       }
     }
+
+    def notExists(p: A => Boolean): Boolean = ! iterable.exists(p)
   }
 
   def deepFlatten(arr: Array[_]): Array[Any] = {

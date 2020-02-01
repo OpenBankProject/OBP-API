@@ -2,7 +2,6 @@ package code.api.v4_0_0
 
 import java.util.Date
 
-import code.api.Constant._
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{fullBoxOrException, _}
@@ -170,15 +169,14 @@ trait APIMethods400 {
       transactionRequestBodyJsonV200,
       transactionRequestWithChargeJSON210,
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
-        BankNotFound,
+        $BankNotFound,
         AccountNotFound,
-        ViewNotFound,
+        $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
-        UserNoPermissionAccessView,
         InvalidTransactionRequestType,
         InvalidJsonFormat,
         InvalidNumber,
@@ -208,15 +206,14 @@ trait APIMethods400 {
       transactionRequestBodyJsonV200,
       transactionRequestWithChargeJSON210,
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
-        BankNotFound,
+        $BankNotFound,
         AccountNotFound,
-        ViewNotFound,
+        $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
-        UserNoPermissionAccessView,
         InvalidTransactionRequestType,
         InvalidJsonFormat,
         InvalidNumber,
@@ -248,15 +245,14 @@ trait APIMethods400 {
       transactionRequestBodyCounterpartyJSON,
       transactionRequestWithChargeJSON210,
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
-        BankNotFound,
+        $BankNotFound,
         AccountNotFound,
-        ViewNotFound,
+        $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
-        UserNoPermissionAccessView,
         InvalidTransactionRequestType,
         InvalidJsonFormat,
         InvalidNumber,
@@ -292,15 +288,14 @@ trait APIMethods400 {
       transactionRequestBodySEPAJSON,
       transactionRequestWithChargeJSON210,
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
-        BankNotFound,
+        $BankNotFound,
         AccountNotFound,
-        ViewNotFound,
+        $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
-        UserNoPermissionAccessView,
         InvalidTransactionRequestType,
         InvalidJsonFormat,
         InvalidNumber,
@@ -327,15 +322,14 @@ trait APIMethods400 {
       transactionRequestBodyFreeFormJSON,
       transactionRequestWithChargeJSON210,
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
-        BankNotFound,
+        $BankNotFound,
         AccountNotFound,
-        ViewNotFound,
+        $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
-        UserNoPermissionAccessView,
         InvalidTransactionRequestType,
         InvalidJsonFormat,
         InvalidNumber,
@@ -361,7 +355,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
         cc =>
-          val Full(fromAccount) = SS.bankAccount
+          val fromAccount = SS.bankAccount
           for {
             _ <- NewStyle.function.isEnabledTransactionRequests()
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {
@@ -371,13 +365,11 @@ trait APIMethods400 {
               isValidID(bankId.value)
             }
 
-            account = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
-            u = cc.loggedInUser
-            _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, u, cc.callContext)
+            _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, BankIdAccountId(bankId, accountId), cc.loggedInUser, cc.callContext)
             
             _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
-              u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId)) == true ||
-                hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest) == true
+              cc.loggedInUser.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) ||
+                hasEntitlement(bankId.value, cc.userId, ApiRole.canCreateAnyTransactionRequest)
             }
 
             _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'") {
@@ -426,7 +418,7 @@ trait APIMethods400 {
                     write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))
                   }
 
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(cc.loggedInUser,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -453,7 +445,7 @@ trait APIMethods400 {
                     write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))
                   }
 
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(cc.loggedInUser,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -477,7 +469,7 @@ trait APIMethods400 {
                   toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
                   // Check we can send money to it.
                   _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
-                    toCounterparty.isBeneficiary == true
+                    toCounterparty.isBeneficiary
                   }
                   chargePolicy = transactionRequestBodyCounterparty.charge_policy
                   _ <- Helper.booleanToFuture(s"$InvalidChargePolicy") {
@@ -486,7 +478,7 @@ trait APIMethods400 {
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
                     write(transactionRequestBodyCounterparty)(Serialization.formats(NoTypeHints))
                   }
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(cc.loggedInUser,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -510,7 +502,7 @@ trait APIMethods400 {
                   (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIban(toIban, cc.callContext)
                   toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
                   _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
-                    toCounterparty.isBeneficiary == true
+                    toCounterparty.isBeneficiary
                   }
                   chargePolicy = transDetailsSEPAJson.charge_policy
                   _ <- Helper.booleanToFuture(s"$InvalidChargePolicy") {
@@ -519,7 +511,7 @@ trait APIMethods400 {
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
                     write(transDetailsSEPAJson)(Serialization.formats(NoTypeHints))
                   }
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(cc.loggedInUser,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -538,11 +530,11 @@ trait APIMethods400 {
                     json.extract[TransactionRequestBodyFreeFormJSON]
                   }
                   // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
-                  transactionRequestAccountJSON = TransactionRequestAccountJsonV140(fromAccount.bankId.value, fromAccount.accountId.value)
+                  transactionRequestAccountJSON = TransactionRequestAccountJsonV140(bankId.value, accountId.value)
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, cc.callContext) {
                     write(transactionRequestBodyFreeForm)(Serialization.formats(NoTypeHints))
                   }
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(cc.loggedInUser,
                     viewId,
                     fromAccount,
                     fromAccount,
@@ -587,12 +579,12 @@ trait APIMethods400 {
       challengeAnswerJSON,
       transactionRequestWithChargeJson,
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
-        BankNotFound,
-        UserNoPermissionAccessView,
+        $BankNotFound,
+        $BankAccountNotFound,
         TransactionRequestStatusNotInitiated,
         TransactionRequestTypeHasChanged,
         InvalidTransactionRequesChallengeId,
@@ -607,7 +599,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
         cc =>
-          val Full(fromAccount) = SS.bankAccount
+          val fromAccount = SS.bankAccount
           for {
             _ <- NewStyle.function.isEnabledTransactionRequests()
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {
@@ -695,7 +687,7 @@ trait APIMethods400 {
         List(dynamicEntityResponseBodyExample)
       ),
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -739,7 +731,7 @@ trait APIMethods400 {
       dynamicEntityRequestBodyExample,
       dynamicEntityResponseBodyExample,
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -783,7 +775,7 @@ trait APIMethods400 {
       dynamicEntityRequestBodyExample,
       dynamicEntityResponseBodyExample,
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -826,7 +818,7 @@ trait APIMethods400 {
       emptyObjectJson,
       emptyObjectJson,
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -920,7 +912,7 @@ trait APIMethods400 {
       PostResetPasswordUrlJsonV400("jobloggs", "jo@gmail.com", "74a8ebcc-10e4-4036-bef3-9835922246bf"),
       ResetPasswordUrlJsonV400( "https://apisandbox.openbankproject.com/user_mgt/reset_password/QOL1CPNJPCZ4BRMPX3Z01DPOX1HMGU3L"),
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -970,7 +962,7 @@ trait APIMethods400 {
       createAccountResponseJsonV310,
       List(
         InvalidJsonFormat,
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidAccountBalanceAmount,
         InvalidAccountInitialBalance,
@@ -980,7 +972,7 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount,apiTagOnboarding),
-      Some(List(canCreateAccount))
+      Some(List(!canCreateAccount)) // this ! means disabled auto roles validation, will do validation manually.
     )
 
 
@@ -1107,7 +1099,7 @@ trait APIMethods400 {
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UnknownError),
+      List($UserNotLoggedIn, UnknownError),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagApi, apiTagNewStyle),
       Some(List(canGetCallContext)))
@@ -1133,7 +1125,7 @@ trait APIMethods400 {
       """.stripMargin,
       emptyObjectJson,
       entitlementJSONs,
-      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canGetEntitlementsForAnyUserAtAnyBank)))
@@ -1171,7 +1163,7 @@ trait APIMethods400 {
       """.stripMargin,
       emptyObjectJson,
       entitlementJSONs,
-      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canGetEntitlementsForOneBank,canGetEntitlementsForAnyBank)))
@@ -1206,11 +1198,12 @@ trait APIMethods400 {
       postAccountTagJSON,
       accountTagJSON,
       List(
-        UserNotLoggedIn,
-        BankAccountNotFound,
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
         InvalidJsonFormat,
         NoViewPermission,
-        ViewNotFound,
+        $UserNoPermissionAccessView,
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountMetadata, apiTagAccount))
@@ -1219,7 +1212,7 @@ trait APIMethods400 {
       //add a tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
         cc =>
-          val Full(view) = SS.view
+          val view = SS.view
           for {
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_add_tag. Current ViewId($viewId)") {
               view.canAddTag
@@ -1227,8 +1220,7 @@ trait APIMethods400 {
             tagJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostTransactionTagJSON ", 400, cc.callContext) {
               json.extract[PostTransactionTagJSON]
             }
-            userPrimaryKey = cc.user.map(_.userPrimaryKey).orNull
-            (postedTag, callContext) <- Future(Tags.tags.vend.addTagOnAccount(bankId, accountId)(userPrimaryKey, viewId, tagJson.value, now)) map {
+            (postedTag, callContext) <- Future(Tags.tags.vend.addTagOnAccount(bankId, accountId)(cc.userPrimaryKey, viewId, tagJson.value, now)) map {
               i => (connectorEmptyResponse(i, cc.callContext), cc.callContext)
             }
           } yield {
@@ -1253,6 +1245,10 @@ trait APIMethods400 {
       emptyObjectJson,
       List(NoViewPermission,
         ViewNotFound,
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountMetadata, apiTagAccount))
@@ -1261,7 +1257,7 @@ trait APIMethods400 {
       //delete a tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
         cc =>
-          val Full(view) = SS.view
+          val view = SS.view
           for {
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_delete_tag. Current ViewId($viewId)") {
               view.canDeleteTag
@@ -1290,9 +1286,11 @@ trait APIMethods400 {
       emptyObjectJson,
       accountTagsJSON,
       List(
-        BankAccountNotFound,
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
         NoViewPermission,
-        ViewNotFound,
+        $UserNoPermissionAccessView,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1302,7 +1300,7 @@ trait APIMethods400 {
       //get tags
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: Nil JsonGet req => {
         cc =>
-          val Full(view) = SS.view
+          val view = SS.view
           for {
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_tags. Current ViewId($viewId)") {
               view.canSeeTags
@@ -1343,7 +1341,7 @@ trait APIMethods400 {
          |""".stripMargin,
       emptyObjectJson,
       moderatedCoreAccountJsonV400,
-      List(UserNotLoggedIn, BankAccountNotFound,UnknownError),
+      List($UserNotLoggedIn, $BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: Nil,
       connectorMethods = Some(List("obp.checkBankAccountExists","obp.getAccountAttributesByAccount"))
@@ -1352,7 +1350,7 @@ trait APIMethods400 {
       //get account by id (assume owner view requested)
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => {
         cc =>
-          val Full(account) = SS.bankAccount
+          val account = SS.bankAccount
           for {
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(cc.loggedInUser, BankIdAccountId(account.bankId, account.accountId), cc.callContext)
             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, cc.user, cc.callContext)
@@ -1394,7 +1392,12 @@ trait APIMethods400 {
         |""".stripMargin,
       emptyObjectJson,
       moderatedAccountJSON400,
-      List(UserNotLoggedIn, BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  apiTagNewStyle :: Nil,
       connectorMethods = Some(List("obp.checkBankAccountExists","obp.getAccountAttributesByAccount"))
@@ -1402,7 +1405,7 @@ trait APIMethods400 {
     lazy val getPrivateAccountByIdFull : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
         cc =>
-          val (Full(account), Full(view)) = (SS.bankAccount, SS.view)
+          val (account, view) = (SS.bankAccount, SS.view)
           for {
             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, cc.user, cc.callContext)
             (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
@@ -1437,7 +1440,7 @@ trait APIMethods400 {
       postCustomerPhoneNumberJsonV400,
       customerJsonV310,
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -1478,7 +1481,7 @@ trait APIMethods400 {
       bankJSONV220,
       List(
         InvalidJsonFormat,
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         InsufficientAuthorisationToCreateBank,
         UnknownError
       ),
@@ -1541,10 +1544,11 @@ trait APIMethods400 {
       postDirectDebitJsonV400,
       directDebitJsonV400,
       List(
-        UserNotLoggedIn,
-        BankNotFound,
-        BankAccountNotFound,
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
         NoViewPermission,
+        $UserNoPermissionAccessView,
         InvalidJsonFormat,
         CustomerNotFoundByCustomerId,
         UserNotFoundByUserId,
@@ -1557,7 +1561,7 @@ trait APIMethods400 {
     lazy val createDirectDebit : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "direct-debit" ::  Nil JsonPost  json -> _ => {
         cc =>
-          val Full(view) = SS.view
+          val view = SS.view
           for {
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_direct_debit. Current ViewId($viewId)") {
               view.canCreateDirectDebit
@@ -1600,9 +1604,9 @@ trait APIMethods400 {
       postDirectDebitJsonV400,
       directDebitJsonV400,
       List(
-        UserNotLoggedIn,
-        BankNotFound,
-        BankAccountNotFound,
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
         NoViewPermission,
         InvalidJsonFormat,
         CustomerNotFoundByCustomerId,
@@ -1660,15 +1664,16 @@ trait APIMethods400 {
       postStandingOrderJsonV400,
       standingOrderJsonV400,
       List(
-        UserNotLoggedIn,
-        BankNotFound,
-        BankAccountNotFound,
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
         NoViewPermission,
         InvalidJsonFormat,
         InvalidNumber,
         InvalidISOCurrencyCode,
         CustomerNotFoundByCustomerId,
         UserNotFoundByUserId,
+        $UserNoPermissionAccessView,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1677,10 +1682,10 @@ trait APIMethods400 {
     lazy val createStandingOrder : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "standing-order" ::  Nil JsonPost  json -> _ => {
         cc =>
-          val Full(view) = SS.view
+          val view = SS.view
           for {
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_standing_order. Current ViewId($viewId)") {
-              view.canCreateStandingOrder == true
+              view.canCreateStandingOrder
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostStandingOrderJsonV400 "
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
@@ -1734,9 +1739,9 @@ trait APIMethods400 {
       postStandingOrderJsonV400,
       standingOrderJsonV400,
       List(
-        UserNotLoggedIn,
-        BankNotFound,
-        BankAccountNotFound,
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
         NoViewPermission,
         InvalidJsonFormat,
         InvalidNumber,
@@ -1806,7 +1811,7 @@ trait APIMethods400 {
       postAccountAccessJsonV400,
       viewJsonV300,
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         UserMissOwnerViewOrNotAccountHolder,
         InvalidJsonFormat,
         UserNotFoundById,
@@ -1860,7 +1865,7 @@ trait APIMethods400 {
       postAccountAccessJsonV400,
       revokedJsonV400,
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         UserMissOwnerViewOrNotAccountHolder,
         InvalidJsonFormat,
         UserNotFoundById,

@@ -59,6 +59,7 @@ import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import code.views.Views
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{Customer, _}
@@ -1078,7 +1079,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   // Used to document the API calls
   case class ResourceDoc(
-                          partialFunction : OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
+                          partialFunction: OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
                           implementedInApiVersion: ScannedApiVersion, // TODO: Use ApiVersion enumeration instead of string
                           partialFunctionName: String, // The string name of the partial function that implements this resource. Could use it to link to the source code that implements the call
                           requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
@@ -1090,12 +1091,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           var errorResponseBodies: List[String], // Possible error responses
                           catalogs: Catalogs,
                           tags: List[ResourceDocTag],
-                          roles: Option[List[ApiRole]] = None,
+                          var roles: Option[List[ApiRole]] = None,
                           isFeatured: Boolean = false,
                           specialInstructions: Option[String] = None,
                           specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
                           connectorMethods: Option[List[String]] = None
-  ) {
+                        ) {
     // this code block will be merged to constructor.
     {
       val authenticationIsRequired = authenticationRequiredMessage(true)
@@ -1106,32 +1107,41 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case _ => false
       }
       // if required roles not empty, add UserHasMissingRoles to errorResponseBodies
-      if(rolesNonEmpty) {
+      if (rolesNonEmpty) {
         errorResponseBodies ?+= UserNotLoggedIn
         errorResponseBodies ?+= UserHasMissingRoles
       } else {
         errorResponseBodies ?-= UserHasMissingRoles
       }
       // if authentication is required, add UserNotLoggedIn to errorResponseBodies
-      if(description.contains(authenticationIsRequired)) {
+      if (description.contains(authenticationIsRequired)) {
         errorResponseBodies ?+= UserNotLoggedIn
-      } else if(description.contains(authenticationIsOptional) && !rolesNonEmpty) {
+      } else if (description.contains(authenticationIsOptional) && !rolesNonEmpty) {
         errorResponseBodies ?-= UserNotLoggedIn
-      } else if(errorResponseBodies.contains(UserNotLoggedIn)) {
+      } else if (errorResponseBodies.contains(UserNotLoggedIn)) {
         description +=
-              s"""
-               |
-               |$authenticationIsRequired
-               |"""
-      } else if(!errorResponseBodies.contains(UserNotLoggedIn)) {
+          s"""
+             |
+             |$authenticationIsRequired
+             |"""
+      } else if (!errorResponseBodies.contains(UserNotLoggedIn)) {
         description +=
-              s"""
-               |
-               |$authenticationIsOptional
-               |"""
+          s"""
+             |
+             |$authenticationIsOptional
+             |"""
       }
-
     }
+    private val rolesForCheck = roles match {
+      case Some(list) if list.notExists(_.isInstanceOf[ApiRole_!]) => list
+      case _ => Nil
+    }
+    // un-wrapper roles
+    roles = roles.map(_.flatMap({
+      case ApiRole_!(_role) => _role :: Nil
+      case AndRole(rs) => rs
+      case r => r :: Nil
+    }))
 
     /**
      * According errorResponseBodies whether contains UserNotLoggedIn and UserHasMissingRoles do validation.
@@ -1142,125 +1152,159 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     /**
      * wrapped an endpoint to a new one, let it do auth check before execute the endpoint body
+     *
      * @param obpEndpoint original endpoint
      * @return wrapped endpoint
      */
-    def wrappedWithAuthCheck(obpEndpoint : OBPEndpoint): OBPEndpoint = {
+    def wrappedWithAuthCheck(obpEndpoint: OBPEndpoint): OBPEndpoint = {
 
-        val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
+      val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
 
-        val requestUrlBankId = requestUrlPartPath.indexOf("BANK_ID")
-        val requestUrlAccountId = requestUrlPartPath.indexOf("ACCOUNT_ID")
-        val requestUrlViewId = requestUrlPartPath.indexOf("VIEW_ID")
+      val requestUrlBankId = requestUrlPartPath.indexOf("BANK_ID")
+      val requestUrlAccountId = requestUrlPartPath.indexOf("ACCOUNT_ID")
+      val requestUrlViewId = requestUrlPartPath.indexOf("VIEW_ID")
 
-        def getIds(url: List[String]): (Option[BankId], Option[AccountId], Option[ViewId]) = {
-          val apiPrefixLength = url.size - requestUrlPartPath.size
+      def getIds(url: List[String]): (Option[BankId], Option[AccountId], Option[ViewId]) = {
+        val apiPrefixLength = url.size - requestUrlPartPath.size
 
-          val bankId = if(requestUrlBankId != -1) {
-            url.lift(apiPrefixLength + requestUrlBankId).map(BankId(_))
-          } else {
-            None
-          }
-          val accountId = if(bankId.isDefined && requestUrlAccountId != -1) {
-            url.lift(apiPrefixLength + requestUrlAccountId).map(AccountId(_))
-          } else {
-            None
-          }
-
-          val viewId = if(accountId.isDefined && requestUrlViewId != -1) {
-            url.lift(apiPrefixLength + requestUrlViewId).map(ViewId(_))
-          } else {
-            None
-          }
-
-          (bankId, accountId, viewId)
+        val bankId = if (requestUrlBankId != -1) {
+          url.lift(apiPrefixLength + requestUrlBankId).map(BankId(_))
+        } else {
+          None
+        }
+        val accountId = if (bankId.isDefined && requestUrlAccountId != -1) {
+          url.lift(apiPrefixLength + requestUrlAccountId).map(AccountId(_))
+        } else {
+          None
         }
 
-        val bankFuturePlaceHolder: Future[(Bank, Option[CallContext])] = Future.successful(null.asInstanceOf[Bank] -> None)
-        val accountFuturePlaceHolder: Future[(BankAccount, Option[CallContext])] = Future.successful(null.asInstanceOf[BankAccount] -> None)
-        val viewFuturePlaceHolder: Future[View] = Future.successful(null.asInstanceOf[View])
+        val viewId = if (accountId.isDefined && requestUrlViewId != -1) {
+          url.lift(apiPrefixLength + requestUrlViewId).map(ViewId(_))
+        } else {
+          None
+        }
 
-        new OBPEndpoint {
-          override def isDefinedAt(x: Req): Boolean = obpEndpoint.isDefinedAt(x)
+        (bankId, accountId, viewId)
+      }
 
-          override def apply(req: Req): CallContext => Box[JsonResponse] = {
-            val originFn: CallContext => Box[JsonResponse] = obpEndpoint.apply(req)
+      def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] =
+        if (errorResponseBodies.contains($UserNotLoggedIn)) authorizedAccess(cc) else anonymousAccess(cc)
 
-            val doLoginCheck = errorResponseBodies.contains(UserNotLoggedIn)
+      def checkBank(bankId: Option[BankId], callContext: Option[CallContext]): Future[(Bank, Option[CallContext])] = {
+        val needCheckBank = errorResponseBodies.contains($BankNotFound)
+        (needCheckBank, bankId) match {
+          case (true, Some(bId)) => NewStyle.function.getBank(bId, callContext)
+          case _ => Future.successful(null.asInstanceOf[Bank] -> None)
+        }
+      }
 
-            val (bankId, accountId, viewId) = getIds(req.path.partPath)
+      def checkAccount(bankId: Option[BankId], accountId: Option[AccountId], callContext: Option[CallContext]): Future[(BankAccount, Option[CallContext])] = {
+        val needCheckAccount = errorResponseBodies.contains($BankAccountNotFound)
+        (needCheckAccount,bankId, accountId) match {
+          case (true, Some(bId), Some(aId)) => NewStyle.function.getBankAccount(bId, aId, callContext)
+          case _ => Future.successful(null.asInstanceOf[BankAccount] -> None)
+        }
+      }
 
-            val request: Box[Req] = S.request
-            val session: Box[LiftSession] = S.session
+      def checkView(viewId: Option[ViewId],
+                    bankId: Option[BankId],
+                    accountId: Option[AccountId],
+                    boxUser: Box[User],
+                    callContext: Option[CallContext]): Future[View] = {
+        val needCheckView = errorResponseBodies.contains($UserNoPermissionAccessView)
 
-            cc: CallContext => {
-              // if authentication check, do authorizedAccess, else do Rate Limit check
-              for {
-                (boxUser, _) <- if(doLoginCheck) {
-                              authorizedAccess(cc)
-                            } else {
-                              anonymousAccess(cc)
-                            }
+        (needCheckView, bankId, accountId, viewId) match {
+          case (true, Some(bId), Some(aId), Some(vId)) =>
+            val bankIdAccountId = BankIdAccountId(bId, aId)
+            NewStyle.function.checkViewAccessAndReturnView(vId, bankIdAccountId, boxUser, callContext)
+          case _ => Future.successful(null.asInstanceOf[View])
+        }
+      }
 
-                // if current login user exists, add to callContext
-                newCallContext = if(boxUser.isDefined) cc.copy(user = boxUser) else cc
-                callContext = Option(newCallContext)
+      new OBPEndpoint {
+        override def isDefinedAt(x: Req): Boolean = obpEndpoint.isDefinedAt(x)
 
-                // roles check
-                bankIdStr = bankId.map(_.value).getOrElse("")
-                requiredRoles = roles.getOrElse(Nil)
-                _ <- NewStyle.function.hasAtLeastOneEntitlement(bankIdStr, boxUser.map(_.userId).openOr(""), requiredRoles)
+        override def apply(req: Req): CallContext => Box[JsonResponse] = {
+          val originFn: CallContext => Box[JsonResponse] = obpEndpoint.apply(req)
 
-                // bank exists check
-                (bank, _) <- bankId.map(NewStyle.function.getBank(_, callContext)).getOrElse(bankFuturePlaceHolder)
 
-                (account, _) <- accountId.map(NewStyle.function.getBankAccount(bankId.orNull, _, callContext)).getOrElse(accountFuturePlaceHolder)
+          val (bankId, accountId, viewId) = getIds(req.path.partPath)
 
-                view      <- viewId.map(NewStyle.function.checkViewAccessAndReturnView(_, BankIdAccountId(bankId.orNull, accountId.orNull), boxUser, callContext))
-                            .getOrElse(viewFuturePlaceHolder)
+          val request: Box[Req] = S.request
+          val session: Box[LiftSession] = S.session
 
-              } yield {
+          cc: CallContext => {
+            // if authentication check, do authorizedAccess, else do Rate Limit check
+            for {
+              (boxUser, _) <- checkAuth(cc)
 
-                //pass session and request to endpoint body
-                val boxResponse = S.init(request, session.orNull){
-                  // pass user, bank, account and view to endpoint body
-                  SS.init(boxUser, bank, account, view) {
-                    originFn(newCallContext)
-                  }
+              // if current login user exists, add to callContext
+              newCallContext = if (boxUser.isDefined) cc.copy(user = boxUser) else cc
+              callContext = Option(newCallContext)
+
+              // roles check
+              bankIdStr = bankId.map(_.value).getOrElse("")
+              _ <- NewStyle.function.hasAtLeastOneEntitlement(bankIdStr, boxUser.map(_.userId).openOr(""), rolesForCheck)
+
+              // check bankId valid
+              (bank, _) <- checkBank(bankId, callContext)
+              // check accountId valid
+              (account, _) <- checkAccount(bankId, accountId, callContext)
+              // check user access permission of this viewId corresponding view
+              view <- checkView(viewId, bankId, accountId, boxUser, callContext)
+
+            } yield {
+
+              //pass session and request to endpoint body
+              val boxResponse = S.init(request, session.orNull) {
+                // pass user, bank, account and view to endpoint body
+                SS.init(bank, account, view) {
+                  originFn(newCallContext)
                 }
-                (boxResponse, callContext)
               }
-
+              (boxResponse, callContext)
             }
+
           }
         }
+      }
 
     }
   }
 
-  // simulate S pass request and session, this object pass user, bank, account and view
+  /**
+   * Simulate S pass request and session, this object pass bank, account and view.
+   * This method invoke must fulfill three point:
+   *  1. be invoked at endpoint's body
+   *  2. be invoked out of for comprehension
+   *  3. endpoint's corresponding ResourceDoc.errorResponseBodies must contains $BankNotFound, $BankAccountNotFound or $UserNoPermissionAccessView
+   */
   object SS {
-    private val _user = new ThreadGlobal[User]
     private val _bank = new ThreadGlobal[Bank]
     private val _bankAccount = new ThreadGlobal[BankAccount]
     private val _view = new ThreadGlobal[View]
 
-    def user: Box[User] = _user.box
-    def bank: Box[Bank] = _bank.box
-    def bankAccount: Box[BankAccount] = _bankAccount.box
-    def view: Box[View] = _view.box
+    def bank: Bank = _bank.box.openOrThrowException(buildErrorMsg(nameOf($BankNotFound)))
+    def bankAccount: BankAccount = _bankAccount.box.openOrThrowException(buildErrorMsg(nameOf($BankAccountNotFound)))
+    def view: View = _view.box.openOrThrowException(buildErrorMsg(nameOf($UserNoPermissionAccessView)))
 
-    def init[B](user: Box[User], bank: Bank, bankAccount: BankAccount, view: View)(f: => B):B = {
-      _user.doWith(user.orNull){
+    def init[B](bank: Bank, bankAccount: BankAccount, view: View)(f: => B):B = {
         _bank.doWith(bank) {
           _bankAccount.doWith(bankAccount) {
             _view.doWith(view) {
               f
             }
           }
-        }
       }
     }
+
+    private def buildErrorMsg(msg: String) =
+      s"""
+         |This method invoke must fulfill three point:
+         | 1. be invoked at endpoint's body
+         | 2. be invoked out of for comprehension
+         | 3. endpoint's corresponding ResourceDoc.errorResponseBodies must contains $msg
+         |""".stripMargin
   }
 
   def getGlossaryItems : List[GlossaryItem] = {

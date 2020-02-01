@@ -7,6 +7,12 @@ sealed trait ApiRole{
   override def toString() = getClass().getSimpleName
 
   def & (apiRole: ApiRole): AndRole = AndRole(this, apiRole)
+
+  /**
+   * Wrapped current role to a special role, make the disabled auto validation for ResourceDoc.roles.
+   * @return
+   */
+  def unary_! = ApiRole_!(this)
 }
 
 /**
@@ -32,6 +38,19 @@ object AndRole {
   }
 }
 
+/**
+ * Just a wrapper of ApiRole, when Resource.roles contains one this type of role,
+ * the role check need do explicit at endpoint body
+ * @param _role
+ */
+case class ApiRole_!(_role: ApiRole) extends ApiRole{
+  val role = _role match {
+    case i: ApiRole_! => i._role
+    case _ => _role
+  }
+  override val requiresBankId: Boolean = role.requiresBankId
+  override def toString() = role.toString()
+}
 
 
 /** API Roles

@@ -87,7 +87,6 @@ object ErrorMessages {
 
 
 
-
   // Authentication / Authorisation / User messages (OBP-20XXX)
   val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
   val DirectLoginMissingParameters = "OBP-20002: These DirectLogin parameters are missing: "
@@ -454,7 +453,29 @@ object ErrorMessages {
   //For Swagger, get varible name by value:
   // eg: val InvalidUserId = "OBP-30107: Invalid User Id."
   //  getFildNameByValue("OBP-30107: Invalid User Id.") return InvalidUserId
-  def getFieldNameByValue(value: String): String = fieldValueToName.getOrElse(value, throw new IllegalArgumentException(s"ErrorMessages not exists field value is: $value"))
+  def getFieldNameByValue(value: String): String =
+    fieldValueToName.getOrElse(value, throw new IllegalArgumentException(s"ErrorMessages not exists field value is: $value"))
+
+  /****** special error message, start with $, mark as do validation according ResourceDoc errorResponseBodies *****/
+  /**
+   * validate method: APIUtil.authorizedAccess
+   */
+  def $UserNotLoggedIn = UserNotLoggedIn
+
+  /**
+   * validate method: NewStyle.function.getBank
+   */
+  def $BankNotFound = BankNotFound
+
+  /**
+   * validate method: NewStyle.function.getBankAccount
+   */
+  def $BankAccountNotFound = BankAccountNotFound
+
+  /**
+   *  validate method: NewStyle.function.checkViewAccessAndReturnView
+   */
+  def $UserNoPermissionAccessView = UserNoPermissionAccessView
 
 
   def getDuplicatedMessageNumbers = {
