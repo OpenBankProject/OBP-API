@@ -355,8 +355,8 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
         cc =>
-          val fromAccount = SS.bankAccount
           for {
+            (Full(u), fromAccount) <- SS.userAccount
             _ <- NewStyle.function.isEnabledTransactionRequests()
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {
               isValidID(accountId.value)
@@ -365,11 +365,12 @@ trait APIMethods400 {
               isValidID(bankId.value)
             }
 
-            _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, BankIdAccountId(bankId, accountId), cc.loggedInUser, cc.callContext)
+            account = BankIdAccountId(bankId, accountId)
+            _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, u, cc.callContext)
             
             _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
-              cc.loggedInUser.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) ||
-                hasEntitlement(bankId.value, cc.userId, ApiRole.canCreateAnyTransactionRequest)
+              u.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) ||
+                hasEntitlement(bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest)
             }
 
             _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'") {
@@ -418,7 +419,7 @@ trait APIMethods400 {
                     write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))
                   }
 
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(cc.loggedInUser,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -445,7 +446,7 @@ trait APIMethods400 {
                     write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))
                   }
 
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(cc.loggedInUser,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -478,7 +479,7 @@ trait APIMethods400 {
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
                     write(transactionRequestBodyCounterparty)(Serialization.formats(NoTypeHints))
                   }
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(cc.loggedInUser,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -511,7 +512,7 @@ trait APIMethods400 {
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
                     write(transDetailsSEPAJson)(Serialization.formats(NoTypeHints))
                   }
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(cc.loggedInUser,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -534,7 +535,7 @@ trait APIMethods400 {
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, cc.callContext) {
                     write(transactionRequestBodyFreeForm)(Serialization.formats(NoTypeHints))
                   }
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(cc.loggedInUser,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                     viewId,
                     fromAccount,
                     fromAccount,
@@ -599,8 +600,8 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
         cc =>
-          val fromAccount = SS.bankAccount
           for {
+            (Full(u), fromAccount) <- SS.userAccount
             _ <- NewStyle.function.isEnabledTransactionRequests()
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {
               isValidID(accountId.value)
@@ -613,7 +614,7 @@ trait APIMethods400 {
             }
 
             account = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
-            _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, cc.loggedInUser, cc.callContext)
+            _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, u, cc.callContext)
               
             // Check transReqId is valid
             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transReqId, cc.callContext)
@@ -650,19 +651,19 @@ trait APIMethods400 {
             challengeAnswerOBP <- NewStyle.function.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
 
             _ <- Helper.booleanToFuture(s"$InvalidChallengeAnswer") {
-              challengeAnswerOBP == true
+              challengeAnswerOBP
             }
 
             (challengeAnswerKafka, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
 
             _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ") {
-              (challengeAnswerKafka == true)
+              challengeAnswerKafka
             }
 
             // All Good, proceed with the Transaction creation...
             (transactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
               case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT =>
-                NewStyle.function.createTransactionAfterChallengeV300(cc.loggedInUser, fromAccount, transReqId, transactionRequestType, callContext)
+                NewStyle.function.createTransactionAfterChallengeV300(u, fromAccount, transReqId, transactionRequestType, callContext)
               case _ =>
                 NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
             }
@@ -1212,15 +1213,15 @@ trait APIMethods400 {
       //add a tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
         cc =>
-          val view = SS.view
           for {
+            (Full(u), view) <- SS.userView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_add_tag. Current ViewId($viewId)") {
               view.canAddTag
             }
             tagJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostTransactionTagJSON ", 400, cc.callContext) {
               json.extract[PostTransactionTagJSON]
             }
-            (postedTag, callContext) <- Future(Tags.tags.vend.addTagOnAccount(bankId, accountId)(cc.userPrimaryKey, viewId, tagJson.value, now)) map {
+            (postedTag, callContext) <- Future(Tags.tags.vend.addTagOnAccount(bankId, accountId)(u.userPrimaryKey, viewId, tagJson.value, now)) map {
               i => (connectorEmptyResponse(i, cc.callContext), cc.callContext)
             }
           } yield {
@@ -1257,8 +1258,8 @@ trait APIMethods400 {
       //delete a tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
         cc =>
-          val view = SS.view
           for {
+            view <- SS.view
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_delete_tag. Current ViewId($viewId)") {
               view.canDeleteTag
             }
@@ -1300,8 +1301,8 @@ trait APIMethods400 {
       //get tags
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: Nil JsonGet req => {
         cc =>
-          val view = SS.view
           for {
+            view <- SS.view
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_tags. Current ViewId($viewId)") {
               view.canSeeTags
             }
@@ -1350,17 +1351,17 @@ trait APIMethods400 {
       //get account by id (assume owner view requested)
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => {
         cc =>
-          val account = SS.bankAccount
           for {
-            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(cc.loggedInUser, BankIdAccountId(account.bankId, account.accountId), cc.callContext)
-            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, cc.user, cc.callContext)
+            (user @Full(u), account) <- SS.userAccount
+            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), cc.callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, cc.callContext)
             (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
               bankId,
               account.accountId,
               cc.callContext: Option[CallContext])
             tags <- Future(Tags.tags.vend.getTagsOnAccount(bankId, account.accountId)(view.viewId))
           } yield {
-            val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(cc.loggedInUser, BankIdAccountId(account.bankId, account.accountId))
+            val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
             (createNewCoreBankAccountJson(moderatedAccount, availableViews, accountAttributes, tags), HttpCode.`200`(callContext))
           }
       }
@@ -1405,15 +1406,15 @@ trait APIMethods400 {
     lazy val getPrivateAccountByIdFull : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
         cc =>
-          val (account, view) = (SS.bankAccount, SS.view)
           for {
-            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, cc.user, cc.callContext)
+            (user @Full(u), _, account, view) <- SS.userBankAccountView
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, cc.callContext)
             (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
               bankId,
               accountId,
               cc.callContext: Option[CallContext])
           } yield {
-            val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(cc.loggedInUser, BankIdAccountId(account.bankId, account.accountId))
+            val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
             val viewsAvailable = availableViews.map(JSONFactory.createViewJSON).sortBy(_.short_name)
             val tags = Tags.tags.vend.getTagsOnAccount(bankId, accountId)(viewId)
             (createBankAccountJSON(moderatedAccount, viewsAvailable, accountAttributes, tags), HttpCode.`200`(callContext))
@@ -1561,8 +1562,8 @@ trait APIMethods400 {
     lazy val createDirectDebit : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "direct-debit" ::  Nil JsonPost  json -> _ => {
         cc =>
-          val view = SS.view
           for {
+            view <- SS.view
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_direct_debit. Current ViewId($viewId)") {
               view.canCreateDirectDebit
             }
@@ -1682,8 +1683,8 @@ trait APIMethods400 {
     lazy val createStandingOrder : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "standing-order" ::  Nil JsonPost  json -> _ => {
         cc =>
-          val view = SS.view
           for {
+            view <- SS.view
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_standing_order. Current ViewId($viewId)") {
               view.canCreateStandingOrder
             }
