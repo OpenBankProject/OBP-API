@@ -1213,7 +1213,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val needCheckBank = errorResponseBodies.contains($BankNotFound)
         (needCheckBank, bankId) match {
           case (true, Some(bId)) => NewStyle.function.getBank(bId, callContext)
-          case _ => Future.successful(null.asInstanceOf[Bank] -> None)
+          case _ => Future.successful(null.asInstanceOf[Bank] -> callContext)
         }
       }
 
@@ -1221,7 +1221,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val needCheckAccount = errorResponseBodies.contains($BankAccountNotFound)
         (needCheckAccount,bankId, accountId) match {
           case (true, Some(bId), Some(aId)) => NewStyle.function.getBankAccount(bId, aId, callContext)
-          case _ => Future.successful(null.asInstanceOf[BankAccount] -> None)
+          case _ => Future.successful(null.asInstanceOf[BankAccount] -> callContext)
         }
       }
 
@@ -1255,24 +1255,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           cc: CallContext => {
             // if authentication check, do authorizedAccess, else do Rate Limit check
             for {
-              (boxUser, _) <- checkAuth(cc)
-
-              // if current login user exists, add to callContext
-              newCallContext = if (boxUser.isDefined) cc.copy(user = boxUser) else cc
-              callContext = Option(newCallContext)
+              (boxUser, callContext) <- checkAuth(cc)
 
               // roles check
               _ <- checkRoles(bankId, boxUser)
 
               // check bankId valid
-              (bank, _) <- checkBank(bankId, callContext)
+              (bank, callContext) <- checkBank(bankId, callContext)
               // check accountId valid
-              (account, _) <- checkAccount(bankId, accountId, callContext)
+              (account, callContext) <- checkAccount(bankId, accountId, callContext)
               // check user access permission of this viewId corresponding view
               view <- checkView(viewId, bankId, accountId, boxUser, callContext)
 
             } yield {
-
+              val Some(newCallContext) = if(boxUser.isDefined) callContext.map(_.copy(user=boxUser)) else callContext
               //pass session and request to endpoint body
               val boxResponse = S.init(request, session.orNull) {
                 // pass user, bank, account and view to endpoint body
