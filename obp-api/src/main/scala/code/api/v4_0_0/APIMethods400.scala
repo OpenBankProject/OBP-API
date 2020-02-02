@@ -973,8 +973,8 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount,apiTagOnboarding),
-      Some(List(!canCreateAccount)) // this ! means disabled auto roles validation, will do validation manually.
-    )
+      Some(List(canCreateAccount))
+    ).notAutoValidateRoles()  // this means disabled auto roles validation, will manually do the roles validation .
 
 
     lazy val addAccount : OBPEndpoint = {

@@ -1102,21 +1102,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       val authenticationIsRequired = authenticationRequiredMessage(true)
       val authenticationIsOptional = authenticationRequiredMessage(false)
 
-      val rolesNonEmpty = roles match {
-        case Some(list) => list.nonEmpty
-        case _ => false
-      }
+      val rolesIsEmpty = roles.map(_.isEmpty).getOrElse(true)
       // if required roles not empty, add UserHasMissingRoles to errorResponseBodies
-      if (rolesNonEmpty) {
+      if (rolesIsEmpty) {
+        errorResponseBodies ?-= UserHasMissingRoles
+      } else {
         errorResponseBodies ?+= UserNotLoggedIn
         errorResponseBodies ?+= UserHasMissingRoles
-      } else {
-        errorResponseBodies ?-= UserHasMissingRoles
       }
       // if authentication is required, add UserNotLoggedIn to errorResponseBodies
       if (description.contains(authenticationIsRequired)) {
         errorResponseBodies ?+= UserNotLoggedIn
-      } else if (description.contains(authenticationIsOptional) && !rolesNonEmpty) {
+      } else if (description.contains(authenticationIsOptional) && rolesIsEmpty) {
         errorResponseBodies ?-= UserNotLoggedIn
       } else if (errorResponseBodies.contains(UserNotLoggedIn)) {
         description +=
@@ -1133,15 +1130,28 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
     }
     private val rolesForCheck = roles match {
-      case Some(list) if list.notExists(_.isInstanceOf[ApiRole_!]) => list
+      case Some(list) => list
       case _ => Nil
     }
     // un-wrapper roles
     roles = roles.map(_.flatMap({
-      case ApiRole_!(_role) => _role :: Nil
       case AndRole(rs) => rs
       case r => r :: Nil
     }))
+
+    private var _isAutoValidate = false
+
+    def autoValidate(): ResourceDoc = {
+      _isAutoValidate = true
+      this
+    }
+    def isAutoValidate = _isAutoValidate
+
+    var _autoValidateRoles = true
+    def notAutoValidateRoles(): ResourceDoc = {
+      _autoValidateRoles = false
+      this
+    }
 
     /**
      * According errorResponseBodies whether contains UserNotLoggedIn and UserHasMissingRoles do validation.
@@ -1189,6 +1199,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
       def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] =
         if (errorResponseBodies.contains($UserNotLoggedIn)) authorizedAccess(cc) else anonymousAccess(cc)
+
+      def checkRoles(bankId: Option[BankId], user: Box[User]):Future[Box[Unit]] =
+        if(_autoValidateRoles && rolesForCheck.nonEmpty) {
+            val bankIdStr = bankId.map(_.value).getOrElse("")
+            val userIdStr = user.map(_.userId).openOr("")
+            NewStyle.function.hasAtLeastOneEntitlement(bankIdStr, userIdStr, rolesForCheck)
+          } else {
+              Future.successful(Full(Unit))
+            }
 
       def checkBank(bankId: Option[BankId], callContext: Option[CallContext]): Future[(Bank, Option[CallContext])] = {
         val needCheckBank = errorResponseBodies.contains($BankNotFound)
@@ -1243,8 +1262,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
               callContext = Option(newCallContext)
 
               // roles check
-              bankIdStr = bankId.map(_.value).getOrElse("")
-              _ <- NewStyle.function.hasAtLeastOneEntitlement(bankIdStr, boxUser.map(_.userId).openOr(""), rolesForCheck)
+              _ <- checkRoles(bankId, boxUser)
 
               // check bankId valid
               (bank, _) <- checkBank(bankId, callContext)
