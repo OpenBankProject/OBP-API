@@ -105,23 +105,24 @@ object Consent {
   private def verifyHmacSignedJwt(jwtToken: String, c: MappedConsent): Boolean = {
     JwtUtil.verifyHmacSignedJwt(jwtToken, c.secret)
   }
-  
+
   private def checkConsumerIsActiveAndMatched(consent: ConsentJWT, requestHeaderConsumerKey: Option[String]): Box[Boolean] = {
     Consumers.consumers.vend.getConsumerByConsumerId(consent.aud) match {
       case Full(consumerFromConsent) if consumerFromConsent.isActive.get == true => // Consumer is active
-        val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="allow_consumer_key_header_for_consent_validation", defaultValue=false)
-        allowed match {
-          case true =>
+        APIUtil.getPropsValue(nameOfProperty = "consumer_validation_method_for_consent", defaultValue = "CONSUMER_KEY_VALUE") match {
+          case "CONSUMER_KEY_VALUE" =>
             requestHeaderConsumerKey match {
               case Some(reqHeaderConsumerKey) =>
-                if(reqHeaderConsumerKey == consumerFromConsent.key.get)
+                if (reqHeaderConsumerKey == consumerFromConsent.key.get)
                   Full(true) // This consent can be used by current application
                 else // This consent can NOT be used by current application
                   Failure(ErrorMessages.ConsentDoesntMatchApp)
               case None => Failure(ErrorMessages.ConsumerKeyHeaderMissing) // There is no header `Consumer-Key` in request headers
             }
-          case false => // This instance does NOT require header `Consumer-Key` in request headers
+          case "NONE" => // This instance does not require validation method
             Full(true)
+          case _ => // This instance does not specify validation method
+            Failure(ErrorMessages.ConsumerValidationMethodForConsentNotDefined)
         }
       case Full(consumer) if consumer.isActive.get == false => // Consumer is NOT active
         Failure(ErrorMessages.ConsumerAtConsentDisabled + " aud: " + consent.aud)
