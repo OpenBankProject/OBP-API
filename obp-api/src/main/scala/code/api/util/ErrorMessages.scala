@@ -487,7 +487,7 @@ object ErrorMessages {
 
   def getDuplicatedMessageNumbers = {
     import scala.meta._
-    val source: Source = new java.io.File("obp-api/src/main/scala/code/api/util/ErrorMessages.scala").parse[Source].get
+    val source: Source = new java.io.File("src/main/scala/code/api/util/ErrorMessages.scala").parse[Source].get
 
     val listOfMessaegeNumbers = source.collect {
       case obj: Defn.Object if obj.name.value == "ErrorMessages" =>
