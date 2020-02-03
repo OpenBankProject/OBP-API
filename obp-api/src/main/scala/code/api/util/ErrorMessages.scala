@@ -343,9 +343,9 @@ object ErrorMessages {
   val RolesAllowedInConsent = "OBP-35013: Consents can only contain Roles that you already have access to."
   val ViewsAllowedInConsent = "OBP-35014: Consents can only contain Views that you already have access to."
   val ConsentDoesntMatchApp = "OBP-35015: Consent doesn't match your application."
-  val ConsumerKeyHeaderMissing = "OBP-35016: Consumer-Key Header is not defined at request header."
-  val ConsumerAtConsentDisabled = "OBP-35016: The Consumer specified in this consent is disabled."
-  val ConsumerAtConsentCannotBeFond = "OBP-35017: The Consumer specified in this consent cannot be found."
+  val ConsumerKeyHeaderMissing = "OBP-35016: Consumer-Key header value is not defined at this request."
+  val ConsumerAtConsentDisabled = "OBP-35017: The Consumer specified in this consent is disabled."
+  val ConsumerAtConsentCannotBeFond = "OBP-35018: The Consumer specified in this consent cannot be found."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
@@ -487,7 +487,7 @@ object ErrorMessages {
 
   def getDuplicatedMessageNumbers = {
     import scala.meta._
-    val source: Source = new java.io.File("src/main/scala/code/api/util/ErrorMessages.scala").parse[Source].get
+    val source: Source = new java.io.File("obp-api/src/main/scala/code/api/util/ErrorMessages.scala").parse[Source].get
 
     val listOfMessaegeNumbers = source.collect {
       case obj: Defn.Object if obj.name.value == "ErrorMessages" =>
