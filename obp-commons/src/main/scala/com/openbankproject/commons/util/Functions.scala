@@ -24,6 +24,7 @@ object Functions {
 
   def truePredicate[T]: T => Boolean = _ => true
   def falsePredicate[T]: T => Boolean = _ => false
+  def predicateTo[T](b: Boolean): T => Boolean = _ => b
 
   @inline
   def unary[T]: T => T = t => t
@@ -116,6 +117,8 @@ object Functions {
         case _ => iterable.exists(ele ==)
       }
     }
+
+    def notExists(p: A => Boolean): Boolean = ! iterable.exists(p)
   }
 
   def deepFlatten(arr: Array[_]): Array[Any] = {

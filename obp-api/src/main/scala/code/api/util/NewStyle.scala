@@ -3,9 +3,7 @@ package code.api.util
 import java.util.Date
 import java.util.UUID.randomUUID
 
-import code.accountholders.AccountHolders
 import code.api.APIFailureNewStyle
-import code.api.Constant._
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
@@ -98,8 +96,7 @@ object NewStyle {
 
     def getBranch(bankId : BankId, branchId : BranchId, callContext: Option[CallContext]): OBPReturnType[BranchT] = {
       Connector.connector.vend.getBranch(bankId, branchId, callContext) map {
-        val msg: String = s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
-        x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
+        x => fullBoxOrException(x ~> APIFailureNewStyle(BranchNotFoundByBranchId, 400, callContext.map(_.toLight)))
       } map { unboxFull(_) }
     }
 
@@ -580,18 +577,20 @@ object NewStyle {
 
     def hasEntitlement(failMsg: String)(bankId: String, userId: String, role: ApiRole): Future[Box[Unit]] = {
       Helper.booleanToFuture(failMsg + role.toString()) {
-        code.api.util.APIUtil.hasEntitlement(bankId, userId, role)
+        APIUtil.hasEntitlement(bankId, userId, role)
       }
     }
     def hasEntitlement(bankId: String, userId: String, role: ApiRole, callContext: Option[CallContext] = None): Future[Box[Unit]] = {
       hasEntitlement(UserHasMissingRoles)(bankId, userId, role)
     }
     
-    def hasAtLeastOneEntitlement(failMsg: String)(bankId: String, userId: String, role: List[ApiRole]): Future[Box[Unit]] = {
+    def hasAtLeastOneEntitlement(failMsg: => String)(bankId: String, userId: String, roles: List[ApiRole]): Future[Box[Unit]] =
       Helper.booleanToFuture(failMsg) {
-        code.api.util.APIUtil.hasAtLeastOneEntitlement(bankId, userId, role)
+        APIUtil.hasAtLeastOneEntitlement(bankId, userId, roles)
       }
-    }
+
+    def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Future[Box[Unit]] =
+      hasAtLeastOneEntitlement(UserHasMissingRoles + roles.mkString(" or "))(bankId, userId, roles)
 
 
     def createUserAuthContext(userId: String, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContext] = {
