@@ -5,7 +5,7 @@ import org.scalatest.{FlatSpec, Matchers, Tag}
 import org.scalatest.PartialFunctionValues._
 
 import scala.reflect.runtime.universe._
-import Functions.RichCollection
+import Functions.Implicits.RichCollection
 import net.liftweb.json._
 import RequiredFieldValidation.getRequiredInfo
 

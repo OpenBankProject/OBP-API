@@ -26,7 +26,7 @@ import code.api.util.ErrorMessages.InvalidConnectorResponseForMissingRequiredVal
 import code.api.util.APIUtil.{fullBoxOrException, unboxFull}
 import com.openbankproject.commons.util.ApiVersion
 import com.openbankproject.commons.util.ReflectUtils._
-import com.openbankproject.commons.util.Functions.RichCollection
+import com.openbankproject.commons.util.Functions.Implicits._
 
 import scala.collection.GenTraversableOnce
 import scala.concurrent.Future

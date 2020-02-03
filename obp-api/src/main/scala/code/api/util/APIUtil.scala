@@ -82,7 +82,7 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, ReflectUtils, ScannedApiVersion}
-import com.openbankproject.commons.util.Functions.RichCollection
+import com.openbankproject.commons.util.Functions.Implicits._
 import org.apache.commons.lang3.StringUtils
 
 import scala.concurrent.Future
