@@ -31,8 +31,7 @@ import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.v2_0_0.JSONFactory200.UserJsonV200
-import code.api.v3_0_0.APIMethods300
+import code.api.v3_0_0.{APIMethods300, UserJsonV300}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.consent.MappedConsent
 import code.entitlement.Entitlement
@@ -62,10 +61,11 @@ class ConsentTest extends V310ServerSetup {
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccount(bankId)
   lazy val entitlements = List(EntitlementJsonV400("", CanGetAnyUser.toString()))
+  lazy val views = List(ViewJsonV400(bankId, bankAccount.id, "owner"))
   lazy val postConsentEmailJsonV310 = SwaggerDefinitionsJSON.postConsentEmailJsonV310
     .copy(entitlements=entitlements)
     .copy(consumer_id=None)
-    .copy(views=Nil)
+    .copy(views=views)
   
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access")
   {
@@ -138,14 +138,20 @@ class ConsentTest extends V310ServerSetup {
           // Make a request WITH the request header "Consumer-Key: EXISTING_VALUE"
           val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
           val user = makeGetRequest((v3_1_0_Request / "users" / "current").GET, header ::: validHeaderConsumerKey)
-            .body.extract[UserJsonV200]
+            .body.extract[UserJsonV300]
           val assignedEntitlements: Seq[EntitlementJsonV400] = user.entitlements.list.flatMap(
             e => entitlements.find(_ == EntitlementJsonV400(e.bank_id, e.role_name))
           )
           // Check we have all entitlements from the consent
           assignedEntitlements should equal(entitlements)
+          
           // Every consent implies a brand new user is created
           user.user_id should not equal(resourceUser1.userId)
+
+          // Check we have all views from the consent
+          val assignedViews = user.views.map(_.list).toSeq.flatten
+          org.scalameta.logger.elem(user.views)
+          assignedViews.map(e => ViewJsonV400(e.bank_id, e.account_id, e.view_id)).distinct should equal(views)
           
         case false => 
           // Due to missing props at the instance the request must fail
