@@ -31,6 +31,7 @@ import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
+import code.api.v2_0_0.JSONFactory200.UserJsonV200
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.consent.MappedConsent
@@ -88,6 +89,8 @@ class ConsentTest extends V310ServerSetup {
 
     scenario("We will call the endpoint with user credentials", ApiEndpoint1, ApiEndpoint3, VersionOfApi, VersionOfApi2) {
       When("We make a request")
+      // Create a consent as the user1.
+      // Because we try to assign a role other that user already have access to the request must fail
       val request400 = (v3_1_0_Request / "banks" / bankId / "my" / "consents" / "EMAIL" ).POST <@(user1)
       val response400 = makePostRequest(request400, write(postConsentEmailJsonV310))
       Then("We should get a 400")
@@ -96,6 +99,7 @@ class ConsentTest extends V310ServerSetup {
 
       Then("We grant the role and test it again")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
+      // Create a consent as the user1. The consent is in status INITIATED
       val secondResponse400 = makePostRequest(request400, write(postConsentEmailJsonV310))
       Then("We should get a 201")
       secondResponse400.code should equal(201)
@@ -104,12 +108,15 @@ class ConsentTest extends V310ServerSetup {
       val jwt = secondResponse400.body.extract[ConsentJsonV310].jwt
       val header = List((RequestHeader.`Consent-Id`, jwt))
       
-      val requestGetUserByUserId400 = (v3_1_0_Request / "users" / "user_id" / resourceUser1.userId ).GET <@(user2)
+      // Make a request with the consent which is NOT in status ACCEPTED
+      val requestGetUserByUserId400 = (v3_1_0_Request / "users" / "current").GET
       val responseGetUserByUserId400 = makeGetRequest(requestGetUserByUserId400, header)
       APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false) match {
-        case true => 
+        case true =>
+          // Due to the wrong status of the consent the request must fail
           responseGetUserByUserId400.body.extract[ErrorMessage].message should include(ConsentStatusIssue)
           
+          // Answer security challenge i.e. SCA
           val answerConsentChallengeRequest = (v3_1_0_Request / "banks" / bankId / "consents" / consentId / "challenge" ).POST <@(user1)
           val challenge = MappedConsent.find(By(MappedConsent.mConsentId, consentId)).map(_.challenge).getOrElse("")
           val post = PostConsentChallengeJsonV310(answer = challenge)
@@ -117,14 +124,31 @@ class ConsentTest extends V310ServerSetup {
           Then("We should get a 201")
           response400.code should equal(201)
 
+          // Make a request WITHOUT the request header "Consumer-Key: SOME_VALUE"
+          // Due to missing value the request must fail
           makeGetRequest(requestGetUserByUserId400, header)
             .body.extract[ErrorMessage].message should include(ConsumerKeyHeaderMissing)
           
+          // Make a request WITH the request header "Consumer-Key: NON_EXISTING_VALUE"
+          // Due to non existing value the request must fail
           val headerConsumerKey = List((RequestHeader.`Consumer-Key`, "NON_EXISTING_VALUE"))
           makeGetRequest(requestGetUserByUserId400, header ::: headerConsumerKey)
             .body.extract[ErrorMessage].message should include(ConsentDoesntMatchApp)
           
+          // Make a request WITH the request header "Consumer-Key: EXISTING_VALUE"
+          val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
+          val user = makeGetRequest((v3_1_0_Request / "users" / "current").GET, header ::: validHeaderConsumerKey)
+            .body.extract[UserJsonV200]
+          val assignedEntitlements: Seq[EntitlementJsonV400] = user.entitlements.list.flatMap(
+            e => entitlements.find(_ == EntitlementJsonV400(e.bank_id, e.role_name))
+          )
+          // Check we have all entitlements from the consent
+          assignedEntitlements should equal(entitlements)
+          // Every consent implies a brand new user is created
+          user.user_id should not equal(resourceUser1.userId)
+          
         case false => 
+          // Due to missing props at the instance the request must fail
           responseGetUserByUserId400.body.extract[ErrorMessage].message should include(ConsentDisabled)
       }
     }
