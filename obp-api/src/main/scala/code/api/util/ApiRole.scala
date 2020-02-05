@@ -6,7 +6,7 @@ sealed trait ApiRole{
   val requiresBankId: Boolean
   override def toString() = getClass().getSimpleName
 
-  def & (apiRole: ApiRole): AndRole = AndRole(this, apiRole)
+  def & (apiRole: ApiRole): RoleCombination = RoleCombination(this, apiRole)
 }
 
 /**
@@ -15,19 +15,19 @@ sealed trait ApiRole{
  * @param left
  * @param right
  */
-case class AndRole(left: ApiRole, right: ApiRole) extends ApiRole{
+case class RoleCombination(left: ApiRole, right: ApiRole) extends ApiRole{
   val roles: List[ApiRole] = (left, right) match {
-    case(l: AndRole, r: AndRole) => l.roles ::: r.roles
-    case(l: AndRole, r: ApiRole) => l.roles :+ r
-    case(l: ApiRole, r: AndRole) => l :: r.roles
+    case(l: RoleCombination, r: RoleCombination) => l.roles ::: r.roles
+    case(l: RoleCombination, r: ApiRole) => l.roles :+ r
+    case(l: ApiRole, r: RoleCombination) => l :: r.roles
   }
   override val requiresBankId: Boolean = roles.exists(_.requiresBankId)
   override def toString() = roles.mkString("(", " and ", ")")
 }
 
-object AndRole {
+object RoleCombination {
   def unapply(role: ApiRole): Option[List[ApiRole]] = role match{
-    case andRole: AndRole => Option(andRole.roles)
+    case andRole: RoleCombination => Option(andRole.roles)
     case _ => None
   }
 }
