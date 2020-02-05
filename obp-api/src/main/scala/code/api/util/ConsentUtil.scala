@@ -91,6 +91,8 @@ case class Consent(createdByUserId: String,
 
 object Consent {
 
+  final lazy val challengeAnswerAtTestEnvironment = "123"
+
   /**
     * Purpose of this helper function is to get the Consumer-Key value from a Request Headers.
     * @return the Consent-Id value from a Request Header as a String
@@ -127,7 +129,7 @@ object Consent {
       case Full(consumer) if consumer.isActive.get == false => // Consumer is NOT active
         Failure(ErrorMessages.ConsumerAtConsentDisabled + " aud: " + consent.aud)
       case _ => // There is NO Consumer
-        Failure(ErrorMessages.ConsumerAtConsentCannotBeFond + " aud: " + consent.aud)
+        Failure(ErrorMessages.ConsumerAtConsentCannotBeFound + " aud: " + consent.aud)
     }
   }
   

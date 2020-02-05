@@ -345,7 +345,7 @@ object ErrorMessages {
   val ConsentDoesntMatchApp = "OBP-35015: Consent doesn't match your application."
   val ConsumerKeyHeaderMissing = "OBP-35016: Consumer-Key header value is not defined at this request."
   val ConsumerAtConsentDisabled = "OBP-35017: The Consumer specified in this consent is disabled."
-  val ConsumerAtConsentCannotBeFond = "OBP-35018: The Consumer specified in this consent cannot be found."
+  val ConsumerAtConsentCannotBeFound = "OBP-35018: The Consumer specified in this consent cannot be found."
   val ConsumerValidationMethodForConsentNotDefined = "OBP-35019: Consumer validation method for consent is not defined at this instance."
 
   //Authorisations

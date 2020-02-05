@@ -51,7 +51,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
-import net.liftweb.util.{Helpers, Mailer}
+import net.liftweb.util.{Helpers, Mailer, Props}
 import org.apache.commons.lang3.{StringUtils, Validate}
 
 import scala.collection.immutable.{List, Nil}
@@ -59,6 +59,7 @@ import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
+import scala.util.Random
 
 trait APIMethods310 {
   self: RestHelper =>
@@ -3510,14 +3511,18 @@ trait APIMethods310 {
               }
               case None => Future(None, "Any application")
             }
-            createdConsent <- Future(Consents.consentProvider.vend.createConsent(user)) map {
+            challengeAnswer = Props.mode match {
+              case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
+              case _ => Random.nextInt(99999999).toString()
+            }
+            createdConsent <- Future(Consents.consentProvider.vend.createConsent(user, challengeAnswer)) map {
               i => connectorEmptyResponse(i, callContext)
             }
             consentJWT = Consent.createConsentJWT(user, consentJson, createdConsent.secret, createdConsent.consentId, consumerId)
             _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
               i => connectorEmptyResponse(i, callContext)
             }
-            challengeText = s"Your consent challenge : ${createdConsent.challenge}, Application: $applicationText"
+            challengeText = s"Your consent challenge : ${challengeAnswer}, Application: $applicationText"
             _ <- scaMethod match {
             case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
               for{

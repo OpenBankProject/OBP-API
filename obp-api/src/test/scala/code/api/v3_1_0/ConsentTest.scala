@@ -27,19 +27,17 @@ package code.api.v3_1_0
 
 import code.api.RequestHeader
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, Consent}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.v3_0_0.{APIMethods300, UserJsonV300}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
-import code.consent.MappedConsent
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
-import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 class ConsentTest extends V310ServerSetup {
@@ -118,7 +116,7 @@ class ConsentTest extends V310ServerSetup {
           
           // Answer security challenge i.e. SCA
           val answerConsentChallengeRequest = (v3_1_0_Request / "banks" / bankId / "consents" / consentId / "challenge" ).POST <@(user1)
-          val challenge = MappedConsent.find(By(MappedConsent.mConsentId, consentId)).map(_.challenge).getOrElse("")
+          val challenge = Consent.challengeAnswerAtTestEnvironment
           val post = PostConsentChallengeJsonV310(answer = challenge)
           val response400 = makePostRequest(answerConsentChallengeRequest, write(post))
           Then("We should get a 201")
@@ -150,7 +148,6 @@ class ConsentTest extends V310ServerSetup {
 
           // Check we have all views from the consent
           val assignedViews = user.views.map(_.list).toSeq.flatten
-          org.scalameta.logger.elem(user.views)
           assignedViews.map(e => ViewJsonV400(e.bank_id, e.account_id, e.view_id)).distinct should equal(views)
           
         case false => 

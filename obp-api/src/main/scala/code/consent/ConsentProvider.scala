@@ -13,7 +13,7 @@ object Consents extends SimpleInjector {
 trait ConsentProvider {
   def getConsentByConsentId(consentId: String): Box[MappedConsent]
   def getConsentsByUser(userId: String): List[MappedConsent]
-  def createConsent(user: User): Box[MappedConsent]
+  def createConsent(user: User, challenge: String): Box[MappedConsent]
   def setJsonWebToken(consentId: String, jwt: String): Box[MappedConsent]
   def revoke(consentId: String): Box[MappedConsent]
   def checkAnswer(consentId: String, challenge: String): Box[MappedConsent]
@@ -37,6 +37,8 @@ trait Consent {
   def userId: String
   def secret: String
   def status: String
+  // The hashed secret using the OpenBSD bcrypt scheme
+  // The salt to hash with (generated using BCrypt.gensalt)
   def challenge: String
   def jsonWebToken: String
 

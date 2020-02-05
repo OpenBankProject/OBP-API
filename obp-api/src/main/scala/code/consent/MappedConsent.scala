@@ -1,6 +1,7 @@
 package code.consent
 
 import java.util.Date
+
 import scala.util.Random
 import code.api.util.ErrorMessages
 import code.util.MappedUUID
@@ -8,6 +9,7 @@ import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.{MappedString, _}
 import net.liftweb.util.Helpers.{now, tryo}
+import org.mindrot.jbcrypt.BCrypt
 
 object MappedConsentProvider extends ConsentProvider {
   override def getConsentByConsentId(consentId: String): Box[MappedConsent] = {
@@ -18,11 +20,15 @@ object MappedConsentProvider extends ConsentProvider {
   override def getConsentsByUser(userId: String): List[MappedConsent] = {
     MappedConsent.findAll(By(MappedConsent.mUserId, userId))
   }
-  override def createConsent(user: User): Box[MappedConsent] = {
+  override def createConsent(user: User, challengeAnswer: String): Box[MappedConsent] = {
     tryo {
+      val salt = BCrypt.gensalt()
+      val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
       MappedConsent
         .create
         .mUserId(user.userId)
+        .mChallenge(challengeAnswerHashed)
+        .mSalt(salt)
         .mStatus(ConsentStatus.INITIATED.toString)
         .saveMe()
     }
@@ -102,12 +108,13 @@ object MappedConsentProvider extends ConsentProvider {
         Failure(ErrorMessages.UnknownError)
     } 
   }  
-  override def checkAnswer(consentId: String, challenge: String): Box[MappedConsent] = {
+  override def checkAnswer(consentId: String, challengeAnswer: String): Box[MappedConsent] = {
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
       case Full(consent) =>
         consent.status match {
           case value if value == ConsentStatus.INITIATED.toString =>
-            val status = if (consent.challenge == challenge) ConsentStatus.ACCEPTED.toString else ConsentStatus.REJECTED.toString
+            val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, consent.mSalt.get).substring(0, 44)
+            val status = if (consent.challenge == challengeAnswerHashed) ConsentStatus.ACCEPTED.toString else ConsentStatus.REJECTED.toString
             tryo(consent.mStatus(status).saveMe())
           case _ =>
             Full(consent)
@@ -131,8 +138,11 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   object mUserId extends MappedString(this, 36)
   object mSecret extends MappedUUID(this)
   object mStatus extends MappedString(this, 20)
-  object mChallenge extends MappedString(this, 10)  {
+  object mChallenge extends MappedString(this, 50)  {
     override def defaultValue = Random.nextInt(99999999).toString()
+  }
+  object mSalt extends MappedString(this, 50)  {
+    override def defaultValue = BCrypt.gensalt()
   }
   object mJsonWebToken extends MappedText(this)
 
@@ -147,6 +157,8 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   override def userId: String = mUserId.get
   override def secret: String = mSecret.get
   override def status: String = mStatus.get
+  // The hashed secret using the OpenBSD bcrypt scheme
+  // The salt to hash with (generated using BCrypt.gensalt)
   override def challenge: String = mChallenge.get
   override def jsonWebToken: String = mJsonWebToken.get
 
