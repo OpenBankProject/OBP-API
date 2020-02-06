@@ -65,6 +65,8 @@ class ConsentTest extends V310ServerSetup {
     .copy(consumer_id=None)
     .copy(views=views)
   
+  val timeToLive: Option[Long] = Some(4500)
+  
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access")
   {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
@@ -88,7 +90,15 @@ class ConsentTest extends V310ServerSetup {
     scenario("We will call the endpoint with user credentials", ApiEndpoint1, ApiEndpoint3, VersionOfApi, VersionOfApi2) {
       When("We make a request")
       // Create a consent as the user1.
-      // Because we try to assign a role other that user already have access to the request must fail
+      // Must fail because we try to set time_to_live=4500
+      val requestWrongTimeToLive400 = (v3_1_0_Request / "banks" / bankId / "my" / "consents" / "EMAIL" ).POST <@(user1)
+      val responseWrongTimeToLive400 = makePostRequest(requestWrongTimeToLive400, write(postConsentEmailJsonV310.copy(time_to_live = timeToLive)))
+      Then("We should get a 400")
+      responseWrongTimeToLive400.code should equal(400)
+      responseWrongTimeToLive400.body.extract[ErrorMessage].message should equal(ConsentMaxTTL)
+      
+      // Create a consent as the user1.
+      // Must fail because we try to assign a role other that user already have access to the request 
       val request400 = (v3_1_0_Request / "banks" / bankId / "my" / "consents" / "EMAIL" ).POST <@(user1)
       val response400 = makePostRequest(request400, write(postConsentEmailJsonV310))
       Then("We should get a 400")

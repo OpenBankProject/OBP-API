@@ -37,7 +37,7 @@ trait Consent {
   def userId: String
   def secret: String
   def status: String
-  // The hashed secret using the OpenBSD bcrypt scheme
+  // The hashed challenge using the OpenBSD bcrypt scheme
   // The salt to hash with (generated using BCrypt.gensalt)
   def challenge: String
   def jsonWebToken: String

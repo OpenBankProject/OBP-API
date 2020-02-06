@@ -157,7 +157,7 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   override def userId: String = mUserId.get
   override def secret: String = mSecret.get
   override def status: String = mStatus.get
-  // The hashed secret using the OpenBSD bcrypt scheme
+  // The hashed challenge using the OpenBSD bcrypt scheme
   // The salt to hash with (generated using BCrypt.gensalt)
   override def challenge: String = mChallenge.get
   override def jsonWebToken: String = mJsonWebToken.get

@@ -3484,6 +3484,12 @@ trait APIMethods310 {
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostConsentBodyCommonJson]
             }
+            _ <- Helper.booleanToFuture(ConsentMaxTTL){
+              consentJson.time_to_live match {
+                case Some(ttl) => ttl <= 3600
+                case _ => true
+              }
+            }
             requestedEntitlements = consentJson.entitlements
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
             _ <- Helper.booleanToFuture(RolesAllowedInConsent){
@@ -3518,7 +3524,15 @@ trait APIMethods310 {
             createdConsent <- Future(Consents.consentProvider.vend.createConsent(user, challengeAnswer)) map {
               i => connectorEmptyResponse(i, callContext)
             }
-            consentJWT = Consent.createConsentJWT(user, consentJson, createdConsent.secret, createdConsent.consentId, consumerId)
+            consentJWT = 
+              Consent.createConsentJWT(
+                user, 
+                consentJson, 
+                createdConsent.secret, 
+                createdConsent.consentId, 
+                consumerId,
+                consentJson.time_to_live.getOrElse(3600)
+              )
             _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
               i => connectorEmptyResponse(i, callContext)
             }

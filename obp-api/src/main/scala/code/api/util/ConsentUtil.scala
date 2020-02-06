@@ -353,7 +353,8 @@ object Consent {
                        consent: PostConsentBodyCommonJson,
                        secret: String, 
                        consentId: String,
-                       consumerId: Option[String]): String = {
+                       consumerId: Option[String],
+                       timeToLive: Long): String = {
     lazy val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     // 1. Add views
@@ -386,7 +387,7 @@ object Consent {
       jti=consentId,
       iat=currentTimeInSeconds,
       nbf=currentTimeInSeconds,
-      exp=currentTimeInSeconds + 3600,
+      exp=currentTimeInSeconds + timeToLive,
       name=None,
       email=None,
       entitlements=entitlements.toList,
