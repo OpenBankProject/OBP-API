@@ -7,7 +7,7 @@ import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JNull, JObject, JStri
 
 import scala.annotation.StaticAnnotation
 import scala.reflect.runtime.universe._
-import Functions.RichCollection
+import Functions.Implicits._
 import net.liftweb.json.{Formats, JValue}
 import net.liftweb.json.JsonDSL._
 

@@ -87,7 +87,6 @@ object ErrorMessages {
 
 
 
-
   // Authentication / Authorisation / User messages (OBP-20XXX)
   val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
   val DirectLoginMissingParameters = "OBP-20002: These DirectLogin parameters are missing: "
@@ -190,7 +189,7 @@ object ErrorMessages {
   val CustomerAlreadyExistsForUser = "OBP-30007: The User is already linked to a Customer at the bank specified by BANK_ID"
   val UserCustomerLinksNotFoundForUser = "OBP-30008: User Customer Link not found by USER_ID"
   val AtmNotFoundByAtmId = "OBP-30009: ATM not found. Please specify a valid value for ATM_ID."
-  val BranchNotFoundByBranchId = "OBP-300010: Branch not found. Please specify a valid value for BRANCH_ID."
+  val BranchNotFoundByBranchId = "OBP-300010: Branch not found. Please specify a valid value for BRANCH_ID. Or License may not be set. meta.license.id and meta.license.name can not be empty"
   val ProductNotFoundByProductCode = "OBP-30011: Product not found. Please specify a valid value for PRODUCT_CODE."
   val CounterpartyNotFoundByIban = "OBP-30012: Counterparty not found. Please specify a valid value for IBAN."
   val CounterpartyBeneficiaryPermit = "OBP-30013: The account can not send money to the Counterparty. Please set the Counterparty 'isBeneficiary' true first"
@@ -260,6 +259,7 @@ object ErrorMessages {
   val CannotGrantAccountAccess = "OBP-30063: Cannot grant account access."
   val CannotRevokeAccountAccess = "OBP-30064: Cannot revoke account access."
   val CannotFindAccountAccess = "OBP-30065: Cannot find account access."
+  val CannotGetAccounts = "OBP-30066: Could not get accounts."
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
@@ -320,7 +320,7 @@ object ErrorMessages {
   val CreateAccountApplicationError = "OBP-30316: AccountApplication Status can not be created. "
 
   // Branch related messages
-  val branchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
+  val BranchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
   val BranchesNotFound = "OBP-32002: No branches available."
 
   // ATM related messages
@@ -408,7 +408,7 @@ object ErrorMessages {
   val InvalidConnectorResponseForGetCheckbookOrdersFuture = "OBP-50211: Connector did not return the set of check book."
   val InvalidConnectorResponseForGetStatusOfCreditCardOrderFuture = "OBP-50212: Connector did not return the set of status of credit card."
   val InvalidConnectorResponseForCreateTransactionAfterChallengev300 = "OBP-50213: The Connector did not return a valid response for payments."
-  val InvalidConnectorResponseForMissingRequiredValues = "OBP-50214: Connector return the data, but the data have missing required values."
+  val InvalidConnectorResponseForMissingRequiredValues = "OBP-50214: Connector return the data, but the data has missing required values."
 
 
   // Adapter Exceptions (OBP-6XXXX)
@@ -452,13 +452,33 @@ object ErrorMessages {
     v.getName() -> v.get(this)
   }
 
+  private lazy val fieldValueToName = allFields.map(it => (it._2, it._1)).toMap
   //For Swagger, get varible name by value:
   // eg: val InvalidUserId = "OBP-30107: Invalid User Id."
   //  getFildNameByValue("OBP-30107: Invalid User Id.") return InvalidUserId
-  def getFildNameByValue(value: String) = {
-    val strings = for (e <- allFields if (e._2 == (value))) yield e._1
-    strings.head
-  }
+  def getFieldNameByValue(value: String): String =
+    fieldValueToName.getOrElse(value, throw new IllegalArgumentException(s"ErrorMessages not exists field value is: $value"))
+
+  /****** special error message, start with $, mark as do validation according ResourceDoc errorResponseBodies *****/
+  /**
+   * validate method: APIUtil.authorizedAccess
+   */
+  def $UserNotLoggedIn = UserNotLoggedIn
+
+  /**
+   * validate method: NewStyle.function.getBank
+   */
+  def $BankNotFound = BankNotFound
+
+  /**
+   * validate method: NewStyle.function.getBankAccount
+   */
+  def $BankAccountNotFound = BankAccountNotFound
+
+  /**
+   *  validate method: NewStyle.function.checkViewAccessAndReturnView
+   */
+  def $UserNoPermissionAccessView = UserNoPermissionAccessView
 
 
   def getDuplicatedMessageNumbers = {

@@ -4,6 +4,7 @@ import java.util.regex.Pattern
 import scala.collection.{GenSetLike, GenTraversableOnce, SeqLike, TraversableLike, immutable}
 import scala.collection.generic.CanBuildFrom
 import scala.reflect.runtime.universe.Type
+
 /**
  * function utils
  */
@@ -24,6 +25,7 @@ object Functions {
 
   def truePredicate[T]: T => Boolean = _ => true
   def falsePredicate[T]: T => Boolean = _ => false
+  def predicateTo[T](b: Boolean): T => Boolean = _ => b
 
   @inline
   def unary[T]: T => T = t => t
@@ -33,90 +35,7 @@ object Functions {
   def isOBPType(tp: Type) = obpTypeNamePattern.matcher(tp.typeSymbol.fullName).matches()
   def isOBPClass(clazz: Class[_]) = obpTypeNamePattern.matcher(clazz.getName).matches()
 
-  implicit class RichCollection[A, Repr](iterable: TraversableLike[A, Repr]){
-    def distinctBy[B, That](f: A => B)(implicit canBuildFrom: CanBuildFrom[Repr, A, That]) = {
-      val builder = canBuildFrom(iterable.repr)
-      val set = scala.collection.mutable.Set[B]()
-      iterable.foreach(it => {
-        val calculatedElement = f(it)
-        if(set.add(calculatedElement)) {
-          builder += it
-        }
-      })
-      builder.result
-    }
-    def toMap[K, V](keyFn: A => K, valueFn: A => V): immutable.Map[K, V] = {
-      val b = immutable.Map.newBuilder[K, V]
-      for (x <- iterable)
-        b += keyFn(x) -> valueFn(x)
 
-      b.result()
-    }
-
-    def toMapByKey[K](f: A => K): immutable.Map[K, A] = toMap(f, unary)
-
-    def toMapByValue[V](f: A => V): immutable.Map[A, V] = toMap(unary, f)
-
-    /**
-     * split collection to tuple of two collections, left is predicate check is true, right is predicate check is false
-     * @param predicate check element function
-     * @param canBuildFrom
-     * @tparam That to collection's type
-     * @return tuple
-     */
-    def classify[That](predicate: A => Boolean)(implicit canBuildFrom: CanBuildFrom[Repr, A, That]): (That, That) = {
-      val builderLeft = canBuildFrom(iterable.repr)
-      val builderRight = canBuildFrom(iterable.repr)
-      for (x <- iterable) {
-        if(predicate(x)) builderLeft += x else builderRight += x
-      }
-      (builderLeft.result(), builderRight.result())
-    }
-
-    /**
-     * add one element if coll not exists that element
-     * @param ele
-     * @param canBuildFrom
-     * @tparam That
-     * @return new coll contains given ele
-     */
-    def ?+ [That](ele: A)(implicit canBuildFrom: CanBuildFrom[Repr, A, That]): That = {
-      if(existsElement(ele)) {
-        iterable.asInstanceOf[That]
-      } else {
-        val builder = canBuildFrom(iterable.repr)
-        builder ++= iterable
-        builder += ele
-        builder.result()
-      }
-    }
-
-    /**
-     * remove element if coll exists that element, may remove multiple if exists more than one.
-     * @param ele
-     * @param canBuildFrom
-     * @tparam That
-     * @return a new coll not contains given ele
-     */
-    def ?- [That](ele: A)(implicit canBuildFrom: CanBuildFrom[Repr, A, That]): That = {
-      if(!existsElement(ele)) {
-        iterable.asInstanceOf[That]
-      } else {
-        val builder = canBuildFrom(iterable.repr)
-        for(e <- iterable if e != ele)
-          builder += e
-        builder.result()
-      }
-    }
-
-    private def existsElement[That](ele: A) = {
-      iterable match {
-        case seq: SeqLike[A, Repr] => seq.contains(ele)
-        case set: GenSetLike[A, Repr] => set.contains(ele)
-        case _ => iterable.exists(ele ==)
-      }
-    }
-  }
 
   def deepFlatten(arr: Array[_]): Array[Any] = {
     arr.collect {
@@ -132,5 +51,106 @@ object Functions {
       case coll: Traversable[_] => coll
     }.flatMap(deepFlatten(_)) ++
      coll.filterNot(it => it.isInstanceOf[Array[_]] || it.isInstanceOf[GenTraversableOnce[_]])
+  }
+
+
+  // implicit functions place in this object
+  object Implicits {
+
+    implicit class BinaryOp[A](a: => A) {
+      def ?:[B >: A](b: B): B = if(b == null) a else b
+    }
+
+    implicit class RichCollection[A, Repr](iterable: TraversableLike[A, Repr]){
+      def distinctBy[B, That](f: A => B)(implicit canBuildFrom: CanBuildFrom[Repr, A, That]): That = {
+        val builder = canBuildFrom(iterable.repr)
+        val set = scala.collection.mutable.Set[B]()
+        iterable.foreach(it => {
+          val calculatedElement = f(it)
+          if(set.add(calculatedElement)) {
+            builder += it
+          }
+        })
+        builder.result
+      }
+      def toMap[K, V](keyFn: A => K, valueFn: A => V): Map[K, V] = {
+        val b = immutable.Map.newBuilder[K, V]
+        for (x <- iterable)
+          b += keyFn(x) -> valueFn(x)
+
+        b.result()
+      }
+
+      def toMapByKey[K](f: A => K): immutable.Map[K, A] = toMap(f, unary)
+
+      def toMapByValue[V](f: A => V): immutable.Map[A, V] = toMap(unary, f)
+
+      /**
+       * split collection to tuple of two collections, left is predicate check is true, right is predicate check is false
+       * @param predicate check element function
+       * @param canBuildFrom
+       * @tparam That to collection's type
+       * @return tuple
+       */
+      def classify[That](predicate: A => Boolean)(implicit canBuildFrom: CanBuildFrom[Repr, A, That]): (That, That) = {
+        val builderLeft = canBuildFrom(iterable.repr)
+        val builderRight = canBuildFrom(iterable.repr)
+        for (x <- iterable) {
+          if(predicate(x)) builderLeft += x else builderRight += x
+        }
+        (builderLeft.result(), builderRight.result())
+      }
+
+      /**
+       * add one element if coll not exists that element
+       * @param ele
+       * @param canBuildFrom
+       * @tparam That
+       * @return new coll contains given ele
+       */
+      def ?+ [That](ele: A)(implicit canBuildFrom: CanBuildFrom[Repr, A, That]): That = {
+        if(existsElement(ele)) {
+          iterable.asInstanceOf[That]
+        } else {
+          val builder = canBuildFrom(iterable.repr)
+          builder ++= iterable
+          builder += ele
+          builder.result()
+        }
+      }
+
+      /**
+       * remove element if coll exists that element, may remove multiple if exists more than one.
+       * @param ele
+       * @param canBuildFrom
+       * @tparam That
+       * @return a new coll not contains given ele
+       */
+      def ?- [That](ele: A)(implicit canBuildFrom: CanBuildFrom[Repr, A, That]): That = {
+        if(!existsElement(ele)) {
+          iterable.asInstanceOf[That]
+        } else {
+          val builder = canBuildFrom(iterable.repr)
+          for(e <- iterable if e != ele)
+            builder += e
+          builder.result()
+        }
+      }
+
+      private def existsElement[That](ele: A) = {
+        iterable match {
+          case seq: SeqLike[A, Repr] => seq.contains(ele)
+          case set: GenSetLike[A, Repr] => set.contains(ele)
+          case _ => iterable.exists(ele ==)
+        }
+      }
+
+      def findByType[B <: A : Manifest]: Option[B] = {
+        val clazz = manifest[B].runtimeClass
+        iterable.find(clazz.isInstance(_)).asInstanceOf[Option[B]]
+      }
+
+      def notExists(p: A => Boolean): Boolean = ! iterable.exists(p)
+    }
   }
 }

@@ -115,7 +115,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   val versionStatus : String // TODO this should be property of ApiVersion
   //def vDottedVersion = vDottedApiVersion(version)
 
-  def apiPrefix = version match {
+  def apiPrefix: OBPEndpoint => OBPEndpoint = version match {
     case ScannedApiVersion(urlPrefix, _, _) =>
       (urlPrefix / version.vDottedApiVersion).oPrefix(_)
     case _ =>
@@ -476,13 +476,18 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     allResourceDocs.find(_.partialFunction == pf)
   }
 
-  protected def registerRoutes(routes: List[OBPEndpoint], allResourceDocs: ArrayBuffer[ResourceDoc], apiPrefix:OBPEndpoint => OBPEndpoint) = {
+  protected def registerRoutes(routes: List[OBPEndpoint],
+                               allResourceDocs: ArrayBuffer[ResourceDoc],
+                               apiPrefix:OBPEndpoint => OBPEndpoint,
+                               autoValidateAll: Boolean = false): Unit = {
     routes.foreach(route => {
       val maybeResourceDoc = findResourceDoc(route, allResourceDocs)
+      val isAutoValidate = maybeResourceDoc.map(_.isAutoValidate).getOrElse(false)
 
-      // if rd contains ResourceDoc, just wrapped to auth check endpoint
-      val authCheckRoute = maybeResourceDoc match {
-        case Some(doc) => doc.wrappedWithAuthCheck(route)
+      // if rd contains ResourceDoc, when autoValidateAll or doc isAutoValidate, just wrapped to auth check endpoint
+      val authCheckRoute = (maybeResourceDoc, autoValidateAll || isAutoValidate) match {
+        case (Some(doc), true) if doc.implementedInApiVersion == version =>
+          doc.wrappedWithAuthCheck(route)
         case _ => route
       }
       oauthServe(apiPrefix(authCheckRoute), maybeResourceDoc)
