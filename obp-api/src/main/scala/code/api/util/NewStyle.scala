@@ -874,6 +874,18 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
+
+    def getCustomerAttributesByAccount(bankId: BankId,
+      customerId: CustomerId,
+      callContext: Option[CallContext]): OBPReturnType[List[CustomerAttribute]] = {
+      Connector.connector.vend.getCustomerAttributesByAccount(
+        bankId: BankId,
+        customerId: CustomerId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
     
     def createAccountApplication(
                                   productCode: ProductCode,

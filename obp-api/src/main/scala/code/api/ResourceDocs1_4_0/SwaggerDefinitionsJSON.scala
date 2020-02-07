@@ -1,7 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.Date
-
 import code.api.Constant._
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
@@ -15,6 +14,8 @@ import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
+import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RevokedJsonV400, StandingOrderJsonV400, When}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionRequestBodyRefundJsonV400, When}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
@@ -2065,6 +2066,36 @@ object SwaggerDefinitionsJSON {
     name_suffix = ExampleValue.nameSuffixExample.value
   )
 
+  val customerAttributeResponseJson = CustomerAttributeResponseJson (
+    customer_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    name = "SPECIAL_TAX_NUMBER",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23"
+  )
+  
+  val customerWithAttributesJsonV310 = CustomerWithAttributesJsonV310(
+    bank_id = bankIdExample.value,
+    customer_id = ExampleValue.customerIdExample.value,
+    customer_number = ExampleValue.customerNumberExample.value,
+    legal_name = ExampleValue.legalNameExample.value,
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
+    email = ExampleValue.emailExample.value,
+    face_image = customerFaceImageJson,
+    date_of_birth = DateWithDayExampleObject,
+    relationship_status = ExampleValue.relationshipStatusExample.value,
+    dependants = ExampleValue.dependentsExample.value.toInt,
+    dob_of_dependants = List(DateWithDayExampleObject),
+    credit_rating = Option(customerCreditRatingJSON),
+    credit_limit = Option(amountOfMoneyJsonV121),
+    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+    employment_status = ExampleValue.employmentStatusExample.value,
+    kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
+    last_ok_date = DateWithDayExampleObject,
+    title  = ExampleValue.titleExample.value,
+    branch_id = ExampleValue.branchIdExample.value,
+    name_suffix = ExampleValue.nameSuffixExample.value,
+    customer_attributes = List(customerAttributeResponseJson)
+  )
 
   val putUpdateCustomerDataJsonV310 = PutUpdateCustomerDataJsonV310(
     face_image = customerFaceImageJson,

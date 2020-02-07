@@ -385,6 +385,16 @@ trait CustomerMessage {
   def fromDepartment : String
   def fromPerson : String
 }
+
+trait CustomerAttribute {
+  def bankId: BankId
+  def customerId: CustomerId
+  def customerAttributeId: String
+  def attributeType: CustomerAttributeType.Value
+  def name: String
+  def value: String
+}
+
 //---------------------------------------- trait dependents of case class
 
 @deprecated("Use Lobby instead which contains detailed fields, not this string","24 July 2017")

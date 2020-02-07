@@ -53,6 +53,7 @@ import code.crm.MappedCrmEvent
 import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraddress.MappedCustomerAddress
+import code.customerattribute.MappedCustomerAttribute
 import code.database.authorisation.Authorisation
 import code.directdebit.DirectDebit
 import code.dynamicEntity.DynamicEntity
@@ -653,6 +654,7 @@ object ToSchemify {
     MappedProductCollection,
     MappedProductCollectionItem,
     MappedAccountAttribute,
+    MappedCustomerAttribute,
     MappedCardAttribute,
     RateLimiting
   )

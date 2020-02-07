@@ -1327,7 +1327,7 @@ trait APIMethods310 {
          |
         |""",
       emptyObjectJson,
-      customerJsonV310,
+      customerWithAttributesJsonV310,
       List(
         UserNotLoggedIn,
         UserCustomerLinksNotFoundForUser,
@@ -1344,8 +1344,12 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetCustomer, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributesByAccount(
+              bankId,
+              CustomerId(customerId),
+              callContext: Option[CallContext])
           } yield {
-            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+            (JSONFactory310.createCustomerWithAttributesJson(customer, customerAttributes), HttpCode.`200`(callContext))
           }
       }
     }
