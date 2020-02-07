@@ -4,6 +4,7 @@ import java.util.regex.Pattern
 import scala.collection.{GenSetLike, GenTraversableOnce, SeqLike, TraversableLike, immutable}
 import scala.collection.generic.CanBuildFrom
 import scala.reflect.runtime.universe.Type
+
 /**
  * function utils
  */
@@ -142,6 +143,11 @@ object Functions {
           case set: GenSetLike[A, Repr] => set.contains(ele)
           case _ => iterable.exists(ele ==)
         }
+      }
+
+      def findByType[B <: A : Manifest]: Option[B] = {
+        val clazz = manifest[B].runtimeClass
+        iterable.find(clazz.isInstance(_)).asInstanceOf[Option[B]]
       }
 
       def notExists(p: A => Boolean): Boolean = ! iterable.exists(p)

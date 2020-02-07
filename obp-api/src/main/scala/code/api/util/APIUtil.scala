@@ -1135,7 +1135,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
     // un-wrapper roles
     roles = roles.map(_.flatMap({
-      case AndRole(rs) => rs
+      case RoleCombination(rs) => rs
       case r => r :: Nil
     }))
 
@@ -1632,7 +1632,7 @@ Returns a string showed to the developer
   }
 
   def hasEntitlement(bankId: String, userId: String, apiRole: ApiRole): Boolean = apiRole match {
-      case AndRole(roles) => roles.forall(hasEntitlement(bankId, userId, _))
+      case RoleCombination(roles) => roles.forall(hasEntitlement(bankId, userId, _))
       case role =>
         Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId) bankId else "", userId, role.toString).isDefined
   }
