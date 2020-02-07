@@ -3281,6 +3281,7 @@ object SwaggerDefinitionsJSON {
     entitlements = List(EntitlementJsonV400(bankIdExample.value, "CanGetCustomer")),
     consumer_id = Some(consumerIdExample.value),
     email = emailExample.value,
+    valid_from = Some(new Date()),
     time_to_live = Some(3600)
   )
   
@@ -3290,6 +3291,7 @@ object SwaggerDefinitionsJSON {
     entitlements = List(EntitlementJsonV400(bankIdExample.value, "CanGetCustomer")),
     consumer_id = Some(consumerIdExample.value),
     phone_number = mobileNumberExample.value,
+    valid_from = Some(new Date()),
     time_to_live = Some(3600)
   )
   

@@ -64,8 +64,9 @@ class ConsentTest extends V310ServerSetup {
     .copy(entitlements=entitlements)
     .copy(consumer_id=None)
     .copy(views=views)
-  
-  val timeToLive: Option[Long] = Some(4500)
+
+  val maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
+  val timeToLive: Option[Long] = Some(maxTimeToLive + 10)
   
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access")
   {
@@ -95,7 +96,7 @@ class ConsentTest extends V310ServerSetup {
       val responseWrongTimeToLive400 = makePostRequest(requestWrongTimeToLive400, write(postConsentEmailJsonV310.copy(time_to_live = timeToLive)))
       Then("We should get a 400")
       responseWrongTimeToLive400.code should equal(400)
-      responseWrongTimeToLive400.body.extract[ErrorMessage].message should equal(ConsentMaxTTL)
+      responseWrongTimeToLive400.body.extract[ErrorMessage].message should include(ConsentMaxTTL)
       
       // Create a consent as the user1.
       // Must fail because we try to assign a role other that user already have access to the request 

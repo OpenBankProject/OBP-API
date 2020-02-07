@@ -1,5 +1,7 @@
 package code.api.util
 
+import java.util.Date
+
 import code.api.{Constant, RequestHeader}
 import code.api.v3_1_0.{EntitlementJsonV400, PostConsentBodyCommonJson, ViewJsonV400}
 import code.consent.{ConsentStatus, Consents, MappedConsent}
@@ -351,12 +353,19 @@ object Consent {
   
   def createConsentJWT(user: User,
                        consent: PostConsentBodyCommonJson,
-                       secret: String, 
+                       secret: String,
                        consentId: String,
                        consumerId: Option[String],
+                       validFrom: Option[Date],
                        timeToLive: Long): String = {
+    
     lazy val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
+    val timeInSeconds = validFrom match {
+      case Some(date) => date.getTime() / 1000
+      case _ => currentTimeInSeconds
+    }
+      
     // 1. Add views
     // Please note that consents can only contain Views that the User already has access to.
     val views: Seq[ConsentView] = 
@@ -386,8 +395,8 @@ object Consent {
       aud=consumerId.getOrElse(currentConsumerId),
       jti=consentId,
       iat=currentTimeInSeconds,
-      nbf=currentTimeInSeconds,
-      exp=currentTimeInSeconds + timeToLive,
+      nbf=timeInSeconds,
+      exp=timeInSeconds + timeToLive,
       name=None,
       email=None,
       entitlements=entitlements.toList,

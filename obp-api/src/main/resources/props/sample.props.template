@@ -689,6 +689,7 @@ database_messages_scheduler_interval=3600
 # In case isn't defined default value is "false"
 # consents.allowed=true
 # consumer_validation_method_for_consent=CONSUMER_KEY_VALUE
+# consents.max_time_to_live=3600
 # ---------------------------------------------------------
 
 # -- SCA (Strong Customer Authentication) -------
