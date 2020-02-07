@@ -87,19 +87,19 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         // Each file should match a partial function name or it will be ignored.
         // The format of the file should be mark down.
         val filename = s"/special_instructions_for_resources/${partialFunctionName}.md"
-          logger.debug(s"getSpecialInstructions getting $filename")
-          val source = LiftRules.loadResourceAsString(filename)
-          logger.debug(s"getSpecialInstructions source is $source")
-          val result = source match {
-            case Full(payload) =>
-              logger.debug(s"getSpecialInstructions payload is $payload")
-              Some(payload)
-            case _ =>
-              logger.debug(s"getSpecialInstructions Could not find / load $filename")
-              None
-          }
-        result
+        logger.debug(s"getSpecialInstructions getting $filename")
+        val source = LiftRules.loadResourceAsString(filename)
+        logger.debug(s"getSpecialInstructions source is $source")
+        val result = source match {
+          case Full(payload) =>
+            logger.debug(s"getSpecialInstructions payload is $payload")
+            Some(payload)
+          case _ =>
+            logger.debug(s"getSpecialInstructions Could not find / load $filename")
+            None
         }
+        result
+      }
 
 
 
@@ -162,7 +162,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       {
         // only `obp` standard show the `localResouceDocs`
         case version: ScannedApiVersion if(version.apiStandard == obp.toString) => activePlusLocalResourceDocs ++= localResourceDocs
-        // all other standards only show their own apis. 
+        // all other standards only show their own apis.
         case _ => ;
       }
 
@@ -171,11 +171,11 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val theResourceDocs = for {
         x <- activePlusLocalResourceDocs
-        
+
         y = x.copy(
           isFeatured = getIsFeaturedApi(x.partialFunctionName),
           specialInstructions = getSpecialInstructions(x.partialFunctionName),
-          requestUrl =  s"/${x.implementedInApiVersion.urlPrefix}/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}", // This is the "implemented" in url 
+          requestUrl =  s"/${x.implementedInApiVersion.urlPrefix}/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}", // This is the "implemented" in url
           specifiedUrl = Some(s"/${x.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${x.requestUrl}") // This is the "specified" in url when we call the resourceDoc api
         )
       } yield y
@@ -206,11 +206,11 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     private def getResourceDocsObpCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : ApiVersion, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       /**
-        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-        * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-        * The real value will be assigned by Macro during compile time at this line of a code:
-        * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-        */
+       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+       * The real value will be assigned by Macro during compile time at this line of a code:
+       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+       */
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL second) {
@@ -225,27 +225,27 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             // Return
 
             /**
-              * replace JValue key: jsonClass --> api_role
-              */
+             * replace JValue key: jsonClass --> api_role
+             */
             def replaceJsonKey(json: JValue): JValue = json transformField {
               case JField("jsonClass", x) => JField("role", x)
               case JField("requiresBankId", x) => JField("requires_bank_id", x)
             }
-  
+
             /**
-              * This is only used for remove `JvalueCaseClass` in JValue.
-              * @`implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)`
-              * For SwaggerCodeGen-obp, need to change String --> JValue implicitly.
-              * There will introduce the new key `JvalueCaseClass` in JValue. 
-              * So in GetResourceDoc API, we need remove it.
-              */
+             * This is only used for remove `JvalueCaseClass` in JValue.
+             * @`implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)`
+             * For SwaggerCodeGen-obp, need to change String --> JValue implicitly.
+             * There will introduce the new key `JvalueCaseClass` in JValue.
+             * So in GetResourceDoc API, we need remove it.
+             */
             def removeJsonKeyAndKeepChildObject(json: JValue): JValue = json transform {
               case JObject(List(JField("jvalueToCaseclass", JObject(x))))=> JObject(x)
             }
-            
+
             /**
-              * replace JValue value: ApiRole$CanCreateUser --> CanCreateUser
-              */
+             * replace JValue value: ApiRole$CanCreateUser --> CanCreateUser
+             */
             def replaceJsonValue(json: JValue): JValue = json transformField {
               case JField("role", JString(x)) => JField("role", JString(x.substring("ApiRole$".length)))
             }
@@ -258,13 +258,13 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     private val getChineseVersionResourceDocs : Box[JsonResponse] = {
       val stream = getClass().getClassLoader().getResourceAsStream("ResourceDocs/ResourceDocs-Chinese.json")
       val chineseVersion = try {
-          val bufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
-          val jsonStringFromFile = bufferedSource.mkString
-          json.parse(jsonStringFromFile);
-        } finally {
-          stream.close()
-        }
-       Full(successJsonResponse(chineseVersion))
+        val bufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
+        val jsonStringFromFile = bufferedSource.mkString
+        json.parse(jsonStringFromFile);
+      } finally {
+        stream.close()
+      }
+      Full(successJsonResponse(chineseVersion))
     }
     def upperName(name: String): (String, String) = (name.toUpperCase(), name)
 
@@ -327,44 +327,44 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "/resource-docs/API_VERSION/obp",
       "Get Resource Docs.",
       s"""Get documentation about the RESTful resources on this server including example bodies for POST and PUT requests.
-        |
-        |This is the native data format used to document OBP endpoints. Each endpoint has a Resource Doc (a Scala case class) defined in the source code.
-        |
-        | This endpoint is used by OBP API Explorer to display and work with the API documentation.
-        |
-        | Most (but not all) fields are also available in swagger format. (The Swagger endpoint is built from Resource Docs.)
-        |
-        | API_VERSION is the version you want documentation about e.g. v3.0.0
-        |
-        | You may filter this endpoint with tags parameter e.g. ?tags=Account,Bank
-        |
-        | You may filter this endpoint with functions parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
-        |
-        | For possible function values, see implemented_by.function in the JSON returned by this endpoint or the OBP source code or the footer of the API Explorer which produces a comma separated list of functions that reflect the server or filtering by API Explorer based on tags etc.
-        |
-        | You may filter this endpoint using the 'Catalogs' url parameter e.g. ?core=&psd2=true&obwg=
-        | 
-        | You may need some other language resource docs, now we support en and zh
-        |
-        |See the Resource Doc endpoint for more information.
-        |
-        |Following are more examples:
-        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp
-        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?psd2=true
-        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?tags=Account,Bank
-        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?functions=getBanks,bankById
-        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?psd2=true&tags=Account,Bank&functions=getBanks,bankById
-        |${getObpApiRoot}/v3.1.0/resource-docs/v4.0.0/obp?language=zh
-        |
-        |<ul>
-        |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
-        |<li> version references the version that the API call is defined in.</li>
-        |<li> function is the (scala) partial function that implements this endpoint. It is unique per version of the API.</li>
-        |<li> request_url is empty for the root call, else the path. It contains the standard prefix (e.g. /obp) and the implemented version (the version where this endpoint was defined) e.g. /obp/v1.2.0/resource</li>
-        |<li> specified_url (recommended to use) is empty for the root call, else the path. It contains the standard prefix (e.g. /obp) and the version specified in the call e.g. /obp/v3.1.0/resource. In OBP, endpoints are first made available at the request_url, but the same resource (function call) is often made available under later versions (specified_url). To access the latest version of all endpoints use the latest version available on your OBP instance e.g. /obp/v3.1.0 - To get the original version use the request_url. We recommend to use the specified_url since non semantic improvements are more likely to be applied to later implementations of the call.</li>
-        |<li> summary is a short description inline with the swagger terminology. </li>
-        |<li> description may contain html markup (generated from markdown on the server).</li>
-        |</ul>
+         |
+         |This is the native data format used to document OBP endpoints. Each endpoint has a Resource Doc (a Scala case class) defined in the source code.
+         |
+         | This endpoint is used by OBP API Explorer to display and work with the API documentation.
+         |
+         | Most (but not all) fields are also available in swagger format. (The Swagger endpoint is built from Resource Docs.)
+         |
+         | API_VERSION is the version you want documentation about e.g. v3.0.0
+         |
+         | You may filter this endpoint with tags parameter e.g. ?tags=Account,Bank
+         |
+         | You may filter this endpoint with functions parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
+         |
+         | For possible function values, see implemented_by.function in the JSON returned by this endpoint or the OBP source code or the footer of the API Explorer which produces a comma separated list of functions that reflect the server or filtering by API Explorer based on tags etc.
+         |
+         | You may filter this endpoint using the 'Catalogs' url parameter e.g. ?core=&psd2=true&obwg=
+         |
+         | You may need some other language resource docs, now we support en and zh
+         |
+         |See the Resource Doc endpoint for more information.
+         |
+         |Following are more examples:
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?psd2=true
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?tags=Account,Bank
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?functions=getBanks,bankById
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?psd2=true&tags=Account,Bank&functions=getBanks,bankById
+         |${getObpApiRoot}/v3.1.0/resource-docs/v4.0.0/obp?language=zh
+         |
+         |<ul>
+         |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
+         |<li> version references the version that the API call is defined in.</li>
+         |<li> function is the (scala) partial function that implements this endpoint. It is unique per version of the API.</li>
+         |<li> request_url is empty for the root call, else the path. It contains the standard prefix (e.g. /obp) and the implemented version (the version where this endpoint was defined) e.g. /obp/v1.2.0/resource</li>
+         |<li> specified_url (recommended to use) is empty for the root call, else the path. It contains the standard prefix (e.g. /obp) and the version specified in the call e.g. /obp/v3.1.0/resource. In OBP, endpoints are first made available at the request_url, but the same resource (function call) is often made available under later versions (specified_url). To access the latest version of all endpoints use the latest version available on your OBP instance e.g. /obp/v3.1.0 - To get the original version use the request_url. We recommend to use the specified_url since non semantic improvements are more likely to be applied to later implementations of the call.</li>
+         |<li> summary is a short description inline with the swagger terminology. </li>
+         |<li> description may contain html markup (generated from markdown on the server).</li>
+         |</ul>
       """,
       emptyObjectJson,
       emptyObjectJson, //exampleResourceDocsJson
@@ -377,20 +377,20 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
 
     def getResourceDocsObp : OBPEndpoint = {
-    case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-      cc =>{
-       for {
-        (showCore, showPSD2, showOBWG, tags, partialFunctions, languageParam) <- Full(ResourceDocsAPIMethodsUtil.getParams())
-         requestedApiVersion <- tryo {ApiVersionUtils.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
-         _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
-         json <- languageParam match {
-           case Some(ZH) => getChineseVersionResourceDocs
-           case _ => getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags, partialFunctions)
-         }
-        } yield {
-          json
+      case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
+        cc =>{
+          for {
+            (showCore, showPSD2, showOBWG, tags, partialFunctions, languageParam) <- Full(ResourceDocsAPIMethodsUtil.getParams())
+            requestedApiVersion <- tryo {ApiVersionUtils.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
+            _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
+            json <- languageParam match {
+              case Some(ZH) => getChineseVersionResourceDocs
+              case _ => getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags, partialFunctions)
+            }
+          } yield {
+            json
+          }
         }
-      }
       }
     }
 
@@ -403,28 +403,28 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "/resource-docs/API_VERSION/swagger",
       "Get Swagger documentation",
       s"""Returns documentation about the RESTful resources on this server in Swagger format.
-        |
-        |API_VERSION is the version you want documentation about e.g. v3.0.0
-        |
-        |You may filter this endpoint using the 'tags' url parameter e.g. ?tags=Account,Bank
-        |
-        |(All endpoints are given one or more tags which for used in grouping)
-        |
-        |You may filter this endpoint using the 'functions' url parameter e.g. ?functions=getBanks,bankById
-        |
-        |(Each endpoint is implemented in the OBP Scala code by a 'function')
-        |
-        |You may filter this endpoint using the 'Catalogs' url parameter e.g. ?core=&psd2=true&obwg=
-        |
-        |See the Resource Doc endpoint for more information.
-        |
-        |Following are more examples:
-        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger
-        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?psd2=true
-        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?tags=Account,Bank
-        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?functions=getBanks,bankById
-        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?psd2=true&tags=Account,Bank&functions=getBanks,bankById
-        |
+         |
+         |API_VERSION is the version you want documentation about e.g. v3.0.0
+         |
+         |You may filter this endpoint using the 'tags' url parameter e.g. ?tags=Account,Bank
+         |
+         |(All endpoints are given one or more tags which for used in grouping)
+         |
+         |You may filter this endpoint using the 'functions' url parameter e.g. ?functions=getBanks,bankById
+         |
+         |(Each endpoint is implemented in the OBP Scala code by a 'function')
+         |
+         |You may filter this endpoint using the 'Catalogs' url parameter e.g. ?core=&psd2=true&obwg=
+         |
+         |See the Resource Doc endpoint for more information.
+         |
+         |Following are more examples:
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?psd2=true
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?tags=Account,Bank
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?functions=getBanks,bankById
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?psd2=true&tags=Account,Bank&functions=getBanks,bankById
+         |
       """,
       emptyObjectJson,
       emptyObjectJson,
@@ -460,18 +460,18 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     private def getResourceDocsSwaggerCached(showCore: Option[Boolean],showPSD2: Option[Boolean],showOBWG: Option[Boolean], requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       // cache this function with the parameters of the function
       /**
-        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-        * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-        * The real value will be assigned by Macro during compile time at this line of a code:
-        * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-        */
+       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+       * The real value will be assigned by Macro during compile time at this line of a code:
+       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+       */
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL millisecond) {
           logger.debug(s"Generating Swagger showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersionString")
           val jsonOut = for {
-              requestedApiVersion <- Full(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
-              _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
+            requestedApiVersion <- Full(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
+            _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
             rd <- getResourceDocsList(requestedApiVersion).map(_.filterNot(_.partialFunction == genericEndpoint)) // exclude all DynamicEntity endpoints
           } yield {
             // Filter
@@ -646,8 +646,8 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
 
     (showCore, showPSD2, showOBWG, tags, partialFunctionNames, languageParam)
   }
-  
-  
+
+
   /*
 Filter Resource Docs based on the query parameters, else return the full list.
 We don't assume a default catalog (as API Explorer does)

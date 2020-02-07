@@ -221,7 +221,7 @@ trait APIMethods200 {
         |""".stripMargin,
       emptyObjectJson,
       basicAccountsJSON,
-      List(UserNotLoggedIn,"Could not get accounts.",UnknownError),
+      List(UserNotLoggedIn, CannotGetAccounts, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountPublic, apiTagAccount, apiTagPublicData))
 
@@ -236,7 +236,7 @@ trait APIMethods200 {
         cc =>
           for {
             (publicViews, publicAccountAccesses) <- Full(Views.views.vend.publicViews)
-            publicAccountsJson <- tryo{publicBankAccountBasicListToJson(BankAccountX.publicAccounts(publicAccountAccesses), publicViews)} ?~! "Could not get accounts."
+            publicAccountsJson <- tryo{publicBankAccountBasicListToJson(BankAccountX.publicAccounts(publicAccountAccesses), publicViews)} ?~! CannotGetAccounts
           } yield {
             Full(successJsonResponse(publicAccountsJson))
           }
