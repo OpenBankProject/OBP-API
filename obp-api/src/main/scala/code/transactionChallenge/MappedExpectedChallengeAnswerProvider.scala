@@ -10,7 +10,8 @@ object MappedExpectedChallengeAnswerProvider extends ExpectedChallengeAnswerProv
   override def saveExpectedChallengeAnswer(
     challengeId: String,
     salt: String,
-    expectedAnswer: String
+    expectedAnswer: String,
+    expectedUserId: String
   ): Box[ExpectedChallengeAnswer] = 
     tryo (
       MappedExpectedChallengeAnswer
@@ -18,6 +19,7 @@ object MappedExpectedChallengeAnswerProvider extends ExpectedChallengeAnswerProv
         .mChallengeId(challengeId)
         .mSalt(salt)
         .mExpectedAnswer(expectedAnswer)
+        .mExpectedUserId(expectedUserId)
         .saveMe()
     )
   
