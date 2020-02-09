@@ -8,14 +8,14 @@ import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample, userIdExample}
+import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
-import code.api.v2_2_0.{BankJSONV220, CreateAccountJSONV220, JSONFactory220}
+import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.{CreateAccountRequestJsonV310, JSONFactory310, ListResult}
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
@@ -24,6 +24,8 @@ import code.entitlement.Entitlement
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.model.toUserExtended
+import code.transactionChallenge.MappedExpectedChallengeAnswer
+import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestProvider}
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
@@ -31,22 +33,22 @@ import code.users.Users
 import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Full, ParamFailure}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
+import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.now
 import net.liftweb.util.StringHelpers
 import org.atteo.evo.inflector.English
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.util.ApiVersion
-
 import scala.concurrent.Future
 
 trait APIMethods400 {
@@ -470,7 +472,7 @@ trait APIMethods400 {
                   //This is the refund endpoint, the original toAccount is the `fromAccount` which will lose money. 
                   refundFromAccount = toAccount
                   
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
                     viewId,
                     refundFromAccount,
                     refundToAccount,
@@ -497,7 +499,7 @@ trait APIMethods400 {
                     write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))
                   }
 
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -524,7 +526,7 @@ trait APIMethods400 {
                     write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))
                   }
 
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -557,7 +559,7 @@ trait APIMethods400 {
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
                     write(transactionRequestBodyCounterparty)(Serialization.formats(NoTypeHints))
                   }
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -590,7 +592,7 @@ trait APIMethods400 {
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
                     write(transDetailsSEPAJson)(Serialization.formats(NoTypeHints))
                   }
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -613,7 +615,7 @@ trait APIMethods400 {
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, cc.callContext) {
                     write(transactionRequestBodyFreeForm)(Serialization.formats(NoTypeHints))
                   }
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
                     viewId,
                     fromAccount,
                     fromAccount,
@@ -726,10 +728,21 @@ trait APIMethods400 {
               ).exists(_ == existingTransactionRequest.challenge.challenge_type)
             }
 
-            challengeAnswerOBP <- NewStyle.function.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
+            challengeAnswerOBP <- NewStyle.function.validateChallengeAnswerInOBPSide400(challengeAnswerJson.id, challengeAnswerJson.answer, u.userId, callContext)
 
             _ <- Helper.booleanToFuture(s"$InvalidChallengeAnswer") {
               challengeAnswerOBP
+            }
+            
+            _ <- Helper.booleanToFuture(s"$NextChallengePending") {
+              MappedExpectedChallengeAnswer
+                .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
+                .exists(_.successful != true) match {
+                  case false => false
+                  case true => 
+                    MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, "NEXT_CHALLENGE_PENDING")
+                    true
+                }
             }
 
             (challengeAnswerKafka, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
