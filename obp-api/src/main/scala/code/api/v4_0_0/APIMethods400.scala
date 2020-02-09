@@ -307,7 +307,40 @@ trait APIMethods400 {
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
 
-
+    resourceDocs += ResourceDoc(
+      createTransactionRequestRefund,
+      implementedInApiVersion,
+      nameOf(createTransactionRequestRefund),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/REFUND/transaction-requests",
+      "Create Transaction Request (REFUND)",
+      s"""
+         |
+         |$transactionRequestGeneralText
+         |
+       """.stripMargin,
+      transactionRequestBodyRefundJsonV400,
+      transactionRequestWithChargeJSON210,
+      List(
+        $UserNotLoggedIn,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        $BankNotFound,
+        AccountNotFound,
+        $BankAccountNotFound,
+        InsufficientAuthorisationToCreateTransactionRequest,
+        InvalidTransactionRequestType,
+        InvalidJsonFormat,
+        InvalidNumber,
+        NotPositiveAmount,
+        InvalidTransactionRequestCurrency,
+        TransactionDisabled,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+    
     // FREE_FORM.
     resourceDocs += ResourceDoc(
       createTransactionRequestFreeForm,
@@ -348,6 +381,7 @@ trait APIMethods400 {
     lazy val createTransactionRequestAccountOtp = createTransactionRequest
     lazy val createTransactionRequestSepa = createTransactionRequest
     lazy val createTransactionRequestCounterparty = createTransactionRequest
+    lazy val createTransactionRequestRefund = createTransactionRequest
     lazy val createTransactionRequestFreeForm = createTransactionRequest
 
     // This handles the above cases
@@ -382,12 +416,12 @@ trait APIMethods400 {
               json.extract[TransactionRequestBodyCommonJSON]
             }
 
-            isValidAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${transDetailsJson.value.amount} ", 400, cc.callContext) {
+            transactionAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${transDetailsJson.value.amount} ", 400, cc.callContext) {
               BigDecimal(transDetailsJson.value.amount)
             }
 
-            _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${isValidAmountNumber}'") {
-              isValidAmountNumber > BigDecimal("0")
+            _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${transactionAmountNumber}'") {
+              transactionAmountNumber > BigDecimal("0")
             }
 
             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'") {
@@ -405,6 +439,50 @@ trait APIMethods400 {
             }
 
             (createdTransactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+              case REFUND => {
+                for {
+                  transactionRequestBodyRefundJson <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $ACCOUNT json format", 400, cc.callContext) {
+                    json.extract[TransactionRequestBodyRefundJsonV400]
+                  }
+                  
+                  transactionId = TransactionId(transactionRequestBodyRefundJson.refund.transaction_id)
+                  toBankId = BankId(transactionRequestBodyRefundJson.to.bank_id)
+                  toAccountId = AccountId(transactionRequestBodyRefundJson.to.account_id)
+                  (transaction, callContext) <- NewStyle.function.getTransaction(fromAccount.bankId, fromAccount.accountId, transactionId, cc.callContext)
+                  (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(toBankId, toAccountId, cc.callContext)
+                  transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+                    write(transactionRequestBodyRefundJson)(Serialization.formats(NoTypeHints))
+                  }
+                  
+                  _ <- Helper.booleanToFuture(s"${RefundedTransaction} Current input amount is: '${transDetailsJson.value.amount}'. It can not be more than the original amount(${transaction.amount})") {
+                    (transaction.amount).abs  >= transactionAmountNumber
+                  }
+                  //TODO, we need additional field to guarantee the transaction is refunded...  
+//                  _ <- Helper.booleanToFuture(s"${RefundedTransaction}") {
+//                    !((transaction.description.toString contains(" Refund to ")) && (transaction.description.toString contains(" and transaction_id(")))
+//                  }
+                  
+                  //we add the extro info (counterparty name + transaction_id) for this special Refund endpoint.
+                  newDescription = s"${transactionRequestBodyRefundJson.description} - Refund for transaction_id: (${transactionId.value}) to ${transaction.otherAccount.counterpartyName}"
+                  
+                  //This is the refund endpoint, the original fromAccount is the `toAccount` which will receive money. 
+                  refundToAccount = fromAccount
+                  //This is the refund endpoint, the original toAccount is the `fromAccount` which will lose money. 
+                  refundFromAccount = toAccount
+                  
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                    viewId,
+                    refundFromAccount,
+                    refundToAccount,
+                    transactionRequestType, 
+                    transactionRequestBodyRefundJson.copy(description = newDescription),
+                    transDetailsSerialized,
+                    sharedChargePolicy.toString,
+                    Some(OTP_VIA_API.toString),
+                    getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
+                } yield (createdTransactionRequest, callContext)
+              }
               case ACCOUNT | SANDBOX_TAN => {
                 for {
                   transactionRequestBodySandboxTan <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $ACCOUNT json format", 400, cc.callContext) {

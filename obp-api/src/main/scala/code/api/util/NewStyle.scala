@@ -209,6 +209,12 @@ object NewStyle {
         (unboxFullOrFail(i._1, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId"), i._2)
       }
 
+    def getTransaction(bankId: BankId, accountId : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None) : OBPReturnType[Transaction] = {
+      Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext) map {
+        x => (unboxFullOrFail(x._1, callContext, TransactionNotFound, 400), x._2)
+      }
+    }
+    
     def moderatedBankAccountCore(account: BankAccount, view: View, user: Box[User], callContext: Option[CallContext]) = Future {
       account.moderatedBankAccountCore(view, BankIdAccountId(account.bankId, account.accountId), user, callContext)
     } map { fullBoxOrException(_)

@@ -672,7 +672,7 @@ trait Connector extends MdcLoggable {
     Full(result)
   }
   // Set initial status
-  def getStatus(challengeThresholdAmount: BigDecimal, transactionRequestCommonBodyAmount: BigDecimal): Future[TransactionRequestStatus.Value] = {
+  def getStatus(challengeThresholdAmount: BigDecimal, transactionRequestCommonBodyAmount: BigDecimal, transactionRequestType: TransactionRequestType): Future[TransactionRequestStatus.Value] = {
     Future(
       if (transactionRequestCommonBodyAmount < challengeThresholdAmount) {
         // For any connector != mapped we should probably assume that transaction_status_scheduler_delay will be > 0
@@ -680,7 +680,7 @@ trait Connector extends MdcLoggable {
         // i.e. if we are certain that saveTransaction will be honored immediately by the backend, then transaction_status_scheduler_delay
         // can be empty in the props file. Otherwise, the status will be set to STATUS_PENDING
         // and getTransactionRequestStatusesImpl needs to be run periodically to update the transaction request status.
-        if (APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").isEmpty )
+        if (APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").isEmpty || (transactionRequestType.value ==REFUND.toString))
           TransactionRequestStatus.COMPLETED
         else
           TransactionRequestStatus.PENDING
@@ -738,7 +738,7 @@ trait Connector extends MdcLoggable {
         BigDecimal(challengeThreshold.amount)}
       transactionRequestCommonBodyAmount <- NewStyle.function.tryons(s"$InvalidNumber Request Json value.amount ${transactionRequestCommonBody.value.amount} not convertible to number", 400, callContext) {
         BigDecimal(transactionRequestCommonBody.value.amount)}
-      status <- getStatus(challengeThresholdAmount,transactionRequestCommonBodyAmount)
+      status <- getStatus(challengeThresholdAmount,transactionRequestCommonBodyAmount, transactionRequestType: TransactionRequestType)
       (chargeLevel, callContext) <- Connector.connector.vend.getChargeLevel(BankId(fromAccount.bankId.value), AccountId(fromAccount.accountId.value), viewId, initiator.userId, initiator.name, transactionRequestType.value, fromAccount.currency, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
       }
