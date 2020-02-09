@@ -73,7 +73,7 @@ import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 
 import scala.collection.immutable.List
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -146,18 +146,33 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * 5. Send the challenge over an separate communication channel.
     */
   // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
-  override def createChallenge(bankId: BankId, 
+  override def createChallenge(bankId: BankId,
+                               accountId: AccountId,
+                               userId: String,
+                               transactionRequestType: TransactionRequestType,
+                               transactionRequestId: String,
+                               scaMethod: Option[SCA],
+                               callContext: Option[CallContext]) = Future {
+    createChallengeInternal(bankId: BankId,
+      accountId: AccountId,
+      userId: String,
+      transactionRequestType: TransactionRequestType,
+      transactionRequestId: String,
+      scaMethod: Option[SCA],
+      callContext: Option[CallContext])
+  }
+  private def createChallengeInternal(bankId: BankId, 
                                accountId: AccountId, 
                                userId: String, 
                                transactionRequestType: TransactionRequestType, 
                                transactionRequestId: String,
                                scaMethod: Option[SCA], 
-                               callContext: Option[CallContext]) = Future {
+                               callContext: Option[CallContext]) = {
     def createHashedPassword(challengeAnswer: String) = {
       val challengeId = APIUtil.generateUUID()
       val salt = BCrypt.gensalt()
       val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
-      ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed)
+      ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed, userId)
       (Full(challengeId), callContext)
     }
     scaMethod match {

@@ -27,13 +27,13 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_1_0
 
 import _root_.net.liftweb.json.Serialization.write
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateSystemView, CanDeleteSystemView, CanGetSystemView, CanUpdateSystemView}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{APIUtil, ApiVersion}
+import code.api.util.APIUtil
 import code.api.v1_2_1.APIInfoJSON
 import code.api.v3_0_0.ViewJsonV300
 import code.api.v3_1_0.APIMethods310.Implementations3_1_0
@@ -43,6 +43,7 @@ import code.views.MapperViews
 import code.views.system.AccountAccess
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{CreateViewJson, UpdateViewJSON}
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.mapper.By
 import org.scalatest.Tag
 

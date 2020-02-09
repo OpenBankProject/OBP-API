@@ -1,8 +1,9 @@
 package code.api.v1_4_0
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.{ApiVersion, VersionedOBPApis}
+import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
+import com.openbankproject.commons.util.ApiVersion
+import code.api.util.VersionedOBPApis
 import code.util.Helper.MdcLoggable
 
 
@@ -114,9 +115,6 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable wit
       Implementations1_3_0.resourceDocs ++
       Implementations1_2_1.resourceDocs
 
-  def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
-    allResourceDocs.find(_.partialFunction==pf)
-  }
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
     List(Implementations1_2_1.root(version, versionStatus)) ::: // For now we make this mandatory
@@ -124,9 +122,7 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable wit
       getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
       getAllowedEndpoints(endpointsOf1_4_0, Implementations1_4_0.resourceDocs)
 
-  routes.foreach(route => {
-    oauthServe(apiPrefix{route}, findResourceDoc(route))
-  })
+  registerRoutes(routes, allResourceDocs, apiPrefix)
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 

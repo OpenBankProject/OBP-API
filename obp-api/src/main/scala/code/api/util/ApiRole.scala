@@ -5,8 +5,32 @@ import com.openbankproject.commons.util.ReflectUtils
 sealed trait ApiRole{
   val requiresBankId: Boolean
   override def toString() = getClass().getSimpleName
+
+  def & (apiRole: ApiRole): RoleCombination = RoleCombination(this, apiRole)
 }
 
+/**
+ * default relation of ApiRoles is or, So: List(role1, role2, role3) is: one of role1, role2 or role3.
+ * this type is for and relationship, So: List(role1, role2 & role3) is: role1 or (role2 and role3)
+ * @param left
+ * @param right
+ */
+case class RoleCombination(left: ApiRole, right: ApiRole) extends ApiRole{
+  val roles: List[ApiRole] = (left, right) match {
+    case(l: RoleCombination, r: RoleCombination) => l.roles ::: r.roles
+    case(l: RoleCombination, r: ApiRole) => l.roles :+ r
+    case(l: ApiRole, r: RoleCombination) => l :: r.roles
+  }
+  override val requiresBankId: Boolean = roles.exists(_.requiresBankId)
+  override def toString() = roles.mkString("(", " and ", ")")
+}
+
+object RoleCombination {
+  def unapply(role: ApiRole): Option[List[ApiRole]] = role match{
+    case andRole: RoleCombination => Option(andRole.roles)
+    case _ => None
+  }
+}
 
 /** API Roles
   *

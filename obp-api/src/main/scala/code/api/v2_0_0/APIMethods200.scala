@@ -1,6 +1,7 @@
 package code.api.v2_0_0
 
 import java.util.{Calendar, Date}
+
 import code.api.Constant._
 import code.TransactionTypes.TransactionType
 import code.api.APIFailure
@@ -39,7 +40,8 @@ import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.util.ApiVersion
 // Makes JValue assignment to Nil work
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
@@ -219,7 +221,7 @@ trait APIMethods200 {
         |""".stripMargin,
       emptyObjectJson,
       basicAccountsJSON,
-      List(UserNotLoggedIn,"Could not get accounts.",UnknownError),
+      List(UserNotLoggedIn, CannotGetAccounts, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountPublic, apiTagAccount, apiTagPublicData))
 
@@ -234,7 +236,7 @@ trait APIMethods200 {
         cc =>
           for {
             (publicViews, publicAccountAccesses) <- Full(Views.views.vend.publicViews)
-            publicAccountsJson <- tryo{publicBankAccountBasicListToJson(BankAccountX.publicAccounts(publicAccountAccesses), publicViews)} ?~! "Could not get accounts."
+            publicAccountsJson <- tryo{publicBankAccountBasicListToJson(BankAccountX.publicAccounts(publicAccountAccesses), publicViews)} ?~! CannotGetAccounts
           } yield {
             Full(successJsonResponse(publicAccountsJson))
           }

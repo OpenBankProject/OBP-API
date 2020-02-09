@@ -1,6 +1,7 @@
 package code.api.util
 
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc}
+import com.openbankproject.commons.util.ApiVersion
 
 import scala.collection.mutable.ArrayBuffer
 

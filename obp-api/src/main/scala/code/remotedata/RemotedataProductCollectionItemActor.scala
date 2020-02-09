@@ -7,7 +7,7 @@ import code.productcollectionitem.{MappedProductCollectionItemProvider, Remoteda
 import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.List
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class RemotedataProductCollectionItemActor extends Actor with ObpActorHelper with MdcLoggable {
 

@@ -26,15 +26,32 @@ connector=mapped
 
 ## Connector cache time-to-live in seconds, caching defaults to 10 seconds
 #connector.cache.ttl.seconds=3
-#connector.cache.ttl.seconds.getBank=10
-#connector.cache.ttl.seconds.getBanks=10
-#connector.cache.ttl.seconds.getAccount=10
-#connector.cache.ttl.seconds.getAccounts=10
-#connector.cache.ttl.seconds.getTransaction=10
-#connector.cache.ttl.seconds.getTransactions=10
-#connector.cache.ttl.seconds.getCounterpartyFromTransaction=10
-#connector.cache.ttl.seconds.getCounterpartiesFromTransaction=10
-#connector.cache.ttl.seconds.APIMethods121.getTransactions=10
+#connector.cache.ttl.seconds.getBank=0
+#connector.cache.ttl.seconds.getBanks=0
+#connector.cache.ttl.seconds.getUser=0
+#connector.cache.ttl.seconds.getAccount=0
+#connector.cache.ttl.seconds.getAccounts=0
+#connector.cache.ttl.seconds.getTransaction=0
+#connector.cache.ttl.seconds.getTransactions=0
+#connector.cache.ttl.seconds.getTransactionRequests210=0
+#connector.cache.ttl.seconds.getCounterparties=0
+#connector.cache.ttl.seconds.getCounterpartyByCounterpartyId=0
+#connector.cache.ttl.seconds.getCounterpartyTrait=0
+#connector.cache.ttl.seconds.getCustomersByUserId=0
+#connector.cache.ttl.seconds.getBranches=0
+#connector.cache.ttl.seconds.getBranch=0
+#connector.cache.ttl.seconds.getAtms=0
+#connector.cache.ttl.seconds.getAtm=0
+#connector.cache.ttl.seconds.getBankAccountsBalances=0
+#connector.cache.ttl.seconds.getCounterpartyFromTransaction=0
+#connector.cache.ttl.seconds.getCounterpartiesFromTransaction=0
+#connector.cache.ttl.seconds.APIMethods121.getStatusOfCreditCardOrderFuture=0
+#connector.cache.ttl.seconds.APIMethods121.getStatusOfCheckbookOrdersFuture=0
+
+#this is special cache, it is used only in obp side, 
+#MapperCounterparties.cache.ttl.seconds.getOrCreateMetadata=0
+#this cache is used in api level, will cache whole endpoint : v121.getTransactionsForBankAccount
+#api.cache.ttl.seconds.APIMethods121.getTransactions=0
 
 ## MethodRouting cache time-to-live in seconds
 #methodRouting.cache.ttl.seconds=30
@@ -68,7 +85,8 @@ resourceDocsObp.cache.ttl.seconds=3600
 #kafka.bootstrap_hosts=localhost:9092
 # WARNING: if this number does not match the partitions in Kafka config, you will SUFFER !
 #kafka.partitions=3
-#kafka.client.id=obp.api.1
+#This is the api instance, we create kafka topic based on this number, each instance should have each own id. use it in load balancing + Kafka setup
+#api_instance_id=1
 
 ## Enable user authentication via kafka
 #kafka.user.authentication=true
@@ -667,10 +685,12 @@ featured_apis=elasticSearchWarehouseV300
 database_messages_scheduler_interval=3600
 # ---------------------------------------------------
 
-# -- Consents -----------------------------------
+# -- Consents ---------------------------------------------
 # In case isn't defined default value is "false"
 # consents.allowed=true
-# -----------------------------------------------
+# consumer_validation_method_for_consent=CONSUMER_KEY_VALUE
+# consents.max_time_to_live=3600
+# ---------------------------------------------------------
 
 # -- SCA (Strong Customer Authentication) -------
 # For now, OBP-API use `nexmo` server as the SMS provider. Please check `nexmo` website, and get the api key and value there.

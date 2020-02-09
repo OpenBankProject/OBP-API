@@ -1,14 +1,15 @@
 package code.api.v4_0_0
 
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.ApiRole.{CanGetEntitlementsForAnyBank, CanGetEntitlementsForAnyUserAtAnyBank, CanGetEntitlementsForOneBank}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, _}
-import code.api.util.{ApiRole, ApiVersion, ErrorMessages}
+import code.api.util.{ApiRole, ErrorMessages}
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import code.api.util.APIUtil.OAuth._
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
 
 class EntitlementTests extends V400ServerSetupAsync with DefaultUsers {

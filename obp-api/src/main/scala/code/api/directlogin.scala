@@ -44,7 +44,7 @@ import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers
 
 import scala.compat.Platform
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 /**

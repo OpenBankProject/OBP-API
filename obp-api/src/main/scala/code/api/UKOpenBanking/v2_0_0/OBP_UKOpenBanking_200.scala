@@ -27,12 +27,13 @@ TESOBE (http://www.tesobe.com/)
 package code.api.UKOpenBanking.v2_0_0
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.{ScannedApiVersion, ScannedApis}
+import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
+import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.Nil
 import code.api.UKOpenBanking.v2_0_0.APIMethods_UKOpenBanking_200._
+import com.openbankproject.commons.util.ScannedApiVersion
 
 
 /*
@@ -54,19 +55,13 @@ object OBP_UKOpenBanking_200 extends OBPRestHelper with MdcLoggable with Scanned
     Nil
   
   override val allResourceDocs = resourceDocs
-  
-  def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
-    allResourceDocs.find(_.partialFunction==pf)
-  }
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   override val routes : List[OBPEndpoint] = getAllowedEndpoints(allEndpoints,resourceDocs)
 
 
   // Make them available for use!
-  routes.foreach(route => {
-    oauthServe((apiVersion.urlPrefix / version.vDottedApiVersion()).oPrefix{route}, findResourceDoc(route))
-  })
+  registerRoutes(routes, allResourceDocs, apiPrefix)
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 

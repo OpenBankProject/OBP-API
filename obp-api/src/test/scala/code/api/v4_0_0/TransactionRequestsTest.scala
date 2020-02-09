@@ -1,16 +1,18 @@
 package code.api.v4_0_0
 
 import java.util.UUID
+
 import code.api.Constant._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateAnyTransactionRequest
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ApiVersion, ErrorMessages}
+import code.api.util.{APIUtil, ErrorMessages}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.TransactionRequestBodyJsonV200
 import code.api.v2_1_0.{CounterpartyIdJson, IbanJson, TransactionRequestBodyCounterpartyJSON, TransactionRequestBodySEPAJSON}
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
-import code.api.{ChargePolicy, ErrorMessage}
+import code.api.ChargePolicy
+import com.openbankproject.commons.model.ErrorMessage
 import code.bankconnectors.Connector
 import code.fx.fx
 import code.model.BankAccountX
@@ -19,6 +21,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequestStatus
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankAccount, TransactionRequestId}
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 

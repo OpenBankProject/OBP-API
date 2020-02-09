@@ -33,8 +33,9 @@ package code.api.AUOpenBanking.v1_0_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.{ScannedApiVersion, ScannedApis}
+import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.util.ScannedApiVersion
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -69,19 +70,13 @@ object ApiCollector extends OBPRestHelper with MdcLoggable with ScannedApis {
     APIMethods_DiscoveryApi.resourceDocs ++
     APIMethods_PayeesApi.resourceDocs ++
     APIMethods_ProductsApi.resourceDocs ++
-    APIMethods_ScheduledPaymentsApi.resourceDocs 
-
-  private[this] def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
-    allResourceDocs.find(_.partialFunction==pf)
-  }
+    APIMethods_ScheduledPaymentsApi.resourceDocs
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   override val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, allResourceDocs)
 
   // Make them available for use!
-  routes.foreach(route => {
-    oauthServe((apiVersion.urlPrefix / version.vDottedApiVersion()).oPrefix{route}, findResourceDoc(route))
-  })
+  registerRoutes(routes, allResourceDocs, apiPrefix)
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 }

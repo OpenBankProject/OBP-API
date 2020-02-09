@@ -43,7 +43,7 @@ import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{CreditLimit, Product, _}
-import com.openbankproject.commons.util.ReflectUtils
+import com.openbankproject.commons.util.{ApiVersion, ReflectUtils}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.S
 import net.liftweb.http.provider.HTTPParam
@@ -51,13 +51,15 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
-import net.liftweb.util.{Helpers, Mailer}
+import net.liftweb.util.{Helpers, Mailer, Props}
 import org.apache.commons.lang3.{StringUtils, Validate}
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.Future
+import scala.util.Random
 
 trait APIMethods310 {
   self: RestHelper =>
@@ -1413,7 +1415,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canCreateUserAuthContext)))
 
     lazy val createUserAuthContext : OBPEndpoint = {
       case "users" :: userId ::"auth-context" :: Nil JsonPost  json -> _ => {
@@ -1495,7 +1498,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canDeleteUserAuthContext)))
 
     lazy val deleteUserAuthContexts : OBPEndpoint = {
       case "users" :: userId :: "auth-context" :: Nil JsonDelete _ => {
@@ -1533,7 +1537,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canDeleteUserAuthContext)))
 
     lazy val deleteUserAuthContextById : OBPEndpoint = {
       case "users" :: userId :: "auth-context" :: userAuthContextId :: Nil JsonDelete _ => {
@@ -1909,9 +1914,9 @@ trait APIMethods310 {
     }
     
     resourceDocs += ResourceDoc(
-      getObpApiLoopback,
+      getObpConnectorLoopback,
       implementedInApiVersion,
-      nameOf(getObpApiLoopback),
+      nameOf(getObpConnectorLoopback),
       "GET",
       "/connector/loopback",
       "Get Connector Status (Loopback)",
@@ -1935,7 +1940,7 @@ trait APIMethods310 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApi, apiTagNewStyle))
 
-    lazy val getObpApiLoopback : OBPEndpoint = {
+    lazy val getObpConnectorLoopback : OBPEndpoint = {
       case "connector" :: "loopback" :: Nil JsonGet _ => {
         cc =>
           for {
@@ -3299,7 +3304,42 @@ trait APIMethods310 {
         |
         |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted.mkString(", ") }.
         |
+        |Each Consent is bound to an consumer i.e. you need to identify yourself over request header value Consumer-Key. 
+        |For example:
+        |GET /obp/v4.0.0/users/current HTTP/1.1
+        |Host: 127.0.0.1:8080
+        |Consent-Id: eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOlt7InJvbGVfbmFtZSI6IkNhbkdldEFueVVzZXIiLCJiYW5rX2lkIjoiIn1dLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIzNDc1MDEzZi03YmY5LTQyNjEtOWUxYy0xZTdlNWZjZTJlN2UiLCJhdWQiOiI4MTVhMGVmMS00YjZhLTQyMDUtYjExMi1lNDVmZDZmNGQzYWQiLCJuYmYiOjE1ODA3NDE2NjcsImlzcyI6Imh0dHA6XC9cLzEyNy4wLjAuMTo4MDgwIiwiZXhwIjoxNTgwNzQ1MjY3LCJpYXQiOjE1ODA3NDE2NjcsImp0aSI6ImJkYzVjZTk5LTE2ZTYtNDM4Yi1hNjllLTU3MTAzN2RhMTg3OCIsInZpZXdzIjpbXX0.L3fEEEhdCVr3qnmyRKBBUaIQ7dk1VjiFaEBW8hUNjfg
+        |Consumer-Key: ejznk505d132ryomnhbx1qmtohurbsbb0kijajsk
+        |cache-control: no-cache
         |
+        |Maximum time to live of te token is specified over props value consents.max_time_to_live. In case isn't defined default value is 3600 seconds.
+        |
+        |Example of POST JSON:
+        |{
+        |  "everything": false,
+        |  "views": [
+        |    {
+        |      "bank_id": "GENODEM1GLS",
+        |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+        |      "view_id": "owner"
+        |    }
+        |  ],
+        |  "entitlements": [
+        |    {
+        |      "bank_id": "GENODEM1GLS",
+        |      "role_name": "CanGetCustomer"
+        |    }
+        |  ],
+        |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+        |  "email": "eveline@example.com",
+        |  "valid_from": "2020-02-07T08:43:34Z",
+        |  "time_to_live": 3600
+        |}
+        |Please ote that only optional fields are: consumer_id, valid_from and time_to_live. 
+        |In case you omit they the default values are used:
+        |consumer_id = consumer of current user
+        |valid_from = current time
+        |time_to_live = consents.max_time_to_live
         |
       """.stripMargin
 
@@ -3312,18 +3352,57 @@ trait APIMethods310 {
       "Create Consent (EMAIL)",
       s"""
          |
-         |$generalObpConsentText
-         |
          |This endpoint starts the process of creating a Consent.
          |
          |The Consent is created in an ${ConsentStatus.INITIATED} state.
          |
-         |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of band (OOB) to the User via the transport defined in SCA_METHOD
          |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
          |
          |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
          |
+         |$generalObpConsentText
+         |
          |${authenticationRequiredMessage(true)}
+         |
+         |Example 1: 
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note that consumer_id is optional field
+         |Example 2:
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note if everything=false you need to explicitly specify views and entitlements
+         |Example 3:
+         |{
+         |  "everything": false,
+         |  "views": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+         |      "view_id": "owner"
+         |    }
+         |  ],
+         |  "entitlements": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "role_name": "CanGetCustomer"
+         |    }
+         |  ],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
          |
          |""",
       postConsentEmailJsonV310,
@@ -3332,6 +3411,11 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
         InvalidConnectorResponse,
         UnknownError
       ),
@@ -3347,18 +3431,57 @@ trait APIMethods310 {
       "Create Consent (SMS)",
       s"""
          |
-         |$generalObpConsentText
-         |
          |This endpoint starts the process of creating a Consent.
          |
          |The Consent is created in an ${ConsentStatus.INITIATED} state.
          |
-         |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
          |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
          |
          |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
          |
+         |$generalObpConsentText
+         |
          |${authenticationRequiredMessage(true)}
+         |
+         |Example 1: 
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note that consumer_id is optional field
+         |Example 2:
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note if everything=false you need to explicitly specify views and entitlements
+         |Example 3:
+         |{
+         |  "everything": false,
+         |  "views": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+         |      "view_id": "owner"
+         |    }
+         |  ],
+         |  "entitlements": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "role_name": "CanGetCustomer"
+         |    }
+         |  ],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
          |
          |""",
       postConsentPhoneJsonV310,
@@ -3367,6 +3490,13 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
+        MissingPropsValueAtThisInstance,
+        SmsServerNotResponding,
         InvalidConnectorResponse,
         UnknownError
       ),
@@ -3389,13 +3519,61 @@ trait APIMethods310 {
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostConsentBodyCommonJson]
             }
-            createdConsent <- Future(Consents.consentProvider.vend.createConsent(user)) map {
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
+            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)"){
+              consentJson.time_to_live match {
+                case Some(ttl) => ttl <= maxTimeToLive
+                case _ => true
+              }
+            }
+            requestedEntitlements = consentJson.entitlements
+            myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
+            _ <- Helper.booleanToFuture(RolesAllowedInConsent){
+              requestedEntitlements.forall(
+                re => myEntitlements.getOrElse(Nil).exists(
+                  e => e.roleName == re.role_name && e.bankId == re.bank_id
+                )
+              )
+            }
+            requestedViews = consentJson.views
+            (_, assignedViews) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
+            _ <- Helper.booleanToFuture(ViewsAllowedInConsent){
+              requestedViews.forall(
+                rv => assignedViews.exists{
+                  e => 
+                    e.view_id == rv.view_id && 
+                    e.bank_id == rv.bank_id && 
+                    e.account_id == rv.account_id
+                }
+              )
+            }
+            (consumerId, applicationText) <- consentJson.consumer_id match {
+              case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContext) map {
+                c => (Some(c.consumerId.get), c.description)
+              }
+              case None => Future(None, "Any application")
+            }
+            challengeAnswer = Props.mode match {
+              case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
+              case _ => Random.nextInt(99999999).toString()
+            }
+            createdConsent <- Future(Consents.consentProvider.vend.createConsent(user, challengeAnswer)) map {
               i => connectorEmptyResponse(i, callContext)
             }
-            consentJWT = Consent.createConsentJWT(user, consentJson, createdConsent.secret, createdConsent.consentId)
+            consentJWT = 
+              Consent.createConsentJWT(
+                user, 
+                consentJson, 
+                createdConsent.secret, 
+                createdConsent.consentId, 
+                consumerId,
+                consentJson.valid_from,
+                consentJson.time_to_live.getOrElse(3600)
+              )
             _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
               i => connectorEmptyResponse(i, callContext)
             }
+            challengeText = s"Your consent challenge : ${challengeAnswer}, Application: $applicationText"
             _ <- scaMethod match {
             case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
               for{
@@ -3403,7 +3581,7 @@ trait APIMethods310 {
                 postConsentEmailJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                   json.extract[PostConsentEmailJsonV310]
                 }
-                params = PlainMailBodyType(s"Your consent challenge : ${createdConsent.challenge}") :: List(To(postConsentEmailJson.email))
+                params = PlainMailBodyType(challengeText) :: List(To(postConsentEmailJson.email))
                 _ <- Future{Mailer.sendMail(From("challenge@tesobe.com"), Subject("Challenge challenge"), params :_*)}
               } yield Future{true}
             case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
@@ -3427,7 +3605,7 @@ trait APIMethods310 {
                   .apiKey(smsProviderApiKey)
                   .apiSecret(smsProviderApiSecret)
                   .build();
-                messageText = s"Your consent challenge : ${createdConsent.challenge}";
+                messageText = challengeText;
                 message = new TextMessage("OBP-API", phoneNumber, messageText);
                 response <- Future{client.getSmsClient().submitMessage(message)}
                 failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first." 
@@ -3597,7 +3775,7 @@ trait APIMethods310 {
       s"""Create User Auth Context Update.
          |${authenticationRequiredMessage(true)}
          |
-         |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
          |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
          |
          |""",

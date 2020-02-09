@@ -1,7 +1,8 @@
 package code.api
 
-import code.api.util.{APIUtil, ApiStandards, ErrorMessages}
+import code.api.util.{APIUtil, ErrorMessages}
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.util.ApiStandards
 
 
 // Note: Import this with: import code.api.Constant._
@@ -35,6 +36,7 @@ object ChargePolicy extends Enumeration {
 }
 
 object RequestHeader {
+  final lazy val `Consumer-Key` = "Consumer-Key"
   final lazy val `Consent-Id` = "Consent-Id"
   final lazy val `PSD2-CERT` = "PSD2-CERT"
 }

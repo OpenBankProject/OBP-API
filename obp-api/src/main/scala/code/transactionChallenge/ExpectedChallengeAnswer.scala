@@ -9,6 +9,7 @@ import net.liftweb.util.{Props, SimpleInjector}
 trait ExpectedChallengeAnswer {
   def challengeId : String
   def expectedAnswer : String
+  def expectedUserId : String
   def salt : String
 }
 

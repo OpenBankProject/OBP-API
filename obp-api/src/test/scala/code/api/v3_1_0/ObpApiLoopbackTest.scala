@@ -25,11 +25,12 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_1_0
 
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.ErrorMessages.NotImplemented
-import code.api.util.{APIUtil, ApiVersion, ErrorMessages}
+import code.api.util.APIUtil
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
 
 class ObpApiLoopbackTest extends V310ServerSetup {
@@ -42,8 +43,8 @@ class ObpApiLoopbackTest extends V310ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getObpApiLoopback))
-  feature(nameOf(Implementations3_1_0.getObpApiLoopback))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getObpConnectorLoopback))
+  feature(nameOf(Implementations3_1_0.getObpConnectorLoopback))
   {
     scenario("Success Test", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")

@@ -34,14 +34,15 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric, _}
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
-import code.api.util.{APIUtil, CallContext, NewStyle, OBPQueryParam}
-import code.api.{APIFailure, APIFailureNewStyle, ErrorMessage}
+import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle, OBPQueryParam}
+import code.api.{APIFailure, APIFailureNewStyle, ApiVersionHolder}
+import com.openbankproject.commons.model.ErrorMessage
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.kafka.KafkaHelper
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
-import code.util.AkkaHttpClient._
+import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto.{InBoundTrait, _}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
@@ -61,6 +62,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   //this one import is for implicit convert, don't delete
@@ -13014,9 +13016,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](procedureName: String, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
     //transfer accountId to accountReference and customerId to customerReference in outBound
     this.convertToReference(outBound)
-    Future(StoredProcedureUtils.callProcedure[T](procedureName, outBound))
-      .map(Box!! _)
-      .map(convertToId(_)) recoverWith {
+    Future{
+      StoredProcedureUtils.callProcedure[T](procedureName, outBound)
+    }.map(convertToId(_)) recoverWith {
       case e: Exception => Future.failed(new Exception(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}", e))
     }
   }
@@ -13036,9 +13038,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
             }
             ParamFailure(errorMessage, Empty, Empty, APIFailure(errorMessage, errorCode))
         }
-      case failureOrEmpty: Failure => 
-        logger.debug(s"StoredProcedureConnector_vDec2019.convertToTuple.failureOrEmpty: $failureOrEmpty")
-        Failure(s"INTERNAL-$AdapterUnknownError")
+      case failureOrEmpty: Failure => failureOrEmpty
     }
 
     (boxedResult, callContext)
@@ -13122,7 +13122,11 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     def accountIdConverter(accountReference: String): String = MappedAccountIdMappingProvider
       .getOrCreateAccountId(accountReference)
       .map(_.value).openOrThrowException(s"$InvalidAccountIdFormat the invalid accountReference is $accountReference")
-    convertId[T](obj, customerIdConverter, accountIdConverter)
+    if(obj.isInstanceOf[EmptyBox]) {
+        obj
+    } else {
+      convertId[T](obj, customerIdConverter, accountIdConverter)
+    }
   }
 }
 object StoredProcedureConnector_vDec2019 extends StoredProcedureConnector_vDec2019

@@ -25,10 +25,10 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v4_0_0
 
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ApiVersion
+import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages._
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import code.entitlement.Entitlement

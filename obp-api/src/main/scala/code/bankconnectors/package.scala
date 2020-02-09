@@ -2,20 +2,36 @@ package code
 
 import java.lang.reflect.Method
 
-import code.api.util.NewStyle
+import code.api.{APIFailure, APIFailureNewStyle, ApiVersionHolder}
+import code.api.util.{CallContext, NewStyle}
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
+import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
+import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
+import code.bankconnectors.vMay2019.KafkaMappedConnector_vMay2019
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.methodrouting.MethodRouting
+import code.util.Helper
+import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.ReflectUtils.{findMethodByArgs, getConstructorArgs}
-import net.liftweb.common.{Box, EmptyBox}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import net.liftweb.common.{Box, Empty, EmptyBox, Full, ParamFailure}
 import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
 
-import scala.reflect.runtime.universe.{Type, typeOf}
+import scala.collection.mutable.ArrayBuffer
+import scala.reflect.runtime.universe.{MethodSymbol, Type, typeOf}
+import code.api.util.ErrorMessages.InvalidConnectorResponseForMissingRequiredValues
+import code.api.util.APIUtil.{fullBoxOrException, unboxFull}
+import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.ReflectUtils._
+import com.openbankproject.commons.util.Functions.Implicits._
 
-package object bankconnectors {
+import scala.collection.GenTraversableOnce
+import scala.concurrent.Future
+
+package object bankconnectors extends MdcLoggable {
 
   /**
     * a star connector object, usage:
@@ -41,8 +57,11 @@ package object bankconnectors {
       if(method.getName.contains("$default$")) {
           method.invoke(StubConnector, args:_*)
       } else {
-        val objToCall =  getConnectorObject(method, args)
-        method.invoke(objToCall, args:_*)
+        val (objToCall, methodSymbol) =  getConnectorObject(method, args)
+        val connectorMethodResult = method.invoke(objToCall, args: _*)
+        logger.debug(s"do required field validation for ${methodSymbol.typeSignature}")
+        val apiVersion = ApiVersionHolder.getApiVersion
+        validateRequiredFields(connectorMethodResult, methodSymbol.returnType, apiVersion)
       }
     }
     val enhancer: Enhancer = new Enhancer()
@@ -57,9 +76,10 @@ package object bankconnectors {
     * @param args passed arguments
     * @return connector Object
     */
-  private[this]def getConnectorObject(method: Method, args: Seq[Any]): Connector = {
+  private[this]def getConnectorObject(method: Method, args: Seq[Any]): (Connector, MethodSymbol) = {
     val methodName = method.getName
-    val methodSymbol = findMethodByArgs(typeOf[Connector], methodName, args:_*).getOrElse(sys.error(s"not found matched method, method name: ${methodName}, params: ${args.mkString(",")}"))
+    val tpe = typeOf[Connector]
+    val methodSymbol: MethodSymbol = findMethodByArgs(tpe, methodName, args:_*).getOrElse(sys.error(s"not found matched method, method name: ${methodName}, params: ${args.mkString(",")}"))
     val paramList = methodSymbol.paramLists.headOption.getOrElse(Nil)
     val paramNameToType: Map[String, Type] = paramList.map(param => (param.name.toString, param.info)).toMap
     val paramNameToValue: Map[String, Any] = paramList.zip(args).map(pair =>(pair._1.name.toString, pair._2)).toMap
@@ -98,14 +118,20 @@ package object bankconnectors {
       }
     }
 
-    connectorName.getOrElse("mapped") match {
+    val connector = connectorName.getOrElse("mapped") match {
       case "mapped" => LocalMappedConnector
+      case "akka_vDec2018" => AkkaConnector_vDec2018
+      case "kafka" => KafkaMappedConnector
+      case "kafka_JVMcompatible" => KafkaMappedConnector_JVMcompatible
+      case "kafka_vMar2017" => KafkaMappedConnector_vMar2017
+      case "kafka_vJune2017" => KafkaMappedConnector_vJune2017
+      case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
+      case "kafka_vMay2019" => KafkaMappedConnector_vMay2019
       case "rest_vMar2019" => RestConnector_vMar2019
       case "stored_procedure_vDec2019" => StoredProcedureConnector_vDec2019
-      case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
-      case "akka_vDec2018" => AkkaConnector_vDec2018
       case _ => throw new IllegalStateException(s"config of connector.start.methodName.${methodName} have wrong value, not exists connector of name ${connectorName.get}")
     }
+    (connector, methodSymbol)
   }
 
 
@@ -169,4 +195,104 @@ package object bankconnectors {
     }
   }
 
+  private def validateRequiredFields(value: AnyRef, returnType: Type, apiVersion: ApiVersion): AnyRef = {
+    value match {
+      case Unit => value
+      case coll @(_:Array[_] | _: ArrayBuffer[_] | _: GenTraversableOnce[_]) =>
+        val elementTpe = returnType.typeArgs.head
+        validate(value, elementTpe, coll, apiVersion, None, false)
+
+      case Full((coll: GenTraversableOnce[_], cc: Option[_]))
+        if coll.nonEmpty && getNestTypeArg(returnType, 0, 1, 0) =:= typeOf[CallContext] =>
+        val elementTpe = getNestTypeArg(returnType, 0, 0, 0)
+        val callContext = cc.asInstanceOf[Option[CallContext]]
+        validate(value, elementTpe, coll, apiVersion, callContext)
+
+      case Full((v, cc: Option[_]))
+        if getNestTypeArg(returnType, 0, 1, 0) =:= typeOf[CallContext] =>
+        val elementTpe = getNestTypeArg(returnType, 0, 0)
+        val callContext = cc.asInstanceOf[Option[CallContext]]
+        validate(value, elementTpe, v, apiVersion, callContext)
+
+      case Full((v1, v2)) =>
+        val tpe1 = getNestTypeArg(returnType, 0, 0)
+        val tpe2 = getNestTypeArg(returnType, 0, 1)
+        validateMultiple(value, apiVersion)(v1 -> tpe1, v2 -> tpe2)
+
+      // return type is: Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]
+      case Full(coll: Traversable[_])
+        if coll.nonEmpty &&
+          getNestTypeArg(returnType, 0, 0) <:< typeOf[(_, _, GenTraversableOnce[_])] =>
+        val tpe1 = getNestTypeArg(returnType, 0, 0, 0)
+        val tpe2 = getNestTypeArg(returnType, 0, 0, 1)
+        val tpe3 = getNestTypeArg(returnType, 0, 0, 2, 0)
+        val collTuple = coll.asInstanceOf[Traversable[(_, _, _)]]
+        val v1 = collTuple.map(_._1)
+        val v2 = collTuple.map(_._2)
+        val v3 = collTuple.map(_._3)
+        validateMultiple(value, apiVersion)(v1 -> tpe1, v2 -> tpe2, v3 -> tpe3)
+
+      case Full(coll: GenTraversableOnce[_]) if coll.nonEmpty =>
+        val elementTpe = getNestTypeArg(returnType, 0, 0)
+        validate(value, elementTpe, coll, apiVersion)
+
+      case Full(v) =>
+        val elementTpe = returnType.typeArgs.head
+        validate(value, elementTpe, v, apiVersion)
+
+      case (f @Full(v), cc: Option[_])
+        if getNestTypeArg(returnType, 1, 0) =:= typeOf[CallContext] =>
+        val elementTpe = getNestTypeArg(returnType, 0, 0)
+        val callContext = cc.asInstanceOf[Option[CallContext]]
+        val result = validate(f, elementTpe, v, apiVersion, callContext)
+        (result, cc)
+
+      case (v, cc: Option[_])
+        if getNestTypeArg(returnType, 1, 0) =:= typeOf[CallContext] =>
+        val elementTpe = returnType.typeArgs.head
+        val callContext = cc.asInstanceOf[Option[CallContext]]
+        validate(value, elementTpe, v, apiVersion, callContext, false)
+
+      case future: Future[_]  =>
+        val futureType = returnType.typeArgs.head
+        future.map(v => validateRequiredFields(v.asInstanceOf[AnyRef], futureType, apiVersion))
+
+      case _ => validate(value, returnType, value, apiVersion, None, false)
+    }
+
+  }
+
+  private def validate[T: Manifest](originValue: AnyRef,
+                                         validateType: Type,
+                                         any: Any,
+                                         apiVersion: ApiVersion,
+                                         cc: Option[CallContext] = None,
+                                         resultIsBox: Boolean = true): AnyRef =
+    validateMultiple[T](originValue, apiVersion, cc, resultIsBox)(any -> validateType)
+
+
+  private def validateMultiple[T: Manifest](originValue: AnyRef,
+                                         apiVersion: ApiVersion,
+                                         cc: Option[CallContext] = None,
+                                         resultIsBox: Boolean = true)(valueAndType: (Any, Type)*): AnyRef = {
+    val (lefts, _) = valueAndType
+      .map(it => Helper.getRequiredFieldInfo(it._2).validate(it._1, apiVersion))
+      .classify(_.isLeft)
+
+    if(lefts.isEmpty) { // all validation passed
+      originValue
+    } else {
+      val missingFields = lefts.flatMap(_.left.get)
+      val value = missingFieldsToFailure(missingFields, cc)
+      if(resultIsBox) value else fullBoxOrException(value)
+    }
+  }
+
+
+  private def missingFieldsToFailure(missingFields: Seq[String], cc: Option[CallContext] = None): ParamFailure[APIFailureNewStyle] = {
+    val message = missingFields.map(it => s"data.$it")
+                .mkString(s"INTERNAL-$InvalidConnectorResponseForMissingRequiredValues The missing fields: [", ", ", "]")
+    logger.error(message)
+    ParamFailure(message, Empty, Empty, APIFailureNewStyle(message, 400, cc.map(_.toLight)))
+  }
 }

@@ -8,7 +8,7 @@
     <groupId>com.tesobe</groupId>
     <artifactId>obp-parent</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
   </parent>
   <artifactId>obp-api</artifactId>
   <packaging>war</packaging>
@@ -433,9 +433,8 @@
       <artifactId>mssql-jdbc</artifactId>
       <version>8.1.0.jre${java.version}-preview</version>
     </dependency>
-
-
     <!-- scalikejdbc for call stored procedure end-->
+
   </dependencies>
 
   <build>
@@ -602,26 +601,27 @@
         </configuration>
       </plugin>
       <!--grpc related plugin begin-->
+      <!-- currently not need, enable this plugin when need generate new grpc code.
       <plugin>
-        <groupId>net.catte</groupId>
-        <artifactId>scalapb-maven-plugin</artifactId>
-        <version>1.2</version>
-        <configuration>
-          <javaOutput>false</javaOutput>
-          <inputDirectory>${basedir}/src/main/protobuf</inputDirectory>
-          <outputDirectory>${basedir}/src/main/scala</outputDirectory>
-          <grpc>true</grpc>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-            <phase>generate-sources</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <!--grpc related plugin end-->
+       <groupId>net.catte</groupId>
+       <artifactId>scalapb-maven-plugin</artifactId>
+       <version>1.2</version>
+       <configuration>
+         <javaOutput>false</javaOutput>
+         <inputDirectory>${basedir}/src/main/protobuf</inputDirectory>
+         <outputDirectory>${basedir}/src/main/scala</outputDirectory>
+         <grpc>true</grpc>
+       </configuration>
+       <executions>
+         <execution>
+           <goals>
+             <goal>compile</goal>
+           </goals>
+           <phase>generate-sources</phase>
+         </execution>
+       </executions>
+     </plugin>-->
+     <!--grpc related plugin end-->
     </plugins>
   </build>
   <reporting>

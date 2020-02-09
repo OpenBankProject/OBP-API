@@ -1,11 +1,11 @@
 package code.bankconnectors.storedprocedure
 
-import java.sql.{Connection, PreparedStatement}
+import java.sql.Connection
 
 import code.api.util.APIUtil
+import code.bankconnectors.Connector
 import com.openbankproject.commons.model.TopicTrait
-import net.liftweb.json
-import net.liftweb.json.JValue
+import net.liftweb.common.Box
 import net.liftweb.json.Serialization.write
 import scalikejdbc.{DB, _}
 
@@ -15,7 +15,8 @@ import scalikejdbc.{DB, _}
  * stored procedure will not be initialized.
  */
 object StoredProcedureUtils {
-  private implicit val formats = code.api.util.CustomJsonFormats.formats
+
+  private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
 
   // lazy initial DB connection
   {
@@ -43,16 +44,21 @@ object StoredProcedureUtils {
   }
 
 
-  def callProcedure[T: Manifest](procedureName: String, outBound: TopicTrait): T = {
+  def callProcedure[T: Manifest](procedureName: String, outBound: TopicTrait): Box[T] = {
     val procedureParam: String = write(outBound) // convert OutBound to json string
 
     val responseJson: String =
       DB autoCommit { implicit session =>
         val conn: Connection = session.connection
         // postgresql DB is different with other DB, it need a special way to call procedure.
-        if(conn.getMetaData().getDatabaseProductName() == "PostgreSQL") {
-          val st = conn.createStatement
-          val rs = st.executeQuery(s"CALL $procedureName('$procedureParam', '')")
+        val dbName = conn.getMetaData().getDatabaseProductName()
+        if(dbName.equalsIgnoreCase("PostgreSQL")) {
+
+          val preparedStatement = conn.prepareStatement(s" CALL $procedureName (?, '')")
+
+          preparedStatement.setString(1, procedureParam)
+          preparedStatement.execute()
+          val rs = preparedStatement.getResultSet()
           rs.next
           rs.getString(1)
         } else {
@@ -67,12 +73,6 @@ object StoredProcedureUtils {
           callableStatement.getString(2)
         }
      }
-    if(classOf[JValue].isAssignableFrom(manifest[T].runtimeClass)) {
-      json.parse(responseJson).asInstanceOf[T]
-    } else {
-      json.parse(responseJson).extract[T]
-    }
-
+    Connector.extractAdapterResponse[T](responseJson)
   }
-
 }

@@ -20,7 +20,7 @@ import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.util.Helpers._
 import org.bson.types.ObjectId
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent._
 
 private object LocalRecordConnector extends Connector with MdcLoggable {

@@ -5,7 +5,7 @@ import java.util.{Date, Objects}
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages._
 import code.api.util._
-import com.openbankproject.commons.util.{EnumValue, OBPEnumeration, ReflectUtils}
+import com.openbankproject.commons.util.{ApiVersion, EnumValue, OBPEnumeration, ReflectUtils}
 import net.liftweb
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
@@ -404,40 +404,40 @@ object SwaggerJSONFactory {
                 case s:scala.Product => s.getClass.getSimpleName
                 case _ => "NoSupportYet"
               }//Here we only use `EmptyClassJson` to make sure the json body. now, for connector swagger, the get method also has body.
-              if ("EmptyClassJson".equals(caseClassName)){
-                pathParameters
-              } else{
+//              if ("EmptyClassJson".equals(caseClassName)){
+//                pathParameters
+//              } else{
               OperationParameterBodyJson(
                 description = s"${caseClassName} object that needs to be added ",
                 schema=ResponseObjectSchemaJson(s"#/definitions/${caseClassName}")) :: pathParameters
-              }
+//              }
             },
             responses =
               rd.requestVerb.toLowerCase match {
                 case "get" => 
                   Map(
                     "200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
-                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
+                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFieldNameByValue(rd.errorResponseBodies.head)}")))
                   )
                 case "post" =>  
                   Map(
                     "201" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
-                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
+                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFieldNameByValue(rd.errorResponseBodies.head)}")))
                   )
                 case "put" =>
                   Map(
                     "200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
-                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
+                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFieldNameByValue(rd.errorResponseBodies.head)}")))
                   )
                 case "delete" =>
                   Map(
                     "204" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
-                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
+                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFieldNameByValue(rd.errorResponseBodies.head)}")))
                   )
                 case _ =>
                   Map(
                     "200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
-                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
+                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFieldNameByValue(rd.errorResponseBodies.head)}")))
                   )
               }
           )

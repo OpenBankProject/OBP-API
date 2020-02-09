@@ -27,8 +27,9 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v4_0_0
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.{ApiVersion, VersionedOBPApis}
+import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
+import com.openbankproject.commons.util.ApiVersion
+import code.api.util.VersionedOBPApis
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
@@ -59,12 +60,11 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   def allResourceDocs = collectResourceDocs(OBPAPI3_1_0.allResourceDocs,
                                             Implementations4_0_0.resourceDocs,
                                             MockerConnector.doc)
+     .filterNot(it => it.partialFunctionName.matches("addPermissionForUserForBankAccountForMultipleViews|removePermissionForUserForBankAccountForAllViews"))
+    //TODO exclude two endpoints, after training we need add logic to exclude endpoints
+
   // all endpoints
   private val endpoints: List[OBPEndpoint] = OBPAPI3_1_0.routes ++ endpointsOf4_0_0
-
-  def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
-    allResourceDocs.find(_.partialFunction==pf)
-  }
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
@@ -74,9 +74,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
 
   // register v4.0.0 apis first, Make them available for use!
-  routes.foreach(route => {
-    oauthServe(apiPrefix{route}, findResourceDoc(route))
-  })
+  registerRoutes(routes, allResourceDocs, apiPrefix, true)
 
   oauthServe(apiPrefix{Implementations4_0_0.genericEndpoint}, None)
   logger.info(s"version $version has been run! There are ${routes.length} routes.")

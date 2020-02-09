@@ -1,8 +1,8 @@
 package code.api.v3_0_0
 
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{ApiRole, ApiVersion, ErrorMessages}
+import code.api.util.{ApiRole, ErrorMessages}
 import code.api.util.ApiRole.CanGetAnyUser
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.v2_0_0.JSONFactory200.UsersJsonV200
@@ -10,6 +10,7 @@ import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization.write
 import net.liftweb.util.Helpers.randomString

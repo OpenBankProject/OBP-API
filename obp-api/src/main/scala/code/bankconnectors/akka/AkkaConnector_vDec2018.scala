@@ -17,7 +17,7 @@ import net.liftweb.common.{Box, Full}
 import net.liftweb.json.parse
 
 import scala.collection.immutable.{List, Nil}
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {

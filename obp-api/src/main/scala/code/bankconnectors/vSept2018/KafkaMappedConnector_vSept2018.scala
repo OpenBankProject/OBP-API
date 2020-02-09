@@ -26,6 +26,8 @@ Berlin 13359, Germany
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.UUID.randomUUID
+
+import code.api.APIFailure
 import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
@@ -57,10 +59,14 @@ import net.liftweb.json.{MappingException, parse}
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.util.{ApiVersion, RequiredFieldValidation}
+
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
+
+import scala.reflect.runtime.universe._
 
 trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with MdcLoggable {
   //this one import is for implicit convert, don't delete

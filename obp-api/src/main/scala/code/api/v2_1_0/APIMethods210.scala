@@ -21,7 +21,7 @@ import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metrics.APIMetrics
-import code.model.{BankX, BankAccountX, Consumer, UserX, toUserExtended}
+import code.model.{BankAccountX, BankX, Consumer, UserX, toUserExtended}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
 import code.usercustomerlinks.UserCustomerLink
@@ -29,6 +29,7 @@ import code.users.Users
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
@@ -51,7 +52,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 trait APIMethods210 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -66,7 +67,7 @@ trait APIMethods210 {
     val apiRelations = ArrayBuffer[ApiRelation]()
 
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion = util.ApiVersion.v2_1_0 // was String "2_1_0"
+    val apiVersion = ApiVersion.v2_1_0 // was String "2_1_0"
 
     val codeContext = CodeContext(resourceDocs, apiRelations)
 
@@ -1191,8 +1192,8 @@ trait APIMethods210 {
       emptyObjectJson,
       branchJson,
       List(
-        UserNotLoggedIn, 
-        "License may not be set. meta.license.id and eta.license.name can not be empty",
+        UserNotLoggedIn,
+        BranchNotFoundByBranchId,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
@@ -1208,7 +1209,7 @@ trait APIMethods210 {
             else
               cc.user ?~! UserNotLoggedIn
             (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
-            branch <- Box(Branches.branchesProvider.vend.getBranch(bankId, branchId)) ?~! s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
+            branch <- Box(Branches.branchesProvider.vend.getBranch(bankId, branchId)) ?~! BranchNotFoundByBranchId
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createBranchJson(branch)

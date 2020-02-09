@@ -3,11 +3,9 @@ package code.api.util
 import java.util.Date
 import java.util.UUID.randomUUID
 
-import code.accountholders.AccountHolders
 import code.api.APIFailureNewStyle
-import code.api.Constant._
 import code.api.cache.Caching
-import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
@@ -35,6 +33,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
+import com.openbankproject.commons.util.ApiVersion
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
@@ -93,12 +92,11 @@ object NewStyle {
 
   object function {
 
-    import scala.concurrent.ExecutionContext.Implicits.global
+    import com.openbankproject.commons.ExecutionContext.Implicits.global
 
     def getBranch(bankId : BankId, branchId : BranchId, callContext: Option[CallContext]): OBPReturnType[BranchT] = {
       Connector.connector.vend.getBranch(bankId, branchId, callContext) map {
-        val msg: String = s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
-        x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
+        x => fullBoxOrException(x ~> APIFailureNewStyle(BranchNotFoundByBranchId, 400, callContext.map(_.toLight)))
       } map { unboxFull(_) }
     }
 
@@ -211,6 +209,12 @@ object NewStyle {
         (unboxFullOrFail(i._1, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId"), i._2)
       }
 
+    def getTransaction(bankId: BankId, accountId : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None) : OBPReturnType[Transaction] = {
+      Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext) map {
+        x => (unboxFullOrFail(x._1, callContext, TransactionNotFound, 400), x._2)
+      }
+    }
+    
     def moderatedBankAccountCore(account: BankAccount, view: View, user: Box[User], callContext: Option[CallContext]) = Future {
       account.moderatedBankAccountCore(view, BankIdAccountId(account.bankId, account.accountId), user, callContext)
     } map { fullBoxOrException(_)
@@ -350,6 +354,16 @@ object NewStyle {
     def getConsumerByConsumerId(consumerId: String, callContext: Option[CallContext]): Future[Consumer] = {
       Consumers.consumers.vend.getConsumerByConsumerIdFuture(consumerId) map {
         unboxFullOrFail(_, callContext, s"$ConsumerNotFoundByConsumerId Current ConsumerId is $consumerId")
+      }
+    }
+    def checkConsumerByConsumerId(consumerId: String, callContext: Option[CallContext]): Future[Consumer] = {
+      Consumers.consumers.vend.getConsumerByConsumerIdFuture(consumerId) map {
+        unboxFullOrFail(_, callContext, s"$ConsumerNotFoundByConsumerId Current ConsumerId is $consumerId")
+      } map {
+        c => c.isActive.get match {
+          case true => c
+          case false => unboxFullOrFail(Empty, callContext, s"$ConsumerIsDisabled ConsumerId: $consumerId")
+        }
       }
     }
 
@@ -569,18 +583,20 @@ object NewStyle {
 
     def hasEntitlement(failMsg: String)(bankId: String, userId: String, role: ApiRole): Future[Box[Unit]] = {
       Helper.booleanToFuture(failMsg + role.toString()) {
-        code.api.util.APIUtil.hasEntitlement(bankId, userId, role)
+        APIUtil.hasEntitlement(bankId, userId, role)
       }
     }
     def hasEntitlement(bankId: String, userId: String, role: ApiRole, callContext: Option[CallContext] = None): Future[Box[Unit]] = {
       hasEntitlement(UserHasMissingRoles)(bankId, userId, role)
     }
     
-    def hasAtLeastOneEntitlement(failMsg: String)(bankId: String, userId: String, role: List[ApiRole]): Future[Box[Unit]] = {
+    def hasAtLeastOneEntitlement(failMsg: => String)(bankId: String, userId: String, roles: List[ApiRole]): Future[Box[Unit]] =
       Helper.booleanToFuture(failMsg) {
-        code.api.util.APIUtil.hasAtLeastOneEntitlement(bankId, userId, role)
+        APIUtil.hasAtLeastOneEntitlement(bankId, userId, roles)
       }
-    }
+
+    def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Future[Box[Unit]] =
+      hasAtLeastOneEntitlement(UserHasMissingRoles + roles.mkString(" or "))(bankId, userId, roles)
 
 
     def createUserAuthContext(userId: String, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContext] = {

@@ -30,16 +30,17 @@ import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 import java.util.{Calendar, Date}
 
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.DateWithDayFormat
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanReadCallLimits, CanSetCallLimits}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{APIUtil, ApiRole, ApiVersion}
+import code.api.util.{APIUtil, ApiRole}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 

@@ -27,6 +27,7 @@ trait ConsumersProvider {
   def getConsumerByPrimaryId(id: Long): Box[Consumer]
   def getConsumerByConsumerKey(consumerKey: String): Box[Consumer]
   def getConsumerByConsumerKeyFuture(consumerKey: String): Future[Box[Consumer]]
+  def getConsumerByConsumerId(consumerId: String): Box[Consumer]
   def getConsumerByConsumerIdFuture(consumerId: String): Future[Box[Consumer]]
   def getConsumersByUserIdFuture(userId: String): Future[List[Consumer]]
   def getConsumersFuture(): Future[List[Consumer]]
@@ -56,6 +57,7 @@ class RemotedataConsumersCaseClasses {
   case class getConsumerByPrimaryId(id: Long)
   case class getConsumerByConsumerKey(consumerKey: String)
   case class getConsumerByConsumerKeyFuture(consumerKey: String)
+  case class getConsumerByConsumerId(consumerId: String)
   case class getConsumerByConsumerIdFuture(consumerId: String)
   case class getConsumersByUserIdFuture(userId: String)
   case class getConsumersFuture()

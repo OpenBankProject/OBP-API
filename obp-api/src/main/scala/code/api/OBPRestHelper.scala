@@ -40,7 +40,9 @@ import code.api.v3_1_0.APIMethods310
 import code.api.v4_0_0.APIMethods400
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.util.ReflectUtils
+import com.alibaba.ttl.TransmittableThreadLocal
+import com.openbankproject.commons.model.ErrorMessage
+import com.openbankproject.commons.util.{ApiVersion, ReflectUtils, ScannedApiVersion}
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
@@ -62,6 +64,8 @@ object APIFailure {
     val msg = message
     val responseCode = httpResponseCode
   }
+
+  def unapply(arg: APIFailure): Option[(String, Int)] = Some(arg.msg, arg.responseCode)
 }
 
 case class APIFailureNewStyle(failMsg: String,
@@ -85,6 +89,24 @@ case class UserNotFound(providerId : String, userId: String) extends APIFailure 
   val msg = s"user $userId not found at provider $providerId"
 }
 
+object ApiVersionHolder {
+  private val threadLocal: ThreadLocal[ApiVersion] = new TransmittableThreadLocal()
+
+  def setApiVersion(apiVersion: ApiVersion) = threadLocal.set(apiVersion)
+
+  def getApiVersion = threadLocal.get()
+
+  /**
+   * remove apiVersion from threadLocal, and return removed value
+   * @return be removed apiVersion
+   */
+  def removeApiVersion(): ApiVersion = {
+    val apiVersion = threadLocal.get()
+    threadLocal.remove()
+    apiVersion
+  }
+}
+
 trait OBPRestHelper extends RestHelper with MdcLoggable {
 
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
@@ -93,12 +115,17 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   val versionStatus : String // TODO this should be property of ApiVersion
   //def vDottedVersion = vDottedApiVersion(version)
 
- def apiPrefix = (ApiPathZero / version.vDottedApiVersion).oPrefix(_)
+  def apiPrefix: OBPEndpoint => OBPEndpoint = version match {
+    case ScannedApiVersion(urlPrefix, _, _) =>
+      (urlPrefix / version.vDottedApiVersion).oPrefix(_)
+    case _ =>
+    (ApiPathZero / version.vDottedApiVersion).oPrefix(_)
+  }
 
   /*
   An implicit function to convert magically between a Boxed JsonResponse and a JsonResponse
   If we have something good, return it. Else log and return an error.
-  Please note that behaviour of this function depends om property display_internal_errors=true/false in case of Failure
+  Please note that behaviour of this function depends on property display_internal_errors=true/false in case of Failure
   # When is disabled we show only last message which should be a user friendly one. For instance:
   # {
   #   "error": "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
@@ -333,8 +360,17 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
             pf.isDefinedAt(req.withNewPath(req.path.drop(listLen)))
           }
 
-        def apply(req: Req): CallContext => Box[JsonResponse] =
-          pf.apply(req.withNewPath(req.path.drop(listLen)))
+        def apply(req: Req): CallContext => Box[JsonResponse] = {
+          val function: CallContext => Box[JsonResponse] = pf.apply(req.withNewPath(req.path.drop(listLen)))
+
+          callContext: CallContext => {
+            // set endpoint apiVersion
+            ApiVersionHolder.setApiVersion(version)
+            val value = function(callContext)
+            ApiVersionHolder.removeApiVersion()
+            value
+          }
+        }
       }
   }
 
@@ -434,5 +470,27 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       }
     }
     result
+  }
+
+  protected def findResourceDoc(pf: OBPEndpoint, allResourceDocs: ArrayBuffer[ResourceDoc]): Option[ResourceDoc] = {
+    allResourceDocs.find(_.partialFunction == pf)
+  }
+
+  protected def registerRoutes(routes: List[OBPEndpoint],
+                               allResourceDocs: ArrayBuffer[ResourceDoc],
+                               apiPrefix:OBPEndpoint => OBPEndpoint,
+                               autoValidateAll: Boolean = false): Unit = {
+    routes.foreach(route => {
+      val maybeResourceDoc = findResourceDoc(route, allResourceDocs)
+      val isAutoValidate = maybeResourceDoc.map(_.isAutoValidate).getOrElse(false)
+
+      // if rd contains ResourceDoc, when autoValidateAll or doc isAutoValidate, just wrapped to auth check endpoint
+      val authCheckRoute = (maybeResourceDoc, autoValidateAll || isAutoValidate) match {
+        case (Some(doc), true) if doc.implementedInApiVersion == version =>
+          doc.wrappedWithAuthCheck(route)
+        case _ => route
+      }
+      oauthServe(apiPrefix(authCheckRoute), maybeResourceDoc)
+    })
   }
 }

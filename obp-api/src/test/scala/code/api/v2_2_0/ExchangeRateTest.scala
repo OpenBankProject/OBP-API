@@ -1,13 +1,14 @@
 package code.api.v2_2_0
 
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{ApiRole, ApiVersion}
+import code.api.util.ApiRole
 import code.api.util.ErrorMessages.InvalidISOCurrencyCode
 import code.consumer.Consumers
 import code.scope.Scope
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
 
 class ExchangeRateTest extends V220ServerSetup with DefaultUsers {

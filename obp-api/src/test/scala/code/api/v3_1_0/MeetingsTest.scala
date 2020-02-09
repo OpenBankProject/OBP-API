@@ -25,10 +25,10 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_1_0
 
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiVersion
+import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UserNotLoggedIn}
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0

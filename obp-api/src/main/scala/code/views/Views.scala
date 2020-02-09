@@ -13,7 +13,7 @@ import net.liftweb.util.{Props, SimpleInjector}
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object Views  extends SimpleInjector {

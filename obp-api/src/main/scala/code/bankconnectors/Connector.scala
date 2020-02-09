@@ -4,6 +4,7 @@ import java.util.Date
 import java.util.UUID.randomUUID
 
 import code.accountholders.{AccountHolders, MapperAccountHolders}
+import code.api.{APIFailure, APIFailureNewStyle}
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, _}
 import code.api.util.ApiRole._
@@ -37,17 +38,17 @@ import code.views.Views
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.json.Extraction.decompose
-import net.liftweb.json.JObject
-import net.liftweb.json.JValue
+import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full, ParamFailure}
+import net.liftweb.json.{Formats, JObject, JValue}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.SimpleInjector
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import net.liftweb.json
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.math.{BigDecimal, BigInt}
@@ -95,11 +96,33 @@ object Connector extends SimpleInjector {
 
   }
 
+
+  def extractAdapterResponse[T: Manifest](responseJson: String): Box[T] = {
+    val clazz = manifest[T].runtimeClass
+    val boxJValue: Box[Box[JValue]] = tryo {
+      val jValue = json.parse(responseJson)
+      if (ErrorMessage.isErrorMessage(jValue)) {
+        val ErrorMessage(code, message) = jValue.extract[ErrorMessage]
+        ParamFailure(message, Empty, Empty, APIFailure(message, code))
+      } else {
+        Box !! jValue
+      }
+    } ~> APIFailureNewStyle(s"INTERNAL-$InvalidJsonFormat The Json body should be the ${clazz.getName} ", 400)
+
+    boxJValue match {
+      case Full(Full(jValue)) =>
+        tryo {
+          jValue.extract[T](CustomJsonFormats.nullTolerateFormats, manifest[T])
+        } ~> APIFailureNewStyle(s"INTERNAL-$InvalidJsonFormat The Json body should be the ${clazz.getName} ", 400)
+
+      case Full(failure) => failure.asInstanceOf[Box[T]]
+      case empty: EmptyBox => empty
+    }
+  }
 }
 
-trait Connector extends MdcLoggable with CustomJsonFormats{
-
-  protected val emptyObjectJson: JValue = decompose(Nil)
+trait Connector extends MdcLoggable {
+  implicit val formats: Formats = CustomJsonFormats.nullTolerateFormats
 
   val messageDocs = ArrayBuffer[MessageDoc]()
   protected implicit val nameOfConnector = Connector.getClass.getSimpleName
@@ -120,7 +143,6 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   protected val customersByUserIdTTL = getSecondsCache("getCustomersByUserId")
   protected val memoryCounterpartyTTL = getSecondsCache("createMemoryCounterparty")
   protected val memoryTransactionTTL = getSecondsCache("createMemoryTransaction")
-  protected val createCustomerTTL = getSecondsCache("createCustomer")
   protected val branchesTTL = getSecondsCache("getBranches")
   protected val branchTTL = getSecondsCache("getBranch")
   protected val atmsTTL = getSecondsCache("getAtms")
@@ -143,7 +165,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   /**
     * convert OBPReturnType return type to original future type
     *
-    * @param future OBPReturnType return type
+    * @param value OBPReturnType return type
     * @tparam T future success value type
     * @return original future type
     */
@@ -485,7 +507,6 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     *
     * @param fromAccount The unique identifier of the account sending money
     * @param toAccount The unique identifier of the account receiving money
-    * @param toCounterparty The unique identifier of the acounterparty receiving money
     * @param amount The amount of money to send ( > 0 )
     * @param transactionRequestType user input: SEPA, SANDBOX_TAN, FREE_FORM, COUNTERPARTY
     * @return The id of the sender's new transaction,
@@ -651,7 +672,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     Full(result)
   }
   // Set initial status
-  def getStatus(challengeThresholdAmount: BigDecimal, transactionRequestCommonBodyAmount: BigDecimal): Future[TransactionRequestStatus.Value] = {
+  def getStatus(challengeThresholdAmount: BigDecimal, transactionRequestCommonBodyAmount: BigDecimal, transactionRequestType: TransactionRequestType): Future[TransactionRequestStatus.Value] = {
     Future(
       if (transactionRequestCommonBodyAmount < challengeThresholdAmount) {
         // For any connector != mapped we should probably assume that transaction_status_scheduler_delay will be > 0
@@ -659,7 +680,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
         // i.e. if we are certain that saveTransaction will be honored immediately by the backend, then transaction_status_scheduler_delay
         // can be empty in the props file. Otherwise, the status will be set to STATUS_PENDING
         // and getTransactionRequestStatusesImpl needs to be run periodically to update the transaction request status.
-        if (APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").isEmpty )
+        if (APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").isEmpty || (transactionRequestType.value ==REFUND.toString))
           TransactionRequestStatus.COMPLETED
         else
           TransactionRequestStatus.PENDING
@@ -688,7 +709,6 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     * @param viewId
     * @param fromAccount
     * @param toAccount
-    * @param toCounterparty
     * @param transactionRequestType Support Types: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY
     * @param transactionRequestCommonBody Body from http request: should have common fields
     * @param chargePolicy  SHARED, SENDER, RECEIVER
@@ -710,7 +730,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                                    callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
 
     for{
-      // Get the threshold for a challenge. i.e. over what value do we require an out of bounds security challenge to be sent?
+      // Get the threshold for a challenge. i.e. over what value do we require an out of Band security challenge to be sent?
       (challengeThreshold, callContext) <- Connector.connector.vend.getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold ", 400), i._2)
       }
@@ -718,7 +738,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
         BigDecimal(challengeThreshold.amount)}
       transactionRequestCommonBodyAmount <- NewStyle.function.tryons(s"$InvalidNumber Request Json value.amount ${transactionRequestCommonBody.value.amount} not convertible to number", 400, callContext) {
         BigDecimal(transactionRequestCommonBody.value.amount)}
-      status <- getStatus(challengeThresholdAmount,transactionRequestCommonBodyAmount)
+      status <- getStatus(challengeThresholdAmount,transactionRequestCommonBodyAmount, transactionRequestType: TransactionRequestType)
       (chargeLevel, callContext) <- Connector.connector.vend.getChargeLevel(BankId(fromAccount.bankId.value), AccountId(fromAccount.accountId.value), viewId, initiator.userId, initiator.name, transactionRequestType.value, fromAccount.currency, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
       }
@@ -798,7 +818,6 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     * @param transactionRequestType Support Types: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY
     * @param fromAccount
     * @param toAccount
-    * @param toCounterparty
     * @param transactionRequestCommonBody Body from http request: should have common fields:
     * @param details  This is the details / body of the request (contains all fields in the body)
     * @param status   "INITIATED" "PENDING" "FAILED"  "COMPLETED"

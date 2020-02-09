@@ -42,7 +42,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JArray, JObject}
 
 import scala.collection.immutable.{List, Set}
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
@@ -372,7 +372,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     if(APIUtil.hasAccess(view, BankIdAccountId(bankId, accountId), user))
       for{
         (transaction, callContext)<-Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext) map {
-          x => (unboxFullOrFail(x._1, callContext, InvalidConnectorResponse, 400), x._2)
+          x => (unboxFullOrFail(x._1, callContext, TransactionNotFound, 400), x._2)
         }
       } yield {
         view.moderateTransaction(transaction) match {

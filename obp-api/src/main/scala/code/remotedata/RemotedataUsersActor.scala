@@ -9,7 +9,7 @@ import code.users.{LiftUsers, RemotedataUsersCaseClasses}
 import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.List
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class RemotedataUsersActor extends Actor with ObpActorHelper with MdcLoggable  {
 

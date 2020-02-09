@@ -28,6 +28,7 @@ package code.api.v2_2_0
 
 //import code.api.v1_2_1.JSONFactory
 import java.util.Date
+import java.util.regex.Pattern
 
 import code.actorsystem.ObpActorConfig
 import code.api.util.{APIUtil, ApiProperty, CustomJsonFormats}
@@ -44,13 +45,14 @@ import code.model.dataAccess.ResourceUser
 import code.model._
 import com.openbankproject.commons.model.Product
 import code.users.Users
+import code.util.Helper
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, RequiredFields}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction.decompose
 import net.liftweb.json.JsonAST.JValue
 
 import scala.collection.immutable.List
-
 
 
 case class ViewsJSONV220(
@@ -827,7 +829,8 @@ object JSONFactory220 extends CustomJsonFormats {
                              // TODO in next API version change these two fields to snake_case
                              outboundAvroSchema: Option[JValue] = None,
                              inboundAvroSchema: Option[JValue] = None,
-                             adapter_implementation : AdapterImplementationJson
+                             adapter_implementation : AdapterImplementationJson,
+                             requiredFieldInfo: Option[RequiredFields] = None
                            )
 
   case class AdapterImplementationJson(
@@ -845,6 +848,8 @@ object JSONFactory220 extends CustomJsonFormats {
   }
 
   def createMessageDocJson(md: MessageDoc): MessageDocJson = {
+    val inBoundType = ReflectUtils.getType(md.exampleInboundMessage)
+
     MessageDocJson(
       process = md.process,
       message_format = md.messageFormat,
@@ -860,7 +865,11 @@ object JSONFactory220 extends CustomJsonFormats {
       adapter_implementation = AdapterImplementationJson(
                             md.adapterImplementation.map(_.group).getOrElse(""),
                             md.adapterImplementation.map(_.suggestedOrder).getOrElse(100)
-      )
+      ),
+      requiredFieldInfo = {
+        val requiredInfo = Helper.getRequiredFieldInfo(inBoundType)
+        Some(requiredInfo)
+      }
     )
   }
 

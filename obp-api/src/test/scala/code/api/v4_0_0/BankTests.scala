@@ -1,15 +1,16 @@
 package code.api.v4_0_0
 
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.bankJSONV220
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateBank
 import code.api.util.ErrorMessages.UserHasMissingRoles
-import code.api.util.{ApiRole, ApiVersion, ErrorMessages, NewStyle}
+import code.api.util.{ApiRole, ErrorMessages, NewStyle}
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
