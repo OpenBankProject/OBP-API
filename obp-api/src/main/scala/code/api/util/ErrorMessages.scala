@@ -342,6 +342,12 @@ object ErrorMessages {
   val ConsentAlreadyRevoked = "OBP-35012: Consent is already revoked. "
   val RolesAllowedInConsent = "OBP-35013: Consents can only contain Roles that you already have access to."
   val ViewsAllowedInConsent = "OBP-35014: Consents can only contain Views that you already have access to."
+  val ConsentDoesntMatchApp = "OBP-35015: Consent doesn't match your application."
+  val ConsumerKeyHeaderMissing = "OBP-35016: Consumer-Key header value is not defined at this request."
+  val ConsumerAtConsentDisabled = "OBP-35017: The Consumer specified in this consent is disabled."
+  val ConsumerAtConsentCannotBeFound = "OBP-35018: The Consumer specified in this consent cannot be found."
+  val ConsumerValidationMethodForConsentNotDefined = "OBP-35019: Consumer validation method for consent is not defined at this instance."
+  val ConsentMaxTTL = "OBP-35020: You exceeded max value of time to live of consents."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "

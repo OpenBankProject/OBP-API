@@ -9,8 +9,8 @@ object RemotedataExpectedChallengeAnswerProvider extends ObpActorInit with Expec
   
   val cc = RemotedataExpectedChallengeAnswerProviderCaseClasses
   
-  override def saveExpectedChallengeAnswer(challengeId: String, salt: String, expectedAnswer: String): Box[ExpectedChallengeAnswer] = getValueFromFuture(
-    (actor ? cc.saveExpectedChallengeAnswer(challengeId: String, salt: String, expectedAnswer: String)).mapTo[Box[ExpectedChallengeAnswer]]
+  override def saveExpectedChallengeAnswer(challengeId: String, salt: String, expectedAnswer: String, expectedUserId: String): Box[ExpectedChallengeAnswer] = getValueFromFuture(
+    (actor ? cc.saveExpectedChallengeAnswer(challengeId, salt, expectedAnswer, expectedUserId)).mapTo[Box[ExpectedChallengeAnswer]]
   )
   
   override def getExpectedChallengeAnswer(challengeId: String): Box[ExpectedChallengeAnswer] = getValueFromFuture(

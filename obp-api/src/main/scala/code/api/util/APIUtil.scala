@@ -2186,7 +2186,7 @@ Returns a string showed to the developer
     val remoteIpAddress = getRemoteIpAddress()
     val res =
     if (APIUtil.hasConsentId(reqHeaders)) {
-      Consent.applyRules(APIUtil.getConsentId(reqHeaders), Some(cc)) 
+      Consent.applyRules(APIUtil.getConsentId(reqHeaders), cc) 
     } else if (hasAnOAuthHeader(cc.authReqHeaderField)) {
       getUserFromOAuthHeaderFuture(cc)
     } else if (hasAnOAuth2Header(cc.authReqHeaderField)) {

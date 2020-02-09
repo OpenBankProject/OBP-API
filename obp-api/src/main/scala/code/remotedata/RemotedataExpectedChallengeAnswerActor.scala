@@ -12,9 +12,9 @@ class RemotedataExpectedChallengeAnswerActor extends Actor with ObpActorHelper w
 
   def receive = {
 
-    case cc.saveExpectedChallengeAnswer(challengeId: String, salt: String, expectedAnswer: String) =>
-      logger.debug(s"saveExpectedChallengeAnswer($challengeId, $salt, $expectedAnswer)")
-      sender ! (mapper.saveExpectedChallengeAnswer(challengeId: String, salt: String, expectedAnswer: String))
+    case cc.saveExpectedChallengeAnswer(challengeId: String, salt: String, expectedAnswer: String, expectedUserId: String) =>
+      logger.debug(s"saveExpectedChallengeAnswer($challengeId, $salt, $expectedAnswer, $expectedUserId)")
+      sender ! (mapper.saveExpectedChallengeAnswer(challengeId, salt, expectedAnswer, expectedUserId))
 
     case cc.getExpectedChallengeAnswer(challengeId: String) =>
       logger.debug(s"getExpectedChallengeAnswer($challengeId)")
