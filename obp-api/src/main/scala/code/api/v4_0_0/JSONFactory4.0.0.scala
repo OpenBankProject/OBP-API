@@ -204,6 +204,19 @@ case class StandingOrderJsonV400(standing_order_id: String,
 case class PostViewJsonV400(view_id: String, is_system: Boolean)
 case class PostAccountAccessJsonV400(user_id: String, view: PostViewJsonV400)
 case class RevokedJsonV400(revoked: Boolean)
+
+// the data from endpoint, extract as valid JSON
+case class TransactionRequestBodyRefundJsonV400(
+  to: TransactionRequestAccountJsonV140,
+  value: AmountOfMoneyJsonV121,
+  description: String,
+  refund:RefundJson
+) extends TransactionRequestCommonBodyJSON
+
+case class RefundJson(
+  transaction_id: String
+)
+
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
