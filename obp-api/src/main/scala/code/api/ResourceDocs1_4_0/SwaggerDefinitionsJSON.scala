@@ -3580,7 +3580,7 @@ object SwaggerDefinitionsJSON {
   val transactionRequestBodyRefundJsonV400 = TransactionRequestBodyRefundJsonV400(
     to = transactionRequestAccountJsonV140,
     value = amountOfMoneyJsonV121,
-    description = "I need to get the refund.",
+    description = "A refund description. ",
     refund = RefundJson(transactionIdExample.value)
   )
   
