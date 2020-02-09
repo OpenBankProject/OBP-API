@@ -454,7 +454,7 @@ trait APIMethods400 {
                     write(transactionRequestBodyRefundJson)(Serialization.formats(NoTypeHints))
                   }
                   
-                  _ <- Helper.booleanToFuture(s"${RefundedTransaction} Current input amount is: '${transDetailsJson.value.amount}'. It can not be more than the original amount(${transaction.amount})") {
+                  _ <- Helper.booleanToFuture(s"${RefundedTransaction} Current input amount is: '${transDetailsJson.value.amount}'. It can not be more than the original amount(${(transaction.amount).abs})") {
                     (transaction.amount).abs  >= transactionAmountNumber
                   }
                   //TODO, we need additional field to guarantee the transaction is refunded...  
