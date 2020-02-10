@@ -42,6 +42,7 @@ import code.directdebit.DirectDebitTrait
 import code.entitlement.Entitlement
 import code.model.{ModeratedBankAccount, ModeratedBankAccountCore}
 import code.standingorders.StandingOrderTrait
+import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import com.openbankproject.commons.model._
 
@@ -61,6 +62,7 @@ case class BanksJson400(banks: List[BankJson400])
 
 case class ChallengeJsonV400(
                               id: String,
+                              user_id: String,
                               allowed_attempts : Int,
                               challenge_type: String,
                               link: String
@@ -75,7 +77,7 @@ case class TransactionRequestWithChargeJSON400(
                                                 status: String,
                                                 start_date: Date,
                                                 end_date: Date,
-                                                challenge: ChallengeJsonV400,
+                                                challenges: List[ChallengeJsonV400],
                                                 charge : TransactionRequestChargeJsonV200
                                               )
 case class PostResetPasswordUrlJsonV400(username: String, email: String, user_id: String)
@@ -240,7 +242,7 @@ object JSONFactory400 {
     BanksJson400(l.map(createBankJSON400))
   }
 
-  def createTransactionRequestWithChargeJSON(tr : TransactionRequest) : TransactionRequestWithChargeJSON400 = {
+  def createTransactionRequestWithChargeJSON(tr : TransactionRequest, challenges: List[MappedExpectedChallengeAnswer]) : TransactionRequestWithChargeJSON400 = {
     new TransactionRequestWithChargeJSON400(
       id = stringOrNull(tr.id.value),
       `type` = stringOrNull(tr.`type`),
@@ -254,7 +256,7 @@ object JSONFactory400 {
       start_date = tr.start_date,
       end_date = tr.end_date,
       // Some (mapped) data might not have the challenge. TODO Make this nicer
-      challenge = {
+      challenges = {
         try {
           val otpViaWebFormPath = APIUtil.getPropsValue("hostname", "") + List(
             "/otp?flow=transaction_request&bankId=",
@@ -283,8 +285,10 @@ object JSONFactory400 {
             case challengeType if challengeType == TransactionChallengeTypes.OTP_VIA_WEB_FORM.toString => otpViaWebFormPath
             case challengeType if challengeType == TransactionChallengeTypes.OTP_VIA_API.toString => otpViaApiPath
             case _ => ""
-          }  
-          ChallengeJsonV400(id = stringOrNull(tr.challenge.id), allowed_attempts = tr.challenge.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), link = link)
+          }
+          challenges.map(
+            e => ChallengeJsonV400(id = stringOrNull(e.challengeId), user_id = e.expectedUserId, allowed_attempts = tr.challenge.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), link = link)
+          )
         }
         // catch { case _ : Throwable => ChallengeJSON (id = "", allowed_attempts = 0, challenge_type = "")}
         catch { case _ : Throwable => null}

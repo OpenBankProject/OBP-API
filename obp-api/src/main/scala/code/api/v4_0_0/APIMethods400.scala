@@ -19,6 +19,7 @@ import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.{CreateAccountRequestJsonV310, JSONFactory310, ListResult}
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
+import code.bankconnectors.Connector
 import code.dynamicEntity.DynamicEntityCommons
 import code.entitlement.Entitlement
 import code.metadata.tags.Tags
@@ -631,7 +632,9 @@ trait APIMethods400 {
               }
             }
           } yield {
-            (JSONFactory400.createTransactionRequestWithChargeJSON(createdTransactionRequest), HttpCode.`201`(callContext))
+            val challenges: List[MappedExpectedChallengeAnswer] = MappedExpectedChallengeAnswer
+              .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, createdTransactionRequest.id.value))
+            (JSONFactory400.createTransactionRequestWithChargeJSON(createdTransactionRequest, challenges), HttpCode.`201`(callContext))
           }
       }
     }
@@ -701,7 +704,8 @@ trait APIMethods400 {
 
             // Check the Transaction Request is still INITIATED
             _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiated) {
-              existingTransactionRequest.status.equals("INITIATED")
+              existingTransactionRequest.status.equals("INITIATED") ||
+              existingTransactionRequest.status.equals("NEXT_CHALLENGE_PENDING") 
             }
 
             // Check the input transactionRequestType is the same as when the user created the TransactionRequest
@@ -713,6 +717,9 @@ trait APIMethods400 {
             // Check the challengeId is valid for this existingTransactionRequest
             _ <- Helper.booleanToFuture(s"${InvalidTransactionRequesChallengeId}") {
               existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
+              MappedExpectedChallengeAnswer
+                .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
+                .exists(_.challengeId == challengeAnswerJson.id)
             }
 
             //Check the allowed attemps, Note: not support yet, the default value is 3
@@ -733,15 +740,16 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(s"$InvalidChallengeAnswer") {
               challengeAnswerOBP
             }
-            
+            accountAttributes <- Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None)
             _ <- Helper.booleanToFuture(s"$NextChallengePending") {
+              val quorum = accountAttributes._1.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
               MappedExpectedChallengeAnswer
                 .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
-                .exists(_.successful != true) match {
-                  case false => false
-                  case true => 
+                .count(_.successful == true) match {
+                  case number if number >= quorum => true
+                  case _ => 
                     MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, "NEXT_CHALLENGE_PENDING")
-                    true
+                    false
                 }
             }
 

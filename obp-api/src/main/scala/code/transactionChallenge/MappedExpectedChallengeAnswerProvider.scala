@@ -47,7 +47,13 @@ object MappedExpectedChallengeAnswerProvider extends ExpectedChallengeAnswerProv
         } else {
           Full(false)
         }
-      case Some(id) => Full(currentHashedAnswer==expectedHashedAnswer && id==expectedChallengeAnswer.expectedUserId)
+      case Some(id) =>
+        if(currentHashedAnswer==expectedHashedAnswer && id==expectedChallengeAnswer.expectedUserId) {
+          expectedChallengeAnswer.mSuccessful(true).save
+          Full(true)
+        } else {
+          Full(false)
+        }
     }
   }
 }
