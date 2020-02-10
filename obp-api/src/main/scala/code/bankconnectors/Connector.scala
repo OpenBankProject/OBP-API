@@ -241,7 +241,15 @@ trait Connector extends MdcLoggable {
                       transactionRequestType: TransactionRequestType, 
                       transactionRequestId: String,
                       scaMethod: Option[SCA], 
-                      callContext: Option[CallContext]) : OBPReturnType[Box[String]]= Future{(Failure(setUnimplementedError), callContext)}
+                      callContext: Option[CallContext]) : OBPReturnType[Box[String]]= Future{(Failure(setUnimplementedError), callContext)}  
+  // Initiate creating a challenges for transaction request and returns an ids of the challenges
+  def createChallenges(bankId: BankId, 
+                      accountId: AccountId, 
+                      userIds: List[String], 
+                      transactionRequestType: TransactionRequestType, 
+                      transactionRequestId: String,
+                      scaMethod: Option[SCA], 
+                      callContext: Option[CallContext]) : OBPReturnType[Box[List[String]]]= Future{(Failure(setUnimplementedError), callContext)}
   // Validates an answer for a challenge and returns if the answer is correct or not
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Full(true), callContext)}
 
@@ -794,6 +802,133 @@ trait Connector extends MdcLoggable {
             }
             
             newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
+            _ <- Future (saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
+            transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
+          } yield {
+            (transactionRequest, callContext)
+          }
+        case _ => Future (transactionRequest, callContext)
+      }
+    }yield{
+      logger.debug(transactionRequest)
+      (Full(transactionRequest), callContext)
+    }
+  }
+
+
+  /**
+    *
+    * @param initiator
+    * @param viewId
+    * @param fromAccount
+    * @param toAccount
+    * @param transactionRequestType Support Types: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY
+    * @param transactionRequestCommonBody Body from http request: should have common fields
+    * @param chargePolicy  SHARED, SENDER, RECEIVER
+    * @param detailsPlain This is the details / body of the request (contains all fields in the body)
+    * @return Always create a new Transaction Request in mapper, and return all the fields
+    */
+
+
+  def createTransactionRequestv400(initiator: User,
+                                   viewId: ViewId,
+                                   fromAccount: BankAccount,
+                                   toAccount: BankAccount,
+                                   transactionRequestType: TransactionRequestType,
+                                   transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                   detailsPlain: String,
+                                   chargePolicy: String,
+                                   challengeType: Option[String],
+                                   scaMethod: Option[SCA],
+                                   callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
+
+    for{
+      // Get the threshold for a challenge. i.e. over what value do we require an out of Band security challenge to be sent?
+      (challengeThreshold, callContext) <- Connector.connector.vend.getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold ", 400), i._2)
+      }
+      challengeThresholdAmount <- NewStyle.function.tryons(s"$InvalidConnectorResponseForGetChallengeThreshold. challengeThreshold amount ${challengeThreshold.amount} not convertible to number", 400, callContext) {
+        BigDecimal(challengeThreshold.amount)}
+      transactionRequestCommonBodyAmount <- NewStyle.function.tryons(s"$InvalidNumber Request Json value.amount ${transactionRequestCommonBody.value.amount} not convertible to number", 400, callContext) {
+        BigDecimal(transactionRequestCommonBody.value.amount)}
+      status <- getStatus(challengeThresholdAmount,transactionRequestCommonBodyAmount, transactionRequestType: TransactionRequestType)
+      (chargeLevel, callContext) <- Connector.connector.vend.getChargeLevel(BankId(fromAccount.bankId.value), AccountId(fromAccount.accountId.value), viewId, initiator.userId, initiator.name, transactionRequestType.value, fromAccount.currency, callContext) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
+      }
+
+      chargeLevelAmount <- NewStyle.function.tryons( s"$InvalidNumber chargeLevel.amount: ${chargeLevel.amount} can not be transferred to decimal !", 400, callContext) {
+        BigDecimal(chargeLevel.amount)}
+      chargeValue <- getChargeValue(chargeLevelAmount,transactionRequestCommonBodyAmount)
+      charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue))
+      // Always create a new Transaction Request
+      transactionRequest <- Future{ createTransactionRequestImpl210(TransactionRequestId(generateUUID()), transactionRequestType, fromAccount, toAccount, transactionRequestCommonBody, detailsPlain, status.toString, charge, chargePolicy)} map {
+        unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestImpl210")
+      }
+
+      // If no challenge necessary, create Transaction immediately and put in data store and object to return
+      (transactionRequest, callConext) <- status match {
+        case TransactionRequestStatus.COMPLETED =>
+          for {
+            (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
+              fromAccount,
+              toAccount,
+              transactionRequestCommonBody,
+              BigDecimal(transactionRequestCommonBody.value.amount),
+              transactionRequestCommonBody.description,
+              transactionRequestType,
+              chargePolicy,
+              callContext
+            )
+            //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
+            transactionRequest <- Future(transactionRequest.copy(challenge = null))
+
+            //save transaction_id into database
+            _ <- Future {saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId)}
+            //update transaction_id filed for varibale 'transactionRequest'
+            transactionRequest <- Future(transactionRequest.copy(transaction_ids = createdTransactionId.value))
+
+          } yield {
+            logger.debug(s"createTransactionRequestv210.createdTransactionId return: $transactionRequest")
+            (transactionRequest, callContext)
+          }
+        case TransactionRequestStatus.INITIATED =>
+          def getUsersForChallenges(bankId: BankId,
+                                    accountId: AccountId) = {
+            Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None) map {
+              _._1.map {
+                x =>
+                  {
+                    if(x.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt > 1) {
+                      for (
+                        permission <- Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
+                      ) yield {
+                        permission.views.exists(_.canAddTransactionRequestToAnyAccount == true) match {
+                          case true => Some(permission.user)
+                          case _ => None
+                        }
+                      }
+                    } else List(Some(initiator))
+                    }.flatten.distinct
+              }
+            }
+          }
+
+          for {
+            //if challenge necessary, create a new one
+            users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId)
+            (challengeIds, callContext) <- createChallenges(
+              fromAccount.bankId,
+              fromAccount.accountId,
+              users.toList.flatten.map(_.userId),
+              transactionRequestType: TransactionRequestType,
+              transactionRequest.id.value,
+              scaMethod,
+              callContext
+            ) map { i =>
+              (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
+            }
+
+            newChallenge = TransactionRequestChallenge(challengeIds.headOption.getOrElse(""), allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
             _ <- Future (saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
             transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
           } yield {
