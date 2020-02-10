@@ -28,7 +28,7 @@ import code.model.toUserExtended
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestProvider}
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes
+import code.transactionrequests.TransactionRequests.{TransactionRequestStatus, TransactionRequestTypes}
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.users.Users
 import code.util.Helper
@@ -703,9 +703,9 @@ trait APIMethods400 {
             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transReqId, cc.callContext)
 
             // Check the Transaction Request is still INITIATED
-            _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiated) {
-              existingTransactionRequest.status.equals("INITIATED") ||
-              existingTransactionRequest.status.equals("NEXT_CHALLENGE_PENDING") 
+            _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiatedOrPending) {
+              existingTransactionRequest.status.equals(TransactionRequestStatus.INITIATED.toString) ||
+              existingTransactionRequest.status.equals(TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString) 
             }
 
             // Check the input transactionRequestType is the same as when the user created the TransactionRequest
@@ -748,7 +748,7 @@ trait APIMethods400 {
                 .count(_.successful == true) match {
                   case number if number >= quorum => true
                   case _ => 
-                    MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, "NEXT_CHALLENGE_PENDING")
+                    MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
                     false
                 }
             }
