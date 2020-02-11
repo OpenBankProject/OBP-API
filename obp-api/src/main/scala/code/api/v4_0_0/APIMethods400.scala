@@ -28,7 +28,7 @@ import code.model.toUserExtended
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestProvider}
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes
+import code.transactionrequests.TransactionRequests.{TransactionRequestStatus, TransactionRequestTypes}
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.users.Users
 import code.util.Helper
@@ -111,13 +111,24 @@ trait APIMethods400 {
          |
          |In OBP, a `transaction request` may or may not result in a `transaction`. However, a `transaction` only has one possible state: completed.
          |
-         |A `Transaction Request` can have one of several states.
+         |A `Transaction Request` can have one of several states: INITIATED, NEXT_CHALLENGE_PENDING etc.
          |
          |`Transactions` are modeled on items in a bank statement that represent the movement of money.
          |
-         |`Transaction Requests` are requests to move money which may or may not succeeed and thus result in a `Transaction`.
+         |`Transaction Requests` are requests to move money which may or may not succeed and thus result in a `Transaction`.
          |
          |A `Transaction Request` might create a security challenge that needs to be answered before the `Transaction Request` proceeds.
+         |In case 1 person needs to answer security challenge we have next flow of state of an `transaction request`:
+         |  INITIATED => COMPLETED
+         |In case n persons needs to answer security challenge we have next flow of state of an `transaction request`:
+         |  INITIATED => NEXT_CHALLENGE_PENDING => ... => NEXT_CHALLENGE_PENDING => COMPLETED
+         |  
+         |The security challenge is bound to a user i.e. in case of right answer and the user is different than expected one the challenge will fail.
+         |
+         |Rule for calculating number of security challenges:
+         |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges 
+         |(one for every user that has a View where permission "can_add_transaction_request_to_any_account"=true)
+         |In case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute default value is 1.
          |
          |Transaction Requests contain charge information giving the client the opportunity to proceed or not (as long as the challenge level is appropriate).
          |
@@ -657,7 +668,22 @@ trait APIMethods400 {
         |
         |3) `id` :  is `challenge.id` field in createTransactionRequest response body.
         |
-        |4) `answer` : must be `123`. if it is in sandbox mode. If it kafka mode, the answer can be got by phone message or other security ways.
+        |4) `answer` : must be `123` in case that Strong Customer Authentication method for OTP challenge is dummy. 
+        |    For instance: SANDBOX_TAN_OTP_INSTRUCTION_TRANSPORT=dummy
+        |    Possible values are dummy,email and sms
+        |    In kafka mode, the answer can be got by phone message or other security ways.
+        |
+        |In case 1 person needs to answer security challenge we have next flow of state of an `transaction request`:
+        |  INITIATED => COMPLETED
+        |In case n persons needs to answer security challenge we have next flow of state of an `transaction request`:
+        |  INITIATED => NEXT_CHALLENGE_PENDING => ... => NEXT_CHALLENGE_PENDING => COMPLETED
+        |  
+        |The security challenge is bound to a user i.e. in case of right answer and the user is different than expected one the challenge will fail.
+        |
+        |Rule for calculating number of security challenges:
+        |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges 
+        |(one for every user that has a View where permission "can_add_transaction_request_to_any_account"=true)
+        |In case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute default value is 1.
         |
       """.stripMargin,
       challengeAnswerJSON,
@@ -703,9 +729,9 @@ trait APIMethods400 {
             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transReqId, cc.callContext)
 
             // Check the Transaction Request is still INITIATED
-            _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiated) {
-              existingTransactionRequest.status.equals("INITIATED") ||
-              existingTransactionRequest.status.equals("NEXT_CHALLENGE_PENDING") 
+            _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiatedOrPending) {
+              existingTransactionRequest.status.equals(TransactionRequestStatus.INITIATED.toString) ||
+              existingTransactionRequest.status.equals(TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString) 
             }
 
             // Check the input transactionRequestType is the same as when the user created the TransactionRequest
@@ -748,7 +774,7 @@ trait APIMethods400 {
                 .count(_.successful == true) match {
                   case number if number >= quorum => true
                   case _ => 
-                    MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, "NEXT_CHALLENGE_PENDING")
+                    MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
                     false
                 }
             }
