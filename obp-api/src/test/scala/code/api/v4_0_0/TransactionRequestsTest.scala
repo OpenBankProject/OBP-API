@@ -237,9 +237,9 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
       /**
         * check the balance, after the transactions.
         *
-        * @param finishedTranscation : finished the transaction or not ? If finished it is true, if it is not it is false.
+        * @param finishedTransaction : finished the transaction or not ? If finished it is true, if it is not it is false.
         */
-      def checkBankAccountBalance(finishedTranscation: Boolean): Unit = {
+      def checkBankAccountBalance(finishedTransaction: Boolean): Unit = {
         val toAccount = getToAccount
         val fromAccount = getFromAccount
         val rate = fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value))
@@ -248,7 +248,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         val toAccountBalance = toAccount.balance
 
 
-        if (finishedTranscation ) {
+        if (finishedTransaction ) {
           if(transactionRequestTypeInput.equals(FREE_FORM.toString)){
             Then("FREE_FORM just transfer money to itself, the money should be the same as before ")
             fromAccountBalance should equal((beforeFromBalance))
@@ -456,7 +456,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         Then("We checked all the fields of getTransResponse body")
         helper.checkAllGetTransResBodyField(getTransResponse, false)
 
-        When("We checked all the data in database, we need check the account amout info")
+        When("We checked all the data in database, we need check the account amount info")
         helper.checkBankAccountBalance(true)
 
       }

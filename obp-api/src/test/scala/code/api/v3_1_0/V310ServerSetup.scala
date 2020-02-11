@@ -1,11 +1,14 @@
 package code.api.v3_1_0
 
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
+import code.api.util.ApiRole.CanCreateProduct
 import code.api.v1_2_1._
 import code.api.v2_0_0.BasicAccountsJSON
 import code.api.v3_0_0.{TransactionJsonV300, TransactionsJsonV300, ViewsJsonV300}
+import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import dispatch.Req
+import net.liftweb.json.Serialization.write
 
 import scala.util.Random.nextInt
 
@@ -64,6 +67,28 @@ trait V310ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     val transactionsJson = getTransactions(bankId, accountId, viewId, user1).body.extract[TransactionsJsonV300].transactions
     val randomPosition = nextInt(transactionsJson.size)
     transactionsJson(randomPosition)
+  }
+
+  def createProduct(bankId: String, code: String, json: PostPutProductJsonV310) = {
+    val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateProduct.toString)
+    When("We try to create a product v3.1.0")
+    val request310 = (v3_1_0_Request / "banks" / bankId / "products" / code).PUT <@ (user1)
+    val response310 = makePutRequest(request310, write(json))
+    Then("We should get a 201")
+    response310.code should equal(201)
+    val product = response310.body.extract[ProductJsonV310]
+    product.code shouldBe code
+    product.parent_product_code shouldBe json.parent_product_code
+    product.bank_id shouldBe bankId
+    product.name shouldBe json.name
+    product.category shouldBe json.category
+    product.super_family shouldBe json.super_family
+    product.family shouldBe json.family
+    product.more_info_url shouldBe json.more_info_url
+    product.details shouldBe json.details
+    product.description shouldBe json.description
+    Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+    product
   }
 
 
