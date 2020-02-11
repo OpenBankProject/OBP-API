@@ -2006,7 +2006,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagNewStyle),
+      List(apiTagCustomer, apiTagNewStyle),
       Some(List(canCreateCustomerAttributeAtOneBank)))
 
     lazy val createCustomerAttribute : OBPEndpoint = {
@@ -2033,6 +2033,59 @@ trait APIMethods400 {
             )
           } yield {
             (JSONFactory400.createCustomerAttributeJson(accountAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      updateCustomerAttribute,
+      implementedInApiVersion,
+      nameOf(updateCustomerAttribute),
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/attributes/ACCOUNT_ATTRIBUTE_ID",
+      "Update Customer Attribute",
+      s""" Update Customer Attribute
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      customerAttributeJsonV400,
+      customerAttributeResponseJson,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canUpdateCustomerAttributeAtOneBank))
+    )
+
+    lazy val updateCustomerAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "customers" :: customerId :: "attributes" :: customerAttributeId :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $CustomerAttributeJsonV400"
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[CustomerAttributeJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${CustomerAttributeType.DOUBLE}, ${CustomerAttributeType.STRING}, ${CustomerAttributeType.INTEGER} and ${CustomerAttributeType.DATE_WITH_DAY}"
+            customerAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              CustomerAttributeType.withName(postedData.`type`)
+            }
+            (accountAttribute, callContext) <- NewStyle.function.createOrUpdateCustomerAttribute(
+              BankId(bankId),
+              CustomerId(customerId),
+              Some(customerAttributeId),
+              postedData.name,
+              customerAttributeType,
+              postedData.value,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createCustomerAttributeJson(accountAttribute), HttpCode.`200`(callContext))
           }
       }
     }
