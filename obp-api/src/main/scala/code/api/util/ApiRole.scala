@@ -433,7 +433,16 @@ object ApiRole {
   
   case class CanCreateStandingOrderAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateStandingOrderAtOneBank = CanCreateStandingOrderAtOneBank()
-  
+
+  case class CanCreateCustomerAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateCustomerAttributeAtOneBank = CanCreateCustomerAttributeAtOneBank()
+
+  case class CanUpdateCustomerAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerAttributeAtOneBank = CanUpdateCustomerAttributeAtOneBank()
+
+  case class CanDeleteCustomerAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteCustomerAttributeAtOneBank = CanDeleteCustomerAttributeAtOneBank()
+
   private val roles = ReflectUtils.getFieldsNameToValue[ApiRole](this).values.toList
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

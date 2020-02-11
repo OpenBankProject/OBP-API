@@ -32,7 +32,7 @@ import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.DynamicEntityFieldType
+import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType}
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import net.liftweb.common.{Box, Full, ParamFailure}
 import net.liftweb.http.rest.RestHelper
@@ -1981,7 +1981,61 @@ trait APIMethods400 {
           }
       }
     }
-    
+
+    resourceDocs += ResourceDoc(
+      createCustomerAttribute,
+      implementedInApiVersion,
+      nameOf(createCustomerAttribute),
+      "POST",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/attribute",
+      "Create Customer Attribute",
+      s""" Create Customer Attribute
+         |
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      customerAttributeJsonV400,
+      customerAttributeResponseJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagNewStyle),
+      Some(List(canCreateCustomerAttributeAtOneBank)))
+
+    lazy val createCustomerAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "customers" :: customerId :: "attribute" :: Nil JsonPost json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $CustomerAttributeJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[CustomerAttributeJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${CustomerAttributeType.DOUBLE}, ${CustomerAttributeType.STRING}, ${CustomerAttributeType.INTEGER} and ${CustomerAttributeType.DATE_WITH_DAY}"
+            customerAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              CustomerAttributeType.withName(postedData.`type`)
+            }
+            (accountAttribute, callContext) <- NewStyle.function.createOrUpdateCustomerAttribute(
+              BankId(bankId),
+              CustomerId(customerId),
+              None,
+              postedData.name,
+              customerAttributeType,
+              postedData.value,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createCustomerAttributeJson(accountAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
 
   }
 

@@ -36,7 +36,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
 import code.api.v3_0_0.ViewBasicV300
-import code.api.v3_1_0.AccountAttributeResponseJson
+import code.api.v3_1_0.{AccountAttributeResponseJson, CustomerAttributeResponseJson}
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.directdebit.DirectDebitTrait
 import code.entitlement.Entitlement
@@ -216,6 +216,11 @@ case class TransactionRequestBodyRefundJsonV400(
 case class RefundJson(
   transaction_id: String
 )
+case class CustomerAttributeJsonV400(
+  name: String,
+  `type`: String,
+  value: String,
+)
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
@@ -384,6 +389,15 @@ object JSONFactory400 {
       date_starts = standingOrder.dateStarts,
       date_expires = standingOrder.dateExpires,
       active = standingOrder.active)
+  }
+
+  def createCustomerAttributeJson(customerAttribute: CustomerAttribute) : CustomerAttributeResponseJson = {
+    CustomerAttributeResponseJson(
+      customer_attribute_id = customerAttribute.customerAttributeId,
+      name = customerAttribute.name,
+      `type` = customerAttribute.attributeType.toString,
+      value = customerAttribute.value
+    )
   }
   
 }

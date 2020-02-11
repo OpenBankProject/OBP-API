@@ -81,6 +81,18 @@ object ExampleValue {
   lazy val customerNumberExample = ConnectorField("5987953", s"The human friendly customer identifier that MUST uniquely identify the Customer at the Bank ID. Customer Number is NOT used in URLs.")
   glossaryItems += makeGlossaryItem("Customer.customerNumber", customerNumberExample)
 
+  lazy val customerAttributeIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"Customer attribute id")
+  glossaryItems += makeGlossaryItem("Customer.attributeId", customerAttributeIdExample)
+  
+  lazy val CustomerAttributeNameExample = ConnectorField("SPECIAL_TAX_NUMBER", s"Customer attribute name")
+  glossaryItems += makeGlossaryItem("Customer.attributeName", CustomerAttributeNameExample)
+
+  lazy val CustomerAttributeTypeExample = ConnectorField("DATE_WITH_DAY", s"Customer attribute type.")
+  glossaryItems += makeGlossaryItem("Customer.attributeType", CustomerAttributeTypeExample)
+
+  lazy val CustomerAttributeValueExample = ConnectorField("123456789", s"Customer attribute value.")
+  glossaryItems += makeGlossaryItem("Customer.attributeValue", CustomerAttributeValueExample)
+  
   lazy val labelExample = ConnectorField("My Account", s"A lable that describes the Account")
   lazy val legalNameExample = ConnectorField("Eveline Tripman", s"The legal name of the Customer.")
   glossaryItems += makeGlossaryItem("Customer.legalName", legalNameExample)

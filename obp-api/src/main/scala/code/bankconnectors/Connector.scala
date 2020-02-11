@@ -35,7 +35,7 @@ import code.transactionrequests.{TransactionRequestTypeCharge, TransactionReques
 import code.users.Users
 import code.util.Helper._
 import code.views.Views
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full, ParamFailure}
@@ -1733,6 +1733,15 @@ trait Connector extends MdcLoggable {
                                       value: String,
                                       callContext: Option[CallContext]
                                     ): OBPReturnType[Box[AccountAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createOrUpdateCustomerAttribute(bankId: BankId, 
+                                      customerId: CustomerId,
+                                      customerAttributeId: Option[String],
+                                      name: String,
+                                      attributeType: CustomerAttributeType.Value,
+                                      value: String,
+                                      callContext: Option[CallContext]
+  ): OBPReturnType[Box[CustomerAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
   
   def createAccountAttributes(bankId: BankId,
                               accountId: AccountId,

@@ -31,7 +31,7 @@ import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
 import com.openbankproject.commons.util.ApiVersion
 import com.tesobe.CacheKeyFromArguments
@@ -842,6 +842,28 @@ object NewStyle {
         accountAttributeId: Option[String],
         name: String,
         attributeType: AccountAttributeType.Value,
+        value: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def createOrUpdateCustomerAttribute(
+      bankId: BankId,
+      customerId: CustomerId,
+      customerAttributeId: Option[String],
+      name: String,
+      attributeType: CustomerAttributeType.Value,
+      value: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[CustomerAttribute] = {
+      Connector.connector.vend.createOrUpdateCustomerAttribute(
+        bankId: BankId,
+        customerId: CustomerId,
+        customerAttributeId: Option[String],
+        name: String,
+        attributeType: CustomerAttributeType.Value,
         value: String,
         callContext: Option[CallContext]
       ) map {

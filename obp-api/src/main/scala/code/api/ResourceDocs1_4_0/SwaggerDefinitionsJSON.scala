@@ -1,6 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.Date
+
 import code.api.Constant._
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
@@ -15,9 +16,8 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RevokedJsonV400, StandingOrderJsonV400, When}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, CustomerAttributeJsonV400, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionRequestBodyRefundJsonV400, When}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionRequestBodyRefundJsonV400, When}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
 import code.sandbox.SandboxData
@@ -2067,10 +2067,10 @@ object SwaggerDefinitionsJSON {
   )
 
   val customerAttributeResponseJson = CustomerAttributeResponseJson (
-    customer_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
-    name = "SPECIAL_TAX_NUMBER",
-    `type` = "DATE_WITH_DAY",
-    value = "2012-04-23"
+    customer_attribute_id = customerAttributeIdExample.value,
+    name = CustomerAttributeNameExample.value,
+    `type` = CustomerAttributeTypeExample.value,
+    value = CustomerAttributeValueExample.value
   )
   
   val customerWithAttributesJsonV310 = CustomerWithAttributesJsonV310(
@@ -3627,5 +3627,11 @@ object SwaggerDefinitionsJSON {
                             .map(_.asInstanceOf[AnyRef])
     allFieldsThisFile ++ JSONFactoryCustom300.allFields ++ SandboxData.allFields //++ JsonFactory_APIBuilder.allFields
   }
-
+  
+  val customerAttributeJsonV400 = CustomerAttributeJsonV400(
+    name = CustomerAttributeNameExample.value,
+    `type` = CustomerAttributeTypeExample.value,
+    value = CustomerAttributeValueExample.value
+  )
+  
 }
