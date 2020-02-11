@@ -1344,7 +1344,7 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetCustomer, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
-            (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributesByAccount(
+            (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
               bankId,
               CustomerId(customerId),
               callContext: Option[CallContext])

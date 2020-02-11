@@ -2631,7 +2631,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     ) map { (_, callContext) }
   }
   
-  override def getCustomerAttributesByAccount(bankId: BankId,
+  override def getCustomerAttributes(bankId: BankId,
     customerId: CustomerId,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[List[CustomerAttribute]]] = {

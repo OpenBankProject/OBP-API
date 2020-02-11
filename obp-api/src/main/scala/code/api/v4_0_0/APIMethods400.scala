@@ -2090,6 +2090,45 @@ trait APIMethods400 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getCustomerAttributes,
+      implementedInApiVersion,
+      nameOf(getCustomerAttributes),
+      "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/attributes",
+      "Get Customer Attributes",
+      s""" Get Customer Attributes
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      customerAttributeJsonV400,
+      customerAttributeResponseJson,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCustomerAttributesAtOneBank))
+    )
+
+    lazy val getCustomerAttributes : OBPEndpoint = {
+      case "banks" :: bankId :: "customers" :: customerId :: "attributes" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (accountAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
+              BankId(bankId),
+              CustomerId(customerId),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createCustomerAttributeJson(accountAttributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
   }
 
 }

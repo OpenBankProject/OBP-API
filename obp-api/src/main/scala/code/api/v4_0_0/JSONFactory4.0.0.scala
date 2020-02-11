@@ -222,6 +222,11 @@ case class CustomerAttributeJsonV400(
   value: String,
 )
 
+case class CustomerAttributesResponseJson(
+  customer_attributes: List[CustomerAttributeResponseJson]
+)
+
+
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
@@ -399,6 +404,14 @@ object JSONFactory400 {
       value = customerAttribute.value
     )
   }
-  
+
+  def createCustomerAttributeJson(customerAttributes: List[CustomerAttribute]) : CustomerAttributesResponseJson = {
+    CustomerAttributesResponseJson (customerAttributes.map( customerAttribute => CustomerAttributeResponseJson(
+      customer_attribute_id = customerAttribute.customerAttributeId,
+      name = customerAttribute.name,
+      `type` = customerAttribute.attributeType.toString,
+      value = customerAttribute.value
+    )))
+  }
 }
 

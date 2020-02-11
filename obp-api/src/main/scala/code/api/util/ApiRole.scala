@@ -443,6 +443,12 @@ object ApiRole {
   case class CanDeleteCustomerAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteCustomerAttributeAtOneBank = CanDeleteCustomerAttributeAtOneBank()
 
+  case class CanGetCustomerAttributesAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomerAttributesAtOneBank = CanGetCustomerAttributesAtOneBank()
+
+  case class CanGetCustomerAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomerAttributeAtOneBank = CanGetCustomerAttributeAtOneBank()
+  
   private val roles = ReflectUtils.getFieldsNameToValue[ApiRole](this).values.toList
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

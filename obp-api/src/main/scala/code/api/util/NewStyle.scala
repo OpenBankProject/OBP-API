@@ -897,10 +897,10 @@ object NewStyle {
       }
     }
 
-    def getCustomerAttributesByAccount(bankId: BankId,
+    def getCustomerAttributes(bankId: BankId,
       customerId: CustomerId,
       callContext: Option[CallContext]): OBPReturnType[List[CustomerAttribute]] = {
-      Connector.connector.vend.getCustomerAttributesByAccount(
+      Connector.connector.vend.getCustomerAttributes(
         bankId: BankId,
         customerId: CustomerId,
         callContext: Option[CallContext]
