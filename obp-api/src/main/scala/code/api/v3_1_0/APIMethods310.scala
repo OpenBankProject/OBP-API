@@ -2778,9 +2778,10 @@ trait APIMethods310 {
       case "banks" :: bankId :: "accounts" :: accountId :: "products" :: productCode :: "attribute" :: Nil JsonPost json -> _=> {
         cc =>
           for {
-            (_, callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, ApiRole.canCreateAccountAttributeAtOneBank, callContext)
             _  <- Future(Connector.connector.vend.getProduct(BankId(bankId), ProductCode(productCode))) map {
               getFullBoxOrFail(_, callContext, ProductNotFoundByProductCode + " {" + productCode + "}", 400)
             }
@@ -2854,6 +2855,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canUpdateAccountAttribute, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AccountAttributeJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -2866,7 +2868,6 @@ trait APIMethods310 {
               AccountAttributeType.withName(postedData.`type`)
             }
             
-            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), callContext)
             (_, callContext) <- NewStyle.function.getProduct(BankId(bankId), ProductCode(productCode), callContext)
             (_, callContext) <- NewStyle.function.getAccountAttributeById(accountAttributeId, callContext)
