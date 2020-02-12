@@ -917,7 +917,7 @@ object NewStyle {
         customerAttributeId: String,
         callContext: Option[CallContext]
       ) map {
-        i => (connectorEmptyResponse(i._1, callContext), i._2)
+        i => (unboxFullOrFail(i._1, callContext,CustomerAttributeNotFound), i._2)
       }
     }
     

@@ -2053,7 +2053,8 @@ trait APIMethods400 {
       customerAttributeJsonV400,
       customerAttributeResponseJson,
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
+        $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -2105,7 +2106,8 @@ trait APIMethods400 {
       emptyObjectJson,
       customerAttributesResponseJson,
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
+        $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -2144,7 +2146,8 @@ trait APIMethods400 {
       emptyObjectJson,
       customerAttributeResponseJson,
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
+        $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
