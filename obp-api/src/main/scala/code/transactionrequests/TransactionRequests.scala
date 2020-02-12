@@ -17,7 +17,7 @@ object TransactionRequests extends SimpleInjector {
 
   object TransactionRequestStatus extends Enumeration {
     type TransactionRequestStatus = Value
-    val INITIATED, PENDING, FAILED, COMPLETED, FORWARDED, REJECTED = Value
+    val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED = Value
   }
   
   object TransactionChallengeTypes extends Enumeration {
