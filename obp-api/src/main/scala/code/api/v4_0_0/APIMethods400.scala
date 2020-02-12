@@ -2102,8 +2102,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      customerAttributeJsonV400,
-      customerAttributeResponseJson,
+      emptyObjectJson,
+      customerAttributesResponseJson,
       List(
         UserNotLoggedIn,
         InvalidJsonFormat,
@@ -2124,7 +2124,45 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createCustomerAttributeJson(accountAttributes), HttpCode.`200`(callContext))
+            (JSONFactory400.createCustomerAttributesJson(accountAttributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getCustomerAttributeById,
+      implementedInApiVersion,
+      nameOf(getCustomerAttributeById),
+      "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/attributes/ATTRIBUTE_ID",
+      "Get Customer Attribute By Id",
+      s""" Get Customer Attribute By Id
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      customerAttributeResponseJson,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCustomerAttributeAtOneBank))
+    )
+
+    lazy val getCustomerAttributeById : OBPEndpoint = {
+      case "banks" :: bankId :: "customers" :: customerId :: "attributes" :: customerAttributeId ::Nil JsonGet _ => {
+        cc =>
+          for {
+            (accountAttribute, callContext) <- NewStyle.function.getCustomerAttributeById(
+              customerAttributeId,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createCustomerAttributeJson(accountAttribute), HttpCode.`200`(callContext))
           }
       }
     }

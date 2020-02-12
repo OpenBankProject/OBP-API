@@ -1760,6 +1760,13 @@ trait Connector extends MdcLoggable {
     customerId: CustomerId,
     callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAttribute]]] =
     Future{(Failure(setUnimplementedError), callContext)}
+
+  def getCustomerAttributeById(
+    customerAttributeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[CustomerAttribute]]  =
+    Future{(Failure(setUnimplementedError), callContext)}
+  
   
   def createOrUpdateCardAttribute(
                                   bankId: Option[BankId],

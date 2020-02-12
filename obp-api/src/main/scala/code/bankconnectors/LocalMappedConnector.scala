@@ -21,7 +21,7 @@ import code.cards.MappedPhysicalCard
 import code.context.{UserAuthContextProvider, UserAuthContextUpdateProvider}
 import code.customer._
 import code.customeraddress.CustomerAddressX
-import code.customerattribute.CustomerAttributeX
+import code.customerattribute.{CustomerAttributeX, MappedCustomerAttribute}
 import code.directdebit.{DirectDebitTrait, DirectDebits}
 import code.dynamicEntity.{DynamicEntityProvider, DynamicEntityT}
 import code.fx.{FXRate, MappedFXRate, fx}
@@ -2638,6 +2638,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     CustomerAttributeX.customerAttributeProvider.vend.getCustomerAttributes(
       bankId: BankId,
       customerId: CustomerId) map { (_, callContext) }
+  }
+
+  override def getCustomerAttributeById(
+    customerAttributeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[CustomerAttribute]] = {
+    CustomerAttributeX.customerAttributeProvider.vend.getCustomerAttributeById(customerAttributeId: String) map { (_, callContext) }
   }
 
   override def createAccountApplication(

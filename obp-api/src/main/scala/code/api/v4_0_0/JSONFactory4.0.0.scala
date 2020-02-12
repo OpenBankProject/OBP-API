@@ -405,7 +405,7 @@ object JSONFactory400 {
     )
   }
 
-  def createCustomerAttributeJson(customerAttributes: List[CustomerAttribute]) : CustomerAttributesResponseJson = {
+  def createCustomerAttributesJson(customerAttributes: List[CustomerAttribute]) : CustomerAttributesResponseJson = {
     CustomerAttributesResponseJson (customerAttributes.map( customerAttribute => CustomerAttributeResponseJson(
       customer_attribute_id = customerAttribute.customerAttributeId,
       name = customerAttribute.name,

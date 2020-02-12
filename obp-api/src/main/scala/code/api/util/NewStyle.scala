@@ -908,6 +908,19 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
+
+    def getCustomerAttributeById(
+      customerAttributeId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[CustomerAttribute] = {
+      Connector.connector.vend.getCustomerAttributeById(
+        customerAttributeId: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    
     
     def createAccountApplication(
                                   productCode: ProductCode,
