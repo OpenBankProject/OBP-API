@@ -1,10 +1,14 @@
 package code.api.v4_0_0
 
 import code.api.Constant._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
+import code.api.util.ApiRole.CanCreateCustomer
 import code.api.v1_2_1._
 import code.api.v2_0_0.BasicAccountsJSON
-import code.api.v3_0_0.{TransactionJsonV300, TransactionsJsonV300, ViewJsonV300}
+import code.api.v3_0_0.{CustomerJSONs, TransactionJsonV300, TransactionsJsonV300, ViewJsonV300}
+import code.api.v3_1_0.CustomerJsonV310
+import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import com.openbankproject.commons.model.{CreateViewJson, UpdateViewJSON}
 import dispatch.Req
@@ -78,6 +82,21 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     }
     val reply = postView(bankId, accountId, createViewJson, consumerAndToken)
     reply.body.extract[ViewJsonV300]
+  }
+  
+  // This will call create customer ,then return the customerId
+  def createAndGetCustomerId (bankId:String, consumerAndToken: Option[(Consumer, Token)]) = {
+    val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310
+    def createCustomer(consumerAndToken: Option[(Consumer, Token)]) ={
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      When("We make a request v3.1.0")
+      val request310 = (v4_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val response310 = makePostRequest(request310, write(postCustomerJson))
+      Then("We should get a 201")
+      response310.code should equal(201)
+      response310.body.extract[CustomerJsonV310]
+    }
+    createCustomer(consumerAndToken).customer_id
   }
   
 }
