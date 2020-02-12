@@ -2635,7 +2635,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     customerId: CustomerId,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[List[CustomerAttribute]]] = {
-    CustomerAttributeX.customerAttributeProvider.vend.getCustomerAttributesByCustomer(
+    CustomerAttributeX.customerAttributeProvider.vend.getCustomerAttributes(
       bankId: BankId,
       customerId: CustomerId) map { (_, callContext) }
   }

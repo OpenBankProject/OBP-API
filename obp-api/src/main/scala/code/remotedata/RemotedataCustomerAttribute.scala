@@ -18,9 +18,9 @@ object RemotedataCustomerAttribute extends ObpActorInit with CustomerAttributePr
   override def getCustomerAttributesFromProvider(customerId: CustomerId): Future[Box[List[CustomerAttribute]]] = 
     (actor ? cc.getCustomerAttributesFromProvider(customerId)).mapTo[Box[List[CustomerAttribute]]]
   
-  override def getCustomerAttributesByCustomer(bankId: BankId,
+  override def getCustomerAttributes(bankId: BankId,
                                              customerId: CustomerId): Future[Box[List[CustomerAttribute]]] = 
-    (actor ? cc.getCustomerAttributesByCustomer(bankId, customerId)).mapTo[Box[List[CustomerAttribute]]]
+    (actor ? cc.getCustomerAttributes(bankId, customerId)).mapTo[Box[List[CustomerAttribute]]]
 
   override def getCustomerAttributeById(customerAttributeId: String): Future[Box[CustomerAttribute]] = 
     (actor ? cc.getCustomerAttributeById(customerAttributeId)).mapTo[Box[CustomerAttribute]]

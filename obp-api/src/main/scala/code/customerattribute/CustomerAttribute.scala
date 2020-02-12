@@ -38,7 +38,7 @@ trait CustomerAttributeProvider {
   private val logger = Logger(classOf[CustomerAttributeProvider])
 
   def getCustomerAttributesFromProvider(customerId: CustomerId): Future[Box[List[CustomerAttribute]]]
-  def getCustomerAttributesByCustomer(bankId: BankId,
+  def getCustomerAttributes(bankId: BankId,
                                     customerId: CustomerId): Future[Box[List[CustomerAttribute]]]
 
   def getCustomerAttributeById(customerAttributeId: String): Future[Box[CustomerAttribute]]
@@ -60,7 +60,7 @@ trait CustomerAttributeProvider {
 
 class RemotedataCustomerAttributeCaseClasses {
   case class getCustomerAttributesFromProvider(customerId: CustomerId)
-  case class getCustomerAttributesByCustomer(bankId: BankId,
+  case class getCustomerAttributes(bankId: BankId,
                                            customerId: CustomerId)
 
   case class getCustomerAttributeById(customerAttributeId: String)
