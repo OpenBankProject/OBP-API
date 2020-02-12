@@ -7,12 +7,13 @@ import code.api.util.ApiRole.CanCreateCustomer
 import code.api.v1_2_1._
 import code.api.v2_0_0.BasicAccountsJSON
 import code.api.v3_0_0.{CustomerJSONs, TransactionJsonV300, TransactionsJsonV300, ViewJsonV300}
-import code.api.v3_1_0.CustomerJsonV310
+import code.api.v3_1_0.{CustomerAttributeResponseJson, CustomerJsonV310}
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import com.openbankproject.commons.model.{CreateViewJson, UpdateViewJSON}
 import dispatch.Req
 import net.liftweb.json.Serialization.write
+import code.api.util.ApiRole._
 
 import scala.util.Random.nextInt
 
@@ -97,6 +98,14 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
       response310.body.extract[CustomerJsonV310]
     }
     createCustomer(consumerAndToken).customer_id
+  }
+  
+  def createAndGetCustomerAtrributeId (bankId:String, customerId:String, consumerAndToken: Option[(Consumer, Token)]) = {
+    lazy val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
+    val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attribute").POST <@ (user1)
+    Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canCreateCustomerAttributeAtOneBank.toString)
+    val responseWithRole = makePostRequest(request400, write(postCustomerAttributeJsonV400))
+    responseWithRole.body.extract[CustomerAttributeResponseJson].customer_attribute_id
   }
   
 }

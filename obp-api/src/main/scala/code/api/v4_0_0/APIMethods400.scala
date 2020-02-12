@@ -2076,6 +2076,10 @@ trait APIMethods400 {
             customerAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               CustomerAttributeType.withName(postedData.`type`)
             }
+            (accountAttribute, callContext) <- NewStyle.function.getCustomerAttributeById(
+              customerAttributeId,
+              cc.callContext
+            )
             (accountAttribute, callContext) <- NewStyle.function.createOrUpdateCustomerAttribute(
               BankId(bankId),
               CustomerId(customerId),
@@ -2083,7 +2087,7 @@ trait APIMethods400 {
               postedData.name,
               customerAttributeType,
               postedData.value,
-              cc.callContext
+              callContext
             )
           } yield {
             (JSONFactory400.createCustomerAttributeJson(accountAttribute), HttpCode.`200`(callContext))
@@ -2120,13 +2124,13 @@ trait APIMethods400 {
       case "banks" :: bankId :: "customers" :: customerId :: "attributes" :: Nil JsonGet _ => {
         cc =>
           for {
-            (accountAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
+            (accountAttribute, callContext) <- NewStyle.function.getCustomerAttributes(
               BankId(bankId),
               CustomerId(customerId),
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createCustomerAttributesJson(accountAttributes), HttpCode.`200`(callContext))
+            (JSONFactory400.createCustomerAttributesJson(accountAttribute), HttpCode.`200`(callContext))
           }
       }
     }
