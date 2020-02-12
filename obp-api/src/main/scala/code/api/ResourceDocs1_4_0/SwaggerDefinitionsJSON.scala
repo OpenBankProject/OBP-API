@@ -351,7 +351,7 @@ object SwaggerDefinitionsJSON {
 
   val amountOfMoneyJsonV121 = AmountOfMoneyJsonV121(
     currency = "EUR",
-    amount = "10"
+    amount = "0"
   )
 
   val transactionRequestTransferToPhone = TransactionRequestTransferToPhone(
@@ -3618,7 +3618,12 @@ object SwaggerDefinitionsJSON {
   val customerAttributesResponseJson = CustomerAttributesResponseJson (
     customer_attributes = List(customerAttributeResponseJson)
   )
-  
+  val customerAttributeJsonV400 = CustomerAttributeJsonV400(
+    name = CustomerAttributeNameExample.value,
+    `type` = CustomerAttributeTypeExample.value,
+    value = CustomerAttributeValueExample.value
+  )
+
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()
@@ -3631,11 +3636,5 @@ object SwaggerDefinitionsJSON {
                             .map(_.asInstanceOf[AnyRef])
     allFieldsThisFile ++ JSONFactoryCustom300.allFields ++ SandboxData.allFields //++ JsonFactory_APIBuilder.allFields
   }
-  
-  val customerAttributeJsonV400 = CustomerAttributeJsonV400(
-    name = CustomerAttributeNameExample.value,
-    `type` = CustomerAttributeTypeExample.value,
-    value = CustomerAttributeValueExample.value
-  )
-  
+
 }
