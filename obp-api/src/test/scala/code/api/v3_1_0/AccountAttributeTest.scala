@@ -84,13 +84,13 @@ class AccountAttributeTest extends V310ServerSetup {
       val responseCreate310 = makePostRequest(requestCreate310, write(postAccountAttributeJson))
       Then("We should get a 201")
       responseCreate310.code should equal(201)
-      val createdProduct = responseCreate310.body.extract[AccountAttributeResponseJson]
+      val createdAccountAttribute = responseCreate310.body.extract[AccountAttributeResponseJson]
       
 
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanUpdateAccountAttribute.toString)
       When(s"We make a $VersionOfApi")
       val requestPut310 = (v3_1_0_Request / "banks" / testBankId / "accounts" / testAccountId0.value 
-        / "products" / product.code / "attributes" / createdProduct.account_attribute_id).PUT <@(user1)
+        / "products" / product.code / "attributes" / createdAccountAttribute.account_attribute_id).PUT <@(user1)
       val responsePut310 = makePutRequest(requestPut310, write(putAccountAttributeJson))
       Then("We should get a 201")
       responsePut310.code should equal(201)

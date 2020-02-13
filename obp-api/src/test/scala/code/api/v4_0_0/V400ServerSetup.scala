@@ -1,10 +1,15 @@
 package code.api.v4_0_0
 
 import code.api.Constant._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.metaJson
+import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
+import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, CanCreateProduct}
 import code.api.v1_2_1._
 import code.api.v2_0_0.BasicAccountsJSON
 import code.api.v3_0_0.{TransactionJsonV300, TransactionsJsonV300, ViewJsonV300}
+import code.api.v3_1_0.{AccountAttributeJson, AccountAttributeResponseJson, PostPutProductJsonV310, ProductJsonV310}
+import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import com.openbankproject.commons.model.{CreateViewJson, UpdateViewJSON}
 import dispatch.Req
@@ -78,6 +83,68 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     }
     val reply = postView(bankId, accountId, createViewJson, consumerAndToken)
     reply.body.extract[ViewJsonV300]
+  }
+
+  def createProduct(bankId: String, code: String, json: PostPutProductJsonV310): ProductJsonV310 = {
+    val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateProduct.toString)
+    val request310 = (v4_0_0_Request / "banks" / bankId / "products" / code).PUT <@ (user1)
+    val response310 = makePutRequest(request310, write(json))
+    response310.code should equal(201)
+    val product = response310.body.extract[ProductJsonV310]
+    product.code shouldBe code
+    product.parent_product_code shouldBe json.parent_product_code
+    product.bank_id shouldBe bankId
+    product.name shouldBe json.name
+    product.category shouldBe json.category
+    product.super_family shouldBe json.super_family
+    product.family shouldBe json.family
+    product.more_info_url shouldBe json.more_info_url
+    product.details shouldBe json.details
+    product.description shouldBe json.description
+    Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+    product
+  }
+
+  def createAccountAttribute(bankId: String, accountId: String, name: String, value: String, `type`: String): AccountAttributeResponseJson = {
+    val postPutProductJsonV310 = PostPutProductJsonV310(
+      name = "product name",
+      parent_product_code = "",
+      category = "category",
+      family = "family",
+      super_family = "super family",
+      more_info_url = "www.example.com/prod1/more-info.html",
+      details = "Details",
+      description = "Description",
+      meta = metaJson
+    )
+    val product: ProductJsonV310 =
+      createProduct(
+        bankId=bankId,
+        code=APIUtil.generateUUID(),
+        json=postPutProductJsonV310
+      )
+    val accountAttributeJson = AccountAttributeJson(
+      name = name,
+      `type` = `type`,
+      value = value
+    )
+    val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateAccountAttributeAtOneBank.toString)
+    val requestCreate310 = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId /
+      "products" / product.code / "attribute").POST <@(user1)
+    val responseCreate310 = makePostRequest(requestCreate310, write(accountAttributeJson))
+    Then("We should get a 201")
+    responseCreate310.code should equal(201)
+    Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+    responseCreate310.body.extract[AccountAttributeResponseJson]
+  }
+  
+  def grantUserAccessToViewV400(bankId: String, accountId: String, userId: String, consumerAndToken: Option[(Consumer, Token)]): ViewJsonV300 = {
+    val postJson = PostAccountAccessJsonV400(userId, PostViewJsonV400("owner", true))
+    val request = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / "account-access" / "grant").POST <@ (consumerAndToken)
+    val response = makePostRequest(request, write(postJson))
+    Then("We should get a 201 and check the response body")
+    response.code should equal(201)
+    response.body.extract[ViewJsonV300]
   }
   
 }

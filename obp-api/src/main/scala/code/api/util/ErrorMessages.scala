@@ -377,7 +377,7 @@ object ErrorMessages {
   val InvalidChallengeAnswer = "OBP-40016: Invalid Challenge Answer. Please specify a valid value for answer in Json body. If it is sandbox mode, the answer must be `123`. If it kafka mode, the answer can be got by phone message or other security ways."
   val InvalidPhoneNumber = "OBP-40017: Invalid Phone Number. Please specify a valid value for PHONE_NUMBER. Eg:+9722398746 "
   val TransactionRequestsNotEnabled = "OBP-40018: Sorry, Transaction Requests are not enabled in this API instance."
-  val NextChallengePending = "OBP-40019: Cannot create transaction due to transaction request is in status: NEXT_CHALLENGE_PENDING."
+  val NextChallengePending = s"OBP-40019: Cannot create transaction due to transaction request is in status: ${NEXT_CHALLENGE_PENDING}."
   val TransactionRequestStatusNotInitiatedOrPending = s"OBP-40020: Transaction Request Status is not ${INITIATED} or ${NEXT_CHALLENGE_PENDING}."
 
 
