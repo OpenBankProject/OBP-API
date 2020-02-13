@@ -395,6 +395,15 @@ trait CustomerAttribute {
   def value: String
 }
 
+trait TransactionAttribute {
+  def bankId: BankId
+  def transactionId: TransactionId
+  def transactionAttributeId: String
+  def attributeType: TransactionAttributeType.Value
+  def name: String
+  def value: String
+}
+
 //---------------------------------------- trait dependents of case class
 
 @deprecated("Use Lobby instead which contains detailed fields, not this string","24 July 2017")

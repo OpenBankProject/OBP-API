@@ -97,6 +97,7 @@ import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.transaction_types.MappedTransactionType
+import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper.MdcLoggable
@@ -655,6 +656,7 @@ object ToSchemify {
     MappedProductCollectionItem,
     MappedAccountAttribute,
     MappedCustomerAttribute,
+    MappedTransactionAttribute,
     MappedCardAttribute,
     RateLimiting
   )
