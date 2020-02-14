@@ -263,6 +263,7 @@ object ErrorMessages {
   val TransactionNotFound = "OBP-30067: Transaction not found. Please specify a valid value for TRANSACTION_ID."
   val RefundedTransaction = "OBP-30068: Transaction was already refunded . Please specify a valid value for TRANSACTION_ID."
   val CustomerAttributeNotFound = "OBP-30069: Customer Attribute not found. Please specify a valid value for CUSTOMER_ATTRIBUTE_ID."
+  val TransactionAttributeNotFound = "OBP-30069: Transaction Attribute not found. Please specify a valid value for TRANSACTION_ATTRIBUTE_ID."
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
