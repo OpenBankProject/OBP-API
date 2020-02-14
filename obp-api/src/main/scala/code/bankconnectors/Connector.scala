@@ -35,7 +35,7 @@ import code.transactionrequests.{TransactionRequestTypeCharge, TransactionReques
 import code.users.Users
 import code.util.Helper._
 import code.views.Views
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full, ParamFailure}
@@ -1722,6 +1722,7 @@ trait Connector extends MdcLoggable {
 
 
   def getAccountAttributeById(accountAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+  def getTransactionAttributeById(transactionAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
   
   def createOrUpdateAccountAttribute(
                                       bankId: BankId,
@@ -1742,6 +1743,17 @@ trait Connector extends MdcLoggable {
                                       value: String,
                                       callContext: Option[CallContext]
   ): OBPReturnType[Box[CustomerAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createOrUpdateTransactionAttribute(
+    bankId: BankId,
+    transactionId: TransactionId,
+    transactionAttributeId: Option[String],
+    name: String,
+    attributeType: TransactionAttributeType.Value,
+    value: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TransactionAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+  
   
   def createAccountAttributes(bankId: BankId,
                               accountId: AccountId,
@@ -1760,6 +1772,12 @@ trait Connector extends MdcLoggable {
     customerId: CustomerId,
     callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAttribute]]] =
     Future{(Failure(setUnimplementedError), callContext)}
+
+  def getTransactionAttributes(
+    bankId: BankId,
+    transactionId: TransactionId,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[TransactionAttribute]]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getCustomerAttributeById(
     customerAttributeId: String,

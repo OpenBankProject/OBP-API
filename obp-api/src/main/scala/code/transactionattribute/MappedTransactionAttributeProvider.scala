@@ -20,8 +20,10 @@ object MappedTransactionAttributeProvider extends TransactionAttributeProvider {
         )
     }
 
-  override def getTransactionAttributes(bankId: BankId,
-                                             transactionId: TransactionId): Future[Box[List[TransactionAttribute]]] = {
+  override def getTransactionAttributes(
+    bankId: BankId,
+    transactionId: TransactionId
+  ): Future[Box[List[TransactionAttribute]]] = {
     Future {
       Box !!  MappedTransactionAttribute.findAll(
         By(MappedTransactionAttribute.mBankIdId, bankId.value),

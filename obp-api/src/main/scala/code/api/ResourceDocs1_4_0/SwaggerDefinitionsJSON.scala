@@ -16,7 +16,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionRequestBodyRefundJsonV400, When}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, When}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
@@ -2068,9 +2068,9 @@ object SwaggerDefinitionsJSON {
 
   val customerAttributeResponseJson = CustomerAttributeResponseJson (
     customer_attribute_id = customerAttributeIdExample.value,
-    name = CustomerAttributeNameExample.value,
-    `type` = CustomerAttributeTypeExample.value,
-    value = CustomerAttributeValueExample.value
+    name = customerAttributeNameExample.value,
+    `type` = customerAttributeTypeExample.value,
+    value = customerAttributeValueExample.value
   )
   
   val customerWithAttributesJsonV310 = CustomerWithAttributesJsonV310(
@@ -3619,11 +3619,27 @@ object SwaggerDefinitionsJSON {
     customer_attributes = List(customerAttributeResponseJson)
   )
   val customerAttributeJsonV400 = CustomerAttributeJsonV400(
-    name = CustomerAttributeNameExample.value,
-    `type` = CustomerAttributeTypeExample.value,
-    value = CustomerAttributeValueExample.value
+    name = customerAttributeNameExample.value,
+    `type` = customerAttributeTypeExample.value,
+    value = customerAttributeValueExample.value
   )
 
+  val transactionAttributeResponseJson = TransactionAttributeResponseJson(
+    transaction_attribute_id = transactionAttributeIdExample.value,
+    name = transactionAttributeNameExample.value,
+    `type` = transactionAttributeTypeExample.value,
+    value = transactionAttributeValueExample.value
+  )
+
+  val transactionAttributesResponseJson =  TransactionAttributesResponseJson(
+    transaction_attributes = List(transactionAttributeResponseJson)
+  )
+
+  val transactionAttributeJsonV400 = TransactionAttributeJsonV400(
+    name = transactionAttributeNameExample.value,
+    `type` = transactionAttributeTypeExample.value,
+    value = transactionAttributeValueExample.value
+  )
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()

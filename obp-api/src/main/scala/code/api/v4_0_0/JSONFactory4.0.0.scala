@@ -225,7 +225,22 @@ case class CustomerAttributeJsonV400(
 case class CustomerAttributesResponseJson(
   customer_attributes: List[CustomerAttributeResponseJson]
 )
+case class TransactionAttributeJsonV400(
+  name: String,
+  `type`: String,
+  value: String,
+)
 
+case class TransactionAttributeResponseJson(
+  transaction_attribute_id: String,
+  name: String,
+  `type`: String,
+  value: String
+)
+
+case class TransactionAttributesResponseJson(
+  transaction_attributes: List[TransactionAttributeResponseJson]
+)
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
@@ -411,6 +426,24 @@ object JSONFactory400 {
       name = customerAttribute.name,
       `type` = customerAttribute.attributeType.toString,
       value = customerAttribute.value
+    )))
+  }
+
+  def createTransactionAttributeJson(transactionAttribute: TransactionAttribute) : TransactionAttributeResponseJson = {
+    TransactionAttributeResponseJson(
+      transaction_attribute_id = transactionAttribute.transactionAttributeId,
+      name = transactionAttribute.name,
+      `type` = transactionAttribute.attributeType.toString,
+      value = transactionAttribute.value
+    )
+  }
+
+  def createTransactionAttributesJson(transactionAttributes: List[TransactionAttribute]) : TransactionAttributesResponseJson = {
+    TransactionAttributesResponseJson (transactionAttributes.map( transactionAttribute => TransactionAttributeResponseJson(
+      transaction_attribute_id = transactionAttribute.transactionAttributeId,
+      name = transactionAttribute.name,
+      `type` = transactionAttribute.attributeType.toString,
+      value = transactionAttribute.value
     )))
   }
 }

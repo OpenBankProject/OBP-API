@@ -47,6 +47,7 @@ import code.standingorders.{StandingOrderTrait, StandingOrders}
 import code.taxresidence.TaxResidenceX
 import code.transaction.MappedTransaction
 import code.transactionChallenge.ExpectedChallengeAnswer
+import code.transactionattribute.TransactionAttributeX
 import code.transactionrequests._
 import code.users.Users
 import code.util.Helper
@@ -2571,6 +2572,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     AccountAttributeX.accountAttributeProvider.vend.getAccountAttributeById(accountAttributeId: String) map {
       (_, callContext)
     }
+
+  override def getTransactionAttributeById(transactionAttributeId: String, callContext: Option[CallContext]) =
+    TransactionAttributeX.transactionAttributeProvider.vend.getTransactionAttributeById(transactionAttributeId: String) map {
+      (_, callContext)
+    }
+
   
   override def createOrUpdateAccountAttribute(
                                                bankId: BankId,
@@ -2630,6 +2637,26 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       value: String
     ) map { (_, callContext) }
   }
+
+  override def createOrUpdateTransactionAttribute(
+    bankId: BankId,
+    transactionId: TransactionId,
+    transactionAttributeId: Option[String],
+    name: String,
+    attributeType: TransactionAttributeType.Value,
+    value: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TransactionAttribute]]  = {
+    TransactionAttributeX.transactionAttributeProvider.vend.createOrUpdateTransactionAttribute(
+      bankId: BankId,
+      transactionId: TransactionId,
+      transactionAttributeId: Option[String],
+      name: String,
+      attributeType: TransactionAttributeType.Value,
+      value: String
+    ) map { (_, callContext) }
+  }
+  
   
   override def getCustomerAttributes(bankId: BankId,
     customerId: CustomerId,
@@ -2638,6 +2665,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     CustomerAttributeX.customerAttributeProvider.vend.getCustomerAttributes(
       bankId: BankId,
       customerId: CustomerId) map { (_, callContext) }
+  }
+
+  override def getTransactionAttributes(
+    bankId: BankId,
+    transactionId: TransactionId,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[TransactionAttribute]]] = {
+    TransactionAttributeX.transactionAttributeProvider.vend.getTransactionAttributes(
+      bankId: BankId,
+      transactionId: TransactionId) map { (_, callContext) }
   }
 
   override def getCustomerAttributeById(

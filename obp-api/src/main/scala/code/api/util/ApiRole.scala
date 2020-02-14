@@ -448,6 +448,21 @@ object ApiRole {
 
   case class CanGetCustomerAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCustomerAttributeAtOneBank = CanGetCustomerAttributeAtOneBank()
+
+  case class CanCreateTransactionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateTransactionAttributeAtOneBank = CanCreateTransactionAttributeAtOneBank()
+
+  case class CanUpdateTransactionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateTransactionAttributeAtOneBank = CanUpdateTransactionAttributeAtOneBank()
+
+  case class CanDeleteTransactionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteTransactionAttributeAtOneBank = CanDeleteTransactionAttributeAtOneBank()
+
+  case class CanGetTransactionAttributesAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetTransactionAttributesAtOneBank = CanGetTransactionAttributesAtOneBank()
+
+  case class CanGetTransactionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetTransactionAttributeAtOneBank = CanGetTransactionAttributeAtOneBank()
   
   private val roles = ReflectUtils.getFieldsNameToValue[ApiRole](this).values.toList
 
