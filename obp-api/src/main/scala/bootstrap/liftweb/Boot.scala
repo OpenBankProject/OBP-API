@@ -124,7 +124,7 @@ import scala.concurrent.ExecutionContext
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
  */
-class Boot extends MdcLoggable {
+class Boot extends Loggable {
   
   def boot {
 
