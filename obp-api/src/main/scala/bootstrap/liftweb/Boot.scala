@@ -98,7 +98,7 @@ import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
-import code.util.Helper.MdcLoggable
+import code.util.Helper
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
@@ -131,7 +131,6 @@ class Boot extends Loggable {
     val contextPath = LiftRules.context.path
     val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.toIterable.flatten
 
-    if (Props.mode == Props.RunModes.Development) logger.info("OBP-API Props all fields : \n" + Props.props.mkString("\n"))
     logger.info("external props folder: " + propsPath)
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
     logger.info("Current Project TimeZone: " + TimeZone.getDefault)
@@ -187,6 +186,11 @@ class Boot extends Loggable {
     Props.whereToLook = () => {
       firstChoicePropsDir.flatten.toList ::: secondChoicePropsDir.flatten.toList
     }
+
+    // This must be called after the Props.whereToLook. Otherwise it wouldn't be applied.
+    if (Props.mode == Props.RunModes.Development) logger.info("OBP-API Props all fields : \n" + Props.props.mkString("\n"))
+    // We use Loggable instead of MdcLoggable for the same reason.
+    MDC.put("host" -> Helper.getHostname) // Manually apply MdcLoggable behaviour.
 
     // set up the way to connect to the relational DB we're using (ok if other connector than relational)
     if (!DB.jndiJdbcConnAvailable_?) {
