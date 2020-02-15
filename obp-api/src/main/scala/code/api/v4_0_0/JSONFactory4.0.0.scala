@@ -36,7 +36,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
 import code.api.v3_0_0.ViewBasicV300
-import code.api.v3_1_0.AccountAttributeResponseJson
+import code.api.v3_1_0.{AccountAttributeResponseJson, CustomerAttributeResponseJson}
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.directdebit.DirectDebitTrait
 import code.entitlement.Entitlement
@@ -218,6 +218,31 @@ case class TransactionRequestBodyRefundJsonV400(
 case class RefundJson(
   transaction_id: String
 )
+case class CustomerAttributeJsonV400(
+  name: String,
+  `type`: String,
+  value: String,
+)
+
+case class CustomerAttributesResponseJson(
+  customer_attributes: List[CustomerAttributeResponseJson]
+)
+case class TransactionAttributeJsonV400(
+  name: String,
+  `type`: String,
+  value: String,
+)
+
+case class TransactionAttributeResponseJson(
+  transaction_attribute_id: String,
+  name: String,
+  `type`: String,
+  value: String
+)
+
+case class TransactionAttributesResponseJson(
+  transaction_attributes: List[TransactionAttributeResponseJson]
+)
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
@@ -389,6 +414,41 @@ object JSONFactory400 {
       date_expires = standingOrder.dateExpires,
       active = standingOrder.active)
   }
-  
+
+  def createCustomerAttributeJson(customerAttribute: CustomerAttribute) : CustomerAttributeResponseJson = {
+    CustomerAttributeResponseJson(
+      customer_attribute_id = customerAttribute.customerAttributeId,
+      name = customerAttribute.name,
+      `type` = customerAttribute.attributeType.toString,
+      value = customerAttribute.value
+    )
+  }
+
+  def createCustomerAttributesJson(customerAttributes: List[CustomerAttribute]) : CustomerAttributesResponseJson = {
+    CustomerAttributesResponseJson (customerAttributes.map( customerAttribute => CustomerAttributeResponseJson(
+      customer_attribute_id = customerAttribute.customerAttributeId,
+      name = customerAttribute.name,
+      `type` = customerAttribute.attributeType.toString,
+      value = customerAttribute.value
+    )))
+  }
+
+  def createTransactionAttributeJson(transactionAttribute: TransactionAttribute) : TransactionAttributeResponseJson = {
+    TransactionAttributeResponseJson(
+      transaction_attribute_id = transactionAttribute.transactionAttributeId,
+      name = transactionAttribute.name,
+      `type` = transactionAttribute.attributeType.toString,
+      value = transactionAttribute.value
+    )
+  }
+
+  def createTransactionAttributesJson(transactionAttributes: List[TransactionAttribute]) : TransactionAttributesResponseJson = {
+    TransactionAttributesResponseJson (transactionAttributes.map( transactionAttribute => TransactionAttributeResponseJson(
+      transaction_attribute_id = transactionAttribute.transactionAttributeId,
+      name = transactionAttribute.name,
+      `type` = transactionAttribute.attributeType.toString,
+      value = transactionAttribute.value
+    )))
+  }
 }
 

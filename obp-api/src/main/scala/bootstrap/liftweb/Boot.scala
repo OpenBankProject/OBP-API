@@ -53,6 +53,7 @@ import code.crm.MappedCrmEvent
 import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraddress.MappedCustomerAddress
+import code.customerattribute.MappedCustomerAttribute
 import code.database.authorisation.Authorisation
 import code.directdebit.DirectDebit
 import code.dynamicEntity.DynamicEntity
@@ -96,6 +97,7 @@ import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.transaction_types.MappedTransactionType
+import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper.MdcLoggable
@@ -653,6 +655,8 @@ object ToSchemify {
     MappedProductCollection,
     MappedProductCollectionItem,
     MappedAccountAttribute,
+    MappedCustomerAttribute,
+    MappedTransactionAttribute,
     MappedCardAttribute,
     RateLimiting
   )
