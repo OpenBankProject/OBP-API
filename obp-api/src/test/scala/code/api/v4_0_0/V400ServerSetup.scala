@@ -1,24 +1,19 @@
 package code.api.v4_0_0
 
 import code.api.Constant._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
-import code.api.util.ApiRole.CanCreateCustomer
-import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, CanCreateProduct}
-
+import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, CanCreateCustomer, CanCreateProduct, _}
 import code.api.v1_2_1._
 import code.api.v2_0_0.BasicAccountsJSON
-import code.api.v3_0_0.{CustomerJSONs, TransactionJsonV300, TransactionsJsonV300, ViewJsonV300}
-import code.api.v3_1_0.{CustomerAttributeResponseJson, CustomerJsonV310}
-import code.entitlement.Entitlement
 import code.api.v3_0_0.{TransactionJsonV300, TransactionsJsonV300, ViewJsonV300}
-import code.api.v3_1_0.{AccountAttributeJson, AccountAttributeResponseJson, PostPutProductJsonV310, ProductJsonV310}
-
+import code.api.v3_1_0._
+import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import com.openbankproject.commons.model.{CreateViewJson, UpdateViewJSON}
 import dispatch.Req
 import net.liftweb.json.Serialization.write
-import code.api.util.ApiRole._
 
 import scala.util.Random.nextInt
 
@@ -120,7 +115,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
       more_info_url = "www.example.com/prod1/more-info.html",
       details = "Details",
       description = "Description",
-      meta = metaJson
+      meta = SwaggerDefinitionsJSON.metaJson
     )
     val product: ProductJsonV310 =
       createProduct(
