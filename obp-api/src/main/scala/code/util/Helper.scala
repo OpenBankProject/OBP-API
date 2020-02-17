@@ -327,6 +327,9 @@ object Helper{
   }
 
   trait MdcLoggable extends Loggable {
+    protected def initiate(): Unit = ()
+
+    initiate()
     MDC.put("host" -> getHostname)
   }
 

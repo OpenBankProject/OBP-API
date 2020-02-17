@@ -31,7 +31,7 @@ import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
 import com.openbankproject.commons.util.ApiVersion
 import com.tesobe.CacheKeyFromArguments
@@ -860,6 +860,11 @@ object NewStyle {
       Connector.connector.vend.getAccountAttributeById(accountAttributeId: String, callContext: Option[CallContext]) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
+    
+    def getTransactionAttributeById(transactionAttributeId: String, callContext: Option[CallContext]): OBPReturnType[TransactionAttribute] = 
+      Connector.connector.vend.getTransactionAttributeById(transactionAttributeId: String, callContext: Option[CallContext]) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
 
     def createOrUpdateAccountAttribute(
                                         bankId: BankId,
@@ -884,6 +889,51 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
+
+    def createOrUpdateCustomerAttribute(
+      bankId: BankId,
+      customerId: CustomerId,
+      customerAttributeId: Option[String],
+      name: String,
+      attributeType: CustomerAttributeType.Value,
+      value: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[CustomerAttribute] = {
+      Connector.connector.vend.createOrUpdateCustomerAttribute(
+        bankId: BankId,
+        customerId: CustomerId,
+        customerAttributeId: Option[String],
+        name: String,
+        attributeType: CustomerAttributeType.Value,
+        value: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def createOrUpdateTransactionAttribute(
+      bankId: BankId,
+      transactionId: TransactionId,
+      transactionAttributeId: Option[String],
+      name: String,
+      attributeType: TransactionAttributeType.Value,
+      value: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[TransactionAttribute] = {
+      Connector.connector.vend.createOrUpdateTransactionAttribute(
+        bankId: BankId,
+        transactionId: TransactionId,
+        transactionAttributeId: Option[String],
+        name: String,
+        attributeType: TransactionAttributeType.Value,
+        value: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    
     def createAccountAttributes(bankId: BankId,
                                 accountId: AccountId,
                                 productCode: ProductCode,
@@ -910,6 +960,43 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
+
+    def getCustomerAttributes(bankId: BankId,
+      customerId: CustomerId,
+      callContext: Option[CallContext]): OBPReturnType[List[CustomerAttribute]] = {
+      Connector.connector.vend.getCustomerAttributes(
+        bankId: BankId,
+        customerId: CustomerId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    
+    def getTransactionAttributes(bankId: BankId,
+      transactionId: TransactionId,
+      callContext: Option[CallContext]): OBPReturnType[List[TransactionAttribute]] = {
+      Connector.connector.vend.getTransactionAttributes(
+        bankId: BankId,
+        transactionId: TransactionId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def getCustomerAttributeById(
+      customerAttributeId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[CustomerAttribute] = {
+      Connector.connector.vend.getCustomerAttributeById(
+        customerAttributeId: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext,CustomerAttributeNotFound), i._2)
+      }
+    }
+    
     
     def createAccountApplication(
                                   productCode: ProductCode,
