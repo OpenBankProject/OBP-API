@@ -37,7 +37,6 @@ class AccountTest extends V300ServerSetup {
       val httpResponse = getCorePrivateAccountsAllBanksV300(user1)
 
       Then("We should get a 200 and check the response body")
-      org.scalameta.logger.elem(httpResponse)
       httpResponse.code should equal(200)
       httpResponse.body.extract[CoreAccountsJsonV300]
 

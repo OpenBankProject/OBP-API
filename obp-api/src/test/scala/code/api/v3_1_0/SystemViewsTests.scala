@@ -280,7 +280,6 @@ class SystemViewsTests extends V310ServerSetup {
       ).forall(_.delete_!) // Remove all rows assigned to the system owner view in order to delete it
       val response400 = deleteSystemView(SYSTEM_OWNER_VIEW_ID, user1)
       Then("We should get a 200")
-      org.scalameta.logger.elem(response400)
       response400.code should equal(200)
     }
   }
