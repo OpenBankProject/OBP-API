@@ -3,17 +3,19 @@ package code.api.ResourceDocs1_4_0
 import java.util.UUID.randomUUID
 
 import code.api.builder.OBP_APIBuilder
+import code.api.util.{APIUtil, _}
 import code.api.cache.Caching
-import code.api.util.APIUtil._
+import code.api.util.APIUtil.{hasEntitlement, _}
 import code.api.util.ApiTag._
-import  com.openbankproject.commons.util.ApiStandards._
-import code.api.util._
+import com.openbankproject.commons.util.ApiStandards._
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
 import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
 import APIMethods400.Implementations4_0_0.genericEndpoint
+import code.api.OBPRestHelper
+import code.api.util.ApiRole.{CanReadResourceDoc, canCreateAnyTransactionRequest}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.enums.LanguageParam
 import com.openbankproject.commons.model.enums.LanguageParam._
@@ -50,7 +52,7 @@ import scala.concurrent.duration._
 trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   // We add previous APIMethods so we have access to the Resource Docs
-  self: RestHelper =>
+  self: OBPRestHelper =>
 
   val ImplementationsResourceDocs = new Object() {
 
@@ -373,13 +375,23 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       List(apiTagDocumentation, apiTagApi)
     )
 
+    val resourceDocsRequireRole = APIUtil.getPropsAsBoolValue("resource_docs_require_role", false)
     // Provides resource documents so that API Explorer (or other apps) can display API documentation
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
-
     def getResourceDocsObp : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
         cc =>{
           for {
+            _ <- if (resourceDocsRequireRole)//If set resource_docs_require_role=true, we need check the authentication and the roles
+              for{
+                u <- cc.user ?~  UserNotLoggedIn
+                hasCanReadResourceDocRole <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadResourceDoc), UserHasMissingRoles + CanReadResourceDoc)
+              } yield{
+                hasCanReadResourceDocRole
+              }
+            else 
+              Full()//If set resource_docs_require_role=false, just return the response directly..
+
             (showCore, showPSD2, showOBWG, tags, partialFunctions, languageParam) <- Full(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- tryo {ApiVersionUtils.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
