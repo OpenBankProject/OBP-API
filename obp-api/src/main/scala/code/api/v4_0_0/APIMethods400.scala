@@ -2417,6 +2417,71 @@ trait APIMethods400 {
       }
     }
 
+
+    resourceDocs += ResourceDoc(
+      getTransactionRequest,
+      implementedInApiVersion,
+      nameOf(getTransactionRequest),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests/TRANSACTION_REQUEST_ID",
+      "Get Transaction Request." ,
+      """Returns transaction request for account specified by TRANSACTION_REQUEST_ID for account specified b ACCOUNT_ID at bank specified by BANK_ID.
+        |
+        |The VIEW_ID specified must be 'owner' and the user must have access to this view.
+        |
+        |Version 2.0.0 now returns charge information.
+        |
+        |Transaction Requests serve to initiate transactions that may or may not proceed. They contain information including:
+        |
+        |* Transaction Request Id
+        |* Type
+        |* Status (INITIATED, COMPLETED)
+        |* Challenge (in order to confirm the request)
+        |* From Bank / Account
+        |* Details including Currency, Value, Description and other initiation information specific to each type. (Could potentialy include a list of future transactions.)
+        |* Related Transactions
+        |
+        |PSD2 Context: PSD2 requires transparency of charges to the customer.
+        |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.
+        |The customer can proceed with the Transaction by answering the security challenge.
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      transactionRequestWithChargeJSON210,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        BankAccountNotFound,
+        UserNoPermissionAccessView,
+        UserNoOwnerView,
+        GetTransactionRequestsException,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+
+    lazy val getTransactionRequest: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: TransactionRequestId(requestId) :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.isEnabledTransactionRequests()
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            _ <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView) {
+              u.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))
+            }
+            (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(requestId, callContext)
+          } yield {
+            val json = JSONFactory210.createTransactionRequestWithChargeJSON(transactionRequest)
+            (json, HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    
+
   }
 
 }
