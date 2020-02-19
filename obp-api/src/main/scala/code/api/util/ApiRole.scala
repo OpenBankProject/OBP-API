@@ -466,6 +466,9 @@ object ApiRole {
 
   case class CanGetTransactionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetTransactionAttributeAtOneBank = CanGetTransactionAttributeAtOneBank()
+
+  case class CanReadResourceDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canReadResourceDoc = CanReadResourceDoc()
   
   private val roles = ReflectUtils.getFieldsNameToValue[ApiRole](this).values.toList
 

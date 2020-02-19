@@ -237,6 +237,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         false
       case Some(e) if APIMethods300.oldStyleEndpoints.exists(_ == e.partialFunctionName) =>
         false
+      case None => //added the None resource doc endpoint is the false
+        false
       case _ =>
         true
     }

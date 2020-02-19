@@ -3,6 +3,8 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+19/02/2020    3f04a7a0      Added props: resource_docs_requires_role. default is false. If set it as `true`, then OBP will 
+                            check the authentication and CanReadResourceDoc Role for the endpoint: `Get Resource Docs`.
 21/11/2019    51f97330      Added props: portal_hostname. default use the same value as hostname. This props is only useful when we split obp to
                             two instances: apis and portal. So portal one need its own hostname, portal_hostname can be used for it.  
 18/11/2019    de4aec71      Added props: grpc.server.enabled. default is false. 

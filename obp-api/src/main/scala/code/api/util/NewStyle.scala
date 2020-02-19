@@ -866,7 +866,7 @@ object NewStyle {
     
     def getTransactionAttributeById(transactionAttributeId: String, callContext: Option[CallContext]): OBPReturnType[TransactionAttribute] = 
       Connector.connector.vend.getTransactionAttributeById(transactionAttributeId: String, callContext: Option[CallContext]) map {
-        i => (connectorEmptyResponse(i._1, callContext), i._2)
+        x => (unboxFullOrFail(x._1, callContext, TransactionAttributeNotFound, 400), x._2)
       }
 
     def createOrUpdateAccountAttribute(
