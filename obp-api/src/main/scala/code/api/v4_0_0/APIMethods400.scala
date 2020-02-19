@@ -2425,7 +2425,7 @@ trait APIMethods400 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests/TRANSACTION_REQUEST_ID",
       "Get Transaction Request." ,
-      """Returns transaction request for account specified by TRANSACTION_REQUEST_ID for account specified b ACCOUNT_ID at bank specified by BANK_ID.
+      """Returns transaction request for transaction specified by TRANSACTION_REQUEST_ID and for account specified by ACCOUNT_ID at bank specified by BANK_ID.
         |
         |The VIEW_ID specified must be 'owner' and the user must have access to this view.
         |
