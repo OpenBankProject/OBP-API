@@ -87,6 +87,9 @@ object NewStyle {
     def `200`(callContext: CallContext): Option[CallContext] = {
       Some(callContext.copy(httpCode = Some(200)))
     }
+    def `201`(callContext: CallContext): Option[CallContext] = {
+      Some(callContext.copy(httpCode = Some(201)))
+    }
   }
 
 
