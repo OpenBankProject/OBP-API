@@ -9,16 +9,22 @@ object RemotedataExpectedChallengeAnswerProvider extends ObpActorInit with Expec
   
   val cc = RemotedataExpectedChallengeAnswerProviderCaseClasses
   
-  override def saveExpectedChallengeAnswer(challengeId: String, salt: String, expectedAnswer: String): Box[ExpectedChallengeAnswer] = getValueFromFuture(
-    (actor ? cc.saveExpectedChallengeAnswer(challengeId: String, salt: String, expectedAnswer: String)).mapTo[Box[ExpectedChallengeAnswer]]
-  )
+  override def saveExpectedChallengeAnswer(challengeId: String, 
+                                           transactionRequestId: String, 
+                                           salt: String, 
+                                           expectedAnswer: String, 
+                                           expectedUserId: String): Box[ExpectedChallengeAnswer] = 
+    getValueFromFuture(
+      (actor ? cc.saveExpectedChallengeAnswer(challengeId, transactionRequestId, salt, expectedAnswer, expectedUserId))
+        .mapTo[Box[ExpectedChallengeAnswer]]
+    )
   
   override def getExpectedChallengeAnswer(challengeId: String): Box[ExpectedChallengeAnswer] = getValueFromFuture(
     (actor ? cc.getExpectedChallengeAnswer(challengeId: String)).mapTo[Box[ExpectedChallengeAnswer]]
   )
   
-  override def validateChallengeAnswerInOBPSide(challengeId: String, challengeAnswer: String): Box[Boolean] = getValueFromFuture(
-    (actor ? cc.validateChallengeAnswerInOBPSide(challengeId: String, challengeAnswer: String)).mapTo[Box[Boolean]]
+  override def validateChallengeAnswerInOBPSide(challengeId: String, challengeAnswer: String, userId: Option[String]): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.validateChallengeAnswerInOBPSide(challengeId, challengeAnswer, userId)).mapTo[Box[Boolean]]
   )
   
 }

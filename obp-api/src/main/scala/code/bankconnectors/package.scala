@@ -2,7 +2,7 @@ package code
 
 import java.lang.reflect.Method
 
-import code.api.{APIFailure, APIFailureNewStyle, ApiVersionHolder}
+import code.api.{APIFailureNewStyle, ApiVersionHolder}
 import code.api.util.{CallContext, NewStyle}
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
@@ -23,7 +23,7 @@ import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.runtime.universe.{MethodSymbol, Type, typeOf}
 import code.api.util.ErrorMessages.InvalidConnectorResponseForMissingRequiredValues
-import code.api.util.APIUtil.{fullBoxOrException, unboxFull}
+import code.api.util.APIUtil.fullBoxOrException
 import com.openbankproject.commons.util.ApiVersion
 import com.openbankproject.commons.util.ReflectUtils._
 import com.openbankproject.commons.util.Functions.Implicits._
@@ -241,8 +241,12 @@ package object bankconnectors extends MdcLoggable {
         validate(value, elementTpe, v, apiVersion)
 
       case (f @Full(v), cc: Option[_])
-        if getNestTypeArg(returnType, 1, 0) =:= typeOf[CallContext] =>
-        val elementTpe = getNestTypeArg(returnType, 0, 0)
+        if returnType <:< typeOf[(Box[_], Option[CallContext])] || returnType <:< typeOf[Box[_]] =>
+        val elementTpe = if(returnType <:< typeOf[(Box[_], Option[CallContext])]) {
+          getNestTypeArg(returnType, 0, 0)
+        } else{
+          getNestTypeArg(returnType, 0)
+        }
         val callContext = cc.asInstanceOf[Option[CallContext]]
         val result = validate(f, elementTpe, v, apiVersion, callContext)
         (result, cc)

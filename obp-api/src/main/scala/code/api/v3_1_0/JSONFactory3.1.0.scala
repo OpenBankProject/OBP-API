@@ -533,7 +533,9 @@ case class PostConsentBodyCommonJson(
                                       everything: Boolean,
                                       views:  List[ViewJsonV400],
                                       entitlements: List[EntitlementJsonV400],
-                                      consumer_id: Option[String]
+                                      consumer_id: Option[String],
+                                      valid_from: Option[Date],
+                                      time_to_live: Option[Long]
 ) extends PostConsentCommonBody
 
 case class PostConsentEmailJsonV310(
@@ -541,7 +543,9 @@ case class PostConsentEmailJsonV310(
                                      views:  List[ViewJsonV400],
                                      entitlements: List[EntitlementJsonV400],
                                      consumer_id: Option[String],
-                                     email: String
+                                     email: String,
+                                     valid_from: Option[Date],
+                                     time_to_live: Option[Long]
 ) extends PostConsentCommonBody
 
 case class PostConsentPhoneJsonV310(
@@ -549,7 +553,9 @@ case class PostConsentPhoneJsonV310(
                                      views:  List[ViewJsonV400],
                                      entitlements: List[EntitlementJsonV400],
                                      consumer_id: Option[String],
-                                     phone_number: String
+                                     phone_number: String,
+                                     valid_from: Option[Date],
+                                     time_to_live: Option[Long]
 ) extends PostConsentCommonBody
 
 case class ConsentJsonV310(consent_id: String, jwt: String, status: String)

@@ -51,7 +51,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
-import net.liftweb.util.{Helpers, Mailer}
+import net.liftweb.util.{Helpers, Mailer, Props}
 import org.apache.commons.lang3.{StringUtils, Validate}
 
 import scala.collection.immutable.{List, Nil}
@@ -59,6 +59,7 @@ import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
+import scala.util.Random
 
 trait APIMethods310 {
   self: RestHelper =>
@@ -2781,9 +2782,10 @@ trait APIMethods310 {
       case "banks" :: bankId :: "accounts" :: accountId :: "products" :: productCode :: "attribute" :: Nil JsonPost json -> _=> {
         cc =>
           for {
-            (_, callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, ApiRole.canCreateAccountAttributeAtOneBank, callContext)
             _  <- Future(Connector.connector.vend.getProduct(BankId(bankId), ProductCode(productCode))) map {
               getFullBoxOrFail(_, callContext, ProductNotFoundByProductCode + " {" + productCode + "}", 400)
             }
@@ -2857,6 +2859,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canUpdateAccountAttribute, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AccountAttributeJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -2869,7 +2872,6 @@ trait APIMethods310 {
               AccountAttributeType.withName(postedData.`type`)
             }
             
-            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), callContext)
             (_, callContext) <- NewStyle.function.getProduct(BankId(bankId), ProductCode(productCode), callContext)
             (_, callContext) <- NewStyle.function.getAccountAttributeById(accountAttributeId, callContext)
@@ -3307,7 +3309,42 @@ trait APIMethods310 {
         |
         |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted.mkString(", ") }.
         |
+        |Each Consent is bound to an consumer i.e. you need to identify yourself over request header value Consumer-Key. 
+        |For example:
+        |GET /obp/v4.0.0/users/current HTTP/1.1
+        |Host: 127.0.0.1:8080
+        |Consent-Id: eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOlt7InJvbGVfbmFtZSI6IkNhbkdldEFueVVzZXIiLCJiYW5rX2lkIjoiIn1dLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIzNDc1MDEzZi03YmY5LTQyNjEtOWUxYy0xZTdlNWZjZTJlN2UiLCJhdWQiOiI4MTVhMGVmMS00YjZhLTQyMDUtYjExMi1lNDVmZDZmNGQzYWQiLCJuYmYiOjE1ODA3NDE2NjcsImlzcyI6Imh0dHA6XC9cLzEyNy4wLjAuMTo4MDgwIiwiZXhwIjoxNTgwNzQ1MjY3LCJpYXQiOjE1ODA3NDE2NjcsImp0aSI6ImJkYzVjZTk5LTE2ZTYtNDM4Yi1hNjllLTU3MTAzN2RhMTg3OCIsInZpZXdzIjpbXX0.L3fEEEhdCVr3qnmyRKBBUaIQ7dk1VjiFaEBW8hUNjfg
+        |Consumer-Key: ejznk505d132ryomnhbx1qmtohurbsbb0kijajsk
+        |cache-control: no-cache
         |
+        |Maximum time to live of te token is specified over props value consents.max_time_to_live. In case isn't defined default value is 3600 seconds.
+        |
+        |Example of POST JSON:
+        |{
+        |  "everything": false,
+        |  "views": [
+        |    {
+        |      "bank_id": "GENODEM1GLS",
+        |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+        |      "view_id": "owner"
+        |    }
+        |  ],
+        |  "entitlements": [
+        |    {
+        |      "bank_id": "GENODEM1GLS",
+        |      "role_name": "CanGetCustomer"
+        |    }
+        |  ],
+        |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+        |  "email": "eveline@example.com",
+        |  "valid_from": "2020-02-07T08:43:34Z",
+        |  "time_to_live": 3600
+        |}
+        |Please ote that only optional fields are: consumer_id, valid_from and time_to_live. 
+        |In case you omit they the default values are used:
+        |consumer_id = consumer of current user
+        |valid_from = current time
+        |time_to_live = consents.max_time_to_live
         |
       """.stripMargin
 
@@ -3487,6 +3524,13 @@ trait APIMethods310 {
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostConsentBodyCommonJson]
             }
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
+            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)"){
+              consentJson.time_to_live match {
+                case Some(ttl) => ttl <= maxTimeToLive
+                case _ => true
+              }
+            }
             requestedEntitlements = consentJson.entitlements
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
             _ <- Helper.booleanToFuture(RolesAllowedInConsent){
@@ -3514,14 +3558,27 @@ trait APIMethods310 {
               }
               case None => Future(None, "Any application")
             }
-            createdConsent <- Future(Consents.consentProvider.vend.createConsent(user)) map {
+            challengeAnswer = Props.mode match {
+              case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
+              case _ => Random.nextInt(99999999).toString()
+            }
+            createdConsent <- Future(Consents.consentProvider.vend.createConsent(user, challengeAnswer)) map {
               i => connectorEmptyResponse(i, callContext)
             }
-            consentJWT = Consent.createConsentJWT(user, consentJson, createdConsent.secret, createdConsent.consentId, consumerId)
+            consentJWT = 
+              Consent.createConsentJWT(
+                user, 
+                consentJson, 
+                createdConsent.secret, 
+                createdConsent.consentId, 
+                consumerId,
+                consentJson.valid_from,
+                consentJson.time_to_live.getOrElse(3600)
+              )
             _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
               i => connectorEmptyResponse(i, callContext)
             }
-            challengeText = s"Your consent challenge : ${createdConsent.challenge}, Application: $applicationText"
+            challengeText = s"Your consent challenge : ${challengeAnswer}, Application: $applicationText"
             _ <- scaMethod match {
             case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
               for{

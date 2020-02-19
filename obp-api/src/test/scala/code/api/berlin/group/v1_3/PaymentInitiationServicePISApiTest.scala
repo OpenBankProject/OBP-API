@@ -289,7 +289,6 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val response: APIResponse = makePostRequest(requestPost, """""")
       Then("We should get a 200 ")
       response.code should equal(200)
-      org.scalameta.logger.elem(response)
       val startPaymentAuthorisationResponse = response.body.extract[StartPaymentAuthorisationJson]
       startPaymentAuthorisationResponse.authorisationId should not be null
       startPaymentAuthorisationResponse.psuMessage should be ("Please check your SMS at a mobile device.")
@@ -381,7 +380,6 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val response: APIResponse = makePostRequest(requestPost)
       Then("We should get a 200 ")
       response.code should equal(200)
-      org.scalameta.logger.elem(response)
       val startPaymentAuthorisationResponse = response.body.extract[StartPaymentAuthorisationJson]
       startPaymentAuthorisationResponse.authorisationId should not be null
       startPaymentAuthorisationResponse.psuMessage should be ("Please check your SMS at a mobile device.")

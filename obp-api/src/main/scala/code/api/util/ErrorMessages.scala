@@ -2,7 +2,7 @@ package code.api.util
 
 import java.util.Objects
 import java.util.regex.Pattern
-
+import code.transactionrequests.TransactionRequests.TransactionRequestStatus._
 import code.api.Constant._
 
 object ErrorMessages {
@@ -346,6 +346,12 @@ object ErrorMessages {
   val ConsentAlreadyRevoked = "OBP-35012: Consent is already revoked. "
   val RolesAllowedInConsent = "OBP-35013: Consents can only contain Roles that you already have access to."
   val ViewsAllowedInConsent = "OBP-35014: Consents can only contain Views that you already have access to."
+  val ConsentDoesntMatchApp = "OBP-35015: Consent doesn't match your application."
+  val ConsumerKeyHeaderMissing = "OBP-35016: Consumer-Key header value is not defined at this request."
+  val ConsumerAtConsentDisabled = "OBP-35017: The Consumer specified in this consent is disabled."
+  val ConsumerAtConsentCannotBeFound = "OBP-35018: The Consumer specified in this consent cannot be found."
+  val ConsumerValidationMethodForConsentNotDefined = "OBP-35019: Consumer validation method for consent is not defined at this instance."
+  val ConsentMaxTTL = "OBP-35020: You exceeded max value of time to live of consents."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
@@ -373,7 +379,8 @@ object ErrorMessages {
   val InvalidChallengeAnswer = "OBP-40016: Invalid Challenge Answer. Please specify a valid value for answer in Json body. If it is sandbox mode, the answer must be `123`. If it kafka mode, the answer can be got by phone message or other security ways."
   val InvalidPhoneNumber = "OBP-40017: Invalid Phone Number. Please specify a valid value for PHONE_NUMBER. Eg:+9722398746 "
   val TransactionRequestsNotEnabled = "OBP-40018: Sorry, Transaction Requests are not enabled in this API instance."
-
+  val NextChallengePending = s"OBP-40019: Cannot create transaction due to transaction request is in status: ${NEXT_CHALLENGE_PENDING}."
+  val TransactionRequestStatusNotInitiatedOrPending = s"OBP-40020: Transaction Request Status is not ${INITIATED} or ${NEXT_CHALLENGE_PENDING}."
 
 
   // Exceptions (OBP-50XXX)

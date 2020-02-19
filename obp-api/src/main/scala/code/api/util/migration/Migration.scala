@@ -64,6 +64,7 @@ object Migration extends MdcLoggable {
       updateTableViewDefinition()
       bankAccountHoldersAndOwnerViewAccessInfo()
       alterTableMappedConsent()
+      alterColumnChallengeAtTableMappedConsent()
     }
     
     private def dummyScript(): Boolean = {
@@ -150,6 +151,12 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterTableMappedConsent)
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnJsonWebToken(name)
+      }
+    }
+    private def alterColumnChallengeAtTableMappedConsent(): Boolean = {
+      val name = nameOf(alterColumnChallengeAtTableMappedConsent)
+      runOnce(name) {
+        MigrationOfMappedConsent.alterColumnChallenge(name)
       }
     }
     

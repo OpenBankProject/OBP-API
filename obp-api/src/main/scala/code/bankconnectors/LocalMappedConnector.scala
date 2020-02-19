@@ -148,18 +148,70 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * 5. Send the challenge over an separate communication channel.
     */
   // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
-  override def createChallenge(bankId: BankId, 
+  override def createChallenge(bankId: BankId,
+                               accountId: AccountId,
+                               userId: String,
+                               transactionRequestType: TransactionRequestType,
+                               transactionRequestId: String,
+                               scaMethod: Option[SCA],
+                               callContext: Option[CallContext]) = Future {
+    createChallengeInternal(bankId: BankId,
+      accountId: AccountId,
+      userId: String,
+      transactionRequestType: TransactionRequestType,
+      transactionRequestId: String,
+      scaMethod: Option[SCA],
+      callContext: Option[CallContext])
+  }
+  /**
+    * Steps To Create, Store and Send Challenge
+    * 1. Generate a random challenge
+    * 2. Generate a long random salt
+    * 3. Prepend the salt to the challenge and hash it with a standard password hashing function like Argon2, bcrypt, scrypt, or PBKDF2.
+    * 4. Save both the salt and the hash in the user's database record.
+    * 5. Send the challenge over an separate communication channel.
+    */
+  // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
+  override def createChallenges(bankId: BankId,
+                               accountId: AccountId,
+                               userIds: List[String],
+                               transactionRequestType: TransactionRequestType,
+                               transactionRequestId: String,
+                               scaMethod: Option[SCA],
+                               callContext: Option[CallContext]) = Future {
+    val challenges = for {
+      userId <- userIds
+    } yield {
+      val (challengeId, _) = createChallengeInternal(
+        bankId,
+        accountId,
+        userId,
+        transactionRequestType: TransactionRequestType,
+        transactionRequestId,
+        scaMethod,
+        callContext
+      )
+      challengeId.toList
+    }
+    (Full(challenges.flatten), callContext)
+  }
+  private def createChallengeInternal(bankId: BankId, 
                                accountId: AccountId, 
                                userId: String, 
                                transactionRequestType: TransactionRequestType, 
                                transactionRequestId: String,
                                scaMethod: Option[SCA], 
-                               callContext: Option[CallContext]) = Future {
+                               callContext: Option[CallContext]) = {
     def createHashedPassword(challengeAnswer: String) = {
       val challengeId = APIUtil.generateUUID()
       val salt = BCrypt.gensalt()
       val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
-      ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed)
+      ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(
+        challengeId, 
+        transactionRequestId, 
+        salt, 
+        challengeAnswerHashed, 
+        userId)
       (Full(challengeId), callContext)
     }
     scaMethod match {

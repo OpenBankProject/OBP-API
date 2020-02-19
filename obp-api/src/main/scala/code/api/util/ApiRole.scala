@@ -117,6 +117,9 @@ object ApiRole {
 
   case class CanUpdateAccount(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateAccount = CanUpdateAccount()
+
+  case class CanCreateAccountAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateAccountAttributeAtOneBank = CanCreateAccountAttributeAtOneBank()
   
   case class CanUpdateAccountAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateAccountAttribute = CanUpdateAccountAttribute()

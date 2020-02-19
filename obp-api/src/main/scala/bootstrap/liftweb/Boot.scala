@@ -107,6 +107,7 @@ import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
 import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.Functions.Implicits._
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
@@ -121,22 +122,18 @@ import net.liftweb.util.{Helpers, Props, Schedule, _}
 
 import scala.concurrent.ExecutionContext
 
-
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
  */
 class Boot extends MdcLoggable {
-  
-  def boot {
 
-    val contextPath = LiftRules.context.path
-    val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.toIterable.flatten
-
-    if (Props.mode == Props.RunModes.Development) logger.info("OBP-API Props all fields : \n" + Props.props.mkString("\n"))
-    logger.info("external props folder: " + propsPath)
-    TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
-    logger.info("Current Project TimeZone: " + TimeZone.getDefault)
+  /**
+   * For the project scope, most early initiate logic should in this method.
+   */
+  override protected def initiate(): Unit = {
+    val resourceDir = System.getProperty("props.resource.dir") ?: System.getenv("props.resource.dir")
+    val propsPath = tryo{Box.legacyNullTest(resourceDir)}.toList.flatten
 
     /**
      * Where this application looks for props files:
@@ -169,6 +166,7 @@ class Boot extends MdcLoggable {
     } yield {
       Props.toTry.map {
         f => {
+          val contextPath = LiftRules.context.path
           val name = propsPath + contextPath + f() + "props"
           name -> { () => tryo{new FileInputStream(new File(name))} }
         }
@@ -187,9 +185,17 @@ class Boot extends MdcLoggable {
     }
 
     Props.whereToLook = () => {
-      firstChoicePropsDir.flatten.toList ::: secondChoicePropsDir.flatten.toList
+      (firstChoicePropsDir ::: secondChoicePropsDir).flatten
     }
 
+    if (Props.mode == Props.RunModes.Development) logger.info("OBP-API Props all fields : \n" + Props.props.mkString("\n"))
+    logger.info("external props folder: " + propsPath)
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+    logger.info("Current Project TimeZone: " + TimeZone.getDefault)
+  }
+
+
+  def boot {
     // set up the way to connect to the relational DB we're using (ok if other connector than relational)
     if (!DB.jndiJdbcConnAvailable_?) {
       val driver =

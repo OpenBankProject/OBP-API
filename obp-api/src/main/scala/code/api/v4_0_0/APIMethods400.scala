@@ -8,45 +8,48 @@ import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample, userIdExample}
+import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
-import code.api.v2_2_0.{BankJSONV220, CreateAccountJSONV220, JSONFactory220}
+import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.{CreateAccountRequestJsonV310, JSONFactory310, ListResult}
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
+import code.bankconnectors.Connector
 import code.dynamicEntity.DynamicEntityCommons
 import code.entitlement.Entitlement
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.model.toUserExtended
+import code.transactionChallenge.MappedExpectedChallengeAnswer
+import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestProvider}
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes
+import code.transactionrequests.TransactionRequests.{TransactionRequestStatus, TransactionRequestTypes}
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.users.Users
 import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType, TransactionAttributeType}
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Full, ParamFailure}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
+import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.now
 import net.liftweb.util.StringHelpers
 import org.atteo.evo.inflector.English
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.util.ApiVersion
-
 import scala.concurrent.Future
 
 trait APIMethods400 {
@@ -108,13 +111,24 @@ trait APIMethods400 {
          |
          |In OBP, a `transaction request` may or may not result in a `transaction`. However, a `transaction` only has one possible state: completed.
          |
-         |A `Transaction Request` can have one of several states.
+         |A `Transaction Request` can have one of several states: INITIATED, NEXT_CHALLENGE_PENDING etc.
          |
          |`Transactions` are modeled on items in a bank statement that represent the movement of money.
          |
-         |`Transaction Requests` are requests to move money which may or may not succeeed and thus result in a `Transaction`.
+         |`Transaction Requests` are requests to move money which may or may not succeed and thus result in a `Transaction`.
          |
          |A `Transaction Request` might create a security challenge that needs to be answered before the `Transaction Request` proceeds.
+         |In case 1 person needs to answer security challenge we have next flow of state of an `transaction request`:
+         |  INITIATED => COMPLETED
+         |In case n persons needs to answer security challenge we have next flow of state of an `transaction request`:
+         |  INITIATED => NEXT_CHALLENGE_PENDING => ... => NEXT_CHALLENGE_PENDING => COMPLETED
+         |  
+         |The security challenge is bound to a user i.e. in case of right answer and the user is different than expected one the challenge will fail.
+         |
+         |Rule for calculating number of security challenges:
+         |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges 
+         |(one for every user that has a View where permission "can_add_transaction_request_to_any_account"=true)
+         |In case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute default value is 1.
          |
          |Transaction Requests contain charge information giving the client the opportunity to proceed or not (as long as the challenge level is appropriate).
          |
@@ -470,7 +484,7 @@ trait APIMethods400 {
                   //This is the refund endpoint, the original toAccount is the `fromAccount` which will lose money. 
                   refundFromAccount = toAccount
                   
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
                     viewId,
                     refundFromAccount,
                     refundToAccount,
@@ -497,7 +511,7 @@ trait APIMethods400 {
                     write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))
                   }
 
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -524,7 +538,7 @@ trait APIMethods400 {
                     write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))
                   }
 
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -557,7 +571,7 @@ trait APIMethods400 {
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
                     write(transactionRequestBodyCounterparty)(Serialization.formats(NoTypeHints))
                   }
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -590,7 +604,7 @@ trait APIMethods400 {
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
                     write(transDetailsSEPAJson)(Serialization.formats(NoTypeHints))
                   }
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
                     viewId,
                     fromAccount,
                     toAccount,
@@ -613,7 +627,7 @@ trait APIMethods400 {
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, cc.callContext) {
                     write(transactionRequestBodyFreeForm)(Serialization.formats(NoTypeHints))
                   }
-                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
                     viewId,
                     fromAccount,
                     fromAccount,
@@ -629,7 +643,9 @@ trait APIMethods400 {
               }
             }
           } yield {
-            (JSONFactory400.createTransactionRequestWithChargeJSON(createdTransactionRequest), HttpCode.`201`(callContext))
+            val challenges: List[MappedExpectedChallengeAnswer] = MappedExpectedChallengeAnswer
+              .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, createdTransactionRequest.id.value))
+            (JSONFactory400.createTransactionRequestWithChargeJSON(createdTransactionRequest, challenges), HttpCode.`201`(callContext))
           }
       }
     }
@@ -652,7 +668,22 @@ trait APIMethods400 {
         |
         |3) `id` :  is `challenge.id` field in createTransactionRequest response body.
         |
-        |4) `answer` : must be `123`. if it is in sandbox mode. If it kafka mode, the answer can be got by phone message or other security ways.
+        |4) `answer` : must be `123` in case that Strong Customer Authentication method for OTP challenge is dummy. 
+        |    For instance: SANDBOX_TAN_OTP_INSTRUCTION_TRANSPORT=dummy
+        |    Possible values are dummy,email and sms
+        |    In kafka mode, the answer can be got by phone message or other security ways.
+        |
+        |In case 1 person needs to answer security challenge we have next flow of state of an `transaction request`:
+        |  INITIATED => COMPLETED
+        |In case n persons needs to answer security challenge we have next flow of state of an `transaction request`:
+        |  INITIATED => NEXT_CHALLENGE_PENDING => ... => NEXT_CHALLENGE_PENDING => COMPLETED
+        |  
+        |The security challenge is bound to a user i.e. in case of right answer and the user is different than expected one the challenge will fail.
+        |
+        |Rule for calculating number of security challenges:
+        |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges 
+        |(one for every user that has a View where permission "can_add_transaction_request_to_any_account"=true)
+        |In case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute default value is 1.
         |
       """.stripMargin,
       challengeAnswerJSON,
@@ -698,8 +729,9 @@ trait APIMethods400 {
             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transReqId, cc.callContext)
 
             // Check the Transaction Request is still INITIATED
-            _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiated) {
-              existingTransactionRequest.status.equals("INITIATED")
+            _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiatedOrPending) {
+              existingTransactionRequest.status.equals(TransactionRequestStatus.INITIATED.toString) ||
+              existingTransactionRequest.status.equals(TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString) 
             }
 
             // Check the input transactionRequestType is the same as when the user created the TransactionRequest
@@ -711,6 +743,9 @@ trait APIMethods400 {
             // Check the challengeId is valid for this existingTransactionRequest
             _ <- Helper.booleanToFuture(s"${InvalidTransactionRequesChallengeId}") {
               existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
+              MappedExpectedChallengeAnswer
+                .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
+                .exists(_.challengeId == challengeAnswerJson.id)
             }
 
             //Check the allowed attemps, Note: not support yet, the default value is 3
@@ -726,10 +761,22 @@ trait APIMethods400 {
               ).exists(_ == existingTransactionRequest.challenge.challenge_type)
             }
 
-            challengeAnswerOBP <- NewStyle.function.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
+            challengeAnswerOBP <- NewStyle.function.validateChallengeAnswerInOBPSide400(challengeAnswerJson.id, challengeAnswerJson.answer, u.userId, callContext)
 
             _ <- Helper.booleanToFuture(s"$InvalidChallengeAnswer") {
               challengeAnswerOBP
+            }
+            accountAttributes <- Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None)
+            _ <- Helper.booleanToFuture(s"$NextChallengePending") {
+              val quorum = accountAttributes._1.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
+              MappedExpectedChallengeAnswer
+                .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
+                .count(_.successful == true) match {
+                  case number if number >= quorum => true
+                  case _ => 
+                    MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
+                    false
+                }
             }
 
             (challengeAnswerKafka, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)

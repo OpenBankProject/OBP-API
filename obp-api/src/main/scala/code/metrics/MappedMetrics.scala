@@ -7,15 +7,19 @@ import java.util.UUID.randomUUID
 import code.api.cache.Caching
 import code.api.util.ErrorMessages._
 import code.api.util._
+import code.model.MappedConsumersProvider
 import code.util.Helper.MdcLoggable
-import code.util.{MappedUUID, TTLCache, UUIDString}
+import code.util.{MappedUUID, UUIDString}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.{Index, _}
 import net.liftweb.util.Helpers.tryo
+
 import scala.concurrent.duration._
 import scala.collection.immutable.List
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import org.apache.commons.lang3.StringUtils
+
 import scala.concurrent.Future
 
 object MappedMetrics extends APIMetrics with MdcLoggable{
@@ -24,6 +28,13 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   val cachedAllAggregateMetrics = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getAllAggregateMetrics", "7").toInt
   val cachedTopApis = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getTopApis", "7").toInt
   val cachedTopConsumers = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getTopConsumers", "7").toInt
+
+  // If consumerId is Int, if consumerId is not Int, convert it to primary key.
+  private def consumerIdToId(consumerId: String): Option[String] = consumerId match {
+    case str if StringUtils.isBlank(str) => Option.empty[String]
+    case str if str.matches("\\d+") => Some(str)
+    case str => MappedConsumersProvider.getConsumerByConsumerId(str).map(_.id.get.toString).toOption
+  }
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String): Unit = {
     val metric = MappedMetric.create
@@ -91,7 +102,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         }
     }
     // he optional variables:
-    val consumerId = queryParams.collect { case OBPConsumerId(value) => By(MappedMetric.consumerId, value) }.headOption
+    val consumerId = queryParams.collect { case OBPConsumerId(value) => value}.headOption
+      .flatMap(consumerIdToId)
+      .map(By(MappedMetric.consumerId, _) )
+
     val userId = queryParams.collect { case OBPUserId(value) => By(MappedMetric.userId, value) }.headOption
     val url = queryParams.collect { case OBPUrl(value) => By(MappedMetric.url, value) }.headOption
     val appName = queryParams.collect { case OBPAppName(value) => By(MappedMetric.appName, value) }.headOption
@@ -183,7 +197,6 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }
 
 
-
   // TODO Cache this as long as fromDate and toDate are in the past (before now)
   def getAllAggregateMetricsBox(queryParams: List[OBPQueryParam]): Box[List[AggregateMetrics]] = {
     /**
@@ -196,7 +209,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     CacheKeyFromArguments.buildCacheKey { Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedAllAggregateMetrics days){
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
-      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
+      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption.flatMap(consumerIdToId)
       val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
       val url = queryParams.collect { case OBPUrl(value) => value }.headOption
       val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
@@ -247,7 +260,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                 stmt.setTimestamp(1, new Timestamp(fromDate.get.getTime)) //These two fields will always have the value. If null, set the default value.
                 stmt.setTimestamp(2, new Timestamp(toDate.get.getTime))
                 stmt.setBoolean(3, if (consumerId.isEmpty) true else false)
-                stmt.setString(4, consumerId.getOrElse(""))
+                stmt.setString(4,   consumerId.getOrElse(""))
                 stmt.setBoolean(5, if (userId.isEmpty) true else false)
                 stmt.setString(6, userId.getOrElse(""))
                 stmt.setBoolean(7, if (implementedByPartialFunction.isEmpty) true else false)
@@ -304,7 +317,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     Future{
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
-      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
+      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption.flatMap(consumerIdToId)
       val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
       val url = queryParams.collect { case OBPUrl(value) => value }.headOption
       val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
@@ -408,7 +421,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     Future {
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
-      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
+      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption.flatMap(consumerIdToId)
       val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
       val url = queryParams.collect { case OBPUrl(value) => value }.headOption
       val appName = queryParams.collect { case OBPAppName(value) => value }.headOption

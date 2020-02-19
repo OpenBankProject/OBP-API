@@ -442,8 +442,9 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   }
 
   /**
-    * @param the view that we will use to get the ModeratedOtherBankAccount list
-    * @param the user that want access to the ModeratedOtherBankAccount list
+    * @param view that we will use to get the ModeratedOtherBankAccount list
+    * @param bankIdAccountId bankId and accountId
+    * @param user that want access to the ModeratedOtherBankAccount list
     * @return a Box of a list ModeratedOtherBankAccounts, it the bank
     *  accounts that have at least one transaction in common with this bank account
     */

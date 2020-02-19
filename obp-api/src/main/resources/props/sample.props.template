@@ -690,10 +690,12 @@ featured_apis=elasticSearchWarehouseV300
 database_messages_scheduler_interval=3600
 # ---------------------------------------------------
 
-# -- Consents -----------------------------------
+# -- Consents ---------------------------------------------
 # In case isn't defined default value is "false"
 # consents.allowed=true
-# -----------------------------------------------
+# consumer_validation_method_for_consent=CONSUMER_KEY_VALUE
+# consents.max_time_to_live=3600
+# ---------------------------------------------------------
 
 # -- SCA (Strong Customer Authentication) -------
 # For now, OBP-API use `nexmo` server as the SMS provider. Please check `nexmo` website, and get the api key and value there.
@@ -744,7 +746,7 @@ database_messages_scheduler_interval=3600
 
 # Create System Views At Boot
 # In case is not defined default value is true
-#create_system_views_at_boot=false
+#create_system_views_at_boot=true
 
 # Stored procedure related JDBC settings
 stored_procedure_connector.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver

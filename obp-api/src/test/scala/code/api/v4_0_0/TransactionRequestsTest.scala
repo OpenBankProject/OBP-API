@@ -119,12 +119,12 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
       var transactionRequestBodyCounterparty = TransactionRequestBodyCounterpartyJSON(CounterpartyIdJson(counterpartyCounterparty.counterpartyId), bodyValue, description, sharedChargePolicy)
 
-      def setAnswerTransactionRequest(challengeId: String = this.challengeId, transRequestId: String = this.transRequestId) = {
+      def setAnswerTransactionRequest(challengeId: String = this.challengeId, transRequestId: String = this.transRequestId, consumerAndToken: Option[(Consumer, Token)] = user1) = {
         this.challengeId = challengeId
         this.transRequestId = transRequestId
         answerJson = ChallengeAnswerJSON(id = challengeId, answer = "123")
         val answerRequestNew = (v4_0_0_Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          CUSTOM_OWNER_VIEW_ID / "transaction-request-types" / transactionRequestType / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
+          CUSTOM_OWNER_VIEW_ID / "transaction-request-types" / transactionRequestType / "transaction-requests" / transRequestId / "challenge").POST <@ (consumerAndToken)
         answerRequest = answerRequestNew
       }
 
@@ -159,8 +159,8 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
           Then("The transaction_ids filed should be empty")
           (createTransactionRequestResponse.body \ "transaction_ids").values.toString should equal("List()")
           Then("Challenge should have body, this is the with challenge scenario")
-          (createTransactionRequestResponse.body \ "challenge").children.size should not equal (0)
-          challengeId = (createTransactionRequestResponse.body \ "challenge" \ "id").values.toString
+          (createTransactionRequestResponse.body \ "challenges").children.size should not equal (0)
+          challengeId = (createTransactionRequestResponse.body \ "challenges" \ "id").values.toString
           challengeId should not equal ("")
         } else {
           Then("We should have the COMPLETED status in response body")
@@ -237,9 +237,9 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
       /**
         * check the balance, after the transactions.
         *
-        * @param finishedTranscation : finished the transaction or not ? If finished it is true, if it is not it is false.
+        * @param finishedTransaction : finished the transaction or not ? If finished it is true, if it is not it is false.
         */
-      def checkBankAccountBalance(finishedTranscation: Boolean): Unit = {
+      def checkBankAccountBalance(finishedTransaction: Boolean): Unit = {
         val toAccount = getToAccount
         val fromAccount = getFromAccount
         val rate = fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value))
@@ -248,7 +248,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         val toAccountBalance = toAccount.balance
 
 
-        if (finishedTranscation ) {
+        if (finishedTransaction ) {
           if(transactionRequestTypeInput.equals(FREE_FORM.toString)){
             Then("FREE_FORM just transfer money to itself, the money should be the same as before ")
             fromAccountBalance should equal((beforeFromBalance))
@@ -282,7 +282,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
       def makeAnswerRequest = makePostRequest(answerRequest, write(answerJson))
 
-      def checkAllAnsTransReqBodyFields(ansTransReqResponse: APIResponse, withChellenge: Boolean): Unit = {
+      def checkAllAnsTransReqBodyFields(ansTransReqResponse: APIResponse, withChallenge: Boolean): Unit = {
         Then("we should get a 202 created code")
         (ansTransReqResponse.code) should equal(202)
 
@@ -456,7 +456,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         Then("We checked all the fields of getTransResponse body")
         helper.checkAllGetTransResBodyField(getTransResponse, false)
 
-        When("We checked all the data in database, we need check the account amout info")
+        When("We checked all the data in database, we need check the account amount info")
         helper.checkBankAccountBalance(true)
 
       }
@@ -1064,6 +1064,83 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         helper.checkBankAccountBalance(true)
       }
     }
+
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("With N challenges, With FX", ApiEndpoint1) {}
+    } else {
+      scenario("With N challenges, With FX", ApiEndpoint1) {
+        When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
+        val helper = defaultSetup(COUNTERPARTY.toString)
+
+        And("We set the special conditions for different currencies")
+        val fromCurrency = "AED"
+        val toCurrency = "INR"
+        val amt = "50000.00"
+        helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
+
+        And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
+        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
+        helper.transactionRequestBodyCounterparty = helper.transactionRequestBodyCounterparty.copy(value=helper.bodyValue)
+
+        createAccountAttribute(
+          helper.bankId.value, 
+          helper.accountId1.value, 
+          "REQUIRED_CHALLENGE_ANSWERS", 
+          "2", 
+          "INTEGER"
+        )
+
+        val grantedView = grantUserAccessToViewV400(
+          helper.bankId.value,
+          helper.accountId1.value,
+          resourceUser2.userId,
+          user1
+        )
+        
+        Then("we call the 'V400 Create Transaction Request' endpoint")
+        val createTransactionRequestResponse = helper.makeCreateTransReqRequestCounterparty
+        val createTransactionRequestJsonResponse = createTransactionRequestResponse.body.extract[TransactionRequestWithChargeJSON400]
+        createTransactionRequestJsonResponse.status should equal(TransactionRequestStatus.INITIATED.toString)
+        
+        val challengeOfUser1: Option[ChallengeJsonV400] = createTransactionRequestJsonResponse.challenges.find(_.user_id == resourceUser1.userId)
+        val challengeOfUser2: Option[ChallengeJsonV400] = createTransactionRequestJsonResponse.challenges.find(_.user_id == resourceUser2.userId)
+        
+        Then("We checked all the fields of createTransactionRequestResponse body ")
+        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
+
+        When("we need check the 'Get all Transaction Requests. - V400' to double check it in database")
+        val getTransReqResponse = helper.makeGetTransReqRequest
+
+        Then("We checked all the fields of getTransReqResponse body")
+        helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
+
+        When("we need to check the 'Get Transactions for Account (Full) -V400' to check the transaction info ")
+        val getTransResponse = helper.makeGetTransRequest
+        Then("We checked all the fields of getTransResponse body")
+        helper.checkAllGetTransResBodyField(getTransResponse, true)
+
+        When("We checked all the data in database, we need check the account amount info")
+        helper.checkBankAccountBalance(false)
+
+        Then("We call 'Answer Transaction Request Challenge - V400' to finish the request")
+        And("we prepare the parameters for it")
+        helper.setAnswerTransactionRequest(challengeId = challengeOfUser1.map(_.id).getOrElse(""))
+        And("we call the endpoint")
+        val ansReqResponseUser1 = helper.makeAnswerRequest
+        ansReqResponseUser1.body.extract[ErrorMessage].message should equal(NextChallengePending)
+        
+        Then("We call 'Answer Transaction Request Challenge - V400' to finish the request")
+        And("we prepare the parameters for it")
+        helper.setAnswerTransactionRequest(
+          challengeId = challengeOfUser2.map(_.id).getOrElse(""),
+          consumerAndToken = user2
+        )
+        And("we call the endpoint")
+        val ansReqResponseUser2 = helper.makeAnswerRequest
+        ansReqResponseUser2.body.extract[TransactionRequestWithChargeJSON400].status should equal(TransactionRequestStatus.COMPLETED.toString)
+      }
+    }
+    
   }
   
 }
