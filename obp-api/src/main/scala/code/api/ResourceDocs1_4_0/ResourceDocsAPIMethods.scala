@@ -375,14 +375,14 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       List(apiTagDocumentation, apiTagApi)
     )
 
-    val resourceDocsRequireRole = APIUtil.getPropsAsBoolValue("resource_docs_require_role", false)
+    val resourceDocsRequireRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
     // Provides resource documents so that API Explorer (or other apps) can display API documentation
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
     def getResourceDocsObp : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
         cc =>{
           for {
-            _ <- if (resourceDocsRequireRole)//If set resource_docs_require_role=true, we need check the authentication and the roles
+            _ <- if (resourceDocsRequireRole)//If set resource_docs_requires_role=true, we need check the authentication and the roles
               for{
                 u <- cc.user ?~  UserNotLoggedIn
                 hasCanReadResourceDocRole <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadResourceDoc), UserHasMissingRoles + CanReadResourceDoc)
@@ -390,7 +390,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                 hasCanReadResourceDocRole
               }
             else 
-              Full()//If set resource_docs_require_role=false, just return the response directly..
+              Full()//If set resource_docs_requires_role=false, just return the response directly..
 
             (showCore, showPSD2, showOBWG, tags, partialFunctions, languageParam) <- Full(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- tryo {ApiVersionUtils.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
