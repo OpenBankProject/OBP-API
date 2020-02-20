@@ -371,6 +371,9 @@ webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
 # Link for SDKs
 webui_sdks_url = https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS
 
+# the external html page for the sdks. the default link is the obp one. Please following the div to modify it. This link should be anonymous access.
+# then OBP-API can show the content to the HomePage `SDK Showcases`. Please check it over the sandbox homepage first.
+webui_featured_sdks_external_link = https://static.openbankproject.com/obp/sdks.html   
 
 # Text about data in FAQ
 webui_faq_data_text = We use real data and customer profiles which have been anonymized.
