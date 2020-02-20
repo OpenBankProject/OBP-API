@@ -3,6 +3,7 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+20/02/2020    3f04a7a0      Added props: webui_featured_sdks_external_link. default is obp static file: https://static.openbankproject.com/obp/sdks.html. 
 19/02/2020    3f04a7a0      Added props: resource_docs_requires_role. default is false. If set it as `true`, then OBP will 
                             check the authentication and CanReadResourceDoc Role for the endpoint: `Get Resource Docs`.
 21/11/2019    51f97330      Added props: portal_hostname. default use the same value as hostname. This props is only useful when we split obp to
