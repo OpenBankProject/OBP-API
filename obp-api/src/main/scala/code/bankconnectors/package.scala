@@ -197,11 +197,14 @@ package object bankconnectors extends MdcLoggable {
 
   private def validateRequiredFields(value: AnyRef, returnType: Type, apiVersion: ApiVersion): AnyRef = {
     value match {
+      // when method return one of Unit, null, EmptyBox, None, empty Array, empty collection,
+      // don't validate fields.
       case Unit | null => value
       case v @(_: EmptyBox, _: Option[CallContext]) => v
       case n @(_:EmptyBox | None |  Array()) => n
       case n : GenTraversableOnce[_] if n.isEmpty => n
 
+      // all the follow return value need do validation of requied fields.
       case coll @(_:Array[_] | _: ArrayBuffer[_] | _: GenTraversableOnce[_]) =>
         val elementTpe = returnType.typeArgs.head
         validate(value, elementTpe, coll, apiVersion, None, false)
@@ -244,8 +247,9 @@ package object bankconnectors extends MdcLoggable {
         val elementTpe = returnType.typeArgs.head
         validate(value, elementTpe, v, apiVersion)
 
+      // if returnType is OBPReturnType, returnType is f's type, So need check returnType <:< typeOf[Box[_]]
       case (f @Full(v), cc: Option[_])
-        if returnType <:< typeOf[(Box[_], Option[CallContext])] || returnType <:< typeOf[Box[_]] => // if returnType is OBPReturnType, returnType is f's type
+        if returnType <:< typeOf[(Box[_], Option[CallContext])] || returnType <:< typeOf[Box[_]] =>
         val elementTpe = if(returnType <:< typeOf[(Box[_], Option[CallContext])] ) {
           getNestTypeArg(returnType, 0, 0)
         } else {
@@ -255,8 +259,9 @@ package object bankconnectors extends MdcLoggable {
         val result = validate(f, elementTpe, v, apiVersion, callContext)
         (result, cc)
 
+      // if returnType is OBPReturnType, returnType is v's type, So need check !(returnType <:< typeOf[(_, _)])
       case (v, cc: Option[_])
-        if returnType <:< typeOf[(_, Some[CallContext])] || !(returnType <:< typeOf[(_, _)]) => // if returnType is OBPReturnType, returnType is v's type
+        if returnType <:< typeOf[(_, Some[CallContext])] || !(returnType <:< typeOf[(_, _)]) =>
         val elementTpe = if(returnType <:< typeOf[(_, Some[CallContext])]) {
           returnType.typeArgs.head
         } else {
