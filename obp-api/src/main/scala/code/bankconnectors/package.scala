@@ -197,19 +197,23 @@ package object bankconnectors extends MdcLoggable {
 
   private def validateRequiredFields(value: AnyRef, returnType: Type, apiVersion: ApiVersion): AnyRef = {
     value match {
-      case Unit => value
+      case Unit | null => value
+      case v @(_: EmptyBox, _: Option[CallContext]) => v
+      case n @(_:EmptyBox | None |  Array()) => n
+      case n : GenTraversableOnce[_] if n.isEmpty => n
+
       case coll @(_:Array[_] | _: ArrayBuffer[_] | _: GenTraversableOnce[_]) =>
         val elementTpe = returnType.typeArgs.head
         validate(value, elementTpe, coll, apiVersion, None, false)
 
       case Full((coll: GenTraversableOnce[_], cc: Option[_]))
-        if coll.nonEmpty && getNestTypeArg(returnType, 0, 1, 0) =:= typeOf[CallContext] =>
+        if coll.nonEmpty && returnType <:< typeOf[Box[(_, Option[CallContext])]] =>
         val elementTpe = getNestTypeArg(returnType, 0, 0, 0)
         val callContext = cc.asInstanceOf[Option[CallContext]]
         validate(value, elementTpe, coll, apiVersion, callContext)
 
       case Full((v, cc: Option[_]))
-        if getNestTypeArg(returnType, 0, 1, 0) =:= typeOf[CallContext] =>
+        if returnType <:< typeOf[Box[(_, Option[CallContext])]] =>
         val elementTpe = getNestTypeArg(returnType, 0, 0)
         val callContext = cc.asInstanceOf[Option[CallContext]]
         validate(value, elementTpe, v, apiVersion, callContext)
@@ -241,19 +245,23 @@ package object bankconnectors extends MdcLoggable {
         validate(value, elementTpe, v, apiVersion)
 
       case (f @Full(v), cc: Option[_])
-        if returnType <:< typeOf[(Box[_], Option[CallContext])] || returnType <:< typeOf[Box[_]] =>
-        val elementTpe = if(returnType <:< typeOf[(Box[_], Option[CallContext])]) {
+        if returnType <:< typeOf[(Box[_], Option[CallContext])] || returnType <:< typeOf[Box[_]] => // if returnType is OBPReturnType, returnType is f's type
+        val elementTpe = if(returnType <:< typeOf[(Box[_], Option[CallContext])] ) {
           getNestTypeArg(returnType, 0, 0)
-        } else{
-          getNestTypeArg(returnType, 0)
+        } else {
+          returnType.typeArgs.head
         }
         val callContext = cc.asInstanceOf[Option[CallContext]]
         val result = validate(f, elementTpe, v, apiVersion, callContext)
         (result, cc)
 
       case (v, cc: Option[_])
-        if getNestTypeArg(returnType, 1, 0) =:= typeOf[CallContext] =>
-        val elementTpe = returnType.typeArgs.head
+        if returnType <:< typeOf[(_, Some[CallContext])] || !(returnType <:< typeOf[(_, _)]) => // if returnType is OBPReturnType, returnType is v's type
+        val elementTpe = if(returnType <:< typeOf[(_, Some[CallContext])]) {
+          returnType.typeArgs.head
+        } else {
+          returnType
+        }
         val callContext = cc.asInstanceOf[Option[CallContext]]
         validate(value, elementTpe, v, apiVersion, callContext, false)
 

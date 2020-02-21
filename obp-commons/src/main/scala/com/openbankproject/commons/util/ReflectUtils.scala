@@ -280,7 +280,7 @@ object ReflectUtils {
     (typeArgIndexes.toList, tp.typeArgs) match {
       case (Nil, _) => tp
       case (head :: tail, args) => {
-        assume(head < args.size, s"index $head is too big for $args")
+        assume(head < args.size, s"$tp have no enough type parameters for index $head, it's type parameters: ${tp.typeArgs.mkString("[", ",", "]")}")
         getNestTypeArg(args(head), tail:_*)
       }
     }
