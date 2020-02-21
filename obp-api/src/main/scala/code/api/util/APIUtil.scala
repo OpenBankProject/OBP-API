@@ -2120,10 +2120,12 @@ Returns a string showed to the developer
           val f: ((=> LiftResponse) => Unit) => Unit = ReflectUtils.getFieldByType(e, "f")
               f(reply(_))
 
-        case Failure(null, _, _) =>
+        case Failure(null, e, _) =>
+          e.foreach(logger.error("", _))
           val errorResponse: JsonResponse = errorJsonResponse(UnknownError)
           Full(reply.apply(errorResponse))
-        case Failure(msg, _, _) =>
+        case Failure(msg, e, _) =>
+          e.foreach(logger.error("", _))
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
               val callContextLight = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
