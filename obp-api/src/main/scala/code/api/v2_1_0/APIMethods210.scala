@@ -132,7 +132,7 @@ trait APIMethods210 {
       "getTransactionRequestTypesSupportedByBank",
       "GET",
       "/banks/BANK_ID/transaction-request-types",
-      "Get supported Transaction Request Types",
+      "Get Transaction Request Types at Bank",
       s"""Get the list of the Transaction Request Types supported by the bank.
         |
         |${authenticationRequiredMessage(!getTransactionRequestTypesIsPublic)}
