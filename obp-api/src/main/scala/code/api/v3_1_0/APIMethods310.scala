@@ -61,6 +61,8 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Random
 
+import scala.reflect.runtime.universe.MethodSymbol
+
 trait APIMethods310 {
   self: RestHelper =>
 
@@ -4209,6 +4211,8 @@ trait APIMethods310 {
         UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
+        InvalidConnectorName,
+        InvalidConnectorMethodName,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -4228,6 +4232,14 @@ trait APIMethods310 {
                 case Some(v) if(StringUtils.isBlank(v) || v.trim == "*") => entity.copy(bankIdPattern = Some(MethodRouting.bankIdPatternMatchAny))
                 case v => entity
               }
+            }
+            connectorName = postedData.connectorName
+            methodName = postedData.methodName
+            _ <- Helper.booleanToFuture(s"$InvalidConnectorName please check connectorName: $connectorName", failCode=400) {
+              NewStyle.function.getConnectorByName(connectorName).isDefined
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400) {
+              NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
             }
             invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
             _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
@@ -4274,6 +4286,8 @@ trait APIMethods310 {
         UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
+        InvalidConnectorName,
+        InvalidConnectorMethodName,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -4295,7 +4309,14 @@ trait APIMethods310 {
                 case v => entity
               }
             }
-
+            connectorName = putData.connectorName
+            methodName = putData.methodName
+            _ <- Helper.booleanToFuture(s"$InvalidConnectorName please check connectorName: $connectorName", failCode=400) {
+              NewStyle.function.getConnectorByName(connectorName).isDefined
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400) {
+              NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
+            }
             (_, _) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)
 
             invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${putData.bankIdPattern.orNull} "

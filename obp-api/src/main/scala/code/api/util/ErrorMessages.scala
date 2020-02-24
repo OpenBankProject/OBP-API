@@ -69,6 +69,8 @@ object ErrorMessages {
   val TooManyRequests = "OBP-10018: Too Many Requests."
   val InvalidBoolean = "OBP-10019: Invalid Boolean. Could not convert value to a boolean type."
   val InvalidJsonContent = "OBP-10020: Incorrect json."
+  val InvalidConnectorName = "OBP-10021: Incorrect Connector name."
+  val InvalidConnectorMethodName = "OBP-10022: Incorrect Connector method name."
   val InvalidUri = "OBP-10404: Request Not Found. The server has not found anything matching the Request-URI.Check your URL and the headers. " +
     "NOTE: when it is POST or PUT api, the Content-Type must be `application/json`. OBP only support the json format body."
 

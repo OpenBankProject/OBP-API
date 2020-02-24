@@ -44,6 +44,7 @@ import org.apache.commons.lang3.StringUtils
 import scala.collection.immutable.List
 import scala.concurrent.Future
 import scala.math.BigDecimal
+import scala.reflect.runtime.universe.MethodSymbol
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -1856,6 +1857,26 @@ object NewStyle {
       }
     }
 
-  }
+    private lazy val supportedConnectorNames: Set[String] = {
+       APIUtil.getPropsValue("connector", "star") match {
+         case "star" =>
+           APIUtil.getPropsValue("starConnector_supported_types", "mapped")
+           .split(',').map(_.trim).toSet
+         case conn => Set(conn)
+       }
+    }
 
+    def getConnectorByName(connectorName: String): Option[Connector] = {
+      if(supportedConnectorNames.exists(connectorName.startsWith _)) {
+        Connector.nameToConnector.get(connectorName).map(_())
+      } else {
+        None
+      }
+    }
+
+    def getConnectorMethod(connectorName: String, methodName: String): Option[MethodSymbol] = {
+      getConnectorByName(connectorName).flatMap(_.implementedMethods.get(methodName))
+    }
+
+  }
 }

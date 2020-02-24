@@ -119,17 +119,8 @@ package object bankconnectors extends MdcLoggable {
     }
 
     val connector = connectorName.getOrElse("mapped") match {
-      case "mapped" => LocalMappedConnector
-      case "akka_vDec2018" => AkkaConnector_vDec2018
-      case "kafka" => KafkaMappedConnector
-      case "kafka_JVMcompatible" => KafkaMappedConnector_JVMcompatible
-      case "kafka_vMar2017" => KafkaMappedConnector_vMar2017
-      case "kafka_vJune2017" => KafkaMappedConnector_vJune2017
-      case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
-      case "kafka_vMay2019" => KafkaMappedConnector_vMay2019
-      case "rest_vMar2019" => RestConnector_vMar2019
-      case "stored_procedure_vDec2019" => StoredProcedureConnector_vDec2019
-      case _ => throw new IllegalStateException(s"config of connector.start.methodName.${methodName} have wrong value, not exists connector of name ${connectorName.get}")
+      case "star" => throw new IllegalStateException(s"Props of connector.start.methodName.$methodName, value should not be 'star'")
+      case name => Connector.getConnectorInstance(name)
     }
     (connector, methodSymbol)
   }
