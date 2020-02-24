@@ -12,11 +12,6 @@ object JsonUtils {
   /* match string that end with '[]', e.g: hobby[] */
   private val RegexArray = """(.*?)\[\]$""".r
 
-  /* match string !abc.efg or -abc.efg or abc.efg */
-  private val RegexSingleExp = """([!-])?\s*(.+?)\s*$""".r
-  /* match string -abc.efg * hij.klm or abc.efg ~ hij.klm */
-  private val RegexMultipleExp = """([!-]?\s*.+?)\s*(\+|\-|\*|/|~|&|\|)\s*(.+)""".r
-
   /* match 'boolean: true' style string, to extract boolean value */
   private val RegexBoolean = """(?i)\s*'\s*boolean\s*:\s*(.*)'\s*""".r
   /* match 'double: 123.11' style string, to extract number value */
@@ -26,7 +21,30 @@ object JsonUtils {
   /* match 'abc' style string, to extract abc */
   private val RegexStr = """\s*'(.*)'\s*""".r
 
-  def convertJson(source: JValue, schema: JValue) = {
+  /* one of charactor: + - * / ~ & \ | */
+  private val opStr = """\+|\-|\*|/|~|&|\|"""
+  /* string express: 'hello '' !', content can contains two ' */
+  private val strExp = """'.+?[^']'(?!')"""
+  /* plus string express: + 'hello world !' */
+ // private val plusStrExp = s"""\\+\\s*$strExp"""
+
+  /* match string !abc.efg or -abc.efg or abc.efg */
+  private val RegexSingleExp = s"""\\s*([!-])?\\s*($strExp|[^$opStr]+?)\\s*""".r
+  /* match string part "& abc.efg | abc.fgh" of "!abc.efg & abc.efg | abc.fgh" */
+  val RegexOtherExp = s"""\\s*(\\+\\s*$strExp|[$opStr]\\s*[^$opStr]+)""".r
+  /* match string -abc.efg * hij.klm or abc.efg ~ hij.klm */
+  val RegexMultipleExp = s"""\\s*($strExp|[!-]?.+?)(($RegexOtherExp)+)""".r
+  /* extract operation and operand, e.g: "+ abc.def" extract ("+", "abc.def")*/
+  val RegexOpExp = s"""\\s*((\\+)\\s*($strExp)|([$opStr])(.+?))""".r
+  val RegexSimplePath = s"""([^$opStr!']+)""".r
+
+  /**
+   * according schema and source json to build new json
+   * @param source source json
+   * @param schema new built json schema, name and value can have express
+   * @return built json
+   */
+  def buildJson(source: JValue, schema: JValue): JValue = {
     transformField(schema){
       case (jField, path) if path.contains("$default") =>
         jField
@@ -54,7 +72,7 @@ object JsonUtils {
         val newName = StringUtils.substringBeforeLast(name, "[]")
         if(jFields.isEmpty) {
           JField(newName, JArray(Nil))
-        } else if(allValeIsSameSizeArray(jFields)) {
+        } else if(allValueIsSameSizeArray(jFields)) {
           /*convert the follow structure
            * {
            *  "foo[]": {
@@ -113,7 +131,7 @@ object JsonUtils {
           case jObj @JObject(jFields) =>
             if(jFields.isEmpty) {
               JField(newName, JNothing)
-            } else if(allValeIsSameSizeArray(jFields)) {
+            } else if(allValueIsSameSizeArray(jFields)) {
               /*convert the follow structure
                * {
                *  "foo[1]": {
@@ -154,48 +172,9 @@ object JsonUtils {
     }
   }
 
-  def getValueByPath(jValue: JValue, p: String): JValue = {
-    p match {
-      case RegexBoolean(b) => JBool(b.toBoolean)
-      case RegexDouble(n) => JDouble(n.toDouble)
-      case RegexInt(n) => JInt(n.toInt)
-      case RegexStr(s) => JString(s.replace("''", "'"))// escape '' to '
-      case  RegexSingleExp(op, s) =>
-        val path = StringUtils.substringBeforeLast(s, "[").split('.').toList
-        def getField(v: JValue, fieldPath: List[String]): JValue = (v, fieldPath) match {
-          case (_, Nil)  => v
+  def buildJson(source: String, schema: JValue): JValue = buildJson(json.parse(source), schema)
 
-          case (JArray(arr), fieldName::tail) =>
-            val values = arr.map(_ \ fieldName)
-            val newArray = JArray(values)
-            getField(newArray, tail)
-
-          case (_, fieldName:: tail) =>
-            getField(v \ fieldName, tail)
-        }
-        val value: JValue = (s, getField(jValue, path)) match {
-          //convert Array result to no JArray type, e.g: "someValue": "data.foo.bar[0]"
-          case (RegexArrayIndex(_, i), v @JArray(arr)) =>
-            assume(arr.forall(it => it == JNothing || it == JNull || it.isInstanceOf[JArray]), s"the path has index: '$p', that means the result should be two-dimension Array, but the value is one-dimension Array: ${json.prettyRender(v)}")
-            val index = i.toInt
-            val jObj = arr.map(getIndexValue(_, index))
-            JArray(jObj)
-          // convert result to JArray type, e.g: "someValue": "data.foo.bar[]"
-          case (RegexArray(_), v) =>
-            assume(v.isInstanceOf[JArray], s"the path marked as Array: '$p', that means the result should be Array, but the value is ${json.prettyRender(v)}")
-            val newArray = v.asInstanceOf[JArray].arr.map(it => JArray(it :: Nil))
-            JArray(newArray)
-          case (_, v) => v
-        }
-
-        op match {
-          case "!" => !value
-          case "-" => -value
-          case _ => value
-        }
-    }
-
-  }
+  def buildJson(source: String, schema: String): JValue = buildJson(source, json.parse(schema))
 
   /**
    * Get given index value from path value, get direct index value if it JArray, escape IndexOutOfBoundsException
@@ -208,7 +187,12 @@ object JsonUtils {
     case _ => JNothing
   }
 
-  def allValeIsSameSizeArray(jFields: List[JField]): Boolean = {
+  /**
+   * check whither all the JField value is same size JArray
+   * @param jFields
+   * @return
+   */
+  def allValueIsSameSizeArray(jFields: List[JField]): Boolean = {
     val firstFieldSize = jFields.headOption.collect {
       case JField(_, JArray(arr)) => arr.size
     }
@@ -219,6 +203,12 @@ object JsonUtils {
     })
   }
 
+  /**
+   * according callback function to transform all nested fields
+   * @param jValue
+   * @param f
+   * @return
+   */
   def mapField(jValue: JValue)(f: (JField, String) => JField): JValue = {
     def buildPath(parentPath: String, currentFieldName: String): String =
       if(parentPath == "") currentFieldName else s"$parentPath.$currentFieldName"
@@ -234,9 +224,20 @@ object JsonUtils {
     rec(jValue, "")
   }
 
+  /**
+   * according callback function to transform all fulfill fields
+   * @param jValue
+   * @param f
+   * @return
+   */
   def transformField(jValue: JValue)(f: PartialFunction[(JField, String), JField]): JValue = mapField(jValue) { (field, path) =>
     if (f.isDefinedAt(field, path)) f(field, path) else field
   }
+
+  /**
+   * enhance JValue, to support operations: !,+,-*,/,&,|
+   * @param jValue
+   */
   implicit class EnhancedJValue(jValue: JValue) {
     def unary_- : JValue = jValue match{
       case JDouble(num) => JDouble(-num)
@@ -379,23 +380,86 @@ object JsonUtils {
     }
   }
 
-  private def calculateValue(jValue: JValue, path: String): JValue = {
-    path match {
-      case RegexMultipleExp(a, b, c) => {
-        val v1 = JsonUtils.getValueByPath(jValue, a)
-        val op: JValue => JValue = b match {
-          case "+" => v1 +
-          case "-" => v1 -
-          case "*" => v1 *
-          case "/" => v1 /
-          case "~" => v1 ~
-          case "&" => v1 &
-          case "|" => v1 |
-        }
-        op(calculateValue(jValue, c))
+  /**
+   * according path express, calculate JValue
+   * @param jValue source json
+   * @param pathExp path expression, e.g: "result.price * 'int: 2' + result.count"
+   * @return calculated JValue
+   */
+  private def calculateValue(jValue: JValue, pathExp: String): JValue = {
+    pathExp match {
+      case RegexSimplePath(p) => getValueByPath(jValue, p)
+      case RegexMultipleExp(firstExp, otherExp, _, _) => {
+        val firstValue = getValueByPath(jValue, firstExp)
+        RegexOtherExp.findAllIn(otherExp).map {
+          case RegexOpExp(_, op1, exp1, op2, exp2) => pre: JValue =>
+            val op = Option(op1).getOrElse(op2)
+            val exp = Option(exp1).getOrElse(exp2)
+            val cur = getValueByPath(jValue, exp)
+            op match {
+            case "+" => pre + cur
+            case "-" => pre - cur
+            case "*" => pre * cur
+            case "/" => pre / cur
+            case "~" => pre ~ cur
+            case "&" => pre & cur
+            case "|" => pre | cur
+          }
+        }.foldLeft(firstValue)((v, fun)=> fun(v))
       }
-
-      case RegexSingleExp(_, _) => getValueByPath(jValue, path)
+      case RegexSingleExp(_, _) =>
+        getValueByPath(jValue, pathExp)
     }
+  }
+
+  /**
+   * get json nested value according path, path can have prefix ! or -
+   * @param jValue source json, if path end with [], result type is JArray,
+   *               if end with [number], result type is index element of Array
+   * @param p path
+   * @return given nested field value
+   */
+  private def getValueByPath(jValue: JValue, p: String): JValue = {
+    p match {
+      case RegexBoolean(b) => JBool(b.toBoolean)
+      case RegexDouble(_, n) =>
+        JDouble(n.toDouble)
+      case RegexInt(n) => JInt(n.toInt)
+      case RegexStr(s) => JString(s.replace("''", "'"))// escape '' to '
+      case RegexSingleExp(op, s) =>
+        val path = StringUtils.substringBeforeLast(s, "[").split('.').toList
+        def getField(v: JValue, fieldPath: List[String]): JValue = (v, fieldPath) match {
+          case (_, Nil)  => v
+
+          case (JArray(arr), fieldName::tail) =>
+            val values = arr.map(_ \ fieldName)
+            val newArray = JArray(values)
+            getField(newArray, tail)
+
+          case (_, fieldName:: tail) =>
+            getField(v \ fieldName, tail)
+        }
+        val value: JValue = (s, getField(jValue, path)) match {
+          //convert Array result to no JArray type, e.g: "someValue": "data.foo.bar[0]"
+          case (RegexArrayIndex(_, i), v @JArray(arr)) =>
+            assume(arr.forall(it => it == JNothing || it == JNull || it.isInstanceOf[JArray]), s"the path has index: '$p', that means the result should be two-dimension Array, but the value is one-dimension Array: ${json.prettyRender(v)}")
+            val index = i.toInt
+            val jObj = arr.map(getIndexValue(_, index))
+            JArray(jObj)
+          // convert result to JArray type, e.g: "someValue": "data.foo.bar[]"
+          case (RegexArray(_), v) =>
+            assume(v.isInstanceOf[JArray], s"the path marked as Array: '$p', that means the result should be Array, but the value is ${json.prettyRender(v)}")
+            val newArray = v.asInstanceOf[JArray].arr.map(it => JArray(it :: Nil))
+            JArray(newArray)
+          case (_, v) => v
+        }
+
+        op match {
+          case "!" => !value
+          case "-" => -value
+          case _ => value
+        }
+    }
+
   }
 }

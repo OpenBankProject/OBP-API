@@ -1,7 +1,7 @@
 package code.util
 
 import org.scalatest.{FlatSpec, Matchers, Tag}
-import JsonUtils.convertJson
+import JsonUtils.buildJson
 import net.liftweb.json
 
 class JsonUtilsTest extends FlatSpec with Matchers {
@@ -10,6 +10,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
   val zson = json.parse(
     """
       |{
+      |  "level": 3
       |  "banks":[{
       |    "id":"dmo.01.uk.uk",
       |    "short_name":"uk",
@@ -52,6 +53,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
   val schema = json.parse(
     """
       |{
+      | "value": " 'number: 1.0' + 'int:1' * level",
       | "code": 200,
       | "meta$default": {
       |   "count": 10,
@@ -61,7 +63,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
       | }
       | "result[]": {
       |   "bkId": "banks.id",
-      |   "bkName": "banks.short_name + ' : ' + banks.full_name",
+      |   "bkName": "'hello:' + banks.short_name+ ' +  ' + banks.full_name",
       |   "is_exists": "!banks.is_deleted",
       |   "newBank": "!banks.is_deleted & banks.is_new",
       |   "routing": "banks.bank_routings[0]"
@@ -77,6 +79,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
   val expectedJson = json.parse(
     """
       |{
+      | "value":6.0,
       |  "code":200,
       |  "meta":{
       |    "count":10,
@@ -87,7 +90,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
       |  "result":[
       |    {
       |      "bkId":"dmo.01.uk.uk",
-      |      "bkName":"uk : uk",
+      |      "bkName":"hello:uk +  uk",
       |      "is_exists":false,
       |      "newBank":false,
       |      "routing":{
@@ -97,13 +100,13 @@ class JsonUtilsTest extends FlatSpec with Matchers {
       |    },
       |    {
       |      "bkId":"dmo.02.uk.uk",
-      |      "bkName":"uk : uk",
+      |      "bkName":"hello:uk +  uk",
       |      "is_exists":true,
       |      "newBank":true
       |    },
       |    {
       |      "bkId":"dmo.02.de.de",
-      |      "bkName":"de : de",
+      |      "bkName":"hello:de +  de",
       |      "is_exists":true,
       |      "newBank":false,
       |      "routing":{
@@ -120,11 +123,11 @@ class JsonUtilsTest extends FlatSpec with Matchers {
       |}
       |""".stripMargin)
   "transformField" should "generate JValue according schema" taggedAs JsonUtilsTag in {
-    val resultJson = convertJson(zson, schema)
+    val resultJson = buildJson(zson, schema)
 
     val str1 = json.prettyRender(resultJson)
+    println(str1)
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
-    println(str1)
   }
 }
