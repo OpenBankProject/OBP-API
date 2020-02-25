@@ -4201,6 +4201,23 @@ trait APIMethods310 {
         |note:
         |
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
+        |
+        |If connector name start with rest, parameters can contain "outBoundMapping" and "inBoundMapping", convert OutBound and InBound json structure.
+        |for example:
+        | outBoundMapping example, convert json from source to target:
+        |![Snipaste_outBoundMapping](https://user-images.githubusercontent.com/2577334/75248007-33332e00-580e-11ea-8d2a-d1856035fa24.png)
+        |Build OutBound json value rules:
+        |1 set cId value with: outboundAdapterCallContext.correlationId value
+        |2 set bankId value with: concat bankId.value value with  string helloworld
+        |3 set originalJson value with: whole source json, note: the field value expression is $$root
+        |
+        |
+        | inBoundMapping example, convert json from source to target:
+        |![inBoundMapping](https://user-images.githubusercontent.com/2577334/75248199-a9d02b80-580e-11ea-9238-e073264e9170.png)
+        |Build InBound json value rules:
+        |1 and 2 set inboundAdapterCallContext and status value: because field name ends with "$$default", remove "$$default" from field name, not change the value
+        |3 set fullName value with: concat string full: with result.name value
+        |4 set bankRoutingScheme value: because source value is Array, but target value is not Array, the mapping field name must ends with [0].
         |""",
       MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx"))),
       MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), 
@@ -4232,6 +4249,12 @@ trait APIMethods310 {
                 case Some(v) if(StringUtils.isBlank(v) || v.trim == "*") => entity.copy(bankIdPattern = Some(MethodRouting.bankIdPatternMatchAny))
                 case v => entity
               }
+            }
+            _ <-NewStyle.function.tryons(InvalidOutBoundMapping, 400, callContext){
+              postedData.getOutBoundMapping
+            }
+            _ <-NewStyle.function.tryons(InvalidInBoundMapping, 400, callContext){
+              postedData.getInBoundMapping
             }
             connectorName = postedData.connectorName
             methodName = postedData.methodName
@@ -4279,6 +4302,23 @@ trait APIMethods310 {
         |note:
         |
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
+        |
+        |If connector name start with rest, parameters can contain "outBoundMapping" and "inBoundMapping", to convert OutBound and InBound json structure.
+        |for example:
+        | outBoundMapping example, convert json from source to target:
+        |![Snipaste_outBoundMapping](https://user-images.githubusercontent.com/2577334/75248007-33332e00-580e-11ea-8d2a-d1856035fa24.png)
+        |Build OutBound json value rules:
+        |1 set cId value with: outboundAdapterCallContext.correlationId value
+        |2 set bankId value with: concat bankId.value value with  string helloworld
+        |3 set originalJson value with: whole source json, note: the field value expression is $$root
+        |
+        |
+        | inBoundMapping example, convert json from source to target:
+        |![inBoundMapping](https://user-images.githubusercontent.com/2577334/75248199-a9d02b80-580e-11ea-9238-e073264e9170.png)
+        |Build InBound json value rules:
+        |1 and 2 set inboundAdapterCallContext and status value: because field name ends with "$$default", remove "$$default" from field name, not change the value
+        |3 set fullName value with: concat string full: with result.name value
+        |4 set bankRoutingScheme value: because source value is Array, but target value is not Array, the mapping field name must ends with [0].
         |""",
       MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), List(MethodRoutingParam("url", "http://mydomain.com/xxx"))),
       MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")), Some("this-method-routing-Id")),
@@ -4308,6 +4348,12 @@ trait APIMethods310 {
                 case Some(v) if(StringUtils.isBlank(v) || v.trim == "*") => entity.copy(bankIdPattern = Some(MethodRouting.bankIdPatternMatchAny))
                 case v => entity
               }
+            }
+            _ <-NewStyle.function.tryons(InvalidOutBoundMapping, 400, callContext){
+              putData.getOutBoundMapping
+            }
+            _ <-NewStyle.function.tryons(InvalidInBoundMapping, 400, callContext){
+              putData.getInBoundMapping
             }
             connectorName = putData.connectorName
             methodName = putData.methodName

@@ -421,6 +421,7 @@ object JsonUtils {
    */
   private def getValueByPath(jValue: JValue, p: String): JValue = {
     p match {
+      case str if str.trim == "$root" || str.trim.isEmpty => jValue // if path is "$root" or "", return whole original json
       case RegexBoolean(b) => JBool(b.toBoolean)
       case RegexDouble(_, n) =>
         JDouble(n.toDouble)

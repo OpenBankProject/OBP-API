@@ -34,6 +34,7 @@ import code.transactionrequests.TransactionRequests._
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
 import code.users.Users
 import code.util.Helper._
+import code.util.JsonUtils
 import code.views.Views
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
@@ -105,11 +106,13 @@ object Connector extends SimpleInjector {
 
   }
 
-
-  def extractAdapterResponse[T: Manifest](responseJson: String): Box[T] = {
+  def extractAdapterResponse[T: Manifest](responseJson: String, inBoundMapping: Box[JObject]): Box[T] = {
     val clazz = manifest[T].runtimeClass
     val boxJValue: Box[Box[JValue]] = tryo {
-      val jValue = json.parse(responseJson)
+      val jValue = inBoundMapping match {
+        case Full(m) => JsonUtils.buildJson(json.parse(responseJson), m)
+        case _ => json.parse(responseJson)
+      }
       if (ErrorMessage.isErrorMessage(jValue)) {
         val ErrorMessage(code, message) = jValue.extract[ErrorMessage]
         ParamFailure(message, Empty, Empty, APIFailure(message, code))

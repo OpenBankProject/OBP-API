@@ -8,6 +8,8 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 import net.liftweb.json.Serialization.write
+import com.openbankproject.commons.util.Functions.Implicits._
+import net.liftweb.json.JsonAST.JArray
 
 object MappedMethodRoutingProvider extends MethodRoutingProvider with CustomJsonFormats{
 
@@ -88,7 +90,11 @@ class MethodRouting extends MethodRoutingT with LongKeyedMapper[MethodRouting] w
   override def connectorName: String = ConnectorName.get
 
   //Here we store all the key-value pairs in one big String fields in database.
-  override def parameters: List[MethodRoutingParam] = json.parse(if (Parameters.get != null) Parameters.get else "[]").extract[List[MethodRoutingParam]]
+  override def parameters: List[MethodRoutingParam] = {
+    val value = json.parse(Parameters.get ?: "[]").asInstanceOf[JArray]
+    value.arr.map(MethodRoutingParam(_))
+  }
+
 }
 
 object MethodRouting extends MethodRouting with LongKeyedMetaMapper[MethodRouting] {
