@@ -2065,7 +2065,7 @@ trait APIMethods400 {
               json.extract[CustomerAttributeJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${CustomerAttributeType.DOUBLE}, ${CustomerAttributeType.STRING}, ${CustomerAttributeType.INTEGER} and ${CustomerAttributeType.DATE_WITH_DAY}"
+              s"${CustomerAttributeType.DOUBLE}(12.1234), ${CustomerAttributeType.STRING}(TAX_NUMBER), ${CustomerAttributeType.INTEGER}(123) and ${CustomerAttributeType.DATE_WITH_DAY}(2012-04-23)"
             customerAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               CustomerAttributeType.withName(postedData.`type`)
             }
@@ -2119,7 +2119,7 @@ trait APIMethods400 {
               json.extract[CustomerAttributeJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${CustomerAttributeType.DOUBLE}, ${CustomerAttributeType.STRING}, ${CustomerAttributeType.INTEGER} and ${CustomerAttributeType.DATE_WITH_DAY}"
+              s"${CustomerAttributeType.DOUBLE}(12.1234), ${CustomerAttributeType.STRING}(TAX_NUMBER), ${CustomerAttributeType.INTEGER}(123) and ${CustomerAttributeType.DATE_WITH_DAY}(2012-04-23)"
             customerAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               CustomerAttributeType.withName(postedData.`type`)
             }
@@ -2258,7 +2258,7 @@ trait APIMethods400 {
               json.extract[TransactionAttributeJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${TransactionAttributeType.DOUBLE}, ${TransactionAttributeType.STRING}, ${TransactionAttributeType.INTEGER} and ${TransactionAttributeType.DATE_WITH_DAY}"
+              s"${TransactionAttributeType.DOUBLE}(12.1234), ${TransactionAttributeType.STRING}(TAX_NUMBER), ${TransactionAttributeType.INTEGER} (123)and ${TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)"
             transactionAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               TransactionAttributeType.withName(postedData.`type`)
             }
@@ -2314,7 +2314,7 @@ trait APIMethods400 {
               json.extract[TransactionAttributeJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${TransactionAttributeType.DOUBLE}, ${TransactionAttributeType.STRING}, ${TransactionAttributeType.INTEGER} and ${TransactionAttributeType.DATE_WITH_DAY}"
+              s"${TransactionAttributeType.DOUBLE}(12.1234), ${TransactionAttributeType.STRING}(TAX_NUMBER), ${TransactionAttributeType.INTEGER} (123)and ${TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)"
             transactionAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               TransactionAttributeType.withName(postedData.`type`)
             }
