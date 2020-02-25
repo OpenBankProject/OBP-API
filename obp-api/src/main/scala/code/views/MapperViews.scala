@@ -12,12 +12,13 @@ import code.views.system.ViewDefinition.create
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.model.{UpdateViewJSON, _}
 import net.liftweb.common._
-import net.liftweb.mapper.{By, ByList, NullRef, PreCache, Schemifier}
+import net.liftweb.mapper.{Ascending, By, ByList, NullRef, OrderBy, PreCache, Schemifier}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.StringHelpers
 
 import scala.collection.immutable.List
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.Future
 
 //TODO: Replace BankAccountUIDs with bankPermalink + accountPermalink
@@ -28,14 +29,12 @@ object MapperViews extends Views with MdcLoggable {
   Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
   
   private def getViewsForUser(user: User): List[View] = {
-    val privileges = AccountAccess.findAll(By(AccountAccess.user_fk, user.userPrimaryKey.value))
-    val bankIdAccountIds: List[(String, String)] = privileges.map(x => (x.bank_id.get, x.account_id.get)).distinct
-    val views = for {
-      (bankId, accountId) <- bankIdAccountIds
-    } yield {
-      getViewsForUserAndAccount(user, BankIdAccountId(BankId(bankId), AccountId(accountId)))
-    }
-    views.flatten
+    val privileges = AccountAccess.findAll(
+      By(AccountAccess.user_fk, user.userPrimaryKey.value),
+      OrderBy(AccountAccess.bank_id, Ascending),
+      OrderBy(AccountAccess.account_id, Ascending)
+    )
+    getViewsCommonPart(privileges)
   }  
   private def getViewsForUserAndAccount(user: User, account : BankIdAccountId): List[View] = {
     val privileges = AccountAccess.findAll(
@@ -43,8 +42,15 @@ object MapperViews extends Views with MdcLoggable {
       By(AccountAccess.bank_id, account.bankId.value),
       By(AccountAccess.account_id, account.accountId.value)
     )
-    val views: List[ViewDefinition] = privileges.flatMap(x => ViewDefinition.find(By(ViewDefinition.id_, x.view_fk.get)))
-      .filter(
+    getViewsCommonPart(privileges)
+  }
+
+  private def getViewsCommonPart(privileges: List[AccountAccess]): List[View] = {
+    val views: List[ViewDefinition] = privileges.flatMap(
+      a => 
+        ViewDefinition.find(By(ViewDefinition.id_, a.view_fk.get))
+        .map(v => v.bank_id(a.bank_id.get).account_id(a.account_id.get))
+    ).filter(
         v =>
           if (ALLOW_PUBLIC_VIEWS) {
             true // All views
@@ -52,9 +58,7 @@ object MapperViews extends Views with MdcLoggable {
             v.isPrivate == true // Only private views
           }
       )
-    views.map(
-      x => x.bank_id(account.bankId.value).account_id(account.accountId.value)
-    )
+    views
   }
 
   def permissions(account : BankIdAccountId) : List[Permission] = {

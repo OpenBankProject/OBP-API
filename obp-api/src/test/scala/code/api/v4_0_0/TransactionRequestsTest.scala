@@ -2,6 +2,7 @@ package code.api.v4_0_0
 
 import java.util.UUID
 
+import code.api.ChargePolicy
 import code.api.Constant._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateAnyTransactionRequest
@@ -9,10 +10,8 @@ import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ErrorMessages}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.TransactionRequestBodyJsonV200
-import code.api.v2_1_0.{CounterpartyIdJson, IbanJson, TransactionRequestBodyCounterpartyJSON, TransactionRequestBodySEPAJSON}
+import code.api.v2_1_0._
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
-import code.api.ChargePolicy
-import com.openbankproject.commons.model.ErrorMessage
 import code.bankconnectors.Connector
 import code.fx.fx
 import code.model.BankAccountX
@@ -20,7 +19,7 @@ import code.setup.{APIResponse, DefaultUsers}
 import code.transactionrequests.TransactionRequests.TransactionRequestStatus
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankAccount, TransactionRequestId}
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
@@ -37,6 +36,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createTransactionRequest))
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.answerTransactionRequestChallenge))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getTransactionRequest))
  
 
   def transactionCount(accounts: BankAccount*): Int = {
@@ -1139,6 +1139,38 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         val ansReqResponseUser2 = helper.makeAnswerRequest
         ansReqResponseUser2.body.extract[TransactionRequestWithChargeJSON400].status should equal(TransactionRequestStatus.COMPLETED.toString)
       }
+    }
+    
+  }
+
+  feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
+
+    lazy val bankId = testBankId1.value
+    lazy val accountId = testAccountId1.value
+    lazy val view = "owner"
+    
+    scenario("We will call the endpoint WITHOUT user credentials", ApiEndpoint1, VersionOfApi) {
+
+      val transactionRequestId = randomTransactionRequest(bankId, accountId, view, user1).id
+      
+      When("We make a request v4.0.0")
+      val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId / view / "transaction-requests" / transactionRequestId).GET
+      val response400 = makeGetRequest(request400)
+      Then("We should get a 400")
+      response400.code should equal(400)
+      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+    }
+
+    scenario("We will call the endpoint WITH user credentials", ApiEndpoint1, VersionOfApi) {
+      
+      val transactionRequestId = randomTransactionRequest(bankId, accountId, view, user1).id
+      
+      When("We make a request v4.0.0")
+      val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId / view / "transaction-requests" / transactionRequestId).GET <@ (user1)
+      val response400 = makeGetRequest(request400)
+      Then("We should get a 200")
+      response400.code should equal(200)
+      response400.body.extract[TransactionRequestWithChargeJSON210].id should equal(transactionRequestId)
     }
     
   }
