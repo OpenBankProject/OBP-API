@@ -882,17 +882,17 @@ trait APIMethods220 {
         |
         |Should be able to filter on the following metrics fields
         |
-        |eg: /management/connector/metrics?from_date=$DateWithDayExampleString&to_date=$DateWithDayExampleString&limit=50&offset=2
+        |eg: /management/connector/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2
         |
-        |1 from_date (defaults to one week before current date): eg:from_date=$DateWithDayExampleString
+        |1 from_date (defaults to one week before current date): eg:from_date=$DateWithMsExampleString
         |
-        |2 to_date (defaults to current date) eg:to_date=$DateWithDayExampleString
+        |2 to_date (defaults to current date) eg:to_date=$DateWithMsExampleString
         |
         |3 limit (for pagination: defaults to 1000)  eg:limit=2000
         |
         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
         |
-        |eg: /management/connector/metrics?from_date=$DateWithDayExampleString&to_date=$DateWithDayExampleString&limit=100&offset=300
+        |eg: /management/connector/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=100&offset=300
         |
         |Other filters:
         |
