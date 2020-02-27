@@ -4,14 +4,7 @@ import java.lang.reflect.Method
 
 import code.api.{APIFailureNewStyle, ApiVersionHolder}
 import code.api.util.{CallContext, NewStyle}
-import code.bankconnectors.akka.AkkaConnector_vDec2018
-import code.bankconnectors.rest.RestConnector_vMar2019
-import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
-import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
-import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
-import code.bankconnectors.vMay2019.KafkaMappedConnector_vMay2019
-import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
-import code.methodrouting.MethodRouting
+import code.methodrouting.{MethodRouting, MethodRoutingT}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.BankId
@@ -27,6 +20,7 @@ import code.api.util.APIUtil.fullBoxOrException
 import com.openbankproject.commons.util.ApiVersion
 import com.openbankproject.commons.util.ReflectUtils._
 import com.openbankproject.commons.util.Functions.Implicits._
+import net.liftweb.util.ThreadGlobal
 
 import scala.collection.GenTraversableOnce
 import scala.concurrent.Future
@@ -52,13 +46,10 @@ package object bankconnectors extends MdcLoggable {
     object StubConnector extends Connector
 
     val intercept:MethodInterceptor = (_: Any, method: Method, args: Array[AnyRef], _: MethodProxy) => {
-      // when method name contains $default$, that means method have default parameter, this is not the correct call,
-      // so just get the default parameter values from StubConnector
-      if(method.getName.contains("$default$")) {
+      if (method.getName.contains("$default$")) {
           method.invoke(StubConnector, args:_*)
       } else {
-        val (objToCall, methodSymbol) =  getConnectorObject(method, args)
-        val connectorMethodResult = method.invoke(objToCall, args: _*)
+        val (connectorMethodResult, methodSymbol) = invokeMethod(method, args)
         logger.debug(s"do required field validation for ${methodSymbol.typeSignature}")
         val apiVersion = ApiVersionHolder.getApiVersion
         validateRequiredFields(connectorMethodResult, methodSymbol.returnType, apiVersion)
@@ -71,19 +62,28 @@ package object bankconnectors extends MdcLoggable {
   }
 
   /**
-    * according invoked method and arguments value to find connector object
+   * if the connector method invoked according MethodRouting, then pass it to connector
+   */
+  object MethodRoutingHolder {
+    private val _routing = new ThreadGlobal[MethodRoutingT]
+
+    def init[B](boxRouting: Box[MethodRoutingT])(f: => B): B = {
+      _routing.doWith(boxRouting.orNull) {
+        f
+      }
+    }
+
+    def methodRouting: Box[MethodRoutingT] = _routing.box
+  }
+  /**
+    * according invoked method and arguments value to invoke connector method
     * @param method invoked method
     * @param args passed arguments
-    * @return connector Object
+    * @return connector method return value to method info
     */
-  private[this]def getConnectorObject(method: Method, args: Seq[Any]): (Connector, MethodSymbol) = {
+  private[this]def invokeMethod(method: Method, args: Array[AnyRef]): (AnyRef, MethodSymbol) = {
     val methodName = method.getName
-    val tpe = typeOf[Connector]
-    val methodSymbol: MethodSymbol = findMethodByArgs(tpe, methodName, args:_*).getOrElse(sys.error(s"not found matched method, method name: ${methodName}, params: ${args.mkString(",")}"))
-    val paramList = methodSymbol.paramLists.headOption.getOrElse(Nil)
-    val paramNameToType: Map[String, Type] = paramList.map(param => (param.name.toString, param.info)).toMap
-    val paramNameToValue: Map[String, Any] = paramList.zip(args).map(pair =>(pair._1.name.toString, pair._2)).toMap
-
+    val paramNameToValue: Map[String, Any] = method.getParameters.map(_.getName).zip(args).toMap
     val bankIdInArgs = paramNameToValue.find(isBankId).map(_._2)
 
     val bankId: Option[String] = bankIdInArgs match {
@@ -91,18 +91,17 @@ package object bankconnectors extends MdcLoggable {
       case None => args.toStream.map(getNestedBankId(_)).find(_.isDefined).flatten.map(_.toString)
     }
 
-    val connectorName: Box[String] = bankId match {
+    val methodRouting: Box[MethodRoutingT] = bankId match {
       case None if methodName == "dynamicEntityProcess" => {
         val entityName = args.tail.head
         NewStyle.function.getMethodRoutings(Some(methodName))
           .find(_.parameters.exists(it => it.key == "entityName" && it.value == entityName))
-          .map(_.connectorName)
       }
       case None => NewStyle.function.getMethodRoutings(Some(methodName), Some(false))
         .find {routing =>
           val bankIdPattern = routing.bankIdPattern
           bankIdPattern.isEmpty || bankIdPattern.get == MethodRouting.bankIdPatternMatchAny
-        }.map(_.connectorName)
+        }
       // found bankId in method args, so query connectorName with bankId
       case Some(bankId) => {
         //if methodName and bankId do exact match query no result, do query with methodName, and use bankId do match with bankIdPattern
@@ -114,24 +113,25 @@ package object bankconnectors extends MdcLoggable {
               }
               .sortBy(_.bankIdPattern) // if there are both matched bankIdPattern and null bankIdPattern, the have value bankIdPattern success
               .lastOption
-          }.map(_.connectorName)
+          }
       }
     }
+    val connectorName: Box[String] = methodRouting.map(_.connectorName)
 
     val connector = connectorName.getOrElse("mapped") match {
-      case "mapped" => LocalMappedConnector
-      case "akka_vDec2018" => AkkaConnector_vDec2018
-      case "kafka" => KafkaMappedConnector
-      case "kafka_JVMcompatible" => KafkaMappedConnector_JVMcompatible
-      case "kafka_vMar2017" => KafkaMappedConnector_vMar2017
-      case "kafka_vJune2017" => KafkaMappedConnector_vJune2017
-      case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
-      case "kafka_vMay2019" => KafkaMappedConnector_vMay2019
-      case "rest_vMar2019" => RestConnector_vMar2019
-      case "stored_procedure_vDec2019" => StoredProcedureConnector_vDec2019
-      case _ => throw new IllegalStateException(s"config of connector.start.methodName.${methodName} have wrong value, not exists connector of name ${connectorName.get}")
+      case "star" => throw new IllegalStateException(s"Props of connector.start.methodName.$methodName, value should not be 'star'")
+      case name => Connector.getConnectorInstance(name)
     }
-    (connector, methodSymbol)
+    val methodSymbol = connector.implementedMethods(methodName).alternatives match {
+      case (m: MethodSymbol)::Nil => m
+      case _ =>
+        findMethodByArgs(connector, methodName, args:_*)
+        .getOrElse(sys.error(s"not found matched method, method name: ${methodName}, params: ${args.mkString(",")}"))
+    }
+
+    MethodRoutingHolder.init(methodRouting){
+      (method.invoke(connector, args: _*), methodSymbol)
+    }
   }
 
 
@@ -197,11 +197,14 @@ package object bankconnectors extends MdcLoggable {
 
   private def validateRequiredFields(value: AnyRef, returnType: Type, apiVersion: ApiVersion): AnyRef = {
     value match {
+      // when method return one of Unit, null, EmptyBox, None, empty Array, empty collection,
+      // don't validate fields.
       case Unit | null => value
       case v @(_: EmptyBox, _: Option[CallContext]) => v
       case n @(_:EmptyBox | None |  Array()) => n
       case n : GenTraversableOnce[_] if n.isEmpty => n
 
+      // all the follow return value need do validation of requied fields.
       case coll @(_:Array[_] | _: ArrayBuffer[_] | _: GenTraversableOnce[_]) =>
         val elementTpe = returnType.typeArgs.head
         validate(value, elementTpe, coll, apiVersion, None, false)
@@ -244,8 +247,9 @@ package object bankconnectors extends MdcLoggable {
         val elementTpe = returnType.typeArgs.head
         validate(value, elementTpe, v, apiVersion)
 
+      // if returnType is OBPReturnType, returnType is f's type, So need check returnType <:< typeOf[Box[_]]
       case (f @Full(v), cc: Option[_])
-        if returnType <:< typeOf[(Box[_], Option[CallContext])] || returnType <:< typeOf[Box[_]] => // if returnType is OBPReturnType, returnType is f's type
+        if returnType <:< typeOf[(Box[_], Option[CallContext])] || returnType <:< typeOf[Box[_]] =>
         val elementTpe = if(returnType <:< typeOf[(Box[_], Option[CallContext])] ) {
           getNestTypeArg(returnType, 0, 0)
         } else {
@@ -255,8 +259,9 @@ package object bankconnectors extends MdcLoggable {
         val result = validate(f, elementTpe, v, apiVersion, callContext)
         (result, cc)
 
+      // if returnType is OBPReturnType, returnType is v's type, So need check !(returnType <:< typeOf[(_, _)])
       case (v, cc: Option[_])
-        if returnType <:< typeOf[(_, Some[CallContext])] || !(returnType <:< typeOf[(_, _)]) => // if returnType is OBPReturnType, returnType is v's type
+        if returnType <:< typeOf[(_, Some[CallContext])] || !(returnType <:< typeOf[(_, _)]) =>
         val elementTpe = if(returnType <:< typeOf[(_, Some[CallContext])]) {
           returnType.typeArgs.head
         } else {

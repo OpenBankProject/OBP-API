@@ -2,8 +2,12 @@ package code.methodrouting
 
 /* For Connector method routing, star connector use this provider to find proxy connector name */
 
-import com.openbankproject.commons.model.{Converter, JsonFieldReName, ProductCollection, ProductCollectionCommons}
+import com.openbankproject.commons.model.{Converter, JsonFieldReName}
+import com.openbankproject.commons.util.JsonAble
 import net.liftweb.common.Box
+import net.liftweb.json
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.{JArray, JBool, JField, JNull, JObject, JString}
 import net.liftweb.util.SimpleInjector
 
@@ -26,6 +30,12 @@ trait MethodRoutingT {
   def isBankIdExactMatch: Boolean
   def connectorName: String
   def parameters: List[MethodRoutingParam]
+
+  def getInBoundMapping: Option[JObject] = parameters.find(_.key == "inBoundMapping")
+    .map(it => json.parse(it.value).asInstanceOf[JObject])
+
+  def getOutBoundMapping: Option[JObject] = parameters.find(_.key == "outBoundMapping")
+    .map(it => json.parse(it.value).asInstanceOf[JObject])
 }
 
 case class MethodRoutingCommons(methodName: String,
@@ -40,7 +50,7 @@ case class MethodRoutingCommons(methodName: String,
     * @return JObject include all fields
     */
   def toJson = {
-    val paramsJson: List[JObject] = this.parameters.map(param => JObject(List(JField("key", JString(param.key)), JField("value", JString(param.value)))))
+    val paramsJson: List[JValue] = this.parameters.map(_.toJValue)
 
     JObject(List(
       JField("method_name", JString(this.methodName)),
@@ -55,7 +65,35 @@ case class MethodRoutingCommons(methodName: String,
 
 object MethodRoutingCommons extends Converter[MethodRoutingT, MethodRoutingCommons]
 
-case class MethodRoutingParam(key: String, value: String)
+case class MethodRoutingParam(key: String, value: String) extends JsonAble {
+  def this(jObject: JObject) = this(MethodRoutingParam.extractKey(jObject),MethodRoutingParam.extractValue(jObject))
+
+  override def toJValue: JValue =
+    ("key" -> key) ~
+    ("value" -> {
+      val trimmedValue = value.trim
+      if(trimmedValue.startsWith("{") && trimmedValue.endsWith("}")) {
+        json.parse(value)
+      } else {
+        JString(value)
+      }
+    })
+}
+
+object MethodRoutingParam {
+
+  def apply(jValue: JValue) = new MethodRoutingParam(jValue.asInstanceOf[JObject])
+
+  private def extractKey(jObject: JObject): String = {
+    (jObject \ "key").asInstanceOf[JString].s
+  }
+  private def extractValue(jObject: JObject): String = {
+    (jObject \ "value") match {
+      case  JString(v)  =>  v
+      case  obj => json.compactRender(obj)
+    }
+  }
+}
 
 trait MethodRoutingProvider {
   def getById(methodRoutingId: String): Box[MethodRoutingT]
