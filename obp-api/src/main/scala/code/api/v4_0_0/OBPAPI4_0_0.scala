@@ -28,7 +28,6 @@ package code.api.v4_0_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
-import com.openbankproject.commons.util.ApiVersion
 import code.api.util.VersionedOBPApis
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
@@ -39,6 +38,8 @@ import code.api.v3_0_0.APIMethods300
 import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.api.v3_1_0.{APIMethods310, OBPAPI3_1_0}
 import code.util.Helper.MdcLoggable
+import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.{LiftResponse, PlainTextResponse}
 import org.apache.http.HttpStatus
@@ -55,12 +56,19 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // Possible Endpoints from 4.0.0, exclude one endpoint use - method,exclude multiple endpoints use -- method,
   // e.g getEndpoints(Implementations4_0_0) -- List(Implementations4_0_0.genericEndpoint, Implementations4_0_0.root)
   val endpointsOf4_0_0 = getEndpoints(Implementations4_0_0) - Implementations4_0_0.genericEndpoint
+  
+  lazy val excludeEndpoints =
+    nameOf(Implementations1_2_1.addPermissionForUserForBankAccountForMultipleViews) ::
+      nameOf(Implementations1_2_1.removePermissionForUserForBankAccountForAllViews) ::
+      nameOf(Implementations1_2_1.addPermissionForUserForBankAccountForOneView) ::
+      nameOf(Implementations1_2_1.removePermissionForUserForBankAccountForOneView) ::
+      Nil
 
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
   def allResourceDocs = collectResourceDocs(OBPAPI3_1_0.allResourceDocs,
                                             Implementations4_0_0.resourceDocs,
                                             MockerConnector.doc)
-     .filterNot(it => it.partialFunctionName.matches("addPermissionForUserForBankAccountForMultipleViews|removePermissionForUserForBankAccountForAllViews"))
+     .filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
     //TODO exclude two endpoints, after training we need add logic to exclude endpoints
 
   // all endpoints

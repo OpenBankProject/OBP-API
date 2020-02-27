@@ -7,6 +7,7 @@ import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, CanCreateCustomer, CanCreateProduct, _}
 import code.api.v1_2_1._
 import code.api.v2_0_0.BasicAccountsJSON
+import code.api.v2_1_0.{TransactionRequestWithChargeJSON210, TransactionRequestWithChargeJSONs210}
 import code.api.v3_0_0.{TransactionJsonV300, TransactionsJsonV300, ViewJsonV300}
 import code.api.v3_1_0._
 import code.entitlement.Entitlement
@@ -65,6 +66,15 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     val transactionsJson = getTransactions(bankId, accountId, viewId, user1).body.extract[TransactionsJsonV300].transactions
     val randomPosition = nextInt(transactionsJson.size)
     transactionsJson(randomPosition)
+  }
+  
+  def randomTransactionRequest(bankId : String, accountId : String, viewId: String, consumerAndToken: Option[(Consumer, Token)]) : TransactionRequestWithChargeJSON210 = {
+    val request310 = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / viewId / "transaction-requests").GET <@(consumerAndToken)
+    val response310 = makeGetRequest(request310)
+    response310.code should equal(200)
+    val transactionRequests = response310.body.extract[TransactionRequestWithChargeJSONs210].transaction_requests_with_charges
+    val randomPosition = nextInt(transactionRequests.size)
+    transactionRequests(randomPosition)
   }
   
   def updateView(bankId: String, accountId: String, viewId: String, updateViewJson: UpdateViewJSON, consumerAndToken: Option[(Consumer, Token)]): ViewJsonV300 = {
