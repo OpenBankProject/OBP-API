@@ -5,7 +5,7 @@ import java.sql.Connection
 import code.api.util.APIUtil
 import code.bankconnectors.Connector
 import com.openbankproject.commons.model.TopicTrait
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Empty}
 import net.liftweb.json.Serialization.write
 import scalikejdbc.{DB, _}
 
@@ -73,6 +73,6 @@ object StoredProcedureUtils {
           callableStatement.getString(2)
         }
      }
-    Connector.extractAdapterResponse[T](responseJson)
+    Connector.extractAdapterResponse[T](responseJson, Empty)
   }
 }
