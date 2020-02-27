@@ -34,6 +34,7 @@ import code.transactionrequests.TransactionRequests._
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
 import code.users.Users
 import code.util.Helper._
+import code.util.JsonUtils
 import code.views.Views
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
@@ -47,12 +48,15 @@ import net.liftweb.util.SimpleInjector
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.util.ReflectUtils
+import com.openbankproject.commons.util.Functions.lazyValue
 import net.liftweb.json
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
+import scala.reflect.runtime.universe.{MethodSymbol, typeOf}
 
 /*
 So we can switch between different sources of resources e.g.
@@ -69,22 +73,28 @@ Could consider a Map of ("resourceType" -> "provider") - this could tell us whic
  */
 
 object Connector extends SimpleInjector {
-  def getConnectorInstance(connectorVersion: String):Connector = {
+
+  val nameToConnector: Map[String, () => Connector] = Map(
+    "mapped" -> lazyValue(LocalMappedConnector),
+    "akka_vDec2018" -> lazyValue(AkkaConnector_vDec2018),
+    "mongodb" -> lazyValue(LocalRecordConnector),
+    "obpjvm" -> lazyValue(ObpJvmMappedConnector),
+    "kafka" -> lazyValue(KafkaMappedConnector),
+    "kafka_JVMcompatible" -> lazyValue(KafkaMappedConnector_JVMcompatible),
+    "kafka_vMar2017" -> lazyValue(KafkaMappedConnector_vMar2017),
+    "kafka_vJune2017" -> lazyValue(KafkaMappedConnector_vJune2017),
+    "kafka_vSept2018" -> lazyValue(KafkaMappedConnector_vSept2018),
+    "kafka_vMay2019" -> lazyValue(KafkaMappedConnector_vMay2019),
+    "rest_vMar2019" -> lazyValue(RestConnector_vMar2019),
+    "stored_procedure_vDec2019" -> lazyValue(StoredProcedureConnector_vDec2019)
+  )
+
+  def getConnectorInstance(connectorVersion: String): Connector = {
     connectorVersion match {
-      case "mapped" => LocalMappedConnector
-      case "akka_vDec2018" => AkkaConnector_vDec2018
-      case "mongodb" => LocalRecordConnector
-      case "obpjvm" => ObpJvmMappedConnector
-      case "kafka" => KafkaMappedConnector
-      case "kafka_JVMcompatible" => KafkaMappedConnector_JVMcompatible
-      case "kafka_vMar2017" => KafkaMappedConnector_vMar2017
-      case "kafka_vJune2017" => KafkaMappedConnector_vJune2017
-      case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
-      case "kafka_vMay2019" => KafkaMappedConnector_vMay2019
-      case "rest_vMar2019" => RestConnector_vMar2019
-      case "stored_procedure_vDec2019" => StoredProcedureConnector_vDec2019
       case "star" => StarConnector
-      case _ => throw new RuntimeException(s"Do not Support this connector version: $connectorVersion")
+      case k => nameToConnector.get(k)
+        .map(f => f())
+        .getOrElse(throw new RuntimeException(s"Do not Support this connector version: $k"))
     }
   }
 
@@ -96,11 +106,13 @@ object Connector extends SimpleInjector {
 
   }
 
-
-  def extractAdapterResponse[T: Manifest](responseJson: String): Box[T] = {
+  def extractAdapterResponse[T: Manifest](responseJson: String, inBoundMapping: Box[JObject]): Box[T] = {
     val clazz = manifest[T].runtimeClass
     val boxJValue: Box[Box[JValue]] = tryo {
-      val jValue = json.parse(responseJson)
+      val jValue = inBoundMapping match {
+        case Full(m) => JsonUtils.buildJson(json.parse(responseJson), m)
+        case _ => json.parse(responseJson)
+      }
       if (ErrorMessage.isErrorMessage(jValue)) {
         val ErrorMessage(code, message) = jValue.extract[ErrorMessage]
         ParamFailure(message, Empty, Empty, APIFailure(message, code))
@@ -150,6 +162,27 @@ trait Connector extends MdcLoggable {
   protected val statusOfCheckbookOrders = getSecondsCache("getStatusOfCheckbookOrdersFuture")
   protected val statusOfCreditcardOrders = getSecondsCache("getStatusOfCreditCardOrderFuture")
   protected val bankAccountsBalancesTTL = getSecondsCache("getBankAccountsBalances")
+
+  /**
+   * current connector instance implemented Connector method,
+   * methodName to method
+   */
+  lazy val implementedMethods: Map[String, MethodSymbol] = {
+    val tp = ReflectUtils.getType(this)
+    val result = tp.members
+        .withFilter(_.isPublic)
+        .withFilter(_.isMethod)
+        .map(m =>(m.name.decodedName.toString.trim, m.asMethod))
+        .collect{
+          case kv @(name, method)
+            if method.overrides.nonEmpty &&
+            method.paramLists.nonEmpty &&
+            method.paramLists.head.nonEmpty &&
+            method.owner != typeOf[Connector] &&
+            !name.contains("$default$") => kv
+        }.toMap
+    result
+  }
 
   /**
     * convert original return type future to OBPReturnType

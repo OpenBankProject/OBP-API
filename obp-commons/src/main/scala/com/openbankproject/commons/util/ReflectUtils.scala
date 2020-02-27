@@ -63,6 +63,7 @@ object ReflectUtils {
     (tp.members ++ tp.decls).toSet
       .withFilter(_.isTerm)
       .map(_.asTerm)
+      .withFilter(!_.isImplicit)
       .withFilter(it => it.isLazy || it.isVal || it.isVar)
       .withFilter(predicate)
       .map(it => {
