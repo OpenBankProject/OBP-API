@@ -22,6 +22,7 @@ import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.bankconnectors.vMay2019.KafkaMappedConnector_vMay2019
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.Branch
+import code.customerattribute.MappedCustomerAttribute
 import code.directdebit.DirectDebitTrait
 import code.fx.FXRate
 import code.fx.fx.TTL
@@ -1941,6 +1942,11 @@ trait Connector extends MdcLoggable {
     callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAttribute]]] =
     Future{(Failure(setUnimplementedError), callContext)}
 
+  def getCustomerAttributesForCustomers(
+    customers: List[Customer],
+    callContext: Option[CallContext]): OBPReturnType[Box[List[(Customer, List[CustomerAttribute])]]] =
+    Future{(Failure(setUnimplementedError), callContext)}
+  
   def getTransactionAttributes(
     bankId: BankId,
     transactionId: TransactionId,

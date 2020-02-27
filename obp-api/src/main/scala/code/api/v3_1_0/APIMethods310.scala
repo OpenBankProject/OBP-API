@@ -1372,7 +1372,7 @@ trait APIMethods310 {
          |
         |""",
       postCustomerNumberJsonV310,
-      customerJsonV310,
+      customerWithAttributesJsonV310,
       List(
         UserNotLoggedIn,
         UserCustomerLinksNotFoundForUser,
@@ -1395,8 +1395,12 @@ trait APIMethods310 {
               json.extract[PostCustomerNumberJsonV310]
             }
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bank.bankId, callContext)
+            (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
+              bankId,
+              CustomerId(customer.customerId),
+              callContext: Option[CallContext])
           } yield {
-            (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
+            (JSONFactory310.createCustomerWithAttributesJson(customer, customerAttributes), HttpCode.`200`(callContext))
           }
       }
     }

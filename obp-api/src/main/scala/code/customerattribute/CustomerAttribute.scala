@@ -5,10 +5,11 @@ package code.customerattribute
 import code.api.util.APIUtil
 import code.remotedata.RemotedataCustomerAttribute
 import com.openbankproject.commons.model.enums.CustomerAttributeType
-import com.openbankproject.commons.model.{BankId, CustomerAttribute, CustomerId}
+import com.openbankproject.commons.model.{BankId, Customer, CustomerAttribute, CustomerId}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
+import scala.collection.immutable.List
 import scala.concurrent.Future
 
 object CustomerAttributeX extends SimpleInjector {
@@ -41,6 +42,8 @@ trait CustomerAttributeProvider {
   def getCustomerAttributes(bankId: BankId,
                                     customerId: CustomerId): Future[Box[List[CustomerAttribute]]]
 
+  def getCustomerAttributesForCustomers(customers: List[Customer]): Future[Box[List[(Customer, List[CustomerAttribute])]]]
+  
   def getCustomerAttributeById(customerAttributeId: String): Future[Box[CustomerAttribute]]
 
   def createOrUpdateCustomerAttribute(bankId: BankId,
@@ -61,7 +64,8 @@ trait CustomerAttributeProvider {
 class RemotedataCustomerAttributeCaseClasses {
   case class getCustomerAttributesFromProvider(customerId: CustomerId)
   case class getCustomerAttributes(bankId: BankId,
-                                           customerId: CustomerId)
+                                           customerId: CustomerId)  
+  case class getCustomerAttributesForCustomers(customers: List[Customer])
 
   case class getCustomerAttributeById(customerAttributeId: String)
 

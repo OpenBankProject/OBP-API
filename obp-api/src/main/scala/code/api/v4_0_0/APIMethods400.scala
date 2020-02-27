@@ -2069,6 +2069,8 @@ trait APIMethods400 {
             customerAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               CustomerAttributeType.withName(postedData.`type`)
             }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
+            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId}
             (accountAttribute, callContext) <- NewStyle.function.createOrUpdateCustomerAttribute(
               BankId(bankId),
               CustomerId(customerId),
@@ -2123,9 +2125,11 @@ trait APIMethods400 {
             customerAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               CustomerAttributeType.withName(postedData.`type`)
             }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
+            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId} 
             (accountAttribute, callContext) <- NewStyle.function.getCustomerAttributeById(
               customerAttributeId,
-              cc.callContext
+              callContext
             )
             (accountAttribute, callContext) <- NewStyle.function.createOrUpdateCustomerAttribute(
               BankId(bankId),
@@ -2171,6 +2175,8 @@ trait APIMethods400 {
       case "banks" :: bankId :: "customers" :: customerId :: "attributes" :: Nil JsonGet _ => {
         cc =>
           for {
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
+            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId}
             (accountAttribute, callContext) <- NewStyle.function.getCustomerAttributes(
               BankId(bankId),
               CustomerId(customerId),
@@ -2211,6 +2217,8 @@ trait APIMethods400 {
       case "banks" :: bankId :: "customers" :: customerId :: "attributes" :: customerAttributeId ::Nil JsonGet _ => {
         cc =>
           for {
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
+            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId}
             (accountAttribute, callContext) <- NewStyle.function.getCustomerAttributeById(
               customerAttributeId,
               cc.callContext
