@@ -19,6 +19,7 @@ import net.liftweb.util.StringHelpers
 import scala.collection.immutable.List
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 
+import scala.collection.immutable
 import scala.concurrent.Future
 
 //TODO: Replace BankAccountUIDs with bankPermalink + accountPermalink
@@ -461,12 +462,19 @@ object MapperViews extends Views with MdcLoggable {
   def privateViewsUserCanAccessAtBank(user: User, bankId: BankId): (List[View], List[AccountAccess]) ={
     val accountAccesses = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
-      By(AccountAccess.bank_id, bankId.value),
-      PreCache(AccountAccess.view_fk)
+      By(AccountAccess.bank_id, bankId.value)
     ).filter(r => r.view_fk.obj.isDefined && r.view_fk.obj.map(_.isPrivate).getOrElse(false) == true)
-    val privateViews  = accountAccesses.map(_.view_fk.obj).flatten.distinct
+    PrivateViewsUserCanAccessCommon(accountAccesses)
+  }
+
+  private def PrivateViewsUserCanAccessCommon(accountAccesses: List[AccountAccess]): (List[ViewDefinition], List[AccountAccess]) = {
+    val listOfTuples: List[(AccountAccess, Box[ViewDefinition])] = accountAccesses.map(x => (x, x.view_fk.obj))
+    val privateViews = listOfTuples.flatMap(
+      tuple => tuple._2.map(v => v.bank_id(tuple._1.bank_id.get).account_id(tuple._1.account_id.get))
+    )
     (privateViews, accountAccesses)
   }
+
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =   {
     val accountAccesses = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
