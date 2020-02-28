@@ -1372,7 +1372,7 @@ trait APIMethods310 {
          |
         |""",
       postCustomerNumberJsonV310,
-      customerJsonV310,
+      customerWithAttributesJsonV310,
       List(
         UserNotLoggedIn,
         UserCustomerLinksNotFoundForUser,
@@ -1395,8 +1395,12 @@ trait APIMethods310 {
               json.extract[PostCustomerNumberJsonV310]
             }
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bank.bankId, callContext)
+            (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
+              bankId,
+              CustomerId(customer.customerId),
+              callContext: Option[CallContext])
           } yield {
-            (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
+            (JSONFactory310.createCustomerWithAttributesJson(customer, customerAttributes), HttpCode.`200`(callContext))
           }
       }
     }
@@ -2072,7 +2076,7 @@ trait APIMethods310 {
               json.extract[ProductAttributeJson]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${ProductAttributeType.DOUBLE}, ${ProductAttributeType.STRING}, ${ProductAttributeType.INTEGER} and ${ProductAttributeType.DATE_WITH_DAY}"
+              s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)"
             productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               ProductAttributeType.withName(postedData.`type`)
             }
@@ -2170,7 +2174,7 @@ trait APIMethods310 {
               json.extract[ProductAttributeJson]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${ProductAttributeType.DOUBLE}, ${ProductAttributeType.STRING}, ${ProductAttributeType.INTEGER} and ${ProductAttributeType.DATE_WITH_DAY}"
+              s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)"
             productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               ProductAttributeType.withName(postedData.`type`)
             }
@@ -2796,7 +2800,7 @@ trait APIMethods310 {
               json.extract[AccountAttributeJson]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${AccountAttributeType.DOUBLE}, ${AccountAttributeType.STRING}, ${AccountAttributeType.INTEGER} and ${AccountAttributeType.DATE_WITH_DAY}"
+              s"${AccountAttributeType.DOUBLE}(2012-04-23), ${AccountAttributeType.STRING}(TAX_NUMBER), ${AccountAttributeType.INTEGER}(123) and ${AccountAttributeType.DATE_WITH_DAY}(2012-04-23)"
             accountAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               AccountAttributeType.withName(postedData.`type`)
             }
@@ -2869,7 +2873,7 @@ trait APIMethods310 {
             }
             
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${AccountAttributeType.DOUBLE}, ${AccountAttributeType.STRING}, ${AccountAttributeType.INTEGER} and ${AccountAttributeType.DATE_WITH_DAY}"
+              s"${AccountAttributeType.DOUBLE}(2012-04-23), ${AccountAttributeType.STRING}(TAX_NUMBER), ${AccountAttributeType.INTEGER}(123) and ${AccountAttributeType.DATE_WITH_DAY}(2012-04-23)"
             accountAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               AccountAttributeType.withName(postedData.`type`)
             }
@@ -5105,7 +5109,7 @@ trait APIMethods310 {
             }
             
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${CardAttributeType.DOUBLE}, ${CardAttributeType.STRING}, ${CardAttributeType.INTEGER} and ${CardAttributeType.DATE_WITH_DAY}"
+              s"${CardAttributeType.DOUBLE}(12.1234), ${CardAttributeType.STRING}(TAX_NUMBER), ${CardAttributeType.INTEGER}(123) and ${CardAttributeType.DATE_WITH_DAY}(2012-04-23)"
             createCardAttribute <- NewStyle.function.tryons(failMsg, 400, callContext) {
               CardAttributeType.withName(postedData.`type`)
             }
@@ -5178,7 +5182,7 @@ trait APIMethods310 {
             }
 
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${CardAttributeType.DOUBLE}, ${CardAttributeType.STRING}, ${CardAttributeType.INTEGER} and ${CardAttributeType.DATE_WITH_DAY}"
+              s"${CardAttributeType.DOUBLE}(12.1234), ${CardAttributeType.STRING}(TAX_NUMBER), ${CardAttributeType.INTEGER}(123) and ${CardAttributeType.DATE_WITH_DAY}(2012-04-23)"
             createCardAttribute <- NewStyle.function.tryons(failMsg, 400, callContext) {
               CardAttributeType.withName(postedData.`type`)
             }

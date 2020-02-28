@@ -2022,6 +2022,32 @@ object SwaggerDefinitionsJSON {
   
   val customersJsonV300 = code.api.v3_0_0.CustomerJSONs(List(customerJsonV300))
   
+  val customerWithAttributesJsonV300 = CustomerWithAttributesJsonV300(
+    bank_id = bankIdExample.value,
+    customer_id = ExampleValue.customerIdExample.value,
+    customer_number = ExampleValue.customerNumberExample.value,
+    legal_name = ExampleValue.legalNameExample.value,
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
+    email = ExampleValue.emailExample.value,
+    face_image = customerFaceImageJson,
+    date_of_birth = "19900101",
+    relationship_status = ExampleValue.relationshipStatusExample.value,
+    dependants = ExampleValue.dependentsExample.value.toInt,
+    dob_of_dependants = List("19900101"),
+    credit_rating = Option(customerCreditRatingJSON),
+    credit_limit = Option(amountOfMoneyJsonV121),
+    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+    employment_status = ExampleValue.employmentStatusExample.value,
+    kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
+    last_ok_date = DateWithDayExampleObject,
+    title  = ExampleValue.titleExample.value,
+    branch_id = ExampleValue.branchIdExample.value,
+    name_suffix = ExampleValue.nameSuffixExample.value,
+    customer_attributes = List(customerAttributeResponseJson)
+  )
+
+  val customersWithAttributesJsonV300 = CustomersWithAttributesJsonV300(List(customerWithAttributesJsonV300))
+  
   val postCustomerJsonV310 =
     PostCustomerJsonV310(
       legal_name = ExampleValue.legalNameExample.value,
@@ -2066,7 +2092,7 @@ object SwaggerDefinitionsJSON {
     name_suffix = ExampleValue.nameSuffixExample.value
   )
 
-  val customerAttributeResponseJson = CustomerAttributeResponseJson (
+  val customerAttributeResponseJson = CustomerAttributeResponseJsonV300 (
     customer_attribute_id = customerAttributeIdExample.value,
     name = customerAttributeNameExample.value,
     `type` = customerAttributeTypeExample.value,

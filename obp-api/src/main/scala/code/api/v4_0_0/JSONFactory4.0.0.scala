@@ -35,8 +35,8 @@ import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSON
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
-import code.api.v3_0_0.ViewBasicV300
-import code.api.v3_1_0.{AccountAttributeResponseJson, CustomerAttributeResponseJson}
+import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, ViewBasicV300}
+import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.directdebit.DirectDebitTrait
 import code.entitlement.Entitlement
@@ -225,7 +225,7 @@ case class CustomerAttributeJsonV400(
 )
 
 case class CustomerAttributesResponseJson(
-  customer_attributes: List[CustomerAttributeResponseJson]
+  customer_attributes: List[CustomerAttributeResponseJsonV300]
 )
 case class TransactionAttributeJsonV400(
   name: String,
@@ -415,8 +415,8 @@ object JSONFactory400 {
       active = standingOrder.active)
   }
 
-  def createCustomerAttributeJson(customerAttribute: CustomerAttribute) : CustomerAttributeResponseJson = {
-    CustomerAttributeResponseJson(
+  def createCustomerAttributeJson(customerAttribute: CustomerAttribute) : CustomerAttributeResponseJsonV300 = {
+    CustomerAttributeResponseJsonV300(
       customer_attribute_id = customerAttribute.customerAttributeId,
       name = customerAttribute.name,
       `type` = customerAttribute.attributeType.toString,
@@ -425,7 +425,7 @@ object JSONFactory400 {
   }
 
   def createCustomerAttributesJson(customerAttributes: List[CustomerAttribute]) : CustomerAttributesResponseJson = {
-    CustomerAttributesResponseJson (customerAttributes.map( customerAttribute => CustomerAttributeResponseJson(
+    CustomerAttributesResponseJson (customerAttributes.map( customerAttribute => CustomerAttributeResponseJsonV300(
       customer_attribute_id = customerAttribute.customerAttributeId,
       name = customerAttribute.name,
       `type` = customerAttribute.attributeType.toString,

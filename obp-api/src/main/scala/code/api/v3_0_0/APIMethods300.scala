@@ -1569,9 +1569,10 @@ trait APIMethods300 {
             (customers,callContext) <- Connector.connector.vend.getCustomersByUserId(u.userId, callContext) map {
               connectorEmptyResponse(_, callContext)
             }
+            (customersAndAttributesPairs,callContext) <- NewStyle.function.getCustomerAttributesForCustomers(customers, callContext)
           } yield {
             // Create the JSON to return. We also return the callContext
-            (JSONFactory300.createCustomersJson(customers), HttpCode.`200`(callContext))
+            (JSONFactory300.createCustomersWithAttributesJson(customersAndAttributesPairs), HttpCode.`200`(callContext))
           }
         }
       }

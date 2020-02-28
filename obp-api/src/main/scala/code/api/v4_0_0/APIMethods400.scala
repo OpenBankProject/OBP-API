@@ -2065,10 +2065,12 @@ trait APIMethods400 {
               json.extract[CustomerAttributeJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${CustomerAttributeType.DOUBLE}, ${CustomerAttributeType.STRING}, ${CustomerAttributeType.INTEGER} and ${CustomerAttributeType.DATE_WITH_DAY}"
+              s"${CustomerAttributeType.DOUBLE}(12.1234), ${CustomerAttributeType.STRING}(TAX_NUMBER), ${CustomerAttributeType.INTEGER}(123) and ${CustomerAttributeType.DATE_WITH_DAY}(2012-04-23)"
             customerAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               CustomerAttributeType.withName(postedData.`type`)
             }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
+            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId}
             (accountAttribute, callContext) <- NewStyle.function.createOrUpdateCustomerAttribute(
               BankId(bankId),
               CustomerId(customerId),
@@ -2119,13 +2121,15 @@ trait APIMethods400 {
               json.extract[CustomerAttributeJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${CustomerAttributeType.DOUBLE}, ${CustomerAttributeType.STRING}, ${CustomerAttributeType.INTEGER} and ${CustomerAttributeType.DATE_WITH_DAY}"
+              s"${CustomerAttributeType.DOUBLE}(12.1234), ${CustomerAttributeType.STRING}(TAX_NUMBER), ${CustomerAttributeType.INTEGER}(123) and ${CustomerAttributeType.DATE_WITH_DAY}(2012-04-23)"
             customerAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               CustomerAttributeType.withName(postedData.`type`)
             }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
+            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId} 
             (accountAttribute, callContext) <- NewStyle.function.getCustomerAttributeById(
               customerAttributeId,
-              cc.callContext
+              callContext
             )
             (accountAttribute, callContext) <- NewStyle.function.createOrUpdateCustomerAttribute(
               BankId(bankId),
@@ -2171,6 +2175,8 @@ trait APIMethods400 {
       case "banks" :: bankId :: "customers" :: customerId :: "attributes" :: Nil JsonGet _ => {
         cc =>
           for {
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
+            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId}
             (accountAttribute, callContext) <- NewStyle.function.getCustomerAttributes(
               BankId(bankId),
               CustomerId(customerId),
@@ -2211,6 +2217,8 @@ trait APIMethods400 {
       case "banks" :: bankId :: "customers" :: customerId :: "attributes" :: customerAttributeId ::Nil JsonGet _ => {
         cc =>
           for {
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
+            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId}
             (accountAttribute, callContext) <- NewStyle.function.getCustomerAttributeById(
               customerAttributeId,
               cc.callContext
@@ -2258,7 +2266,7 @@ trait APIMethods400 {
               json.extract[TransactionAttributeJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${TransactionAttributeType.DOUBLE}, ${TransactionAttributeType.STRING}, ${TransactionAttributeType.INTEGER} and ${TransactionAttributeType.DATE_WITH_DAY}"
+              s"${TransactionAttributeType.DOUBLE}(12.1234), ${TransactionAttributeType.STRING}(TAX_NUMBER), ${TransactionAttributeType.INTEGER} (123)and ${TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)"
             transactionAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               TransactionAttributeType.withName(postedData.`type`)
             }
@@ -2314,7 +2322,7 @@ trait APIMethods400 {
               json.extract[TransactionAttributeJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${TransactionAttributeType.DOUBLE}, ${TransactionAttributeType.STRING}, ${TransactionAttributeType.INTEGER} and ${TransactionAttributeType.DATE_WITH_DAY}"
+              s"${TransactionAttributeType.DOUBLE}(12.1234), ${TransactionAttributeType.STRING}(TAX_NUMBER), ${TransactionAttributeType.INTEGER} (123)and ${TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)"
             transactionAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               TransactionAttributeType.withName(postedData.`type`)
             }

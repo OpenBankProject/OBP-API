@@ -8,7 +8,7 @@ import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, CanCreateCusto
 import code.api.v1_2_1._
 import code.api.v2_0_0.BasicAccountsJSON
 import code.api.v2_1_0.{TransactionRequestWithChargeJSON210, TransactionRequestWithChargeJSONs210}
-import code.api.v3_0_0.{TransactionJsonV300, TransactionsJsonV300, ViewJsonV300}
+import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, TransactionJsonV300, TransactionsJsonV300, ViewJsonV300}
 import code.api.v3_1_0._
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
@@ -168,7 +168,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attribute").POST <@ (user1)
     Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canCreateCustomerAttributeAtOneBank.toString)
     val responseWithRole = makePostRequest(request400, write(postCustomerAttributeJsonV400))
-    responseWithRole.body.extract[CustomerAttributeResponseJson].customer_attribute_id
+    responseWithRole.body.extract[CustomerAttributeResponseJsonV300].customer_attribute_id
   }
 
   def createAndGetTransactionAtrributeId (bankId:String, accountId:String, transactionId:String,  consumerAndToken: Option[(Consumer, Token)]) = {

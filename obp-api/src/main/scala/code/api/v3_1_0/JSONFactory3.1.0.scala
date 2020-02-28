@@ -42,7 +42,7 @@ import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
 import code.api.v2_1_0.JSONFactory210.createLicenseJson
 import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
-import code.api.v3_0_0.{AccountRuleJsonV300, ViewBasicV300}
+import code.api.v3_0_0.{AccountRuleJsonV300, CustomerAttributeResponseJsonV300, JSONFactory300, ViewBasicV300}
 import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
 import code.consent.MappedConsent
 import code.entitlement.Entitlement
@@ -272,7 +272,7 @@ case class CustomerWithAttributesJsonV310(
   title: String,
   branch_id: String,
   name_suffix: String,
-  customer_attributes: List[CustomerAttributeResponseJson]
+  customer_attributes: List[CustomerAttributeResponseJsonV300]
 )
 
 case class UpdateAccountRequestJsonV310(
@@ -430,12 +430,6 @@ case class AccountApplicationUpdateStatusJson(status: String)
 
 case class AccountApplicationsJsonV310(account_applications: List[AccountApplicationResponseJson])
 
-case class CustomerAttributeResponseJson(
-  customer_attribute_id: String,
-  name: String,
-  `type`: String,
-  value: String
-)
 
 case class RateLimitingInfoV310(enabled: Boolean, technology: String, service_available: Boolean, is_active: Boolean)
 
@@ -943,14 +937,7 @@ object JSONFactory310{
     )
   }
 
-  def createCustomerAttributeJson(customerAttribute: CustomerAttribute) : CustomerAttributeResponseJson = {
-    CustomerAttributeResponseJson(
-      customer_attribute_id = customerAttribute.customerAttributeId,
-      name = customerAttribute.name,
-      `type` = customerAttribute.attributeType.toString,
-      value = customerAttribute.value
-    )
-  }
+
   
   def createCustomerJson(cInfo : Customer) : CustomerJsonV310 = {
     CustomerJsonV310(
@@ -1001,7 +988,7 @@ object JSONFactory310{
       title = cInfo.title,
       branch_id = cInfo.branchId,
       name_suffix = cInfo.nameSuffix,
-      customer_attributes = customerAttributes.map(createCustomerAttributeJson)
+      customer_attributes = customerAttributes.map(JSONFactory300.createCustomerAttributeJson)
     )
   }
   
