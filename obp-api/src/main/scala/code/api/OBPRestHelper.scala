@@ -484,10 +484,12 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                                autoValidateAll: Boolean = false): Unit = {
     routes.foreach(route => {
       val maybeResourceDoc = findResourceDoc(route, allResourceDocs)
-      val isAutoValidate = maybeResourceDoc.map(_.isAutoValidate).getOrElse(false)
+      val isAutoValidate = maybeResourceDoc.map{ doc =>
+        (autoValidateAll && !doc.isValidateDisabled) || (!autoValidateAll && doc.isValidateEnabled)
+      }.getOrElse(false)
 
       // if rd contains ResourceDoc, when autoValidateAll or doc isAutoValidate, just wrapped to auth check endpoint
-      val authCheckRoute = (maybeResourceDoc, autoValidateAll || isAutoValidate) match {
+      val authCheckRoute = (maybeResourceDoc, isAutoValidate) match {
         case (Some(doc), true) if doc.implementedInApiVersion == version =>
           doc.wrappedWithAuthCheck(route)
         case _ => route
