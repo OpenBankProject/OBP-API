@@ -1328,7 +1328,10 @@ trait APIMethods310 {
         |
         |""",
       emptyObjectJson,
-      List(customerWithAttributesJsonV310),
+      ListResult(
+        "customers",
+        List(customerWithAttributesJsonV310)
+      ),
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -1360,7 +1363,7 @@ trait APIMethods310 {
               Future.sequence(listCustomerFuture)
             }
           } yield {
-            (list, HttpCode.`200`(callContext))
+            (ListResult[List[CustomerWithAttributesJsonV310]]("customers", list), HttpCode.`200`(callContext))
           }
       }
     }
