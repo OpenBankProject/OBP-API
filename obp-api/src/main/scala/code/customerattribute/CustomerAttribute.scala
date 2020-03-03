@@ -42,6 +42,8 @@ trait CustomerAttributeProvider {
   def getCustomerAttributes(bankId: BankId,
                                     customerId: CustomerId): Future[Box[List[CustomerAttribute]]]
 
+  def getCustomerIdByAttributeNameValues(bankId: BankId, nameValues: Map[String, List[String]]): Future[Box[List[CustomerId]]]
+
   def getCustomerAttributesForCustomers(customers: List[Customer]): Future[Box[List[(Customer, List[CustomerAttribute])]]]
   
   def getCustomerAttributeById(customerAttributeId: String): Future[Box[CustomerAttribute]]

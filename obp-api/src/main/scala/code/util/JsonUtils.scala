@@ -1,10 +1,11 @@
 package code.util
 
 import net.liftweb.json
-import net.liftweb.json.{JNothing, JNull}
+import net.liftweb.json.{Diff, JNothing, JNull}
 import net.liftweb.json.JsonAST.{JArray, JBool, JDouble, JField, JInt, JObject, JString, JValue}
 import org.apache.commons.lang3.StringUtils
 import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonParser.ParseException
 
 object JsonUtils {
   /* match string that end with '[number]', e.g: hobby[3] */
@@ -416,11 +417,11 @@ object JsonUtils {
    * get json nested value according path, path can have prefix ! or -
    * @param jValue source json, if path end with [], result type is JArray,
    *               if end with [number], result type is index element of Array
-   * @param p path
+   * @param pathExpress path, can be prefix by - or !, e.g: "-result.count" "!value.isDeleted"
    * @return given nested field value
    */
-  private def getValueByPath(jValue: JValue, p: String): JValue = {
-    p match {
+  private def getValueByPath(jValue: JValue, pathExpress: String): JValue = {
+    pathExpress match {
       case str if str.trim == "$root" || str.trim.isEmpty => jValue // if path is "$root" or "", return whole original json
       case RegexBoolean(b) => JBool(b.toBoolean)
       case RegexDouble(_, n) =>
@@ -443,13 +444,13 @@ object JsonUtils {
         val value: JValue = (s, getField(jValue, path)) match {
           //convert Array result to no JArray type, e.g: "someValue": "data.foo.bar[0]"
           case (RegexArrayIndex(_, i), v @JArray(arr)) =>
-            assume(arr.forall(it => it == JNothing || it == JNull || it.isInstanceOf[JArray]), s"the path has index: '$p', that means the result should be two-dimension Array, but the value is one-dimension Array: ${json.prettyRender(v)}")
+            assume(arr.forall(it => it == JNothing || it == JNull || it.isInstanceOf[JArray]), s"the path has index: '$pathExpress', that means the result should be two-dimension Array, but the value is one-dimension Array: ${json.prettyRender(v)}")
             val index = i.toInt
             val jObj = arr.map(getIndexValue(_, index))
             JArray(jObj)
           // convert result to JArray type, e.g: "someValue": "data.foo.bar[]"
           case (RegexArray(_), v) =>
-            assume(v.isInstanceOf[JArray], s"the path marked as Array: '$p', that means the result should be Array, but the value is ${json.prettyRender(v)}")
+            assume(v.isInstanceOf[JArray], s"the path marked as Array: '$pathExpress', that means the result should be Array, but the value is ${json.prettyRender(v)}")
             val newArray = v.asInstanceOf[JArray].arr.map(it => JArray(it :: Nil))
             JArray(newArray)
           case (_, v) => v
@@ -462,5 +463,20 @@ object JsonUtils {
         }
     }
 
+  }
+
+  def isFieldEquals(jValue: JValue, path: String, expectValue: String): Boolean = {
+    getValueByPath(jValue, path) match {
+      case v @(_: JObject | _: JArray) =>
+        try{
+          val expectJson = json.parse(expectValue)
+          val Diff(changed, deleted, added) = v.diff(expectJson)
+          changed == JNothing && deleted == JNothing && added == JNothing
+        } catch {
+          case _: ParseException => false
+        }
+      case JNothing | JNull => expectValue == ""
+      case v => v.values.toString == expectValue
+    }
   }
 }

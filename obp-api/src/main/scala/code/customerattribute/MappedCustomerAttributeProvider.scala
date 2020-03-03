@@ -30,6 +30,26 @@ object MappedCustomerAttributeProvider extends CustomerAttributeProvider {
     }
   }
 
+  override def getCustomerIdByAttributeNameValues(bankId: BankId, nameValues: Map[String, List[String]]): Future[Box[List[CustomerId]]] = Future {
+    Box !! {
+      val attributes = MappedCustomerAttribute.findAll(By(MappedCustomerAttribute.mBankIdId, bankId.value))
+
+      if(nameValues.isEmpty) {
+        attributes.map(_.customerId).distinct
+      } else {
+        for {
+          (customerId, attributes: List[CustomerAttribute]) <- attributes.groupBy(_.customerId).toList
+          // check whether all nameValues's name and at lest on of values can be found in current customerId corresponding list of CustomerAttribute
+          if(nameValues.forall { kv =>
+            val (name, values) = kv
+            attributes.exists(attr => attr.name == name && values.contains(attr.value))
+          })
+        } yield customerId
+      }
+
+    }
+  }
+
   def getCustomerAttributesForCustomers(customers: List[Customer]): Future[Box[List[(Customer, List[CustomerAttribute])]]] = {
     Future {
       Box !! customers.map( customer =>
