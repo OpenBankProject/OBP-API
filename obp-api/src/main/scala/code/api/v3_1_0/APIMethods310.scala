@@ -1335,7 +1335,6 @@ trait APIMethods310 {
       List(
         $UserNotLoggedIn,
         $BankNotFound,
-        UserHasMissingRoles,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -1363,7 +1362,7 @@ trait APIMethods310 {
               Future.sequence(listCustomerFuture)
             }
           } yield {
-            (ListResult[List[CustomerWithAttributesJsonV310]]("customers", list), HttpCode.`200`(callContext))
+            (ListResult("customers", list), HttpCode.`200`(callContext))
           }
       }
     }
