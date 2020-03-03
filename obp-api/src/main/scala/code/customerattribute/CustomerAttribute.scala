@@ -66,7 +66,8 @@ trait CustomerAttributeProvider {
 class RemotedataCustomerAttributeCaseClasses {
   case class getCustomerAttributesFromProvider(customerId: CustomerId)
   case class getCustomerAttributes(bankId: BankId,
-                                           customerId: CustomerId)  
+                                           customerId: CustomerId)
+  case class getCustomerIdByAttributeNameValues(bankId: BankId, nameValues: Map[String, List[String]])
   case class getCustomerAttributesForCustomers(customers: List[Customer])
 
   case class getCustomerAttributeById(customerAttributeId: String)
