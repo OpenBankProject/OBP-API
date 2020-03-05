@@ -25,6 +25,10 @@ class RemotedataCustomerAttributeActor extends Actor with ObpActorHelper with Md
       logger.debug(s"getCustomerAttributes(${bankId}, ${customerId})")
       mapper.getCustomerAttributes(bankId, customerId) pipeTo sender
 
+    case cc.getCustomerIdByAttributeNameValues(bankId: BankId, nameValues: Map[String, List[String]]) =>
+      logger.debug(s"getCustomerIdByAttributeNameValues($bankId, $nameValues)")
+      mapper.getCustomerIdByAttributeNameValues(bankId, nameValues) pipeTo sender
+
     case cc.getCustomerAttributeById(customerAttributeId: String) =>
       logger.debug(s"getCustomerAttributeById(${customerAttributeId})")
       mapper.getCustomerAttributeById(customerAttributeId) pipeTo sender

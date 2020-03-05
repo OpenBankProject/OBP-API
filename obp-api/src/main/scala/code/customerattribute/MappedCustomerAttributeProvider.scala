@@ -1,6 +1,6 @@
 package code.customerattribute
 
-import code.util.{MappedUUID, UUIDString}
+import code.util.{AttributeQueryTrait, MappedUUID, UUIDString}
 import com.openbankproject.commons.model.enums.CustomerAttributeType
 import com.openbankproject.commons.model.{BankId, Customer, CustomerAttribute, CustomerId}
 import net.liftweb.common.{Box, Empty, Full}
@@ -28,6 +28,11 @@ object MappedCustomerAttributeProvider extends CustomerAttributeProvider {
         By(MappedCustomerAttribute.mCustomerId, customerId.value)
       )
     }
+  }
+
+  override def getCustomerIdByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]] =
+  Future {
+    Box !! {MappedCustomerAttribute.getParentIdByParams(bankId, params)}
   }
 
   def getCustomerAttributesForCustomers(customers: List[Customer]): Future[Box[List[(Customer, List[CustomerAttribute])]]] = {
@@ -113,7 +118,7 @@ class MappedCustomerAttribute extends CustomerAttribute with LongKeyedMapper[Map
   override def getSingleton = MappedCustomerAttribute
 
   object mBankIdId extends UUIDString(this) // combination of this
- 
+
   object mCustomerId extends UUIDString(this) // combination of this
 
   object mCustomerAttributeId extends MappedUUID(this)
@@ -126,7 +131,7 @@ class MappedCustomerAttribute extends CustomerAttribute with LongKeyedMapper[Map
 
 
   override def bankId: BankId = BankId(mBankIdId.get)
-  
+
   override def customerId: CustomerId = CustomerId(mCustomerId.get)
 
   override def customerAttributeId: String = mCustomerAttributeId.get
@@ -141,7 +146,11 @@ class MappedCustomerAttribute extends CustomerAttribute with LongKeyedMapper[Map
 }
 
 //
-object MappedCustomerAttribute extends MappedCustomerAttribute with LongKeyedMetaMapper[MappedCustomerAttribute] {
+object MappedCustomerAttribute extends MappedCustomerAttribute
+  with LongKeyedMetaMapper[MappedCustomerAttribute]
+  with AttributeQueryTrait {
   override def dbIndexes: List[BaseIndex[MappedCustomerAttribute]] = Index(mCustomerId) :: Index(mCustomerAttributeId) :: super.dbIndexes
+
+  override val mParentId: BaseMappedField = mCustomerId
 }
 

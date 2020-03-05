@@ -1942,6 +1942,21 @@ trait Connector extends MdcLoggable {
     callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAttribute]]] =
     Future{(Failure(setUnimplementedError), callContext)}
 
+  /**
+   * get CustomerAttribute according name and values
+   * @param bankId CustomerAttribute must belongs the bank
+   * @param nameValues key is attribute name, value is attribute values.
+   *                   CustomerAttribute name must equals name,
+   *                   CustomerAttribute value must be one of values
+   * @param callContext
+   * @return filtered CustomerAttribute.customerId
+   */
+  def getCustomerIdByAttributeNameValues(
+    bankId: BankId,
+    nameValues: Map[String, List[String]],
+    callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] =
+    Future{(Failure(setUnimplementedError), callContext)}
+
   def getCustomerAttributesForCustomers(
     customers: List[Customer],
     callContext: Option[CallContext]): OBPReturnType[Box[List[(Customer, List[CustomerAttribute])]]] =

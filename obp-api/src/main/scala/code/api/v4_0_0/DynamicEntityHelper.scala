@@ -51,11 +51,15 @@ object MockerConnector {
       s"get$pluralEntityName",
       "GET",
       s"/${entityName}",
-      s"Get all $pluralEntityName",
-      s"""Get all $pluralEntityName.
+      s"Get $pluralEntityName",
+      s"""Get $pluralEntityName.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
+         |
+         |Can do filter on the fields
+         |e.g: /${entityName}?name=James%20Brown&number=123.456&number=11.11
+         |Will do filter by this rule: name == "James Brown" && (number==123.456 || number=11.11)
          |""".stripMargin,
       emptyObjectJson,
       dynamicEntityInfo.getExampleList,
@@ -74,8 +78,8 @@ object MockerConnector {
       s"getSingle$pluralEntityName",
       "GET",
       s"/${entityName}/$idNameInUrl",
-      s"Get one $entityName",
-      s"""Get one $entityName.
+      s"Get $entityName",
+      s"""Get one $entityName by id.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
