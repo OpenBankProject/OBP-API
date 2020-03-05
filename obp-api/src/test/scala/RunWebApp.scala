@@ -36,6 +36,11 @@ import org.eclipse.jetty.webapp.WebAppContext
 object RunWebApp extends App {
   val servletContextPath = "/"
 
+  /**
+    * The above code is related to Chicken or the egg dilemma.
+    * I.e. APIUtil.getPropsAsIntValue("dev.port", 8080) MUST be called after new Boot()
+    * otherwise System.getProperty("props.resource.dir") is ignored.
+    */
   val port: Int = {
     val tempHTTPContext = JProxy.newProxyInstance(this.getClass.getClassLoader, Array(classOf[HTTPContext]),
       (_, method, _) => {
