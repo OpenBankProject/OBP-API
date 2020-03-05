@@ -152,6 +152,5 @@ object MappedCustomerAttribute extends MappedCustomerAttribute
   override def dbIndexes: List[BaseIndex[MappedCustomerAttribute]] = Index(mCustomerId) :: Index(mCustomerAttributeId) :: super.dbIndexes
 
   override val mParentId: BaseMappedField = mCustomerId
-  override val attributeCompanion = this
 }
 

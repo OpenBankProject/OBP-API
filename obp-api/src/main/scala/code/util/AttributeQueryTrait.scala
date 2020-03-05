@@ -3,6 +3,9 @@ package code.util
 import com.openbankproject.commons.model.BankId
 import net.liftweb.mapper.{BaseMappedField, BaseMetaMapper, DB}
 
+/**
+ * Any Attribute type Mapped entity companion object extends this trait, will obtain query with parameter function: getParentIdByParams
+ */
 trait AttributeQueryTrait {
   def mBankIdId: BaseMappedField
 
@@ -10,9 +13,17 @@ trait AttributeQueryTrait {
 
   def mValue: BaseMappedField
 
+  /**
+   * Mapped entity's companion object
+   */
+  val attributeCompanion: BaseMetaMapper = this.asInstanceOf[BaseMetaMapper]
+
+  /**
+   * Attribute entity's parent id, for example: CustomerAttribute.customerId,
+   * need implemented in companion object
+   */
   val mParentId: BaseMappedField
 
-  val attributeCompanion: BaseMetaMapper
 
   private lazy val tableName = attributeCompanion.dbTableName
   private lazy val nameColumn = mName.dbColumnName
@@ -20,6 +31,12 @@ trait AttributeQueryTrait {
   private lazy val parentIdColumn = mParentId.dbColumnName
   private lazy val bankIdColumn = mBankIdId.dbColumnName
 
+  /**
+   * query attribute's parent id, according request params
+   * @param bankId bankId
+   * @param params request parameters
+   * @return parentId list
+   */
   def getParentIdByParams(bankId: BankId, params: Map[String, List[String]]): List[String] = {
     if (params.isEmpty) {
       val sql = s"SELECT DISTINCT attr.$parentIdColumn FROM $tableName attr where attr.$bankIdColumn = ? "
