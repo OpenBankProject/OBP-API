@@ -1316,15 +1316,15 @@ trait APIMethods310 {
     }
 
     resourceDocs += ResourceDoc(
-      getCustomerByAttributes,
+      getCustomersByAttributes,
       implementedInApiVersion,
-      nameOf(getCustomerByAttributes),
+      nameOf(getCustomersByAttributes),
       "GET",
       "/banks/BANK_ID/customers",
-      "Get Customer by ATTRIBUTES",
-      s"""Gets the Customer specified by attributes
+      "Get Customers by ATTRIBUTES",
+      s"""Gets the Customers specified by attributes
         |
-        |URL params example: /banks/some-bank-id/customers?name=John&count=8
+        |URL params example: /banks/some-bank-id/customers?name=John&age=8
         |
         |""",
       emptyObjectJson,
@@ -1343,11 +1343,11 @@ trait APIMethods310 {
       Some(List(canGetCustomer))
     ).enableAutoValidate()
 
-    lazy val getCustomerByAttributes : OBPEndpoint = {
+    lazy val getCustomersByAttributes : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" ::  Nil JsonGet req => {
         cc =>
           for {
-            (customerIds, callContext) <- NewStyle.function.getCustomerIdByAttributeNameValues(bankId, req.params, Some(cc))
+            (customerIds, callContext) <- NewStyle.function.getCustomerIdsByAttributeNameValues(bankId, req.params, Some(cc))
             list: List[CustomerWithAttributesJsonV310] <- {
               val listCustomerFuture: List[Future[CustomerWithAttributesJsonV310]] = customerIds.map{ customerId =>
                 val customerFuture = NewStyle.function.getCustomerByCustomerId(customerId.value, callContext)

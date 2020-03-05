@@ -1951,7 +1951,7 @@ trait Connector extends MdcLoggable {
    * @param callContext
    * @return filtered CustomerAttribute.customerId
    */
-  def getCustomerIdByAttributeNameValues(
+  def getCustomerIdsByAttributeNameValues(
     bankId: BankId,
     nameValues: Map[String, List[String]],
     callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] =

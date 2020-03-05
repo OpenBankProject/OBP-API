@@ -30,7 +30,7 @@ object MappedCustomerAttributeProvider extends CustomerAttributeProvider {
     }
   }
 
-  override def getCustomerIdByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]] =
+  override def getCustomerIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]] =
   Future {
     Box !! {MappedCustomerAttribute.getParentIdByParams(bankId, params)}
   }

@@ -42,7 +42,7 @@ trait CustomerAttributeProvider {
   def getCustomerAttributes(bankId: BankId,
                                     customerId: CustomerId): Future[Box[List[CustomerAttribute]]]
 
-  def getCustomerIdByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]]
+  def getCustomerIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]]
 
   def getCustomerAttributesForCustomers(customers: List[Customer]): Future[Box[List[(Customer, List[CustomerAttribute])]]]
   
@@ -67,7 +67,7 @@ class RemotedataCustomerAttributeCaseClasses {
   case class getCustomerAttributesFromProvider(customerId: CustomerId)
   case class getCustomerAttributes(bankId: BankId,
                                            customerId: CustomerId)
-  case class getCustomerIdByAttributeNameValues(bankId: BankId, params: Map[String, List[String]])
+  case class getCustomerIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]])
   case class getCustomerAttributesForCustomers(customers: List[Customer])
 
   case class getCustomerAttributeById(customerAttributeId: String)
