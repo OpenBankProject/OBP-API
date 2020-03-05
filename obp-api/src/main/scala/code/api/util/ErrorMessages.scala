@@ -1,5 +1,7 @@
 package code.api.util
 
+import code.api.Constant._
+
 object ErrorMessages {
   import code.api.util.APIUtil._
   // Notes to developers. Please:
@@ -113,7 +115,7 @@ object ErrorMessages {
 
   val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
   val UserNoOwnerView = "OBP-20019: User does not have access to owner view. "
-  val InvalidCustomViewFormat = "OBP-20020: View name must start with `_`. eg: _work, _life "
+  val InvalidCustomViewFormat = s"OBP-20020: View name must start with `_`. eg: _work, _life. Reserved names: $CUSTOM_OWNER_VIEW_ID "
   val SystemViewsCanNotBeModified = "OBP-20021: System Views can not be modified. Only the created views can be modified."
   val ViewDoesNotPermitAccess = "OBP-20022: View does not permit the access."
 
@@ -134,6 +136,8 @@ object ErrorMessages {
   val GatewayLoginCannotGetCbsToken = "OBP-20044: Cannot get the CBSToken response from South side"
   val GatewayLoginCannotGetOrCreateUser = "OBP-20045: Cannot get or create user during GatewayLogin process."
   val GatewayLoginNoJwtForResponse = "OBP-20046: There is no useful value for JWT."
+
+  val UserMissOwnerViewOrNotAccountHolder = "OBP-20047: User must have access to the owner view or must be an account holder."
 
   val UserNotSuperAdmin = "OBP-20050: Current User is not a Super Admin!"
 
@@ -213,7 +217,7 @@ object ErrorMessages {
   val CreateCardError = "OBP-30032: Could not insert the Card"
   val UpdateCardError = "OBP-30033: Could not update the Card"
 
-  val ViewIdNotSupported = "OBP-30034: This ViewId is do not supported. Only support four now: Owner, Public, Accountant, Auditor."
+  val ViewIdNotSupported = "OBP-30034: This ViewId is do not supported. Only support four now: Owner, Accountant, Auditor, _Public."
 
   val UserCustomerLinkNotFound = "OBP-30035: User Customer Link not found"
 
@@ -248,7 +252,11 @@ object ErrorMessages {
   val CardNotFound = "OBP-30059: This Card can not be found for the user "
   val CardAlreadyExists = "OBP-30060: Card already exists. Please specify different values for bankId, card_number and issueNumber."
   val CardAttributeNotFound = "OBP-30061: Card Attribute not found. Please specify a valid value for CARD_ATTRIBUTE_ID."
-  
+  val ParentProductNotFoundByProductCode = "OBP-30062: Parent product not found. Please specify an existing product code for parent_product_code. Leave empty if no parent product exists."
+  val CannotGrantAccountAccess = "OBP-30063: Cannot grant account access."
+  val CannotRevokeAccountAccess = "OBP-30064: Cannot revoke account access."
+  val CannotFindAccountAccess = "OBP-30065: Cannot find account access."
+
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
@@ -292,6 +300,11 @@ object ErrorMessages {
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
   val SystemViewNotFound = "OBP-30252: System view not found. Please specify a valid value for VIEW_ID"
   val UpdateSystemViewError = "OBP-30253: Could not update the system view"
+  val ExistingSystemViewError = "OBP-30254: There is already a view with permalink"
+  val EmptyNameOfSystemViewError = "OBP-30255: You cannot create a View with an empty Name"
+  val DeleteCustomViewError = "OBP-30256: Could not delete the custom view"
+  val CannotFindCustomViewError = "OBP-30257: Could not find the custom view"
+  val SystemViewCannotBePublicError = "OBP-30258: System view cannot be public"
 
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "

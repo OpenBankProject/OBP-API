@@ -99,9 +99,11 @@ import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper.MdcLoggable
+import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
 import code.webuiprops.WebUiProps
+import com.openbankproject.commons.util.ApiVersion
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
@@ -278,7 +280,10 @@ class Boot extends MdcLoggable {
 
 
 
-    
+
+    // here must modify apiPathZero: initiate the value, because obp-commons can't get apiPathZero value.
+    // obp-api depends obp-commons, but obp-commons should not depends obp-api
+    ApiVersion.setUrlPrefix(ApiPathZero)
 
     // Add the various API versions
     ScannedApis.versionMapScannedApis.keys.foreach(enableVersionIfAllowed) // process all scanned apis versions
@@ -532,6 +537,27 @@ class Boot extends MdcLoggable {
       ConnectorEndpoints.registerConnectorEndpoints
     }
 
+    if (APIUtil.getPropsAsBoolValue("create_system_views_at_boot", true)){
+      // Create system views
+      val owner = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined
+      val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).isDefined
+      val accountant = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).isDefined
+      // Only create Firehose view if they are enabled at instance.
+      val firehose = if (APIUtil.getPropsAsBoolValue("allow_firehose_views", false))
+        Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
+      else Empty.isDefined
+      
+      val comment: String =
+        s"""
+           |System view ${SYSTEM_OWNER_VIEW_ID} exists/created at the instance: ${owner}
+           |System view ${SYSTEM_AUDITOR_VIEW_ID} exists/created at the instance: ${auditor}
+           |System view ${SYSTEM_ACCOUNTANT_VIEW_ID} exists/created at the instance: ${accountant}
+           |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${firehose}
+           |""".stripMargin
+      logger.info(comment)
+    }
+    
+
   }
 
   def schemifyAll() = {
@@ -669,7 +695,7 @@ object ToSchemify {
     DynamicData,
     AccountIdMapping,
     DirectDebit,
-    StandingOrder,
+    StandingOrder
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server

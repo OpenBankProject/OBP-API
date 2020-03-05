@@ -24,7 +24,7 @@ Berlin 13359, Germany
 */
 
 import java.util.Date
-
+import code.api.Constant._
 import code.api.util.APIUtil.MessageDoc
 import code.api.util.ErrorMessages._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
@@ -57,7 +57,7 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 
 import scala.collection.immutable.{Nil, Seq}
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcLoggable {
@@ -212,15 +212,15 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         acc.generateAccountantsView,
         acc.generateAuditorsView
       )}
-      existing_views <- tryo {Views.views.vend.viewsForAccount(BankIdAccountId(BankId(acc.bankId), AccountId(acc.accountId)))}
+      existing_views <- tryo {Views.views.vend.assignedViewsForAccount(BankIdAccountId(BankId(acc.bankId), AccountId(acc.accountId)))}
     } yield {
       setAccountHolder(username, BankId(acc.bankId), AccountId(acc.accountId), acc.owners)
       views.foreach(v => {
-        Views.views.vend.addPermission(v.uid, user)
+        Views.views.vend.grantAccessToCustomView(v.uid, user)
         logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
       })
       existing_views.filterNot(_.users.contains(user.userPrimaryKey)).foreach (v => {
-        Views.views.vend.addPermission(v.uid, user)
+        Views.views.vend.grantAccessToCustomView(v.uid, user)
         logger.info(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
       })
     }
@@ -286,7 +286,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         action = "obp.getChallengeThreshold",
         bankId = "gh.29.uk",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        viewId = "owner",
+        viewId = SYSTEM_OWNER_VIEW_ID,
         transactionRequestType = SANDBOX_TAN.toString,
         currency = "GBP",
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -339,7 +339,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       messageFormat = messageFormat,
       bankId = "gh.29.uk",
       accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-      viewId = "owner",
+      viewId = SYSTEM_OWNER_VIEW_ID,
       userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
       username = "susan.uk.29@example.com",
       transactionRequestType = SANDBOX_TAN.toString,
@@ -829,7 +829,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         createdByUserId = "12345",
         thisBankId = "gh.29.uk",
         thisAccountId = "12344",
-        thisViewId = "owner",
+        thisViewId = SYSTEM_OWNER_VIEW_ID,
         counterpartyId = "123",
         otherBankRoutingScheme = "obp",
         otherAccountRoutingScheme = "obp",
@@ -884,7 +884,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
           createdByUserId = "12345",
           thisBankId = "gh.29.uk",
           thisAccountId = "12344",
-          thisViewId = "owner",
+          thisViewId = SYSTEM_OWNER_VIEW_ID,
           counterpartyId = "123",
           otherBankRoutingScheme = "obp",
           otherAccountRoutingScheme = "obp",
@@ -1119,7 +1119,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         username = "susan.uk.29@example.com",
         bankId = "gh.29.uk",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-        viewId = "owner",
+        viewId = SYSTEM_OWNER_VIEW_ID,
         transactionRequestType = ""
       )
     ),

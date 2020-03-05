@@ -25,7 +25,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_1_0
 
-import code.api.util.ApiVersion
+import com.openbankproject.commons.util.ApiVersion
 import code.api.v3_0_0.AdapterInfoJsonV300
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import com.github.dwickern.macros.NameOf.nameOf

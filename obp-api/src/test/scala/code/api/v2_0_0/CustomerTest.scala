@@ -68,7 +68,7 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       Then("We should get a 400")
       secondResponsePost.code should equal(400)
       And("We should get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
-      secondResponsePost.body.extract[ErrorMessage].message should equal (ErrorMessages.CustomerNumberAlreadyExists)
+      secondResponsePost.body.extract[ErrorMessage].message should startWith (ErrorMessages.CustomerNumberAlreadyExists)
       And("User is linked to 1 customer")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON.user_id).size should equal(1)
 
@@ -98,7 +98,7 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       Then("We should get a 400")
       secondResponsePost4.code should equal(400)
       And("We should get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
-      secondResponsePost4.body.extract[ErrorMessage].message should equal (ErrorMessages.CustomerNumberAlreadyExists)
+      secondResponsePost4.body.extract[ErrorMessage].message should startWith (ErrorMessages.CustomerNumberAlreadyExists)
       And("User is linked to 3 customers")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON.user_id).size should equal(3)
 

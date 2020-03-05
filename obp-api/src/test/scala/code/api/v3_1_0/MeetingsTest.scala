@@ -28,7 +28,7 @@ package code.api.v3_1_0
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiVersion
+import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UserNotLoggedIn}
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
@@ -72,7 +72,7 @@ class MeetingsTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + s"$InvalidJsonFormat The Json body should be the $CreateMeetingJson ")
-      response310.body.extract[ErrorMessage].message should equal (s"$InvalidJsonFormat The Json body should be the $CreateMeetingJson ")
+      response310.body.extract[ErrorMessage].message should startWith (s"$InvalidJsonFormat The Json body should be the $CreateMeetingJson ")
     }
     
     scenario("We will Create Meetings and Get meetings back", ApiEndpoint1, VersionOfApi) {

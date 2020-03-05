@@ -1,7 +1,8 @@
 package code.api
 
-import code.api.util.{APIUtil, ApiStandards, ErrorMessages}
+import code.api.util.{APIUtil, ErrorMessages}
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.util.ApiStandards
 
 
 // Note: Import this with: import code.api.Constant._
@@ -12,7 +13,18 @@ object Constant extends MdcLoggable {
 
   // This is the part before the version. Do not change this default!
   final val ApiPathZero = APIUtil.getPropsValue("apiPathZero", ApiStandards.obp.toString)
-
+  
+  //Set this to `owner`. This is fro legacy.for the existing accounts, we do not modify them, just keep them as it is 
+  //eg: one account, already have the owner view with bankId and accountId, so we keep it. actually it is a custom view,
+  //    but there is no underscore there. 
+  //But for new accounts, we only allow to create with with under score, and all the accounts will share the same System Views. 
+  final val CUSTOM_PUBLIC_VIEW_ID = "_public"
+  // If two owner views exists OBP will return custom owner view. But from this commit custom owner views are forbidden.
+  final val CUSTOM_OWNER_VIEW_ID = "owner" // Legacy custom owner view maybe called this but creation of new custom owner views is now disabled with this commit
+  final val SYSTEM_OWNER_VIEW_ID = "owner" // From this commit new owner views are system views
+  final val SYSTEM_AUDITOR_VIEW_ID = "auditor"
+  final val SYSTEM_ACCOUNTANT_VIEW_ID = "accountant"
+  final val SYSTEM_FIREHOSE_VIEW_ID = "firehose"
 }
 
 
@@ -41,3 +53,4 @@ object BerlinGroup extends Enumeration {
     val SMS_OTP, CHIP_OTP, PHOTO_OTP, PUSH_OTP = Value
   }
 }
+

@@ -4,8 +4,10 @@ import java.io._
 import java.net.URI
 
 import code.TestServer
-import code.api.util.{ApiVersion, VersionedOBPApis}
+import com.openbankproject.commons.util.ApiVersion
+import code.api.util.VersionedOBPApis
 import com.openbankproject.commons.util.ReflectUtils
+import net.liftweb.common.Loggable
 import org.apache.commons.io.IOUtils
 
 import scala.reflect.runtime.universe._
@@ -14,7 +16,7 @@ import scala.reflect.runtime.universe._
   * this util is for persist metadata of frozen type, those frozen type is versionStatus = "STABLE" related example classes,
   * after persist the metadata, the FrozenClassTest can check whether there some modify change any frozen type, the test will fail when there are some changes in the frozen type
   */
-object FrozenClassUtil {
+object FrozenClassUtil extends Loggable{
 
   val sourceName = s"""${this.getClass.getName.replace("$", "")}.scala"""
   // current project absolute path
@@ -76,6 +78,10 @@ object FrozenClassUtil {
     val input = new ObjectInputStream(new FileInputStream(persistFilePath))
     try {
       input.readObject().asInstanceOf[(List[(ApiVersion, Set[String])], Map[String, Map[String, String]])]
+    } catch {
+      case e: Throwable =>
+        logger.error("read PersistedFrozenApiInfo fail." + e)
+        throw e
     } finally {
       IOUtils.closeQuietly(input)
     }

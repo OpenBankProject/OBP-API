@@ -6,9 +6,9 @@ import code.cardattribute.{MappedCardAttributeProvider, RemotedataCardAttributeC
 import code.actorsystem.ObpActorHelper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.enums.CardAttributeType
-import com.openbankproject.commons.model.{BankId, ProductCode}
+import com.openbankproject.commons.model.BankId
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class RemotedataCardAttributeActor extends Actor with ObpActorHelper with MdcLoggable {
 

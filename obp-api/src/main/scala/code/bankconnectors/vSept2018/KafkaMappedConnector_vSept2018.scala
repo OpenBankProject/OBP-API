@@ -26,7 +26,7 @@ Berlin 13359, Germany
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.UUID.randomUUID
-
+import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
@@ -57,7 +57,7 @@ import net.liftweb.json.{MappingException, parse}
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -247,7 +247,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     balanceAmount = balanceAmountExample.value,
     balanceCurrency = currencyExample.value,
     owners = owner1Example.value :: owner1Example.value :: Nil,
-    viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
+    viewsToGenerate = "_Public" :: "Accountant" :: "Auditor" :: Nil,
     bankRoutingScheme = bankRoutingSchemeExample.value,
     bankRoutingAddress = bankRoutingAddressExample.value,
     branchRoutingScheme = branchRoutingSchemeExample.value,
@@ -2289,7 +2289,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       authInfoExample,
       bankId = bankIdExample.value,
       accountId = accountIdExample.value,
-      viewId = "owner",
+      viewId = SYSTEM_OWNER_VIEW_ID,
       transactionRequestType = "SEPA",
       currency ="EUR",
       userId = userIdExample.value,

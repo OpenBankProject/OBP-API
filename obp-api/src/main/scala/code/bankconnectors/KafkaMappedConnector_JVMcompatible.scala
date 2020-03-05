@@ -345,18 +345,18 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           )}
           //3 get all the existing views.
           existingViewsNotBelongtoTheUser <- tryo {
-            Views.views.vend.viewsForAccount(BankIdAccountId(BankId(acc.bankId), AccountId(acc.accountId)))
+            Views.views.vend.assignedViewsForAccount(BankIdAccountId(BankId(acc.bankId), AccountId(acc.accountId)))
               .filterNot(_.users.contains(user.userPrimaryKey))
           }
         } yield {
           //4 set Account link to User
           setAccountHolder(username, BankId(acc.bankId), AccountId(acc.accountId), username::Nil)
           createdNewViewsForTheUser.foreach(v => {
-            Views.views.vend.addPermission(v.uid, user)
+            Views.views.vend.grantAccessToCustomView(v.uid, user)
             logger.debug(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
           })
           existingViewsNotBelongtoTheUser.foreach (v => {
-            Views.views.vend.addPermission(v.uid, user)
+            Views.views.vend.grantAccessToCustomView(v.uid, user)
             logger.debug(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
           })
         }

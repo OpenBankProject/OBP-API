@@ -26,24 +26,36 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_0_0
 
+import code.api.Constant._
 import _root_.net.liftweb.json.Serialization.write
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.OAuth._
+import com.openbankproject.commons.util.ApiVersion
 import code.api.v1_2_1.{APIInfoJSON, PermissionJSON, PermissionsJSON}
 import code.api.v2_2_0.{ViewJSONV220, ViewsJSONV220}
+import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.setup.APIResponse
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{CreateViewJson, UpdateViewJSON}
 import net.liftweb.util.Helpers._
+import org.scalatest.Tag
 
 import scala.util.Random.nextInt
 
 class ViewsTests extends V300ServerSetup {
+
+  object VersionOfApi extends Tag(ApiVersion.v3_0_0.toString)
+  object ApiEndpoint1 extends Tag(nameOf(Implementations3_0_0.getPermissionForUserForBankAccount))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations3_0_0.getViewsForBankAccount))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations3_0_0.createViewForBankAccount))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations3_0_0.updateViewForBankAccount))
+  
   
   //Custom view, name starts from `_`
   val postBodyViewJson = createViewJson
   //System view, owner
-  val postBodySystemViewJson = createViewJson.copy(name="owner").copy(metadata_view = "owner")
+  val postBodySystemViewJson = createViewJson.copy(name=SYSTEM_OWNER_VIEW_ID).copy(metadata_view = SYSTEM_OWNER_VIEW_ID)
   
   def getAccountViews(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = v3_0Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)
@@ -60,12 +72,13 @@ class ViewsTests extends V300ServerSetup {
     makePutRequest(request, write(view))
   }
 
-  def getAccountAccesForUser(bankId: String, accountId: String, provider : String, providerId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+  def getAccountAccessForUser(bankId: String, accountId: String, provider : String, providerId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v3_0Request / "banks" / bankId / "accounts" / accountId / "permissions" / provider / providerId).GET <@(consumerAndToken)
     makeGetRequest(request)
   }
   
   //This will call v1_2_1Request and we need it here to prepare the data for further tests
+  //BK need to check this endpoint....
   def getAccountPermissions(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = v3_0Request / "banks" / bankId / "accounts" / accountId / "permissions" <@(consumerAndToken)
     makeGetRequest(request)
@@ -89,7 +102,7 @@ class ViewsTests extends V300ServerSetup {
     }
   }
 
-  feature("getViewsForBankAccount - V300"){
+  feature(s"$ApiEndpoint2 -getViewsForBankAccount - V300"){
     scenario("All requirements") {
       Given("The BANK_ID, ACCOUNT_ID and Login User")
       val bankId = randomBankId
@@ -101,7 +114,10 @@ class ViewsTests extends V300ServerSetup {
       
       Then("we should get a 200 ok code and the right json body")
       httpResponse.code should equal (200)
-      httpResponse.body.extract[ViewsJsonV300]
+      val viewJsonV300 = httpResponse.body.extract[ViewsJsonV300]
+      //Note: as to new system view stuff, now the default account should both have some system view accesses and custom view accesses.
+      viewJsonV300.views.filter(_.is_system).length >0  should be (true)
+      viewJsonV300.views.filter(!_.is_system).length >0  should be (true)
     }
 
     scenario("no Auth") {
@@ -130,7 +146,7 @@ class ViewsTests extends V300ServerSetup {
     }
   }
   
-  feature("createViewForBankAccount - V300"){
+  feature(s"$ApiEndpoint3 -createViewForBankAccount - V300"){
     scenario("all requirements") {
       Given("The BANK_ID, ACCOUNT_ID, Login User and postViewBody")
       val bankId = randomBankId
@@ -210,7 +226,7 @@ class ViewsTests extends V300ServerSetup {
     }
   }
 
-  feature("updateViewForBankAccount - v3.0.0") {
+  feature(s"$ApiEndpoint4 -updateViewForBankAccount - v3.0.0") {
 
     val updatedViewDescription = "aloha"
     val updatedAliasToUse = "public"
@@ -231,7 +247,7 @@ class ViewsTests extends V300ServerSetup {
     def someViewUpdateJson() = {
       UpdateViewJSON(
         description = updatedViewDescription,
-        metadata_view = "owner",
+        metadata_view = SYSTEM_OWNER_VIEW_ID,
         is_public = true,
         which_alias_to_use = updatedAliasToUse,
         hide_metadata_if_alias_used = true,
@@ -325,7 +341,7 @@ class ViewsTests extends V300ServerSetup {
   
       val updateViewJSON = UpdateViewJSON(
         description = "good",
-        metadata_view = "owner",
+        metadata_view = SYSTEM_OWNER_VIEW_ID,
         is_public =false,
         which_alias_to_use ="",
         hide_metadata_if_alias_used= false,
@@ -333,7 +349,7 @@ class ViewsTests extends V300ServerSetup {
       )
       
       When("We use a valid access token and valid put json")
-      val reply = putView(bankId, bankAccountId, "owner", updateViewJSON, user1)
+      val reply = putView(bankId, bankAccountId, SYSTEM_OWNER_VIEW_ID, updateViewJSON, user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -341,7 +357,7 @@ class ViewsTests extends V300ServerSetup {
     }
   }
   
-  feature("Get Account access for User. - v3.0.0")
+  feature(s"$ApiEndpoint1 - Get Account access for User. - v3.0.0")
   {
     scenario("we will Get Account access for User.")
     {
@@ -353,14 +369,19 @@ class ViewsTests extends V300ServerSetup {
       val providerId = permission.user.id
   
       When("We use a valid access token and valid put json")
-      val reply = getAccountAccesForUser(bankId, bankAccountId, provider,
+      val reply = getAccountAccessForUser(bankId, bankAccountId, provider,
                                          providerId, user1
       )
       Then("We should get back the updated view")
       reply.code should equal(200)
       val response = reply.body.extract[ViewsJsonV300]
       response.views.length should not equal (0)
+
+      //Note: as to new system view stuff, now the default account should both have some system view accesses and custom view accesses.
+      response.views.filter(_.is_system).length >0  should be (true)
+      response.views.filter(!_.is_system).length >0  should be (true)
     }
+
   }
 
 }

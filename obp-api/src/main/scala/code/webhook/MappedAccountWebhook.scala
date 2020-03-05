@@ -7,7 +7,7 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.List
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object MappedAccountWebhookProvider extends AccountWebhookProvider {

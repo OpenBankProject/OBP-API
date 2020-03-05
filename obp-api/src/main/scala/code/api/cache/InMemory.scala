@@ -8,7 +8,7 @@ import scalacache.memoization.{cacheKeyExclude, memoize, memoizeSync}
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.language.postfixOps
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 object InMemory {
 

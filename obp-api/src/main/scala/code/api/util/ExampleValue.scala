@@ -259,7 +259,7 @@ object ExampleValue {
   //the follow two examples are list type, InboundAccount#owners: List[String]  InboundAccount#viewsToGenerate: List[String]
   // the value should divided with , or ;
   lazy val inboundAccountOwnersExample = ConnectorField("InboundAccount,owners,list,string", "fix me, if there are multiple values, split with ,or;")
-  lazy val inboundAccountViewsToGenerateExample = ConnectorField("InboundAccount;viewsToGenerate;list;string", "fix me, if there are multiple values, split with ,or;")
+  lazy val inboundAccountViewsToGenerateExample = ConnectorField("Owner;Accountant;Auditor", "These are the views the account can have when import account data from adapter.")
 
   lazy val transactionUuidExample = ConnectorField("Transaction uuid string", "fix me")
   lazy val transactionStartDateExample = ConnectorField("2019-09-07", "fix me, Transaction start Date string")
@@ -290,17 +290,20 @@ object ExampleValue {
   """
     |{
     |   "FooBar": {
+    |       "description": "description of this entity, can be markdown text."
     |       "required": [
     |           "name"
     |       ],
     |       "properties": {
     |           "name": {
     |               "type": "string",
-    |               "example": "James Brown"
+    |               "example": "James Brown",
+    |               "description":"description of **name** field, can be markdown text."
     |           },
     |           "number": {
     |               "type": "integer",
-    |               "example": "698761728934"
+    |               "example": "698761728934",
+    |               "description": "description of **number** field, can be markdown text."
     |           }
     |       }
     |   }
@@ -309,10 +312,11 @@ object ExampleValue {
 
   lazy val dynamicEntityRequestBodyExample = DynamicEntityFooBar(
     DynamicEntityDefinition(
+      "description of this entity, can be markdown text.",
       List("name"),
       DynamicEntityFullBarFields(
-        DynamicEntityStringTypeExample(DynamicEntityFieldType.string, "James Brown"),
-        DynamicEntityIntTypeExample(DynamicEntityFieldType.integer, 698761728)
+        DynamicEntityStringTypeExample(DynamicEntityFieldType.string, "James Brown", "description of **name** field, can be markdown text."),
+        DynamicEntityIntTypeExample(DynamicEntityFieldType.integer, 698761728, "description of **number** field, can be markdown text.")
       )
     )
   )

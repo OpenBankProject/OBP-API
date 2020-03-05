@@ -15,22 +15,31 @@ import scala.collection.immutable.List
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
-
 import code.api.util.CodeGenerateUtils.createDocExample
+import javassist.ClassPool
 
 object KafkaConnectorBuilder extends App {
+  // rewrite method code.webuiprops.MappedWebUiPropsProvider#getWebUiPropsValue, avoid access DB cause dataSource not found exception
+  {
+    val pool = ClassPool.getDefault
+    val ct = pool.getCtClass("code.webuiprops.MappedWebUiPropsProvider$")
+    val m = ct.getDeclaredMethod("getWebUiPropsValue")
+    m.insertBefore("""return ""; """)
+    ct.toClass
+  }
 
   val genMethodNames = List(
     "getAdapterInfo",
-    "getBanks",
     "getBank",
-    "getBankAccountsForUser",
+    "getBanks",
+    "getBankAccountsBalances",
+    "getBranch",
+    "getBranches",
+    "getAtm",
+    "getAtms",
     "getCustomersByUserId",
-    "getCoreBankAccounts",
-    "checkBankAccountExists",
-    "getBankAccount",
-    "getTransactions",
-    "getTransaction",
+    "getCustomerByCustomerId",
+    "getCustomerByCustomerNumber"
   )
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -50,7 +59,7 @@ object KafkaConnectorBuilder extends App {
 
   if(genMethodNames.size > nameSignature.size) {
     val foundMehotdNames = nameSignature.map(_.methodName).toList
-    val notFoundMethodNames = genMethodNames.filterNot(foundMehotdNames.contains(_))
+    val notFoundMethodNames = genMethodNames.diff(foundMehotdNames)
     throw new IllegalArgumentException(s"some method not found, please check typo: ${notFoundMethodNames.mkString(", ")}")
   }
 
@@ -83,13 +92,14 @@ object KafkaConnectorBuilder extends App {
 
 class CommonGenerator(val methodName: String, tp: Type) {
   protected[this] def paramAnResult = tp.toString
-    .replaceAll("(\\w+\\.)+", "")
+    .replaceAll("""(\w+\.)+(\w+\.Value)""", "$2")
+    .replaceAll("""(\w+\.){2,}""", "")
     .replaceFirst("\\)", "): ")
     .replaceFirst("""\btype\b""", "`type`")
 
   val queryParamsListName = tp.paramLists(0).find(symbol => symbol.info <:< typeOf[List[OBPQueryParam]]).map(_.name.toString)
 
-  private[this] val params = tp.paramLists(0)
+  private[this] val params: String = tp.paramLists(0)
     .filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]])
     .map(_.name.toString)
     .map(it => if(it =="type") "`type`" else it)

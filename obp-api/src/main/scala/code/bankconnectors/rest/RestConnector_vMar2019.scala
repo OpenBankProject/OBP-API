@@ -34,10 +34,10 @@ import code.api.{APIFailureNewStyle, ErrorMessage}
 import code.api.cache.Caching
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric}
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, CallContext, NewStyle, OBPQueryParam}
+import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle, OBPQueryParam}
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
-import code.kafka.{KafkaHelper, Topics}
+import code.kafka.KafkaHelper
 import code.util.AkkaHttpClient._
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto.{InBoundTrait, _}
@@ -46,7 +46,7 @@ import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, _}
 import net.liftweb.util.Helpers.tryo
 
-import scala.collection.immutable.{List, Nil}
+import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -9457,6 +9457,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       .map({
         case null => Empty
         case str => tryo {
+          implicit val formats: Formats = CustomJsonFormats.nullTolerateFormats
           parse(str).extract[T]
         } ~> APIFailureNewStyle(s"$InvalidJsonFormat The Json body should be the ${manifest[T]} ", 400)
       })
@@ -9492,7 +9493,9 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       case Full(in) if (in.status.hasNoError) => Full(in.data)
       case Full(inbound) if (inbound.status.hasError) =>
         Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
-      case failureOrEmpty: Failure => Failure("INTERNAL-1231321 ....CoreBank-Status: NetWork is bad!!!!!" )
+      case failureOrEmpty: Failure => 
+        logger.debug(s"RestConnector_vMar2019.convertToTuple.failureOrEmpty: $failureOrEmpty")
+        Failure(s"INTERNAL-$AdapterUnknownError" )
     }
     (boxedResult, callContext)
   }
@@ -9527,7 +9530,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
     def isAccountId(fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type) = {
         ownerType <:< typeOf[AccountId] ||
-        (fieldName.equalsIgnoreCase("accountId") && fieldType =:= typeOf[String])
+        (fieldName.equalsIgnoreCase("accountId") && fieldType =:= typeOf[String])||
         (ownerType <:< typeOf[CoreAccount] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
         (ownerType <:< typeOf[AccountBalance] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
         (ownerType <:< typeOf[AccountHeld] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])

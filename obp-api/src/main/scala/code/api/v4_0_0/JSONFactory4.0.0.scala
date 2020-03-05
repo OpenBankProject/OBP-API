@@ -39,7 +39,8 @@ import code.api.v3_0_0.ViewBasicV300
 import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.directdebit.DirectDebitTrait
-import code.model.ModeratedBankAccount
+import code.entitlement.Entitlement
+import code.model.{ModeratedBankAccount, ModeratedBankAccountCore}
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import com.openbankproject.commons.model._
@@ -127,7 +128,7 @@ case class ModeratedAccountJSON400(
                                     balance : AmountOfMoneyJsonV121,
                                     views_available : List[ViewJSONV121],
                                     bank_id : String,
-                                    account_routing :AccountRoutingJsonV121,
+                                    account_routings :List[AccountRoutingJsonV121],
                                     account_attributes: List[AccountAttributeResponseJson],
                                     tags: List[AccountTagJSON]
                                   )
@@ -138,6 +139,17 @@ case class AccountTagJSON(
                            date : Date,
                            user : UserJSONV121
                          )
+
+case class EntitlementJsonV400(
+                                entitlement_id: String,
+                                role_name: String,
+                                bank_id: String,
+                                user_id: String
+                              )
+
+case class EntitlementsJsonV400(
+                                list: List[EntitlementJsonV400]
+                              )
 
 case class AccountTagsJSON(
                             tags: List[AccountTagJSON]
@@ -183,12 +195,15 @@ case class StandingOrderJsonV400(standing_order_id: String,
                                  user_id: String,
                                  counterparty_id: String,
                                  amount: AmountOfMoneyJsonV121,
+                                 when: When,
                                  date_signed: Date,
                                  date_starts: Date,
                                  date_expires: Date,
                                  date_cancelled: Date,
                                  active: Boolean)
-
+case class PostViewJsonV400(view_id: String, is_system: Boolean)
+case class PostAccountAccessJsonV400(user_id: String, view: PostViewJsonV400)
+case class RevokedJsonV400(revoked: Boolean)
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
@@ -269,19 +284,18 @@ object JSONFactory400 {
   }
 
   
-  def createNewCoreBankAccountJson(account : ModeratedBankAccount, 
+  def createNewCoreBankAccountJson(account : ModeratedBankAccountCore, 
                                    availableViews: List[View],
                                    accountAttributes: List[AccountAttribute], 
                                    tags: List[TransactionTag]) : ModeratedCoreAccountJsonV400 =  {
-    val bankName = account.bankName.getOrElse("")
     new ModeratedCoreAccountJsonV400 (
       account.accountId.value,
       stringOrNull(account.bankId.value),
       stringOptionOrNull(account.label),
       stringOptionOrNull(account.number),
-      createOwnersJSON(account.owners.getOrElse(Set()), bankName),
+      createOwnersJSON(account.owners.getOrElse(Set()),""),
       stringOptionOrNull(account.accountType),
-      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       createAccountRoutingsJSON(account.accountRoutings),
       views_basic = availableViews.map(view => code.api.v3_0_0.ViewBasicV300(id = view.viewId.value, short_name = view.name, description = view.description, is_public = view.isPublic)),
       accountAttributes.map(createAccountAttributeJson),
@@ -290,21 +304,20 @@ object JSONFactory400 {
   }
 
 
-  def createBankAccountJSON(account : ModeratedBankAccount,
+  def createBankAccountJSON(account : ModeratedBankAccountCore,
                             viewsAvailable : List[ViewJSONV121],
                             accountAttributes: List[AccountAttribute],
                             tags: List[TransactionTag]) : ModeratedAccountJSON400 =  {
-    val bankName = account.bankName.getOrElse("")
     new ModeratedAccountJSON400(
       account.accountId.value,
       stringOptionOrNull(account.label),
       stringOptionOrNull(account.number),
-      createOwnersJSON(account.owners.getOrElse(Set()), bankName),
+      createOwnersJSON(account.owners.getOrElse(Set()), ""),
       stringOptionOrNull(account.accountType),
-      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       viewsAvailable,
       stringOrNull(account.bankId.value),
-      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress)),
+      createAccountRoutingsJSON(account.accountRoutings),
       accountAttributes.map(createAccountAttributeJson),
       tags.map(createAccountTagJSON)
     )
@@ -321,6 +334,14 @@ object JSONFactory400 {
       date = tag.datePosted,
       user = JSONFactory.createUserJSON(tag.postedBy)
     )
+  }
+  def createEntitlementJSONs(entitlements: List[Entitlement]): EntitlementsJsonV400 = {
+    EntitlementsJsonV400(entitlements.map(entitlement => EntitlementJsonV400(
+      entitlement_id = entitlement.entitlementId,
+      role_name = entitlement.roleName,
+      bank_id = entitlement.bankId,
+      user_id = entitlement.userId
+    )))
   }
 
   def createDirectDebitJSON(directDebit: DirectDebitTrait): DirectDebitJsonV400 = {
@@ -344,6 +365,7 @@ object JSONFactory400 {
       user_id = standingOrder.userId,
       counterparty_id = standingOrder.counterpartyId,
       amount = AmountOfMoneyJsonV121(standingOrder.amountValue.toString(), standingOrder.amountCurrency),
+      when = When(frequency = standingOrder.whenFrequency, detail = standingOrder.whenDetail),
       date_signed = standingOrder.dateSigned,
       date_cancelled = standingOrder.dateCancelled,
       date_starts = standingOrder.dateStarts,

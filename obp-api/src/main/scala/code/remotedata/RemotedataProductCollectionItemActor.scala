@@ -7,7 +7,7 @@ import code.productcollectionitem.{MappedProductCollectionItemProvider, Remoteda
 import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.List
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class RemotedataProductCollectionItemActor extends Actor with ObpActorHelper with MdcLoggable {
 
@@ -17,15 +17,15 @@ class RemotedataProductCollectionItemActor extends Actor with ObpActorHelper wit
   def receive: PartialFunction[Any, Unit] = {
 
     case cc.getProductCollectionItems(collectionCode: String) =>
-      logger.debug("getProductCollectionItems(" + collectionCode + ")")
+      logger.debug(s"getProductCollectionItems($collectionCode)")
       mapper.getProductCollectionItems(collectionCode) pipeTo sender
       
     case cc.getProductCollectionItemsTree(collectionCode: String, bankId: String) =>
-      logger.debug("getProductCollectionItems(" + collectionCode + ", " + bankId + ")")
+      logger.debug(s"getProductCollectionItems($collectionCode, $bankId)")
       mapper.getProductCollectionItemsTree(collectionCode, bankId) pipeTo sender
       
     case cc.getOrCreateProductCollectionItem(collectionCode: String, memberProductCodes: List[String]) =>
-      logger.debug("getOrCreateProductCollectionItem(" + collectionCode +  ", " + memberProductCodes + ")")
+      logger.debug(s"getOrCreateProductCollectionItem($collectionCode, $memberProductCodes)")
       mapper.getOrCreateProductCollectionItem(collectionCode, memberProductCodes) pipeTo sender
       
 

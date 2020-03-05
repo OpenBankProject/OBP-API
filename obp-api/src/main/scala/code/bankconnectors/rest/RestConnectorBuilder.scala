@@ -235,12 +235,10 @@ object RestConnectorBuilder extends App {
   val end   = "//---------------- dynamic end ---------------------please don't modify this line"
   val placeHolderInSource = s"""(?s)$start.+$end"""
   val insertCode =
-    s"""
-       |$start
+    s"""$start
        |// ---------- create on ${new Date()}
        |${nameSignature.map(_.toString).mkString}
-       |$end
-    """.stripMargin
+       |$end """.stripMargin
   val newSource = source.replaceFirst(placeHolderInSource, insertCode)
   FileUtils.writeStringToFile(path, newSource)
 

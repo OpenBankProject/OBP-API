@@ -46,7 +46,7 @@ import net.liftweb.util._
 
 import scala.collection.immutable.List
 import scala.xml.{NodeSeq, Text}
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 /**
@@ -343,11 +343,13 @@ import net.liftweb.util.Helpers._
       // So if the follow case paramter name is "user" will cause compile warnings
       case u if u.validated_? =>
         u.resetUniqueId().save
-        val resetLink = APIUtil.getPropsValue("hostname", "ERROR")+
+        //NOTE: here, if server_mode = portal, so we need modify the resetLink to portal_hostname, then developer can get proper response..
+        val resetPasswordLinkProps = APIUtil.getPropsValue("hostname", "ERROR")
+        val resetPasswordLink = APIUtil.getPropsValue("portal_hostname", resetPasswordLinkProps)+
           passwordResetPath.mkString("/", "/", "/")+urlEncode(u.getUniqueId())
         Mailer.sendMail(From(emailFrom),Subject(passwordResetEmailSubject + " - " + u.username),
           To(u.getEmail) ::
-            generateResetEmailBodies(u, resetLink) :::
+            generateResetEmailBodies(u, resetPasswordLink) :::
             (bccEmail.toList.map(BCC(_))) :_*)
       case u =>
         sendValidationEmail(u)
@@ -860,11 +862,14 @@ def restoreSomeSessions(): Unit = {
   def updateUserAccountViews(user: User, accounts: List[InboundAccount]): Unit = {
     for {
       account <- accounts
-      viewId <- account.viewsToGenerate
+      viewId <- account.viewsToGenerate // for now, we support four views here: Owner, Accountant, Auditor, _Public, first three are system views, the last is custom view.
       bankAccountUID <- Full(BankIdAccountId(BankId(account.bankId), AccountId(account.accountId)))
-      view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)
+      view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)//this method will return both system views and custom views back.
     } yield {
-      Views.views.vend.addPermission(view.uid, user)
+      if (view.isSystem)//if the view is a system view, we will call `grantAccessToSystemView`
+        Views.views.vend.grantAccessToSystemView(BankId(account.bankId), AccountId(account.accountId), view, user)
+      else //otherwise, we will call `grantAccessToCustomView`
+        Views.views.vend.grantAccessToCustomView(view.uid, user)
       AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
     }
   }

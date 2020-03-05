@@ -20,10 +20,10 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
   
   val bankIdAccountId = BankIdAccountId(BankId("1"),AccountId("2"))
   
-  val viewIdOwner = "Owner"
-  val viewIdPublic = "Public"
-  val viewIdAccountant = "Accountant"
-  val viewIdAuditor = "Auditor"
+  val viewIdOwner = "owner"
+  val viewIdPublic = "_public"
+  val viewIdAccountant = "accountant"
+  val viewIdAuditor = "auditor"
   val viewIdNotSupport = "NotSupport"
   
   
@@ -36,13 +36,13 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       var viewPublic = MapperViews.getOrCreateAccountView(bankIdAccountId, viewIdPublic)
       var viewAccountant = MapperViews.getOrCreateAccountView(bankIdAccountId, viewIdAccountant)
       var viewAuditor = MapperViews.getOrCreateAccountView(bankIdAccountId, viewIdAuditor)
-      var allExistingViewsForOneAccount = MapperViews.viewsForAccount(bankIdAccountId)
+      var allExistingViewsForOneAccount = MapperViews.availableViewsForAccount(bankIdAccountId)
       
       Then("Check the result from database. it should have 4 views and with the right viewId")
-      viewOwner.head.viewId.value should equal("Owner".toLowerCase())
-      viewPublic.head.viewId.value should equal("public".toLowerCase())
-      viewAccountant.head.viewId.value should equal("Accountant".toLowerCase())
-      viewAuditor.head.viewId.value should equal("Auditor".toLowerCase())
+      viewOwner.head.viewId.value should equal("owner".toLowerCase())
+      viewPublic.head.viewId.value should equal("_public".toLowerCase())
+      viewAccountant.head.viewId.value should equal("accountant".toLowerCase())
+      viewAuditor.head.viewId.value should equal("auditor".toLowerCase())
       allExistingViewsForOneAccount.length should equal(4)
       
       Then("We set the four normal views again")
@@ -50,13 +50,13 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       viewPublic = MapperViews.getOrCreateAccountView(bankIdAccountId, viewIdPublic)
       viewAccountant = MapperViews.getOrCreateAccountView(bankIdAccountId, viewIdAccountant)
       viewAuditor = MapperViews.getOrCreateAccountView(bankIdAccountId, viewIdAuditor)
-      allExistingViewsForOneAccount = MapperViews.viewsForAccount(bankIdAccountId)
+      allExistingViewsForOneAccount = MapperViews.availableViewsForAccount(bankIdAccountId)
   
       Then("Check the result from database again. it should have four views and with the right viewId, there should be not changed.")
-      viewOwner.head.viewId.value should equal("Owner".toLowerCase())
-      viewPublic.head.viewId.value should equal("public".toLowerCase())
-      viewAccountant.head.viewId.value should equal("Accountant".toLowerCase())
-      viewAuditor.head.viewId.value should equal("Auditor".toLowerCase())
+      viewOwner.head.viewId.value should equal("owner".toLowerCase())
+      viewPublic.head.viewId.value should equal("_public".toLowerCase())
+      viewAccountant.head.viewId.value should equal("accountant".toLowerCase())
+      viewAuditor.head.viewId.value should equal("auditor".toLowerCase())
       allExistingViewsForOneAccount.length should equal(4)
   
   

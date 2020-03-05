@@ -25,11 +25,12 @@ TESOBE (http://www.tesobe.com/)
 */
 package code.api.v3_1_0
 
+import code.api.Constant._
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateHistoricalTransaction
-import code.api.util.{ApiRole, ApiVersion}
+import code.api.util.ApiRole
 import code.api.util.ErrorMessages.UserNotLoggedIn
 import code.api.v1_2_1.TransactionJSON
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
@@ -40,6 +41,7 @@ import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.AmountOfMoneyJsonV121
+import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
 import net.liftweb.json.Serialization.write
 
@@ -74,7 +76,7 @@ class TransactionTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
-      val view = randomViewPermalink(bankId, bankAccount)
+      val view = bankAccount.views_available.map(_.id).headOption.getOrElse("owner")
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transactions" / transaction.id / "transaction").GET
       val response310 = makeGetRequest(request310)
@@ -87,7 +89,7 @@ class TransactionTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
-      val view = randomViewPermalink(bankId, bankAccount)
+      val view = bankAccount.views_available.map(_.id).headOption.getOrElse("owner")
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transactions" / transaction.id / "transaction").GET <@(user1)
       val response310 = makeGetRequest(request310)
@@ -176,7 +178,7 @@ class TransactionTest extends V310ServerSetup {
       
       Then("We can get the transaction back")
       val transactionNewId = responseJson.transaction_id
-      val getTransactionbyIdRequest = (v3_1_0_Request / "banks" / bankId1/ "accounts" / bankAccountId1 / "owner" / "transactions" / transactionNewId / "transaction").GET <@ (user1)
+      val getTransactionbyIdRequest = (v3_1_0_Request / "banks" / bankId1/ "accounts" / bankAccountId1 / CUSTOM_OWNER_VIEW_ID / "transactions" / transactionNewId / "transaction").GET <@ (user1)
       val getTransactionbyIdResponse = makeGetRequest(getTransactionbyIdRequest)
 
       getTransactionbyIdResponse.code should equal(200)

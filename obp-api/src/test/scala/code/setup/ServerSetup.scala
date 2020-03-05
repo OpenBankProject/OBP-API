@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.setup
 
+import code.api.Constant._
 import _root_.net.liftweb.json.JsonAST.JObject
 import code.TestServer
 import code.api.util.{APIUtil, CustomJsonFormats}
@@ -83,12 +84,13 @@ trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup
     //create fake data for the tests
     //fake banks
     val banks = createBanks()
-    //fake bank accounts
-    val accounts = createAccounts(resourceUser1, banks)
+    //fake bank accounts, views, accountHolders, AccountAccesses
+    val accounts = createAccountRelevantResources(resourceUser1, banks)
     //fake transactions
     createTransactions(accounts)
     //fake transactionRequests
     createTransactionRequests(accounts)
+    
   }
 
   override def afterEach() = {

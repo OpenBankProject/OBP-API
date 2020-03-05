@@ -3,13 +3,14 @@ package code.api.v4_0_0
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{ApiRole, ApiVersion}
+import code.api.util.ApiRole
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.AmountOfMoneyJsonV121
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
@@ -94,8 +95,22 @@ class AccountTest extends V400ServerSetup {
       account.branch_id should be (addAccountJson.branch_id)
       account.user_id should be (addAccountJson.user_id)
       account.label should be (addAccountJson.label)
-      account.account_routing should be (addAccountJson.account_routing)
+      account.account_routings should be (List(addAccountJson.account_routing))
 
+      
+      Then(s"We call $ApiEndpoint1 to get the account back")
+      val request = (v4_0_0_Request /"my" / "banks" / testBankId.value/ "accounts" / account.account_id / "account").GET <@ (user1)
+      val response = makeGetRequest(request)
+
+      Then("We should get a 200 and check the response body")
+      response.code should equal(200)
+      val moderatedCoreAccountJsonV400 = response.body.extract[ModeratedCoreAccountJsonV400]
+      moderatedCoreAccountJsonV400.account_attributes.length == 0 should be (true)
+      moderatedCoreAccountJsonV400.views_basic.length >= 1 should be (true)
+      
+      
+      
+      
       Then("We make a request v4.0.0 but with other user")
       val requestWithNewAccountId = (v4_0_0_Request / "banks" / testBankId.value / "accounts" ).POST <@(user1)
       val responseWithNoRole = makePostRequest(requestWithNewAccountId, write(addAccountJsonOtherUser))
@@ -117,7 +132,7 @@ class AccountTest extends V400ServerSetup {
       account2.branch_id should be (addAccountJson.branch_id)
       account2.user_id should be (addAccountJsonOtherUser.user_id)
       account2.label should be (addAccountJson.label)
-      account2.account_routing should be (addAccountJson.account_routing)
+      account2.account_routings should be (List(addAccountJson.account_routing))
     }
   }
   

@@ -3,8 +3,9 @@ package code.api.v3_1_0
 import java.util
 
 import code.api.ResourceDocs1_4_0.ResourceDocsV140ServerSetup
-import code.api.util.{ApiRole, ApiVersion, CustomJsonFormats}
+import code.api.util.{ApiRole, CustomJsonFormats}
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
+import com.openbankproject.commons.util.ApiVersion
 import io.swagger.parser.OpenAPIParser
 import net.liftweb.json
 import net.liftweb.json.JsonAST._

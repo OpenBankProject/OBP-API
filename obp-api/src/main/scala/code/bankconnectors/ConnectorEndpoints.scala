@@ -18,7 +18,7 @@ import net.liftweb.json.JsonAST.JNothing
 import org.apache.commons.lang3.StringUtils
 
 import scala.annotation.tailrec
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.reflect.ManifestFactory

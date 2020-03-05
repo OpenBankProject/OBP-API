@@ -133,6 +133,12 @@ object ApiRole {
   case class CanGetEntitlementsForAnyUserAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetEntitlementsForAnyUserAtAnyBank = CanGetEntitlementsForAnyUserAtAnyBank()
 
+  case class CanGetEntitlementsForOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetEntitlementsForOneBank = CanGetEntitlementsForOneBank()
+
+  case class CanGetEntitlementsForAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetEntitlementsForAnyBank = CanGetEntitlementsForAnyBank()
+
   case class CanCreateEntitlementAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateEntitlementAtAnyBank = CanCreateEntitlementAtAnyBank()
 

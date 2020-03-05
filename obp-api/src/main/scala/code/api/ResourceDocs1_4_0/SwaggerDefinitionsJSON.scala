@@ -2,6 +2,7 @@ package code.api.ResourceDocs1_4_0
 
 import java.util.Date
 
+import code.api.Constant._
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
@@ -15,7 +16,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, StandingOrderJsonV400, When}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RevokedJsonV400, StandingOrderJsonV400, When}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
 import code.sandbox.SandboxData
@@ -25,7 +26,7 @@ import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
 import com.openbankproject.commons.model.enums.CardAttributeType
 import com.openbankproject.commons.model.{UserAuthContextUpdateStatus, ViewBasic, _}
-import com.openbankproject.commons.util.ReflectUtils
+import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, ReflectUtils, RequiredArgs, RequiredInfo}
 
 import scala.collection.immutable.List
 
@@ -161,16 +162,22 @@ object SwaggerDefinitionsJSON {
       "can_see_other_account_routing_scheme",
       "can_see_other_account_routing_address",
       //v310
-      "can_query_available_funds"
+      "can_query_available_funds",
+      "can_add_transaction_request_to_own_account",
+      "can_add_transaction_request_to_any_account",
+      "can_see_bank_account_credit_limit",
+      //v400
+      "can_create_direct_debit",
+      "can_create_standing_order"
     )
   )
 
-  val createSystemViewJson = createViewJson.copy(name = "test", metadata_view = "test")
+  val createSystemViewJson = createViewJson.copy(name = "test", metadata_view = "test", is_public = false)
 
   val updateViewJSON = UpdateViewJSON(
     description = "this is for family",
     is_public = true,
-    metadata_view = "owner",
+    metadata_view = SYSTEM_OWNER_VIEW_ID,
     which_alias_to_use = "family",
     hide_metadata_if_alias_used = true,
     allowed_actions = List(
@@ -246,6 +253,8 @@ object SwaggerDefinitionsJSON {
       "can_query_available_funds"
     )
   )
+  
+  lazy val updateSystemViewJSON = updateViewJSON.copy(is_public = false)
 
   val transactionTypeIdSwagger = TransactionTypeId(value = "123")
 
@@ -257,7 +266,7 @@ object SwaggerDefinitionsJSON {
 
   val accountIdSwagger = model.AccountId(value = "123")
 
-  val viewIdSwagger = ViewId(value = "owner")
+  val viewIdSwagger = ViewId(value = SYSTEM_OWNER_VIEW_ID)
 
 
   // from code.TransactionTypes.TransactionType, not from normal version Factory
@@ -424,7 +433,8 @@ object SwaggerDefinitionsJSON {
     example_inbound_message = defaultJValue,
     outboundAvroSchema = Some(defaultJValue),
     inboundAvroSchema = Some(defaultJValue),
-    adapter_implementation = adapterImplementationJson
+    adapter_implementation = adapterImplementationJson,
+    requiredFieldInfo = Some(FieldNameApiVersions)
   )
 
   val messageDocsJson = MessageDocsJson(message_docs = List(messageDocJson))
@@ -2340,7 +2350,7 @@ object SwaggerDefinitionsJSON {
     created_by_user_id = ExampleValue.userIdExample.value,
     this_bank_id = bankIdExample.value,
     this_account_id =accountIdExample.value,
-    this_view_id = "owner",
+    this_view_id = SYSTEM_OWNER_VIEW_ID,
     counterparty_id = "1d65db7c-a7b2-4839-af41-958276ab7790",
     other_bank_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
     other_bank_routing_address = postCounterpartyJSON.other_bank_routing_address,
@@ -2371,7 +2381,7 @@ object SwaggerDefinitionsJSON {
     created_by_user_id = ExampleValue.userIdExample.value,
     this_bank_id = bankIdExample.value,
     this_account_id =accountIdExample.value,
-    this_view_id = "owner",
+    this_view_id = SYSTEM_OWNER_VIEW_ID,
     counterparty_id = "1d65db7c-a7b2-4839-af41-958276ab7790",
     other_bank_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
     other_bank_routing_address = postCounterpartyJSON.other_bank_routing_address,
@@ -2439,7 +2449,6 @@ object SwaggerDefinitionsJSON {
     meta = metaJson
   )
   val postPutProductJsonV310 = PostPutProductJsonV310(
-    bank_id = bankIdExample.value,
     name = "product name",
     parent_product_code = "parent product name",
     category = "category",
@@ -2542,8 +2551,9 @@ object SwaggerDefinitionsJSON {
     id = "1234",
     short_name = "short_name",
     description = "description",
-    metadata_view = "owner",
+    metadata_view = SYSTEM_OWNER_VIEW_ID,
     is_public = true,
+    is_system = true,
     alias = "No",
     hide_metadata_if_alias_used = true,
     can_add_comment = true,
@@ -3164,7 +3174,7 @@ object SwaggerDefinitionsJSON {
     balance = amountOfMoneyJsonV121,
     views_available = List(viewJSONV121),
     bank_id = bankIdExample.value,
-    account_routing = accountRoutingJsonV121,
+    account_routings = List(accountRoutingJsonV121),
     account_attributes = List(accountAttributeResponseJson)
   )
 
@@ -3370,7 +3380,7 @@ object SwaggerDefinitionsJSON {
     product_code = accountTypeExample.value,
     balance =  amountOfMoneyJsonV121,
     branch_id  = branchIdExample.value,
-    account_routing = accountRoutingJsonV121,
+    account_routings = List(accountRoutingJsonV121),
     account_attributes=  List(accountAttributeResponseJson)
   )
   
@@ -3411,7 +3421,7 @@ object SwaggerDefinitionsJSON {
     balance = amountOfMoneyJsonV121,
     views_available = List(viewJSONV121),
     bank_id = bankIdExample.value,
-    account_routing = accountRoutingJsonV121,
+    account_routings = List(accountRoutingJsonV121),
     account_attributes = List(accountAttributeResponseJson),
     tags = List(accountTagJSON)
   )
@@ -3544,6 +3554,7 @@ object SwaggerDefinitionsJSON {
     user_id = userIdExample.value,
     counterparty_id = counterpartyIdExample.value,
     amount = amountOfMoneyJsonV121,
+    when = When(frequency = "WEEKLY", detail = "FIRST_DAY"),
     date_signed = new Date(),
     date_starts = new Date(),
     date_expires = new Date(),
@@ -3560,6 +3571,9 @@ object SwaggerDefinitionsJSON {
     account_routing = accountRoutingJsonV121,
     account_attributes=  List(accountAttributeResponseJson)
   )
+  
+  val postAccountAccessJsonV400 = PostAccountAccessJsonV400(userIdExample.value, PostViewJsonV400(ExampleValue.viewIdExample.value, true))
+  val revokedJsonV400 = RevokedJsonV400(true)
     
   //The common error or success format.
   //Just some helper format to use in Json 

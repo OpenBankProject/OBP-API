@@ -8,7 +8,7 @@ import code.actorsystem.ObpActorHelper
 import code.ratelimiting.{MappedRateLimitingProvider, RemotedataRateLimitingCaseClasses}
 import code.util.Helper.MdcLoggable
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class RemotedataRateLimitingActor extends Actor with ObpActorHelper with MdcLoggable {
 
@@ -22,15 +22,15 @@ class RemotedataRateLimitingActor extends Actor with ObpActorHelper with MdcLogg
       mapper.getAll() pipeTo sender
       
     case cc.getAllByConsumerId(consumerId: String, date: Option[Date]) =>
-      logger.debug("getAllByConsumerId(" + consumerId +  ", " +  date + ")")
+      logger.debug(s"getAllByConsumerId($consumerId, $date)")
       mapper.getAllByConsumerId(consumerId, date) pipeTo sender
       
     case cc.getByConsumerId(consumerId: String, date: Option[Date]) =>
-      logger.debug("getByConsumerId(" + consumerId +  ", " +  date + ")")
+      logger.debug(s"getByConsumerId($consumerId, $date)")
       mapper.getByConsumerId(consumerId, date) pipeTo sender
 
     case cc.createOrUpdateConsumerCallLimits(id: String, fromDate: Date, toDate: Date,perSecond: Option[String], perMinute: Option[String], perHour: Option[String], perDay: Option[String], perWeek: Option[String], perMonth: Option[String]) =>
-      logger.debug("createOrUpdateConsumerCallLimits(" + id + ", " +  fromDate+ ", " +  toDate + ", "  + perSecond.getOrElse("None") + ", " + perMinute.getOrElse("None") + ", " + perHour.getOrElse("None") + ", " + perDay.getOrElse("None") + ", " + perWeek.getOrElse("None") + ", " + perMonth.getOrElse("None") + ")")
+      logger.debug(s"createOrUpdateConsumerCallLimits($id, $fromDate, $toDate, ${perSecond.getOrElse("None")}, ${perMinute.getOrElse("None")}, ${perHour.getOrElse("None")}, ${perDay.getOrElse("None")}, ${perWeek.getOrElse("None")}, ${perMonth.getOrElse("None")})")
       mapper.createOrUpdateConsumerCallLimits(id, fromDate, toDate, perSecond, perMinute, perHour, perDay, perWeek, perMonth) pipeTo sender
       
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
