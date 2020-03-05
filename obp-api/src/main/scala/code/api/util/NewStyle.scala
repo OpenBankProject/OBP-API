@@ -977,6 +977,25 @@ object NewStyle {
       }
     }
 
+    /**
+     * get CustomerAttribute according name and values
+     * @param bankId CustomerAttribute must belongs the bank
+     * @param nameValues key is attribute name, value is attribute values.
+     *                   CustomerAttribute name must equals name,
+     *                   CustomerAttribute value must be one of values
+     * @param callContext
+     * @return filtered CustomerAttribute.customerId
+     */
+    def getCustomerIdByAttributeNameValues(
+                                            bankId: BankId,
+                                            nameValues: Map[String, List[String]],
+                                            callContext: Option[CallContext]): Future[(List[CustomerId], Option[CallContext])] =
+      Connector.connector.vend.getCustomerIdByAttributeNameValues(bankId, nameValues, callContext)  map {
+        i =>
+          val customerIds: Box[List[CustomerId]] = i._1.map(_.map(CustomerId(_)))
+          (connectorEmptyResponse(customerIds, callContext), i._2)
+      }
+
     def getCustomerAttributesForCustomers(
       customers: List[Customer],
       callContext: Option[CallContext]): OBPReturnType[List[(Customer, List[CustomerAttribute])]] = {

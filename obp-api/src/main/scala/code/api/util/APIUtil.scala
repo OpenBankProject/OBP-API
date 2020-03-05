@@ -1139,17 +1139,52 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case r => r :: Nil
     }))
 
-    private var _isAutoValidate = false
+    /**
+     * 0 is notset
+     * 1 is enabled manually
+     * -1 is disabled manually
+     */
+    private var _isAutoValidate = 0
 
-    def autoValidate(): ResourceDoc = {
-      _isAutoValidate = true
+    /**
+     * enable auto validate instead of default manner
+     */
+    def enableAutoValidate(): ResourceDoc = {
+      _isAutoValidate = 1
       this
     }
-    def isAutoValidate = _isAutoValidate
 
-    var _autoValidateRoles = true
-    def notAutoValidateRoles(): ResourceDoc = {
+    /**
+     * whether set auto validate manually
+     */
+    def isValidateEnabled = _isAutoValidate == 1
+
+    /**
+     * disable auto validate instead of default manner
+     */
+    def disableAutoValidate(): ResourceDoc = {
+      _isAutoValidate = -1
+      this
+    }
+
+    /**
+     * whether disable auto validate manually
+     */
+    def isValidateDisabled = _isAutoValidate == -1
+
+
+    private var _autoValidateRoles = true
+
+    /**
+     * disable roles auto validation, that means you want do validation by yourself.
+     */
+    def disableAutoValidateRoles(): ResourceDoc = {
       _autoValidateRoles = false
+      this
+    }
+    private var _autoValidateAuthenticate = true
+    def disableAutoValidateAuthenticate(): ResourceDoc = {
+      _autoValidateAuthenticate = false
       this
     }
 

@@ -1315,6 +1315,57 @@ trait APIMethods310 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getCustomerByAttributes,
+      implementedInApiVersion,
+      nameOf(getCustomerByAttributes),
+      "GET",
+      "/banks/BANK_ID/customers",
+      "Get Customer by ATTRIBUTES",
+      s"""Gets the Customer specified by attributes
+        |
+        |URL params example: /banks/some-bank-id/customers?name=John&count=8
+        |
+        |""",
+      emptyObjectJson,
+      ListResult(
+        "customers",
+        List(customerWithAttributesJsonV310)
+      ),
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCustomer))
+    ).enableAutoValidate()
+
+    lazy val getCustomerByAttributes : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" ::  Nil JsonGet req => {
+        cc =>
+          for {
+            (customerIds, callContext) <- NewStyle.function.getCustomerIdByAttributeNameValues(bankId, req.params, Some(cc))
+            list: List[CustomerWithAttributesJsonV310] <- {
+              val listCustomerFuture: List[Future[CustomerWithAttributesJsonV310]] = customerIds.map{ customerId =>
+                val customerFuture = NewStyle.function.getCustomerByCustomerId(customerId.value, callContext)
+                customerFuture.flatMap { customerAndCc =>
+                  val (customer, cc) = customerAndCc
+                  NewStyle.function.getCustomerAttributes(bankId, customerId, cc).map { attributesAndCc =>
+                    val (attributes, _) = attributesAndCc
+                    JSONFactory310.createCustomerWithAttributesJson(customer, attributes)
+                  }
+                }
+              }
+              Future.sequence(listCustomerFuture)
+            }
+          } yield {
+            (ListResult("customers", list), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     resourceDocs += ResourceDoc(
       getCustomerByCustomerId,
@@ -1333,11 +1384,13 @@ trait APIMethods310 {
       customerWithAttributesJsonV310,
       List(
         UserNotLoggedIn,
+        UserHasMissingRoles,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle))
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCustomer)))
 
     lazy val getCustomerByCustomerId : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId ::  Nil JsonGet _ => {
