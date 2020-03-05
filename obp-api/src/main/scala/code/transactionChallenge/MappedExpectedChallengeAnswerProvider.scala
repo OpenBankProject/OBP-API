@@ -9,32 +9,51 @@ object MappedExpectedChallengeAnswerProvider extends ExpectedChallengeAnswerProv
   
   override def saveExpectedChallengeAnswer(
     challengeId: String,
+    transactionRequestId: String,
     salt: String,
-    expectedAnswer: String
+    expectedAnswer: String,
+    expectedUserId: String
   ): Box[ExpectedChallengeAnswer] = 
     tryo (
       MappedExpectedChallengeAnswer
         .create
         .mChallengeId(challengeId)
+        .mTransactionRequestId(transactionRequestId)
         .mSalt(salt)
         .mExpectedAnswer(expectedAnswer)
+        .mExpectedUserId(expectedUserId)
         .saveMe()
     )
   
-  override def getExpectedChallengeAnswer(challengeId: String): Box[ExpectedChallengeAnswer] =
+  override def getExpectedChallengeAnswer(challengeId: String): Box[MappedExpectedChallengeAnswer] =
       MappedExpectedChallengeAnswer.find(By(MappedExpectedChallengeAnswer.mChallengeId,challengeId))
   
   override def validateChallengeAnswerInOBPSide(
     challengeId: String,
-    challengeAnswer: String
+    challengeAnswer: String,
+    userId: Option[String]
   ): Box[Boolean] = {
     
     val expectedChallengeAnswer = getExpectedChallengeAnswer(challengeId).openOrThrowException("No expectedChallengeAnswer, just for debug !!!")
     
     val currentHashedAnswer = BCrypt.hashpw(challengeAnswer, expectedChallengeAnswer.salt).substring(0, 44)
     val expectedHashedAnswer = expectedChallengeAnswer.expectedAnswer
-  
-    Full(currentHashedAnswer==expectedHashedAnswer)
-    
+
+    userId match {
+      case None => 
+        if(currentHashedAnswer==expectedHashedAnswer) {
+          expectedChallengeAnswer.mSuccessful(true).save
+          Full(true)
+        } else {
+          Full(false)
+        }
+      case Some(id) =>
+        if(currentHashedAnswer==expectedHashedAnswer && id==expectedChallengeAnswer.expectedUserId) {
+          expectedChallengeAnswer.mSuccessful(true).save
+          Full(true)
+        } else {
+          Full(false)
+        }
+    }
   }
 }

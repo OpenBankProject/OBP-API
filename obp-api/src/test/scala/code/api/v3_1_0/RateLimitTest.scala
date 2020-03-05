@@ -30,7 +30,7 @@ import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 import java.util.{Calendar, Date}
 
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.DateWithDayFormat
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanReadCallLimits, CanSetCallLimits}

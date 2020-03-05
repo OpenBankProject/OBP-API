@@ -132,7 +132,7 @@ trait APIMethods210 {
       "getTransactionRequestTypesSupportedByBank",
       "GET",
       "/banks/BANK_ID/transaction-request-types",
-      "Get supported Transaction Request Types",
+      "Get Transaction Request Types at Bank",
       s"""Get the list of the Transaction Request Types supported by the bank.
         |
         |${authenticationRequiredMessage(!getTransactionRequestTypesIsPublic)}
@@ -1192,8 +1192,8 @@ trait APIMethods210 {
       emptyObjectJson,
       branchJson,
       List(
-        UserNotLoggedIn, 
-        "License may not be set. meta.license.id and eta.license.name can not be empty",
+        UserNotLoggedIn,
+        BranchNotFoundByBranchId,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
@@ -1209,7 +1209,7 @@ trait APIMethods210 {
             else
               cc.user ?~! UserNotLoggedIn
             (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
-            branch <- Box(Branches.branchesProvider.vend.getBranch(bankId, branchId)) ?~! s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
+            branch <- Box(Branches.branchesProvider.vend.getBranch(bankId, branchId)) ?~! BranchNotFoundByBranchId
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createBranchJson(branch)

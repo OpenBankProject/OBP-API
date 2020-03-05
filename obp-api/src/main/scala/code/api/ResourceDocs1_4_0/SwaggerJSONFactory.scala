@@ -417,27 +417,27 @@ object SwaggerJSONFactory {
                 case "get" => 
                   Map(
                     "200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
-                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
+                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFieldNameByValue(rd.errorResponseBodies.head)}")))
                   )
                 case "post" =>  
                   Map(
                     "201" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
-                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
+                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFieldNameByValue(rd.errorResponseBodies.head)}")))
                   )
                 case "put" =>
                   Map(
                     "200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
-                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
+                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFieldNameByValue(rd.errorResponseBodies.head)}")))
                   )
                 case "delete" =>
                   Map(
                     "204" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
-                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
+                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFieldNameByValue(rd.errorResponseBodies.head)}")))
                   )
                 case _ =>
                   Map(
                     "200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
-                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
+                    "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFieldNameByValue(rd.errorResponseBodies.head)}")))
                   )
               }
           )

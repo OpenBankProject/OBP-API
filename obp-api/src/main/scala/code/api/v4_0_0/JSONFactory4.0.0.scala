@@ -35,13 +35,14 @@ import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSON
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
-import code.api.v3_0_0.ViewBasicV300
+import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, ViewBasicV300}
 import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.directdebit.DirectDebitTrait
 import code.entitlement.Entitlement
 import code.model.{ModeratedBankAccount, ModeratedBankAccountCore}
 import code.standingorders.StandingOrderTrait
+import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import com.openbankproject.commons.model._
 
@@ -61,6 +62,7 @@ case class BanksJson400(banks: List[BankJson400])
 
 case class ChallengeJsonV400(
                               id: String,
+                              user_id: String,
                               allowed_attempts : Int,
                               challenge_type: String,
                               link: String
@@ -75,7 +77,7 @@ case class TransactionRequestWithChargeJSON400(
                                                 status: String,
                                                 start_date: Date,
                                                 end_date: Date,
-                                                challenge: ChallengeJsonV400,
+                                                challenges: List[ChallengeJsonV400],
                                                 charge : TransactionRequestChargeJsonV200
                                               )
 case class PostResetPasswordUrlJsonV400(username: String, email: String, user_id: String)
@@ -204,6 +206,44 @@ case class StandingOrderJsonV400(standing_order_id: String,
 case class PostViewJsonV400(view_id: String, is_system: Boolean)
 case class PostAccountAccessJsonV400(user_id: String, view: PostViewJsonV400)
 case class RevokedJsonV400(revoked: Boolean)
+
+// the data from endpoint, extract as valid JSON
+case class TransactionRequestBodyRefundJsonV400(
+  to: TransactionRequestAccountJsonV140,
+  value: AmountOfMoneyJsonV121,
+  description: String,
+  refund:RefundJson
+) extends TransactionRequestCommonBodyJSON
+
+case class RefundJson(
+  transaction_id: String
+)
+case class CustomerAttributeJsonV400(
+  name: String,
+  `type`: String,
+  value: String,
+)
+
+case class CustomerAttributesResponseJson(
+  customer_attributes: List[CustomerAttributeResponseJsonV300]
+)
+case class TransactionAttributeJsonV400(
+  name: String,
+  `type`: String,
+  value: String,
+)
+
+case class TransactionAttributeResponseJson(
+  transaction_attribute_id: String,
+  name: String,
+  `type`: String,
+  value: String
+)
+
+case class TransactionAttributesResponseJson(
+  transaction_attributes: List[TransactionAttributeResponseJson]
+)
+
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
@@ -227,7 +267,7 @@ object JSONFactory400 {
     BanksJson400(l.map(createBankJSON400))
   }
 
-  def createTransactionRequestWithChargeJSON(tr : TransactionRequest) : TransactionRequestWithChargeJSON400 = {
+  def createTransactionRequestWithChargeJSON(tr : TransactionRequest, challenges: List[MappedExpectedChallengeAnswer]) : TransactionRequestWithChargeJSON400 = {
     new TransactionRequestWithChargeJSON400(
       id = stringOrNull(tr.id.value),
       `type` = stringOrNull(tr.`type`),
@@ -241,7 +281,7 @@ object JSONFactory400 {
       start_date = tr.start_date,
       end_date = tr.end_date,
       // Some (mapped) data might not have the challenge. TODO Make this nicer
-      challenge = {
+      challenges = {
         try {
           val otpViaWebFormPath = APIUtil.getPropsValue("hostname", "") + List(
             "/otp?flow=transaction_request&bankId=",
@@ -270,8 +310,10 @@ object JSONFactory400 {
             case challengeType if challengeType == TransactionChallengeTypes.OTP_VIA_WEB_FORM.toString => otpViaWebFormPath
             case challengeType if challengeType == TransactionChallengeTypes.OTP_VIA_API.toString => otpViaApiPath
             case _ => ""
-          }  
-          ChallengeJsonV400(id = stringOrNull(tr.challenge.id), allowed_attempts = tr.challenge.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), link = link)
+          }
+          challenges.map(
+            e => ChallengeJsonV400(id = stringOrNull(e.challengeId), user_id = e.expectedUserId, allowed_attempts = tr.challenge.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), link = link)
+          )
         }
         // catch { case _ : Throwable => ChallengeJSON (id = "", allowed_attempts = 0, challenge_type = "")}
         catch { case _ : Throwable => null}
@@ -372,6 +414,41 @@ object JSONFactory400 {
       date_expires = standingOrder.dateExpires,
       active = standingOrder.active)
   }
-  
+
+  def createCustomerAttributeJson(customerAttribute: CustomerAttribute) : CustomerAttributeResponseJsonV300 = {
+    CustomerAttributeResponseJsonV300(
+      customer_attribute_id = customerAttribute.customerAttributeId,
+      name = customerAttribute.name,
+      `type` = customerAttribute.attributeType.toString,
+      value = customerAttribute.value
+    )
+  }
+
+  def createCustomerAttributesJson(customerAttributes: List[CustomerAttribute]) : CustomerAttributesResponseJson = {
+    CustomerAttributesResponseJson (customerAttributes.map( customerAttribute => CustomerAttributeResponseJsonV300(
+      customer_attribute_id = customerAttribute.customerAttributeId,
+      name = customerAttribute.name,
+      `type` = customerAttribute.attributeType.toString,
+      value = customerAttribute.value
+    )))
+  }
+
+  def createTransactionAttributeJson(transactionAttribute: TransactionAttribute) : TransactionAttributeResponseJson = {
+    TransactionAttributeResponseJson(
+      transaction_attribute_id = transactionAttribute.transactionAttributeId,
+      name = transactionAttribute.name,
+      `type` = transactionAttribute.attributeType.toString,
+      value = transactionAttribute.value
+    )
+  }
+
+  def createTransactionAttributesJson(transactionAttributes: List[TransactionAttribute]) : TransactionAttributesResponseJson = {
+    TransactionAttributesResponseJson (transactionAttributes.map( transactionAttribute => TransactionAttributeResponseJson(
+      transaction_attribute_id = transactionAttribute.transactionAttributeId,
+      name = transactionAttribute.name,
+      `type` = transactionAttribute.attributeType.toString,
+      value = transactionAttribute.value
+    )))
+  }
 }
 

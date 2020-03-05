@@ -5,8 +5,32 @@ import com.openbankproject.commons.util.ReflectUtils
 sealed trait ApiRole{
   val requiresBankId: Boolean
   override def toString() = getClass().getSimpleName
+
+  def & (apiRole: ApiRole): RoleCombination = RoleCombination(this, apiRole)
 }
 
+/**
+ * default relation of ApiRoles is or, So: List(role1, role2, role3) is: one of role1, role2 or role3.
+ * this type is for and relationship, So: List(role1, role2 & role3) is: role1 or (role2 and role3)
+ * @param left
+ * @param right
+ */
+case class RoleCombination(left: ApiRole, right: ApiRole) extends ApiRole{
+  val roles: List[ApiRole] = (left, right) match {
+    case(l: RoleCombination, r: RoleCombination) => l.roles ::: r.roles
+    case(l: RoleCombination, r: ApiRole) => l.roles :+ r
+    case(l: ApiRole, r: RoleCombination) => l :: r.roles
+  }
+  override val requiresBankId: Boolean = roles.exists(_.requiresBankId)
+  override def toString() = roles.mkString("(", " and ", ")")
+}
+
+object RoleCombination {
+  def unapply(role: ApiRole): Option[List[ApiRole]] = role match{
+    case andRole: RoleCombination => Option(andRole.roles)
+    case _ => None
+  }
+}
 
 /** API Roles
   *
@@ -93,6 +117,9 @@ object ApiRole {
 
   case class CanUpdateAccount(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateAccount = CanUpdateAccount()
+
+  case class CanCreateAccountAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateAccountAttributeAtOneBank = CanCreateAccountAttributeAtOneBank()
   
   case class CanUpdateAccountAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateAccountAttribute = CanUpdateAccountAttribute()
@@ -409,6 +436,39 @@ object ApiRole {
   
   case class CanCreateStandingOrderAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateStandingOrderAtOneBank = CanCreateStandingOrderAtOneBank()
+
+  case class CanCreateCustomerAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateCustomerAttributeAtOneBank = CanCreateCustomerAttributeAtOneBank()
+
+  case class CanUpdateCustomerAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerAttributeAtOneBank = CanUpdateCustomerAttributeAtOneBank()
+
+  case class CanDeleteCustomerAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteCustomerAttributeAtOneBank = CanDeleteCustomerAttributeAtOneBank()
+
+  case class CanGetCustomerAttributesAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomerAttributesAtOneBank = CanGetCustomerAttributesAtOneBank()
+
+  case class CanGetCustomerAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomerAttributeAtOneBank = CanGetCustomerAttributeAtOneBank()
+
+  case class CanCreateTransactionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateTransactionAttributeAtOneBank = CanCreateTransactionAttributeAtOneBank()
+
+  case class CanUpdateTransactionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateTransactionAttributeAtOneBank = CanUpdateTransactionAttributeAtOneBank()
+
+  case class CanDeleteTransactionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteTransactionAttributeAtOneBank = CanDeleteTransactionAttributeAtOneBank()
+
+  case class CanGetTransactionAttributesAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetTransactionAttributesAtOneBank = CanGetTransactionAttributesAtOneBank()
+
+  case class CanGetTransactionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetTransactionAttributeAtOneBank = CanGetTransactionAttributeAtOneBank()
+
+  case class CanReadResourceDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canReadResourceDoc = CanReadResourceDoc()
   
   private val roles = ReflectUtils.getFieldsNameToValue[ApiRole](this).values.toList
 

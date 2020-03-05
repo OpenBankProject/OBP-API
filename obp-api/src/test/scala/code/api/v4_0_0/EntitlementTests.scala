@@ -1,6 +1,6 @@
 package code.api.v4_0_0
 
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.ApiRole.{CanGetEntitlementsForAnyBank, CanGetEntitlementsForAnyUserAtAnyBank, CanGetEntitlementsForOneBank}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, _}
 import code.api.util.{ApiRole, ErrorMessages}

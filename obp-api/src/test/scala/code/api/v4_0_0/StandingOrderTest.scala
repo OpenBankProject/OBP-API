@@ -1,6 +1,6 @@
 package code.api.v4_0_0
 
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.ApiRole.CanCreateStandingOrderAtOneBank

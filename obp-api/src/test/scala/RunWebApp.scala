@@ -25,16 +25,38 @@ TESOBE (http://www.tesobe.com/)
 
   */
 
+import bootstrap.liftweb.Boot
 import code.api.util.APIUtil
+import java.lang.reflect.{Proxy => JProxy}
+import net.liftweb.http.LiftRules
+import net.liftweb.http.provider.HTTPContext
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.webapp.WebAppContext
 
 object RunWebApp extends App {
-  val server = new Server(APIUtil.getPropsAsIntValue("dev.port", 8080))
+  val servletContextPath = "/"
+
+  val port: Int = {
+    val tempHTTPContext = JProxy.newProxyInstance(this.getClass.getClassLoader, Array(classOf[HTTPContext]),
+      (_, method, _) => {
+        if (method.getName == "path") {
+          servletContextPath
+        } else {
+          throw new IllegalAccessException(s"Should not call this object method except 'path' method, current call method name is: ${method.getName}")
+          ??? // should not call other method.
+        }
+      }).asInstanceOf[HTTPContext]
+    LiftRules.setContext(tempHTTPContext)
+
+    new Boot()
+    APIUtil.getPropsAsIntValue("dev.port", 8080)
+  }
+
+  val server = new Server(port)
 
   val context = new WebAppContext()
   context.setServer(server)
-  context.setContextPath("/")
+  context.setContextPath(servletContextPath)
   // current project absolute path
   val basePath = this.getClass.getResource("/").toString .replaceFirst("target[/\\\\].*$", "")
   context.setWar(s"${basePath}src/main/webapp")

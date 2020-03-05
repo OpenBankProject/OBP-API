@@ -1,6 +1,7 @@
 package code.util
 
 import java.net.{Socket, SocketException}
+import java.util.UUID.randomUUID
 import java.util.{Date, GregorianCalendar}
 
 import code.api.util.{APIUtil, CustomJsonFormats}
@@ -10,15 +11,16 @@ import net.liftweb.common._
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.{DateFormat, Formats}
-import net.liftweb.util.Helpers._
-import org.apache.commons.lang3.StringUtils
 
+import org.apache.commons.lang3.StringUtils
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.util.{RequiredFieldValidation, RequiredInfo}
+import com.tesobe.CacheKeyFromArguments
+
 import scala.concurrent.Future
 import scala.util.Random
-
-
-
+import scala.reflect.runtime.universe.Type
+import scala.concurrent.duration._
 
 
 
@@ -39,7 +41,10 @@ object Helper{
    * name i_am_an_id_that_should_never_exist) have no effect. Useful when you have
    * a method that needs to return a CssSel but in some code paths don't want to do anything.
    */
-  val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
+  val NOOP_SELECTOR = {
+    import net.liftweb.util.Helpers._
+    "#i_am_an_id_that_should_never_exist" #> ""
+  }
 
   def generatePermalink(name: String): String = {
     name.trim.toLowerCase.replace("-","").replaceAll(" +", " ").replaceAll(" ", "-")
@@ -322,6 +327,9 @@ object Helper{
   }
 
   trait MdcLoggable extends Loggable {
+    protected def initiate(): Unit = ()
+
+    initiate()
     MDC.put("host" -> getHostname)
   }
 
@@ -351,6 +359,20 @@ object Helper{
     result
   }
 
+  /**
+   * get given type Required Field Info, cache the result
+   * @param tpe
+   * @return RequiredInfo
+   */
+  def getRequiredFieldInfo(tpe: Type): RequiredInfo = {
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      code.api.cache.Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (100000 days) {
 
+        RequiredFieldValidation.getRequiredInfo(tpe)
+
+      }
+    }
+  }
 
 }

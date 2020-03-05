@@ -17,7 +17,7 @@ object ExampleValue {
 
   lazy val bankIdGlossary = glossaryItems.find(_.title == "Bank.bank_id").map(_.textDescription)
 
-  lazy val bankIdExample = ConnectorField("GENODEM1GLS", s"A string that MUST uniquely identify the bank on this OBP instance. It COULD be a UUID but is generally a short string that easily identifies the bank / brand it represents.")
+  lazy val bankIdExample = ConnectorField("gh.29.uk", s"A string that MUST uniquely identify the bank on this OBP instance. It COULD be a UUID but is generally a short string that easily identifies the bank / brand it represents.")
 
   lazy val accountIdExample = ConnectorField("8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0", s"A string that, in combination with the bankId MUST uniquely identify the account on this OBP instance. SHOULD be a UUID. MUST NOT be able to guess accountNumber from accountID. OBP-API or Adapter keeps a mapping between accountId and accountNumber. AccountId is a non reversible hash of the human readable account number.")
 
@@ -38,6 +38,18 @@ object ExampleValue {
 
   lazy val customerIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer and is used in URLs. This SHOULD NOT be the customer number. The combination of customerId and bankId MUST be unique on an OBP instance. customerId SHOULD be unique on an OBP instance. Ideally customerId is a UUID. A mapping between customer number and customer id is kept in OBP.")
   glossaryItems += makeGlossaryItem("Customer.customerId", customerIdExample)
+
+  lazy val customerAttributeId = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer and is used in URLs. This SHOULD NOT be the customer number. The combination of customerId and bankId MUST be unique on an OBP instance. customerId SHOULD be unique on an OBP instance. Ideally customerId is a UUID. A mapping between customer number and customer id is kept in OBP.")
+  glossaryItems += makeGlossaryItem("Customer.customerAttributeId", customerAttributeId)
+
+  lazy val customerAttributeName = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer and is used in URLs. This SHOULD NOT be the customer number. The combination of customerId and bankId MUST be unique on an OBP instance. customerId SHOULD be unique on an OBP instance. Ideally customerId is a UUID. A mapping between customer number and customer id is kept in OBP.")
+  glossaryItems += makeGlossaryItem("Customer.customerId", customerAttributeName)
+
+  lazy val customerAttributeType = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer and is used in URLs. This SHOULD NOT be the customer number. The combination of customerId and bankId MUST be unique on an OBP instance. customerId SHOULD be unique on an OBP instance. Ideally customerId is a UUID. A mapping between customer number and customer id is kept in OBP.")
+  glossaryItems += makeGlossaryItem("Customer.customerId", customerAttributeType)
+
+  lazy val customerAttributeValue = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer and is used in URLs. This SHOULD NOT be the customer number. The combination of customerId and bankId MUST be unique on an OBP instance. customerId SHOULD be unique on an OBP instance. Ideally customerId is a UUID. A mapping between customer number and customer id is kept in OBP.")
+  glossaryItems += makeGlossaryItem("Customer.customerId", customerAttributeValue)
 
   lazy val consumerIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the consumer. It is the app which calls the apis")
   glossaryItems += makeGlossaryItem("Customer.customerId", consumerIdExample)
@@ -69,6 +81,18 @@ object ExampleValue {
   lazy val customerNumberExample = ConnectorField("5987953", s"The human friendly customer identifier that MUST uniquely identify the Customer at the Bank ID. Customer Number is NOT used in URLs.")
   glossaryItems += makeGlossaryItem("Customer.customerNumber", customerNumberExample)
 
+  lazy val customerAttributeIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"Customer attribute id")
+  glossaryItems += makeGlossaryItem("Customer.attributeId", customerAttributeIdExample)
+  
+  lazy val customerAttributeNameExample = ConnectorField("SPECIAL_TAX_NUMBER", s"Customer attribute name")
+  glossaryItems += makeGlossaryItem("Customer.attributeName", customerAttributeNameExample)
+
+  lazy val customerAttributeTypeExample = ConnectorField("STRING", s"Customer attribute type.")
+  glossaryItems += makeGlossaryItem("Customer.attributeType", customerAttributeTypeExample)
+
+  lazy val customerAttributeValueExample = ConnectorField("123456789", s"Customer attribute value.")
+  glossaryItems += makeGlossaryItem("Customer.attributeValue", customerAttributeValueExample)
+  
   lazy val labelExample = ConnectorField("My Account", s"A lable that describes the Account")
   lazy val legalNameExample = ConnectorField("Eveline Tripman", s"The legal name of the Customer.")
   glossaryItems += makeGlossaryItem("Customer.legalName", legalNameExample)
@@ -100,6 +124,18 @@ object ExampleValue {
 
   lazy val transactionIdExample = ConnectorField("2fg8a7e4-6d02-40e3-a129-0b2bf89de8ub", s"The Transaction ID used in URLs. Used to store Metadata for the Transaction.")
   glossaryItems += makeGlossaryItem("Transaction.transactionId", transactionIdExample)
+
+  lazy val transactionAttributeIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"Transaction attribute id")
+  glossaryItems += makeGlossaryItem("Transaction.attributeId", transactionAttributeIdExample)
+
+  lazy val transactionAttributeNameExample = ConnectorField("HOUSE_RENT", s"Transaction attribute name")
+  glossaryItems += makeGlossaryItem("Transaction.attributeName", transactionAttributeNameExample)
+
+  lazy val transactionAttributeTypeExample = ConnectorField("DATE_WITH_DAY", s"Transaction attribute type.")
+  glossaryItems += makeGlossaryItem("Transaction.attributeType", transactionAttributeTypeExample)
+
+  lazy val transactionAttributeValueExample = ConnectorField("123456789", s"Transaction attribute value.")
+  glossaryItems += makeGlossaryItem("Transaction.attributeValue", transactionAttributeValueExample)
 
   lazy val transactionDescriptionExample = ConnectorField("For the piano lesson in June 2018 - Invoice No: 68", s"A description or reference for the transaction")
   glossaryItems += makeGlossaryItem("Transaction.transactionDescription", transactionDescriptionExample)

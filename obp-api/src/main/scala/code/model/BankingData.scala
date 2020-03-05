@@ -372,7 +372,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     if(APIUtil.hasAccess(view, BankIdAccountId(bankId, accountId), user))
       for{
         (transaction, callContext)<-Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext) map {
-          x => (unboxFullOrFail(x._1, callContext, InvalidConnectorResponse, 400), x._2)
+          x => (unboxFullOrFail(x._1, callContext, TransactionNotFound, 400), x._2)
         }
       } yield {
         view.moderateTransaction(transaction) match {
@@ -442,8 +442,9 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   }
 
   /**
-    * @param the view that we will use to get the ModeratedOtherBankAccount list
-    * @param the user that want access to the ModeratedOtherBankAccount list
+    * @param view that we will use to get the ModeratedOtherBankAccount list
+    * @param bankIdAccountId bankId and accountId
+    * @param user that want access to the ModeratedOtherBankAccount list
     * @return a Box of a list ModeratedOtherBankAccounts, it the bank
     *  accounts that have at least one transaction in common with this bank account
     */

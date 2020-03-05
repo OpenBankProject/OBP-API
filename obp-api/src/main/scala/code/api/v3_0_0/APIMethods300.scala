@@ -1194,7 +1194,7 @@ trait APIMethods300 {
       branchJsonV300,
       List(
         UserNotLoggedIn,
-        "License may not be set. meta.license.id and eta.license.name can not be empty",
+        BranchNotFoundByBranchId,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
@@ -1257,7 +1257,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         BankNotFound,
-        "No branches available. License may not be set.",
+        BranchesNotFoundLicense,
         UnknownError),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBranch, apiTagBank, apiTagNewStyle)
@@ -1334,7 +1334,7 @@ trait APIMethods300 {
                 Full(List())
               case Full((list, callContext)) =>
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
-                if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! branchesNotFoundLicense)
+                if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! BranchesNotFoundLicense)
                 else Full(branchesWithLicense)
               case Failure(msg, _, _) => fullBoxOrException(Empty ?~! msg)
               case ParamFailure(msg,_,_,_) => fullBoxOrException(Empty ?~! msg)
@@ -1569,9 +1569,10 @@ trait APIMethods300 {
             (customers,callContext) <- Connector.connector.vend.getCustomersByUserId(u.userId, callContext) map {
               connectorEmptyResponse(_, callContext)
             }
+            (customersAndAttributesPairs,callContext) <- NewStyle.function.getCustomerAttributesForCustomers(customers, callContext)
           } yield {
             // Create the JSON to return. We also return the callContext
-            (JSONFactory300.createCustomersJson(customers), HttpCode.`200`(callContext))
+            (JSONFactory300.createCustomersWithAttributesJson(customersAndAttributesPairs), HttpCode.`200`(callContext))
           }
         }
       }
@@ -2396,8 +2397,7 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: Nil JsonGet _ => {
         cc =>
           for {
-            (_, callContext) <- anonymousAccess(cc)
-            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, Option(cc))
           } yield
             (JSONFactory.createBankJSON(bank), HttpCode.`200`(callContext))
       }

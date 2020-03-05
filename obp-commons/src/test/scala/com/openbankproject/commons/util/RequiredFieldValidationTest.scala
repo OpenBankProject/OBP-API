@@ -5,7 +5,9 @@ import org.scalatest.{FlatSpec, Matchers, Tag}
 import org.scalatest.PartialFunctionValues._
 
 import scala.reflect.runtime.universe._
-import Functions.RichCollection
+import Functions.Implicits.RichCollection
+import net.liftweb.json._
+import RequiredFieldValidation.getRequiredInfo
 
 class RequiredFieldValidationTest extends FlatSpec with Matchers {
   object tag extends Tag("RequiredFieldValidation")
@@ -64,6 +66,191 @@ class RequiredFieldValidationTest extends FlatSpec with Matchers {
 
     stringToArgs should have size (20)
   }
+
+  // this test be grouped, every group is more complex than former.
+  "method RequiredFieldValidation.getRequiredInfo" should "extract instance of T or invalid path names" taggedAs tag in {
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val tp = typeOf[LevelFirst]
+    val requiredInfo = getRequiredInfo(tp)
+
+    {
+      val json = Extraction.decompose(
+        LevelFirst(null, null, null, null, null, null)
+      )
+      val value = requiredInfo.validateAndExtract[LevelFirst](json, v3_1_0)
+      value shouldBe a [Left[_, _]]
+      val Left(left) = value
+      left should contain theSameElementsAs List("name", "age", "email")
+    }
+
+    {
+      val json = Extraction.decompose(
+        LevelFirst(null, null, null, null, null, null)
+      )
+      val value = requiredInfo.validateAndExtract[LevelFirst](json, v2_0_0)
+      value shouldBe a [Left[_, _]]
+      val Left(left) = value
+      left should contain theSameElementsAs List("name")
+    }
+
+
+    {
+      val json = Extraction.decompose(
+        LevelFirst("first name", 12, "first email", LevelSecond(null, null, null, null, null, null), null, null)
+      )
+      val value = requiredInfo.validateAndExtract[LevelFirst](json, v3_1_0)
+      value shouldBe a [Left[_, _]]
+      val Left(left) = value
+      left should contain theSameElementsAs  List("second.name", "second.age", "second.email")
+    }
+    {
+      val json = Extraction.decompose(
+        LevelFirst("first name", 12, null, LevelSecond(null, null, null, null, null, null), null, null)
+      )
+      val value = requiredInfo.validateAndExtract[LevelFirst](json, v2_0_0)
+      value shouldBe a [Left[_, _]]
+      val Left(left) = value
+      left should contain theSameElementsAs  List("second.name")
+    }
+
+    {
+      val json = Extraction.decompose(
+        LevelFirst(null, 12, "first email", LevelSecond(null, null, null, null, null, null), null, null)
+      )
+      val value = requiredInfo.validateAndExtract[LevelFirst](json, v1_2_1)
+      value shouldBe a [Left[_, _]]
+      val Left(left) = value
+      left should contain theSameElementsAs  List("name", "second.name", "second.email")
+    }
+
+    {
+      val json = Extraction.decompose(
+        LevelFirst(null, 12, "first email",
+          LevelSecond("secondName", 11, null, LevelThird(null, null, null, null, null, null), null, null),
+          null, null)
+      )
+      val value = requiredInfo.validateAndExtract[LevelFirst](json, v1_2_1)
+      value shouldBe a [Left[_, _]]
+      val Left(left) = value
+      left should contain theSameElementsAs  List("name", "second.email", "second.third.name", "second.third.email")
+    }
+
+    {
+      val json = Extraction.decompose(
+        LevelFirst(null, 12, "first email",
+          LevelSecond("secondName", 11, null,
+            LevelThird(null, null, "third email",
+                LevelForth(null, null, null)
+              , null, null)
+            , null, null),
+          null, null)
+      )
+      val value = requiredInfo.validateAndExtract[LevelFirst](json, v1_2_1)
+      value shouldBe a [Left[_, _]]
+      val Left(left) = value
+      left should contain theSameElementsAs  List("name", "second.email", "second.third.name", "second.third.forth.email", "second.third.forth.name")
+    }
+
+    {
+      val json = Extraction.decompose(
+        LevelFirst(null, 12, "first email",
+          LevelSecond("secondName", 11, null,
+            LevelThird(null, null, "third email",
+                LevelForth(null, null, null)
+              , null, null)
+            , null, null),
+          null, null)
+      )
+      val value = requiredInfo.validateAndExtract[LevelFirst](json, v1_2_1)
+      value shouldBe a [Left[_, _]]
+      val Left(left) = value
+      left should contain theSameElementsAs  List("name", "second.email", "second.third.name", "second.third.forth.email", "second.third.forth.name")
+    }
+
+    {
+      val forthList = List(LevelForth("name value", 12, null), LevelForth(null, null, "email value"))
+
+      val threeList = List(LevelThird("name value", 12, null, LevelForth("name value", 12, null), forthList, forthList.toArray),
+        LevelThird("name value", 12, "email value", null, forthList, forthList.toArray)
+      )
+      val twoList = List(LevelSecond("name value", 12, "email value", null, threeList, threeList.toArray),
+        LevelSecond("name value", 12, "email value", null, threeList, threeList.toArray)
+      )
+
+      val first = LevelFirst("name value", 12, null, LevelSecond(null, 12, "email value", null, null, null), twoList, twoList.toArray)
+
+      val json = Extraction.decompose(
+        first
+      )
+
+      val expected = List(
+        "email",
+        "second.name",
+
+        "listSecond.listThird.email",
+        "listSecond.listThird.listForth.email",
+        "listSecond.listThird.listForth.name",
+        "listSecond.listThird.arrayForth.email",
+        "listSecond.listThird.arrayForth.name",
+        "listSecond.listThird.forth.email",
+
+        "listSecond.arrayThird.email",
+        "listSecond.arrayThird.forth.email",
+        "listSecond.arrayThird.listForth.email",
+        "listSecond.arrayThird.listForth.name",
+        "listSecond.arrayThird.arrayForth.email",
+        "listSecond.arrayThird.arrayForth.name",
+
+        "arraySecond.listThird.email",
+        "arraySecond.listThird.forth.email",
+        "arraySecond.listThird.listForth.email",
+        "arraySecond.listThird.listForth.name",
+        "arraySecond.listThird.arrayForth.email",
+        "arraySecond.listThird.arrayForth.name",
+
+        "arraySecond.arrayThird.email",
+        "arraySecond.arrayThird.forth.email",
+        "arraySecond.arrayThird.listForth.email",
+        "arraySecond.arrayThird.listForth.name",
+        "arraySecond.arrayThird.arrayForth.email",
+        "arraySecond.arrayThird.arrayForth.name",
+        )
+
+      val value  = requiredInfo.validateAndExtract[LevelFirst](json, v1_2_1)
+      val value2 = requiredInfo.validate(first, v1_2_1)
+
+      value shouldBe a [Left[_, _]]
+      value2 shouldBe a [Left[_, _]]
+
+      val Left(left) = value
+      val Left(left2) = value2
+
+      left should contain theSameElementsAs expected
+      left2 should contain theSameElementsAs expected
+    }
+
+    {
+      val forthList = List(LevelForth("name value", 12, "email value"))
+
+      val threeList = List(LevelThird("name value", 12, "email value", LevelForth("name value", 12, "email value"), forthList, forthList.toArray),
+        LevelThird("name value", 12, "email value", null, forthList, forthList.toArray)
+      )
+      val twoList = List(LevelSecond("name value", 12, "email value", null, threeList, threeList.toArray),
+        LevelSecond("name value", 12, "email value", null, threeList, threeList.toArray)
+      )
+
+      val first = LevelFirst("name value", 12, "email value", LevelSecond("name value", 12, "email value", null, null, null), twoList, null)
+
+      val json = Extraction.decompose(
+        first
+      )
+
+      requiredInfo.validateAndExtract[LevelFirst](json, v1_2_1) should be equals Right(first)
+
+      requiredInfo.validate[LevelFirst](first, v1_2_1) should be equals Right(first)
+    }
+
+  }
 }
 
 
@@ -91,4 +278,42 @@ class Outer (foo: Foo) {
 
 class Middle(middleName: String, @OBPRequired middleRequired: Foo, middleNoRequire: Foo)
 
+//******* the follow types for do validation
 
+case class LevelFirst(@OBPRequired
+                      name: String,
+                      @OBPRequired(Array(v3_1_0, v4_0_0))
+                      age: Integer,
+                      @OBPRequired(Array(ApiVersion.allVersion), Array(v2_0_0))
+                      email: String,
+                      second: LevelSecond,
+                      listSecond: List[LevelSecond],
+                      arraySecond: Array[LevelSecond],
+                     )
+
+case class LevelSecond(@OBPRequired
+                       name: String,
+                       @OBPRequired(Array(v3_1_0, v4_0_0))
+                       age: Integer,
+                       @OBPRequired(Array(ApiVersion.allVersion), Array(v2_0_0))
+                       email: String,
+                       third: LevelThird,
+                       listThird: List[LevelThird],
+                       arrayThird: Array[LevelThird]
+                      )
+case class LevelThird(@OBPRequired
+                      name: String,
+                      @OBPRequired(Array(v3_1_0, v4_0_0))
+                      age: Integer,
+                      @OBPRequired(Array(ApiVersion.allVersion), Array(v2_0_0))
+                      email: String,
+                      forth: LevelForth,
+                      listForth: List[LevelForth],
+                      arrayForth: Array[LevelForth]
+                     )
+case class LevelForth(@OBPRequired
+                      name: String,
+                      @OBPRequired(Array(v3_1_0, v4_0_0))
+                      age: Integer,
+                      @OBPRequired(Array(ApiVersion.allVersion), Array(v2_0_0))
+                      email: String)

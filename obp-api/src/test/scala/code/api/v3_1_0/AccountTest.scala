@@ -1,6 +1,7 @@
 package code.api.v3_1_0
 
-import code.api.{Constant, ErrorMessage}
+import code.api.Constant
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.updateAccountRequestJsonV310
 import code.api.util.APIUtil.OAuth._

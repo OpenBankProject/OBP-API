@@ -21,6 +21,7 @@ import code.cards.MappedPhysicalCard
 import code.context.{UserAuthContextProvider, UserAuthContextUpdateProvider}
 import code.customer._
 import code.customeraddress.CustomerAddressX
+import code.customerattribute.{CustomerAttributeX, MappedCustomerAttribute}
 import code.directdebit.{DirectDebitTrait, DirectDebits}
 import code.dynamicEntity.{DynamicEntityProvider, DynamicEntityT}
 import code.fx.{FXRate, MappedFXRate, fx}
@@ -46,6 +47,7 @@ import code.standingorders.{StandingOrderTrait, StandingOrders}
 import code.taxresidence.TaxResidenceX
 import code.transaction.MappedTransaction
 import code.transactionChallenge.ExpectedChallengeAnswer
+import code.transactionattribute.TransactionAttributeX
 import code.transactionrequests._
 import code.users.Users
 import code.util.Helper
@@ -146,18 +148,70 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * 5. Send the challenge over an separate communication channel.
     */
   // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
-  override def createChallenge(bankId: BankId, 
+  override def createChallenge(bankId: BankId,
+                               accountId: AccountId,
+                               userId: String,
+                               transactionRequestType: TransactionRequestType,
+                               transactionRequestId: String,
+                               scaMethod: Option[SCA],
+                               callContext: Option[CallContext]) = Future {
+    createChallengeInternal(bankId: BankId,
+      accountId: AccountId,
+      userId: String,
+      transactionRequestType: TransactionRequestType,
+      transactionRequestId: String,
+      scaMethod: Option[SCA],
+      callContext: Option[CallContext])
+  }
+  /**
+    * Steps To Create, Store and Send Challenge
+    * 1. Generate a random challenge
+    * 2. Generate a long random salt
+    * 3. Prepend the salt to the challenge and hash it with a standard password hashing function like Argon2, bcrypt, scrypt, or PBKDF2.
+    * 4. Save both the salt and the hash in the user's database record.
+    * 5. Send the challenge over an separate communication channel.
+    */
+  // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
+  override def createChallenges(bankId: BankId,
+                               accountId: AccountId,
+                               userIds: List[String],
+                               transactionRequestType: TransactionRequestType,
+                               transactionRequestId: String,
+                               scaMethod: Option[SCA],
+                               callContext: Option[CallContext]) = Future {
+    val challenges = for {
+      userId <- userIds
+    } yield {
+      val (challengeId, _) = createChallengeInternal(
+        bankId,
+        accountId,
+        userId,
+        transactionRequestType: TransactionRequestType,
+        transactionRequestId,
+        scaMethod,
+        callContext
+      )
+      challengeId.toList
+    }
+    (Full(challenges.flatten), callContext)
+  }
+  private def createChallengeInternal(bankId: BankId, 
                                accountId: AccountId, 
                                userId: String, 
                                transactionRequestType: TransactionRequestType, 
                                transactionRequestId: String,
                                scaMethod: Option[SCA], 
-                               callContext: Option[CallContext]) = Future {
+                               callContext: Option[CallContext]) = {
     def createHashedPassword(challengeAnswer: String) = {
       val challengeId = APIUtil.generateUUID()
       val salt = BCrypt.gensalt()
       val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
-      ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed)
+      ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(
+        challengeId, 
+        transactionRequestId, 
+        salt, 
+        challengeAnswerHashed, 
+        userId)
       (Full(challengeId), callContext)
     }
     scaMethod match {
@@ -2570,6 +2624,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     AccountAttributeX.accountAttributeProvider.vend.getAccountAttributeById(accountAttributeId: String) map {
       (_, callContext)
     }
+
+  override def getTransactionAttributeById(transactionAttributeId: String, callContext: Option[CallContext]) =
+    TransactionAttributeX.transactionAttributeProvider.vend.getTransactionAttributeById(transactionAttributeId: String) map {
+      (_, callContext)
+    }
+
   
   override def createOrUpdateAccountAttribute(
                                                bankId: BankId,
@@ -2611,6 +2671,87 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       accountId: AccountId) map { (_, callContext) }
   }
   
+  override def createOrUpdateCustomerAttribute(
+    bankId: BankId,
+    customerId: CustomerId,
+    customerAttributeId: Option[String],
+    name: String,
+    attributeType: CustomerAttributeType.Value,
+    value: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[CustomerAttribute]] = {
+    CustomerAttributeX.customerAttributeProvider.vend.createOrUpdateCustomerAttribute(
+      bankId: BankId,
+      customerId: CustomerId,
+      customerAttributeId: Option[String],
+      name: String,
+      attributeType: CustomerAttributeType.Value,
+      value: String
+    ) map { (_, callContext) }
+  }
+
+  override def createOrUpdateTransactionAttribute(
+    bankId: BankId,
+    transactionId: TransactionId,
+    transactionAttributeId: Option[String],
+    name: String,
+    attributeType: TransactionAttributeType.Value,
+    value: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TransactionAttribute]]  = {
+    TransactionAttributeX.transactionAttributeProvider.vend.createOrUpdateTransactionAttribute(
+      bankId: BankId,
+      transactionId: TransactionId,
+      transactionAttributeId: Option[String],
+      name: String,
+      attributeType: TransactionAttributeType.Value,
+      value: String
+    ) map { (_, callContext) }
+  }
+  
+  
+  override def getCustomerAttributes(bankId: BankId,
+    customerId: CustomerId,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[CustomerAttribute]]] = {
+    CustomerAttributeX.customerAttributeProvider.vend.getCustomerAttributes(
+      bankId: BankId,
+      customerId: CustomerId) map { (_, callContext) }
+  }
+
+  override def getCustomerIdByAttributeNameValues(
+                                         bankId: BankId,
+                                         nameValues: Map[String, List[String]],
+                                         callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = {
+
+    CustomerAttributeX.customerAttributeProvider.vend.getCustomerIdByAttributeNameValues(bankId, nameValues) map { (_, callContext) }
+  }
+
+
+  override def getCustomerAttributesForCustomers(
+    customers: List[Customer],
+    callContext: Option[CallContext]): OBPReturnType[Box[List[(Customer, List[CustomerAttribute])]]] = {
+    CustomerAttributeX.customerAttributeProvider.vend.getCustomerAttributesForCustomers(
+      customers: List[Customer]) map { (_, callContext) }
+  }
+  
+  
+  override def getTransactionAttributes(
+    bankId: BankId,
+    transactionId: TransactionId,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[TransactionAttribute]]] = {
+    TransactionAttributeX.transactionAttributeProvider.vend.getTransactionAttributes(
+      bankId: BankId,
+      transactionId: TransactionId) map { (_, callContext) }
+  }
+
+  override def getCustomerAttributeById(
+    customerAttributeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[CustomerAttribute]] = {
+    CustomerAttributeX.customerAttributeProvider.vend.getCustomerAttributeById(customerAttributeId: String) map { (_, callContext) }
+  }
 
   override def createAccountApplication(
     productCode: ProductCode,

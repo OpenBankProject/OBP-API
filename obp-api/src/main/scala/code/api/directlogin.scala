@@ -29,22 +29,22 @@ package code.api
 import java.util.Date
 
 import code.api.util.APIUtil._
+import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.consumer.Consumers._
 import code.model.dataAccess.AuthUser
-import code.model.{Consumer, Token, TokenType, UserX}
+import code.model.{Consumer, Token, TokenType}
 import code.token.Tokens
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import com.nimbusds.jwt.JWTClaimsSet
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers
 
 import scala.compat.Platform
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 /**
@@ -93,13 +93,15 @@ object DirectLogin extends RestHelper with MdcLoggable {
   {
     //Handling get request for a token
     case Req("my" :: "logins" :: "direct" :: Nil,_ , PostRequest) => {
-
-      val (httpCode: Int, message: String) = createToken(getAllParameters)
-
-      if (httpCode == 200)
-        successJsonResponse(Extraction.decompose(JSONFactory.createTokenJSON(message)), 201)
-      else
-        errorJsonResponse(message, httpCode)
+      for(
+        (httpCode: Int, message: String) <- createTokenFuture(getAllParameters)
+      ) yield {
+        if (httpCode == 200) {
+          (JSONFactory.createTokenJSON(message), HttpCode.`201`(CallContext()))
+        } else {
+          unboxFullOrFail(Empty, None, message, httpCode)
+        }
+      }
     }
   }
 
@@ -108,10 +110,33 @@ object DirectLogin extends RestHelper with MdcLoggable {
    * @param allParameters map {"username": "some_username", "password": "some_password", "consumer_key": "some_consumer_key"}
    * @return httpCode and token value
    */
+  def createTokenFuture(allParameters: Map[String, String]): Future[(Int, String)] = {
+    val httpMethod = S.request match {
+      case Full(r) => r.request.method
+      case _ => "GET"
+    }
+    //Extract the directLogin parameters from the header and test if the request is valid
+    for (
+      (httpCode, message, directLoginParameters) <- validatorFuture("authorizationToken", httpMethod)
+    ) yield {
+      createTokenCommonPart(httpCode, message, directLoginParameters)
+    }
+  }
+  /**
+   * according username, password, consumer_key to generate a DirectLogin token
+   * @param allParameters map {"username": "some_username", "password": "some_password", "consumer_key": "some_consumer_key"}
+   * @return httpCode and token value
+   */
   def createToken(allParameters: Map[String, String]) = {
     //Extract the directLogin parameters from the header and test if the request is valid
-    var (httpCode, message, directLoginParameters) = validator("authorizationToken", allParameters)
+    val (httpCode, message, directLoginParameters) = validator("authorizationToken", allParameters)
+    
+    createTokenCommonPart(httpCode, message, directLoginParameters)
+  }
 
+  def createTokenCommonPart(code: Int, msg: String, directLoginParameters: Map[String, String]): (Int, String) = {
+    var message = msg
+    var httpCode = code
     if (httpCode == 200) {
       val userId: Long = (for {id <- getUserId(directLoginParameters)} yield id).getOrElse(0)
 

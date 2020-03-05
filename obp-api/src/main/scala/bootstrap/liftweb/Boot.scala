@@ -53,6 +53,7 @@ import code.crm.MappedCrmEvent
 import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraddress.MappedCustomerAddress
+import code.customerattribute.MappedCustomerAttribute
 import code.database.authorisation.Authorisation
 import code.directdebit.DirectDebit
 import code.dynamicEntity.DynamicEntity
@@ -96,6 +97,7 @@ import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.transaction_types.MappedTransactionType
+import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper.MdcLoggable
@@ -103,7 +105,9 @@ import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
 import code.webuiprops.WebUiProps
+import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.Functions.Implicits._
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
@@ -118,22 +122,18 @@ import net.liftweb.util.{Helpers, Props, Schedule, _}
 
 import scala.concurrent.ExecutionContext
 
-
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
  */
 class Boot extends MdcLoggable {
-  
-  def boot {
 
-    val contextPath = LiftRules.context.path
-    val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.toIterable.flatten
-
-    if (Props.mode == Props.RunModes.Development) logger.info("OBP-API Props all fields : \n" + Props.props.mkString("\n"))
-    logger.info("external props folder: " + propsPath)
-    TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
-    logger.info("Current Project TimeZone: " + TimeZone.getDefault)
+  /**
+   * For the project scope, most early initiate logic should in this method.
+   */
+  override protected def initiate(): Unit = {
+    val resourceDir = System.getProperty("props.resource.dir") ?: System.getenv("props.resource.dir")
+    val propsPath = tryo{Box.legacyNullTest(resourceDir)}.toList.flatten
 
     /**
      * Where this application looks for props files:
@@ -166,6 +166,7 @@ class Boot extends MdcLoggable {
     } yield {
       Props.toTry.map {
         f => {
+          val contextPath = LiftRules.context.path
           val name = propsPath + contextPath + f() + "props"
           name -> { () => tryo{new FileInputStream(new File(name))} }
         }
@@ -184,9 +185,17 @@ class Boot extends MdcLoggable {
     }
 
     Props.whereToLook = () => {
-      firstChoicePropsDir.flatten.toList ::: secondChoicePropsDir.flatten.toList
+      (firstChoicePropsDir ::: secondChoicePropsDir).flatten
     }
 
+    if (Props.mode == Props.RunModes.Development) logger.info("OBP-API Props all fields : \n" + Props.props.mkString("\n"))
+    logger.info("external props folder: " + propsPath)
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+    logger.info("Current Project TimeZone: " + TimeZone.getDefault)
+  }
+
+
+  def boot {
     // set up the way to connect to the relational DB we're using (ok if other connector than relational)
     if (!DB.jndiJdbcConnAvailable_?) {
       val driver =
@@ -652,6 +661,8 @@ object ToSchemify {
     MappedProductCollection,
     MappedProductCollectionItem,
     MappedAccountAttribute,
+    MappedCustomerAttribute,
+    MappedTransactionAttribute,
     MappedCardAttribute,
     RateLimiting
   )

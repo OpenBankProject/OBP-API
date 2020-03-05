@@ -1,5 +1,8 @@
 package code.api.util
 
+import java.util.Objects
+import java.util.regex.Pattern
+import code.transactionrequests.TransactionRequests.TransactionRequestStatus._
 import code.api.Constant._
 
 object ErrorMessages {
@@ -66,6 +69,10 @@ object ErrorMessages {
   val TooManyRequests = "OBP-10018: Too Many Requests."
   val InvalidBoolean = "OBP-10019: Invalid Boolean. Could not convert value to a boolean type."
   val InvalidJsonContent = "OBP-10020: Incorrect json."
+  val InvalidConnectorName = "OBP-10021: Incorrect Connector name."
+  val InvalidConnectorMethodName = "OBP-10022: Incorrect Connector method name."
+  val InvalidOutBoundMapping = "OBP-10031: Incorrect outBoundMapping Format, it should be a json structure."
+  val InvalidInBoundMapping = "OBP-10032: Incorrect inBoundMapping Format, it should be a json structure."
   val InvalidUri = "OBP-10404: Request Not Found. The server has not found anything matching the Request-URI.Check your URL and the headers. " +
     "NOTE: when it is POST or PUT api, the Content-Type must be `application/json`. OBP only support the json format body."
 
@@ -81,7 +88,6 @@ object ErrorMessages {
   val IncorrectTriggerName = "OBP-10028: Incorrect Trigger name: "
 
   val ScaMethodNotDefined = "OBP-10030: Strong customer authentication method is not defined at this instance."
-
 
 
 
@@ -148,6 +154,7 @@ object ErrorMessages {
   val MissingQueryParams = "OBP-20055: These query parameters are missing: "
   val ElasticSearchDisabled  = "OBP-20056: Elasticsearch is disabled for this API instance."
   val UserNotFoundByUserId = "OBP-20057: User not found by userId."
+  val ConsumerIsDisabled = "OBP-20058: Consumer is disabled."
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
 
@@ -186,7 +193,7 @@ object ErrorMessages {
   val CustomerAlreadyExistsForUser = "OBP-30007: The User is already linked to a Customer at the bank specified by BANK_ID"
   val UserCustomerLinksNotFoundForUser = "OBP-30008: User Customer Link not found by USER_ID"
   val AtmNotFoundByAtmId = "OBP-30009: ATM not found. Please specify a valid value for ATM_ID."
-  val BranchNotFoundByBranchId = "OBP-300010: Branch not found. Please specify a valid value for BRANCH_ID."
+  val BranchNotFoundByBranchId = "OBP-300010: Branch not found. Please specify a valid value for BRANCH_ID. Or License may not be set. meta.license.id and meta.license.name can not be empty"
   val ProductNotFoundByProductCode = "OBP-30011: Product not found. Please specify a valid value for PRODUCT_CODE."
   val CounterpartyNotFoundByIban = "OBP-30012: Counterparty not found. Please specify a valid value for IBAN."
   val CounterpartyBeneficiaryPermit = "OBP-30013: The account can not send money to the Counterparty. Please set the Counterparty 'isBeneficiary' true first"
@@ -256,6 +263,11 @@ object ErrorMessages {
   val CannotGrantAccountAccess = "OBP-30063: Cannot grant account access."
   val CannotRevokeAccountAccess = "OBP-30064: Cannot revoke account access."
   val CannotFindAccountAccess = "OBP-30065: Cannot find account access."
+  val CannotGetAccounts = "OBP-30066: Could not get accounts."
+  val TransactionNotFound = "OBP-30067: Transaction not found. Please specify a valid value for TRANSACTION_ID."
+  val RefundedTransaction = "OBP-30068: Transaction was already refunded . Please specify a valid value for TRANSACTION_ID."
+  val CustomerAttributeNotFound = "OBP-30069: Customer Attribute not found. Please specify a valid value for CUSTOMER_ATTRIBUTE_ID."
+  val TransactionAttributeNotFound = "OBP-30070: Transaction Attribute not found. Please specify a valid value for TRANSACTION_ATTRIBUTE_ID."
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
@@ -273,6 +285,7 @@ object ErrorMessages {
   val InvalidAccountIdFormat = "OBP-30110: Invalid Account Id. The ACCOUNT_ID should only contain 0-9/a-z/A-Z/'-'/'.'/'_', the length should be smaller than 255."
   val InvalidBankIdFormat = "OBP-30111: Invalid Bank Id. The BANK_ID should only contain 0-9/a-z/A-Z/'-'/'.'/'_', the length should be smaller than 255."
   val InvalidAccountInitialBalance = "OBP-30112: Invalid Number. Initial balance must be a number, e.g 1000.00"
+  val InvalidCustomerBankId = "OBP-30113: Invalid Bank Id. The Customer does not belong to this Bank"
 
 
   val EntitlementIsBankRole = "OBP-30205: This entitlement is a Bank Role. Please set bank_id to a valid bank id."
@@ -316,7 +329,7 @@ object ErrorMessages {
   val CreateAccountApplicationError = "OBP-30316: AccountApplication Status can not be created. "
 
   // Branch related messages
-  val branchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
+  val BranchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
   val BranchesNotFound = "OBP-32002: No branches available."
 
   // ATM related messages
@@ -336,6 +349,14 @@ object ErrorMessages {
   val SmsServerNotResponding = "OBP-35010: SMS server is not working or SMS server can not send the message to the phone number: "
   val AuthorizationNotFound = "OBP-35011: Resource identification of the related Consent authorisation sub-resource not found by AUTHORIZATION_ID. "
   val ConsentAlreadyRevoked = "OBP-35012: Consent is already revoked. "
+  val RolesAllowedInConsent = "OBP-35013: Consents can only contain Roles that you already have access to."
+  val ViewsAllowedInConsent = "OBP-35014: Consents can only contain Views that you already have access to."
+  val ConsentDoesntMatchApp = "OBP-35015: Consent doesn't match your application."
+  val ConsumerKeyHeaderMissing = "OBP-35016: Consumer-Key header value is not defined at this request."
+  val ConsumerAtConsentDisabled = "OBP-35017: The Consumer specified in this consent is disabled."
+  val ConsumerAtConsentCannotBeFound = "OBP-35018: The Consumer specified in this consent cannot be found."
+  val ConsumerValidationMethodForConsentNotDefined = "OBP-35019: Consumer validation method for consent is not defined at this instance."
+  val ConsentMaxTTL = "OBP-35020: You exceeded max value of time to live of consents."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
@@ -363,7 +384,8 @@ object ErrorMessages {
   val InvalidChallengeAnswer = "OBP-40016: Invalid Challenge Answer. Please specify a valid value for answer in Json body. If it is sandbox mode, the answer must be `123`. If it kafka mode, the answer can be got by phone message or other security ways."
   val InvalidPhoneNumber = "OBP-40017: Invalid Phone Number. Please specify a valid value for PHONE_NUMBER. Eg:+9722398746 "
   val TransactionRequestsNotEnabled = "OBP-40018: Sorry, Transaction Requests are not enabled in this API instance."
-
+  val NextChallengePending = s"OBP-40019: Cannot create transaction due to transaction request is in status: ${NEXT_CHALLENGE_PENDING}."
+  val TransactionRequestStatusNotInitiatedOrPending = s"OBP-40020: Transaction Request Status is not ${INITIATED} or ${NEXT_CHALLENGE_PENDING}."
 
 
   // Exceptions (OBP-50XXX)
@@ -402,6 +424,7 @@ object ErrorMessages {
   val InvalidConnectorResponseForGetCheckbookOrdersFuture = "OBP-50211: Connector did not return the set of check book."
   val InvalidConnectorResponseForGetStatusOfCreditCardOrderFuture = "OBP-50212: Connector did not return the set of status of credit card."
   val InvalidConnectorResponseForCreateTransactionAfterChallengev300 = "OBP-50213: The Connector did not return a valid response for payments."
+  val InvalidConnectorResponseForMissingRequiredValues = "OBP-50214: Connector return the data, but the data has missing required values."
 
 
   // Adapter Exceptions (OBP-6XXXX)
@@ -428,7 +451,9 @@ object ErrorMessages {
 
   ///////////
 
+  private val ObpErrorMsgPattern = Pattern.compile("OBP-\\d+:.+")
 
+  def isObpErrorMsg(str: String) = Objects.nonNull(str) && ObpErrorMsgPattern.matcher(str).matches()
 
   //For Swagger, used reflect to  list all the varible names and values.
   // eg : val InvalidUserId = "OBP-30107: Invalid User Id."
@@ -443,13 +468,33 @@ object ErrorMessages {
     v.getName() -> v.get(this)
   }
 
+  private lazy val fieldValueToName = allFields.map(it => (it._2, it._1)).toMap
   //For Swagger, get varible name by value:
   // eg: val InvalidUserId = "OBP-30107: Invalid User Id."
   //  getFildNameByValue("OBP-30107: Invalid User Id.") return InvalidUserId
-  def getFildNameByValue(value: String) = {
-    val strings = for (e <- allFields if (e._2 == (value))) yield e._1
-    strings.head
-  }
+  def getFieldNameByValue(value: String): String =
+    fieldValueToName.getOrElse(value, throw new IllegalArgumentException(s"ErrorMessages not exists field value is: $value"))
+
+  /****** special error message, start with $, mark as do validation according ResourceDoc errorResponseBodies *****/
+  /**
+   * validate method: APIUtil.authorizedAccess
+   */
+  def $UserNotLoggedIn = UserNotLoggedIn
+
+  /**
+   * validate method: NewStyle.function.getBank
+   */
+  def $BankNotFound = BankNotFound
+
+  /**
+   * validate method: NewStyle.function.getBankAccount
+   */
+  def $BankAccountNotFound = BankAccountNotFound
+
+  /**
+   *  validate method: NewStyle.function.checkViewAccessAndReturnView
+   */
+  def $UserNoPermissionAccessView = UserNoPermissionAccessView
 
 
   def getDuplicatedMessageNumbers = {
