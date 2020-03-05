@@ -991,7 +991,9 @@ object NewStyle {
                                             nameValues: Map[String, List[String]],
                                             callContext: Option[CallContext]): Future[(List[CustomerId], Option[CallContext])] =
       Connector.connector.vend.getCustomerIdByAttributeNameValues(bankId, nameValues, callContext)  map {
-        i => (connectorEmptyResponse(i._1, callContext), i._2)
+        i =>
+          val customerIds: Box[List[CustomerId]] = i._1.map(_.map(CustomerId(_)))
+          (connectorEmptyResponse(customerIds, callContext), i._2)
       }
 
     def getCustomerAttributesForCustomers(

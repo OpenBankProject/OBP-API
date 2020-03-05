@@ -2722,7 +2722,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getCustomerIdByAttributeNameValues(
                                          bankId: BankId,
                                          nameValues: Map[String, List[String]],
-                                         callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerId]]] = {
+                                         callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = {
 
     CustomerAttributeX.customerAttributeProvider.vend.getCustomerIdByAttributeNameValues(bankId, nameValues) map { (_, callContext) }
   }
