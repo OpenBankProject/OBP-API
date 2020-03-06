@@ -9,6 +9,7 @@ import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankId, P
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
+import scala.collection.immutable.List
 import scala.concurrent.Future
 
 object AccountAttributeX extends SimpleInjector {
@@ -57,6 +58,9 @@ trait AccountAttributeProvider {
                               accountAttributes: List[ProductAttribute]): Future[Box[List[AccountAttribute]]]
   
   def deleteAccountAttribute(accountAttributeId: String): Future[Box[Boolean]]
+
+  def getAccountIdsByParams(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]]
+
   // End of Trait
 }
 
@@ -81,6 +85,8 @@ class RemotedataAccountAttributeCaseClasses {
                                      accountAttributes: List[ProductAttribute])
 
   case class deleteAccountAttribute(accountAttributeId: String)
+
+  case class getAccountIdsByParams(bankId: BankId, params: Map[String, List[String]])
 }
 
 object RemotedataAccountAttributeCaseClasses extends RemotedataAccountAttributeCaseClasses

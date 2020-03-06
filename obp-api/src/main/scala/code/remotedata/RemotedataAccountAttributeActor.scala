@@ -56,6 +56,10 @@ class RemotedataAccountAttributeActor extends Actor with ObpActorHelper with Mdc
       logger.debug(s"deleteAccountAttribute(${accountAttributeId})")
       mapper.deleteAccountAttribute(accountAttributeId) pipeTo sender
 
+    case cc.getAccountIdsByParams(bankId: BankId, params: Map[String, List[String]]) =>
+      logger.debug(s"getAccountIdsByParams($bankId, $params)")
+      mapper.getAccountIdsByParams(bankId, params) pipeTo sender
+
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
   }
 

@@ -1324,7 +1324,8 @@ trait APIMethods310 {
       "Get Customer by ATTRIBUTES",
       s"""Gets the Customer specified by attributes
         |
-        |URL params example: /banks/some-bank-id/customers?name=John&count=8
+        |URL params example: /banks/some-bank-id/customers?manager=John&count=8
+        |
         |
         |""",
       emptyObjectJson,
@@ -2752,6 +2753,10 @@ trait APIMethods310 {
          |* Description
          |* Terms and Conditions
          |* License the data under this endpoint is released under
+         |
+         |Can filter with attributes name and values.
+         |URL params example: /banks/some-bank-id/products?manager=John&count=8
+         |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
       productsJsonV310,
@@ -2766,7 +2771,7 @@ trait APIMethods310 {
     )
 
     lazy val getProducts : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet req => {
         cc => {
           for {
             (_, callContext) <- getProductsIsPublic match {
@@ -2774,7 +2779,7 @@ trait APIMethods310 {
                 case true => anonymousAccess(cc)
               }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            products <- Future(Connector.connector.vend.getProducts(bankId)) map {
+            products <- Future(Connector.connector.vend.getProducts(bankId, req.params)) map {
               unboxFullOrFail(_, callContext, ProductNotFoundByProductCode)
             }
           } yield {
@@ -2835,7 +2840,9 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagNewStyle))
+      List(apiTagAccount, apiTagNewStyle),
+      Some(List(canCreateAccountAttributeAtOneBank))
+    )
 
     lazy val createAccountAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "accounts" :: accountId :: "products" :: productCode :: "attribute" :: Nil JsonPost json -> _=> {
