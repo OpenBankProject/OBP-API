@@ -1286,7 +1286,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     override def transactionRequestId: String = obpJvmInboundTransactionRequestStatus.transactionRequestId
     override def bulkTransactionsStatus: List[TransactionStatus] = obpJvmInboundTransactionRequestStatus.bulkTransactionsStatus
   }
-  override def getProducts(bankId: BankId): Box[List[Product]] = Empty
+  override def getProducts(bankId: BankId, params: Map[String, List[String]]): Box[List[Product]] = Empty
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 

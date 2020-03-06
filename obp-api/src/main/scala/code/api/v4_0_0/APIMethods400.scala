@@ -2,6 +2,7 @@ package code.api.v4_0_0
 
 import java.util.Date
 
+import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{fullBoxOrException, _}
@@ -13,6 +14,7 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
+import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
@@ -26,7 +28,7 @@ import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.model.toUserExtended
 import code.transactionChallenge.MappedExpectedChallengeAnswer
-import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestProvider}
+import code.transactionrequests.MappedTransactionRequestProvider
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.{TransactionRequestStatus, TransactionRequestTypes}
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
@@ -42,6 +44,7 @@ import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Full, ParamFailure}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 import net.liftweb.mapper.By
@@ -52,6 +55,7 @@ import org.atteo.evo.inflector.English
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
+import code.model._
 
 trait APIMethods400 {
   self: RestHelper =>
@@ -2506,8 +2510,58 @@ trait APIMethods400 {
           }
       }
     }
-    
-    
+
+
+
+    resourceDocs += ResourceDoc(
+      getPrivateAccountsAtOneBank,
+      implementedInApiVersion,
+      "getPrivateAccountsAtOneBank",
+      "GET",
+      "/banks/BANK_ID/accounts",
+      "Get Accounts at Bank.",
+      s"""
+         |Returns the list of accounts at BANK_ID that the user has access to.
+         |For each account the API returns the account ID and the views available to the user..
+         |Each account must have at least one private View.
+         |
+         |optional request parameters for filter with attributes
+         |URL params example: /banks/some-bank-id/accounts?manager=John&count=8
+         |
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      basicAccountsJSON,
+      List($UserNotLoggedIn, $BankNotFound, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getBank","obp.getBankAccount"))
+    )
+
+    lazy val getPrivateAccountsAtOneBank: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), bank) <- SS.userBank
+            (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            params = req.params
+            privateAccountAccesses2 <- if(params.isEmpty || privateAccountAccesses.isEmpty) {
+              Future.successful(privateAccountAccesses)
+            } else {
+              AccountAttributeX.accountAttributeProvider.vend
+                .getAccountIdsByParams(bankId, req.params)
+                .map { boxedAccountIds =>
+                  val accountIds = boxedAccountIds.getOrElse(Nil)
+                  privateAccountAccesses.filter(aa => accountIds.contains(aa.account_id.get))
+                }
+            }
+          } yield {
+            val availablePrivateAccounts = bank.privateAccounts(privateAccountAccesses2)
+            val bankAccounts = Implementations2_0_0.processAccounts(privateViewsUserCanAccessAtOneBank, availablePrivateAccounts)
+            (bankAccounts, HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
 
   }
 

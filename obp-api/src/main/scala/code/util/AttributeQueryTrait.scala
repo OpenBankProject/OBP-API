@@ -6,17 +6,12 @@ import net.liftweb.mapper.{BaseMappedField, BaseMetaMapper, DB}
 /**
  * Any Attribute type Mapped entity companion object extends this trait, will obtain query with parameter function: getParentIdByParams
  */
-trait AttributeQueryTrait {
-  def mBankIdId: BaseMappedField
+trait AttributeQueryTrait { self: BaseMetaMapper =>
+  val mBankId: BaseMappedField
 
-  def mName: BaseMappedField
+  val mName: BaseMappedField
 
-  def mValue: BaseMappedField
-
-  /**
-   * Mapped entity's companion object
-   */
-  val attributeCompanion: BaseMetaMapper = this.asInstanceOf[BaseMetaMapper]
+  val mValue: BaseMappedField
 
   /**
    * Attribute entity's parent id, for example: CustomerAttribute.customerId,
@@ -25,11 +20,11 @@ trait AttributeQueryTrait {
   val mParentId: BaseMappedField
 
 
-  private lazy val tableName = attributeCompanion.dbTableName
+  private lazy val tableName = self.dbTableName
   private lazy val nameColumn = mName.dbColumnName
   private lazy val valueColumn = mValue.dbColumnName
   private lazy val parentIdColumn = mParentId.dbColumnName
-  private lazy val bankIdColumn = mBankIdId.dbColumnName
+  private lazy val bankIdColumn = mBankId.dbColumnName
 
   /**
    * query attribute's parent id, according request params

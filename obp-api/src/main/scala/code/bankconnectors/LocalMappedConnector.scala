@@ -39,6 +39,7 @@ import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.model._
 import code.model.dataAccess._
+import code.productAttributeattribute.MappedProductAttribute
 import code.productattribute.ProductAttributeX
 import code.productcollection.ProductCollectionX
 import code.productcollectionitem.ProductCollectionItems
@@ -76,6 +77,7 @@ import scalacache.guava.GuavaCache
 
 import scala.collection.immutable.List
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -1631,8 +1633,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Full(result.getOrElse(false))
   }
 
-  override def getProducts(bankId: BankId): Box[List[MappedProduct]] = {
-    Full(MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value)))
+  override def getProducts(bankId: BankId, params: Map[String, List[String]]): Box[List[MappedProduct]] = {
+    Box !! {
+      if(params.isEmpty) {
+        MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value))
+      } else {
+        val productIdList = MappedProductAttribute.getParentIdByParams(bankId, params)
+        MappedProduct.findAll(ByList(MappedProduct.mCode, productIdList))
+      }
+    }
   }
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[MappedProduct] = {

@@ -1,13 +1,13 @@
 package code.accountattribute
 
-import code.util.{MappedUUID, UUIDString}
+import code.util.{AttributeQueryTrait, MappedUUID, UUIDString}
 import com.openbankproject.commons.model.enums.AccountAttributeType
 import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankId, ProductAttribute, ProductCode}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
-
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.Future
 
 
@@ -98,6 +98,12 @@ object MappedAccountAttributeProvider extends AccountAttributeProvider {
       MappedAccountAttribute.bulkDelete_!!(By(MappedAccountAttribute.mAccountAttributeId, accountAttributeId))
     )
   }
+
+  override def getAccountIdsByParams(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]] = Future {
+    Box !! {
+      MappedAccountAttribute.getParentIdByParams(bankId, params)
+    }
+  }
 }
 
 class MappedAccountAttribute extends AccountAttribute with LongKeyedMapper[MappedAccountAttribute] with IdPK {
@@ -135,7 +141,10 @@ class MappedAccountAttribute extends AccountAttribute with LongKeyedMapper[Mappe
 }
 
 //
-object MappedAccountAttribute extends MappedAccountAttribute with LongKeyedMetaMapper[MappedAccountAttribute] {
+object MappedAccountAttribute extends MappedAccountAttribute with LongKeyedMetaMapper[MappedAccountAttribute] with AttributeQueryTrait {
   override def dbIndexes: List[BaseIndex[MappedAccountAttribute]] = Index(mAccountId) :: Index(mAccountAttributeId) :: super.dbIndexes
+
+  override val mParentId: BaseMappedField = mAccountId
+  override val mBankId: BaseMappedField = mBankIdId
 }
 

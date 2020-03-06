@@ -7,7 +7,7 @@
         <groupId>com.tesobe</groupId>
         <artifactId>obp-parent</artifactId>
         <relativePath>../pom.xml</relativePath>
-        <version>1.2.0</version>
+        <version>1.3.0</version>
     </parent>
     <artifactId>obp-commons</artifactId>
     <packaging>jar</packaging>

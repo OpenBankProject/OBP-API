@@ -1484,7 +1484,7 @@ trait Connector extends MdcLoggable {
   
   def updateAccount(bankId: BankId, accountId: AccountId, label: String): Box[Boolean] = Failure(setUnimplementedError)
 
-  def getProducts(bankId : BankId) : Box[List[Product]] = Failure(setUnimplementedError)
+  def getProducts(bankId : BankId, params: Map[String, List[String]] = Map.empty) : Box[List[Product]] = Failure(setUnimplementedError)
 
   def getProduct(bankId : BankId, productCode : ProductCode) : Box[Product] = Failure(setUnimplementedError)
 
