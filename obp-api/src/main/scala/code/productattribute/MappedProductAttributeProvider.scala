@@ -1,14 +1,14 @@
 package code.productAttributeattribute
 
 import code.productattribute.ProductAttributeProvider
-import code.util.{MappedUUID, UUIDString}
+import code.util.{AttributeQueryTrait, MappedUUID, UUIDString}
 import com.openbankproject.commons.model.enums.ProductAttributeType
 import com.openbankproject.commons.model.{BankId, ProductAttribute, ProductCode}
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.mapper._
+import net.liftweb.mapper.{BaseMappedField, _}
 import net.liftweb.util.Helpers.tryo
-
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.Future
 
 
@@ -99,7 +99,13 @@ class MappedProductAttribute extends ProductAttribute with LongKeyedMapper[Mappe
 }
 
 //
-object MappedProductAttribute extends MappedProductAttribute with LongKeyedMetaMapper[MappedProductAttribute] {
+object MappedProductAttribute extends MappedProductAttribute with LongKeyedMetaMapper[MappedProductAttribute] with AttributeQueryTrait {
   override def dbIndexes = Index(mBankId) :: Index(mProductAttributeId) :: super.dbIndexes
+
+  /**
+   * Attribute entity's parent id, for example: CustomerAttribute.customerId,
+   * need implemented in companion object
+   */
+  override val mParentId: BaseMappedField = mCode
 }
 

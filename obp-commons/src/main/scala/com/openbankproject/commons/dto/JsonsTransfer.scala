@@ -858,7 +858,7 @@ case class InBoundCreateBankAndAccount(inboundAdapterCallContext: InboundAdapter
 
 
 case class OutBoundGetProducts(outboundAdapterCallContext: OutboundAdapterCallContext,
-                               bankId: BankId) extends TopicTrait
+                               bankId: BankId, params: Map[String, List[String]]) extends TopicTrait
 case class InBoundGetProducts(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ProductCommons]) extends InBoundTrait[List[ProductCommons]]
 
 
