@@ -3,7 +3,7 @@ package code.bankconnectors.akka.actor
 import java.util.Date
 
 import akka.actor.{Actor, ActorLogging}
-import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions._
+import code.api.util.APIUtil.DateWithMsFormat
 import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
 import code.api.util.{APIUtil, OBPFromDate, OBPLimit, OBPToDate}
 import code.bankconnectors.LocalMappedConnector._
@@ -30,7 +30,14 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
         InBoundGetAdapterInfo(
           InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext),
           successInBoundStatus,
-          inboundAdapterInfoInternal
+          InboundAdapterInfoInternal(
+            errorCode ="",
+            backendMessages = List(),
+            name = "LocalAkkaConnector",
+            version = "Dec2018",
+            git_commit = APIUtil.gitCommit,
+            date = DateWithMsFormat.format(new Date())
+          )
         )
       sender ! result   
     

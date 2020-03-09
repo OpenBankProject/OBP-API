@@ -9,7 +9,7 @@ import code.accountattribute.AccountAttributeX
 import code.accountholders.AccountHolders
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
-import code.api.util.APIUtil.{OBPReturnType, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull}
+import code.api.util.APIUtil.{DateWithMsFormat, OBPReturnType, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.atms.Atms.Atm
@@ -102,9 +102,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       errorCode = "",
       backendMessages = Nil,
       name ="LocalMappedConnector",
-      version ="Just for testing.",
-      git_commit ="",
-      date =""
+      version ="v4.0.0",
+      git_commit = APIUtil.gitCommit,
+      date = DateWithMsFormat.format(new Date())
     ), callContext))
   
   // Gets current challenge level for transaction request
