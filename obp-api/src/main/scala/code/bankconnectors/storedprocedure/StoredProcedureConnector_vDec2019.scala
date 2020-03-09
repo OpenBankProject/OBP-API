@@ -6970,7 +6970,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       userOwners=List( InternalBasicUser(userId=userIdExample.value,
       emailAddress=emailExample.value,
       name=usernameExample.value))))))))),
-      bankId=BankId(bankIdExample.value))
+      bankId=BankId(bankIdExample.value), Map.empty)
     ),
     exampleInboundMessage = (
      InBoundGetProducts(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
@@ -6998,11 +6998,11 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // stored procedure name: get_products
-  override def getProducts(bankId: BankId): Box[List[Product]] = {
+  override def getProducts(bankId: BankId, params: Map[String, List[String]]): Box[List[Product]] = {
         import com.openbankproject.commons.dto.{OutBoundGetProducts => OutBound, InBoundGetProducts => InBound}
         val procedureName = "get_products"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, params)
         val result: OBPReturnType[Box[List[ProductCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }

@@ -24,6 +24,7 @@ Berlin 13359, Germany
 */
 
 import java.util.Date
+
 import code.api.Constant._
 import code.api.util.APIUtil.MessageDoc
 import code.api.util.ErrorMessages._
@@ -56,8 +57,9 @@ import net.liftweb.common._
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 
-import scala.collection.immutable.{Nil, Seq}
+import scala.collection.immutable.{List, Nil, Seq}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.Future
 
 trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcLoggable {
@@ -1538,7 +1540,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
 
 
-  override def getProducts(bankId: BankId): Box[List[Product]] = Empty
+  override def getProducts(bankId: BankId, params: Map[String, List[String]]): Box[List[Product]] = Empty
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
