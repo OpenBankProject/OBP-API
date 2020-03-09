@@ -5862,6 +5862,55 @@ trait APIMethods310 {
       }
     }
 
+
+
+    resourceDocs += ResourceDoc(
+      enableDisableConsumers,
+      implementedInApiVersion,
+      "enableDisableConsumers",
+      "PUT",
+      "/management/consumers/CONSUMER_ID",
+      "Enable or Disable Consumers",
+      s"""Enable/Disable a Consumer specified by CONSUMER_ID.
+         |
+         |""",
+      putEnabledJSON,
+      putEnabledJSON,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagConsumer, apiTagApi),
+      Some(List(canEnableConsumers,canDisableConsumers)))
+
+
+    lazy val enableDisableConsumers: OBPEndpoint = {
+      case "management" :: "consumers" :: consumerId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            putData <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
+              json.extract[PutEnabledJSON]
+            }
+            _ <- putData.enabled match {
+              case true  => Helper.booleanToFuture(UserHasMissingRoles + CanEnableConsumers)(hasEntitlement("", u.userId, ApiRole.canEnableConsumers))
+              case false => Helper.booleanToFuture(UserHasMissingRoles + CanDisableConsumers)(hasEntitlement("", u.userId, ApiRole.canDisableConsumers))
+            }
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
+            updatedConsumer <- Future {
+              Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(putData.enabled), None, None, None, None, None, None) ?~! "Cannot update Consumer"
+            }
+          } yield {
+            // Format the data as json
+            val json = PutEnabledJSON(updatedConsumer.map(_.isActive.get).getOrElse(false))
+            // Return
+            (json, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
   }
 }
 
