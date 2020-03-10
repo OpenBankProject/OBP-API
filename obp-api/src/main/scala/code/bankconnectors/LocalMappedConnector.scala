@@ -104,7 +104,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       errorCode = "",
       backendMessages = Nil,
       name ="LocalMappedConnector",
-      version ="v4.0.0",
+      version ="mapped",
       git_commit = APIUtil.gitCommit,
       date = DateWithMsFormat.format(new Date())
     ), callContext))
