@@ -1,12 +1,13 @@
 package code.transactionattribute
 
-import code.util.{MappedUUID, UUIDString}
+import code.util.{AttributeQueryTrait, MappedUUID, UUIDString}
 import com.openbankproject.commons.model.enums.TransactionAttributeType
-import com.openbankproject.commons.model.{TransactionAttribute, TransactionId, BankId}
+import com.openbankproject.commons.model.{BankId, TransactionAttribute, TransactionId}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
+import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -26,7 +27,7 @@ object MappedTransactionAttributeProvider extends TransactionAttributeProvider {
   ): Future[Box[List[TransactionAttribute]]] = {
     Future {
       Box !!  MappedTransactionAttribute.findAll(
-        By(MappedTransactionAttribute.mBankIdId, bankId.value),
+        By(MappedTransactionAttribute.mBankId, bankId.value),
         By(MappedTransactionAttribute.mTransactionId, transactionId.value)
       )
     }
@@ -36,6 +37,11 @@ object MappedTransactionAttributeProvider extends TransactionAttributeProvider {
     MappedTransactionAttribute.find(By(MappedTransactionAttribute.mTransactionAttributeId, transactionAttributeId))
   }
 
+  override def getTransactionIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]]  =
+    Future {
+      Box !! {MappedTransactionAttribute.getParentIdByParams(bankId, params)}
+    }
+  
   override def createOrUpdateTransactionAttribute(bankId: BankId, 
                                               transactionId: TransactionId,
                                               transactionAttributeId: Option[String],
@@ -47,7 +53,7 @@ object MappedTransactionAttributeProvider extends TransactionAttributeProvider {
         MappedTransactionAttribute.find(By(MappedTransactionAttribute.mTransactionAttributeId, id)) match {
             case Full(attribute) => tryo {
               attribute
-                .mBankIdId(bankId.value)
+                .mBankId(bankId.value)
                 .mTransactionId(transactionId.value)
                 .mName(name)
                 .mType(attributeType.toString)
@@ -60,7 +66,7 @@ object MappedTransactionAttributeProvider extends TransactionAttributeProvider {
       case None => Future {
         Full {
           MappedTransactionAttribute.create
-            .mBankIdId(bankId.value)
+            .mBankId(bankId.value)
             .mTransactionId(transactionId.value)
             .mName(name)
             .mType(attributeType.toString())
@@ -79,7 +85,7 @@ object MappedTransactionAttributeProvider extends TransactionAttributeProvider {
           transactionAttribute <- transactionAttributes
         } yield {
           MappedTransactionAttribute.create.mTransactionId(transactionId.value)
-            .mBankIdId(bankId.value)
+            .mBankId(bankId.value)
             .mName(transactionAttribute.name)
             .mType(transactionAttribute.attributeType.toString())
             .mValue(transactionAttribute.value)
@@ -100,7 +106,7 @@ class MappedTransactionAttribute extends TransactionAttribute with LongKeyedMapp
 
   override def getSingleton = MappedTransactionAttribute
 
-  object mBankIdId extends UUIDString(this) // combination of this
+  object mBankId extends UUIDString(this) // combination of this
  
   object mTransactionId extends UUIDString(this) // combination of this
 
@@ -113,7 +119,7 @@ class MappedTransactionAttribute extends TransactionAttribute with LongKeyedMapp
   object mValue extends MappedString(this, 255)
 
 
-  override def bankId: BankId = BankId(mBankIdId.get)
+  override def bankId: BankId = BankId(mBankId.get)
   
   override def transactionId: TransactionId = TransactionId(mTransactionId.get)
 
@@ -128,7 +134,9 @@ class MappedTransactionAttribute extends TransactionAttribute with LongKeyedMapp
 
 }
 
-object MappedTransactionAttribute extends MappedTransactionAttribute with LongKeyedMetaMapper[MappedTransactionAttribute] {
+object MappedTransactionAttribute extends MappedTransactionAttribute with LongKeyedMetaMapper[MappedTransactionAttribute]
+  with AttributeQueryTrait {
   override def dbIndexes: List[BaseIndex[MappedTransactionAttribute]] = Index(mTransactionId) :: Index(mTransactionAttributeId) :: super.dbIndexes
+  override val mParentId: BaseMappedField = mTransactionId
 }
 

@@ -996,6 +996,17 @@ object NewStyle {
           (connectorEmptyResponse(customerIds, callContext), i._2)
       }
 
+    def getTransactionIdsByAttributeNameValues(
+      bankId: BankId,
+      nameValues: Map[String, List[String]],
+      callContext: Option[CallContext]): Future[(List[TransactionId], Option[CallContext])] =
+      Connector.connector.vend.getTransactionIdsByAttributeNameValues(bankId, nameValues, callContext)  map {
+        i =>
+          val transactionIds: Box[List[TransactionId]] = i._1.map(_.map(TransactionId(_)))
+          (connectorEmptyResponse(transactionIds, callContext), i._2)
+      }
+    
+    
     def getCustomerAttributesForCustomers(
       customers: List[Customer],
       callContext: Option[CallContext]): OBPReturnType[List[(Customer, List[CustomerAttribute])]] = {

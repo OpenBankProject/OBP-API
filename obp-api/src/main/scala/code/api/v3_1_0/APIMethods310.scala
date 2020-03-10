@@ -60,7 +60,6 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 import scala.util.Random
-
 import scala.reflect.runtime.universe.MethodSymbol
 
 trait APIMethods310 {
@@ -477,7 +476,7 @@ trait APIMethods310 {
 
     lazy val getFirehoseCustomers : OBPEndpoint = {
       //get private accounts for all banks
-      case "banks" :: BankId(bankId):: "firehose" ::  "customers" :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId):: "firehose" ::  "customers" :: Nil JsonGet req => {
         cc =>
           for {
             (Full(u), callContext) <-  authorizedAccess(cc)
@@ -489,8 +488,18 @@ trait APIMethods310 {
             httpParams <- NewStyle.function.createHttpParams(cc.url)
             obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
             customers <- NewStyle.function.getCustomers(bankId, callContext, obpQueryParams)
+            reqParams = req.params.filterNot(param => allowedParams.contains(param._1))
+            (customersFiltered, callContext) <- if(reqParams.isEmpty) {
+              Future {(customers, callContext)}
+            } else {
+              for{
+                (customerIds, callContext) <- NewStyle.function.getCustomerIdsByAttributeNameValues(bankId, reqParams, callContext)
+              }yield{
+                (customers.filter(customer => customerIds.contains(CustomerId(customer.customerId))),callContext)
+              }
+            }
           } yield {
-            (JSONFactory300.createCustomersJson(customers), HttpCode.`200`(callContext))
+            (JSONFactory300.createCustomersJson(customersFiltered), HttpCode.`200`(callContext))
           }
       }
     }
