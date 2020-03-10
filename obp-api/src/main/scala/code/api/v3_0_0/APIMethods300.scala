@@ -2,6 +2,7 @@ package code.api.v3_0_0
 
 import java.util.regex.Pattern
 
+import code.accountattribute.AccountAttributeX
 import code.accountholders.AccountHolders
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
@@ -490,7 +491,7 @@ trait APIMethods300 {
 
     lazy val getFirehoseAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for all banks
-      case "banks" :: BankId(bankId):: "firehose" :: "accounts"  :: "views" :: ViewId(viewId):: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId):: "firehose" :: "accounts"  :: "views" :: ViewId(viewId):: Nil JsonGet req => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
@@ -499,12 +500,23 @@ trait APIMethods300 {
             }
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availableBankIdAccountIdList <- Future {Views.views.vend.getAllFirehoseAccounts(bank.bankId, u) }
+            params = req.params
+            availableBankIdAccountIdList2 <- if(params.isEmpty) {
+              Future.successful(availableBankIdAccountIdList)
+            } else {
+              AccountAttributeX.accountAttributeProvider.vend
+                .getAccountIdsByParams(bankId, req.params)
+                .map { boxedAccountIds =>
+                  val accountIds = boxedAccountIds.getOrElse(Nil)
+                  availableBankIdAccountIdList.filter(availableBankIdAccountId => accountIds.contains(availableBankIdAccountId.accountId.value))
+                }
+            }
             moderatedAccounts = for {
               //Here is a new for-loop to get the moderated accouts for the firehose user, according to the viewId.
               //1 each accountId-> find a proper bankAccount object.
               //2 each bankAccount object find the proper view.
               //3 use view and user to moderate the bankaccount object.
-              bankIdAccountId <- availableBankIdAccountIdList
+              bankIdAccountId <- availableBankIdAccountIdList2
               bankAccount <- Connector.connector.vend.getBankAccount(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
               view <- APIUtil.checkViewAccessAndReturnView(viewId, bankIdAccountId, Some(u))
               moderatedAccount <- bankAccount.moderatedBankAccount(view, bankIdAccountId, Full(u), callContext) //Error handling is in lower method
@@ -567,13 +579,26 @@ trait APIMethods300 {
               (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
               (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
               view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId),Some(u), callContext)
+              allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
+              httpParams <- NewStyle.function.createHttpParams(cc.url)
+              obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+              reqParams = req.params.filterNot(param => allowedParams.contains(param._1))
+              (transactionIds, callContext) <- if(reqParams.nonEmpty) {
+                 NewStyle.function.getTransactionIdsByAttributeNameValues(bankId, reqParams, callContext)
+              } else{
+                Future((List.empty[TransactionId], callContext))
+              }
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- createQueriesByHttpParams(callContext.get.requestHeaders)
-                (transactions, callContext) <- bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankId, accountId), callContext, params)
+                (transactions, callContext) <- bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankId, accountId), callContext, obpQueryParams)
+                transactionsFiltered= if(reqParams.isEmpty) {
+                  transactions
+                } else {
+                  transactions.filter(transaction => transactionIds.contains(transaction.id))
+                }
               } yield {
-                (createTransactionsJson(transactions), HttpCode.`200`(callContext))
+                (createTransactionsJson(transactionsFiltered), HttpCode.`200`(callContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -591,7 +616,7 @@ trait APIMethods300 {
         |
         |${authenticationRequiredMessage(true)}
         |
-        |Possible custom headers for pagination:
+        |Possible custom url parameters for pagination:
         |
         |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
         |* limit=NUMBER ==> default value: 50

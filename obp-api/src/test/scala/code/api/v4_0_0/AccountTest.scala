@@ -2,10 +2,13 @@ package code.api.v4_0_0
 
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountAttributeJson
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole
+import code.api.util.{APIUtil, ApiRole}
+import code.api.util.ApiRole.CanCreateAccountAttributeAtOneBank
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
-import code.api.v3_1_0.CreateAccountResponseJsonV310
+import code.api.v2_0_0.{BasicAccountJSON, BasicAccountsJSON}
+import code.api.v3_1_0.{AccountAttributeResponseJson, CreateAccountResponseJsonV310, PostPutProductJsonV310, ProductJsonV310}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -13,6 +16,8 @@ import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
+
+import scala.collection.immutable.List
 
 class AccountTest extends V400ServerSetup {
   /**
@@ -26,6 +31,7 @@ class AccountTest extends V400ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.getCoreAccountById))
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getPrivateAccountByIdFull))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.addAccount))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getPrivateAccountsAtOneBank))
 
   lazy val testBankId = testBankId1
   lazy val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
@@ -97,7 +103,7 @@ class AccountTest extends V400ServerSetup {
       account.label should be (addAccountJson.label)
       account.account_routings should be (List(addAccountJson.account_routing))
 
-      
+
       Then(s"We call $ApiEndpoint1 to get the account back")
       val request = (v4_0_0_Request /"my" / "banks" / testBankId.value/ "accounts" / account.account_id / "account").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -107,10 +113,10 @@ class AccountTest extends V400ServerSetup {
       val moderatedCoreAccountJsonV400 = response.body.extract[ModeratedCoreAccountJsonV400]
       moderatedCoreAccountJsonV400.account_attributes.length == 0 should be (true)
       moderatedCoreAccountJsonV400.views_basic.length >= 1 should be (true)
-      
-      
-      
-      
+
+
+
+
       Then("We make a request v4.0.0 but with other user")
       val requestWithNewAccountId = (v4_0_0_Request / "banks" / testBankId.value / "accounts" ).POST <@(user1)
       val responseWithNoRole = makePostRequest(requestWithNewAccountId, write(addAccountJsonOtherUser))
@@ -133,6 +139,57 @@ class AccountTest extends V400ServerSetup {
       account2.user_id should be (addAccountJsonOtherUser.user_id)
       account2.label should be (addAccountJson.label)
       account2.account_routings should be (List(addAccountJson.account_routing))
+    }
+  }
+
+  feature(s"test $ApiEndpoint4 - Authorized access") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
+
+      val testBankId = randomBankId
+      val parentPostPutProductJsonV310: PostPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(parent_product_code ="")
+      val postAccountAttributeJson = accountAttributeJson
+      
+      When("We will first prepare the product")
+      val product: ProductJsonV310 =
+        createProduct(
+          bankId=testBankId,
+          code=APIUtil.generateUUID(),
+          json=parentPostPutProductJsonV310
+        )
+      
+      Then("We will prepare the account attribute")
+      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateAccountAttributeAtOneBank.toString)
+      When(s"We make a request $VersionOfApi")
+      val requestCreate310 = (v4_0_0_Request / "banks" / testBankId / "accounts" / testAccountId0.value / "products" / product.code / "attribute").POST <@(user1)
+      val responseCreate310 = makePostRequest(requestCreate310, write(postAccountAttributeJson))
+      Then("We should get a 201")
+      responseCreate310.code should equal(201)
+      
+      
+      Then(s"We call $ApiEndpoint1 to get the account back")
+      val request = (v4_0_0_Request /"banks" / testBankId/ "accounts").GET <@ (user1) 
+      val response = makeGetRequest(request)
+
+      Then("We should get a 200 and check the response body")
+      response.code should equal(200)
+      response.body.extract[List[BasicAccountJSON]].length should be (2)
+
+      Then(s"We call $ApiEndpoint1 to get the account back with correct parameters")
+      val request1 = (v4_0_0_Request /"banks" / testBankId/ "accounts").GET <@ (user1) <<? (List(("OVERDRAFT_START_DATE","2012-04-23")))
+      val response1 = makeGetRequest(request1)
+
+      Then("We should get a 200 and check the response body")
+      response1.code should equal(200)
+      response1.body.extract[List[BasicAccountJSON]].length should be (1)
+
+      Then(s"We call $ApiEndpoint1 to get the account back with wrong parameters")
+      val request2 = (v4_0_0_Request /"banks" / testBankId/ "accounts").GET <@ (user1) <<? (List(("OVERDRAFT_START_DATE1","2012-04-23")))
+      val response2 = makeGetRequest(request2)
+
+      Then("We should get a 200 and check the response body")
+      response2.code should equal(200)
+      response2.body.extract[List[BasicAccountJSON]].length should be (0)
+
     }
   }
   
