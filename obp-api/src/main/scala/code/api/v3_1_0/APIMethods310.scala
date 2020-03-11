@@ -3653,7 +3653,7 @@ trait APIMethods310 {
                   json.extract[PostConsentEmailJsonV310]
                 }
                 params = PlainMailBodyType(challengeText) :: List(To(postConsentEmailJson.email))
-                _ <- Future{Mailer.sendMail(From("challenge@tesobe.com"), Subject("Challenge challenge"), params :_*)}
+                _ <- Future{Mailer.sendMail(From("challenge@tesobe.com"), Subject("OBP Consent Challenge"), params :_*)}
               } yield Future{true}
             case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
               for {
