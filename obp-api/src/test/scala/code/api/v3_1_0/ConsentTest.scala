@@ -97,7 +97,7 @@ class ConsentTest extends V310ServerSetup {
     }
   }
 
-  private def wholeFunctionality(name: String) = {
+  private def wholeFunctionality(nameOfRequestHeader: String) = {
     When("We make a request")
     // Create a consent as the user1.
     // Must fail because we try to set time_to_live=4500
@@ -124,7 +124,7 @@ class ConsentTest extends V310ServerSetup {
 
     val consentId = secondResponse400.body.extract[ConsentJsonV310].consent_id
     val jwt = secondResponse400.body.extract[ConsentJsonV310].jwt
-    val header = List((RequestHeader.`Consent-Id`, jwt))
+    val header = List((nameOfRequestHeader, jwt))
 
     // Make a request with the consent which is NOT in status ACCEPTED
     val requestGetUserByUserId400 = (v3_1_0_Request / "users" / "current").GET
