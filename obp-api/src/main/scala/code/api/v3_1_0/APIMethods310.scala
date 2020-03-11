@@ -1250,6 +1250,9 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostCustomerJsonV310]
             }
+            _ <- Helper.booleanToFuture(failMsg =  InvalidJsonContent + s" The filed dependants(${postedData.dependants}) not equal the length(${postedData.dob_of_dependants.length }) of dob_of_dependants array" ) {
+              postedData.dependants == postedData.dob_of_dependants.length 
+            }
             (customer, callContext) <- NewStyle.function.createCustomer(
               bankId,
               postedData.legal_name,
