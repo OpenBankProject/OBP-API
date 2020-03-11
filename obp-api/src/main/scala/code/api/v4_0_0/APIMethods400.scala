@@ -19,7 +19,7 @@ import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_1_0.{CreateAccountRequestJsonV310, JSONFactory310, ListResult}
+import code.api.v3_1_0.{CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310, ListResult}
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
 import code.bankconnectors.Connector
 import code.dynamicEntity.DynamicEntityCommons
@@ -2252,6 +2252,61 @@ trait APIMethods400 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getCustomersByAttributes,
+      implementedInApiVersion,
+      nameOf(getCustomersByAttributes),
+      "GET",
+      "/banks/BANK_ID/customers",
+      "Get Customers by ATTRIBUTES",
+      s"""Gets the Customers specified by attributes
+         |
+         |URL params example: /banks/some-bank-id/customers?name=John&age=8
+         |URL params example: /banks/some-bank-id/customers?manager=John&count=8
+         |
+         |
+         |""",
+      emptyObjectJson,
+      ListResult(
+        "customers",
+        List(customerWithAttributesJsonV310)
+      ),
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCustomer))
+    )
+
+    lazy val getCustomersByAttributes : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" ::  Nil JsonGet req => {
+        cc =>
+          for {
+            (customerIds, callContext) <- NewStyle.function.getCustomerIdsByAttributeNameValues(bankId, req.params, Some(cc))
+            list: List[CustomerWithAttributesJsonV310] <- {
+              val listCustomerFuture: List[Future[CustomerWithAttributesJsonV310]] = customerIds.map{ customerId =>
+                val customerFuture = NewStyle.function.getCustomerByCustomerId(customerId.value, callContext)
+                customerFuture.flatMap { customerAndCc =>
+                  val (customer, cc) = customerAndCc
+                  NewStyle.function.getCustomerAttributes(bankId, customerId, cc).map { attributesAndCc =>
+                    val (attributes, _) = attributesAndCc
+                    JSONFactory310.createCustomerWithAttributesJson(customer, attributes)
+                  }
+                }
+              }
+              Future.sequence(listCustomerFuture)
+            }
+          } yield {
+            (ListResult("customers", list), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    
     resourceDocs += ResourceDoc(
       createTransactionAttribute,
       implementedInApiVersion,

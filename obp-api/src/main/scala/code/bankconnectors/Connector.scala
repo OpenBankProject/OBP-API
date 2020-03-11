@@ -1951,7 +1951,7 @@ trait Connector extends MdcLoggable {
    * @param callContext
    * @return filtered CustomerAttribute.customerId
    */
-  def getCustomerIdByAttributeNameValues(
+  def getCustomerIdsByAttributeNameValues(
     bankId: BankId,
     nameValues: Map[String, List[String]],
     callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] =
@@ -1960,6 +1960,12 @@ trait Connector extends MdcLoggable {
   def getCustomerAttributesForCustomers(
     customers: List[Customer],
     callContext: Option[CallContext]): OBPReturnType[Box[List[(Customer, List[CustomerAttribute])]]] =
+    Future{(Failure(setUnimplementedError), callContext)}
+
+  def getTransactionIdsByAttributeNameValues(
+    bankId: BankId,
+    nameValues: Map[String, List[String]],
+    callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] =
     Future{(Failure(setUnimplementedError), callContext)}
   
   def getTransactionAttributes(

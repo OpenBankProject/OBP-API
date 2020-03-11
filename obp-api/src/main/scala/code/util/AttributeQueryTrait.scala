@@ -64,9 +64,10 @@ trait AttributeQueryTrait { self: BaseMetaMapper =>
            |""".stripMargin
 
       val (columnNames: List[String], list: List[List[String]]) = DB.runQuery(sql, bankId.value :: parameters)
-      val parentIdIndex = columnNames.indexOf(parentIdColumn)
-      val nameIndex = columnNames.indexOf(nameColumn)
-      val valueIndex = columnNames.indexOf(valueColumn)
+      val columnNamesLowerCase = columnNames.map(_.toLowerCase)
+      val parentIdIndex = columnNamesLowerCase.indexOf(parentIdColumn.toLowerCase)
+      val nameIndex = columnNamesLowerCase.indexOf(nameColumn.toLowerCase)
+      val valueIndex = columnNamesLowerCase.indexOf(valueColumn.toLowerCase)
 
       val parentIdToAttributes: Map[String, List[List[String]]] = list.groupBy(_.apply(parentIdIndex))
 

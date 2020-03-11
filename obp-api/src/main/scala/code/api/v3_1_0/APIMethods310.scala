@@ -60,7 +60,6 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 import scala.util.Random
-
 import scala.reflect.runtime.universe.MethodSymbol
 
 trait APIMethods310 {
@@ -477,7 +476,7 @@ trait APIMethods310 {
 
     lazy val getFirehoseCustomers : OBPEndpoint = {
       //get private accounts for all banks
-      case "banks" :: BankId(bankId):: "firehose" ::  "customers" :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId):: "firehose" ::  "customers" :: Nil JsonGet req => {
         cc =>
           for {
             (Full(u), callContext) <-  authorizedAccess(cc)
@@ -489,8 +488,18 @@ trait APIMethods310 {
             httpParams <- NewStyle.function.createHttpParams(cc.url)
             obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
             customers <- NewStyle.function.getCustomers(bankId, callContext, obpQueryParams)
+            reqParams = req.params.filterNot(param => allowedParams.contains(param._1))
+            (customersFiltered, callContext) <- if(reqParams.isEmpty) {
+              Future {(customers, callContext)}
+            } else {
+              for{
+                (customerIds, callContext) <- NewStyle.function.getCustomerIdsByAttributeNameValues(bankId, reqParams, callContext)
+              }yield{
+                (customers.filter(customer => customerIds.contains(CustomerId(customer.customerId))),callContext)
+              }
+            }
           } yield {
-            (JSONFactory300.createCustomersJson(customers), HttpCode.`200`(callContext))
+            (JSONFactory300.createCustomersJson(customersFiltered), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1314,60 +1323,7 @@ trait APIMethods310 {
           }
       }
     }
-
-    resourceDocs += ResourceDoc(
-      getCustomerByAttributes,
-      implementedInApiVersion,
-      nameOf(getCustomerByAttributes),
-      "GET",
-      "/banks/BANK_ID/customers",
-      "Get Customer by ATTRIBUTES",
-      s"""Gets the Customer specified by attributes
-        |
-        |URL params example: /banks/some-bank-id/customers?manager=John&count=8
-        |
-        |
-        |""",
-      emptyObjectJson,
-      ListResult(
-        "customers",
-        List(customerWithAttributesJsonV310)
-      ),
-      List(
-        $UserNotLoggedIn,
-        $BankNotFound,
-        UserCustomerLinksNotFoundForUser,
-        UnknownError
-      ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canGetCustomer))
-    ).enableAutoValidate()
-
-    lazy val getCustomerByAttributes : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customers" ::  Nil JsonGet req => {
-        cc =>
-          for {
-            (customerIds, callContext) <- NewStyle.function.getCustomerIdByAttributeNameValues(bankId, req.params, Some(cc))
-            list: List[CustomerWithAttributesJsonV310] <- {
-              val listCustomerFuture: List[Future[CustomerWithAttributesJsonV310]] = customerIds.map{ customerId =>
-                val customerFuture = NewStyle.function.getCustomerByCustomerId(customerId.value, callContext)
-                customerFuture.flatMap { customerAndCc =>
-                  val (customer, cc) = customerAndCc
-                  NewStyle.function.getCustomerAttributes(bankId, customerId, cc).map { attributesAndCc =>
-                    val (attributes, _) = attributesAndCc
-                    JSONFactory310.createCustomerWithAttributesJson(customer, attributes)
-                  }
-                }
-              }
-              Future.sequence(listCustomerFuture)
-            }
-          } yield {
-            (ListResult("customers", list), HttpCode.`200`(callContext))
-          }
-      }
-    }
-
+    
     resourceDocs += ResourceDoc(
       getCustomerByCustomerId,
       implementedInApiVersion,
