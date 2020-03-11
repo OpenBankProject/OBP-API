@@ -267,8 +267,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     )
     if(newStyleEndpoints(rd)) {
       fn(cc)
-    } else if (APIUtil.hasConsentId(reqHeaders)) {
-      val (usr, callContext) =  Consent.applyRulesOldStyle(APIUtil.getConsentId(reqHeaders), cc)
+    } else if (APIUtil.hasConsentJWT(reqHeaders)) {
+      val (usr, callContext) =  Consent.applyRulesOldStyle(APIUtil.getConsentJWT(reqHeaders), cc)
       usr match {
         case Full(u) => fn(callContext.copy(user = Full(u))) // Authentication is successful
         case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)

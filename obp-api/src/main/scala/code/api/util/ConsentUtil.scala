@@ -97,7 +97,7 @@ object Consent {
 
   /**
     * Purpose of this helper function is to get the Consumer-Key value from a Request Headers.
-    * @return the Consent-Id value from a Request Header as a String
+    * @return the Consumer-Key value from a Request Header as a String
     */
   def getConsumerKey(requestHeaders: List[HTTPParam]): Option[String] = {
     requestHeaders.toSet.filter(_.name == RequestHeader.`Consumer-Key`).toList match {
@@ -262,7 +262,7 @@ object Consent {
       case Full(jsonAsString) =>
         try {
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-          checkConsent(consent, consentIdAsJwt, calContext) match { // Check is it Consent-Id expired
+          checkConsent(consent, consentIdAsJwt, calContext) match { // Check is it Consent-JWT expired
             case (Full(true)) => // OK
               applyConsentRules(consent)
             case failure@Failure(_, _, _) => // Handled errors
@@ -306,7 +306,7 @@ object Consent {
       case Full(jsonAsString) =>
         try {
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-          checkConsent(consent, consentIdAsJwt, calContext) match { // Check is it Consent-Id expired
+          checkConsent(consent, consentIdAsJwt, calContext) match { // Check is it Consent-JWT expired
             case (Full(true)) => // OK
               applyConsentRules(consent)
             case failure@Failure(_, _, _) => // Handled errors

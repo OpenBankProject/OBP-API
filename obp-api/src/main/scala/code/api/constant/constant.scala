@@ -37,7 +37,9 @@ object ChargePolicy extends Enumeration {
 
 object RequestHeader {
   final lazy val `Consumer-Key` = "Consumer-Key"
+  @deprecated("Use Consent-JWT","11-03-2020")
   final lazy val `Consent-Id` = "Consent-Id"
+  final lazy val `Consent-JWT` = "Consent-JWT"
   final lazy val `PSD2-CERT` = "PSD2-CERT"
 }
 object ResponseHeader {
