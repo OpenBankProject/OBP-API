@@ -3,6 +3,7 @@ package code.customer
 import java.lang
 import java.util.Date
 
+import code.CustomerDependants.CustomerDependants
 import code.api.util._
 import code.api.util.migration.Migration.DbFunction
 import code.usercustomerlinks.{MappedUserCustomerLinkProvider, UserCustomerLink}
@@ -12,8 +13,8 @@ import code.util.{MappedUUID, UUIDString}
 import com.github.dwickern.macros.NameOf
 import com.openbankproject.commons.model.{User, _}
 import net.liftweb.common.{Box, Full}
-import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.tryo
+import net.liftweb.mapper.{By, MappedString,_}
 
 import scala.collection.immutable.List
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -156,7 +157,7 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
     }
        
     tryo { 
-      MappedCustomer
+      val mappedCustomer = MappedCustomer
         .create
         .mBank(bankId.value)
         .mEmail(email)
@@ -181,7 +182,13 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
         .mBranchId(branchId)
         .mNameSuffix(nameSuffix)
         .saveMe()
-        } 
+      
+        // This is especially for OneToMany table, to save a List to database.
+        CustomerDependants.CustomerDependants.vend
+          .createCustomerDependants(mappedCustomer.id.get, dobOfDependents.map(CustomerDependant(_)))
+    
+        mappedCustomer
+    }
 
   }
   
@@ -353,7 +360,10 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
   override def dateOfBirth: Date = mDateOfBirth.get
   override def relationshipStatus: String = mRelationshipStatus.get
   override def dependents: Integer = mDependents.get
-  override def dobOfDependents: List[Date] = List(createdAt.get)
+  override def dobOfDependents: List[Date] = 
+    CustomerDependants.CustomerDependants.vend
+    .getCustomerDependantsByCustomerPrimaryKey(this.id.get)
+    .map(_.mDateOfBirth.get)
   override def highestEducationAttained: String = mHighestEducationAttained.get
   override def employmentStatus: String = mEmploymentStatus.get
   override def creditRating: CreditRatingTrait = new CreditRatingTrait {

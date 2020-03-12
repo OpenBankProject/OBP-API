@@ -155,7 +155,7 @@ class WebUI extends MdcLoggable{
                                 |                                                                       src="https://static.openbankproject.com/images/sandbox/showcases/nextjs.png"
                                 |                                                                       width="156" height="156" alt="nextjs"/></a>
                                 |    <h2>Next.JS</h2>
-                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-NextJS">OpenBankProject</a>
+                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-NextJS">Strings.MY</a>
                                 |</div>
                                 |<div class="main-showcases-item">
                                 |    <a href="https://github.com/OpenBankProject/Hello-OBP-Flutter-DirectLogin"><img class="showcase-react"
@@ -163,7 +163,7 @@ class WebUI extends MdcLoggable{
                                 |                                                                                    width="156" height="156"
                                 |                                                                                    alt="flutter"/></a>
                                 |    <h2>Flutter</h2>
-                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-Flutter-DirectLogin">OpenBankProject</a>
+                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-Flutter-DirectLogin">Strings.MY</a>
                                 |</div>
                                 |<div class="main-showcases-item">
                                 |    <a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Mac"><img class="showcase-mac"

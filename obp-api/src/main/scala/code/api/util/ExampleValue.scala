@@ -69,7 +69,7 @@ object ExampleValue {
   lazy val relationshipStatusExample = ConnectorField("single", s"relationship status")
   glossaryItems += makeGlossaryItem("Customer.relationshipStatus", relationshipStatusExample)
   
-  lazy val dependentsExample = ConnectorField("10", s"the number of dependents")
+  lazy val dependentsExample = ConnectorField("1", s"the number of dependents")
   glossaryItems += makeGlossaryItem("Customer.dependents", dependentsExample)
   
   lazy val kycStatusExample = ConnectorField("true", s"This is boolean to indicate if the cusomter's KYC has been checked.") 

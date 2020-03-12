@@ -45,7 +45,7 @@ class RemotedataCustomerAttributeActor extends Actor with ObpActorHelper with Md
         name,
         attributeType,
         value) pipeTo sender
-      //TODO 这里的 productArributes 是什么? 
+      
     case cc.createCustomerAttributes(bankId: BankId,
             customerId: CustomerId,
             customerAttributes: List[CustomerAttribute]) =>
