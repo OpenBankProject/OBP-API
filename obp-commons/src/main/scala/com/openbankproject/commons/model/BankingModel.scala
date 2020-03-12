@@ -329,3 +329,7 @@ case class CounterpartyBespoke(
   key: String,
   value: String
 )
+
+case class CustomerDependant(
+  dateOfBirth: Date
+)

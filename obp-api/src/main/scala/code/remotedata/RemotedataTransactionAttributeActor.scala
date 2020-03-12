@@ -45,7 +45,7 @@ class RemotedataTransactionAttributeActor extends Actor with ObpActorHelper with
         name,
         attributeType,
         value) pipeTo sender
-      //TODO 这里的 productArributes 是什么? 
+      
     case cc.createTransactionAttributes(bankId: BankId,
             transactionId: TransactionId,
             transactionAttributes: List[TransactionAttribute]) =>

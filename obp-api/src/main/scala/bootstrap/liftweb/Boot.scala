@@ -29,6 +29,7 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.{Locale, TimeZone}
 
+import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.accountapplication.MappedAccountApplication
 import code.accountattribute.MappedAccountAttribute
@@ -664,7 +665,8 @@ object ToSchemify {
     MappedCustomerAttribute,
     MappedTransactionAttribute,
     MappedCardAttribute,
-    RateLimiting
+    RateLimiting,
+    MappedCustomerDependant
   )
 
   // The following tables are accessed directly via Mapper / JDBC
