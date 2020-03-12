@@ -1033,7 +1033,7 @@ trait APIMethods400 {
       case EntityName(entityName) :: Nil JsonPost json -> _ => {cc =>
         for {
           (Full(u), callContext) <- authorizedAccess(cc)
-          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canCreatRole(entityName), callContext)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canCreateRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, Some(cc))
           entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]])
         } yield {
