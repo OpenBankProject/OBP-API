@@ -35,6 +35,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{app
 import code.users.Users
 import code.util.{Helper, JsonUtils}
 import code.views.Views
+import code.api.util.ApiRole.removeDynamicApiRole
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
@@ -969,6 +970,11 @@ trait APIMethods400 {
             }
             deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
           } yield {
+            deleted.map{ deleteSuccess =>
+              if(deleteSuccess) {
+                DynamicEntityInfo.roleNames(entity.entityName).foreach(removeDynamicApiRole(_))
+              }
+            }
             (deleted, HttpCode.`200`(cc.callContext))
           }
       }
@@ -1003,6 +1009,8 @@ trait APIMethods400 {
       case EntityName(entityName) :: Nil JsonGet req => { cc =>
         val listName = StringHelpers.snakify(English.plural(entityName))
         for {
+          (Full(u), callContext) <- authorizedAccess(cc)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
           resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]])
         } yield {
@@ -1014,6 +1022,8 @@ trait APIMethods400 {
       }
       case EntityName(entityName, id) JsonGet req => {cc =>
         for {
+          (Full(u), callContext) <- authorizedAccess(cc)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
            entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]])
         } yield {
@@ -1022,6 +1032,8 @@ trait APIMethods400 {
       }
       case EntityName(entityName) :: Nil JsonPost json -> _ => {cc =>
         for {
+          (Full(u), callContext) <- authorizedAccess(cc)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canCreatRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, Some(cc))
           entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]])
         } yield {
@@ -1030,6 +1042,8 @@ trait APIMethods400 {
       }
       case EntityName(entityName, id) JsonPut json -> _ => { cc =>
         for {
+          (Full(u), callContext) <- authorizedAccess(cc)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canUpdateRole(entityName), callContext)
           (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), Some(cc))
           entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]])
         } yield {
@@ -1038,6 +1052,8 @@ trait APIMethods400 {
       }
       case EntityName(entityName, id) JsonDelete req => { cc =>
         for {
+          (Full(u), callContext) <- authorizedAccess(cc)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canDeleteRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), Some(cc))
           deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]])
         } yield {

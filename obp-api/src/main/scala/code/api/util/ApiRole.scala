@@ -1,5 +1,7 @@
 package code.api.util
 
+import java.util.concurrent.ConcurrentHashMap
+
 import com.openbankproject.commons.util.ReflectUtils
 
 sealed trait ApiRole{
@@ -20,6 +22,7 @@ case class RoleCombination(left: ApiRole, right: ApiRole) extends ApiRole{
     case(l: RoleCombination, r: RoleCombination) => l.roles ::: r.roles
     case(l: RoleCombination, r: ApiRole) => l.roles :+ r
     case(l: ApiRole, r: RoleCombination) => l :: r.roles
+    case _ => left :: right :: Nil
   }
   override val requiresBankId: Boolean = roles.exists(_.requiresBankId)
   override def toString() = roles.mkString("(", " and ", ")")
@@ -469,20 +472,42 @@ object ApiRole {
 
   case class CanReadResourceDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadResourceDoc = CanReadResourceDoc()
-  
-  private val roles = ReflectUtils.getFieldsNameToValue[ApiRole](this).values.toList
+
+  private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
+
+  private case class DynamicApiRole(role: String, requiresBankId: Boolean = false) extends ApiRole{
+    override def toString(): String = role
+  }
+
+  def getOrCreateDynamicApiRole(roleName: String, requiresBankId: Boolean = false): ApiRole = {
+    dynamicApiRoles.computeIfAbsent(roleName, _ => DynamicApiRole(roleName, requiresBankId))
+  }
+  def removeDynamicApiRole(roleName: String): ApiRole = {
+    dynamicApiRoles.remove(roleName)
+  }
+
+  private val roles = {
+    val list = ReflectUtils.getFieldsNameToValue[ApiRole](this).values.toList
+    val duplicatedRoleName = list.groupBy(_.toString()).filter(_._2.size > 1).map(_._1)
+    assume(duplicatedRoleName.isEmpty, s"Duplicated role: ${duplicatedRoleName.mkString(", ")}")
+    list
+  }
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)
 
   def valueOf(value: String): ApiRole = {
-    roles.filter(_.toString == value) match {
-      case x :: Nil => x // We find exactly one Role
-      case x :: _ => throw new Exception("Duplicated role: " + x) // We find more than one Role
+    roles.find(_.toString == value) match {
+      case Some(x) => x // We find exactly one Role
+      case _ if dynamicApiRoles.containsKey(value) => dynamicApiRoles.get(value)
       case _ => throw new IllegalArgumentException("Incorrect ApiRole value: " + value) // There is no Role
     }
   }
 
-  def availableRoles: List[String] = roles.map(_.toString)
+  def availableRoles: List[String] = {
+    import scala.collection.JavaConverters._
+    val dynamicRoles = dynamicApiRoles.keys().asScala.toList
+    dynamicRoles ::: roles.map(_.toString)
+  }
 
 }
 
