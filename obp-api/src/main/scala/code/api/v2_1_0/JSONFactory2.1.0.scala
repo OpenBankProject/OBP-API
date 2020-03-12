@@ -445,7 +445,7 @@ object JSONFactory210{
 
 
   def createAvailableRoleJSON(role : String ) : AvailableRoleJSON = {
-    new AvailableRoleJSON(
+    AvailableRoleJSON(
       role = role,
       requires_bank_id = ApiRole.valueOf(role).requiresBankId
     )

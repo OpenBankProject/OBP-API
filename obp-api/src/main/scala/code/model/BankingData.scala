@@ -45,7 +45,6 @@ import scala.collection.immutable.{List, Set}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-
 case class BankExtended(bank: Bank) {
 
   def publicAccounts(publicAccountAccessesForBank: List[AccountAccess]) : List[BankAccount] = {

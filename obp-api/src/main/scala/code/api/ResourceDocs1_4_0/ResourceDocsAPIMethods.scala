@@ -206,7 +206,12 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     // so if you want the new generated endpoints shown timely, set this value to a small number, or set to a big number
     val getResourceDocsTTL : Int = APIUtil.getPropsValue(s"resourceDocsObp.cache.ttl.seconds", "5").toInt
 
-    private def getResourceDocsObpCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : ApiVersion, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
+    private def getResourceDocsObpCached(showCore: Option[Boolean],
+                                         showPSD2: Option[Boolean],
+                                         showOBWG: Option[Boolean],
+                                         requestedApiVersion : ApiVersion,
+                                         resourceDocTags: Option[List[ResourceDocTag]],
+                                         partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       /**
        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
        * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -249,7 +254,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
              * replace JValue value: ApiRole$CanCreateUser --> CanCreateUser
              */
             def replaceJsonValue(json: JValue): JValue = json transformField {
-              case JField("role", JString(x)) => JField("role", JString(x.substring("ApiRole$".length)))
+              case JField("role", JString(x)) => JField("role", JString(x.replace("ApiRole$", "")))
             }
             successJsonResponse(replaceJsonValue(replaceJsonKey(removeJsonKeyAndKeepChildObject(Extraction.decompose(innerJson)))))
           }
