@@ -3,7 +3,8 @@ package code.api.v4_0_0
 import code.api.util.APIUtil.{Catalogs, ResourceDoc, authenticationRequiredMessage, emptyObjectJson, generateUUID, notCore, notOBWG, notPSD2}
 import code.api.util.ApiTag.{apiTagApi, apiTagNewStyle}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{ApiTag, NewStyle}
+import code.api.util.{ApiRole, ApiTag, NewStyle}
+import code.api.util.ApiRole.getOrCreateDynamicApiRole
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
@@ -45,6 +46,7 @@ object MockerConnector {
     val implementedInApiVersion = ApiVersion.v4_0_0
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiTag = ApiTag("_" + dynamicEntityInfo.entityName);
+    val connectorMethods = Some(List(s"""dynamicEntityProcess: parameters contains {"key": "entityName", "value": "$entityName"}"""))
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
@@ -70,7 +72,8 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List())
+      Some(List(dynamicEntityInfo.canGetRole)),
+      connectorMethods = connectorMethods
     )
     resourceDocs += ResourceDoc(
       endPoint,
@@ -93,7 +96,8 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List())
+      Some(List(dynamicEntityInfo.canGetRole)),
+      connectorMethods = connectorMethods
     )
 
     resourceDocs += ResourceDoc(
@@ -121,7 +125,9 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List()))
+      Some(List(dynamicEntityInfo.canCreatRole)),
+      connectorMethods = connectorMethods
+      )
 
     resourceDocs += ResourceDoc(
       endPoint,
@@ -148,7 +154,9 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List()))
+      Some(List(dynamicEntityInfo.canUpdateRole)),
+      connectorMethods = connectorMethods
+    )
 
     resourceDocs += ResourceDoc(
       endPoint,
@@ -173,7 +181,9 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List()))
+      Some(List(dynamicEntityInfo.canDeleteRole)),
+      connectorMethods = connectorMethods
+    )
 
     resourceDocs
   }
@@ -265,4 +275,21 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
   def getSingleExample: JObject = JObject(JField(idName, JString(generateUUID())) :: getSingleExampleWithoutId.obj)
 
   def getExampleList: JObject =   listName -> JArray(List(getSingleExample))
+
+  val canCreatRole: ApiRole = DynamicEntityInfo.canCreatRole(entityName)
+  val canUpdateRole: ApiRole = DynamicEntityInfo.canUpdateRole(entityName)
+  val canGetRole: ApiRole = DynamicEntityInfo.canGetRole(entityName)
+  val canDeleteRole: ApiRole = DynamicEntityInfo.canDeleteRole(entityName)
+}
+
+object DynamicEntityInfo {
+  def canCreatRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanCreateDynamic" + entityName)
+  def canUpdateRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanUpdateDynamic" + entityName)
+  def canGetRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanGetDynamic" + entityName)
+  def canDeleteRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanDeleteDynamic" + entityName)
+
+  def roleNames(entityName: String): List[String] = List(
+      canCreatRole(entityName), canUpdateRole(entityName),
+      canGetRole(entityName), canDeleteRole(entityName)
+    ).map(_.toString())
 }
