@@ -98,7 +98,7 @@ class ConsumerRegistration extends MdcLoggable {
         "Thanks for registering your consumer with the Open Bank Project API! Here is your developer information. Please save it in a secure location.")
       //thanks for registering, here's your key, etc.
       "#register-consumer-success-message *" #> registerConsumerSuccessMessageWebpage &
-      "#app-consumer_id *" #> consumer.id.get &
+      "#app-consumer_id *" #> consumer.consumerId.get &
       "#app-name *" #> consumer.name.get &
       "#app-redirect-url *" #> consumer.redirectURL &
       "#app-user-authentication-url *" #> consumer.userAuthenticationURL &

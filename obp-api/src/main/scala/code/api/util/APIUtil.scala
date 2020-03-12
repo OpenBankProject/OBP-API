@@ -169,13 +169,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /**
-    * Purpose of this helper function is to get the Consent-Id value from a Request Headers.
-    * @return the Consent-Id value from a Request Header as a String
+    * Purpose of this helper function is to get the Consent-JWT value from a Request Headers.
+    * @return the Consent-JWT value from a Request Header as a String
     */
-  def getConsentId(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
+  def getConsentJWT(requestHeaders: List[HTTPParam]): Option[String] = {
+    requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-JWT`).toList match {
       case x :: Nil => Some(x.values.mkString(", "))
-      case _ => None
+      case _ => requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
+        case x :: Nil => Some(x.values.mkString(", "))
+        case _ => None
+      }
     }
   }
   /**
@@ -188,8 +191,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ => None
     }
   }
-  def hasConsentId(requestHeaders: List[HTTPParam]): Boolean = {
-    getConsentId(requestHeaders).isDefined
+  def hasConsentJWT(requestHeaders: List[HTTPParam]): Boolean = {
+    getConsentJWT(requestHeaders).isDefined
   }
 
   def registeredApplication(consumerKey: String): Boolean = {
@@ -2222,8 +2225,8 @@ Returns a string showed to the developer
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
     val remoteIpAddress = getRemoteIpAddress()
     val res =
-    if (APIUtil.hasConsentId(reqHeaders)) {
-      Consent.applyRules(APIUtil.getConsentId(reqHeaders), cc) 
+    if (APIUtil.hasConsentJWT(reqHeaders)) {
+      Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc) 
     } else if (hasAnOAuthHeader(cc.authReqHeaderField)) {
       getUserFromOAuthHeaderFuture(cc)
     } else if (hasAnOAuth2Header(cc.authReqHeaderField)) {
