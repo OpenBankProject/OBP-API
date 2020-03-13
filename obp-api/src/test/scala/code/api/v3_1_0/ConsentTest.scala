@@ -151,7 +151,7 @@ class ConsentTest extends V310ServerSetup {
         // Due to non existing value the request must fail
         val headerConsumerKey = List((RequestHeader.`Consumer-Key`, "NON_EXISTING_VALUE"))
         makeGetRequest(requestGetUserByUserId400, header ::: headerConsumerKey)
-          .body.extract[ErrorMessage].message should include(ConsentDoesntMatchApp)
+          .body.extract[ErrorMessage].message should include(ConsentDoesNotMatchConsumer)
 
         // Make a request WITH the request header "Consumer-Key: EXISTING_VALUE"
         val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))

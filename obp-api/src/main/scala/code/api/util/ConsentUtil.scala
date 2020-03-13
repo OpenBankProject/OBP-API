@@ -120,7 +120,7 @@ object Consent {
                 if (reqHeaderConsumerKey == consumerFromConsent.key.get)
                   Full(true) // This consent can be used by current application
                 else // This consent can NOT be used by current application
-                  Failure(ErrorMessages.ConsentDoesntMatchApp)
+                  Failure(ErrorMessages.ConsentDoesNotMatchConsumer)
               case None => Failure(ErrorMessages.ConsumerKeyHeaderMissing) // There is no header `Consumer-Key` in request headers
             }
           case "NONE" => // This instance does not require validation method

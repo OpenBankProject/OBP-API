@@ -36,6 +36,7 @@ object RemotedataActors extends MdcLoggable {
       ActorProps[RemotedataTransactionImagesActor]    -> RemotedataTransactionImages.actorName,
       ActorProps[RemotedataNarrativesActor]           -> RemotedataNarratives.actorName,
       ActorProps[RemotedataCustomersActor]            -> RemotedataCustomers.actorName,
+      ActorProps[RemotedataCustomerDependantsActor]   -> RemotedataCustomerDependants.actorName,
       ActorProps[RemotedataUserCustomerLinksActor]    -> RemotedataUserCustomerLinks.actorName,
       ActorProps[RemotedataConsumersActor]            -> RemotedataConsumers.actorName,
       ActorProps[RemotedataTransactionRequestsActor]  -> RemotedataTransactionRequests.actorName,
