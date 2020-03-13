@@ -30,7 +30,7 @@ trait DefaultUsers {
     name = Some("test application"),
     appType = None,
     description = None,
-    developerEmail = None,
+    developerEmail = Some("eveline@example.com"),
     redirectURL = None,
     createdByUserId = userId
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
