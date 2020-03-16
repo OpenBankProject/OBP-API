@@ -3386,10 +3386,10 @@ object SwaggerDefinitionsJSON {
     networks = List("network1", "network2"),
     allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
     account_id =accountIdExample.value,
-    replacement = replacementJSON,
+    replacement = Some(replacementJSON),
     pin_reset = List(pinResetJSON, pinResetJSON1),
-    collected = DateWithDayExampleObject,
-    posted = DateWithDayExampleObject,
+    collected = Some(DateWithDayExampleObject),
+    posted = Some(DateWithDayExampleObject),
     customer_id = customerIdExample.value,
   )
 

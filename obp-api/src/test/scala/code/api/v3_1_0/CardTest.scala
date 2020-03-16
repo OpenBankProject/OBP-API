@@ -78,7 +78,7 @@ class CardTest extends V310ServerSetup with DefaultUsers {
       responseWithWrongVlaueForAllows.body.toString contains(AllowedValuesAre++ CardAction.availableValues.mkString(", "))
 
       Then(s"We call the authentication user, but wrong card.replacement value")
-      val wrongCardReplacementReasonJson = dummyCard.copy(replacement = ReplacementJSON(new Date(),"Wrong")) // The replacement must be Enum of `CardReplacementReason` 
+      val wrongCardReplacementReasonJson = dummyCard.copy(replacement = Some(ReplacementJSON(new Date(),"Wrong"))) // The replacement must be Enum of `CardReplacementReason` 
       val responseWrongCardReplacementReasonJson = makePostRequest(requestWithAuthUser, write(wrongCardReplacementReasonJson))
       And(s"We should get 400 and get the error message")
       responseWrongCardReplacementReasonJson.code should equal(400)
@@ -131,10 +131,27 @@ class CardTest extends V310ServerSetup with DefaultUsers {
       cardJsonV31.networks should be (properCardJson.networks )
       cardJsonV31.allows should be (properCardJson.allows )
       cardJsonV31.account.id should be (properCardJson.account_id )
-      cardJsonV31.replacement should be (properCardJson.replacement )
-      cardJsonV31.pin_reset.toString() should be (properCardJson.pin_reset.toString())
-      cardJsonV31.collected should be (properCardJson.collected )
-      cardJsonV31.posted should be (properCardJson.posted )
+      cardJsonV31.replacement should be {
+        properCardJson.replacement match {
+          case Some(x) => x
+          case None => null
+        }
+      }
+      cardJsonV31.pin_reset.toString() should be(properCardJson.pin_reset.toString())
+      cardJsonV31.collected should be {
+        properCardJson.collected match {
+          case Some(x) => x
+          case None => null
+        }
+      }
+      cardJsonV31.posted should be {
+        properCardJson.posted match {
+          case Some(x) => x
+          case None => null
+        }
+      }
+      
+      
 
       Then(s"We create the card with same bankId, cardNumber and issueNumber")
       val responseDeplicated = makePostRequest(requestWithAuthUser, write(properCardJson))
