@@ -2634,6 +2634,81 @@ trait APIMethods400 {
       }
     }
 
+    
+    resourceDocs += ResourceDoc(
+      createConsumer,
+      implementedInApiVersion,
+      "createConsumer",
+      "POST",
+      "/management/consumers",
+      "Post a Consumer",
+      s"""Create a Consumer (Authenticated access).
+         |
+         |""",
+      ConsumerPostJSON(
+        "Test",
+        "Test",
+        "Description",
+        "some@email.com",
+        "redirecturl",
+        "createdby",
+        true,
+        new Date()
+      ),
+      ConsumerPostJSON(
+        "Some app name",
+        "App type",
+        "Description",
+        "some.email@example.com",
+        "Some redirect url",
+        "Created by UUID",
+        true,
+        new Date()
+      ),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagConsumer),
+      Some(List(canCreateConsumer)))
+
+
+    lazy val createConsumer: OBPEndpoint = {
+      case "management" :: "consumers" :: Nil JsonPost json -> _ => {
+        cc =>
+          import code.api.util.newstyle.consumer.createConsumerNewStyle
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
+              json.extract[ConsumerPostJSON]
+            }
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canCreateConsumer, callContext)
+            (consumer, callContext) <- createConsumerNewStyle(
+              key = Some(generateUUID()),
+              secret = Some(generateUUID()),
+              isActive = Some(postedJson.enabled),
+              name= Some(postedJson.app_name),
+              appType = None,
+              description = Some(postedJson.description),
+              developerEmail = Some(postedJson.developer_email),
+              redirectURL = Some(postedJson.redirect_url),
+              createdByUserId = Some(u.userId),
+              callContext
+            )
+          } yield {
+            // Format the data as json
+            val json = JSONFactory220.createConsumerJSON(consumer)
+            // Return
+            (json, HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    
+
   }
 
 }
