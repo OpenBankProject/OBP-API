@@ -123,7 +123,7 @@ package object bankconnectors extends MdcLoggable {
       case name => Connector.getConnectorInstance(name)
     }
     val methodSymbol = connector.implementedMethods(methodName).alternatives match {
-      case (m: MethodSymbol)::Nil => m
+      case m::Nil if m.isInstanceOf[MethodSymbol] => m.asMethod
       case _ =>
         findMethodByArgs(connector, methodName, args:_*)
         .getOrElse(sys.error(s"not found matched method, method name: ${methodName}, params: ${args.mkString(",")}"))
@@ -200,7 +200,7 @@ package object bankconnectors extends MdcLoggable {
       // when method return one of Unit, null, EmptyBox, None, empty Array, empty collection,
       // don't validate fields.
       case Unit | null => value
-      case v @(_: EmptyBox, _: Option[CallContext]) => v
+      case v @(_: EmptyBox, Some(_:CallContext) | None) => v
       case n @(_:EmptyBox | None |  Array()) => n
       case n : GenTraversableOnce[_] if n.isEmpty => n
 

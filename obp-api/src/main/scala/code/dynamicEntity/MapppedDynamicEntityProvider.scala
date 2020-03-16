@@ -42,7 +42,12 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
   }
 
 
-  override def delete(dynamicEntityId: String): Box[Boolean] = getByDynamicEntityId(dynamicEntityId).map(_.delete_!)
+  override def delete(dynamicEntity: DynamicEntityT): Box[Boolean] = Box.tryo{
+    dynamicEntity match {
+      case v: DynamicEntity => DynamicEntity.delete_!(v)
+      case v => DynamicEntity.bulkDelete_!!(By(DynamicEntity.EntityName, v.entityName))
+    }
+  }
 
   private[this] def getByDynamicEntityId(dynamicEntityId: String): Box[DynamicEntity] = DynamicEntity.find(By(DynamicEntity.DynamicEntityId, dynamicEntityId))
 

@@ -3004,40 +3004,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                     entityId: Option[String],
                                     callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
 
-    val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
-    // do validate, any validate process fail will return immediately
-    if(dynamicEntityBox.isEmpty) {
-      return Helper.booleanToFuture(s"$DynamicEntityNotExists entity's name is '$entityName'")(false)
-        .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
-    }
-
-    if(operation == CREATE || operation == UPDATE) {
-      if(requestBody.isEmpty) {
-        return Helper.booleanToFuture(s"$InvalidJsonFormat requestBody is required for $operation operation.")(false)
-          .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
-      }
-      val dynamicEntity: DynamicEntityT = dynamicEntityBox.openOrThrowException(DynamicEntityNotExists)
-      val validateResult: Either[String, Unit] = dynamicEntity.validateEntityJson(requestBody.get)
-      if(validateResult.isLeft) {
-        return Helper.booleanToFuture(s"$InvalidJsonFormat details: ${validateResult.left.get}")(validateResult.isRight)
-          .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
-      }
-    }
-    if(operation == GET_ONE || operation == UPDATE || operation == DELETE) {
-      if (entityId.isEmpty) {
-        return Helper.booleanToFuture(s"$InvalidJsonFormat entityId is required for $operation operation.")(entityId.isEmpty || StringUtils.isBlank(entityId.get))
-          .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
-      }
-      val id = entityId.get
-      val value = DynamicDataProvider.connectorMethodProvider.vend.get(entityName, id)
-      if (value.isEmpty) {
-        return Helper.booleanToFuture(s"$EntityNotFoundByEntityId please check: entityId = $id", 404)(false)
-          .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
-      }
-    }
-    val op: Any = operation
     Future {
-      val processResult: Box[JValue] = op match {
+      val processResult: Box[JValue] = operation.asInstanceOf[Any] match {
         case GET_ALL => Full {
           val dataList = DynamicDataProvider.connectorMethodProvider.vend.getAll(entityName)
           JArray(dataList)
@@ -3048,10 +3016,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .map(it => json.parse(it.dataJson))
           boxedEntity
         }
-        case CREATE | UPDATE => {
+        case CREATE => {
           val body = requestBody.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument please supply the requestBody."))
-          val id = if(operation == CREATE) None  else entityId
-          val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend.saveOrUpdate(entityName, body, id)
+          val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend.save(entityName, body)
+            .map(it => json.parse(it.dataJson))
+          boxedEntity
+        }
+        case UPDATE => {
+          val body = requestBody.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument please supply the requestBody."))
+          val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend.update(entityName, body, entityId.get)
             .map(it => json.parse(it.dataJson))
           boxedEntity
         }

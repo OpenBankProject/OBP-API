@@ -2,6 +2,7 @@ package code.api.v4_0_0
 
 import java.util.Date
 
+import code.DynamicData.DynamicData
 import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -22,7 +23,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.{CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310, ListResult}
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
 import code.bankconnectors.Connector
-import code.dynamicEntity.DynamicEntityCommons
+import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.entitlement.Entitlement
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -35,14 +36,13 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{app
 import code.users.Users
 import code.util.{Helper, JsonUtils}
 import code.views.Views
-import code.api.util.ApiRole.removeDynamicApiRole
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType, TransactionAttributeType}
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.common.{Box, Full, ParamFailure}
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JValue
@@ -57,6 +57,7 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import code.model._
+import org.apache.commons.lang3.StringUtils
 
 trait APIMethods400 {
   self: RestHelper =>
@@ -857,8 +858,13 @@ trait APIMethods400 {
          |Create one DynamicEntity, after created success, the corresponding CURD endpoints will be generated automatically
          |
          |Current support filed types as follow:
-         |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", "]")}
+         |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
+         |Value of reference type is corresponding ids, please look at the following examples.
+         |Current supporting reference types and corresponding examples as follow:
+         |```
+         |${ReferenceType.referenceTypeAndExample.mkString("\n")}
+         |```
          |""",
       dynamicEntityRequestBodyExample,
       dynamicEntityResponseBodyExample,
@@ -901,8 +907,13 @@ trait APIMethods400 {
          |Update one DynamicEntity, after update finished, the corresponding CURD endpoints will be changed.
          |
          |Current support filed types as follow:
-         |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", "]")}
+         |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
+         |Value of reference type is corresponding ids, please look at the following examples.
+         |Current supporting reference types and corresponding examples as follow:
+         |```
+         |${ReferenceType.referenceTypeAndExample.mkString("\n")}
+         |```
          |""",
       dynamicEntityRequestBodyExample,
       dynamicEntityResponseBodyExample,
@@ -970,20 +981,19 @@ trait APIMethods400 {
             }
             deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
           } yield {
-            deleted.map{ deleteSuccess =>
-              if(deleteSuccess) {
-                DynamicEntityInfo.roleNames(entity.entityName).foreach(removeDynamicApiRole(_))
-              }
-            }
             (deleted, HttpCode.`200`(cc.callContext))
           }
       }
     }
 
 
-    private def unboxResult[T: Manifest](box: Box[T]): T = {
-       if(box.isInstanceOf[ParamFailure[_]]) {
-         fullBoxOrException[T](box)
+    private def unboxResult[T: Manifest](box: Box[T], entityName: String): T = {
+       if(box.isInstanceOf[Failure]) {
+         val failure = box.asInstanceOf[Failure]
+         // change the internal db column name 'dynamicdataid' to entity's id name
+         val msg = failure.msg.replace(DynamicData.DynamicDataId.dbColumnName, StringUtils.uncapitalize(entityName) + "Id")
+         val changedMsgFailure = failure.copy(msg = s"$InternalServerError $msg")
+         fullBoxOrException[T](changedMsgFailure)
       }
 
       box.openOrThrowException("impossible error")
@@ -1012,7 +1022,7 @@ trait APIMethods400 {
           (Full(u), callContext) <- authorizedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
-          resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]])
+          resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
         } yield {
           import net.liftweb.json.JsonDSL._
 
@@ -1025,7 +1035,7 @@ trait APIMethods400 {
           (Full(u), callContext) <- authorizedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
-           entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]])
+           entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           (entity, HttpCode.`200`(Some(cc)))
         }
@@ -1033,9 +1043,9 @@ trait APIMethods400 {
       case EntityName(entityName) :: Nil JsonPost json -> _ => {cc =>
         for {
           (Full(u), callContext) <- authorizedAccess(cc)
-          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canCreatRole(entityName), callContext)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canCreateRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, Some(cc))
-          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]])
+          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           (entity, HttpCode.`201`(Some(cc)))
         }
@@ -1045,7 +1055,7 @@ trait APIMethods400 {
           (Full(u), callContext) <- authorizedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canUpdateRole(entityName), callContext)
           (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), Some(cc))
-          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]])
+          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           (entity, HttpCode.`200`(Some(cc)))
         }
@@ -1055,7 +1065,7 @@ trait APIMethods400 {
           (Full(u), callContext) <- authorizedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canDeleteRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), Some(cc))
-          deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]])
+          deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
         } yield {
           (deleteResult, HttpCode.`200`(Some(cc)))
         }

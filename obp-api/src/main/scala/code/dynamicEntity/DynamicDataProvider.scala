@@ -27,7 +27,8 @@ object DynamicDataCommons extends Converter[DynamicDataT, DynamicDataCommons]
 
 
 trait DynamicDataProvider {
-  def saveOrUpdate(entityName: String, requestBody: JObject, id: Option[String] = None): Box[DynamicData]
+  def save(entityName: String, requestBody: JObject): Box[DynamicData]
+  def update(entityName: String, requestBody: JObject, id: String): Box[DynamicData]
   def get(entityName: String, id: String): Box[DynamicData]
   def getAll(entityName: String): List[JObject]
   def delete(entityName: String, id: String): Boolean
