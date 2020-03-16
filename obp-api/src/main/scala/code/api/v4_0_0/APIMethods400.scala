@@ -50,7 +50,7 @@ import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.now
-import net.liftweb.util.StringHelpers
+import net.liftweb.util.{Helpers, StringHelpers}
 import org.atteo.evo.inflector.English
 
 import scala.collection.immutable.{List, Nil}
@@ -2687,8 +2687,8 @@ trait APIMethods400 {
             }
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canCreateConsumer, callContext)
             (consumer, callContext) <- createConsumerNewStyle(
-              key = Some(generateUUID()),
-              secret = Some(generateUUID()),
+              key = Some(Helpers.randomString(40).toLowerCase),
+              secret = Some(Helpers.randomString(40).toLowerCase),
               isActive = Some(postedJson.enabled),
               name= Some(postedJson.app_name),
               appType = None,
@@ -2698,9 +2698,10 @@ trait APIMethods400 {
               createdByUserId = Some(u.userId),
               callContext
             )
+            user <- Users.users.vend.getUserByUserIdFuture(u.userId)
           } yield {
             // Format the data as json
-            val json = JSONFactory220.createConsumerJSON(consumer)
+            val json = JSONFactory400.createConsumerJSON(consumer, user)
             // Return
             (json, HttpCode.`201`(callContext))
           }
