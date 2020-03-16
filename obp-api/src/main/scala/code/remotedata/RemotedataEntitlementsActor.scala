@@ -59,6 +59,10 @@ class RemotedataEntitlementsActor extends Actor with ObpActorHelper with MdcLogg
       logger.debug(s"addEntitlement($bankId, $userId, $roleName)")
       sender ! (mapper.addEntitlement(bankId, userId, roleName))
 
+    case cc.deleteDynamicEntityEntitlement(entityName: String) =>
+      logger.debug(s"deleteDynamicEntityEntitlement($entityName)")
+      sender ! (mapper.deleteDynamicEntityEntitlement(entityName))
+
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }
