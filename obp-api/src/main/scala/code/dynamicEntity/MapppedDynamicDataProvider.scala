@@ -1,30 +1,27 @@
 package code.DynamicData
 
-import code.api.util.APIUtil.generateUUID
 import code.api.util.CustomJsonFormats
 import code.util.MappedUUID
 import net.liftweb.common.Box
 import net.liftweb.json
 import net.liftweb.json.JObject
+import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonDSL._
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
 object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonFormats{
-  override def saveOrUpdate(entityName: String, requestBody: JObject, id: Option[String]): Box[DynamicData] = {
-    val idValue: String = id.getOrElse(generateUUID())
-    val dynamicData: DynamicData = id match{
-      case Some(i) => get(entityName, i).openOrThrowException(s"not exists DynamicData's data of dynamicEntityName=$entityName, dynameicDataId=$i")
-      case _ => DynamicData.create.DynamicDataId(idValue).DynamicEntityName(entityName)
-    }
-    val idName = StringUtils.uncapitalize(entityName) + "Id"
-
-    val dataToPersist: JObject = requestBody ~ (idName -> idValue)
-    val dataStr = json.compactRender(dataToPersist)
-    tryo {
-      dynamicData.DataJson(dataStr).saveMe()
-    }
+  override def save(entityName: String, requestBody: JObject): Box[DynamicData] = {
+    val idName = getIdName(entityName)
+    val JString(idValue) = (requestBody \ idName).asInstanceOf[JString]
+    val dynamicData: DynamicData = DynamicData.create.DynamicDataId(idValue)
+    val result = saveOrUpdate(entityName, requestBody, dynamicData)
+    result
+  }
+  override def update(entityName: String, requestBody: JObject, id: String): Box[DynamicData] = {
+    val dynamicData: DynamicData = get(entityName, id).openOrThrowException(s"not exists DynamicData's data of dynamicEntityName=$entityName, dynameicDataId=$id")
+    saveOrUpdate(entityName, requestBody, dynamicData)
   }
 
   override def get(entityName: String, id: String): Box[DynamicData] = DynamicData.find(By(DynamicData.DynamicDataId, id))
@@ -37,6 +34,19 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   override def existsData(dynamicEntityName: String): Boolean = {
     DynamicData.findAll(By(DynamicData.DynamicEntityName, dynamicEntityName), MaxRows(1))
       .nonEmpty
+  }
+
+  private def saveOrUpdate(entityName: String, requestBody: JObject, dynamicData: => DynamicData): Box[DynamicData] = {
+    val data: DynamicData = dynamicData
+
+    val dataStr = json.compactRender(requestBody)
+    tryo {
+      data.DataJson(dataStr).DynamicEntityName(entityName).saveMe()
+    }
+  }
+
+  private def getIdName(entityName: String) = {
+    StringUtils.uncapitalize(entityName) + "Id"
   }
 }
 

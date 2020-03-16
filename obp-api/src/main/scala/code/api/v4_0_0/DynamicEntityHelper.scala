@@ -125,7 +125,7 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List(dynamicEntityInfo.canCreatRole)),
+      Some(List(dynamicEntityInfo.canCreateRole)),
       connectorMethods = connectorMethods
       )
 
@@ -276,20 +276,20 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
 
   def getExampleList: JObject =   listName -> JArray(List(getSingleExample))
 
-  val canCreatRole: ApiRole = DynamicEntityInfo.canCreatRole(entityName)
+  val canCreateRole: ApiRole = DynamicEntityInfo.canCreateRole(entityName)
   val canUpdateRole: ApiRole = DynamicEntityInfo.canUpdateRole(entityName)
   val canGetRole: ApiRole = DynamicEntityInfo.canGetRole(entityName)
   val canDeleteRole: ApiRole = DynamicEntityInfo.canDeleteRole(entityName)
 }
 
 object DynamicEntityInfo {
-  def canCreatRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanCreateDynamic" + entityName)
+  def canCreateRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanCreateDynamic" + entityName)
   def canUpdateRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanUpdateDynamic" + entityName)
   def canGetRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanGetDynamic" + entityName)
   def canDeleteRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanDeleteDynamic" + entityName)
 
   def roleNames(entityName: String): List[String] = List(
-      canCreatRole(entityName), canUpdateRole(entityName),
+      canCreateRole(entityName), canUpdateRole(entityName),
       canGetRole(entityName), canDeleteRole(entityName)
     ).map(_.toString())
 }

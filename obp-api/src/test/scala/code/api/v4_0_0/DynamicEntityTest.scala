@@ -268,7 +268,7 @@ class DynamicEntityTest extends V400ServerSetup {
         Then("We should get a 400")
 
         response400.code should equal(400)
-        response400.body.extract[ErrorMessage].message should startWith (InvalidJsonFormat)
+        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
       }
 
       {
@@ -278,7 +278,7 @@ class DynamicEntityTest extends V400ServerSetup {
         Then("We should get a 400")
 
         response400.code should equal(400)
-        response400.body.extract[ErrorMessage].message should startWith (InvalidJsonFormat)
+        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
       }
 
       {
@@ -288,7 +288,7 @@ class DynamicEntityTest extends V400ServerSetup {
         Then("We should get a 400")
 
         response400.code should equal(400)
-        response400.body.extract[ErrorMessage].message should startWith (InvalidJsonFormat)
+        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
       }
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetDynamicEntities.toString)
