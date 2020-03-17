@@ -574,10 +574,10 @@ case class CreatePhysicalCardJsonV310(
   networks: List[String],
   allows: List[String],
   account_id: String,
-  replacement: ReplacementJSON,
+  replacement: Option[ReplacementJSON],
   pin_reset: List[PinResetJSON],
-  collected: Date,
-  posted: Date,
+  collected: Option[Date],
+  posted: Option[Date],
   customer_id: String)
 
 case class UpdatePhysicalCardJsonV310(

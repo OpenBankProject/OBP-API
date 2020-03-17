@@ -50,7 +50,7 @@ import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.now
-import net.liftweb.util.StringHelpers
+import net.liftweb.util.{Helpers, StringHelpers}
 import org.atteo.evo.inflector.English
 
 import scala.collection.immutable.{List, Nil}
@@ -2643,6 +2643,82 @@ trait APIMethods400 {
           }
       }
     }
+
+    
+    resourceDocs += ResourceDoc(
+      createConsumer,
+      implementedInApiVersion,
+      "createConsumer",
+      "POST",
+      "/management/consumers",
+      "Post a Consumer",
+      s"""Create a Consumer (Authenticated access).
+         |
+         |""",
+      ConsumerPostJSON(
+        "Test",
+        "Test",
+        "Description",
+        "some@email.com",
+        "redirecturl",
+        "createdby",
+        true,
+        new Date()
+      ),
+      ConsumerPostJSON(
+        "Some app name",
+        "App type",
+        "Description",
+        "some.email@example.com",
+        "Some redirect url",
+        "Created by UUID",
+        true,
+        new Date()
+      ),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagConsumer),
+      Some(List(canCreateConsumer)))
+
+
+    lazy val createConsumer: OBPEndpoint = {
+      case "management" :: "consumers" :: Nil JsonPost json -> _ => {
+        cc =>
+          import code.api.util.newstyle.consumer.createConsumerNewStyle
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
+              json.extract[ConsumerPostJSON]
+            }
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canCreateConsumer, callContext)
+            (consumer, callContext) <- createConsumerNewStyle(
+              key = Some(Helpers.randomString(40).toLowerCase),
+              secret = Some(Helpers.randomString(40).toLowerCase),
+              isActive = Some(postedJson.enabled),
+              name= Some(postedJson.app_name),
+              appType = None,
+              description = Some(postedJson.description),
+              developerEmail = Some(postedJson.developer_email),
+              redirectURL = Some(postedJson.redirect_url),
+              createdByUserId = Some(u.userId),
+              callContext
+            )
+            user <- Users.users.vend.getUserByUserIdFuture(u.userId)
+          } yield {
+            // Format the data as json
+            val json = JSONFactory400.createConsumerJSON(consumer, user)
+            // Return
+            (json, HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    
 
   }
 

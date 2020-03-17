@@ -68,10 +68,25 @@ class CardAttributeTest extends V310ServerSetup with DefaultUsers {
       cardJsonV31.networks should be (properCardJson.networks )
       cardJsonV31.allows should be (properCardJson.allows )
       cardJsonV31.account.id should be (properCardJson.account_id )
-      cardJsonV31.replacement should be (properCardJson.replacement )
-      cardJsonV31.pin_reset.toString() should be (properCardJson.pin_reset.toString())
-      cardJsonV31.collected should be (properCardJson.collected )
-      cardJsonV31.posted should be (properCardJson.posted )
+      cardJsonV31.replacement should be {
+        properCardJson.replacement match {
+          case Some(x) => x
+          case None => null
+        }
+      }
+      cardJsonV31.pin_reset.toString() should be(properCardJson.pin_reset.toString())
+      cardJsonV31.collected should be {
+        properCardJson.collected match {
+          case Some(x) => x
+          case None => null
+        }
+      }
+      cardJsonV31.posted should be {
+        properCardJson.posted match {
+          case Some(x) => x
+          case None => null
+        }
+      }
       
       val cardId = cardJsonV31.card_id
 

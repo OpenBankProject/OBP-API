@@ -4843,7 +4843,10 @@ trait APIMethods310 {
 
             failMsg = AllowedValuesAre + CardReplacementReason.availableValues.mkString(", ")
             cardReplacementReason <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              CardReplacementReason.valueOf(postJson.replacement.reason_requested)
+              postJson.replacement match {
+                case Some(value) => CardReplacementReason.valueOf(value.reason_requested)
+                case None => CardReplacementReason.valueOf(CardReplacementReason.FIRST.toString)
+              }
             }
             
             _<-Helper.booleanToFuture(s"${maximumLimitExceeded.replace("10000", "10")} Current issue_number is ${postJson.issue_number}")(postJson.issue_number.length<= 10)
@@ -4853,6 +4856,20 @@ trait APIMethods310 {
             (_, callContext)<- NewStyle.function.getBankAccount(bankId, AccountId(postJson.account_id), callContext)
             
             (_, callContext)<- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
+
+            replacement = postJson.replacement match {
+              case Some(replacement) => 
+                Some(CardReplacementInfo(requestedDate = replacement.requested_date, cardReplacementReason))
+              case None => None
+            }
+            collected = postJson.collected match {
+              case Some(collected) => Some(CardCollectionInfo(collected))
+              case None => None
+            }
+            posted = postJson.posted match {
+              case Some(posted) => Option(CardPostedInfo(posted))
+              case None => None
+            }
             
             (card, callContext) <- NewStyle.function.createPhysicalCard(
               bankCardNumber=postJson.card_number,
@@ -4870,10 +4887,10 @@ trait APIMethods310 {
               allows= postJson.allows,
               accountId= postJson.account_id,
               bankId=bankId.value,
-              replacement= Some(CardReplacementInfo(requestedDate = postJson.replacement.requested_date, cardReplacementReason)),
+              replacement = replacement,
               pinResets= postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
-              collected= Option(CardCollectionInfo(postJson.collected)),
-              posted= Option(CardPostedInfo(postJson.posted)),
+              collected = collected,
+              posted = posted,
               customerId = postJson.customer_id,
               callContext
             )

@@ -32,7 +32,7 @@ import code.consumer.Consumers
 import code.model._
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.{Empty, Full}
+import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, FieldError, Helpers}
@@ -152,6 +152,15 @@ class ConsumerRegistration extends MdcLoggable {
             })
         }
     }
+    def showValidationErrors(errors : List[String]): CssSel = {
+      register &
+        "#register-consumer-errors *" #> {
+          ".error *" #>
+            errors.map({ e=>
+              ".errorContent *" #> e
+            })
+        }
+    }
 
     //TODO this should be used somewhere else, it is check the empty of description for the hack attack from GUI.
     def showErrorsForDescription (descriptionError : String) = {
@@ -169,7 +178,7 @@ class ConsumerRegistration extends MdcLoggable {
       def withNameOpt(s: String): Option[AppType] = Some(AppType.valueOf(s))
 
       val appTypeSelected = withNameOpt(appType.is)
-      println("appTypeSelected: " + appTypeSelected)
+      logger.debug("appTypeSelected: " + appTypeSelected)
       nameVar.set(nameVar.is)
       appTypeVar.set(appTypeSelected.get)
       descriptionVar.set(descriptionVar.is)
@@ -191,10 +200,10 @@ class ConsumerRegistration extends MdcLoggable {
           Some(devEmailVar.is),
           Some(redirectionURLVar.is),
           Some(AuthUser.getCurrentResourceUserUserId))
-        println("consumer: " + consumer)
+        logger.debug("consumer: " + consumer)
         consumer match {
-          case Full(x) if x.validate.isEmpty => showRegistrationResults(x)
-          case Full(x) if !x.validate.isEmpty => showErrors(x.validate)
+          case Full(x) => showRegistrationResults(x)
+          case Failure(msg, _, _) => showValidationErrors(msg.split(";").toList)
           case _ => showUnknownErrors(List(ErrorMessages.UnknownError))
         }
       }

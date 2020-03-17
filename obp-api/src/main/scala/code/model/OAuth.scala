@@ -137,7 +137,12 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
         case None =>
       }
       name match {
-        case Some(v) => c.name(v)
+        case Some(v) =>
+          val count = Consumer.findAll(By(Consumer.name, v)).size
+          if(count == 0) 
+            c.name(v) 
+          else 
+            c.name(v + "_"  + Helpers.randomString(10).toLowerCase)
         case None =>
       }
       appType match {
@@ -163,7 +168,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
         case Some(v) => c.createdByUserId(v)
         case None =>
       }
-      c.saveMe()
+      if(c.validate.isEmpty) 
+        c.saveMe() 
+      else
+        throw new Error(c.validate.map(_.msg.toString()).mkString(";"))
     }
   }
 
@@ -407,6 +415,14 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
       Nil
   }
 
+  private def uniqueName(field: MappedString[Consumer])(s: String): List[FieldError] = {
+    val consumer = Consumer.find(By(Consumer.name, s))
+    if(consumer.isDefined)
+      List(FieldError(field, {field.displayName + " must be unique"}))
+    else 
+      Nil
+  }
+
   /**
     * This function is added in order to support iOS/macOS requirements for callbacks.
     * For instance next callback has to be valid: x-com.tesobe.helloobp.ios://callback
@@ -441,7 +457,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     override def defaultValue = APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false)
   }
   object name extends MappedString(this, 100){
-    override def validations = minLength3(this) _ :: super.validations
+    override def validations = minLength3(this) _ :: uniqueName(this) _ :: super.validations
     override def dbIndexed_? = true
     override def displayName = "Application name:"
   }
