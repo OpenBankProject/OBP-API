@@ -1,9 +1,10 @@
 package code.api.v4_0_0
 
+import bootstrap.liftweb.ToSchemify
 import code.api.util.APIUtil.{Catalogs, ResourceDoc, authenticationRequiredMessage, emptyObjectJson, generateUUID, notCore, notOBWG, notPSD2}
-import code.api.util.ApiTag.{apiTagApi, apiTagNewStyle}
+import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{ApiRole, ApiTag, NewStyle}
+import code.api.util.{APIUtil, ApiRole, ApiTag, NewStyle}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonDSL._
@@ -39,22 +40,38 @@ object MockerConnector {
   // TODO the requestBody and responseBody is not correct ref type
   def createDocs(dynamicEntityInfo: DynamicEntityInfo) = {
     val entityName = dynamicEntityInfo.entityName
+    // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
+    val capitalizedNameParts = entityName.split("(?<=[a-z])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
+    val singularName = capitalizedNameParts.mkString(" ")
+    val pluralName = English.plural(singularName)
+
     val idNameInUrl = StringHelpers.snakify(dynamicEntityInfo.idName).toUpperCase()
     val listName = dynamicEntityInfo.listName
-    val pluralEntityName = English.plural(entityName)
+
     val endPoint = APIMethods400.Implementations4_0_0.genericEndpoint
     val implementedInApiVersion = ApiVersion.v4_0_0
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-    val apiTag = ApiTag("_" + dynamicEntityInfo.entityName);
+    val apiTag: ResourceDocTag = {
+      val addPrefix = APIUtil.getPropsAsBoolValue("dynamic_entities_have_prefix", true)
+
+      def existsSameStaticEntity: Boolean = ApiTag.allDisplayTagNames
+            .exists(it => it.equalsIgnoreCase(singularName) || it.equalsIgnoreCase(entityName))
+
+      if((addPrefix && !singularName.startsWith("_")) || existsSameStaticEntity) {
+        ApiTag("_" + singularName)
+      } else {
+        ApiTag(' ' + singularName)
+      }
+    };
     val connectorMethods = Some(List(s"""dynamicEntityProcess: parameters contains {"key": "entityName", "value": "$entityName"}"""))
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"get$pluralEntityName",
+      s"getAll$entityName",
       "GET",
-      s"/${entityName}",
-      s"Get $pluralEntityName",
-      s"""Get $pluralEntityName.
+      s"/$entityName",
+      s"Get All $pluralName",
+      s"""Get All $pluralName.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
@@ -78,11 +95,11 @@ object MockerConnector {
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"getSingle$pluralEntityName",
+      s"getSingle$entityName",
       "GET",
-      s"/${entityName}/$idNameInUrl",
-      s"Get $entityName",
-      s"""Get one $entityName by id.
+      s"/$entityName/$idNameInUrl",
+      s"Get one $singularName",
+      s"""Get one $singularName by id.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
@@ -103,11 +120,11 @@ object MockerConnector {
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"create$pluralEntityName",
+      s"create$entityName",
       "POST",
-      s"/${entityName}",
-      s"Add $entityName",
-      s"""Add a $entityName.
+      s"/$entityName",
+      s"Create one $singularName",
+      s"""Create one $singularName.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
@@ -132,11 +149,11 @@ object MockerConnector {
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"update$pluralEntityName",
+      s"update$entityName",
       "PUT",
-      s"/${entityName}/$idNameInUrl",
-      s"Update $entityName",
-      s"""Update a $entityName.
+      s"/$entityName/$idNameInUrl",
+      s"Update one $singularName",
+      s"""Update one $singularName.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
@@ -161,11 +178,11 @@ object MockerConnector {
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"delete$pluralEntityName",
+      s"delete$entityName",
       "DELETE",
-      s"/${entityName}/$idNameInUrl",
-      s"Delete $entityName",
-      s"""Delete a $entityName.
+      s"/$entityName/$idNameInUrl",
+      s"Delete one $singularName",
+      s"""Delete one $singularName
          |
          |
          |${authenticationRequiredMessage(true)}
