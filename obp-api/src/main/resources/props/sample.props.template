@@ -762,3 +762,7 @@ stored_procedure_connector.poolMaxSize=7
 stored_procedure_connector.poolConnectionTimeoutMillis=1000
 stored_procedure_connector.poolValidationQuery=select 1 as one
 stored_procedure_connector.poolFactoryName=commons-dbcp2
+
+# -----------------------------------------------------------------------
+# Set whether DynamicEntity display name starts with underscore, default is true
+dynamic_entities_have_prefix=true
