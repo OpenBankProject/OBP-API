@@ -2140,7 +2140,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(updateCustomerAttribute),
       "PUT",
-      "/banks/BANK_ID/customers/CUSTOMER_ID/attributes/ACCOUNT_ATTRIBUTE_ID",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/attributes/CUSTOMER_ATTRIBUTE_ID",
       "Update Customer Attribute",
       s""" Update Customer Attribute
          |
