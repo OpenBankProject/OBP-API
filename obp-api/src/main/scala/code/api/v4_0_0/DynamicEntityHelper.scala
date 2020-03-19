@@ -1,11 +1,11 @@
 package code.api.v4_0_0
 
-import bootstrap.liftweb.ToSchemify
 import code.api.util.APIUtil.{Catalogs, ResourceDoc, authenticationRequiredMessage, emptyObjectJson, generateUUID, notCore, notOBWG, notPSD2}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ApiTag, NewStyle}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
+import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
@@ -216,13 +216,7 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
 
   val listName = StringHelpers.snakify(English.plural(entityName))
 
-  val jsonTypeMap = Map[String, Class[_]](
-    ("boolean", classOf[JBool]),
-    ("string", classOf[JString]),
-    ("array", classOf[JArray]),
-    ("integer", classOf[JInt]),
-    ("number", classOf[JDouble]),
-  )
+  val jsonTypeMap: Map[String, Class[_]] = DynamicEntityFieldType.nameToValue.mapValues(_.jValueType)
 
   val definitionJson = json.parse(definition).asInstanceOf[JObject]
   val entity = (definitionJson \ entityName).asInstanceOf[JObject]

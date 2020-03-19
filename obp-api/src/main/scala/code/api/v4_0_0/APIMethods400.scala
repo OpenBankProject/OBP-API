@@ -860,6 +860,8 @@ trait APIMethods400 {
          |Current support filed types as follow:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
+         |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
+         |
          |Value of reference type is corresponding ids, please look at the following examples.
          |Current supporting reference types and corresponding examples as follow:
          |```
@@ -908,6 +910,8 @@ trait APIMethods400 {
          |
          |Current support filed types as follow:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
+         |
+         |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
          |Value of reference type is corresponding ids, please look at the following examples.
          |Current supporting reference types and corresponding examples as follow:

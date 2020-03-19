@@ -112,12 +112,13 @@ object ApiTag {
     */
   def apply(tagSymbol: String): ResourceDocTag =  this.tagNameSymbolMapTag.getOrElseUpdate(tagSymbol, ResourceDocTag(tagSymbol))
 
+  private lazy val staticTags: Map[String, ResourceDocTag] = ReflectUtils.getFieldsNameToValue[ResourceDocTag](this)
   /**
    * get all the tag's display name, include dynamic tags.
    * @return all the tag's display names
    */
   def allDisplayTagNames: Set[String] =
-    (ReflectUtils.getFieldsNameToValue[ResourceDocTag](this) ++ tagNameSymbolMapTag)
+    (staticTags ++ tagNameSymbolMapTag)
     .values.map(_.displayTag).toSet
 }
 

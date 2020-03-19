@@ -1,14 +1,18 @@
 package code.dynamicEntity
 
+import java.util.regex.Pattern
+
 import code.api.util.ErrorMessages.DynamicEntityInstanceValidateFail
 import code.api.util.{APIUtil, CallContext, NewStyle}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.{DynamicEntityFieldType, DynamicEntityOperation}
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.DynamicEntityFieldType.DATE_WITH_DAY
 import net.liftweb.common.{Box, EmptyBox, Full}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.util.SimpleInjector
+import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.ListMap
 import scala.concurrent.Future
@@ -65,23 +69,23 @@ trait DynamicEntityT {
       .map(it => {
         val (propertyName, propertyType) = it
         val propertyValue = entityJson \ propertyName
-        propertyType match {
-          case _ if propertyValue == JNothing || propertyValue == JNull  => Future.successful("") // required properties already checked.
-          case "string"  if !propertyValue.isInstanceOf[JString]         => Future.successful(s"The type of '$propertyName' should be string")
-          case "number"  if !propertyValue.isInstanceOf[JDouble]         => Future.successful(s"The type of '$propertyName' should be number")
-          case "integer" if !propertyValue.isInstanceOf[JInt]            => Future.successful(s"The type of '$propertyName' should be integer")
-          case "boolean" if !propertyValue.isInstanceOf[JBool]           => Future.successful(s"The type of '$propertyName' should be boolean")
-          case "array"   if !propertyValue.isInstanceOf[JArray]          => Future.successful(s"The type of '$propertyName' should be array")
-          case "object"  if !propertyValue.isInstanceOf[JObject]         => Future.successful(s"The type of '$propertyName' should be object")
-          case t  if t.startsWith("reference:") && !propertyValue.isInstanceOf[JString] =>
+        val typeEnumOption = DynamicEntityFieldType.withNameOption(propertyType)
+
+        (propertyType, typeEnumOption, propertyValue) match {
+          case (_, _, JNothing | JNull)                             => Future.successful("") // required properties already checked.
+
+          case (_, Some(typeEnum), v) if !typeEnum.isJValueValid(v) =>
+            Future.successful(s"The value of '$propertyName' is wrong, ${typeEnum.wrongTypeMsg}")
+
+          case (t, None, v)  if t.startsWith("reference:") && !v.isInstanceOf[JString] =>
              val errorMsg = s"The type of '$propertyName' is 'reference', value should be a string that represent reference entity's Id"
             Future.successful(errorMsg)
 
-          case t if t.startsWith("reference:") =>
-            val value = propertyValue.asInstanceOf[JString].s
+          case (t, None, v) if t.startsWith("reference:")           =>
+            val value = v.asInstanceOf[JString].s
             ReferenceType.validateRefValue(t, propertyName, value, callContext)
 
-          case _                                                         => Future.successful("")
+          case _                                                    => Future.successful("")
         }
       })
     Future.sequence(invalidPropertyMsg)
@@ -256,6 +260,27 @@ object ReferenceType {
      dynamicRefs ++: staticRefs
   }
 
+  // Regex to extract parameters, e.g: "reference:BankAccount:bankId&accountId" extract to "bankId&accountId"
+  private val RefParamRegx = "reference:(?:[^:]+):?(.+)?".r
+
+  /**
+   * check whether given value is legal reference value.
+   * note: won't check whether params in value exists corresponding refer instances
+   * @param referenceType
+   * @param value
+   * @return true if value is legal format
+   */
+  def isLegalReferenceValue(referenceType: String, value: String): Boolean = {
+      referenceType match {
+        case RefParamRegx(null) => StringUtils.isNotBlank(value)
+        case RefParamRegx(v) =>
+          // e.g: convert "bankId&accountId" to "bankId=(.+)&accountId=(.+)"
+          val valuePatternStr = v.replaceAll("(?=&)|$", "=(.+)")
+          Pattern.compile(valuePatternStr).matcher(value).matches()
+        case _ => false
+    }
+  }
+
   def referenceTypeAndExample: List[String] = {
     val exampleId1 = APIUtil.generateUUID()
     val exampleId2 = APIUtil.generateUUID()
@@ -403,11 +428,16 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       val fieldExample = value \ "example"
       checkFormat(fieldExample != JNothing, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'example' field should be exists")
       // example type is correct
-      if(DynamicEntityFieldType.nameToValue.contains(fieldTypeName)) {
+      if(DynamicEntityFieldType.withNameOption(fieldTypeName).isDefined) {
         val dEntityFieldType: DynamicEntityFieldType = DynamicEntityFieldType.withName(fieldTypeName)
-        checkFormat(dEntityFieldType.isJValueValid(fieldExample), s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'example' field should be type $dEntityFieldType")
-      } else {
+        checkFormat(dEntityFieldType.isJValueValid(fieldExample),
+          s"$DynamicEntityInstanceValidateFail The value of $fieldName's 'example' is wrong, ${dEntityFieldType.wrongTypeMsg}")
+      } else if(ReferenceType.referenceTypeNames.contains(fieldTypeName)) {
         checkFormat(fieldExample.isInstanceOf[JString], s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'example' field should be type ${DynamicEntityFieldType.string}")
+        checkFormat(ReferenceType.isLegalReferenceValue(fieldTypeName, fieldExample.asInstanceOf[JString].s), s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'example' is illegal format.")
+      } else {
+        // if go to here, means add new field type, but not supply corresponding value validation, that means a bug nead fix to avoid throw the follow Exception
+        throw new RuntimeException(s"DynamicEntity $entityName's field $fieldName, type is $fieldTypeName, this type is not do validation.")
       }
 
 
