@@ -55,7 +55,7 @@ object APIMethods_ProductsApi extends RestHelper {
        case "banking":: "products" :: productId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              } yield {
             (json.parse("""{
   "data" : "",
@@ -185,7 +185,7 @@ In addition, the concept of effective date and time has also been included. This
        case "banking":: "products" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              } yield {
             (json.parse("""{
   "data" : {

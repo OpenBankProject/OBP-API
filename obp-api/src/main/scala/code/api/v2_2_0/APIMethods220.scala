@@ -98,7 +98,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId) {
               u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
@@ -266,7 +266,7 @@ trait APIMethods220 {
         cc =>
           for {
             (_, callContext) <- getCurrentFxRateIsPublic match {
-              case false => authorizedAccess(cc)
+              case false => authenticatedAccess(cc)
               case true => anonymousAccess(cc)
             }
             _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanReadFx) {
@@ -314,7 +314,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u), callContext)
             _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty") {
@@ -365,7 +365,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u), callContext)
             _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty") {
@@ -763,7 +763,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
         cc =>{
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             failMsg = s"$InvalidJsonFormat The Json body should be the $CreateAccountJSONV220 "
             createAccountJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[CreateAccountJSONV220]
@@ -858,7 +858,7 @@ trait APIMethods220 {
       case "config" :: Nil JsonGet _ =>
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetConfig, callContext)
           } yield {
             (JSONFactory220.getConfigInfoJSON(), callContext)

@@ -1236,7 +1236,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
 
       def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] =
-        if (errorResponseBodies.contains($UserNotLoggedIn)) authorizedAccess(cc) else anonymousAccess(cc)
+        if (errorResponseBodies.contains($UserNotLoggedIn)) authenticatedAccess(cc) else anonymousAccess(cc)
 
       def checkRoles(bankId: Option[BankId], user: Box[User]):Future[Box[Unit]] =
         if(_autoValidateRoles && rolesForCheck.nonEmpty) {
@@ -2397,7 +2397,7 @@ Returns a string showed to the developer
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
-  def authorizedAccess(cc: CallContext, emptyUserErrorMsg: String = UserNotLoggedIn): OBPReturnType[Box[User]] = {
+  def authenticatedAccess(cc: CallContext, emptyUserErrorMsg: String = UserNotLoggedIn): OBPReturnType[Box[User]] = {
     anonymousAccess(cc) map {
       x => (fullBoxOrException(
         x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))),

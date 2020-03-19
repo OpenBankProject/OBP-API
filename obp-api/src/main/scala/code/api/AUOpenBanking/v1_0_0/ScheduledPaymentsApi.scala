@@ -345,7 +345,7 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
        case "banking":: "accounts" :: accountId:: "payments":: "scheduled" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              } yield {
             (json.parse("""{
   "data" : {
@@ -964,7 +964,7 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
        case "banking":: "payments":: "scheduled" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              } yield {
             (json.parse("""{
   "data" : {
@@ -1588,7 +1588,7 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
        case "banking":: "payments":: "scheduled" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              } yield {
             (json.parse("""{
   "data" : {

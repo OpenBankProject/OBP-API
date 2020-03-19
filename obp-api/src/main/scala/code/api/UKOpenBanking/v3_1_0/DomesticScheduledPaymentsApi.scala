@@ -142,7 +142,7 @@ object APIMethods_DomesticScheduledPaymentsApi extends RestHelper {
        case "domestic-scheduled-payment-consents" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -343,7 +343,7 @@ object APIMethods_DomesticScheduledPaymentsApi extends RestHelper {
        case "domestic-scheduled-payments" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -544,7 +544,7 @@ object APIMethods_DomesticScheduledPaymentsApi extends RestHelper {
        case "domestic-scheduled-payment-consents" :: consentid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -745,7 +745,7 @@ object APIMethods_DomesticScheduledPaymentsApi extends RestHelper {
        case "domestic-scheduled-payments" :: domesticscheduledpaymentid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {

@@ -55,7 +55,7 @@ object APIMethods_PayeesApi extends RestHelper {
        case "banking":: "payees" :: payeeId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              } yield {
             (json.parse("""{
   "data" : "",
@@ -117,7 +117,7 @@ object APIMethods_PayeesApi extends RestHelper {
        case "banking":: "payees" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              } yield {
             (json.parse("""{
   "data" : {
