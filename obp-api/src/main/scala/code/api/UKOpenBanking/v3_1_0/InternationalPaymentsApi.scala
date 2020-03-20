@@ -177,7 +177,7 @@ object APIMethods_InternationalPaymentsApi extends RestHelper {
        case "international-payment-consents" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -447,7 +447,7 @@ object APIMethods_InternationalPaymentsApi extends RestHelper {
        case "international-payments" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -717,7 +717,7 @@ object APIMethods_InternationalPaymentsApi extends RestHelper {
        case "international-payment-consents" :: consentid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -890,7 +890,7 @@ object APIMethods_InternationalPaymentsApi extends RestHelper {
        case "international-payment-consents" :: consentid:: "funds-confirmation" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -1052,7 +1052,7 @@ object APIMethods_InternationalPaymentsApi extends RestHelper {
        case "international-payments" :: internationalpaymentid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {

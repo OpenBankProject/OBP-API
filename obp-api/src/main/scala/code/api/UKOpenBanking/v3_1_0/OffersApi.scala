@@ -100,7 +100,7 @@ object APIMethods_OffersApi extends RestHelper {
        case "accounts" :: accountid:: "offers" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -233,7 +233,7 @@ object APIMethods_OffersApi extends RestHelper {
        case "offers" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {

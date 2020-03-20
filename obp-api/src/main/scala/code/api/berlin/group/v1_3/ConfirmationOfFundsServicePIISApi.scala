@@ -70,7 +70,7 @@ object APIMethods_ConfirmationOfFundsServicePIISApi extends RestHelper {
        case "funds-confirmations" ::  Nil JsonPost json -> _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              checkAvailabilityOfFundsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CheckAvailabilityOfFundsJson ", 400, callContext) {
                json.extract[CheckAvailabilityOfFundsJson]

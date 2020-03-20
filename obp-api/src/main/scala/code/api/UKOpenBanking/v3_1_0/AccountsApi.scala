@@ -108,7 +108,7 @@ object APIMethods_AccountsApi extends RestHelper {
        case "accounts" :: Nil JsonGet _ => {
          cc =>
            for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
           } yield {
@@ -198,7 +198,7 @@ object APIMethods_AccountsApi extends RestHelper {
        case "accounts" :: AccountId(accountId) :: Nil JsonGet _ => {
          cc =>
            for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u) map {
               _.filter(_.accountId.value == accountId.value)
             }

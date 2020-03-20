@@ -112,7 +112,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
        case "consents" :: Nil JsonPost json -> _  =>  {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJson "
              consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -172,7 +172,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
        case "consents" :: consentId :: Nil JsonDelete _ => {
          cc =>
            for {
-             (Full(user), callContext) <- authorizedAccess(cc)
+             (Full(user), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound)
@@ -262,7 +262,7 @@ of the PSU at this ASPSP.
        case "accounts" :: Nil JsonGet _ => {
          cc =>
            for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- passesPsd2Aisp(callContext)
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
   
@@ -317,7 +317,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
        case "accounts" :: AccountId(accountId):: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- passesPsd2Aisp(callContext)
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
@@ -396,7 +396,7 @@ respectively the OAuth2 access token.
        case "card-accounts" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "cardAccounts" : [ {
@@ -479,7 +479,7 @@ This account-id then can be retrieved by the
        case "card-accounts" :: account_id:: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "balances" : "",
@@ -574,7 +574,7 @@ Reads account data from a given card account addressed by "account-id".
          cc =>
            for {
 
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
 
              _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
@@ -630,7 +630,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        case "consents" :: consentId:: "authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
-             (_, callContext) <- authorizedAccess(cc)
+             (_, callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              authorisations <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, s"$UnknownError ")
@@ -691,7 +691,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
        case "consents" :: consentId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
@@ -735,7 +735,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        case "consents" :: consentId:: "authorisations" :: authorisationId :: Nil JsonGet _ => {
          cc =>
            for {
-             (_, callContext) <- authorizedAccess(cc)
+             (_, callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
@@ -773,7 +773,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        case "consents" :: consentId:: "status" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound)
@@ -855,7 +855,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        case "accounts" :: account_id:: "transactions" :: transactionid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "debtorAccount" : {
@@ -986,7 +986,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
          cc =>
            for {
 
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- passesPsd2Aisp(callContext)
 
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
@@ -1063,7 +1063,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        case "accounts" :: accountId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
              (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
@@ -1116,7 +1116,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        case "card-accounts" :: account_id :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "balances" : "",
@@ -1194,7 +1194,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        case "consents" :: consentId:: "authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound)
@@ -1266,7 +1266,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        case "consents" :: consentId:: "authorisations" :: authorisationId :: Nil JsonPut jsonPut -> _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound)

@@ -74,7 +74,7 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
        case "funds-confirmation-consents" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -149,7 +149,7 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
        case "funds-confirmations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -199,7 +199,7 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
        case "funds-confirmation-consents" :: consentid :: Nil JsonDelete _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -251,7 +251,7 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
        case "funds-confirmation-consents" :: consentid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
