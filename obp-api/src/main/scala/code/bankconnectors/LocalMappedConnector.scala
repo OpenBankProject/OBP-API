@@ -2,14 +2,16 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import scala.concurrent.duration._
 import code.DynamicData.DynamicDataProvider
 import code.accountapplication.AccountApplicationX
 import code.accountattribute.AccountAttributeX
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
+import code.api.attributedocumentation.{AttributeDocumentation, AttributeDocumentationDI}
 import code.api.cache.Caching
-import code.api.util.APIUtil.{OBPReturnType, DateWithMsFormat, generateUUID, hasEntitlement, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull, unboxFullOrFail}
+import code.api.util.APIUtil.{DateWithMsFormat, OBPReturnType, generateUUID, hasEntitlement, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ErrorMessages._
 import code.api.util._
@@ -73,18 +75,18 @@ import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.json.{JArray, JBool, JObject, JValue}
 import net.liftweb.mapper.{By, _}
-import net.liftweb.util.Helpers.{tryo,now, time, hours}
+import net.liftweb.util.Helpers.{hours, now, time, tryo}
 import net.liftweb.util.Mailer
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 import org.apache.commons.lang3.StringUtils
 import org.mindrot.jbcrypt.BCrypt
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
+
 import scala.collection.immutable.{List, Nil}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 import scala.concurrent._
-
 import scala.language.postfixOps
 import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
@@ -2720,6 +2722,24 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       name: String,
       attributeType: TransactionAttributeType.Value,
       value: String
+    ) map { (_, callContext) }
+  }
+  
+  override def createOrUpdateAttributeDocumentation(name: String,
+                                                    category: AttributeCategory.Value,
+                                                    `type`: AttributeType.Value,
+                                                    description: String,
+                                                    alias: String,
+                                                    isActive: Boolean,
+                                                    callContext: Option[CallContext]
+                                                   ): OBPReturnType[Box[AttributeDocumentation]]  = {
+    AttributeDocumentationDI.attributeDocumentation.vend.createOrUpdateAttributeDocumentation(
+      name: String,
+      category: AttributeCategory.Value,
+      `type`: AttributeType.Value,
+      description: String,
+      alias: String,
+      isActive: Boolean
     ) map { (_, callContext) }
   }
   

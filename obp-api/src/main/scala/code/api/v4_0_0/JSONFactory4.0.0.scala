@@ -28,6 +28,7 @@ package code.api.v4_0_0
 
 import java.util.Date
 
+import code.api.attributedocumentation.AttributeDocumentation
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
 import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
@@ -262,6 +263,24 @@ case class ConsumerJson(consumer_id: String,
                         created: Date
                        )
 
+case class AttributeDocumentationJsonV400(
+                                         name: String,
+                                         category: String,
+                                         `type`: String,
+                                         description: String,
+                                         alias: String,
+                                         is_active: Boolean
+                                       )
+
+case class AttributeDocumentationResponseJsonV400(
+                                                 name: String,
+                                                 category: String,
+                                                 `type`: String,
+                                                 description: String,
+                                                 alias: String,
+                                                 is_active: Boolean
+                                               )
+
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
@@ -494,6 +513,18 @@ object JSONFactory400 {
       created_by_user =resourceUserJSON,
       enabled=c.isActive.get,
       created=c.createdAt.get
+    )
+  }
+
+
+  def createttributeDcumentationJson(attributeDocumentation: AttributeDocumentation) : AttributeDocumentationResponseJsonV400 = {
+    AttributeDocumentationResponseJsonV400(
+      name = attributeDocumentation.name,
+      category = attributeDocumentation.category.toString,
+      `type` = attributeDocumentation.`type`.toString,
+      description = attributeDocumentation.description,
+      alias = attributeDocumentation.alias,
+      is_active = attributeDocumentation.isActive,
     )
   }
   

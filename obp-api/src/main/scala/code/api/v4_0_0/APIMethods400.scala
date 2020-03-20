@@ -39,7 +39,7 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType, TransactionAttributeType}
+import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType, CustomerAttributeType, DynamicEntityFieldType, TransactionAttributeType}
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Failure, Full}
@@ -2718,6 +2718,67 @@ trait APIMethods400 {
             val json = JSONFactory400.createConsumerJSON(consumer, user)
             // Return
             (json, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      createCustomerAttributeDocumentation,
+      implementedInApiVersion,
+      nameOf(createCustomerAttributeDocumentation),
+      "PUT",
+      "/attribute-documentation/customer",
+      "Create Attribute Documentation",
+      s""" Create Attribute Documentation
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      attributeDocumentationJsonV400,
+      attributeDocumentationResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canCreateAttributeDocumentationAtAnyBank)))
+
+    lazy val createCustomerAttributeDocumentation : OBPEndpoint = {
+      case "attribute-documentation" :: "customer" :: Nil JsonPut json -> _=> {
+        cc =>
+          import code.api.util.newstyle.attributedocumentation.createOrUpdateAttributeDocumentation
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDocumentationJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+              s"${AttributeCategory.Customer}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDocumentation, callContext) <- createOrUpdateAttributeDocumentation(
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createttributeDcumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
           }
       }
     }

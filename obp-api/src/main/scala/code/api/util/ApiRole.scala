@@ -473,6 +473,9 @@ object ApiRole {
   case class CanReadResourceDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadResourceDoc = CanReadResourceDoc()
 
+  case class CanCreateAttributeDocumentationAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateAttributeDocumentationAtAnyBank = CanCreateAttributeDocumentationAtAnyBank()
+
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 
   private case class DynamicApiRole(role: String, requiresBankId: Boolean = false) extends ApiRole{
