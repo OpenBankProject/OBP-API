@@ -2732,7 +2732,7 @@ trait APIMethods400 {
       "Create or Update Customer Attribute Documentation",
       s""" Create or Update Customer Attribute Documentation
          |
-         |The category field must be one of: ${AttributeCategory.Customer}, ${AttributeCategory.Account}, ${AttributeCategory.Product} and ${AttributeCategory.Transaction}
+         |The category field must be one of: ${AttributeCategory.Customer}
          |
          |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
          |
@@ -2795,7 +2795,7 @@ trait APIMethods400 {
       "Create or Update Account Attribute Documentation",
       s""" Create or Update Account Attribute Documentation
          |
-         |The category field must be one of: ${AttributeCategory.Customer}, ${AttributeCategory.Account}, ${AttributeCategory.Product} and ${AttributeCategory.Transaction}
+         |The category field must be ${AttributeCategory.Account}
          |
          |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
          |
@@ -2829,6 +2829,68 @@ trait APIMethods400 {
             }
             failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
               s"${AttributeCategory.Account}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDocumentation, callContext) <- createOrUpdateAttributeDocumentation(
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createttributeDcumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
+          }
+      }
+    }    
+    
+    
+    resourceDocs += ResourceDoc(
+      createOrUpdateProductAttributeDocumentation,
+      implementedInApiVersion,
+      nameOf(createOrUpdateProductAttributeDocumentation),
+      "PUT",
+      "/attribute-documentation/product",
+      "Create or Update Product Attribute Documentation",
+      s""" Create or Update Product Attribute Documentation
+         |
+         |The category field must be ${AttributeCategory.Product}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productAttributeDocumentationJsonV400,
+      productAttributeDocumentationResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canCreateAccountAttributeDocumentationAtAnyBank)))
+
+    lazy val createOrUpdateProductAttributeDocumentation : OBPEndpoint = {
+      case "attribute-documentation" :: "product" :: Nil JsonPut json -> _=> {
+        cc =>
+          import code.api.util.newstyle.attributedocumentation.createOrUpdateAttributeDocumentation
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDocumentationJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+              s"${AttributeCategory.Product}"
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
             }

@@ -3702,6 +3702,22 @@ object SwaggerDefinitionsJSON {
     description = "description",
     alias = customerAttributeAliasExample.value,
     is_active = true
+  )  
+  val productAttributeDocumentationJsonV400 = AttributeDocumentationJsonV400(
+    name = customerAttributeNameExample.value,
+    category = AttributeCategory.Product.toString,
+    `type` = customerAttributeTypeExample.value,
+    description = "description",
+    alias = customerAttributeAliasExample.value,
+    is_active = true
+  )
+  val productAttributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
+    name = customerAttributeNameExample.value,
+    category = AttributeCategory.Product.toString,
+    `type` = customerAttributeTypeExample.value,
+    description = "description",
+    alias = customerAttributeAliasExample.value,
+    is_active = true
   )
   //The common error or success format.
   //Just some helper format to use in Json 
