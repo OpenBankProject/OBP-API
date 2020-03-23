@@ -1798,7 +1798,7 @@ trait APIMethods300 {
       nameOf(addEntitlementRequest),
       "POST",
       "/entitlement-requests",
-      "Add Entitlement Request for current User.",
+      "Create Entitlement Request for current User.",
       s"""Create Entitlement Request.
         |
         |Any logged in User can use this endpoint to request an Entitlement
@@ -2212,7 +2212,7 @@ trait APIMethods300 {
       nameOf(addScope),
       "POST",
       "/consumers/CONSUMER_ID/scopes",
-      "Add Scope for a Consumer.",
+      "Create Scope for a Consumer.",
       """Create Scope. Grant Role to Consumer.
         |
         |Scopes are used to grant System or Bank level roles to the Consumer (App). (For Account level privileges, see Views)
