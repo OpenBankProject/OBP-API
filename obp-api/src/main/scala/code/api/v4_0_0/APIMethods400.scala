@@ -2724,32 +2724,33 @@ trait APIMethods400 {
 
 
     resourceDocs += ResourceDoc(
-      createCustomerAttributeDocumentation,
+      createOrUpdateCustomerAttributeDocumentation,
       implementedInApiVersion,
-      nameOf(createCustomerAttributeDocumentation),
+      nameOf(createOrUpdateCustomerAttributeDocumentation),
       "PUT",
       "/attribute-documentation/customer",
-      "Create Attribute Documentation",
-      s""" Create Attribute Documentation
+      "Create or Update Customer Attribute Documentation",
+      s""" Create or Update Customer Attribute Documentation
+         |
+         |The category field must be one of: ${AttributeCategory.Customer}, ${AttributeCategory.Account}, ${AttributeCategory.Product} and ${AttributeCategory.Transaction}
          |
          |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
          |
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      attributeDocumentationJsonV400,
-      attributeDocumentationResponseJsonV400,
+      customerAttributeDocumentationJsonV400,
+      customerAttributeDocumentationResponseJsonV400,
       List(
         $UserNotLoggedIn,
-        $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransaction, apiTagNewStyle),
-      Some(List(canCreateAttributeDocumentationAtAnyBank)))
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canCreateCustomerAttributeDocumentationAtAnyBank)))
 
-    lazy val createCustomerAttributeDocumentation : OBPEndpoint = {
+    lazy val createOrUpdateCustomerAttributeDocumentation : OBPEndpoint = {
       case "attribute-documentation" :: "customer" :: Nil JsonPut json -> _=> {
         cc =>
           import code.api.util.newstyle.attributedocumentation.createOrUpdateAttributeDocumentation
@@ -2765,6 +2766,69 @@ trait APIMethods400 {
             }
             failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
               s"${AttributeCategory.Customer}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDocumentation, callContext) <- createOrUpdateAttributeDocumentation(
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createttributeDcumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    
+    
+    resourceDocs += ResourceDoc(
+      createOrUpdateAccountAttributeDocumentation,
+      implementedInApiVersion,
+      nameOf(createOrUpdateAccountAttributeDocumentation),
+      "PUT",
+      "/attribute-documentation/account",
+      "Create or Update Account Attribute Documentation",
+      s""" Create or Update Account Attribute Documentation
+         |
+         |The category field must be one of: ${AttributeCategory.Customer}, ${AttributeCategory.Account}, ${AttributeCategory.Product} and ${AttributeCategory.Transaction}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      accountAttributeDocumentationJsonV400,
+      accountAttributeDocumentationResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagNewStyle),
+      Some(List(canCreateAccountAttributeDocumentationAtAnyBank)))
+
+    lazy val createOrUpdateAccountAttributeDocumentation : OBPEndpoint = {
+      case "attribute-documentation" :: "account" :: Nil JsonPut json -> _=> {
+        cc =>
+          import code.api.util.newstyle.attributedocumentation.createOrUpdateAttributeDocumentation
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDocumentationJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+              s"${AttributeCategory.Account}"
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
             }

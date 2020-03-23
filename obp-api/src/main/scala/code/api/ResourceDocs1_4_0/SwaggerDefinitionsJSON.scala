@@ -3671,7 +3671,7 @@ object SwaggerDefinitionsJSON {
     value = transactionAttributeValueExample.value
   )
   
-  val attributeDocumentationJsonV400 = AttributeDocumentationJsonV400(
+  val customerAttributeDocumentationJsonV400 = AttributeDocumentationJsonV400(
     name = customerAttributeNameExample.value,
     category = AttributeCategory.Customer.toString,
     `type` = customerAttributeTypeExample.value,
@@ -3679,9 +3679,25 @@ object SwaggerDefinitionsJSON {
     alias = customerAttributeAliasExample.value,
     is_active = true
   )  
-  val attributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
+  val customerAttributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
     name = customerAttributeNameExample.value,
-    category = "customer",
+    category = AttributeCategory.Customer.toString,
+    `type` = customerAttributeTypeExample.value,
+    description = "description",
+    alias = customerAttributeAliasExample.value,
+    is_active = true
+  )  
+  val accountAttributeDocumentationJsonV400 = AttributeDocumentationJsonV400(
+    name = customerAttributeNameExample.value,
+    category = AttributeCategory.Account.toString,
+    `type` = customerAttributeTypeExample.value,
+    description = "description",
+    alias = customerAttributeAliasExample.value,
+    is_active = true
+  )  
+  val accountAttributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
+    name = customerAttributeNameExample.value,
+    category = AttributeCategory.Account.toString,
     `type` = customerAttributeTypeExample.value,
     description = "description",
     alias = customerAttributeAliasExample.value,
