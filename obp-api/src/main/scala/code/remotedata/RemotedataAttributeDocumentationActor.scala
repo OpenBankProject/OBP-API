@@ -7,6 +7,7 @@ import code.api.attributedocumentation.{MappedAttributeDocumentationProvider, Re
 import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.BankId
 
 class RemotedataAttributeDocumentationActor extends Actor with ObpActorHelper with MdcLoggable {
 
@@ -15,15 +16,16 @@ class RemotedataAttributeDocumentationActor extends Actor with ObpActorHelper wi
 
   def receive: PartialFunction[Any, Unit] = {
 
-    case cc.createOrUpdateAttributeDocumentation(name: String,
+    case cc.createOrUpdateAttributeDocumentation(bankId: BankId,
+                                                 name: String,
                                                 category: AttributeCategory.Value,
                                                 `type`: AttributeType.Value,
                                                 description: String,
                                                 alias: String,
                                                 isActive: Boolean
     ) =>
-      logger.debug(s"createOrUpdateConsumerCallLimits($name, ${category.toString}, ${`type`.toString}, $description, $alias, $isActive")
-      mapper.createOrUpdateAttributeDocumentation(name, category, `type`, description, alias, isActive) pipeTo sender
+      logger.debug(s"createOrUpdateConsumerCallLimits($bankId, $name, ${category.toString}, ${`type`.toString}, $description, $alias, $isActive")
+      mapper.createOrUpdateAttributeDocumentation(bankId, name, category, `type`, description, alias, isActive) pipeTo sender
       
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

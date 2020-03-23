@@ -2725,7 +2725,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     ) map { (_, callContext) }
   }
   
-  override def createOrUpdateAttributeDocumentation(name: String,
+  override def createOrUpdateAttributeDocumentation(bankId: BankId,
+                                                    name: String,
                                                     category: AttributeCategory.Value,
                                                     `type`: AttributeType.Value,
                                                     description: String,
@@ -2734,6 +2735,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                     callContext: Option[CallContext]
                                                    ): OBPReturnType[Box[AttributeDocumentation]]  = {
     AttributeDocumentationDI.attributeDocumentation.vend.createOrUpdateAttributeDocumentation(
+      bankId: BankId,
       name: String,
       category: AttributeCategory.Value,
       `type`: AttributeType.Value,

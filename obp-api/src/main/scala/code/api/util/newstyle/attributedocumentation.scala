@@ -5,10 +5,12 @@ import code.api.util.APIUtil.OBPReturnType
 import code.api.util.{APIUtil, CallContext}
 import code.bankconnectors.Connector
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType}
 
 object attributedocumentation {
-  def createOrUpdateAttributeDocumentation(name: String,
+  def createOrUpdateAttributeDocumentation(bankId: BankId,
+                                           name: String,
                                            category: AttributeCategory.Value,
                                            `type`: AttributeType.Value,
                                            description: String,
@@ -17,6 +19,7 @@ object attributedocumentation {
                                            callContext: Option[CallContext]
                                           ): OBPReturnType[AttributeDocumentation]  = {
     Connector.connector.vend.createOrUpdateAttributeDocumentation(
+      bankId: BankId,
       name: String,
       category: AttributeCategory.Value,
       `type`: AttributeType.Value,

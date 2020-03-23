@@ -473,11 +473,17 @@ object ApiRole {
   case class CanReadResourceDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadResourceDoc = CanReadResourceDoc()
 
-  case class CanCreateCustomerAttributeDocumentationAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canCreateCustomerAttributeDocumentationAtAnyBank = CanCreateCustomerAttributeDocumentationAtAnyBank()
+  case class CanCreateCustomerAttributeDocumentationAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateCustomerAttributeDocumentationAtOneBank = CanCreateCustomerAttributeDocumentationAtOneBank()
   
-  case class CanCreateAccountAttributeDocumentationAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canCreateAccountAttributeDocumentationAtAnyBank = CanCreateAccountAttributeDocumentationAtAnyBank()
+  case class CanCreateAccountAttributeDocumentationAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateAccountAttributeDocumentationAtOneBank = CanCreateAccountAttributeDocumentationAtOneBank() 
+  
+  case class CanCreateProductAttributeDocumentationAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateProductAttributeDocumentationAtOneBank = CanCreateProductAttributeDocumentationAtOneBank()
+  
+  case class CanCreateTransactionAttributeDocumentationAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateTransactionAttributeDocumentationAtOneBank = CanCreateTransactionAttributeDocumentationAtOneBank()
 
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 

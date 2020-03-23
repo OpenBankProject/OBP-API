@@ -1914,7 +1914,8 @@ trait Connector extends MdcLoggable {
                                       callContext: Option[CallContext]
   ): OBPReturnType[Box[CustomerAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
 
-  def createOrUpdateAttributeDocumentation(name: String,
+  def createOrUpdateAttributeDocumentation(bankId: BankId,
+                                           name: String,
                                            category: AttributeCategory.Value,
                                            `type`: AttributeType.Value,
                                            description: String,

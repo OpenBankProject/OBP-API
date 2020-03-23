@@ -3,6 +3,7 @@ package code.remotedata
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.api.attributedocumentation.{AttributeDocumentation, AttributeDocumentationProviderTrait, RemotedatattributeDocumentationCaseClasses}
+import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType}
 import net.liftweb.common.Box
 
@@ -13,14 +14,15 @@ object RemotedataAttributeDocumentation extends ObpActorInit with AttributeDocum
 
   val cc = RemotedatattributeDocumentationCaseClasses
 
-  def createOrUpdateAttributeDocumentation(name: String,
+  def createOrUpdateAttributeDocumentation(bankId: BankId,
+                                           name: String,
                                            category: AttributeCategory.Value,
                                            `type`: AttributeType.Value,
                                            description: String,
                                            alias: String,
                                            isActive: Boolean
                                           ): Future[Box[AttributeDocumentation]] =
-    (actor ? cc.createOrUpdateAttributeDocumentation(name, category, `type`, description, alias, isActive)).mapTo[Box[AttributeDocumentation]]
+    (actor ? cc.createOrUpdateAttributeDocumentation(bankId, name, category, `type`, description, alias, isActive)).mapTo[Box[AttributeDocumentation]]
 
 
 }

@@ -2728,7 +2728,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(createOrUpdateCustomerAttributeDocumentation),
       "PUT",
-      "/attribute-documentation/customer",
+      "/banks/BANK_ID/attribute-documentation/customer",
       "Create or Update Customer Attribute Documentation",
       s""" Create or Update Customer Attribute Documentation
          |
@@ -2743,15 +2743,16 @@ trait APIMethods400 {
       customerAttributeDocumentationResponseJsonV400,
       List(
         $UserNotLoggedIn,
+        $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canCreateCustomerAttributeDocumentationAtAnyBank)))
+      Some(List(canCreateCustomerAttributeDocumentationAtOneBank)))
 
     lazy val createOrUpdateCustomerAttributeDocumentation : OBPEndpoint = {
-      case "attribute-documentation" :: "customer" :: Nil JsonPut json -> _=> {
+      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "customer" :: Nil JsonPut json -> _=> {
         cc =>
           import code.api.util.newstyle.attributedocumentation.createOrUpdateAttributeDocumentation
           val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
@@ -2770,6 +2771,7 @@ trait APIMethods400 {
               AttributeCategory.withName(postedData.category)
             }
             (attributeDocumentation, callContext) <- createOrUpdateAttributeDocumentation(
+              bankId,
               postedData.name,
               category,
               attributeType,
@@ -2791,7 +2793,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(createOrUpdateAccountAttributeDocumentation),
       "PUT",
-      "/attribute-documentation/account",
+      "/banks/BANK_ID/attribute-documentation/account",
       "Create or Update Account Attribute Documentation",
       s""" Create or Update Account Attribute Documentation
          |
@@ -2806,15 +2808,16 @@ trait APIMethods400 {
       accountAttributeDocumentationResponseJsonV400,
       List(
         $UserNotLoggedIn,
+        $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagNewStyle),
-      Some(List(canCreateAccountAttributeDocumentationAtAnyBank)))
+      Some(List(canCreateAccountAttributeDocumentationAtOneBank)))
 
     lazy val createOrUpdateAccountAttributeDocumentation : OBPEndpoint = {
-      case "attribute-documentation" :: "account" :: Nil JsonPut json -> _=> {
+      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "account" :: Nil JsonPut json -> _=> {
         cc =>
           import code.api.util.newstyle.attributedocumentation.createOrUpdateAttributeDocumentation
           val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
@@ -2833,6 +2836,7 @@ trait APIMethods400 {
               AttributeCategory.withName(postedData.category)
             }
             (attributeDocumentation, callContext) <- createOrUpdateAttributeDocumentation(
+              bankId,
               postedData.name,
               category,
               attributeType,
@@ -2853,7 +2857,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(createOrUpdateProductAttributeDocumentation),
       "PUT",
-      "/attribute-documentation/product",
+      "/banks/BANK_ID/attribute-documentation/product",
       "Create or Update Product Attribute Documentation",
       s""" Create or Update Product Attribute Documentation
          |
@@ -2868,15 +2872,16 @@ trait APIMethods400 {
       productAttributeDocumentationResponseJsonV400,
       List(
         $UserNotLoggedIn,
+        $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagNewStyle),
-      Some(List(canCreateAccountAttributeDocumentationAtAnyBank)))
+      Some(List(canCreateProductAttributeDocumentationAtOneBank)))
 
     lazy val createOrUpdateProductAttributeDocumentation : OBPEndpoint = {
-      case "attribute-documentation" :: "product" :: Nil JsonPut json -> _=> {
+      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "product" :: Nil JsonPut json -> _=> {
         cc =>
           import code.api.util.newstyle.attributedocumentation.createOrUpdateAttributeDocumentation
           val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
@@ -2895,6 +2900,70 @@ trait APIMethods400 {
               AttributeCategory.withName(postedData.category)
             }
             (attributeDocumentation, callContext) <- createOrUpdateAttributeDocumentation(
+              bankId,
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createttributeDcumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
+          }
+      }
+    }    
+    
+    resourceDocs += ResourceDoc(
+      createOrUpdateTransactionAttributeDocumentation,
+      implementedInApiVersion,
+      nameOf(createOrUpdateTransactionAttributeDocumentation),
+      "PUT",
+      "/banks/BANK_ID/attribute-documentation/transaction",
+      "Create or Update Transaction Attribute Documentation",
+      s""" Create or Update Transaction Attribute Documentation
+         |
+         |The category field must be ${AttributeCategory.Transaction}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      transactionAttributeDocumentationJsonV400,
+      transactionAttributeDocumentationResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canCreateTransactionAttributeDocumentationAtOneBank)))
+
+    lazy val createOrUpdateTransactionAttributeDocumentation : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "transaction" :: Nil JsonPut json -> _=> {
+        cc =>
+          import code.api.util.newstyle.attributedocumentation.createOrUpdateAttributeDocumentation
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDocumentationJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+              s"${AttributeCategory.Transaction}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDocumentation, callContext) <- createOrUpdateAttributeDocumentation(
+              bankId,
               postedData.name,
               category,
               attributeType,

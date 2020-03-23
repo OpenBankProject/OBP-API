@@ -273,6 +273,7 @@ case class AttributeDocumentationJsonV400(
                                        )
 
 case class AttributeDocumentationResponseJsonV400(
+                                                 bank_id: String,
                                                  name: String,
                                                  category: String,
                                                  `type`: String,
@@ -519,6 +520,7 @@ object JSONFactory400 {
 
   def createttributeDcumentationJson(attributeDocumentation: AttributeDocumentation) : AttributeDocumentationResponseJsonV400 = {
     AttributeDocumentationResponseJsonV400(
+      bank_id = attributeDocumentation.bankId.value,
       name = attributeDocumentation.name,
       category = attributeDocumentation.category.toString,
       `type` = attributeDocumentation.`type`.toString,

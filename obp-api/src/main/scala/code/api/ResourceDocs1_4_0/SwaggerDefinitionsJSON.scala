@@ -3680,6 +3680,7 @@ object SwaggerDefinitionsJSON {
     is_active = true
   )  
   val customerAttributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
+    bank_id = bankIdExample.value,
     name = customerAttributeNameExample.value,
     category = AttributeCategory.Customer.toString,
     `type` = customerAttributeTypeExample.value,
@@ -3696,6 +3697,7 @@ object SwaggerDefinitionsJSON {
     is_active = true
   )  
   val accountAttributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
+    bank_id = bankIdExample.value,
     name = customerAttributeNameExample.value,
     category = AttributeCategory.Account.toString,
     `type` = customerAttributeTypeExample.value,
@@ -3712,8 +3714,26 @@ object SwaggerDefinitionsJSON {
     is_active = true
   )
   val productAttributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
+    bank_id = bankIdExample.value,
     name = customerAttributeNameExample.value,
     category = AttributeCategory.Product.toString,
+    `type` = customerAttributeTypeExample.value,
+    description = "description",
+    alias = customerAttributeAliasExample.value,
+    is_active = true
+  )  
+  val transactionAttributeDocumentationJsonV400 = AttributeDocumentationJsonV400(
+    name = customerAttributeNameExample.value,
+    category = AttributeCategory.Transaction.toString,
+    `type` = customerAttributeTypeExample.value,
+    description = "description",
+    alias = customerAttributeAliasExample.value,
+    is_active = true
+  )
+  val transactionAttributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
+    bank_id = bankIdExample.value,
+    name = customerAttributeNameExample.value,
+    category = AttributeCategory.Transaction.toString,
     `type` = customerAttributeTypeExample.value,
     description = "description",
     alias = customerAttributeAliasExample.value,

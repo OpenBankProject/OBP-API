@@ -3,6 +3,7 @@ package code.api.attributedocumentation
 import code.api.util.APIUtil
 import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType}
 import code.remotedata.{RemotedataAttributeDocumentation, RemotedataRateLimiting}
+import com.openbankproject.commons.model.BankId
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -17,7 +18,8 @@ object AttributeDocumentationDI extends SimpleInjector {
 }
 
 trait AttributeDocumentationProviderTrait {
-  def createOrUpdateAttributeDocumentation(name: String,
+  def createOrUpdateAttributeDocumentation(bankId: BankId,
+                                           name: String,
                                            category: AttributeCategory.Value,
                                            `type`: AttributeType.Value,
                                            description: String,
@@ -27,6 +29,7 @@ trait AttributeDocumentationProviderTrait {
 }
 
 trait AttributeDocumentationTrait {
+  def bankId: BankId
   def name: String
   def category: AttributeCategory.Value
   def `type`: AttributeType.Value
@@ -37,7 +40,8 @@ trait AttributeDocumentationTrait {
 
 
 class RemotedataAttributeDocumentationCaseClasses {
-  case class createOrUpdateAttributeDocumentation(name: String,
+  case class createOrUpdateAttributeDocumentation(bankId: BankId,
+                                                  name: String,
                                                   category: AttributeCategory.Value,
                                                   `type`: AttributeType.Value,
                                                   description: String,
