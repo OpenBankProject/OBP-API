@@ -1368,7 +1368,7 @@ trait APIMethods400 {
       "addTagForViewOnAccount",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
-      "Add a tag on account.",
+      "Create a tag on account.",
       s"""Posts a tag about an account ACCOUNT_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
          |${authenticationRequiredMessage(true)}
