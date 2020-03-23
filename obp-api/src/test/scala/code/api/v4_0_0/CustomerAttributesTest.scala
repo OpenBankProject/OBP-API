@@ -31,6 +31,7 @@ class CustomerAttributesTest extends V400ServerSetup {
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getCustomerAttributes))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getCustomerAttributeById))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getCustomersByAttributes))
+  object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.deleteCustomerAttribute))
   
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {

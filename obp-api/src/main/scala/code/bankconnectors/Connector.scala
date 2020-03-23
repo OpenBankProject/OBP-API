@@ -2177,4 +2177,7 @@ trait Connector extends MdcLoggable {
                           callContext: Option[CallContext]): OBPReturnType[Box[StandingOrderTrait]] = Future {
     (Failure(setUnimplementedError), callContext)
   }
+
+  def deleteCustomerAttribute(customerAttributeId: String,
+                           callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
 }
