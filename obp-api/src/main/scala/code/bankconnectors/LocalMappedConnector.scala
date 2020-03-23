@@ -4002,5 +4002,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Full(res)
   }
 
+  override def deleteCustomerAttribute(customerAttributeId: String, callContext: Option[CallContext] ): OBPReturnType[Box[Boolean]] = {
+    CustomerAttributeX.customerAttributeProvider.vend.deleteCustomerAttribute(customerAttributeId)  map { ( _, callContext) }
+  }
+
 
 }
