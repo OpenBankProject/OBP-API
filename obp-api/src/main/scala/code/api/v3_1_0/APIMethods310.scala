@@ -1583,12 +1583,12 @@ trait APIMethods310 {
       nameOf(createTaxResidence),
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/tax-residence",
-      "Add Tax Residence to Customer",
-      s"""Add a Tax Residence to the Customer specified by CUSTOMER_ID.
-         |
+      "Create Tax Residence",
+      s"""Create a Tax Residence for a Customer specified by CUSTOMER_ID.
+        |
         |
         |${authenticationRequiredMessage(true)}
-         |
+        |
         |""",
       postTaxResidenceJsonV310,
       taxResidenceV310,
@@ -1749,8 +1749,8 @@ trait APIMethods310 {
       nameOf(createCustomerAddress),
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/address",
-      "Add Address to Customer",
-      s"""Add an Address to the Customer specified by CUSTOMER_ID.
+      "Create Address",
+      s"""Create an Address for a Customer specified by CUSTOMER_ID.
          |
         |
         |${authenticationRequiredMessage(true)}
@@ -4207,8 +4207,8 @@ trait APIMethods310 {
       nameOf(createMethodRouting),
       "POST",
       "/management/method_routings",
-      "Add MethodRouting",
-      s"""Add a MethodRouting.
+      "Create MethodRouting",
+      s"""Create a MethodRouting.
         |
         |
         |${authenticationRequiredMessage(true)}
@@ -5700,8 +5700,8 @@ trait APIMethods310 {
       nameOf(createWebUiProps),
       "POST",
       "/management/webui_props",
-      "Add WebUiProps",
-      s"""Add a WebUiProps.
+      "Create WebUiProps",
+      s"""Create a WebUiProps.
          |
          |
          |${authenticationRequiredMessage(true)}
