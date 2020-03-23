@@ -2757,7 +2757,7 @@ trait APIMethods400 {
       case "banks" :: bankId :: "customers" :: "attributes" :: customerAttributeId ::  Nil JsonDelete _=> {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId, u.userId, ApiRole.canDeleteCustomerAttribute, callContext)
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             (customerAttribute, callContext) <- NewStyle.function.deleteCustomerAttribute(customerAttributeId, callContext)
