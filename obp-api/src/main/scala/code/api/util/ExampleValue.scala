@@ -324,6 +324,8 @@ object ExampleValue {
   // if yes, please rename the follow to lastOkDateExample, and delete outBoundCreateCustomerLastOkDateExample
   lazy val outBoundCreateCustomerLastOkDateExample = ConnectorField("2019-09-12", "fix me, lastOkDate Date string")
 
+  lazy val uuidExample = ConnectorField("9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1", "UUID value")
+
 
   //this is only for dynamicEntity post or request body example
   """

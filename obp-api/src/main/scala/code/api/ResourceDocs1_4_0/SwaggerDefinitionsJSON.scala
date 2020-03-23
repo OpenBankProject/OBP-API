@@ -3680,6 +3680,7 @@ object SwaggerDefinitionsJSON {
     is_active = true
   )  
   val customerAttributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
+    attribute_documentation_id = uuidExample.value,
     bank_id = bankIdExample.value,
     name = customerAttributeNameExample.value,
     category = AttributeCategory.Customer.toString,
@@ -3697,6 +3698,7 @@ object SwaggerDefinitionsJSON {
     is_active = true
   )  
   val accountAttributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
+    attribute_documentation_id = uuidExample.value,
     bank_id = bankIdExample.value,
     name = customerAttributeNameExample.value,
     category = AttributeCategory.Account.toString,
@@ -3714,6 +3716,7 @@ object SwaggerDefinitionsJSON {
     is_active = true
   )
   val productAttributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
+    attribute_documentation_id = uuidExample.value,
     bank_id = bankIdExample.value,
     name = customerAttributeNameExample.value,
     category = AttributeCategory.Product.toString,
@@ -3731,6 +3734,7 @@ object SwaggerDefinitionsJSON {
     is_active = true
   )
   val transactionAttributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
+    attribute_documentation_id = uuidExample.value,
     bank_id = bankIdExample.value,
     name = customerAttributeNameExample.value,
     category = AttributeCategory.Transaction.toString,

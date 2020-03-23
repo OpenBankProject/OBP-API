@@ -272,15 +272,15 @@ case class AttributeDocumentationJsonV400(
                                          is_active: Boolean
                                        )
 
-case class AttributeDocumentationResponseJsonV400(
-                                                 bank_id: String,
-                                                 name: String,
-                                                 category: String,
-                                                 `type`: String,
-                                                 description: String,
-                                                 alias: String,
-                                                 is_active: Boolean
-                                               )
+case class AttributeDocumentationResponseJsonV400(attribute_documentation_id: String,
+                                                  bank_id: String,
+                                                  name: String,
+                                                  category: String,
+                                                  `type`: String,
+                                                  description: String,
+                                                  alias: String,
+                                                  is_active: Boolean
+                                                 )
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
@@ -520,6 +520,7 @@ object JSONFactory400 {
 
   def createttributeDcumentationJson(attributeDocumentation: AttributeDocumentation) : AttributeDocumentationResponseJsonV400 = {
     AttributeDocumentationResponseJsonV400(
+      attribute_documentation_id = attributeDocumentation.attributeDocumentationId,
       bank_id = attributeDocumentation.bankId.value,
       name = attributeDocumentation.name,
       category = attributeDocumentation.category.toString,

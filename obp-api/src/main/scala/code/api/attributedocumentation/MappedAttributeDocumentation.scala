@@ -1,9 +1,10 @@
 package code.api.attributedocumentation
 
+import code.util.MappedUUID
 import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.BankId
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.{Box, Full, Empty}
 import net.liftweb.mapper._
 
 import scala.concurrent.Future
@@ -17,21 +18,44 @@ object MappedAttributeDocumentationProvider extends AttributeDocumentationProvid
                                            alias: String,
                                            isActive: Boolean
                                           ): Future[Box[AttributeDocumentation]] = Future {
-    Full(
-      AttributeDocumentation.create
-        .BankId(bankId.value)
-        .Name(name)
-        .Category(category.toString)
-        .`TypeOfValue`(`type`.toString)
-        .Description(description)
-        .Alias(alias)
-        .IsActive(isActive)
-    )
+    AttributeDocumentation.find(
+      By(AttributeDocumentation.BankId, bankId.value),
+      By(AttributeDocumentation.Name, name),
+      By(AttributeDocumentation.Category, category.toString)
+    ) match {
+      case Full(attributeDocumentation) =>
+        Full(
+          attributeDocumentation
+            .BankId(bankId.value)
+            .Name(name)
+            .Category(category.toString)
+            .`TypeOfValue`(`type`.toString)
+            .Description(description)
+            .Alias(alias)
+            .IsActive(isActive)
+            .saveMe()
+        )
+      case Empty =>
+        Full(
+          AttributeDocumentation.create
+            .BankId(bankId.value)
+            .Name(name)
+            .Category(category.toString)
+            .`TypeOfValue`(`type`.toString)
+            .Description(description)
+            .Alias(alias)
+            .IsActive(isActive)
+            .saveMe()
+        )
+      case someError => someError
+    }
+    
   }
 }
 
 class AttributeDocumentation extends AttributeDocumentationTrait with LongKeyedMapper[AttributeDocumentation] with IdPK with CreatedUpdated {
   override def getSingleton = AttributeDocumentation
+  object AttributeDocumentationId extends MappedUUID(this)
   object BankId extends MappedString(this, 50)
   object Name extends MappedString(this, 50)
   object Category extends MappedString(this, 50)
@@ -41,6 +65,7 @@ class AttributeDocumentation extends AttributeDocumentationTrait with LongKeyedM
   object IsActive extends MappedBoolean(this)
 
   import com.openbankproject.commons.model.{BankId => BankIdCommonModel}
+  def attributeDocumentationId: String = AttributeDocumentationId.get
   def bankId: BankIdCommonModel = BankIdCommonModel(BankId.get)
   def name: String = Name.get
   def category: AttributeCategory.Value = AttributeCategory.withName(Category.get)

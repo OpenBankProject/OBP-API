@@ -1,9 +1,9 @@
 package code.api.attributedocumentation
 
 import code.api.util.APIUtil
-import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType}
-import code.remotedata.{RemotedataAttributeDocumentation, RemotedataRateLimiting}
+import code.remotedata.RemotedataAttributeDocumentation
 import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -29,6 +29,7 @@ trait AttributeDocumentationProviderTrait {
 }
 
 trait AttributeDocumentationTrait {
+  def attributeDocumentationId: String
   def bankId: BankId
   def name: String
   def category: AttributeCategory.Value
