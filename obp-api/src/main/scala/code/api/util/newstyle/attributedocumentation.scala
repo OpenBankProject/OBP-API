@@ -31,5 +31,19 @@ object attributedocumentation {
       i => (APIUtil.connectorEmptyResponse(i._1, callContext), i._2)
     }
   }
+
+  def deleteAttributeDocumentation(attributeDocumentationId: String,
+                                   category: AttributeCategory.Value,
+                                   callContext: Option[CallContext]
+                                  ): OBPReturnType[Boolean] = {
+    Connector.connector.vend.deleteAttributeDocumentation(
+      attributeDocumentationId: String,
+      category: AttributeCategory.Value,
+      callContext: Option[CallContext]
+    ) map {
+      i => (APIUtil.connectorEmptyResponse(i._1, callContext), i._2)
+    }
+  }
+  
 }
 

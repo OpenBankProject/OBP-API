@@ -26,6 +26,10 @@ class RemotedataAttributeDocumentationActor extends Actor with ObpActorHelper wi
     ) =>
       logger.debug(s"createOrUpdateConsumerCallLimits($bankId, $name, ${category.toString}, ${`type`.toString}, $description, $alias, $isActive")
       mapper.createOrUpdateAttributeDocumentation(bankId, name, category, `type`, description, alias, isActive) pipeTo sender
+  
+    case cc.deleteAttributeDocumentation(attributeDocumentationId: String, category: AttributeCategory.Value) =>
+      logger.debug(s"deleteAttributeDocumentation($attributeDocumentationId, ${category.toString})")
+      mapper.deleteAttributeDocumentation(attributeDocumentationId, category) pipeTo sender
       
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

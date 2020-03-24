@@ -1,15 +1,17 @@
 package code.api.attributedocumentation
 
+import code.api.util.ErrorMessages
+import code.util.Helper.MdcLoggable
 import code.util.MappedUUID
 import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.BankId
-import net.liftweb.common.{Box, Full, Empty}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 
 import scala.concurrent.Future
 
-object MappedAttributeDocumentationProvider extends AttributeDocumentationProviderTrait {
+object MappedAttributeDocumentationProvider extends AttributeDocumentationProviderTrait with MdcLoggable {
   def createOrUpdateAttributeDocumentation(bankId: BankId,
                                            name: String,
                                            category: AttributeCategory.Value,
@@ -51,6 +53,21 @@ object MappedAttributeDocumentationProvider extends AttributeDocumentationProvid
     }
     
   }
+
+  def deleteAttributeDocumentation(attributeDocumentationId: String, 
+                                   category: AttributeCategory.Value): Future[Box[Boolean]] = Future {
+    AttributeDocumentation.find(
+      By(AttributeDocumentation.AttributeDocumentationId, attributeDocumentationId),
+      By(AttributeDocumentation.Category, category.toString)
+    ) match {
+      case Full(attribute) => Full(attribute.delete_!)
+      case Empty           => Empty ?~! ErrorMessages.AttributeNotFound
+      case unhandledError  => 
+        logger.error(unhandledError)
+        Full(false)
+    }
+  }
+  
 }
 
 class AttributeDocumentation extends AttributeDocumentationTrait with LongKeyedMapper[AttributeDocumentation] with IdPK with CreatedUpdated {

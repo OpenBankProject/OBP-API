@@ -2979,6 +2979,167 @@ trait APIMethods400 {
     }
     
     
+    
+    resourceDocs += ResourceDoc(
+      deleteTransactionAttributeDocumentation,
+      implementedInApiVersion,
+      nameOf(deleteTransactionAttributeDocumentation),
+      "DELETE",
+      "/banks/BANK_ID/attribute-documentation/ATTRIBUTE_DOCUMENTATION_ID/transaction",
+      "Delete Transaction Attribute Documentation",
+      s""" Delete Transaction Attribute Documentation by ATTRIBUTE_DOCUMENTATION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canDeleteTransactionAttributeDocumentationAtOneBank)))
+
+    lazy val deleteTransactionAttributeDocumentation : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-documentation" :: attributeDocumentationId :: "transaction" :: Nil JsonDelete _ => {
+        cc =>
+          import code.api.util.newstyle.attributedocumentation.deleteAttributeDocumentation
+          for {
+            (deleted, callContext) <- deleteAttributeDocumentation(
+              attributeDocumentationId,
+              AttributeCategory.withName(AttributeCategory.Transaction.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`201`(callContext))
+          }
+      }
+    }    
+    
+    
+    resourceDocs += ResourceDoc(
+      deleteCustomerAttributeDocumentation,
+      implementedInApiVersion,
+      nameOf(deleteCustomerAttributeDocumentation),
+      "DELETE",
+      "/banks/BANK_ID/attribute-documentation/ATTRIBUTE_DOCUMENTATION_ID/customer",
+      "Delete Customer Attribute Documentation",
+      s""" Delete Customer Attribute Documentation by ATTRIBUTE_DOCUMENTATION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canDeleteCustomerAttributeDocumentationAtOneBank)))
+
+    lazy val deleteCustomerAttributeDocumentation : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-documentation" :: attributeDocumentationId :: "customer" :: Nil JsonDelete _ => {
+        cc =>
+          import code.api.util.newstyle.attributedocumentation.deleteAttributeDocumentation
+          for {
+            (deleted, callContext) <- deleteAttributeDocumentation(
+              attributeDocumentationId,
+              AttributeCategory.withName(AttributeCategory.Customer.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    
+    resourceDocs += ResourceDoc(
+      deleteAccountAttributeDocumentation,
+      implementedInApiVersion,
+      nameOf(deleteAccountAttributeDocumentation),
+      "DELETE",
+      "/banks/BANK_ID/attribute-documentation/ATTRIBUTE_DOCUMENTATION_ID/account",
+      "Delete Account Attribute Documentation",
+      s""" Delete Account Attribute Documentation by ATTRIBUTE_DOCUMENTATION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagNewStyle),
+      Some(List(canDeleteAccountAttributeDocumentationAtOneBank)))
+
+    lazy val deleteAccountAttributeDocumentation : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-documentation" :: attributeDocumentationId :: "account" :: Nil JsonDelete _ => {
+        cc =>
+          import code.api.util.newstyle.attributedocumentation.deleteAttributeDocumentation
+          for {
+            (deleted, callContext) <- deleteAttributeDocumentation(
+              attributeDocumentationId,
+              AttributeCategory.withName(AttributeCategory.Account.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    
+    resourceDocs += ResourceDoc(
+      deleteProductAttributeDocumentation,
+      implementedInApiVersion,
+      nameOf(deleteProductAttributeDocumentation),
+      "DELETE",
+      "/banks/BANK_ID/attribute-documentation/ATTRIBUTE_DOCUMENTATION_ID/product",
+      "Delete Product Attribute Documentation",
+      s""" Delete Product Attribute Documentation by ATTRIBUTE_DOCUMENTATION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canDeleteProductAttributeDocumentationAtOneBank)))
+
+    lazy val deleteProductAttributeDocumentation : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-documentation" :: attributeDocumentationId :: "product" :: Nil JsonDelete _ => {
+        cc =>
+          import code.api.util.newstyle.attributedocumentation.deleteAttributeDocumentation
+          for {
+            (deleted, callContext) <- deleteAttributeDocumentation(
+              attributeDocumentationId,
+              AttributeCategory.withName(AttributeCategory.Product.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    
 
   }
 

@@ -24,5 +24,9 @@ object RemotedataAttributeDocumentation extends ObpActorInit with AttributeDocum
                                           ): Future[Box[AttributeDocumentation]] =
     (actor ? cc.createOrUpdateAttributeDocumentation(bankId, name, category, `type`, description, alias, isActive)).mapTo[Box[AttributeDocumentation]]
 
+  def deleteAttributeDocumentation(attributeDocumentationId: String, 
+                                   category: AttributeCategory.Value): Future[Box[Boolean]] =
+    (actor ? cc.deleteAttributeDocumentation(attributeDocumentationId, category)).mapTo[Box[Boolean]]
+
 
 }

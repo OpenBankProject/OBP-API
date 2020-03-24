@@ -25,7 +25,8 @@ trait AttributeDocumentationProviderTrait {
                                            description: String,
                                            alias: String, 
                                            isActive: Boolean
-                                          ): Future[Box[AttributeDocumentation]]
+                                          ): Future[Box[AttributeDocumentation]]  
+  def deleteAttributeDocumentation(attributeDocumentationId: String, category: AttributeCategory.Value): Future[Box[Boolean]]
 }
 
 trait AttributeDocumentationTrait {
@@ -48,6 +49,7 @@ class RemotedataAttributeDocumentationCaseClasses {
                                                   description: String,
                                                   alias: String,
                                                   isActive: Boolean)
+  case class deleteAttributeDocumentation(attributeDocumentationId: String, category: AttributeCategory.Value)
 }
 
 object RemotedatattributeDocumentationCaseClasses extends RemotedataAttributeDocumentationCaseClasses

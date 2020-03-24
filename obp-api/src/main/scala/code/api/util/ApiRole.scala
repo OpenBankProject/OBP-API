@@ -476,14 +476,26 @@ object ApiRole {
   case class CanCreateCustomerAttributeDocumentationAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCustomerAttributeDocumentationAtOneBank = CanCreateCustomerAttributeDocumentationAtOneBank()
   
+  case class CanDeleteCustomerAttributeDocumentationAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteCustomerAttributeDocumentationAtOneBank = CanDeleteCustomerAttributeDocumentationAtOneBank()
+  
   case class CanCreateAccountAttributeDocumentationAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateAccountAttributeDocumentationAtOneBank = CanCreateAccountAttributeDocumentationAtOneBank() 
+  
+  case class CanDeleteAccountAttributeDocumentationAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteAccountAttributeDocumentationAtOneBank = CanDeleteAccountAttributeDocumentationAtOneBank() 
+  
+  case class CanDeleteProductAttributeDocumentationAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteProductAttributeDocumentationAtOneBank = CanDeleteProductAttributeDocumentationAtOneBank()
   
   case class CanCreateProductAttributeDocumentationAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateProductAttributeDocumentationAtOneBank = CanCreateProductAttributeDocumentationAtOneBank()
   
   case class CanCreateTransactionAttributeDocumentationAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateTransactionAttributeDocumentationAtOneBank = CanCreateTransactionAttributeDocumentationAtOneBank()
+  
+  case class CanDeleteTransactionAttributeDocumentationAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteTransactionAttributeDocumentationAtOneBank = CanDeleteTransactionAttributeDocumentationAtOneBank()
 
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 
