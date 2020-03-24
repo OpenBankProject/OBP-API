@@ -727,7 +727,8 @@ database_messages_scheduler_interval=3600
 # Possible values: dummy,email,sms
 # -----------------------------------------------------------------------
 
-# convert Bank_Plan_Text_Reference to OBP-UUID switch. Note: this is in process only for RestConnector now.
+# Convert the Bank's plain text reference(s) to OBP UUIDs and visa versa. Note: this is currently only for the Rest Connector.
+# Also known as ID Translation. We convert human readable Ids (e.g. Account Number) <---> UUIDs (e.g. OBP account_id)
 #implicitly_convert_ids = false
 
 # Enable /Disable Create password reset url endpoint
