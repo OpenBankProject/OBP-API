@@ -333,6 +333,46 @@ class CustomerAttributesTest extends V400ServerSetup {
       val response5 = responseGetCustomersByAttributesWithParameter5.body.extract[ListResult[List[CustomerWithAttributesJsonV310]]]
       response5.results.length should be (0)
     }
-    
+
+    feature(s"test $ApiEndpoint6 version $VersionOfApi will enforce proper entitlements") {
+      scenario("We will call the endpoint", ApiEndpoint6, VersionOfApi) {
+        When("We create an attribute for later deletion")
+        val bankId = randomBankId
+        val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
+        val customerId = createAndGetCustomerId(bankId, user1)
+
+        val requestCreation = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attribute").POST <@ (user1)
+        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canCreateCustomerAttributeAtOneBank.toString)
+
+        val responseCreation = makePostRequest(requestCreation, write(putCustomerAttributeJsonV400))
+        Then("We should get a 201")
+        responseCreation.code should equal(201)
+        val customer_attribute_id = responseCreation.body.extract[CustomerAttributeResponseJsonV300].customer_attribute_id
+
+        When("We try to delete the customer attribute without login")
+        val requestNoLogin = (v4_0_0_Request / "banks" / bankId / "customers" / "attributes" / customer_attribute_id).DELETE
+        val responseNoLogin = makeDeleteRequest(requestNoLogin)
+        Then("We should get a 400")
+        responseNoLogin.code should equal(400)
+        responseNoLogin.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+
+        When("We try to delete the customer attribute with login and without Role")
+        val requestNoRole = (v4_0_0_Request / "banks" / bankId / "customers" / "attributes" / customer_attribute_id).DELETE <@ (user1)
+        val responseNoRole = makeDeleteRequest(requestNoRole)
+        Then("We should get a 403")
+        responseNoRole.code should equal(403)
+        responseNoRole.body.extract[ErrorMessage].message.toString contains (UserHasMissingRoles) should be (true)
+
+        When("We try to delete the customer attribute with login and without Role")
+        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canDeleteCustomerAttributeAtOneBank.toString)
+        val requestWithRole = (v4_0_0_Request / "banks" / bankId / "customers" / "attributes" / customer_attribute_id).DELETE <@ (user1)
+        val responseWithRole = makeDeleteRequest(requestWithRole)
+        Then("We should get a 203")
+        responseWithRole.code should equal(203)
+
+      }
+    }
+
+
   }
 }

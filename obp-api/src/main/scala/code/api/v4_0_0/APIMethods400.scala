@@ -2758,7 +2758,7 @@ trait APIMethods400 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, ApiRole.canDeleteCustomerAttribute, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, ApiRole.canDeleteCustomerAttributeAtOneBank, callContext)
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             (customerAttribute, callContext) <- NewStyle.function.deleteCustomerAttribute(customerAttributeId, callContext)
           } yield {
