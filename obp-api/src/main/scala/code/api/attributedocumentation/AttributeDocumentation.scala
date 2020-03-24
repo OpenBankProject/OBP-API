@@ -7,6 +7,7 @@ import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
+import scala.collection.immutable.List
 import scala.concurrent.Future
 
 object AttributeDocumentationDI extends SimpleInjector {
@@ -25,8 +26,12 @@ trait AttributeDocumentationProviderTrait {
                                            description: String,
                                            alias: String, 
                                            isActive: Boolean
-                                          ): Future[Box[AttributeDocumentation]]  
-  def deleteAttributeDocumentation(attributeDocumentationId: String, category: AttributeCategory.Value): Future[Box[Boolean]]
+                                          ): Future[Box[AttributeDocumentation]] 
+  
+  def deleteAttributeDocumentation(attributeDocumentationId: String, 
+                                   category: AttributeCategory.Value): Future[Box[Boolean]]
+  
+  def getAttributeDocumentation(category: AttributeCategory.Value): Future[Box[List[AttributeDocumentation]]]
 }
 
 trait AttributeDocumentationTrait {
@@ -50,6 +55,7 @@ class RemotedataAttributeDocumentationCaseClasses {
                                                   alias: String,
                                                   isActive: Boolean)
   case class deleteAttributeDocumentation(attributeDocumentationId: String, category: AttributeCategory.Value)
+  case class getAttributeDocumentation(category: AttributeCategory.Value)
 }
 
 object RemotedatattributeDocumentationCaseClasses extends RemotedataAttributeDocumentationCaseClasses

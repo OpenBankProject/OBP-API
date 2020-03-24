@@ -31,6 +31,10 @@ class RemotedataAttributeDocumentationActor extends Actor with ObpActorHelper wi
       logger.debug(s"deleteAttributeDocumentation($attributeDocumentationId, ${category.toString})")
       mapper.deleteAttributeDocumentation(attributeDocumentationId, category) pipeTo sender
       
+    case cc.getAttributeDocumentation(category: AttributeCategory.Value) =>
+      logger.debug(s"getAttributeDocumentation(${category.toString})")
+      mapper.getAttributeDocumentation(category) pipeTo sender
+      
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }

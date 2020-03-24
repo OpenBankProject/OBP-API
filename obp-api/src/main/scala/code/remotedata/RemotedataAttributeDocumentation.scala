@@ -7,6 +7,7 @@ import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType}
 import net.liftweb.common.Box
 
+import scala.collection.immutable.List
 import scala.concurrent.Future
 
 
@@ -27,6 +28,9 @@ object RemotedataAttributeDocumentation extends ObpActorInit with AttributeDocum
   def deleteAttributeDocumentation(attributeDocumentationId: String, 
                                    category: AttributeCategory.Value): Future[Box[Boolean]] =
     (actor ? cc.deleteAttributeDocumentation(attributeDocumentationId, category)).mapTo[Box[Boolean]]
+  
+  def getAttributeDocumentation(category: AttributeCategory.Value): Future[Box[List[AttributeDocumentation]]] =
+    (actor ? cc.getAttributeDocumentation(category)).mapTo[Box[List[AttributeDocumentation]]]
 
 
 }

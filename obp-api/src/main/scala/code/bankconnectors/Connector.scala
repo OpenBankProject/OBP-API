@@ -1934,6 +1934,13 @@ trait Connector extends MdcLoggable {
     Future {
       (Failure(setUnimplementedError), callContext)
     }
+
+  def getAttributeDocumentation(category: AttributeCategory.Value,
+                                callContext: Option[CallContext]
+                               ): OBPReturnType[Box[List[AttributeDocumentation]]] =
+    Future {
+      (Failure(setUnimplementedError), callContext)
+    }
   
   def createOrUpdateTransactionAttribute(
     bankId: BankId,

@@ -9,6 +9,7 @@ import com.openbankproject.commons.model.BankId
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 
+import scala.collection.immutable.List
 import scala.concurrent.Future
 
 object MappedAttributeDocumentationProvider extends AttributeDocumentationProviderTrait with MdcLoggable {
@@ -66,6 +67,14 @@ object MappedAttributeDocumentationProvider extends AttributeDocumentationProvid
         logger.error(unhandledError)
         Full(false)
     }
+  }
+
+  def getAttributeDocumentation(category: AttributeCategory.Value): Future[Box[List[AttributeDocumentation]]] = Future {
+    Full(
+      AttributeDocumentation.findAll(
+        By(AttributeDocumentation.Category, category.toString)
+      )
+    )
   }
   
 }

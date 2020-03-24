@@ -282,6 +282,10 @@ case class AttributeDocumentationResponseJsonV400(attribute_documentation_id: St
                                                   is_active: Boolean
                                                  )
 
+case class AttributeDocumentationsResponseJsonV400(
+                                                    attributes: List[AttributeDocumentationResponseJsonV400]
+                                                  )
+
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
@@ -518,7 +522,7 @@ object JSONFactory400 {
   }
 
 
-  def createttributeDcumentationJson(attributeDocumentation: AttributeDocumentation) : AttributeDocumentationResponseJsonV400 = {
+  def createAttributeDocumentationJson(attributeDocumentation: AttributeDocumentation) : AttributeDocumentationResponseJsonV400 = {
     AttributeDocumentationResponseJsonV400(
       attribute_documentation_id = attributeDocumentation.attributeDocumentationId,
       bank_id = attributeDocumentation.bankId.value,
@@ -529,6 +533,10 @@ object JSONFactory400 {
       alias = attributeDocumentation.alias,
       is_active = attributeDocumentation.isActive,
     )
+  }
+
+  def createAttributeDocumentationsJson(attributeDocumentations: List[AttributeDocumentation]) : AttributeDocumentationsResponseJsonV400 = {
+    AttributeDocumentationsResponseJsonV400(attributeDocumentations.map(createAttributeDocumentationJson))
   }
   
 }

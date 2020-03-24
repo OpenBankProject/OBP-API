@@ -8,6 +8,8 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType}
 
+import scala.collection.immutable.List
+
 object attributedocumentation {
   def createOrUpdateAttributeDocumentation(bankId: BankId,
                                            name: String,
@@ -38,6 +40,17 @@ object attributedocumentation {
                                   ): OBPReturnType[Boolean] = {
     Connector.connector.vend.deleteAttributeDocumentation(
       attributeDocumentationId: String,
+      category: AttributeCategory.Value,
+      callContext: Option[CallContext]
+    ) map {
+      i => (APIUtil.connectorEmptyResponse(i._1, callContext), i._2)
+    }
+  }
+
+  def getAttributeDocumentation(category: AttributeCategory.Value,
+                                callContext: Option[CallContext]
+                               ): OBPReturnType[List[AttributeDocumentation]] = {
+    Connector.connector.vend.getAttributeDocumentation(
       category: AttributeCategory.Value,
       callContext: Option[CallContext]
     ) map {

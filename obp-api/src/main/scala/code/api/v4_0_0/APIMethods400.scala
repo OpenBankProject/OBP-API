@@ -2781,7 +2781,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createttributeDcumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
+            (JSONFactory400.createAttributeDocumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
           }
       }
     }
@@ -2846,7 +2846,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createttributeDcumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
+            (JSONFactory400.createAttributeDocumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
           }
       }
     }    
@@ -2910,7 +2910,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createttributeDcumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
+            (JSONFactory400.createAttributeDocumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
           }
       }
     }    
@@ -2973,7 +2973,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createttributeDcumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
+            (JSONFactory400.createAttributeDocumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
           }
       }
     }
@@ -3014,7 +3014,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (Full(deleted), HttpCode.`201`(callContext))
+            (Full(deleted), HttpCode.`200`(callContext))
           }
       }
     }    
@@ -3054,7 +3054,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (Full(deleted), HttpCode.`201`(callContext))
+            (Full(deleted), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3094,7 +3094,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (Full(deleted), HttpCode.`201`(callContext))
+            (Full(deleted), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3134,7 +3134,163 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (Full(deleted), HttpCode.`201`(callContext))
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }    
+    
+    
+    resourceDocs += ResourceDoc(
+      getProductAttributeDocumentation,
+      implementedInApiVersion,
+      nameOf(getProductAttributeDocumentation),
+      "GET",
+      "/banks/BANK_ID/attribute-documentation/product",
+      "Get Product Attribute Documentation",
+      s""" Get Product Attribute Documentation
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      transactionAttributeDocumentationsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canGetProductAttributeDocumentationAtOneBank)))
+
+    lazy val getProductAttributeDocumentation : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "product" :: Nil JsonGet _ => {
+        cc =>
+          import code.api.util.newstyle.attributedocumentation.getAttributeDocumentation
+          for {
+            (attributeDocumentations, callContext) <- getAttributeDocumentation(
+              AttributeCategory.withName(AttributeCategory.Product.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDocumentationsJson(attributeDocumentations), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    
+    resourceDocs += ResourceDoc(
+      getCustomerAttributeDocumentation,
+      implementedInApiVersion,
+      nameOf(getCustomerAttributeDocumentation),
+      "GET",
+      "/banks/BANK_ID/attribute-documentation/customer",
+      "Get Customer Attribute Documentation",
+      s""" Get Customer Attribute Documentation
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      transactionAttributeDocumentationsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCustomerAttributeDocumentationAtOneBank)))
+
+    lazy val getCustomerAttributeDocumentation : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "customer" :: Nil JsonGet _ => {
+        cc =>
+          import code.api.util.newstyle.attributedocumentation.getAttributeDocumentation
+          for {
+            (attributeDocumentations, callContext) <- getAttributeDocumentation(
+              AttributeCategory.withName(AttributeCategory.Customer.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDocumentationsJson(attributeDocumentations), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    
+    resourceDocs += ResourceDoc(
+      getAccountAttributeDocumentation,
+      implementedInApiVersion,
+      nameOf(getAccountAttributeDocumentation),
+      "GET",
+      "/banks/BANK_ID/attribute-documentation/account",
+      "Get Account Attribute Documentation",
+      s""" Get Account Attribute Documentation
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      transactionAttributeDocumentationsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagNewStyle),
+      Some(List(canGetAccountAttributeDocumentationAtOneBank)))
+
+    lazy val getAccountAttributeDocumentation : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "account" :: Nil JsonGet _ => {
+        cc =>
+          import code.api.util.newstyle.attributedocumentation.getAttributeDocumentation
+          for {
+            (attributeDocumentations, callContext) <- getAttributeDocumentation(
+              AttributeCategory.withName(AttributeCategory.Account.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDocumentationsJson(attributeDocumentations), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    
+    resourceDocs += ResourceDoc(
+      getTransactionAttributeDocumentation,
+      implementedInApiVersion,
+      nameOf(getTransactionAttributeDocumentation),
+      "GET",
+      "/banks/BANK_ID/attribute-documentation/transaction",
+      "Get Transaction Attribute Documentation",
+      s""" Get Transaction Attribute Documentation
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      transactionAttributeDocumentationsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canGetTransactionAttributeDocumentationAtOneBank)))
+
+    lazy val getTransactionAttributeDocumentation : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "transaction" :: Nil JsonGet _ => {
+        cc =>
+          import code.api.util.newstyle.attributedocumentation.getAttributeDocumentation
+          for {
+            (attributeDocumentations, callContext) <- getAttributeDocumentation(
+              AttributeCategory.withName(AttributeCategory.Transaction.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDocumentationsJson(attributeDocumentations), HttpCode.`200`(callContext))
           }
       }
     }

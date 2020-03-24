@@ -2808,6 +2808,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  override def getAttributeDocumentation(category: AttributeCategory.Value,
+                                         callContext: Option[CallContext]
+                                        ): OBPReturnType[Box[List[AttributeDocumentation]]] = {
+    AttributeDocumentationDI.attributeDocumentation.vend.getAttributeDocumentation(
+      category: AttributeCategory.Value
+    ) map {
+      (_, callContext)
+    }
+  }
+
 
   override def getCustomerAttributes(bankId: BankId,
                                      customerId: CustomerId,
