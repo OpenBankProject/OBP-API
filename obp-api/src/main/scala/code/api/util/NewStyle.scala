@@ -1893,7 +1893,7 @@ object NewStyle {
         }
       }
       val dynamicInstance: Option[JObject] = requestBody.map { it =>
-        val entityIdName = StringUtils.uncapitalize(entityName) + "Id"
+        val entityIdName = s"${entityName}Id".replaceAll("(?<=[a-z])(?=[A-Z])|-", "_").toLowerCase
         val entityIdValue = it \ entityIdName
 
         entityIdValue match {
