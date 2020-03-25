@@ -10,7 +10,7 @@ import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType
 
 import scala.collection.immutable.List
 
-object attributedocumentation {
+object AttributeDocumentation {
   def createOrUpdateAttributeDocumentation(bankId: BankId,
                                            name: String,
                                            category: AttributeCategory.Value,

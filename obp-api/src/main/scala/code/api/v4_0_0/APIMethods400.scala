@@ -12,6 +12,8 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
+import code.api.util.newstyle.AttributeDocumentation._
+import code.api.util.newstyle.Consumer._
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
@@ -2693,7 +2695,6 @@ trait APIMethods400 {
     lazy val createConsumer: OBPEndpoint = {
       case "management" :: "consumers" :: Nil JsonPost json -> _ => {
         cc =>
-          import code.api.util.newstyle.consumer.createConsumerNewStyle
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
@@ -2754,7 +2755,6 @@ trait APIMethods400 {
     lazy val createOrUpdateCustomerAttributeDocumentation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-documentation" :: "customer" :: Nil JsonPut json -> _=> {
         cc =>
-          import code.api.util.newstyle.attributedocumentation.createOrUpdateAttributeDocumentation
           val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
@@ -2819,7 +2819,6 @@ trait APIMethods400 {
     lazy val createOrUpdateAccountAttributeDocumentation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-documentation" :: "account" :: Nil JsonPut json -> _=> {
         cc =>
-          import code.api.util.newstyle.attributedocumentation.createOrUpdateAttributeDocumentation
           val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
@@ -2883,7 +2882,6 @@ trait APIMethods400 {
     lazy val createOrUpdateProductAttributeDocumentation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-documentation" :: "product" :: Nil JsonPut json -> _=> {
         cc =>
-          import code.api.util.newstyle.attributedocumentation.createOrUpdateAttributeDocumentation
           val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
@@ -2946,7 +2944,6 @@ trait APIMethods400 {
     lazy val createOrUpdateTransactionAttributeDocumentation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-documentation" :: "transaction" :: Nil JsonPut json -> _=> {
         cc =>
-          import code.api.util.newstyle.attributedocumentation.createOrUpdateAttributeDocumentation
           val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
@@ -3006,7 +3003,6 @@ trait APIMethods400 {
     lazy val deleteTransactionAttributeDocumentation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-documentation" :: attributeDocumentationId :: "transaction" :: Nil JsonDelete _ => {
         cc =>
-          import code.api.util.newstyle.attributedocumentation.deleteAttributeDocumentation
           for {
             (deleted, callContext) <- deleteAttributeDocumentation(
               attributeDocumentationId,
@@ -3046,7 +3042,6 @@ trait APIMethods400 {
     lazy val deleteCustomerAttributeDocumentation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-documentation" :: attributeDocumentationId :: "customer" :: Nil JsonDelete _ => {
         cc =>
-          import code.api.util.newstyle.attributedocumentation.deleteAttributeDocumentation
           for {
             (deleted, callContext) <- deleteAttributeDocumentation(
               attributeDocumentationId,
@@ -3086,7 +3081,6 @@ trait APIMethods400 {
     lazy val deleteAccountAttributeDocumentation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-documentation" :: attributeDocumentationId :: "account" :: Nil JsonDelete _ => {
         cc =>
-          import code.api.util.newstyle.attributedocumentation.deleteAttributeDocumentation
           for {
             (deleted, callContext) <- deleteAttributeDocumentation(
               attributeDocumentationId,
@@ -3126,7 +3120,6 @@ trait APIMethods400 {
     lazy val deleteProductAttributeDocumentation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-documentation" :: attributeDocumentationId :: "product" :: Nil JsonDelete _ => {
         cc =>
-          import code.api.util.newstyle.attributedocumentation.deleteAttributeDocumentation
           for {
             (deleted, callContext) <- deleteAttributeDocumentation(
               attributeDocumentationId,
@@ -3166,7 +3159,6 @@ trait APIMethods400 {
     lazy val getProductAttributeDocumentation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-documentation" :: "product" :: Nil JsonGet _ => {
         cc =>
-          import code.api.util.newstyle.attributedocumentation.getAttributeDocumentation
           for {
             (attributeDocumentations, callContext) <- getAttributeDocumentation(
               AttributeCategory.withName(AttributeCategory.Product.toString),
@@ -3205,7 +3197,6 @@ trait APIMethods400 {
     lazy val getCustomerAttributeDocumentation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-documentation" :: "customer" :: Nil JsonGet _ => {
         cc =>
-          import code.api.util.newstyle.attributedocumentation.getAttributeDocumentation
           for {
             (attributeDocumentations, callContext) <- getAttributeDocumentation(
               AttributeCategory.withName(AttributeCategory.Customer.toString),
@@ -3244,7 +3235,6 @@ trait APIMethods400 {
     lazy val getAccountAttributeDocumentation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-documentation" :: "account" :: Nil JsonGet _ => {
         cc =>
-          import code.api.util.newstyle.attributedocumentation.getAttributeDocumentation
           for {
             (attributeDocumentations, callContext) <- getAttributeDocumentation(
               AttributeCategory.withName(AttributeCategory.Account.toString),
@@ -3283,7 +3273,6 @@ trait APIMethods400 {
     lazy val getTransactionAttributeDocumentation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-documentation" :: "transaction" :: Nil JsonGet _ => {
         cc =>
-          import code.api.util.newstyle.attributedocumentation.getAttributeDocumentation
           for {
             (attributeDocumentations, callContext) <- getAttributeDocumentation(
               AttributeCategory.withName(AttributeCategory.Transaction.toString),
