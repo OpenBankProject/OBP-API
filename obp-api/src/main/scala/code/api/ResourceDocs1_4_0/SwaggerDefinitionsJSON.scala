@@ -3689,63 +3689,28 @@ object SwaggerDefinitionsJSON {
     alias = customerAttributeAliasExample.value,
     is_active = true
   )  
-  val accountAttributeDocumentationJsonV400 = AttributeDocumentationJsonV400(
-    name = customerAttributeNameExample.value,
-    category = AttributeCategory.Account.toString,
-    `type` = customerAttributeTypeExample.value,
-    description = "description",
-    alias = customerAttributeAliasExample.value,
-    is_active = true
-  )  
-  val accountAttributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
-    attribute_documentation_id = uuidExample.value,
-    bank_id = bankIdExample.value,
-    name = customerAttributeNameExample.value,
-    category = AttributeCategory.Account.toString,
-    `type` = customerAttributeTypeExample.value,
-    description = "description",
-    alias = customerAttributeAliasExample.value,
-    is_active = true
-  )  
-  val productAttributeDocumentationJsonV400 = AttributeDocumentationJsonV400(
-    name = customerAttributeNameExample.value,
-    category = AttributeCategory.Product.toString,
-    `type` = customerAttributeTypeExample.value,
-    description = "description",
-    alias = customerAttributeAliasExample.value,
-    is_active = true
-  )
-  val productAttributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
-    attribute_documentation_id = uuidExample.value,
-    bank_id = bankIdExample.value,
-    name = customerAttributeNameExample.value,
-    category = AttributeCategory.Product.toString,
-    `type` = customerAttributeTypeExample.value,
-    description = "description",
-    alias = customerAttributeAliasExample.value,
-    is_active = true
-  )  
-  val transactionAttributeDocumentationJsonV400 = AttributeDocumentationJsonV400(
-    name = customerAttributeNameExample.value,
-    category = AttributeCategory.Transaction.toString,
-    `type` = customerAttributeTypeExample.value,
-    description = "description",
-    alias = customerAttributeAliasExample.value,
-    is_active = true
-  )
-  val transactionAttributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
-    attribute_documentation_id = uuidExample.value,
-    bank_id = bankIdExample.value,
-    name = customerAttributeNameExample.value,
-    category = AttributeCategory.Transaction.toString,
-    `type` = customerAttributeTypeExample.value,
-    description = "description",
-    alias = customerAttributeAliasExample.value,
-    is_active = true
-  )
+  val accountAttributeDocumentationJsonV400 =
+    customerAttributeDocumentationJsonV400.copy(category = AttributeCategory.Account.toString)
+    
+  val accountAttributeDocumentationResponseJsonV400 =
+    customerAttributeDocumentationResponseJsonV400.copy(category = AttributeCategory.Account.toString)
+  
+  val productAttributeDocumentationJsonV400 =
+    customerAttributeDocumentationJsonV400.copy(category = AttributeCategory.Product.toString)
+  
+  val productAttributeDocumentationResponseJsonV400 =
+    customerAttributeDocumentationResponseJsonV400.copy(category = AttributeCategory.Product.toString)
+  
+  val transactionAttributeDocumentationJsonV400 = 
+    customerAttributeDocumentationJsonV400.copy(category = AttributeCategory.Transaction.toString)
+  
+  val transactionAttributeDocumentationResponseJsonV400 =
+    customerAttributeDocumentationResponseJsonV400.copy(category = AttributeCategory.Transaction.toString)
+    
   val transactionAttributeDocumentationsResponseJsonV400 = AttributeDocumentationsResponseJsonV400(
     attributes = List(transactionAttributeDocumentationResponseJsonV400)
   )
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()
