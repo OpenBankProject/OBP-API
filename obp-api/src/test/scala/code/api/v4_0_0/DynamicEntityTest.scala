@@ -297,7 +297,7 @@ class DynamicEntityTest extends V400ServerSetup {
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 200")
       responseGet.code should equal(200)
-      val json = responseGet.body \ "dynamic-entities"
+      val json = responseGet.body \ "dynamic_entities"
       val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
 
       dynamicEntitiesGetJson.values should have size 1
