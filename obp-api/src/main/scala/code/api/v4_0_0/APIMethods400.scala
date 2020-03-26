@@ -812,7 +812,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getDynamicEntities),
       "GET",
-      "/management/dynamic_entities",
+      "/management/dynamic-entities",
       "Get DynamicEntities",
       s"""Get the all DynamicEntities.""",
       emptyObjectJson,
@@ -832,7 +832,7 @@ trait APIMethods400 {
 
 
     lazy val getDynamicEntities: OBPEndpoint = {
-      case "management" :: "dynamic_entities" :: Nil JsonGet req => {
+      case "management" :: "dynamic-entities" :: Nil JsonGet req => {
         cc =>
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities())
@@ -849,7 +849,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(createDynamicEntity),
       "POST",
-      "/management/dynamic_entities",
+      "/management/dynamic-entities",
       "Create DynamicEntity",
       s"""Create a DynamicEntity.
          |
@@ -882,7 +882,7 @@ trait APIMethods400 {
       Some(List(canCreateDynamicEntity)))
 
     lazy val createDynamicEntity: OBPEndpoint = {
-      case "management" :: "dynamic_entities" :: Nil JsonPost json -> _ => {
+      case "management" :: "dynamic-entities" :: Nil JsonPost json -> _ => {
         cc =>
           val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None)
           for {
@@ -900,7 +900,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(updateDynamicEntity),
       "PUT",
-      "/management/dynamic_entities/DYNAMIC_ENTITY_ID",
+      "/management/dynamic-entities/DYNAMIC_ENTITY_ID",
       "Update DynamicEntity",
       s"""Update a DynamicEntity.
          |
@@ -933,7 +933,7 @@ trait APIMethods400 {
       Some(List(canUpdateDynamicEntity)))
 
     lazy val updateDynamicEntity: OBPEndpoint = {
-      case "management" :: "dynamic_entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
+      case "management" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
         cc =>
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
@@ -958,7 +958,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(deleteDynamicEntity),
       "DELETE",
-      "/management/dynamic_entities/DYNAMIC_ENTITY_ID",
+      "/management/dynamic-entities/DYNAMIC_ENTITY_ID",
       "Delete DynamicEntity",
       s"""Delete a DynamicEntity specified by DYNAMIC_ENTITY_ID.
          |
@@ -975,7 +975,7 @@ trait APIMethods400 {
       Some(List(canDeleteDynamicEntity)))
 
     lazy val deleteDynamicEntity: OBPEndpoint = {
-      case "management" :: "dynamic_entities" :: dynamicEntityId :: Nil JsonDelete _ => {
+      case "management" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonDelete _ => {
         cc =>
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
@@ -2728,7 +2728,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(createDynamicEndpoint),
       "POST",
-      "/management/dynamic_endpoints",
+      "/management/dynamic-endpoints",
       "Create DynamicEndpoint",
       s"""Create a DynamicEndpoint.
          |
@@ -2751,7 +2751,7 @@ trait APIMethods400 {
       Some(List(canCreateDynamicEndpoint)))
 
     lazy val createDynamicEndpoint: OBPEndpoint = {
-      case "management" :: "dynamic_endpoints" :: Nil JsonPost json -> _ => {
+      case "management" :: "dynamic-endpoints" :: Nil JsonPost json -> _ => {
         cc =>
           for {
             postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
@@ -2771,7 +2771,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getDynamicEndpoint),
       "GET",
-      "/management/dynamic_endpoints/DYNAMIC_ENDPOINT_ID",
+      "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
       "Get DynamicEndpoint",
       s"""Get a DynamicEndpoint.
          |
@@ -2794,7 +2794,7 @@ trait APIMethods400 {
       Some(List(canGetDynamicEndpoint)))
 
     lazy val getDynamicEndpoint: OBPEndpoint = {
-      case "management" :: "dynamic_endpoints" :: dynamicEndpointId :: Nil JsonGet req => {
+      case "management" :: "dynamic-endpoints" :: dynamicEndpointId :: Nil JsonGet req => {
         cc =>
           for {
             (dynamicEndpoint, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
@@ -2810,7 +2810,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getDynamicEndpoints),
       "GET",
-      "/management/dynamic_endpoints",
+      "/management/dynamic-endpoints",
       "Get DynamicEndpoints",
       s"""Get DynamicEndpoints.
          |
@@ -2822,7 +2822,7 @@ trait APIMethods400 {
          |""",
       emptyObjectJson,
       ListResult(
-        "dynamic_entities",
+        "dynamic-entities",
         List(dynamicEndpointResponseBodyExample)
       ),
       List(
@@ -2836,7 +2836,7 @@ trait APIMethods400 {
       Some(List(canGetDynamicEndpoints)))
 
     lazy val getDynamicEndpoints: OBPEndpoint = {
-      case "management" :: "dynamic_endpoints" :: Nil JsonGet req => {
+      case "management" :: "dynamic-endpoints" :: Nil JsonGet req => {
         cc =>
           for {
             (dynamicEndpoints, callContext) <- NewStyle.function.getDynamicEndpoints(cc.callContext)
