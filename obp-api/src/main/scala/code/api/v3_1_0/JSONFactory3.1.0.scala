@@ -664,8 +664,7 @@ case class CreateAccountRequestJsonV310(
   product_code : String,
   balance : AmountOfMoneyJsonV121,
   branch_id : String,
-  account_routing: AccountRoutingJsonV121,
-  account_attributes: List[AccountAttributeResponseJson]
+  account_routing: AccountRoutingJsonV121
 )
 
 case class CreateAccountResponseJsonV310(
