@@ -59,6 +59,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import code.model._
 import org.apache.commons.lang3.StringUtils
+import net.liftweb.json.compactRender
 
 trait APIMethods400 {
   self: RestHelper =>
@@ -2732,9 +2733,6 @@ trait APIMethods400 {
       "Create DynamicEndpoint",
       s"""Create a DynamicEndpoint.
          |
-         |
-         |${authenticationRequiredMessage(true)}
-         |
          |Create one DynamicEndpoint,
          |
          |""",
@@ -2750,12 +2748,20 @@ trait APIMethods400 {
       List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canCreateDynamicEndpoint)))
 
+    private val BodyPost = new TestPost[String] with JsonTest {
+      def body(r: Req): Box[String] = {
+        val value = r.body.map(it => new String(it))
+        value
+      }
+    }
+
     lazy val createDynamicEndpoint: OBPEndpoint = {
-      case "management" :: "dynamic-endpoints" :: Nil JsonPost json -> _ => {
+      case "management" :: "dynamic-endpoints" :: Nil BodyPost body -> req => {
         cc =>
           for {
             postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
-              json.extract[DynamicEndpointSwagger]
+              DynamicEndpointHelper.parseSwaggerContent(body)
+              DynamicEndpointSwagger(body)
             }
             (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(postedJson.swaggerString, cc.callContext)
           } yield {
@@ -2775,8 +2781,6 @@ trait APIMethods400 {
       "Get DynamicEndpoint",
       s"""Get a DynamicEndpoint.
          |
-         |
-         |${authenticationRequiredMessage(true)}
          |
          |Get one DynamicEndpoint,
          |
@@ -2814,15 +2818,12 @@ trait APIMethods400 {
       "Get DynamicEndpoints",
       s"""Get DynamicEndpoints.
          |
-         |
-         |${authenticationRequiredMessage(true)}
-         |
          |Get DynamicEndpoints,
          |
          |""",
       emptyObjectJson,
       ListResult(
-        "dynamic-entities",
+        "dynamic_entities",
         List(dynamicEndpointResponseBodyExample)
       ),
       List(
@@ -2846,7 +2847,23 @@ trait APIMethods400 {
           }
       }
     }
-    
+
+    lazy val dynamicEndpoint: OBPEndpoint = {
+      case EntityName(entityName) :: Nil JsonGet req => { cc =>
+        val listName = StringHelpers.snakify(English.plural(entityName))
+        for {
+          (Full(u), callContext) <- authenticatedAccess(cc)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
+          resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
+        } yield {
+          import net.liftweb.json.JsonDSL._
+
+          val jValue: JObject = listName -> filterDynamicObjects(resultList, req)
+          (jValue, HttpCode.`200`(Some(cc)))
+        }
+      }
+    }
 
   }
 
