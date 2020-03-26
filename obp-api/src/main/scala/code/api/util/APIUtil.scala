@@ -1081,7 +1081,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   case class EmptyClassJson(jsonString: String ="{}")
 
   // Used to document the API calls
-  case class ResourceDoc(
+  case class ResourceDoc (
                           partialFunction: OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
                           implementedInApiVersion: ScannedApiVersion, // TODO: Use ApiVersion enumeration instead of string
                           partialFunctionName: String, // The string name of the partial function that implements this resource. Could use it to link to the source code that implements the call

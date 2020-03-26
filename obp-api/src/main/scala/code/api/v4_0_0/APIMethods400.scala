@@ -49,6 +49,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
@@ -2748,25 +2749,20 @@ trait APIMethods400 {
       List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canCreateDynamicEndpoint)))
 
-    private val BodyPost = new TestPost[String] with JsonTest {
-      def body(r: Req): Box[String] = {
-        val value = r.body.map(it => new String(it))
-        value
-      }
-    }
-
     lazy val createDynamicEndpoint: OBPEndpoint = {
-      case "management" :: "dynamic_endpoints" :: Nil BodyPost body -> req => {
+      case "management" :: "dynamic_endpoints" :: Nil JsonPost json -> _ => {
         cc =>
           for {
             postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
-              DynamicEndpointHelper.parseSwaggerContent(body)
-              DynamicEndpointSwagger(body)
+              val swaggerContent = compactRender(json)
+              DynamicEndpointHelper.parseSwaggerContent(swaggerContent)
+              DynamicEndpointSwagger(swaggerContent)
             }
             (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(postedJson.swaggerString, cc.callContext)
           } yield {
-            val commonsData: DynamicEndpointCommons = dynamicEndpoint
-            (commonsData, HttpCode.`201`(callContext))
+            val swaggerJson = parse(dynamicEndpoint.swaggerString)
+            val responseJson: JObject = ("dynamicEndpointId", dynamicEndpoint.dynamicEndpointId) ~ ("swaggerString", swaggerJson)
+            (responseJson, HttpCode.`201`(callContext))
           }
       }
     }
@@ -2803,8 +2799,9 @@ trait APIMethods400 {
           for {
             (dynamicEndpoint, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
           } yield {
-            val commonsData: DynamicEndpointCommons = dynamicEndpoint
-            (commonsData, HttpCode.`201`(callContext))
+            val swaggerJson = parse(dynamicEndpoint.swaggerString)
+            val responseJson: JObject = ("dynamicEndpointId", dynamicEndpoint.dynamicEndpointId) ~ ("swaggerString", swaggerJson)
+            (responseJson, HttpCode.`201`(callContext))
           }
       }
     }
@@ -2840,10 +2837,13 @@ trait APIMethods400 {
       case "management" :: "dynamic_endpoints" :: Nil JsonGet req => {
         cc =>
           for {
-            (dynamicEndpoints, callContext) <- NewStyle.function.getDynamicEndpoints(cc.callContext)
+            (dynamicEndpoints, _) <- NewStyle.function.getDynamicEndpoints(cc.callContext)
           } yield {
-            val listCommons: List[DynamicEndpointCommons] = dynamicEndpoints
-            (ListResult("dynamic_entities", listCommons), HttpCode.`200`(cc.callContext))
+            val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint=>
+              val swaggerJson = parse(dynamicEndpoint.swaggerString)
+               ("dynamicEndpointId", dynamicEndpoint.dynamicEndpointId) ~ ("swaggerString", swaggerJson)
+            }
+            (ListResult("dynamic_entities", resultList), HttpCode.`200`(cc.callContext))
           }
       }
     }
