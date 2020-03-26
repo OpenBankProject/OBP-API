@@ -59,6 +59,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import code.model._
 import org.apache.commons.lang3.StringUtils
+import net.liftweb.json.compactRender
 
 trait APIMethods400 {
   self: RestHelper =>
@@ -2723,62 +2724,14 @@ trait APIMethods400 {
       }
     }
 
-    val customerAttributeGeneralInfo =
-      s"""
-         |CustomerAttributes are used to enhance the OBP Customer object with Bank specific entities.
-         |
-       """.stripMargin
-
-    resourceDocs += ResourceDoc(
-      deleteCustomerAttribute,
-      implementedInApiVersion,
-      nameOf(deleteCustomerAttribute),
-      "DELETE",
-      "/banks/BANK_ID/CUSTOMER_ID/attributes/CUSTOMER_ATTRIBUTE_ID",
-      "Delete Customer Attribute",
-      s""" Delete Customer Attribute
-         |
-         |$customerAttributeGeneralInfo
-         |
-         |Delete a Customer Attribute by its id.
-         |
-         |${authenticationRequiredMessage(true)}
-         |
-         |""",
-      emptyObjectJson,
-      emptyObjectJson,
-      List(
-        UserHasMissingRoles,
-        UnknownError
-      ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canDeleteCustomerAttributeAtOneBank)))
-
-    lazy val deleteCustomerAttribute : OBPEndpoint = {
-      case "banks" :: bankId :: "customers" :: "attributes" :: customerAttributeId ::  Nil JsonDelete _=> {
-        cc =>
-          for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
-            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
-            (customerAttribute, callContext) <- NewStyle.function.deleteCustomerAttribute(customerAttributeId, callContext)
-          } yield {
-            (Full(customerAttribute), HttpCode.`204`(callContext))
-          }
-      }
-    }
-
     resourceDocs += ResourceDoc(
       createDynamicEndpoint,
       implementedInApiVersion,
       nameOf(createDynamicEndpoint),
       "POST",
       "/management/dynamic_endpoints",
-      "Create DynamicEndpoint",
+      " Create DynamicEndpoint",
       s"""Create a DynamicEndpoint.
-         |
-         |
-         |${authenticationRequiredMessage(true)}
          |
          |Create one DynamicEndpoint,
          |
@@ -2817,11 +2770,9 @@ trait APIMethods400 {
       nameOf(getDynamicEndpoint),
       "GET",
       "/management/dynamic_endpoints/DYNAMIC_ENDPOINT_ID",
-      "Get DynamicEndpoint",
+      " Get DynamicEndpoint",
       s"""Get a DynamicEndpoint.
          |
-         |
-         |${authenticationRequiredMessage(true)}
          |
          |Get one DynamicEndpoint,
          |
@@ -2849,18 +2800,15 @@ trait APIMethods400 {
           }
       }
     }
-
+    
     resourceDocs += ResourceDoc(
       getDynamicEndpoints,
       implementedInApiVersion,
       nameOf(getDynamicEndpoints),
       "GET",
       "/management/dynamic_endpoints",
-      "Get DynamicEndpoints",
+      " Get DynamicEndpoints",
       s"""Get DynamicEndpoints.
-         |
-         |
-         |${authenticationRequiredMessage(true)}
          |
          |Get DynamicEndpoints,
          |
@@ -2892,6 +2840,22 @@ trait APIMethods400 {
       }
     }
 
+    lazy val dynamicEndpoint: OBPEndpoint = {
+      case EntityName(entityName) :: Nil JsonGet req => { cc =>
+        val listName = StringHelpers.snakify(English.plural(entityName))
+        for {
+          (Full(u), callContext) <- authenticatedAccess(cc)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
+          resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
+        } yield {
+          import net.liftweb.json.JsonDSL._
+
+          val jValue: JObject = listName -> filterDynamicObjects(resultList, req)
+          (jValue, HttpCode.`200`(Some(cc)))
+        }
+      }
+    }
 
   }
 

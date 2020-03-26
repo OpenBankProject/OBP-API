@@ -2227,6 +2227,7 @@ trait APIMethods310 {
       emptyObjectJson,
       List(
         UserHasMissingRoles,
+        BankNotFound,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
