@@ -49,7 +49,6 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
@@ -60,7 +59,6 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import code.model._
 import org.apache.commons.lang3.StringUtils
-import net.liftweb.json.compactRender
 
 trait APIMethods400 {
   self: RestHelper =>
