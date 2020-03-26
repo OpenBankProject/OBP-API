@@ -2978,6 +2978,70 @@ trait APIMethods400 {
     
     
     resourceDocs += ResourceDoc(
+      createOrUpdateCardAttributeDocumentation,
+      implementedInApiVersion,
+      nameOf(createOrUpdateCardAttributeDocumentation),
+      "PUT",
+      "/banks/BANK_ID/attribute-documentation/card",
+      "Create or Update Card Attribute Documentation",
+      s""" Create or Update Card Attribute Documentation
+         |
+         |The category field must be ${AttributeCategory.Card}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      cardAttributeDocumentationJsonV400,
+      cardAttributeDocumentationResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canCreateCardAttributeDocumentationAtOneBank)))
+
+    lazy val createOrUpdateCardAttributeDocumentation : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "card" :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDocumentationJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+              s"${AttributeCategory.Card}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDocumentation, callContext) <- createOrUpdateAttributeDocumentation(
+              bankId,
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDocumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    
+    
+    resourceDocs += ResourceDoc(
       deleteTransactionAttributeDocumentation,
       implementedInApiVersion,
       nameOf(deleteTransactionAttributeDocumentation),
@@ -3130,6 +3194,45 @@ trait APIMethods400 {
             (Full(deleted), HttpCode.`200`(callContext))
           }
       }
+    }
+    
+    
+    resourceDocs += ResourceDoc(
+      deleteCardAttributeDocumentation,
+      implementedInApiVersion,
+      nameOf(deleteCardAttributeDocumentation),
+      "DELETE",
+      "/banks/BANK_ID/attribute-documentation/ATTRIBUTE_DOCUMENTATION_ID/card",
+      "Delete Card Attribute Documentation",
+      s""" Delete Card Attribute Documentation by ATTRIBUTE_DOCUMENTATION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canDeleteCardAttributeDocumentationAtOneBank)))
+
+    lazy val deleteCardAttributeDocumentation : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-documentation" :: attributeDocumentationId :: "card" :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- deleteAttributeDocumentation(
+              attributeDocumentationId,
+              AttributeCategory.withName(AttributeCategory.Card.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
     }    
     
     
@@ -3146,7 +3249,7 @@ trait APIMethods400 {
          |
          |""",
       emptyObjectJson,
-      transactionAttributeDocumentationsResponseJsonV400,
+      productAttributeDocumentationsResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -3184,7 +3287,7 @@ trait APIMethods400 {
          |
          |""",
       emptyObjectJson,
-      transactionAttributeDocumentationsResponseJsonV400,
+      customerAttributeDocumentationsResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -3222,7 +3325,7 @@ trait APIMethods400 {
          |
          |""",
       emptyObjectJson,
-      transactionAttributeDocumentationsResponseJsonV400,
+      accountAttributeDocumentationsResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -3276,6 +3379,45 @@ trait APIMethods400 {
           for {
             (attributeDocumentations, callContext) <- getAttributeDocumentation(
               AttributeCategory.withName(AttributeCategory.Transaction.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDocumentationsJson(attributeDocumentations), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    
+    
+    resourceDocs += ResourceDoc(
+      getCardAttributeDocumentation,
+      implementedInApiVersion,
+      nameOf(getCardAttributeDocumentation),
+      "GET",
+      "/banks/BANK_ID/attribute-documentation/card",
+      "Get Card Attribute Documentation",
+      s""" Get Card Attribute Documentation
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      cardAttributeDocumentationsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canGetCardAttributeDocumentationAtOneBank)))
+
+    lazy val getCardAttributeDocumentation : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "card" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributeDocumentations, callContext) <- getAttributeDocumentation(
+              AttributeCategory.withName(AttributeCategory.Card.toString),
               cc.callContext
             )
           } yield {

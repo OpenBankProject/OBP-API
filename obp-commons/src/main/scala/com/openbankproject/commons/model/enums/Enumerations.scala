@@ -130,4 +130,5 @@ object AttributeCategory extends OBPEnumeration[AttributeCategory]{
   object Product extends Value
   object Account extends Value
   object Transaction extends Value
+  object Card extends Value
 }

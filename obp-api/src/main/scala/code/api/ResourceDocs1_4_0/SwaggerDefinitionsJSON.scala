@@ -3706,9 +3706,27 @@ object SwaggerDefinitionsJSON {
   
   val transactionAttributeDocumentationResponseJsonV400 =
     customerAttributeDocumentationResponseJsonV400.copy(category = AttributeCategory.Transaction.toString)
+  
+  val cardAttributeDocumentationJsonV400 = 
+    customerAttributeDocumentationJsonV400.copy(category = AttributeCategory.Card.toString)
+  
+  val cardAttributeDocumentationResponseJsonV400 =
+    customerAttributeDocumentationResponseJsonV400.copy(category = AttributeCategory.Card.toString)
     
   val transactionAttributeDocumentationsResponseJsonV400 = AttributeDocumentationsResponseJsonV400(
     attributes = List(transactionAttributeDocumentationResponseJsonV400)
+  )    
+  val cardAttributeDocumentationsResponseJsonV400 = AttributeDocumentationsResponseJsonV400(
+    attributes = List(cardAttributeDocumentationResponseJsonV400)
+  )    
+  val accountAttributeDocumentationsResponseJsonV400 = AttributeDocumentationsResponseJsonV400(
+    attributes = List(accountAttributeDocumentationResponseJsonV400)
+  )    
+  val customerAttributeDocumentationsResponseJsonV400 = AttributeDocumentationsResponseJsonV400(
+    attributes = List(customerAttributeDocumentationResponseJsonV400)
+  )    
+  val productAttributeDocumentationsResponseJsonV400 = AttributeDocumentationsResponseJsonV400(
+    attributes = List(productAttributeDocumentationResponseJsonV400)
   )
   
   //The common error or success format.
