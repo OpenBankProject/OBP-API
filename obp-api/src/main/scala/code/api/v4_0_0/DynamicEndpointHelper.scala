@@ -44,13 +44,8 @@ object DynamicEndpointHelper {
   val dynamicEndpointsUrl: Set[(String, HttpMethod)] = Set()
 
   def swaggerToResourceDocs(content: String): mutable.Iterable[ResourceDoc] = {
-    val tempSwaggerFile = File.createTempFile("temp", ".swagger")
-    FileUtils.write(tempSwaggerFile, content, Charset.forName("utf-8"))
-    val openAPI: OpenAPI = new OpenAPIV3Parser().read(tempSwaggerFile.getAbsolutePath)
-    // Delete temp file when program exits, only if delete fail.
-    if(!FileUtils.deleteQuietly(tempSwaggerFile)){
-      tempSwaggerFile.deleteOnExit()
-    }
+    val openAPI: OpenAPI = parseSwaggerContent(content)
+
     val tags: List[ResourceDocTag] = List(ApiTag.apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle)
 
     val paths: mutable.Map[String, PathItem] = openAPI.getPaths.asScala
@@ -73,8 +68,8 @@ object DynamicEndpointHelper {
         .filter(StringUtils.isNotBlank)
         .map(_.capitalize)
         .getOrElse(summary)
-      val exampleRequestBody: scala.Product = getRequestExample(openAPI, op.getRequestBody)
-      val successResponseBody: scala.Product = getResponseExample(openAPI, op.getResponses)
+      val exampleRequestBody: Product = getRequestExample(openAPI, op.getRequestBody)
+      val successResponseBody: Product = getResponseExample(openAPI, op.getResponses)
       val errorResponseBodies: List[String] = List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -107,6 +102,17 @@ object DynamicEndpointHelper {
       )
     }
     docs
+  }
+
+  def parseSwaggerContent(content: String): OpenAPI = {
+    val tempSwaggerFile = File.createTempFile("temp", ".swagger")
+    FileUtils.write(tempSwaggerFile, content, Charset.forName("utf-8"))
+    val openAPI: OpenAPI = new OpenAPIV3Parser().read(tempSwaggerFile.getAbsolutePath)
+    // Delete temp file when program exits, only if delete fail.
+    if(!FileUtils.deleteQuietly(tempSwaggerFile)){
+      tempSwaggerFile.deleteOnExit()
+    }
+    openAPI
   }
 
   def doc: ArrayBuffer[ResourceDoc] = {

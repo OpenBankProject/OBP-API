@@ -360,7 +360,7 @@ object ExampleValue {
 
   lazy val dynamicEntityResponseBodyExample = dynamicEntityRequestBodyExample.copy(dynamicEntityId = Some("dynamic-entity-id"))
 
-  lazy val dynamicEndpointRequestBodyExample = DynamicEndpointSwagger(None, """{
+  lazy val dynamicEndpointRequestBodyExample = DynamicEndpointSwagger("""{
                                                                         |  "swagger": "2.0",
                                                                         |  "info": {
                                                                         |    "version": "0.0.1",

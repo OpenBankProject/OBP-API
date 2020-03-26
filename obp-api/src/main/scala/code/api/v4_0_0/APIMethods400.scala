@@ -2748,12 +2748,20 @@ trait APIMethods400 {
       List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canCreateDynamicEndpoint)))
 
+    private val BodyPost = new TestPost[String] with JsonTest {
+      def body(r: Req): Box[String] = {
+        val value = r.body.map(it => new String(it))
+        value
+      }
+    }
+
     lazy val createDynamicEndpoint: OBPEndpoint = {
-      case "management" :: "dynamic_endpoints" :: Nil JsonPost json -> _ => {
+      case "management" :: "dynamic_endpoints" :: Nil BodyPost body -> req => {
         cc =>
           for {
             postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
-              json.extract[DynamicEndpointSwagger]
+              DynamicEndpointHelper.parseSwaggerContent(body)
+              DynamicEndpointSwagger(body)
             }
             (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(postedJson.swaggerString, cc.callContext)
           } yield {

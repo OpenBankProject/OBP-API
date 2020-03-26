@@ -23,7 +23,7 @@ case class DynamicEndpointCommons(
 
 object DynamicEndpointCommons extends Converter[DynamicEndpointT, DynamicEndpointCommons]
 
-case class DynamicEndpointSwagger(dynamicEndpointId: Option[String] = None, swaggerString: String)
+case class DynamicEndpointSwagger(swaggerString: String, dynamicEndpointId: Option[String] = None)
 
 trait DynamicEndpointProvider {
   def create(swaggerString: String): Box[DynamicEndpointT]
