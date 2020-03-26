@@ -814,8 +814,8 @@ trait APIMethods400 {
       nameOf(getDynamicEntities),
       "GET",
       "/management/dynamic-entities",
-      "Get DynamicEntities",
-      s"""Get the all DynamicEntities.""",
+      "Get Dynamic Entities",
+      s"""Get the all Dynamic Entities.""",
       emptyObjectJson,
       ListResult(
         "dynamic_entities",
@@ -851,7 +851,7 @@ trait APIMethods400 {
       nameOf(createDynamicEntity),
       "POST",
       "/management/dynamic-entities",
-      "Create DynamicEntity",
+      "Create Dynamic Entity",
       s"""Create a DynamicEntity.
          |
          |
@@ -902,7 +902,7 @@ trait APIMethods400 {
       nameOf(updateDynamicEntity),
       "PUT",
       "/management/dynamic-entities/DYNAMIC_ENTITY_ID",
-      "Update DynamicEntity",
+      "Update Dynamic Entity",
       s"""Update a DynamicEntity.
          |
          |
@@ -960,7 +960,7 @@ trait APIMethods400 {
       nameOf(deleteDynamicEntity),
       "DELETE",
       "/management/dynamic-entities/DYNAMIC_ENTITY_ID",
-      "Delete DynamicEntity",
+      "Delete Dynamic Entity",
       s"""Delete a DynamicEntity specified by DYNAMIC_ENTITY_ID.
          |
          |""",
@@ -2730,10 +2730,10 @@ trait APIMethods400 {
       nameOf(createDynamicEndpoint),
       "POST",
       "/management/dynamic-endpoints",
-      "Create DynamicEndpoint",
-      s"""Create a DynamicEndpoint.
+      "Create Dynamic Endpoint",
+      s"""Create a Dynamic Endpoint.
          |
-         |Create one DynamicEndpoint,
+         |Create one Dynamic Endpoint,
          |
          |""",
       dynamicEndpointRequestBodyExample,
@@ -2778,11 +2778,11 @@ trait APIMethods400 {
       nameOf(getDynamicEndpoint),
       "GET",
       "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
-      "Get DynamicEndpoint",
-      s"""Get a DynamicEndpoint.
+      "Get Dynamic Endpoint",
+      s"""Get a Dynamic Endpoint.
          |
          |
-         |Get one DynamicEndpoint,
+         |Get one Dynamic Endpoint,
          |
          |""",
       emptyObjectJson,
@@ -2815,10 +2815,10 @@ trait APIMethods400 {
       nameOf(getDynamicEndpoints),
       "GET",
       "/management/dynamic-endpoints",
-      "Get DynamicEndpoints",
-      s"""Get DynamicEndpoints.
+      "Get Dynamic Endpoints",
+      s"""Get Dynamic Endpoints.
          |
-         |Get DynamicEndpoints,
+         |Get Dynamic Endpoints,
          |
          |""",
       emptyObjectJson,
