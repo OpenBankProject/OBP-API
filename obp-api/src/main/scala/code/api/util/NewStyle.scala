@@ -4,6 +4,7 @@ import java.util.Date
 import java.util.UUID.randomUUID
 
 import code.DynamicData.DynamicDataProvider
+import code.DynamicEndpoint.DynamicEndpointT
 import code.api.APIFailureNewStyle
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
@@ -2000,6 +2001,30 @@ object NewStyle {
       Connector.connector.vend.deleteCustomerAttribute(customerAttributeId, callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
+    }
+
+    def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
+      Connector.connector.vend.createDynamicEndpoint(
+        swaggerString,
+        callContext
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def getDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
+      Connector.connector.vend.getDynamicEndpoint(
+        dynamicEndpointId,
+        callContext
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = {
+      Connector.connector.vend.getDynamicEndpoints(
+        callContext
+      )
     }
 
   }

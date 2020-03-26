@@ -1,6 +1,7 @@
 package code.api.util
 
 
+import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
 import code.dynamicEntity.{DynamicEntityDefinition, DynamicEntityFooBar, DynamicEntityFullBarFields, DynamicEntityIntTypeExample, DynamicEntityStringTypeExample}
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
@@ -358,6 +359,248 @@ object ExampleValue {
   )
 
   lazy val dynamicEntityResponseBodyExample = dynamicEntityRequestBodyExample.copy(dynamicEntityId = Some("dynamic-entity-id"))
+
+  lazy val dynamicEndpointRequestBodyExample = DynamicEndpointSwagger(None, """{
+                                                                        |  "swagger": "2.0",
+                                                                        |  "info": {
+                                                                        |    "version": "0.0.1",
+                                                                        |    "title": "Portus EVS sandbox demo API",
+                                                                        |    "description": "Portus EVS sandbox demo API",
+                                                                        |    "contact": {
+                                                                        |      "name": "Digital & FinTech, Grant Thornton",
+                                                                        |      "email": "peng.xu@ie.gt.com",
+                                                                        |      "url": "https://www.tesobe.com/"
+                                                                        |    }
+                                                                        |  },
+                                                                        |  "host": "localhost:8080",
+                                                                        |  "basePath": "/user",
+                                                                        |  "schemes": [
+                                                                        |    "http"
+                                                                        |  ],
+                                                                        |  "consumes": [
+                                                                        |    "application/json"
+                                                                        |  ],
+                                                                        |  "produces": [
+                                                                        |    "application/json"
+                                                                        |  ],
+                                                                        |  "paths": {
+                                                                        |    "/save": {
+                                                                        |      "post": {
+                                                                        |        "parameters": [
+                                                                        |          {
+                                                                        |            "name": "body",
+                                                                        |            "in": "body",
+                                                                        |            "required": true,
+                                                                        |            "schema": {
+                                                                        |              "$ref": "#/definitions/user"
+                                                                        |            }
+                                                                        |          }
+                                                                        |        ],
+                                                                        |        "responses": {
+                                                                        |          "201": {
+                                                                        |            "description": "create user successful and return created user object",
+                                                                        |            "schema": {
+                                                                        |              "$ref": "#/definitions/user"
+                                                                        |            }
+                                                                        |          },
+                                                                        |          "500": {
+                                                                        |            "description": "unexpected error",
+                                                                        |            "schema": {
+                                                                        |              "$ref": "#/responses/unexpectedError"
+                                                                        |            }
+                                                                        |          }
+                                                                        |        }
+                                                                        |      }
+                                                                        |    },
+                                                                        |    "/getById/{userId}": {
+                                                                        |      "get": {
+                                                                        |        "description": "get reuested user by user ID",
+                                                                        |        "parameters": [
+                                                                        |          {
+                                                                        |            "$ref": "#/parameters/userId"
+                                                                        |          }
+                                                                        |        ],
+                                                                        |        "consumes": [],
+                                                                        |        "responses": {
+                                                                        |          "200": {
+                                                                        |            "description": "the successful get requested user by user ID",
+                                                                        |            "schema": {
+                                                                        |              "$ref": "#/definitions/user"
+                                                                        |            }
+                                                                        |          },
+                                                                        |          "400": {
+                                                                        |            "description": "bad request",
+                                                                        |            "schema": {
+                                                                        |              "$ref": "#/responses/invalidRequest"
+                                                                        |            }
+                                                                        |          },
+                                                                        |          "404": {
+                                                                        |            "description": "user not found",
+                                                                        |            "schema": {
+                                                                        |              "$ref": "#/definitions/APIError"
+                                                                        |            }
+                                                                        |          },
+                                                                        |          "500": {
+                                                                        |            "description": "unexpected error",
+                                                                        |            "schema": {
+                                                                        |              "$ref": "#/responses/unexpectedError"
+                                                                        |            }
+                                                                        |          }
+                                                                        |        }
+                                                                        |      }
+                                                                        |    },
+                                                                        |    "/listUsers": {
+                                                                        |      "get": {
+                                                                        |        "description": "get list of users",
+                                                                        |        "consumes": [],
+                                                                        |        "responses": {
+                                                                        |          "200": {
+                                                                        |            "description": "get all users",
+                                                                        |            "schema": {
+                                                                        |              "$ref": "#/definitions/users"
+                                                                        |            }
+                                                                        |          },
+                                                                        |          "404": {
+                                                                        |            "description": "user not found",
+                                                                        |            "schema": {
+                                                                        |              "$ref": "#/definitions/APIError"
+                                                                        |            }
+                                                                        |          }
+                                                                        |        }
+                                                                        |      }
+                                                                        |    },
+                                                                        |    "/updateUser": {
+                                                                        |      "put": {
+                                                                        |        "parameters": [
+                                                                        |          {
+                                                                        |            "name": "body",
+                                                                        |            "in": "body",
+                                                                        |            "required": true,
+                                                                        |            "schema": {
+                                                                        |              "$ref": "#/definitions/user"
+                                                                        |            }
+                                                                        |          }
+                                                                        |        ],
+                                                                        |        "responses": {
+                                                                        |          "200": {
+                                                                        |            "description": "create user successful and return created user object",
+                                                                        |            "schema": {
+                                                                        |              "$ref": "#/definitions/user"
+                                                                        |            }
+                                                                        |          },
+                                                                        |          "500": {
+                                                                        |            "description": "unexpected error",
+                                                                        |            "schema": {
+                                                                        |              "$ref": "#/responses/unexpectedError"
+                                                                        |            }
+                                                                        |          }
+                                                                        |        }
+                                                                        |      }
+                                                                        |    },
+                                                                        |    "/delete/{userId}": {
+                                                                        |      "delete": {
+                                                                        |        "description": "delete user by user ID",
+                                                                        |        "parameters": [
+                                                                        |          {
+                                                                        |            "$ref": "#/parameters/userId"
+                                                                        |          }
+                                                                        |        ],
+                                                                        |        "consumes": [],
+                                                                        |        "responses": {
+                                                                        |          "204": {
+                                                                        |            "description": "the successful delete user by user ID"
+                                                                        |          },
+                                                                        |          "400": {
+                                                                        |            "description": "bad request",
+                                                                        |            "schema": {
+                                                                        |              "$ref": "#/responses/invalidRequest"
+                                                                        |            }
+                                                                        |          },
+                                                                        |          "500": {
+                                                                        |            "description": "unexpected error",
+                                                                        |            "schema": {
+                                                                        |              "$ref": "#/responses/unexpectedError"
+                                                                        |            }
+                                                                        |          }
+                                                                        |        }
+                                                                        |      }
+                                                                        |    }
+                                                                        |  },
+                                                                        |  "definitions": {
+                                                                        |    "user": {
+                                                                        |      "type": "object",
+                                                                        |      "properties": {
+                                                                        |        "id": {
+                                                                        |          "type": "integer",
+                                                                        |          "description": "user ID"
+                                                                        |        },
+                                                                        |        "first_name": {
+                                                                        |          "type": "string"
+                                                                        |        },
+                                                                        |        "last_name": {
+                                                                        |          "type": "string"
+                                                                        |        },
+                                                                        |        "age": {
+                                                                        |          "type": "integer"
+                                                                        |        },
+                                                                        |        "career": {
+                                                                        |          "type": "string"
+                                                                        |        }
+                                                                        |      },
+                                                                        |      "required": [
+                                                                        |        "first_name",
+                                                                        |        "last_name",
+                                                                        |        "age"
+                                                                        |      ]
+                                                                        |    },
+                                                                        |    "users": {
+                                                                        |      "description": "array of users",
+                                                                        |      "type": "array",
+                                                                        |      "items": {
+                                                                        |        "$ref": "#/definitions/user"
+                                                                        |      }
+                                                                        |    },
+                                                                        |    "APIError": {
+                                                                        |      "description": "content any error from API",
+                                                                        |      "type": "object",
+                                                                        |      "properties": {
+                                                                        |        "errorCode": {
+                                                                        |          "description": "content error code relate to API",
+                                                                        |          "type": "string"
+                                                                        |        },
+                                                                        |        "errorMessage": {
+                                                                        |          "description": "content user-friendly error message",
+                                                                        |          "type": "string"
+                                                                        |        }
+                                                                        |      }
+                                                                        |    }
+                                                                        |  },
+                                                                        |  "responses": {
+                                                                        |    "unexpectedError": {
+                                                                        |      "description": "unexpected error",
+                                                                        |      "schema": {
+                                                                        |        "$ref": "#/definitions/APIError"
+                                                                        |      }
+                                                                        |    },
+                                                                        |    "invalidRequest": {
+                                                                        |      "description": "invalid request",
+                                                                        |      "schema": {
+                                                                        |        "$ref": "#/definitions/APIError"
+                                                                        |      }
+                                                                        |    }
+                                                                        |  },
+                                                                        |  "parameters": {
+                                                                        |    "userId": {
+                                                                        |      "name": "userId",
+                                                                        |      "in": "path",
+                                                                        |      "required": true,
+                                                                        |      "type": "string",
+                                                                        |      "description": "user ID"
+                                                                        |    }
+                                                                        |  }
+                                                                        |}
+                                                                        |""".stripMargin)
+  lazy val dynamicEndpointResponseBodyExample = dynamicEndpointRequestBodyExample.copy(dynamicEndpointId = Some("dynamic-endpoint-id"))
 }
 
 

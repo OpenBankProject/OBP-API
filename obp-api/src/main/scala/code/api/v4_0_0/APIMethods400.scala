@@ -3,6 +3,7 @@ package code.api.v4_0_0
 import java.util.Date
 
 import code.DynamicData.DynamicData
+import code.DynamicEndpoint.{DynamicEndpointCommons, DynamicEndpointSwagger}
 import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -10,7 +11,7 @@ import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
+import code.api.util.ExampleValue.{dynamicEndpointRequestBodyExample, dynamicEndpointResponseBodyExample, dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
@@ -129,11 +130,11 @@ trait APIMethods400 {
          |  INITIATED => COMPLETED
          |In case n persons needs to answer security challenge we have next flow of state of an `transaction request`:
          |  INITIATED => NEXT_CHALLENGE_PENDING => ... => NEXT_CHALLENGE_PENDING => COMPLETED
-         |
+         |  
          |The security challenge is bound to a user i.e. in case of right answer and the user is different than expected one the challenge will fail.
          |
          |Rule for calculating number of security challenges:
-         |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges
+         |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges 
          |(one for every user that has a View where permission "can_add_transaction_request_to_any_account"=true)
          |In case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute default value is 1.
          |
@@ -361,7 +362,7 @@ trait APIMethods400 {
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
-
+    
     // FREE_FORM.
     resourceDocs += ResourceDoc(
       createTransactionRequestFreeForm,
@@ -422,7 +423,7 @@ trait APIMethods400 {
 
             account = BankIdAccountId(bankId, accountId)
             _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, u, cc.callContext)
-
+            
             _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
               u.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) ||
                 hasEntitlement(bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest)
@@ -465,7 +466,7 @@ trait APIMethods400 {
                   transactionRequestBodyRefundJson <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $ACCOUNT json format", 400, cc.callContext) {
                     json.extract[TransactionRequestBodyRefundJsonV400]
                   }
-
+                  
                   transactionId = TransactionId(transactionRequestBodyRefundJson.refund.transaction_id)
                   toBankId = BankId(transactionRequestBodyRefundJson.to.bank_id)
                   toAccountId = AccountId(transactionRequestBodyRefundJson.to.account_id)
@@ -474,28 +475,28 @@ trait APIMethods400 {
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
                     write(transactionRequestBodyRefundJson)(Serialization.formats(NoTypeHints))
                   }
-
+                  
                   _ <- Helper.booleanToFuture(s"${RefundedTransaction} Current input amount is: '${transDetailsJson.value.amount}'. It can not be more than the original amount(${(transaction.amount).abs})") {
                     (transaction.amount).abs  >= transactionAmountNumber
                   }
-                  //TODO, we need additional field to guarantee the transaction is refunded...
+                  //TODO, we need additional field to guarantee the transaction is refunded...  
 //                  _ <- Helper.booleanToFuture(s"${RefundedTransaction}") {
 //                    !((transaction.description.toString contains(" Refund to ")) && (transaction.description.toString contains(" and transaction_id(")))
 //                  }
-
+                  
                   //we add the extro info (counterparty name + transaction_id) for this special Refund endpoint.
                   newDescription = s"${transactionRequestBodyRefundJson.description} - Refund for transaction_id: (${transactionId.value}) to ${transaction.otherAccount.counterpartyName}"
-
-                  //This is the refund endpoint, the original fromAccount is the `toAccount` which will receive money.
+                  
+                  //This is the refund endpoint, the original fromAccount is the `toAccount` which will receive money. 
                   refundToAccount = fromAccount
-                  //This is the refund endpoint, the original toAccount is the `fromAccount` which will lose money.
+                  //This is the refund endpoint, the original toAccount is the `fromAccount` which will lose money. 
                   refundFromAccount = toAccount
-
+                  
                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
                     viewId,
                     refundFromAccount,
                     refundToAccount,
-                    transactionRequestType,
+                    transactionRequestType, 
                     transactionRequestBodyRefundJson.copy(description = newDescription),
                     transDetailsSerialized,
                     sharedChargePolicy.toString,
@@ -675,7 +676,7 @@ trait APIMethods400 {
         |
         |3) `id` :  is `challenge.id` field in createTransactionRequest response body.
         |
-        |4) `answer` : must be `123` in case that Strong Customer Authentication method for OTP challenge is dummy.
+        |4) `answer` : must be `123` in case that Strong Customer Authentication method for OTP challenge is dummy. 
         |    For instance: SANDBOX_TAN_OTP_INSTRUCTION_TRANSPORT=dummy
         |    Possible values are dummy,email and sms
         |    In kafka mode, the answer can be got by phone message or other security ways.
@@ -684,11 +685,11 @@ trait APIMethods400 {
         |  INITIATED => COMPLETED
         |In case n persons needs to answer security challenge we have next flow of state of an `transaction request`:
         |  INITIATED => NEXT_CHALLENGE_PENDING => ... => NEXT_CHALLENGE_PENDING => COMPLETED
-        |
+        |  
         |The security challenge is bound to a user i.e. in case of right answer and the user is different than expected one the challenge will fail.
         |
         |Rule for calculating number of security challenges:
-        |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges
+        |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges 
         |(one for every user that has a View where permission "can_add_transaction_request_to_any_account"=true)
         |In case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute default value is 1.
         |
@@ -731,14 +732,14 @@ trait APIMethods400 {
 
             account = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
             _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, u, cc.callContext)
-
+              
             // Check transReqId is valid
             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transReqId, cc.callContext)
 
             // Check the Transaction Request is still INITIATED
             _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiatedOrPending) {
               existingTransactionRequest.status.equals(TransactionRequestStatus.INITIATED.toString) ||
-              existingTransactionRequest.status.equals(TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
+              existingTransactionRequest.status.equals(TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString) 
             }
 
             // Check the input transactionRequestType is the same as when the user created the TransactionRequest
@@ -780,7 +781,7 @@ trait APIMethods400 {
                 .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
                 .count(_.successful == true) match {
                   case number if number >= quorum => true
-                  case _ =>
+                  case _ => 
                     MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
                     false
                 }
@@ -1112,7 +1113,7 @@ trait APIMethods400 {
               json.extract[PostResetPasswordUrlJsonV400]
             }
           } yield {
-             val resetLink = AuthUser.passwordResetUrl(postedData.username, postedData.email, postedData.user_id)
+             val resetLink = AuthUser.passwordResetUrl(postedData.username, postedData.email, postedData.user_id) 
             (ResetPasswordUrlJsonV400(resetLink), HttpCode.`201`(cc.callContext))
           }
       }
@@ -1171,7 +1172,7 @@ trait APIMethods400 {
               hasEntitlement(bankId.value, loggedInUserId, canCreateAccount) || userIdAccountOwner == loggedInUserId
             }
             initialBalanceAsString = createAccountJson.balance.amount
-            //Note: here we map the product_code to account_type
+            //Note: here we map the product_code to account_type 
             accountType = createAccountJson.product_code
             accountLabel = createAccountJson.label
             initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
@@ -1212,9 +1213,9 @@ trait APIMethods400 {
         }
       }
     }
-
-
-
+    
+    
+    
     private def getApiInfoJSON() = {
       val (apiVersion, apiVersionStatus) = (implementedInApiVersion, OBPAPI4_0_0.versionStatus)
       val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
@@ -1756,9 +1757,9 @@ trait APIMethods400 {
             (_, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(postJson.counterparty_id), callContext)
             (directDebit, callContext) <- NewStyle.function.createDirectDebit(
               bankId.value,
-              accountId.value,
-              postJson.customer_id,
-              postJson.user_id,
+              accountId.value, 
+              postJson.customer_id, 
+              postJson.user_id, 
               postJson.counterparty_id,
               if (postJson.date_signed.isDefined) postJson.date_signed.get else new Date(),
               postJson.date_starts,
@@ -1826,7 +1827,7 @@ trait APIMethods400 {
           }
       }
     }
-
+    
     resourceDocs += ResourceDoc(
       createStandingOrder,
       implementedInApiVersion,
@@ -2027,8 +2028,8 @@ trait APIMethods400 {
           }
       }
     }
-
-
+    
+    
     resourceDocs += ResourceDoc(
       revokeUserAccessToView,
       implementedInApiVersion,
@@ -2179,7 +2180,7 @@ trait APIMethods400 {
               CustomerAttributeType.withName(postedData.`type`)
             }
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
-            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId}
+            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId} 
             (accountAttribute, callContext) <- NewStyle.function.getCustomerAttributeById(
               customerAttributeId,
               callContext
@@ -2335,8 +2336,8 @@ trait APIMethods400 {
           }
       }
     }
-
-
+    
+    
     resourceDocs += ResourceDoc(
       createTransactionAttribute,
       implementedInApiVersion,
@@ -2648,7 +2649,7 @@ trait APIMethods400 {
       }
     }
 
-
+    
     resourceDocs += ResourceDoc(
       createConsumer,
       implementedInApiVersion,
@@ -2767,6 +2768,129 @@ trait APIMethods400 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      createDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(createDynamicEndpoint),
+      "POST",
+      "/management/dynamic_endpoints",
+      "Create DynamicEndpoint",
+      s"""Create a DynamicEndpoint.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Create one DynamicEndpoint,
+         |
+         |""",
+      dynamicEndpointRequestBodyExample,
+      dynamicEndpointResponseBodyExample,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateDynamicEndpoint)))
+
+    lazy val createDynamicEndpoint: OBPEndpoint = {
+      case "management" :: "dynamic_endpoints" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
+              json.extract[DynamicEndpointSwagger]
+            }
+            (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(postedJson.swaggerString, cc.callContext)
+          } yield {
+            val commonsData: DynamicEndpointCommons = dynamicEndpoint
+            (commonsData, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(getDynamicEndpoint),
+      "GET",
+      "/management/dynamic_endpoints/DYNAMIC_ENDPOINT_ID",
+      "Get DynamicEndpoint",
+      s"""Get a DynamicEndpoint.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Get one DynamicEndpoint,
+         |
+         |""",
+      emptyObjectJson,
+      dynamicEndpointResponseBodyExample,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canGetDynamicEndpoint)))
+
+    lazy val getDynamicEndpoint: OBPEndpoint = {
+      case "management" :: "dynamic_endpoints" :: dynamicEndpointId :: Nil JsonGet req => {
+        cc =>
+          for {
+            (dynamicEndpoint, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
+          } yield {
+            val commonsData: DynamicEndpointCommons = dynamicEndpoint
+            (commonsData, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getDynamicEndpoints,
+      implementedInApiVersion,
+      nameOf(getDynamicEndpoints),
+      "GET",
+      "/management/dynamic_endpoints",
+      "Get DynamicEndpoints",
+      s"""Get DynamicEndpoints.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Get DynamicEndpoints,
+         |
+         |""",
+      emptyObjectJson,
+      ListResult(
+        "dynamic_entities",
+        List(dynamicEndpointResponseBodyExample)
+      ),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canGetDynamicEndpoints)))
+
+    lazy val getDynamicEndpoints: OBPEndpoint = {
+      case "management" :: "dynamic_endpoints" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (dynamicEndpoints, callContext) <- NewStyle.function.getDynamicEndpoints(cc.callContext)
+          } yield {
+            val listCommons: List[DynamicEndpointCommons] = dynamicEndpoints
+            (ListResult("dynamic_entities", listCommons), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
 
 
   }
