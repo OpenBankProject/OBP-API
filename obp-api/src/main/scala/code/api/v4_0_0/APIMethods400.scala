@@ -59,6 +59,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import code.model._
 import org.apache.commons.lang3.StringUtils
+import net.liftweb.json.compactRender
 
 trait APIMethods400 {
   self: RestHelper =>
