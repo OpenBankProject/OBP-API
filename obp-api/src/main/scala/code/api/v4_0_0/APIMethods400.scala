@@ -3,6 +3,7 @@ package code.api.v4_0_0
 import java.util.Date
 
 import code.DynamicData.DynamicData
+import code.DynamicEndpoint.{DynamicEndpointCommons, DynamicEndpointSwagger}
 import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -10,7 +11,7 @@ import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
+import code.api.util.ExampleValue.{dynamicEndpointRequestBodyExample, dynamicEndpointResponseBodyExample, dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
@@ -2721,7 +2722,130 @@ trait APIMethods400 {
           }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      createDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(createDynamicEndpoint),
+      "POST",
+      "/management/dynamic_endpoints",
+      "Create DynamicEndpoint",
+      s"""Create a DynamicEndpoint.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Create one DynamicEndpoint,
+         |
+         |""",
+      dynamicEndpointRequestBodyExample,
+      dynamicEndpointResponseBodyExample,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateDynamicEndpoint)))
+
+    lazy val createDynamicEndpoint: OBPEndpoint = {
+      case "management" :: "dynamic_endpoints" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
+              json.extract[DynamicEndpointSwagger]
+            }
+            (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(postedJson.swaggerString, cc.callContext)
+          } yield {
+            val commonsData: DynamicEndpointCommons = dynamicEndpoint
+            (commonsData, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(getDynamicEndpoint),
+      "GET",
+      "/management/dynamic_endpoints/DYNAMIC_ENDPOINT_ID",
+      "Get DynamicEndpoint",
+      s"""Get a DynamicEndpoint.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Get one DynamicEndpoint,
+         |
+         |""",
+      emptyObjectJson,
+      dynamicEndpointResponseBodyExample,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canGetDynamicEndpoint)))
+
+    lazy val getDynamicEndpoint: OBPEndpoint = {
+      case "management" :: "dynamic_endpoints" :: dynamicEndpointId :: Nil JsonGet req => {
+        cc =>
+          for {
+            (dynamicEndpoint, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
+          } yield {
+            val commonsData: DynamicEndpointCommons = dynamicEndpoint
+            (commonsData, HttpCode.`201`(callContext))
+          }
+      }
+    }
     
+    resourceDocs += ResourceDoc(
+      getDynamicEndpoints,
+      implementedInApiVersion,
+      nameOf(getDynamicEndpoints),
+      "GET",
+      "/management/dynamic_endpoints",
+      "Get DynamicEndpoints",
+      s"""Get DynamicEndpoints.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Get DynamicEndpoints,
+         |
+         |""",
+      emptyObjectJson,
+      ListResult(
+        "dynamic_entities",
+        List(dynamicEndpointResponseBodyExample)
+      ),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canGetDynamicEndpoints)))
+
+    lazy val getDynamicEndpoints: OBPEndpoint = {
+      case "management" :: "dynamic_endpoints" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (dynamicEndpoints, callContext) <- NewStyle.function.getDynamicEndpoints(cc.callContext)
+          } yield {
+            val listCommons: List[DynamicEndpointCommons] = dynamicEndpoints
+            (ListResult("dynamic_entities", listCommons), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
     
 
   }

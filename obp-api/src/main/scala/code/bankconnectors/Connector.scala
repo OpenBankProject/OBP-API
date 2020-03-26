@@ -3,6 +3,7 @@ package code.bankconnectors
 import java.util.Date
 import java.util.UUID.randomUUID
 
+import code.DynamicEndpoint.DynamicEndpointT
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.{APIFailure, APIFailureNewStyle}
 import code.api.cache.Caching
@@ -2176,5 +2177,17 @@ trait Connector extends MdcLoggable {
                           dateExpires: Option[Date],
                           callContext: Option[CallContext]): OBPReturnType[Box[StandingOrderTrait]] = Future {
     (Failure(setUnimplementedError), callContext)
+  }
+
+  def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEndpointT]] = Future {
+    (Failure(setUnimplementedError), callContext)
+  }
+  
+  def getDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEndpointT]] = Future {
+    (Failure(setUnimplementedError), callContext)
+  }
+  
+  def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
+    (List.empty[DynamicEndpointT], callContext)
   }
 }

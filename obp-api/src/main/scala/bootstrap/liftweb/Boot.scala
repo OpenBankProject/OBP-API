@@ -31,6 +31,7 @@ import java.util.{Locale, TimeZone}
 
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
+import code.DynamicEndpoint.DynamicEndpoint
 import code.accountapplication.MappedAccountApplication
 import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
@@ -706,6 +707,7 @@ object ToSchemify {
     Authorisation,
     DynamicEntity,
     DynamicData,
+    DynamicEndpoint,
     AccountIdMapping,
     DirectDebit,
     StandingOrder
