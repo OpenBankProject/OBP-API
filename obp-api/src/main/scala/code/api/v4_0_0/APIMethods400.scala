@@ -2771,13 +2771,13 @@ trait APIMethods400 {
 
 
     resourceDocs += ResourceDoc(
-      createOrUpdateCustomerAttributeDocumentation,
+      createOrUpdateCustomerAttributeAttributeDefinition,
       implementedInApiVersion,
-      nameOf(createOrUpdateCustomerAttributeDocumentation),
+      nameOf(createOrUpdateCustomerAttributeAttributeDefinition),
       "PUT",
-      "/banks/BANK_ID/attribute-documentation/customer",
-      "Create or Update Customer Attribute Documentation",
-      s""" Create or Update Customer Attribute Documentation
+      "/banks/BANK_ID/attribute-definitions/customer",
+      "Create or Update Customer Attribute Definition",
+      s""" Create or Update Customer Attribute Definition
          |
          |The category field must be one of: ${AttributeCategory.Customer}
          |
@@ -2786,8 +2786,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      customerAttributeDocumentationJsonV400,
-      customerAttributeDocumentationResponseJsonV400,
+      customerAttributeDefinitionJsonV400,
+      customerAttributeDefinitionResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -2796,15 +2796,15 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canCreateCustomerAttributeDocumentationAtOneBank)))
+      Some(List(canCreateCustomerAttributeDefinitionAtOneBank)))
 
-    lazy val createOrUpdateCustomerAttributeDocumentation : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "customer" :: Nil JsonPut json -> _=> {
+    lazy val createOrUpdateCustomerAttributeAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "customer" :: Nil JsonPut json -> _=> {
         cc =>
-          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
-              json.extract[AttributeDocumentationJsonV400]
+              json.extract[AttributeDefinitionJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
               s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
@@ -2835,13 +2835,13 @@ trait APIMethods400 {
 
 
     resourceDocs += ResourceDoc(
-      createOrUpdateAccountAttributeDocumentation,
+      createOrUpdateAccountAttributeDefinition,
       implementedInApiVersion,
-      nameOf(createOrUpdateAccountAttributeDocumentation),
+      nameOf(createOrUpdateAccountAttributeDefinition),
       "PUT",
-      "/banks/BANK_ID/attribute-documentation/account",
-      "Create or Update Account Attribute Documentation",
-      s""" Create or Update Account Attribute Documentation
+      "/banks/BANK_ID/attribute-definitions/account",
+      "Create or Update Account Attribute Definition",
+      s""" Create or Update Account Attribute Definition
          |
          |The category field must be ${AttributeCategory.Account}
          |
@@ -2850,8 +2850,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      accountAttributeDocumentationJsonV400,
-      accountAttributeDocumentationResponseJsonV400,
+      accountAttributeDefinitionJsonV400,
+      accountAttributeDefinitionResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -2860,15 +2860,15 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagNewStyle),
-      Some(List(canCreateAccountAttributeDocumentationAtOneBank)))
+      Some(List(canCreateAccountAttributeDefinitionAtOneBank)))
 
-    lazy val createOrUpdateAccountAttributeDocumentation : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "account" :: Nil JsonPut json -> _=> {
+    lazy val createOrUpdateAccountAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "account" :: Nil JsonPut json -> _=> {
         cc =>
-          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
-              json.extract[AttributeDocumentationJsonV400]
+              json.extract[AttributeDefinitionJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
               s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
@@ -2898,13 +2898,13 @@ trait APIMethods400 {
 
 
     resourceDocs += ResourceDoc(
-      createOrUpdateProductAttributeDocumentation,
+      createOrUpdateProductAttributeDefinition,
       implementedInApiVersion,
-      nameOf(createOrUpdateProductAttributeDocumentation),
+      nameOf(createOrUpdateProductAttributeDefinition),
       "PUT",
-      "/banks/BANK_ID/attribute-documentation/product",
-      "Create or Update Product Attribute Documentation",
-      s""" Create or Update Product Attribute Documentation
+      "/banks/BANK_ID/attribute-definitions/product",
+      "Create or Update Product Attribute Definition",
+      s""" Create or Update Product Attribute Definition
          |
          |The category field must be ${AttributeCategory.Product}
          |
@@ -2913,8 +2913,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      productAttributeDocumentationJsonV400,
-      productAttributeDocumentationResponseJsonV400,
+      productAttributeDefinitionJsonV400,
+      productAttributeDefinitionResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -2923,15 +2923,15 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagNewStyle),
-      Some(List(canCreateProductAttributeDocumentationAtOneBank)))
+      Some(List(canCreateProductAttributeDefinitionAtOneBank)))
 
-    lazy val createOrUpdateProductAttributeDocumentation : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "product" :: Nil JsonPut json -> _=> {
+    lazy val createOrUpdateProductAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "product" :: Nil JsonPut json -> _=> {
         cc =>
-          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
-              json.extract[AttributeDocumentationJsonV400]
+              json.extract[AttributeDefinitionJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
               s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
@@ -2960,13 +2960,13 @@ trait APIMethods400 {
     }
 
     resourceDocs += ResourceDoc(
-      createOrUpdateTransactionAttributeDocumentation,
+      createOrUpdateTransactionAttributeDefinition,
       implementedInApiVersion,
-      nameOf(createOrUpdateTransactionAttributeDocumentation),
+      nameOf(createOrUpdateTransactionAttributeDefinition),
       "PUT",
-      "/banks/BANK_ID/attribute-documentation/transaction",
-      "Create or Update Transaction Attribute Documentation",
-      s""" Create or Update Transaction Attribute Documentation
+      "/banks/BANK_ID/attribute-definitions/transaction",
+      "Create or Update Transaction Attribute Definition",
+      s""" Create or Update Transaction Attribute Definition
          |
          |The category field must be ${AttributeCategory.Transaction}
          |
@@ -2975,8 +2975,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      transactionAttributeDocumentationJsonV400,
-      transactionAttributeDocumentationResponseJsonV400,
+      transactionAttributeDefinitionJsonV400,
+      transactionAttributeDefinitionResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -2985,15 +2985,15 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
-      Some(List(canCreateTransactionAttributeDocumentationAtOneBank)))
+      Some(List(canCreateTransactionAttributeDefinitionAtOneBank)))
 
-    lazy val createOrUpdateTransactionAttributeDocumentation : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "transaction" :: Nil JsonPut json -> _=> {
+    lazy val createOrUpdateTransactionAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "transaction" :: Nil JsonPut json -> _=> {
         cc =>
-          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
-              json.extract[AttributeDocumentationJsonV400]
+              json.extract[AttributeDefinitionJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
               s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
@@ -3024,13 +3024,13 @@ trait APIMethods400 {
 
 
     resourceDocs += ResourceDoc(
-      createOrUpdateCardAttributeDocumentation,
+      createOrUpdateCardAttributeDefinition,
       implementedInApiVersion,
-      nameOf(createOrUpdateCardAttributeDocumentation),
+      nameOf(createOrUpdateCardAttributeDefinition),
       "PUT",
-      "/banks/BANK_ID/attribute-documentation/card",
-      "Create or Update Card Attribute Documentation",
-      s""" Create or Update Card Attribute Documentation
+      "/banks/BANK_ID/attribute-definitions/card",
+      "Create or Update Card Attribute Definition",
+      s""" Create or Update Card Attribute Definition
          |
          |The category field must be ${AttributeCategory.Card}
          |
@@ -3039,8 +3039,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      cardAttributeDocumentationJsonV400,
-      cardAttributeDocumentationResponseJsonV400,
+      cardAttributeDefinitionJsonV400,
+      cardAttributeDefinitionResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -3049,15 +3049,15 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
-      Some(List(canCreateCardAttributeDocumentationAtOneBank)))
+      Some(List(canCreateCardAttributeDefinitionAtOneBank)))
 
-    lazy val createOrUpdateCardAttributeDocumentation : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "card" :: Nil JsonPut json -> _=> {
+    lazy val createOrUpdateCardAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "card" :: Nil JsonPut json -> _=> {
         cc =>
-          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDocumentationJsonV400 "
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
-              json.extract[AttributeDocumentationJsonV400]
+              json.extract[AttributeDefinitionJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
               s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
@@ -3088,13 +3088,13 @@ trait APIMethods400 {
 
 
     resourceDocs += ResourceDoc(
-      deleteTransactionAttributeDocumentation,
+      deleteTransactionAttributeDefinition,
       implementedInApiVersion,
-      nameOf(deleteTransactionAttributeDocumentation),
+      nameOf(deleteTransactionAttributeDefinition),
       "DELETE",
-      "/banks/BANK_ID/attribute-documentation/ATTRIBUTE_DOCUMENTATION_ID/transaction",
-      "Delete Transaction Attribute Documentation",
-      s""" Delete Transaction Attribute Documentation by ATTRIBUTE_DOCUMENTATION_ID
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DOCUMENTATION_ID/transaction",
+      "Delete Transaction Attribute Definition",
+      s""" Delete Transaction Attribute Definition by ATTRIBUTE_DOCUMENTATION_ID
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -3108,10 +3108,10 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
-      Some(List(canDeleteTransactionAttributeDocumentationAtOneBank)))
+      Some(List(canDeleteTransactionAttributeDefinitionAtOneBank)))
 
-    lazy val deleteTransactionAttributeDocumentation : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-documentation" :: attributeDocumentationId :: "transaction" :: Nil JsonDelete _ => {
+    lazy val deleteTransactionAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDocumentationId :: "transaction" :: Nil JsonDelete _ => {
         cc =>
           for {
             (deleted, callContext) <- deleteAttributeDocumentation(
@@ -3127,13 +3127,13 @@ trait APIMethods400 {
 
 
     resourceDocs += ResourceDoc(
-      deleteCustomerAttributeDocumentation,
+      deleteCustomerAttributeDefinition,
       implementedInApiVersion,
-      nameOf(deleteCustomerAttributeDocumentation),
+      nameOf(deleteCustomerAttributeDefinition),
       "DELETE",
-      "/banks/BANK_ID/attribute-documentation/ATTRIBUTE_DOCUMENTATION_ID/customer",
-      "Delete Customer Attribute Documentation",
-      s""" Delete Customer Attribute Documentation by ATTRIBUTE_DOCUMENTATION_ID
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DOCUMENTATION_ID/customer",
+      "Delete Customer Attribute Definition",
+      s""" Delete Customer Attribute Definition by ATTRIBUTE_DOCUMENTATION_ID
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -3147,10 +3147,10 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canDeleteCustomerAttributeDocumentationAtOneBank)))
+      Some(List(canDeleteCustomerAttributeDefinitionAtOneBank)))
 
-    lazy val deleteCustomerAttributeDocumentation : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-documentation" :: attributeDocumentationId :: "customer" :: Nil JsonDelete _ => {
+    lazy val deleteCustomerAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDocumentationId :: "customer" :: Nil JsonDelete _ => {
         cc =>
           for {
             (deleted, callContext) <- deleteAttributeDocumentation(
@@ -3166,13 +3166,13 @@ trait APIMethods400 {
 
 
     resourceDocs += ResourceDoc(
-      deleteAccountAttributeDocumentation,
+      deleteAccountAttributeDefinition,
       implementedInApiVersion,
-      nameOf(deleteAccountAttributeDocumentation),
+      nameOf(deleteAccountAttributeDefinition),
       "DELETE",
-      "/banks/BANK_ID/attribute-documentation/ATTRIBUTE_DOCUMENTATION_ID/account",
-      "Delete Account Attribute Documentation",
-      s""" Delete Account Attribute Documentation by ATTRIBUTE_DOCUMENTATION_ID
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DOCUMENTATION_ID/account",
+      "Delete Account Attribute Definition",
+      s""" Delete Account Attribute Definition by ATTRIBUTE_DOCUMENTATION_ID
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -3186,10 +3186,10 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagNewStyle),
-      Some(List(canDeleteAccountAttributeDocumentationAtOneBank)))
+      Some(List(canDeleteAccountAttributeDefinitionAtOneBank)))
 
-    lazy val deleteAccountAttributeDocumentation : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-documentation" :: attributeDocumentationId :: "account" :: Nil JsonDelete _ => {
+    lazy val deleteAccountAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDocumentationId :: "account" :: Nil JsonDelete _ => {
         cc =>
           for {
             (deleted, callContext) <- deleteAttributeDocumentation(
@@ -3205,13 +3205,13 @@ trait APIMethods400 {
 
 
     resourceDocs += ResourceDoc(
-      deleteProductAttributeDocumentation,
+      deleteProductAttributeDefinition,
       implementedInApiVersion,
-      nameOf(deleteProductAttributeDocumentation),
+      nameOf(deleteProductAttributeDefinition),
       "DELETE",
-      "/banks/BANK_ID/attribute-documentation/ATTRIBUTE_DOCUMENTATION_ID/product",
-      "Delete Product Attribute Documentation",
-      s""" Delete Product Attribute Documentation by ATTRIBUTE_DOCUMENTATION_ID
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DOCUMENTATION_ID/product",
+      "Delete Product Attribute Definition",
+      s""" Delete Product Attribute Definition by ATTRIBUTE_DOCUMENTATION_ID
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -3225,10 +3225,10 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagNewStyle),
-      Some(List(canDeleteProductAttributeDocumentationAtOneBank)))
+      Some(List(canDeleteProductAttributeDefinitionAtOneBank)))
 
-    lazy val deleteProductAttributeDocumentation : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-documentation" :: attributeDocumentationId :: "product" :: Nil JsonDelete _ => {
+    lazy val deleteProductAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDocumentationId :: "product" :: Nil JsonDelete _ => {
         cc =>
           for {
             (deleted, callContext) <- deleteAttributeDocumentation(
@@ -3244,13 +3244,13 @@ trait APIMethods400 {
 
 
     resourceDocs += ResourceDoc(
-      deleteCardAttributeDocumentation,
+      deleteCardAttributeDefinition,
       implementedInApiVersion,
-      nameOf(deleteCardAttributeDocumentation),
+      nameOf(deleteCardAttributeDefinition),
       "DELETE",
-      "/banks/BANK_ID/attribute-documentation/ATTRIBUTE_DOCUMENTATION_ID/card",
-      "Delete Card Attribute Documentation",
-      s""" Delete Card Attribute Documentation by ATTRIBUTE_DOCUMENTATION_ID
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DOCUMENTATION_ID/card",
+      "Delete Card Attribute Definition",
+      s""" Delete Card Attribute Definition by ATTRIBUTE_DOCUMENTATION_ID
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -3264,10 +3264,10 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagNewStyle),
-      Some(List(canDeleteCardAttributeDocumentationAtOneBank)))
+      Some(List(canDeleteCardAttributeDefinitionAtOneBank)))
 
-    lazy val deleteCardAttributeDocumentation : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-documentation" :: attributeDocumentationId :: "card" :: Nil JsonDelete _ => {
+    lazy val deleteCardAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDocumentationId :: "card" :: Nil JsonDelete _ => {
         cc =>
           for {
             (deleted, callContext) <- deleteAttributeDocumentation(
@@ -3283,19 +3283,19 @@ trait APIMethods400 {
 
 
     resourceDocs += ResourceDoc(
-      getProductAttributeDocumentation,
+      getProductAttributeDefinition,
       implementedInApiVersion,
-      nameOf(getProductAttributeDocumentation),
+      nameOf(getProductAttributeDefinition),
       "GET",
-      "/banks/BANK_ID/attribute-documentation/product",
-      "Get Product Attribute Documentation",
-      s""" Get Product Attribute Documentation
+      "/banks/BANK_ID/attribute-definitions/product",
+      "Get Product Attribute Definition",
+      s""" Get Product Attribute Definition
          |
          |${authenticationRequiredMessage(true)}
          |
          |""",
       emptyObjectJson,
-      productAttributeDocumentationsResponseJsonV400,
+      productAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -3303,10 +3303,10 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagNewStyle),
-      Some(List(canGetProductAttributeDocumentationAtOneBank)))
+      Some(List(canGetProductAttributeDefinitionAtOneBank)))
 
-    lazy val getProductAttributeDocumentation : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "product" :: Nil JsonGet _ => {
+    lazy val getProductAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "product" :: Nil JsonGet _ => {
         cc =>
           for {
             (attributeDocumentations, callContext) <- getAttributeDocumentation(
@@ -3321,19 +3321,19 @@ trait APIMethods400 {
 
 
     resourceDocs += ResourceDoc(
-      getCustomerAttributeDocumentation,
+      getCustomerAttributeDefinition,
       implementedInApiVersion,
-      nameOf(getCustomerAttributeDocumentation),
+      nameOf(getCustomerAttributeDefinition),
       "GET",
-      "/banks/BANK_ID/attribute-documentation/customer",
-      "Get Customer Attribute Documentation",
-      s""" Get Customer Attribute Documentation
+      "/banks/BANK_ID/attribute-definitions/customer",
+      "Get Customer Attribute Definition",
+      s""" Get Customer Attribute Definition
          |
          |${authenticationRequiredMessage(true)}
          |
          |""",
       emptyObjectJson,
-      customerAttributeDocumentationsResponseJsonV400,
+      customerAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -3341,10 +3341,10 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canGetCustomerAttributeDocumentationAtOneBank)))
+      Some(List(canGetCustomerAttributeDefinitionAtOneBank)))
 
-    lazy val getCustomerAttributeDocumentation : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "customer" :: Nil JsonGet _ => {
+    lazy val getCustomerAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "customer" :: Nil JsonGet _ => {
         cc =>
           for {
             (attributeDocumentations, callContext) <- getAttributeDocumentation(
@@ -3359,19 +3359,19 @@ trait APIMethods400 {
 
 
     resourceDocs += ResourceDoc(
-      getAccountAttributeDocumentation,
+      getAccountAttributeDefinition,
       implementedInApiVersion,
-      nameOf(getAccountAttributeDocumentation),
+      nameOf(getAccountAttributeDefinition),
       "GET",
-      "/banks/BANK_ID/attribute-documentation/account",
-      "Get Account Attribute Documentation",
-      s""" Get Account Attribute Documentation
+      "/banks/BANK_ID/attribute-definitions/account",
+      "Get Account Attribute Definition",
+      s""" Get Account Attribute Definition
          |
          |${authenticationRequiredMessage(true)}
          |
          |""",
       emptyObjectJson,
-      accountAttributeDocumentationsResponseJsonV400,
+      accountAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -3381,8 +3381,8 @@ trait APIMethods400 {
       List(apiTagAccount, apiTagNewStyle),
       Some(List(canGetAccountAttributeDocumentationAtOneBank)))
 
-    lazy val getAccountAttributeDocumentation : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "account" :: Nil JsonGet _ => {
+    lazy val getAccountAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "account" :: Nil JsonGet _ => {
         cc =>
           for {
             (attributeDocumentations, callContext) <- getAttributeDocumentation(
@@ -3397,19 +3397,19 @@ trait APIMethods400 {
 
 
     resourceDocs += ResourceDoc(
-      getTransactionAttributeDocumentation,
+      getTransactionAttributeDefinition,
       implementedInApiVersion,
-      nameOf(getTransactionAttributeDocumentation),
+      nameOf(getTransactionAttributeDefinition),
       "GET",
-      "/banks/BANK_ID/attribute-documentation/transaction",
-      "Get Transaction Attribute Documentation",
-      s""" Get Transaction Attribute Documentation
+      "/banks/BANK_ID/attribute-definitions/transaction",
+      "Get Transaction Attribute Definition",
+      s""" Get Transaction Attribute Definition
          |
          |${authenticationRequiredMessage(true)}
          |
          |""",
       emptyObjectJson,
-      transactionAttributeDocumentationsResponseJsonV400,
+      transactionAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -3417,10 +3417,10 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
-      Some(List(canGetTransactionAttributeDocumentationAtOneBank)))
+      Some(List(canGetTransactionAttributeDefinitionAtOneBank)))
 
-    lazy val getTransactionAttributeDocumentation : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "transaction" :: Nil JsonGet _ => {
+    lazy val getTransactionAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "transaction" :: Nil JsonGet _ => {
         cc =>
           for {
             (attributeDocumentations, callContext) <- getAttributeDocumentation(
@@ -3436,19 +3436,19 @@ trait APIMethods400 {
 
 
     resourceDocs += ResourceDoc(
-      getCardAttributeDocumentation,
+      getCardAttributeDefinition,
       implementedInApiVersion,
-      nameOf(getCardAttributeDocumentation),
+      nameOf(getCardAttributeDefinition),
       "GET",
-      "/banks/BANK_ID/attribute-documentation/card",
-      "Get Card Attribute Documentation",
-      s""" Get Card Attribute Documentation
+      "/banks/BANK_ID/attribute-definitions/card",
+      "Get Card Attribute Definition",
+      s""" Get Card Attribute Definition
          |
          |${authenticationRequiredMessage(true)}
          |
          |""",
       emptyObjectJson,
-      cardAttributeDocumentationsResponseJsonV400,
+      cardAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -3456,10 +3456,10 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
-      Some(List(canGetCardAttributeDocumentationAtOneBank)))
+      Some(List(canGetCardAttributeDefinitionAtOneBank)))
 
-    lazy val getCardAttributeDocumentation : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-documentation" :: "card" :: Nil JsonGet _ => {
+    lazy val getCardAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "card" :: Nil JsonGet _ => {
         cc =>
           for {
             (attributeDocumentations, callContext) <- getAttributeDocumentation(

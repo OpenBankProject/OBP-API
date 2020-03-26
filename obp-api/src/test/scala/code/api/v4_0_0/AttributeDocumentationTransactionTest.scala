@@ -19,18 +19,18 @@ class AttributeDocumentationTransactionTest extends V400ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createOrUpdateTransactionAttributeDocumentation))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getTransactionAttributeDocumentation))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.deleteTransactionAttributeDocumentation))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createOrUpdateTransactionAttributeDefinition))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getTransactionAttributeDefinition))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.deleteTransactionAttributeDefinition))
 
   
   lazy val bankId = randomBankId
-  lazy val putJson = SwaggerDefinitionsJSON.transactionAttributeDocumentationJsonV400
+  lazy val putJson = SwaggerDefinitionsJSON.transactionAttributeDefinitionJsonV400
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-documentation" / "transaction").PUT
+      val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-definitions" / "transaction").PUT
       val response400 = makePutRequest(request400, write(putJson))
       Then("We should get a 400")
       response400.code should equal(400)
@@ -40,7 +40,7 @@ class AttributeDocumentationTransactionTest extends V400ServerSetup {
   feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-documentation" / "transaction").GET
+      val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-definitions" / "transaction").GET
       val response400 = makeGetRequest(request400)
       Then("We should get a 400")
       response400.code should equal(400)
@@ -50,7 +50,7 @@ class AttributeDocumentationTransactionTest extends V400ServerSetup {
   feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-documentation"
+      val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-definitions"
         / "ATTRIBUTE_DOCUMENTATION_ID" / "transaction").DELETE
       val response400 = makeDeleteRequest(request400)
       Then("We should get a 400")
@@ -62,7 +62,7 @@ class AttributeDocumentationTransactionTest extends V400ServerSetup {
   feature(s"test $ApiEndpoint1 version $VersionOfApi - authorized access- missing role") {
     scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-documentation" / "transaction").PUT <@ (user1)
+      val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-definitions" / "transaction").PUT <@ (user1)
       val response400 = makePutRequest(request400, write(putJson))
       Then("We should get a 403")
       response400.code should equal(403)
@@ -72,7 +72,7 @@ class AttributeDocumentationTransactionTest extends V400ServerSetup {
   feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access- missing role") {
     scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-documentation" / "transaction").GET <@ (user1)
+      val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-definitions" / "transaction").GET <@ (user1)
       val response400 = makeGetRequest(request400)
       Then("We should get a 403")
       response400.code should equal(403)
@@ -82,7 +82,7 @@ class AttributeDocumentationTransactionTest extends V400ServerSetup {
   feature(s"test $ApiEndpoint3 version $VersionOfApi - authorized access- missing role") {
     scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-documentation"
+      val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-definitions"
         / "ATTRIBUTE_DOCUMENTATION_ID" / "transaction").DELETE <@ (user1)
       val response400 = makeDeleteRequest(request400)
       Then("We should get a 403")

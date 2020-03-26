@@ -263,28 +263,28 @@ case class ConsumerJson(consumer_id: String,
                         created: Date
                        )
 
-case class AttributeDocumentationJsonV400(
-                                         name: String,
-                                         category: String,
-                                         `type`: String,
-                                         description: String,
-                                         alias: String,
-                                         is_active: Boolean
-                                       )
+case class AttributeDefinitionJsonV400(
+                                        name: String,
+                                        category: String,
+                                        `type`: String,
+                                        description: String,
+                                        alias: String,
+                                        is_active: Boolean
+                                      )
 
-case class AttributeDocumentationResponseJsonV400(attribute_documentation_id: String,
-                                                  bank_id: String,
-                                                  name: String,
-                                                  category: String,
-                                                  `type`: String,
-                                                  description: String,
-                                                  alias: String,
-                                                  is_active: Boolean
-                                                 )
+case class AttributeDefinitionResponseJsonV400(attribute_documentation_id: String,
+                                               bank_id: String,
+                                               name: String,
+                                               category: String,
+                                               `type`: String,
+                                               description: String,
+                                               alias: String,
+                                               is_active: Boolean
+                                              )
 
-case class AttributeDocumentationsResponseJsonV400(
-                                                    attributes: List[AttributeDocumentationResponseJsonV400]
-                                                  )
+case class AttributeDefinitionsResponseJsonV400(
+                                                 attributes: List[AttributeDefinitionResponseJsonV400]
+                                               )
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
@@ -522,8 +522,8 @@ object JSONFactory400 {
   }
 
 
-  def createAttributeDocumentationJson(attributeDocumentation: AttributeDocumentation) : AttributeDocumentationResponseJsonV400 = {
-    AttributeDocumentationResponseJsonV400(
+  def createAttributeDocumentationJson(attributeDocumentation: AttributeDocumentation) : AttributeDefinitionResponseJsonV400 = {
+    AttributeDefinitionResponseJsonV400(
       attribute_documentation_id = attributeDocumentation.attributeDocumentationId,
       bank_id = attributeDocumentation.bankId.value,
       name = attributeDocumentation.name,
@@ -535,8 +535,8 @@ object JSONFactory400 {
     )
   }
 
-  def createAttributeDocumentationsJson(attributeDocumentations: List[AttributeDocumentation]) : AttributeDocumentationsResponseJsonV400 = {
-    AttributeDocumentationsResponseJsonV400(attributeDocumentations.map(createAttributeDocumentationJson))
+  def createAttributeDocumentationsJson(attributeDocumentations: List[AttributeDocumentation]) : AttributeDefinitionsResponseJsonV400 = {
+    AttributeDefinitionsResponseJsonV400(attributeDocumentations.map(createAttributeDocumentationJson))
   }
   
 }

@@ -16,7 +16,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDocumentationJsonV400, AttributeDocumentationResponseJsonV400, AttributeDocumentationsResponseJsonV400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, When}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, When}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
@@ -3671,7 +3671,7 @@ object SwaggerDefinitionsJSON {
     value = transactionAttributeValueExample.value
   )
   
-  val customerAttributeDocumentationJsonV400 = AttributeDocumentationJsonV400(
+  val customerAttributeDefinitionJsonV400 = AttributeDefinitionJsonV400(
     name = customerAttributeNameExample.value,
     category = AttributeCategory.Customer.toString,
     `type` = customerAttributeTypeExample.value,
@@ -3679,7 +3679,7 @@ object SwaggerDefinitionsJSON {
     alias = customerAttributeAliasExample.value,
     is_active = true
   )  
-  val customerAttributeDocumentationResponseJsonV400 = AttributeDocumentationResponseJsonV400(
+  val customerAttributeDefinitionResponseJsonV400 = AttributeDefinitionResponseJsonV400(
     attribute_documentation_id = uuidExample.value,
     bank_id = bankIdExample.value,
     name = customerAttributeNameExample.value,
@@ -3689,44 +3689,44 @@ object SwaggerDefinitionsJSON {
     alias = customerAttributeAliasExample.value,
     is_active = true
   )  
-  val accountAttributeDocumentationJsonV400 =
-    customerAttributeDocumentationJsonV400.copy(category = AttributeCategory.Account.toString)
+  val accountAttributeDefinitionJsonV400 =
+    customerAttributeDefinitionJsonV400.copy(category = AttributeCategory.Account.toString)
     
-  val accountAttributeDocumentationResponseJsonV400 =
-    customerAttributeDocumentationResponseJsonV400.copy(category = AttributeCategory.Account.toString)
+  val accountAttributeDefinitionResponseJsonV400 =
+    customerAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Account.toString)
   
-  val productAttributeDocumentationJsonV400 =
-    customerAttributeDocumentationJsonV400.copy(category = AttributeCategory.Product.toString)
+  val productAttributeDefinitionJsonV400 =
+    customerAttributeDefinitionJsonV400.copy(category = AttributeCategory.Product.toString)
   
-  val productAttributeDocumentationResponseJsonV400 =
-    customerAttributeDocumentationResponseJsonV400.copy(category = AttributeCategory.Product.toString)
+  val productAttributeDefinitionResponseJsonV400 =
+    customerAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Product.toString)
   
-  val transactionAttributeDocumentationJsonV400 = 
-    customerAttributeDocumentationJsonV400.copy(category = AttributeCategory.Transaction.toString)
+  val transactionAttributeDefinitionJsonV400 = 
+    customerAttributeDefinitionJsonV400.copy(category = AttributeCategory.Transaction.toString)
   
-  val transactionAttributeDocumentationResponseJsonV400 =
-    customerAttributeDocumentationResponseJsonV400.copy(category = AttributeCategory.Transaction.toString)
+  val transactionAttributeDefinitionResponseJsonV400 =
+    customerAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Transaction.toString)
   
-  val cardAttributeDocumentationJsonV400 = 
-    customerAttributeDocumentationJsonV400.copy(category = AttributeCategory.Card.toString)
+  val cardAttributeDefinitionJsonV400 = 
+    customerAttributeDefinitionJsonV400.copy(category = AttributeCategory.Card.toString)
   
-  val cardAttributeDocumentationResponseJsonV400 =
-    customerAttributeDocumentationResponseJsonV400.copy(category = AttributeCategory.Card.toString)
+  val cardAttributeDefinitionResponseJsonV400 =
+    customerAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Card.toString)
     
-  val transactionAttributeDocumentationsResponseJsonV400 = AttributeDocumentationsResponseJsonV400(
-    attributes = List(transactionAttributeDocumentationResponseJsonV400)
+  val transactionAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(transactionAttributeDefinitionResponseJsonV400)
   )    
-  val cardAttributeDocumentationsResponseJsonV400 = AttributeDocumentationsResponseJsonV400(
-    attributes = List(cardAttributeDocumentationResponseJsonV400)
+  val cardAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(cardAttributeDefinitionResponseJsonV400)
   )    
-  val accountAttributeDocumentationsResponseJsonV400 = AttributeDocumentationsResponseJsonV400(
-    attributes = List(accountAttributeDocumentationResponseJsonV400)
+  val accountAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(accountAttributeDefinitionResponseJsonV400)
   )    
-  val customerAttributeDocumentationsResponseJsonV400 = AttributeDocumentationsResponseJsonV400(
-    attributes = List(customerAttributeDocumentationResponseJsonV400)
+  val customerAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(customerAttributeDefinitionResponseJsonV400)
   )    
-  val productAttributeDocumentationsResponseJsonV400 = AttributeDocumentationsResponseJsonV400(
-    attributes = List(productAttributeDocumentationResponseJsonV400)
+  val productAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(productAttributeDefinitionResponseJsonV400)
   )
   
   //The common error or success format.
