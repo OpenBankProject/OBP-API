@@ -2886,7 +2886,7 @@ trait APIMethods400 {
           } yield {
             val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint=>
               val swaggerJson = parse(dynamicEndpoint.swaggerString)
-               ("dynamicEndpointId", dynamicEndpoint.dynamicEndpointId) ~ ("swaggerString", swaggerJson)
+               ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
             }
             (ListResult("dynamic_endpoints", resultList), HttpCode.`200`(cc.callContext))
           }
