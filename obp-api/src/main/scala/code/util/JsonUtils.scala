@@ -163,6 +163,7 @@ object JsonUtils {
             } else {
               JField(newName, jObj)
             }
+          case _ => throw new RuntimeException(s"Not support json value type, value is: $jValue")
         }
 
       }

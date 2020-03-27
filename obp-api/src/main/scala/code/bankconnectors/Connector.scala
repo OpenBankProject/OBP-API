@@ -2193,4 +2193,16 @@ trait Connector extends MdcLoggable {
 
   def deleteCustomerAttribute(customerAttributeId: String,
                            callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEndpointT]] = Future {
+    (Failure(setUnimplementedError), callContext)
+  }
+
+  def getDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEndpointT]] = Future {
+    (Failure(setUnimplementedError), callContext)
+  }
+
+  def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
+    (List.empty[DynamicEndpointT], callContext)
+  }
 }

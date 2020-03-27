@@ -767,3 +767,6 @@ stored_procedure_connector.poolFactoryName=commons-dbcp2
 # -----------------------------------------------------------------------
 # Set whether DynamicEntity display name starts with underscore, default is true
 dynamic_entities_have_prefix=true
+
+# Url prefix of dynamic endpoints, default is dynamic. e.g if set to foobar, one url can be /obp/v4.0.0/foobar/Address
+dynamic_endpoints_url_prefix=dynamic

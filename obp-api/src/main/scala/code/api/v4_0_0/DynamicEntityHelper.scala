@@ -32,7 +32,7 @@ object MockerConnector {
 
   def definitionsMap = NewStyle.function.getDynamicEntities().map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName))).toMap
 
-  def doc = {
+  def doc: ArrayBuffer[ResourceDoc] = {
     val docs: Seq[ResourceDoc] = definitionsMap.values.flatMap(createDocs).toSeq
     collection.mutable.ArrayBuffer(docs:_*)
   }
