@@ -604,7 +604,7 @@ object ExampleValue {
       |}
       |""".stripMargin
   lazy val dynamicEndpointRequestBodyExample = json.parse(dynamicEndpointSwagger).asInstanceOf[JObject]
-  lazy val dynamicEndpointResponseBodyExample = ("dynamicEndpointId", "dynamic-endpoint-id") ~ ("swaggerString", dynamicEndpointRequestBodyExample)
+  lazy val dynamicEndpointResponseBodyExample = ("dynamic_endpoint_id", "dynamic-endpoint-id") ~ ("swagger_string", dynamicEndpointRequestBodyExample)
 
 }
 
