@@ -2800,7 +2800,7 @@ trait APIMethods400 {
             (dynamicEndpoint, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
           } yield {
             val swaggerJson = parse(dynamicEndpoint.swaggerString)
-            val responseJson: JObject = ("dynamicEndpointId", dynamicEndpoint.dynamicEndpointId) ~ ("swaggerString", swaggerJson)
+            val responseJson: JObject = ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
             (responseJson, HttpCode.`201`(callContext))
           }
       }
@@ -2820,7 +2820,7 @@ trait APIMethods400 {
          |""",
       emptyObjectJson,
       ListResult(
-        "dynamic_entities",
+        "dynamic_endpoints",
         List(dynamicEndpointResponseBodyExample)
       ),
       List(
@@ -2841,7 +2841,7 @@ trait APIMethods400 {
           } yield {
             val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint=>
               val swaggerJson = parse(dynamicEndpoint.swaggerString)
-               ("dynamicEndpointId", dynamicEndpoint.dynamicEndpointId) ~ ("swaggerString", swaggerJson)
+               ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
             }
             (ListResult("dynamic_entities", resultList), HttpCode.`200`(cc.callContext))
           }
