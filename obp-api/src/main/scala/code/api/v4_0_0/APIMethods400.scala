@@ -2725,6 +2725,51 @@ trait APIMethods400 {
       }
     }
 
+    val customerAttributeGeneralInfo =
+      s"""
+         |CustomerAttributes are used to enhance the OBP Customer object with Bank specific entities.
+         |
+       """.stripMargin
+
+    resourceDocs += ResourceDoc(
+      deleteCustomerAttribute,
+      implementedInApiVersion,
+      nameOf(deleteCustomerAttribute),
+      "DELETE",
+      "/banks/BANK_ID/CUSTOMER_ID/attributes/CUSTOMER_ATTRIBUTE_ID",
+      "Delete Customer Attribute",
+      s""" Delete Customer Attribute
+         |
+         |$customerAttributeGeneralInfo
+         |
+         |Delete a Customer Attribute by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canDeleteCustomerAttributeAtOneBank)))
+
+    lazy val deleteCustomerAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "customers" :: "attributes" :: customerAttributeId ::  Nil JsonDelete _=> {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            (customerAttribute, callContext) <- NewStyle.function.deleteCustomerAttribute(customerAttributeId, callContext)
+          } yield {
+            (Full(customerAttribute), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
     resourceDocs += ResourceDoc(
       createDynamicEndpoint,
       implementedInApiVersion,

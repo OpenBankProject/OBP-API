@@ -123,7 +123,7 @@ package object bankconnectors extends MdcLoggable {
       case name => Connector.getConnectorInstance(name)
     }
     val methodSymbol = connector.implementedMethods(methodName).alternatives match {
-      case m::Nil if m.isInstanceOf[MethodSymbol] => m.asMethod
+      case m::Nil if m.isMethod => m.asMethod
       case _ =>
         findMethodByArgs(connector, methodName, args:_*)
         .getOrElse(sys.error(s"not found matched method, method name: ${methodName}, params: ${args.mkString(",")}"))
