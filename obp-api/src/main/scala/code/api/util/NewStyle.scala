@@ -2021,5 +2021,11 @@ object NewStyle {
       ) 
     }
 
+    def deleteCustomerAttribute(customerAttributeId : String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteCustomerAttribute(customerAttributeId, callContext) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
   }
 }
