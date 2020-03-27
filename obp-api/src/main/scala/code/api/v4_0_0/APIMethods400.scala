@@ -3,7 +3,7 @@ package code.api.v4_0_0
 import java.util.Date
 
 import code.DynamicData.DynamicData
-import code.DynamicEndpoint.{DynamicEndpointCommons, DynamicEndpointSwagger}
+import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -49,6 +49,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
@@ -2819,7 +2820,7 @@ trait APIMethods400 {
          |""",
       emptyObjectJson,
       ListResult(
-        "dynamic_entities",
+        "dynamic_endpoints",
         List(dynamicEndpointResponseBodyExample)
       ),
       List(
@@ -2833,7 +2834,7 @@ trait APIMethods400 {
       Some(List(canGetDynamicEndpoints)))
 
     lazy val getDynamicEndpoints: OBPEndpoint = {
-      case "management" :: "dynamic_endpoints" :: Nil JsonGet req => {
+      case "management" :: "dynamic_endpoints" :: Nil JsonGet _ => {
         cc =>
           for {
             (dynamicEndpoints, _) <- NewStyle.function.getDynamicEndpoints(cc.callContext)
@@ -2842,7 +2843,7 @@ trait APIMethods400 {
               val swaggerJson = parse(dynamicEndpoint.swaggerString)
                ("dynamicEndpointId", dynamicEndpoint.dynamicEndpointId) ~ ("swaggerString", swaggerJson)
             }
-            (ListResult("dynamic_entities", resultList), HttpCode.`200`(cc.callContext))
+            (ListResult("dynamic_endpoints", resultList), HttpCode.`200`(cc.callContext))
           }
       }
     }

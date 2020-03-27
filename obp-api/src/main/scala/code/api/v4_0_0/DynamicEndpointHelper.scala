@@ -77,12 +77,14 @@ object DynamicEndpointHelper {
       )
       val catalogs: Catalogs = Catalogs(notCore, notPSD2, notOBWG)
 
-      val roleName = s"Can$summary${entitlementSuffix(path)}"
-        .replaceFirst("Can(Create|Update|Get|Delete)", "Can$1Dynamic")
-        .replace(" ", "")
-      val roles: Option[List[ApiRole]] = Some(List(
-        ApiRole.getOrCreateDynamicApiRole(roleName)
-      ))
+      val roles: Option[List[ApiRole]] = {
+        val roleName = s"Can$summary${entitlementSuffix(path)}"
+          .replaceFirst("Can(Create|Update|Get|Delete)", "Can$1Dynamic")
+          .replace(" ", "")
+        Some(List(
+          ApiRole.getOrCreateDynamicApiRole(roleName)
+        ))
+      }
       val connectorMethods = Some(List(s"""dynamicEntityProcess: parameters contains {"key": "entityName", "value": "$summary"}""")) //TODO temp
       ResourceDoc(
         partialFunction,
@@ -242,4 +244,8 @@ object DynamicEndpointHelper {
     case s: StringSchema => Option(s.getExample).getOrElse("string")
     case _ => throw new RuntimeException(s"Not support type $schema, please support it if necessary.")
   }
+}
+
+case class DynamicEndpointInfo(id: String, url: String, method: HttpMethod, apiRole: ApiRole, serverUrl: Option[String]) {
+
 }
