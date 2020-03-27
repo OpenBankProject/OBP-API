@@ -2,7 +2,7 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.api.attributedocumentation.{AttributeDocumentation, AttributeDocumentationProviderTrait, RemotedatattributeDocumentationCaseClasses}
+import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionProviderTrait, RemotedatAttributeDefinitionCaseClasses}
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType}
 import net.liftweb.common.Box
@@ -11,26 +11,26 @@ import scala.collection.immutable.List
 import scala.concurrent.Future
 
 
-object RemotedataAttributeDocumentation extends ObpActorInit with AttributeDocumentationProviderTrait {
+object RemotedataAttributeDefinition extends ObpActorInit with AttributeDefinitionProviderTrait {
 
-  val cc = RemotedatattributeDocumentationCaseClasses
+  val cc = RemotedatAttributeDefinitionCaseClasses
 
-  def createOrUpdateAttributeDocumentation(bankId: BankId,
+  def createOrUpdateAttributeDefinition(bankId: BankId,
                                            name: String,
                                            category: AttributeCategory.Value,
                                            `type`: AttributeType.Value,
                                            description: String,
                                            alias: String,
                                            isActive: Boolean
-                                          ): Future[Box[AttributeDocumentation]] =
-    (actor ? cc.createOrUpdateAttributeDocumentation(bankId, name, category, `type`, description, alias, isActive)).mapTo[Box[AttributeDocumentation]]
+                                          ): Future[Box[AttributeDefinition]] =
+    (actor ? cc.createOrUpdateAttributeDefinition(bankId, name, category, `type`, description, alias, isActive)).mapTo[Box[AttributeDefinition]]
 
-  def deleteAttributeDocumentation(attributeDocumentationId: String, 
+  def deleteAttributeDefinition(attributeDefinitionId: String, 
                                    category: AttributeCategory.Value): Future[Box[Boolean]] =
-    (actor ? cc.deleteAttributeDocumentation(attributeDocumentationId, category)).mapTo[Box[Boolean]]
+    (actor ? cc.deleteAttributeDefinition(attributeDefinitionId, category)).mapTo[Box[Boolean]]
   
-  def getAttributeDocumentation(category: AttributeCategory.Value): Future[Box[List[AttributeDocumentation]]] =
-    (actor ? cc.getAttributeDocumentation(category)).mapTo[Box[List[AttributeDocumentation]]]
+  def getAttributeDefinition(category: AttributeCategory.Value): Future[Box[List[AttributeDefinition]]] =
+    (actor ? cc.getAttributeDefinition(category)).mapTo[Box[List[AttributeDefinition]]]
 
 
 }

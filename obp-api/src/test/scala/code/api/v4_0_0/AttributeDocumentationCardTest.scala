@@ -10,7 +10,7 @@ import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
-class AttributeDocumentationCardTest extends V400ServerSetup {
+class AttributeDefinitionCardTest extends V400ServerSetup {
   /**
     * Test tags
     * Example: To run tests with tag "getPermissions":

@@ -12,7 +12,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
-import code.api.util.newstyle.AttributeDocumentation._
+import code.api.util.newstyle.AttributeDefinition._
 import code.api.util.newstyle.Consumer._
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
@@ -2816,7 +2816,7 @@ trait APIMethods400 {
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
             }
-            (attributeDocumentation, callContext) <- createOrUpdateAttributeDocumentation(
+            (attributeDefiniion, callContext) <- createOrUpdateAttributeDefinition(
               bankId,
               postedData.name,
               category,
@@ -2827,7 +2827,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDocumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefiniion), HttpCode.`201`(callContext))
           }
       }
     }
@@ -2880,7 +2880,7 @@ trait APIMethods400 {
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
             }
-            (attributeDocumentation, callContext) <- createOrUpdateAttributeDocumentation(
+            (attributeDefiniion, callContext) <- createOrUpdateAttributeDefinition(
               bankId,
               postedData.name,
               category,
@@ -2891,7 +2891,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDocumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefiniion), HttpCode.`201`(callContext))
           }
       }
     }
@@ -2943,7 +2943,7 @@ trait APIMethods400 {
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
             }
-            (attributeDocumentation, callContext) <- createOrUpdateAttributeDocumentation(
+            (attributeDefiniion, callContext) <- createOrUpdateAttributeDefinition(
               bankId,
               postedData.name,
               category,
@@ -2954,7 +2954,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDocumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefiniion), HttpCode.`201`(callContext))
           }
       }
     }
@@ -3005,7 +3005,7 @@ trait APIMethods400 {
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
             }
-            (attributeDocumentation, callContext) <- createOrUpdateAttributeDocumentation(
+            (attributeDefiniion, callContext) <- createOrUpdateAttributeDefinition(
               bankId,
               postedData.name,
               category,
@@ -3016,7 +3016,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDocumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefiniion), HttpCode.`201`(callContext))
           }
       }
     }
@@ -3069,7 +3069,7 @@ trait APIMethods400 {
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
             }
-            (attributeDocumentation, callContext) <- createOrUpdateAttributeDocumentation(
+            (attributeDefiniion, callContext) <- createOrUpdateAttributeDefinition(
               bankId,
               postedData.name,
               category,
@@ -3080,7 +3080,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDocumentationJson(attributeDocumentation), HttpCode.`201`(callContext))
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefiniion), HttpCode.`201`(callContext))
           }
       }
     }
@@ -3111,11 +3111,11 @@ trait APIMethods400 {
       Some(List(canDeleteTransactionAttributeDefinitionAtOneBank)))
 
     lazy val deleteTransactionAttributeDefinition : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDocumentationId :: "transaction" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "transaction" :: Nil JsonDelete _ => {
         cc =>
           for {
-            (deleted, callContext) <- deleteAttributeDocumentation(
-              attributeDocumentationId,
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
               AttributeCategory.withName(AttributeCategory.Transaction.toString),
               cc.callContext
             )
@@ -3150,11 +3150,11 @@ trait APIMethods400 {
       Some(List(canDeleteCustomerAttributeDefinitionAtOneBank)))
 
     lazy val deleteCustomerAttributeDefinition : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDocumentationId :: "customer" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "customer" :: Nil JsonDelete _ => {
         cc =>
           for {
-            (deleted, callContext) <- deleteAttributeDocumentation(
-              attributeDocumentationId,
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
               AttributeCategory.withName(AttributeCategory.Customer.toString),
               cc.callContext
             )
@@ -3189,11 +3189,11 @@ trait APIMethods400 {
       Some(List(canDeleteAccountAttributeDefinitionAtOneBank)))
 
     lazy val deleteAccountAttributeDefinition : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDocumentationId :: "account" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "account" :: Nil JsonDelete _ => {
         cc =>
           for {
-            (deleted, callContext) <- deleteAttributeDocumentation(
-              attributeDocumentationId,
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
               AttributeCategory.withName(AttributeCategory.Account.toString),
               cc.callContext
             )
@@ -3228,11 +3228,11 @@ trait APIMethods400 {
       Some(List(canDeleteProductAttributeDefinitionAtOneBank)))
 
     lazy val deleteProductAttributeDefinition : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDocumentationId :: "product" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "product" :: Nil JsonDelete _ => {
         cc =>
           for {
-            (deleted, callContext) <- deleteAttributeDocumentation(
-              attributeDocumentationId,
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
               AttributeCategory.withName(AttributeCategory.Product.toString),
               cc.callContext
             )
@@ -3267,11 +3267,11 @@ trait APIMethods400 {
       Some(List(canDeleteCardAttributeDefinitionAtOneBank)))
 
     lazy val deleteCardAttributeDefinition : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDocumentationId :: "card" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "card" :: Nil JsonDelete _ => {
         cc =>
           for {
-            (deleted, callContext) <- deleteAttributeDocumentation(
-              attributeDocumentationId,
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
               AttributeCategory.withName(AttributeCategory.Card.toString),
               cc.callContext
             )
@@ -3309,12 +3309,12 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "product" :: Nil JsonGet _ => {
         cc =>
           for {
-            (attributeDocumentations, callContext) <- getAttributeDocumentation(
+            (attributeDefiniions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.Product.toString),
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDocumentationsJson(attributeDocumentations), HttpCode.`200`(callContext))
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefiniions), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3347,12 +3347,12 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "customer" :: Nil JsonGet _ => {
         cc =>
           for {
-            (attributeDocumentations, callContext) <- getAttributeDocumentation(
+            (attributeDefiniions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.Customer.toString),
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDocumentationsJson(attributeDocumentations), HttpCode.`200`(callContext))
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefiniions), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3379,18 +3379,18 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagNewStyle),
-      Some(List(canGetAccountAttributeDocumentationAtOneBank)))
+      Some(List(canGetAccountAttributeDefinitionAtOneBank)))
 
     lazy val getAccountAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "account" :: Nil JsonGet _ => {
         cc =>
           for {
-            (attributeDocumentations, callContext) <- getAttributeDocumentation(
+            (attributeDefiniions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.Account.toString),
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDocumentationsJson(attributeDocumentations), HttpCode.`200`(callContext))
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefiniions), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3423,12 +3423,12 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "transaction" :: Nil JsonGet _ => {
         cc =>
           for {
-            (attributeDocumentations, callContext) <- getAttributeDocumentation(
+            (attributeDefiniions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.Transaction.toString),
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDocumentationsJson(attributeDocumentations), HttpCode.`200`(callContext))
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefiniions), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3462,12 +3462,12 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "card" :: Nil JsonGet _ => {
         cc =>
           for {
-            (attributeDocumentations, callContext) <- getAttributeDocumentation(
+            (attributeDefiniions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.Card.toString),
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDocumentationsJson(attributeDocumentations), HttpCode.`200`(callContext))
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefiniions), HttpCode.`200`(callContext))
           }
       }
     }

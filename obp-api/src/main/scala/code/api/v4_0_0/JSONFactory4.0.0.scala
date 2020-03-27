@@ -28,7 +28,7 @@ package code.api.v4_0_0
 
 import java.util.Date
 
-import code.api.attributedocumentation.AttributeDocumentation
+import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
 import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
@@ -522,21 +522,21 @@ object JSONFactory400 {
   }
 
 
-  def createAttributeDocumentationJson(attributeDocumentation: AttributeDocumentation) : AttributeDefinitionResponseJsonV400 = {
+  def createAttributeDefinitionJson(attributeDefiniion: AttributeDefinition) : AttributeDefinitionResponseJsonV400 = {
     AttributeDefinitionResponseJsonV400(
-      attribute_documentation_id = attributeDocumentation.attributeDocumentationId,
-      bank_id = attributeDocumentation.bankId.value,
-      name = attributeDocumentation.name,
-      category = attributeDocumentation.category.toString,
-      `type` = attributeDocumentation.`type`.toString,
-      description = attributeDocumentation.description,
-      alias = attributeDocumentation.alias,
-      is_active = attributeDocumentation.isActive,
+      attribute_documentation_id = attributeDefiniion.attributeDefinitionId,
+      bank_id = attributeDefiniion.bankId.value,
+      name = attributeDefiniion.name,
+      category = attributeDefiniion.category.toString,
+      `type` = attributeDefiniion.`type`.toString,
+      description = attributeDefiniion.description,
+      alias = attributeDefiniion.alias,
+      is_active = attributeDefiniion.isActive,
     )
   }
 
-  def createAttributeDocumentationsJson(attributeDocumentations: List[AttributeDocumentation]) : AttributeDefinitionsResponseJsonV400 = {
-    AttributeDefinitionsResponseJsonV400(attributeDocumentations.map(createAttributeDocumentationJson))
+  def createAttributeDefinitionsJson(attributeDefiniions: List[AttributeDefinition]) : AttributeDefinitionsResponseJsonV400 = {
+    AttributeDefinitionsResponseJsonV400(attributeDefiniions.map(createAttributeDefinitionJson))
   }
   
 }

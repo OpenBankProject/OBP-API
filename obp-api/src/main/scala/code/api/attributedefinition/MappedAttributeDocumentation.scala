@@ -1,4 +1,4 @@
-package code.api.attributedocumentation
+package code.api.attributedefinition
 
 import code.api.util.ErrorMessages
 import code.util.Helper.MdcLoggable
@@ -12,23 +12,23 @@ import net.liftweb.mapper._
 import scala.collection.immutable.List
 import scala.concurrent.Future
 
-object MappedAttributeDocumentationProvider extends AttributeDocumentationProviderTrait with MdcLoggable {
-  def createOrUpdateAttributeDocumentation(bankId: BankId,
+object MappedAttributeDefinitionProvider extends AttributeDefinitionProviderTrait with MdcLoggable {
+  def createOrUpdateAttributeDefinition(bankId: BankId,
                                            name: String,
                                            category: AttributeCategory.Value,
                                            `type`: AttributeType.Value,
                                            description: String,
                                            alias: String,
                                            isActive: Boolean
-                                          ): Future[Box[AttributeDocumentation]] = Future {
-    AttributeDocumentation.find(
-      By(AttributeDocumentation.BankId, bankId.value),
-      By(AttributeDocumentation.Name, name),
-      By(AttributeDocumentation.Category, category.toString)
+                                          ): Future[Box[AttributeDefinition]] = Future {
+    AttributeDefinition.find(
+      By(AttributeDefinition.BankId, bankId.value),
+      By(AttributeDefinition.Name, name),
+      By(AttributeDefinition.Category, category.toString)
     ) match {
-      case Full(attributeDocumentation) =>
+      case Full(attributeDefinition) =>
         Full(
-          attributeDocumentation
+          attributeDefinition
             .BankId(bankId.value)
             .Name(name)
             .Category(category.toString)
@@ -40,7 +40,7 @@ object MappedAttributeDocumentationProvider extends AttributeDocumentationProvid
         )
       case Empty =>
         Full(
-          AttributeDocumentation.create
+          AttributeDefinition.create
             .BankId(bankId.value)
             .Name(name)
             .Category(category.toString)
@@ -55,11 +55,11 @@ object MappedAttributeDocumentationProvider extends AttributeDocumentationProvid
     
   }
 
-  def deleteAttributeDocumentation(attributeDocumentationId: String, 
+  def deleteAttributeDefinition(attributeDefinitionId: String, 
                                    category: AttributeCategory.Value): Future[Box[Boolean]] = Future {
-    AttributeDocumentation.find(
-      By(AttributeDocumentation.AttributeDocumentationId, attributeDocumentationId),
-      By(AttributeDocumentation.Category, category.toString)
+    AttributeDefinition.find(
+      By(AttributeDefinition.AttributeDefinitionId, attributeDefinitionId),
+      By(AttributeDefinition.Category, category.toString)
     ) match {
       case Full(attribute) => Full(attribute.delete_!)
       case Empty           => Empty ?~! ErrorMessages.AttributeNotFound
@@ -69,19 +69,19 @@ object MappedAttributeDocumentationProvider extends AttributeDocumentationProvid
     }
   }
 
-  def getAttributeDocumentation(category: AttributeCategory.Value): Future[Box[List[AttributeDocumentation]]] = Future {
+  def getAttributeDefinition(category: AttributeCategory.Value): Future[Box[List[AttributeDefinition]]] = Future {
     Full(
-      AttributeDocumentation.findAll(
-        By(AttributeDocumentation.Category, category.toString)
+      AttributeDefinition.findAll(
+        By(AttributeDefinition.Category, category.toString)
       )
     )
   }
   
 }
 
-class AttributeDocumentation extends AttributeDocumentationTrait with LongKeyedMapper[AttributeDocumentation] with IdPK with CreatedUpdated {
-  override def getSingleton = AttributeDocumentation
-  object AttributeDocumentationId extends MappedUUID(this)
+class AttributeDefinition extends AttributeDefinitionTrait with LongKeyedMapper[AttributeDefinition] with IdPK with CreatedUpdated {
+  override def getSingleton = AttributeDefinition
+  object AttributeDefinitionId extends MappedUUID(this)
   object BankId extends MappedString(this, 50)
   object Name extends MappedString(this, 50)
   object Category extends MappedString(this, 50)
@@ -91,7 +91,7 @@ class AttributeDocumentation extends AttributeDocumentationTrait with LongKeyedM
   object IsActive extends MappedBoolean(this)
 
   import com.openbankproject.commons.model.{BankId => BankIdCommonModel}
-  def attributeDocumentationId: String = AttributeDocumentationId.get
+  def attributeDefinitionId: String = AttributeDefinitionId.get
   def bankId: BankIdCommonModel = BankIdCommonModel(BankId.get)
   def name: String = Name.get
   def category: AttributeCategory.Value = AttributeCategory.withName(Category.get)
@@ -102,6 +102,6 @@ class AttributeDocumentation extends AttributeDocumentationTrait with LongKeyedM
 
 }
 
-object AttributeDocumentation extends AttributeDocumentation with LongKeyedMetaMapper[AttributeDocumentation] {
-  override def dbIndexes: List[BaseIndex[AttributeDocumentation]] = UniqueIndex(BankId, Name, Category) :: super.dbIndexes
+object AttributeDefinition extends AttributeDefinition with LongKeyedMetaMapper[AttributeDefinition] {
+  override def dbIndexes: List[BaseIndex[AttributeDefinition]] = UniqueIndex(BankId, Name, Category) :: super.dbIndexes
 }

@@ -1,7 +1,7 @@
-package code.api.attributedocumentation
+package code.api.attributedefinition
 
 import code.api.util.APIUtil
-import code.remotedata.RemotedataAttributeDocumentation
+import code.remotedata.RemotedataAttributeDefinition
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType}
 import net.liftweb.common.Box
@@ -10,32 +10,32 @@ import net.liftweb.util.SimpleInjector
 import scala.collection.immutable.List
 import scala.concurrent.Future
 
-object AttributeDocumentationDI extends SimpleInjector {
-  val attributeDocumentation = new Inject(buildOne _) {}
-  def buildOne: AttributeDocumentationProviderTrait = APIUtil.getPropsAsBoolValue("use_akka", false) match {
-    case false  => MappedAttributeDocumentationProvider
-    case true => RemotedataAttributeDocumentation   // We will use Akka as a middleware
+object AttributeDefinitionDI extends SimpleInjector {
+  val attributeDefinition = new Inject(buildOne _) {}
+  def buildOne: AttributeDefinitionProviderTrait = APIUtil.getPropsAsBoolValue("use_akka", false) match {
+    case false  => MappedAttributeDefinitionProvider
+    case true => RemotedataAttributeDefinition   // We will use Akka as a middleware
   }
 }
 
-trait AttributeDocumentationProviderTrait {
-  def createOrUpdateAttributeDocumentation(bankId: BankId,
+trait AttributeDefinitionProviderTrait {
+  def createOrUpdateAttributeDefinition(bankId: BankId,
                                            name: String,
                                            category: AttributeCategory.Value,
                                            `type`: AttributeType.Value,
                                            description: String,
                                            alias: String, 
                                            isActive: Boolean
-                                          ): Future[Box[AttributeDocumentation]] 
+                                          ): Future[Box[AttributeDefinition]] 
   
-  def deleteAttributeDocumentation(attributeDocumentationId: String, 
+  def deleteAttributeDefinition(attributeDefinitionId: String, 
                                    category: AttributeCategory.Value): Future[Box[Boolean]]
   
-  def getAttributeDocumentation(category: AttributeCategory.Value): Future[Box[List[AttributeDocumentation]]]
+  def getAttributeDefinition(category: AttributeCategory.Value): Future[Box[List[AttributeDefinition]]]
 }
 
-trait AttributeDocumentationTrait {
-  def attributeDocumentationId: String
+trait AttributeDefinitionTrait {
+  def attributeDefinitionId: String
   def bankId: BankId
   def name: String
   def category: AttributeCategory.Value
@@ -46,16 +46,16 @@ trait AttributeDocumentationTrait {
 }
 
 
-class RemotedataAttributeDocumentationCaseClasses {
-  case class createOrUpdateAttributeDocumentation(bankId: BankId,
+class RemotedataAttributeDefinitionCaseClasses {
+  case class createOrUpdateAttributeDefinition(bankId: BankId,
                                                   name: String,
                                                   category: AttributeCategory.Value,
                                                   `type`: AttributeType.Value,
                                                   description: String,
                                                   alias: String,
                                                   isActive: Boolean)
-  case class deleteAttributeDocumentation(attributeDocumentationId: String, category: AttributeCategory.Value)
-  case class getAttributeDocumentation(category: AttributeCategory.Value)
+  case class deleteAttributeDefinition(attributeDefinitionId: String, category: AttributeCategory.Value)
+  case class getAttributeDefinition(category: AttributeCategory.Value)
 }
 
-object RemotedatattributeDocumentationCaseClasses extends RemotedataAttributeDocumentationCaseClasses
+object RemotedatAttributeDefinitionCaseClasses extends RemotedataAttributeDefinitionCaseClasses

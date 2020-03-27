@@ -1,6 +1,6 @@
 package code.api.util.newstyle
 
-import code.api.attributedocumentation.AttributeDocumentation
+import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil.OBPReturnType
 import code.api.util.{APIUtil, CallContext}
 import code.bankconnectors.Connector
@@ -10,8 +10,8 @@ import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType
 
 import scala.collection.immutable.List
 
-object AttributeDocumentation {
-  def createOrUpdateAttributeDocumentation(bankId: BankId,
+object AttributeDefinition {
+  def createOrUpdateAttributeDefinition(bankId: BankId,
                                            name: String,
                                            category: AttributeCategory.Value,
                                            `type`: AttributeType.Value,
@@ -19,8 +19,8 @@ object AttributeDocumentation {
                                            alias: String,
                                            isActive: Boolean,
                                            callContext: Option[CallContext]
-                                          ): OBPReturnType[AttributeDocumentation]  = {
-    Connector.connector.vend.createOrUpdateAttributeDocumentation(
+                                          ): OBPReturnType[AttributeDefinition]  = {
+    Connector.connector.vend.createOrUpdateAttributeDefinition(
       bankId: BankId,
       name: String,
       category: AttributeCategory.Value,
@@ -34,12 +34,12 @@ object AttributeDocumentation {
     }
   }
 
-  def deleteAttributeDocumentation(attributeDocumentationId: String,
+  def deleteAttributeDefinition(attributeDefinitionId: String,
                                    category: AttributeCategory.Value,
                                    callContext: Option[CallContext]
                                   ): OBPReturnType[Boolean] = {
-    Connector.connector.vend.deleteAttributeDocumentation(
-      attributeDocumentationId: String,
+    Connector.connector.vend.deleteAttributeDefinition(
+      attributeDefinitionId: String,
       category: AttributeCategory.Value,
       callContext: Option[CallContext]
     ) map {
@@ -47,10 +47,10 @@ object AttributeDocumentation {
     }
   }
 
-  def getAttributeDocumentation(category: AttributeCategory.Value,
+  def getAttributeDefinition(category: AttributeCategory.Value,
                                 callContext: Option[CallContext]
-                               ): OBPReturnType[List[AttributeDocumentation]] = {
-    Connector.connector.vend.getAttributeDocumentation(
+                               ): OBPReturnType[List[AttributeDefinition]] = {
+    Connector.connector.vend.getAttributeDefinition(
       category: AttributeCategory.Value,
       callContext: Option[CallContext]
     ) map {

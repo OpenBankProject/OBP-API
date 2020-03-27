@@ -9,7 +9,7 @@ import code.accountapplication.AccountApplicationX
 import code.accountattribute.AccountAttributeX
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.attributedocumentation.{AttributeDocumentation, AttributeDocumentationDI}
+import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionDI}
 import code.api.cache.Caching
 import code.api.util.APIUtil.{DateWithMsFormat, OBPReturnType, generateUUID, hasEntitlement, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
@@ -2774,7 +2774,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
-  override def createOrUpdateAttributeDocumentation(bankId: BankId,
+  override def createOrUpdateAttributeDefinition(bankId: BankId,
                                                     name: String,
                                                     category: AttributeCategory.Value,
                                                     `type`: AttributeType.Value,
@@ -2782,8 +2782,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                     alias: String,
                                                     isActive: Boolean,
                                                     callContext: Option[CallContext]
-                                                   ): OBPReturnType[Box[AttributeDocumentation]] = {
-    AttributeDocumentationDI.attributeDocumentation.vend.createOrUpdateAttributeDocumentation(
+                                                   ): OBPReturnType[Box[AttributeDefinition]] = {
+    AttributeDefinitionDI.attributeDefinition.vend.createOrUpdateAttributeDefinition(
       bankId: BankId,
       name: String,
       category: AttributeCategory.Value,
@@ -2796,22 +2796,22 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
-  override def deleteAttributeDocumentation(attributeDocumentationId: String,
+  override def deleteAttributeDefinition(attributeDefinitionId: String,
                                             category: AttributeCategory.Value,
                                             callContext: Option[CallContext]
                                            ): OBPReturnType[Box[Boolean]] = {
-    AttributeDocumentationDI.attributeDocumentation.vend.deleteAttributeDocumentation(
-      attributeDocumentationId: String,
+    AttributeDefinitionDI.attributeDefinition.vend.deleteAttributeDefinition(
+      attributeDefinitionId: String,
       category: AttributeCategory.Value
     ) map {
       (_, callContext)
     }
   }
 
-  override def getAttributeDocumentation(category: AttributeCategory.Value,
+  override def getAttributeDefinition(category: AttributeCategory.Value,
                                          callContext: Option[CallContext]
-                                        ): OBPReturnType[Box[List[AttributeDocumentation]]] = {
-    AttributeDocumentationDI.attributeDocumentation.vend.getAttributeDocumentation(
+                                        ): OBPReturnType[Box[List[AttributeDefinition]]] = {
+    AttributeDefinitionDI.attributeDefinition.vend.getAttributeDefinition(
       category: AttributeCategory.Value
     ) map {
       (_, callContext)

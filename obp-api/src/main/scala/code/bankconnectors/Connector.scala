@@ -4,7 +4,7 @@ import java.util.Date
 import java.util.UUID.randomUUID
 
 import code.accountholders.{AccountHolders, MapperAccountHolders}
-import code.api.attributedocumentation.AttributeDocumentation
+import code.api.attributedefinition.AttributeDefinition
 import code.api.{APIFailure, APIFailureNewStyle}
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, _}
@@ -1914,7 +1914,7 @@ trait Connector extends MdcLoggable {
                                       callContext: Option[CallContext]
   ): OBPReturnType[Box[CustomerAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
 
-  def createOrUpdateAttributeDocumentation(bankId: BankId,
+  def createOrUpdateAttributeDefinition(bankId: BankId,
                                            name: String,
                                            category: AttributeCategory.Value,
                                            `type`: AttributeType.Value,
@@ -1922,12 +1922,12 @@ trait Connector extends MdcLoggable {
                                            alias: String,
                                            isActive: Boolean,
                                            callContext: Option[CallContext]
-                                          ): OBPReturnType[Box[AttributeDocumentation]] =
+                                          ): OBPReturnType[Box[AttributeDefinition]] =
     Future {
       (Failure(setUnimplementedError), callContext)
     }
 
-  def deleteAttributeDocumentation(attributeDocumentationId: String,
+  def deleteAttributeDefinition(attributeDefinitionId: String,
                                    category: AttributeCategory.Value,
                                    callContext: Option[CallContext]
                                   ): OBPReturnType[Box[Boolean]] =
@@ -1935,9 +1935,9 @@ trait Connector extends MdcLoggable {
       (Failure(setUnimplementedError), callContext)
     }
 
-  def getAttributeDocumentation(category: AttributeCategory.Value,
+  def getAttributeDefinition(category: AttributeCategory.Value,
                                 callContext: Option[CallContext]
-                               ): OBPReturnType[Box[List[AttributeDocumentation]]] =
+                               ): OBPReturnType[Box[List[AttributeDefinition]]] =
     Future {
       (Failure(setUnimplementedError), callContext)
     }

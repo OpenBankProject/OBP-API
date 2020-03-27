@@ -39,7 +39,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs400}
 import code.api.ResourceDocs1_4_0._
 import code.api._
-import code.api.attributedocumentation.AttributeDocumentation
+import code.api.attributedefinition.AttributeDefinition
 import code.api.builder.APIBuilder_Connector
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
@@ -672,7 +672,7 @@ object ToSchemify {
     MappedCardAttribute,
     RateLimiting,
     MappedCustomerDependant,
-    AttributeDocumentation
+    AttributeDefinition
   )
 
   // The following tables are accessed directly via Mapper / JDBC

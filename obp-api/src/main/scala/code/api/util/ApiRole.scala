@@ -485,11 +485,11 @@ object ApiRole {
   case class CanCreateAccountAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateAccountAttributeDefinitionAtOneBank = CanCreateAccountAttributeDefinitionAtOneBank() 
   
-  case class CanDeleteAccountAttributeDocumentationAtOneBank(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canDeleteAccountAttributeDefinitionAtOneBank = CanDeleteAccountAttributeDocumentationAtOneBank()
+  case class CanDeleteAccountAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteAccountAttributeDefinitionAtOneBank = CanDeleteAccountAttributeDefinitionAtOneBank()
   
   case class CanGetAccountAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canGetAccountAttributeDocumentationAtOneBank = CanGetAccountAttributeDefinitionAtOneBank() 
+  lazy val canGetAccountAttributeDefinitionAtOneBank = CanGetAccountAttributeDefinitionAtOneBank() 
   
   case class CanDeleteProductAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteProductAttributeDefinitionAtOneBank = CanDeleteProductAttributeDefinitionAtOneBank() 

@@ -62,7 +62,7 @@ object RemotedataActors extends MdcLoggable {
       ActorProps[RemotedataCustomerAttributeActor]    -> RemotedataCustomerAttribute.actorName,
       ActorProps[RemotedataTransactionAttributeActor] -> RemotedataTransactionAttribute.actorName,
       ActorProps[RemotedataRateLimitingActor]        -> RemotedataRateLimiting.actorName,
-      ActorProps[RemotedataAttributeDocumentationActor]        -> RemotedataAttributeDocumentation.actorName
+      ActorProps[RemotedataAttributeDefinitionActor]        -> RemotedataAttributeDefinition.actorName
     )
 
     actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(a._1, name = a._2)) }
