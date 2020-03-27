@@ -2786,8 +2786,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      customerAttributeDefinitionJsonV400,
-      customerAttributeDefinitionResponseJsonV400,
+      templateAttributeDefinitionJsonV400,
+      templateAttributeDefinitionResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -2823,6 +2823,7 @@ trait APIMethods400 {
               attributeType,
               postedData.description,
               postedData.alias,
+              postedData.can_be_seen_on_views,
               postedData.is_active,
               cc.callContext
             )
@@ -2887,6 +2888,7 @@ trait APIMethods400 {
               attributeType,
               postedData.description,
               postedData.alias,
+              postedData.can_be_seen_on_views,
               postedData.is_active,
               cc.callContext
             )
@@ -2950,6 +2952,7 @@ trait APIMethods400 {
               attributeType,
               postedData.description,
               postedData.alias,
+              postedData.can_be_seen_on_views,
               postedData.is_active,
               cc.callContext
             )
@@ -3012,6 +3015,7 @@ trait APIMethods400 {
               attributeType,
               postedData.description,
               postedData.alias,
+              postedData.can_be_seen_on_views,
               postedData.is_active,
               cc.callContext
             )
@@ -3076,6 +3080,7 @@ trait APIMethods400 {
               attributeType,
               postedData.description,
               postedData.alias,
+              postedData.can_be_seen_on_views,
               postedData.is_active,
               cc.callContext
             )

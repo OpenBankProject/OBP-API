@@ -3671,47 +3671,56 @@ object SwaggerDefinitionsJSON {
     value = transactionAttributeValueExample.value
   )
   
-  val customerAttributeDefinitionJsonV400 = AttributeDefinitionJsonV400(
+  val templateAttributeDefinitionJsonV400 = AttributeDefinitionJsonV400(
     name = customerAttributeNameExample.value,
     category = AttributeCategory.Customer.toString,
     `type` = customerAttributeTypeExample.value,
     description = "description",
+    can_be_seen_on_views = List("bank"),
     alias = customerAttributeAliasExample.value,
     is_active = true
   )  
-  val customerAttributeDefinitionResponseJsonV400 = AttributeDefinitionResponseJsonV400(
+  val templateAttributeDefinitionResponseJsonV400 = AttributeDefinitionResponseJsonV400(
     attribute_documentation_id = uuidExample.value,
     bank_id = bankIdExample.value,
     name = customerAttributeNameExample.value,
     category = AttributeCategory.Customer.toString,
     `type` = customerAttributeTypeExample.value,
     description = "description",
+    can_be_seen_on_views = List("bank"),
     alias = customerAttributeAliasExample.value,
     is_active = true
-  )  
+  ) 
+  
+  val customerAttributeDefinitionJsonV400 =
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Customer.toString)
+    
+  val customerAttributeDefinitionResponseJsonV400 =
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Customer.toString)
+  
   val accountAttributeDefinitionJsonV400 =
-    customerAttributeDefinitionJsonV400.copy(category = AttributeCategory.Account.toString)
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Account.toString)
     
   val accountAttributeDefinitionResponseJsonV400 =
-    customerAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Account.toString)
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Account.toString)
   
   val productAttributeDefinitionJsonV400 =
-    customerAttributeDefinitionJsonV400.copy(category = AttributeCategory.Product.toString)
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Product.toString)
   
   val productAttributeDefinitionResponseJsonV400 =
-    customerAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Product.toString)
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Product.toString)
   
   val transactionAttributeDefinitionJsonV400 = 
-    customerAttributeDefinitionJsonV400.copy(category = AttributeCategory.Transaction.toString)
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Transaction.toString)
   
   val transactionAttributeDefinitionResponseJsonV400 =
-    customerAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Transaction.toString)
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Transaction.toString)
   
   val cardAttributeDefinitionJsonV400 = 
-    customerAttributeDefinitionJsonV400.copy(category = AttributeCategory.Card.toString)
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Card.toString)
   
   val cardAttributeDefinitionResponseJsonV400 =
-    customerAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Card.toString)
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Card.toString)
     
   val transactionAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
     attributes = List(transactionAttributeDefinitionResponseJsonV400)
@@ -3723,7 +3732,7 @@ object SwaggerDefinitionsJSON {
     attributes = List(accountAttributeDefinitionResponseJsonV400)
   )    
   val customerAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
-    attributes = List(customerAttributeDefinitionResponseJsonV400)
+    attributes = List(templateAttributeDefinitionResponseJsonV400)
   )    
   val productAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
     attributes = List(productAttributeDefinitionResponseJsonV400)

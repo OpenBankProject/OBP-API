@@ -9,6 +9,8 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.BankId
 
+import scala.collection.immutable.List
+
 class RemotedataAttributeDefinitionActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MappedAttributeDefinitionProvider
@@ -17,15 +19,16 @@ class RemotedataAttributeDefinitionActor extends Actor with ObpActorHelper with 
   def receive: PartialFunction[Any, Unit] = {
 
     case cc.createOrUpdateAttributeDefinition(bankId: BankId,
-                                                 name: String,
-                                                category: AttributeCategory.Value,
-                                                `type`: AttributeType.Value,
-                                                description: String,
-                                                alias: String,
-                                                isActive: Boolean
+                                              name: String,
+                                              category: AttributeCategory.Value,
+                                              `type`: AttributeType.Value,
+                                              description: String,
+                                              alias: String,
+                                              canBeSeenOnViews: List[String],
+                                              isActive: Boolean
     ) =>
       logger.debug(s"createOrUpdateConsumerCallLimits($bankId, $name, ${category.toString}, ${`type`.toString}, $description, $alias, $isActive")
-      mapper.createOrUpdateAttributeDefinition(bankId, name, category, `type`, description, alias, isActive) pipeTo sender
+      mapper.createOrUpdateAttributeDefinition(bankId, name, category, `type`, description, alias, canBeSeenOnViews, isActive) pipeTo sender
   
     case cc.deleteAttributeDefinition(attributeDefinitionId: String, category: AttributeCategory.Value) =>
       logger.debug(s"deleteAttributeDefinition($attributeDefinitionId, ${category.toString})")

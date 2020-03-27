@@ -25,7 +25,7 @@ class AttributeDefinitionCustomerTest extends V400ServerSetup {
 
   
   lazy val bankId = randomBankId
-  lazy val putJson = SwaggerDefinitionsJSON.customerAttributeDefinitionJsonV400
+  lazy val putJson = SwaggerDefinitionsJSON.templateAttributeDefinitionJsonV400
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {

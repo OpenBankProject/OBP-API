@@ -12,14 +12,15 @@ import scala.collection.immutable.List
 
 object AttributeDefinition {
   def createOrUpdateAttributeDefinition(bankId: BankId,
-                                           name: String,
-                                           category: AttributeCategory.Value,
-                                           `type`: AttributeType.Value,
-                                           description: String,
-                                           alias: String,
-                                           isActive: Boolean,
-                                           callContext: Option[CallContext]
-                                          ): OBPReturnType[AttributeDefinition]  = {
+                                        name: String,
+                                        category: AttributeCategory.Value,
+                                        `type`: AttributeType.Value,
+                                        description: String,
+                                        alias: String,
+                                        canBeSeenOnViews: List[String],
+                                        isActive: Boolean,
+                                        callContext: Option[CallContext]
+                                       ): OBPReturnType[AttributeDefinition] = {
     Connector.connector.vend.createOrUpdateAttributeDefinition(
       bankId: BankId,
       name: String,
@@ -27,6 +28,7 @@ object AttributeDefinition {
       `type`: AttributeType.Value,
       description: String,
       alias: String,
+      canBeSeenOnViews: List[String],
       isActive: Boolean,
       callContext: Option[CallContext]
     ) map {

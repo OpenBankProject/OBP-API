@@ -16,14 +16,16 @@ object RemotedataAttributeDefinition extends ObpActorInit with AttributeDefiniti
   val cc = RemotedatAttributeDefinitionCaseClasses
 
   def createOrUpdateAttributeDefinition(bankId: BankId,
-                                           name: String,
-                                           category: AttributeCategory.Value,
-                                           `type`: AttributeType.Value,
-                                           description: String,
-                                           alias: String,
-                                           isActive: Boolean
-                                          ): Future[Box[AttributeDefinition]] =
-    (actor ? cc.createOrUpdateAttributeDefinition(bankId, name, category, `type`, description, alias, isActive)).mapTo[Box[AttributeDefinition]]
+                                        name: String,
+                                        category: AttributeCategory.Value,
+                                        `type`: AttributeType.Value,
+                                        description: String,
+                                        alias: String,
+                                        canBeSeenOnViews: List[String],
+                                        isActive: Boolean
+                                       ): Future[Box[AttributeDefinition]] =
+    (actor ? cc.createOrUpdateAttributeDefinition(bankId, name, category, `type`, description, alias, canBeSeenOnViews, isActive))
+      .mapTo[Box[AttributeDefinition]]
 
   def deleteAttributeDefinition(attributeDefinitionId: String, 
                                    category: AttributeCategory.Value): Future[Box[Boolean]] =

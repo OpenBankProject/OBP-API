@@ -14,13 +14,14 @@ import scala.concurrent.Future
 
 object MappedAttributeDefinitionProvider extends AttributeDefinitionProviderTrait with MdcLoggable {
   def createOrUpdateAttributeDefinition(bankId: BankId,
-                                           name: String,
-                                           category: AttributeCategory.Value,
-                                           `type`: AttributeType.Value,
-                                           description: String,
-                                           alias: String,
-                                           isActive: Boolean
-                                          ): Future[Box[AttributeDefinition]] = Future {
+                                        name: String,
+                                        category: AttributeCategory.Value,
+                                        `type`: AttributeType.Value,
+                                        description: String,
+                                        alias: String,
+                                        canBeSeenOnViews: List[String],
+                                        isActive: Boolean
+                                       ): Future[Box[AttributeDefinition]] = Future {
     AttributeDefinition.find(
       By(AttributeDefinition.BankId, bankId.value),
       By(AttributeDefinition.Name, name),
@@ -35,6 +36,7 @@ object MappedAttributeDefinitionProvider extends AttributeDefinitionProviderTrai
             .`TypeOfValue`(`type`.toString)
             .Description(description)
             .Alias(alias)
+            .CanBeSeenOnViews(canBeSeenOnViews.mkString(";"))
             .IsActive(isActive)
             .saveMe()
         )
@@ -47,12 +49,13 @@ object MappedAttributeDefinitionProvider extends AttributeDefinitionProviderTrai
             .`TypeOfValue`(`type`.toString)
             .Description(description)
             .Alias(alias)
+            .CanBeSeenOnViews(canBeSeenOnViews.mkString(";"))
             .IsActive(isActive)
             .saveMe()
         )
       case someError => someError
     }
-    
+
   }
 
   def deleteAttributeDefinition(attributeDefinitionId: String, 
@@ -86,8 +89,9 @@ class AttributeDefinition extends AttributeDefinitionTrait with LongKeyedMapper[
   object Name extends MappedString(this, 50)
   object Category extends MappedString(this, 50)
   object `TypeOfValue` extends MappedString(this, 50)
-  object Description extends MappedString(this, 50)
+  object Description extends MappedString(this, 256)
   object Alias extends MappedString(this, 50)
+  object CanBeSeenOnViews extends MappedString(this, 256)
   object IsActive extends MappedBoolean(this)
 
   import com.openbankproject.commons.model.{BankId => BankIdCommonModel}
@@ -98,6 +102,7 @@ class AttributeDefinition extends AttributeDefinitionTrait with LongKeyedMapper[
   def `type`: AttributeType.Value = AttributeType.withName(`TypeOfValue`.get)
   def description: String = Description.get
   def alias: String = Alias.get
+  def canBeSeenOnViews: List[String] = CanBeSeenOnViews.get.split(";").toList
   def isActive: Boolean = IsActive.get
 
 }

@@ -20,16 +20,17 @@ object AttributeDefinitionDI extends SimpleInjector {
 
 trait AttributeDefinitionProviderTrait {
   def createOrUpdateAttributeDefinition(bankId: BankId,
-                                           name: String,
-                                           category: AttributeCategory.Value,
-                                           `type`: AttributeType.Value,
-                                           description: String,
-                                           alias: String, 
-                                           isActive: Boolean
-                                          ): Future[Box[AttributeDefinition]] 
-  
-  def deleteAttributeDefinition(attributeDefinitionId: String, 
-                                   category: AttributeCategory.Value): Future[Box[Boolean]]
+                                        name: String,
+                                        category: AttributeCategory.Value,
+                                        `type`: AttributeType.Value,
+                                        description: String,
+                                        alias: String,
+                                        canBeSeenOnViews: List[String],
+                                        isActive: Boolean
+                                       ): Future[Box[AttributeDefinition]]
+
+  def deleteAttributeDefinition(attributeDefinitionId: String,
+                                category: AttributeCategory.Value): Future[Box[Boolean]]
   
   def getAttributeDefinition(category: AttributeCategory.Value): Future[Box[List[AttributeDefinition]]]
 }
@@ -42,18 +43,21 @@ trait AttributeDefinitionTrait {
   def `type`: AttributeType.Value
   def description: String
   def alias: String
+  def canBeSeenOnViews: List[String]
   def isActive: Boolean
 }
 
 
 class RemotedataAttributeDefinitionCaseClasses {
+
   case class createOrUpdateAttributeDefinition(bankId: BankId,
-                                                  name: String,
-                                                  category: AttributeCategory.Value,
-                                                  `type`: AttributeType.Value,
-                                                  description: String,
-                                                  alias: String,
-                                                  isActive: Boolean)
+                                               name: String,
+                                               category: AttributeCategory.Value,
+                                               `type`: AttributeType.Value,
+                                               description: String,
+                                               alias: String,
+                                               canBeSeenOnViews: List[String],
+                                               isActive: Boolean)
   case class deleteAttributeDefinition(attributeDefinitionId: String, category: AttributeCategory.Value)
   case class getAttributeDefinition(category: AttributeCategory.Value)
 }

@@ -269,6 +269,7 @@ case class AttributeDefinitionJsonV400(
                                         `type`: String,
                                         description: String,
                                         alias: String,
+                                        can_be_seen_on_views: List[String],
                                         is_active: Boolean
                                       )
 
@@ -279,6 +280,7 @@ case class AttributeDefinitionResponseJsonV400(attribute_documentation_id: Strin
                                                `type`: String,
                                                description: String,
                                                alias: String,
+                                               can_be_seen_on_views: List[String],
                                                is_active: Boolean
                                               )
 
@@ -522,21 +524,22 @@ object JSONFactory400 {
   }
 
 
-  def createAttributeDefinitionJson(attributeDefiniion: AttributeDefinition) : AttributeDefinitionResponseJsonV400 = {
+  def createAttributeDefinitionJson(attributeDefinition: AttributeDefinition) : AttributeDefinitionResponseJsonV400 = {
     AttributeDefinitionResponseJsonV400(
-      attribute_documentation_id = attributeDefiniion.attributeDefinitionId,
-      bank_id = attributeDefiniion.bankId.value,
-      name = attributeDefiniion.name,
-      category = attributeDefiniion.category.toString,
-      `type` = attributeDefiniion.`type`.toString,
-      description = attributeDefiniion.description,
-      alias = attributeDefiniion.alias,
-      is_active = attributeDefiniion.isActive,
+      attribute_documentation_id = attributeDefinition.attributeDefinitionId,
+      bank_id = attributeDefinition.bankId.value,
+      name = attributeDefinition.name,
+      category = attributeDefinition.category.toString,
+      `type` = attributeDefinition.`type`.toString,
+      description = attributeDefinition.description,
+      can_be_seen_on_views = attributeDefinition.canBeSeenOnViews,
+      alias = attributeDefinition.alias,
+      is_active = attributeDefinition.isActive,
     )
   }
 
-  def createAttributeDefinitionsJson(attributeDefiniions: List[AttributeDefinition]) : AttributeDefinitionsResponseJsonV400 = {
-    AttributeDefinitionsResponseJsonV400(attributeDefiniions.map(createAttributeDefinitionJson))
+  def createAttributeDefinitionsJson(attributeDefinitions: List[AttributeDefinition]) : AttributeDefinitionsResponseJsonV400 = {
+    AttributeDefinitionsResponseJsonV400(attributeDefinitions.map(createAttributeDefinitionJson))
   }
   
 }
