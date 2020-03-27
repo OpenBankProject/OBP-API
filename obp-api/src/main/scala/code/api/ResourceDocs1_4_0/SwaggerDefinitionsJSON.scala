@@ -3677,18 +3677,18 @@ object SwaggerDefinitionsJSON {
     `type` = customerAttributeTypeExample.value,
     description = "description",
     can_be_seen_on_views = List("bank"),
-    alias = customerAttributeAliasExample.value,
+    alias = attributeAliasExample.value,
     is_active = true
   )  
   val templateAttributeDefinitionResponseJsonV400 = AttributeDefinitionResponseJsonV400(
-    attribute_documentation_id = uuidExample.value,
+    ATTRIBUTE_DEFINITION_ID = uuidExample.value,
     bank_id = bankIdExample.value,
-    name = customerAttributeNameExample.value,
+    name = templateAttributeNameExample.value,
     category = AttributeCategory.Customer.toString,
-    `type` = customerAttributeTypeExample.value,
+    `type` = templateAttributeTypeExample.value,
     description = "description",
     can_be_seen_on_views = List("bank"),
-    alias = customerAttributeAliasExample.value,
+    alias = attributeAliasExample.value,
     is_active = true
   ) 
   

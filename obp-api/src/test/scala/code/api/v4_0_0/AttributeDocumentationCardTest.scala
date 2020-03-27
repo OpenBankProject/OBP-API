@@ -51,7 +51,7 @@ class AttributeDefinitionCardTest extends V400ServerSetup {
     scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-definitions"
-        / "ATTRIBUTE_DOCUMENTATION_ID" / "card").DELETE
+        / "ATTRIBUTE_DEFINITION_ID" / "card").DELETE
       val response400 = makeDeleteRequest(request400)
       Then("We should get a 400")
       response400.code should equal(400)
@@ -83,7 +83,7 @@ class AttributeDefinitionCardTest extends V400ServerSetup {
     scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-definitions"
-        / "ATTRIBUTE_DOCUMENTATION_ID" / "card").DELETE <@ (user1)
+        / "ATTRIBUTE_DEFINITION_ID" / "card").DELETE <@ (user1)
       val response400 = makeDeleteRequest(request400)
       Then("We should get a 403")
       response400.code should equal(403)

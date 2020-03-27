@@ -3097,9 +3097,9 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(deleteTransactionAttributeDefinition),
       "DELETE",
-      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DOCUMENTATION_ID/transaction",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/transaction",
       "Delete Transaction Attribute Definition",
-      s""" Delete Transaction Attribute Definition by ATTRIBUTE_DOCUMENTATION_ID
+      s""" Delete Transaction Attribute Definition by ATTRIBUTE_DEFINITION_ID
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -3136,9 +3136,9 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(deleteCustomerAttributeDefinition),
       "DELETE",
-      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DOCUMENTATION_ID/customer",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/customer",
       "Delete Customer Attribute Definition",
-      s""" Delete Customer Attribute Definition by ATTRIBUTE_DOCUMENTATION_ID
+      s""" Delete Customer Attribute Definition by ATTRIBUTE_DEFINITION_ID
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -3175,9 +3175,9 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(deleteAccountAttributeDefinition),
       "DELETE",
-      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DOCUMENTATION_ID/account",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/account",
       "Delete Account Attribute Definition",
-      s""" Delete Account Attribute Definition by ATTRIBUTE_DOCUMENTATION_ID
+      s""" Delete Account Attribute Definition by ATTRIBUTE_DEFINITION_ID
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -3214,9 +3214,9 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(deleteProductAttributeDefinition),
       "DELETE",
-      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DOCUMENTATION_ID/product",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/product",
       "Delete Product Attribute Definition",
-      s""" Delete Product Attribute Definition by ATTRIBUTE_DOCUMENTATION_ID
+      s""" Delete Product Attribute Definition by ATTRIBUTE_DEFINITION_ID
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -3253,9 +3253,9 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(deleteCardAttributeDefinition),
       "DELETE",
-      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DOCUMENTATION_ID/card",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/card",
       "Delete Card Attribute Definition",
-      s""" Delete Card Attribute Definition by ATTRIBUTE_DOCUMENTATION_ID
+      s""" Delete Card Attribute Definition by ATTRIBUTE_DEFINITION_ID
          |
          |${authenticationRequiredMessage(true)}
          |

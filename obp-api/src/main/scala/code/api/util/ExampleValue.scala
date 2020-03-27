@@ -86,12 +86,18 @@ object ExampleValue {
   
   lazy val customerAttributeNameExample = ConnectorField("SPECIAL_TAX_NUMBER", s"Customer attribute name")
   glossaryItems += makeGlossaryItem("Customer.attributeName", customerAttributeNameExample)
+  
+  lazy val templateAttributeNameExample = ConnectorField("SPECIAL_TAX_NUMBER", s"Attribute name")
+  glossaryItems += makeGlossaryItem("Template.attributeName", templateAttributeNameExample)
 
   lazy val customerAttributeTypeExample = ConnectorField("STRING", s"Customer attribute type.")
   glossaryItems += makeGlossaryItem("Customer.attributeType", customerAttributeTypeExample)
   
-  lazy val customerAttributeAliasExample = ConnectorField("STRING", s"Customer attribute alias.")
-  glossaryItems += makeGlossaryItem("Customer.attributeAlias", customerAttributeAliasExample)
+  lazy val templateAttributeTypeExample = ConnectorField("STRING", s"Attribute type.")
+  glossaryItems += makeGlossaryItem("Template.attributeType", templateAttributeTypeExample)
+  
+  lazy val attributeAliasExample = ConnectorField("STRING", s"Customer attribute alias.")
+  glossaryItems += makeGlossaryItem("Customer.attributeAlias", attributeAliasExample)
 
   lazy val customerAttributeValueExample = ConnectorField("123456789", s"Customer attribute value.")
   glossaryItems += makeGlossaryItem("Customer.attributeValue", customerAttributeValueExample)
