@@ -3740,9 +3740,9 @@ object SwaggerDefinitionsJSON {
   
   //The common error or success format.
   //Just some helper format to use in Json 
-  case class NoSupportYet()
+  case class NotSupportedYet()
   
-  val noSupportYet = NoSupportYet()
+  val notSupportedYet = NotSupportedYet()
 
   lazy val allFields: Seq[AnyRef] ={
     val allFieldsThisFile = ReflectUtils.getValues(this, List(nameOf(allFields)))
