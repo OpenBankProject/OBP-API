@@ -1997,12 +1997,6 @@ object NewStyle {
       getConnectorByName(connectorName).flatMap(_.implementedMethods.get(methodName))
     }
 
-    def deleteCustomerAttribute(customerAttributeId : String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
-      Connector.connector.vend.deleteCustomerAttribute(customerAttributeId, callContext) map {
-        i => (connectorEmptyResponse(i._1, callContext), i._2)
-      }
-    }
-
     def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
       Connector.connector.vend.createDynamicEndpoint(
         swaggerString,
@@ -2024,7 +2018,13 @@ object NewStyle {
     def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = {
       Connector.connector.vend.getDynamicEndpoints(
         callContext
-      )
+      ) 
+    }
+
+    def deleteCustomerAttribute(customerAttributeId : String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteCustomerAttribute(customerAttributeId, callContext) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
     }
 
   }

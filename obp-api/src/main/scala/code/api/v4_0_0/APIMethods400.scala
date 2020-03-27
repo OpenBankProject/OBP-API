@@ -3,7 +3,7 @@ package code.api.v4_0_0
 import java.util.Date
 
 import code.DynamicData.DynamicData
-import code.DynamicEndpoint.DynamicEndpointSwagger
+import code.DynamicEndpoint.{DynamicEndpointCommons, DynamicEndpointSwagger}
 import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -678,7 +678,7 @@ trait APIMethods400 {
         |
         |3) `id` :  is `challenge.id` field in createTransactionRequest response body.
         |
-        |4) `answer` : must be `123` in case that Strong Customer Authentication method for OTP challenge is dummy. 
+        |4) `answer` : must be `123` in case that Strong Customer Authentication method for OTP challenge is dummy.
         |    For instance: SANDBOX_TAN_OTP_INSTRUCTION_TRANSPORT=dummy
         |    Possible values are dummy,email and sms
         |    In kafka mode, the answer can be got by phone message or other security ways.
@@ -687,11 +687,11 @@ trait APIMethods400 {
         |  INITIATED => COMPLETED
         |In case n persons needs to answer security challenge we have next flow of state of an `transaction request`:
         |  INITIATED => NEXT_CHALLENGE_PENDING => ... => NEXT_CHALLENGE_PENDING => COMPLETED
-        |  
+        |
         |The security challenge is bound to a user i.e. in case of right answer and the user is different than expected one the challenge will fail.
         |
         |Rule for calculating number of security challenges:
-        |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges 
+        |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges
         |(one for every user that has a View where permission "can_add_transaction_request_to_any_account"=true)
         |In case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute default value is 1.
         |
@@ -734,14 +734,14 @@ trait APIMethods400 {
 
             account = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
             _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, u, cc.callContext)
-              
+
             // Check transReqId is valid
             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transReqId, cc.callContext)
 
             // Check the Transaction Request is still INITIATED
             _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiatedOrPending) {
               existingTransactionRequest.status.equals(TransactionRequestStatus.INITIATED.toString) ||
-              existingTransactionRequest.status.equals(TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString) 
+              existingTransactionRequest.status.equals(TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
             }
 
             // Check the input transactionRequestType is the same as when the user created the TransactionRequest
@@ -815,8 +815,8 @@ trait APIMethods400 {
       nameOf(getDynamicEntities),
       "GET",
       "/management/dynamic-entities",
-      "Get DynamicEntities",
-      s"""Get the all DynamicEntities.""",
+      "Get Dynamic Entities",
+      s"""Get the all Dynamic Entities.""",
       emptyObjectJson,
       ListResult(
         "dynamic_entities",
@@ -852,7 +852,7 @@ trait APIMethods400 {
       nameOf(createDynamicEntity),
       "POST",
       "/management/dynamic-entities",
-      "Create DynamicEntity",
+      "Create Dynamic Entity",
       s"""Create a DynamicEntity.
          |
          |
@@ -903,7 +903,7 @@ trait APIMethods400 {
       nameOf(updateDynamicEntity),
       "PUT",
       "/management/dynamic-entities/DYNAMIC_ENTITY_ID",
-      "Update DynamicEntity",
+      "Update Dynamic Entity",
       s"""Update a DynamicEntity.
          |
          |
@@ -961,7 +961,7 @@ trait APIMethods400 {
       nameOf(deleteDynamicEntity),
       "DELETE",
       "/management/dynamic-entities/DYNAMIC_ENTITY_ID",
-      "Delete DynamicEntity",
+      "Delete Dynamic Entity",
       s"""Delete a DynamicEntity specified by DYNAMIC_ENTITY_ID.
          |
          |""",
@@ -1174,7 +1174,7 @@ trait APIMethods400 {
               hasEntitlement(bankId.value, loggedInUserId, canCreateAccount) || userIdAccountOwner == loggedInUserId
             }
             initialBalanceAsString = createAccountJson.balance.amount
-            //Note: here we map the product_code to account_type 
+            //Note: here we map the product_code to account_type
             accountType = createAccountJson.product_code
             accountLabel = createAccountJson.label
             initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
@@ -1215,9 +1215,9 @@ trait APIMethods400 {
         }
       }
     }
-    
-    
-    
+
+
+
     private def getApiInfoJSON() = {
       val (apiVersion, apiVersionStatus) = (implementedInApiVersion, OBPAPI4_0_0.versionStatus)
       val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
@@ -1759,9 +1759,9 @@ trait APIMethods400 {
             (_, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(postJson.counterparty_id), callContext)
             (directDebit, callContext) <- NewStyle.function.createDirectDebit(
               bankId.value,
-              accountId.value, 
-              postJson.customer_id, 
-              postJson.user_id, 
+              accountId.value,
+              postJson.customer_id,
+              postJson.user_id,
               postJson.counterparty_id,
               if (postJson.date_signed.isDefined) postJson.date_signed.get else new Date(),
               postJson.date_starts,
@@ -1829,7 +1829,7 @@ trait APIMethods400 {
           }
       }
     }
-    
+
     resourceDocs += ResourceDoc(
       createStandingOrder,
       implementedInApiVersion,
@@ -2030,8 +2030,8 @@ trait APIMethods400 {
           }
       }
     }
-    
-    
+
+
     resourceDocs += ResourceDoc(
       revokeUserAccessToView,
       implementedInApiVersion,
@@ -2338,8 +2338,8 @@ trait APIMethods400 {
           }
       }
     }
-    
-    
+
+
     resourceDocs += ResourceDoc(
       createTransactionAttribute,
       implementedInApiVersion,
@@ -2651,7 +2651,7 @@ trait APIMethods400 {
       }
     }
 
-    
+
     resourceDocs += ResourceDoc(
       createConsumer,
       implementedInApiVersion,
@@ -2886,7 +2886,7 @@ trait APIMethods400 {
           } yield {
             val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint=>
               val swaggerJson = parse(dynamicEndpoint.swaggerString)
-               ("dynamicEndpointId", dynamicEndpoint.dynamicEndpointId) ~ ("swaggerString", swaggerJson)
+               ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
             }
             (ListResult("dynamic_endpoints", resultList), HttpCode.`200`(cc.callContext))
           }
