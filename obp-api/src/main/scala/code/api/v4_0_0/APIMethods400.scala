@@ -2798,10 +2798,14 @@ trait APIMethods400 {
       case "management" :: "dynamic-endpoints" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
+            (postedJson, openAPI) <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
               val swaggerContent = compactRender(json)
-              DynamicEndpointHelper.parseSwaggerContent(swaggerContent)
-              DynamicEndpointSwagger(swaggerContent)
+
+              (DynamicEndpointSwagger(swaggerContent), DynamicEndpointHelper.parseSwaggerContent(swaggerContent))
+            }
+            duplicatedUrl = DynamicEndpointHelper.findExistsEndpoints(openAPI).map(kv => s"${kv._2}:${kv._1}")
+            _ <- Helper.booleanToFuture(s"""$DynamicEndpointExists Current input is: ${duplicatedUrl.mkString("; ")}""") {
+              duplicatedUrl.isEmpty
             }
             (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(postedJson.swaggerString, cc.callContext)
           } yield {

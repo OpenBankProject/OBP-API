@@ -3,6 +3,7 @@ package code.api.v4_0_0
 import java.io.File
 import java.nio.charset.Charset
 import java.util
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.{Date, Objects}
 
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -41,9 +42,56 @@ object DynamicEndpointHelper {
    */
   val urlPrefix = APIUtil.getPropsValue("dynamic_endpoints_url_prefix", "dynamic")
 
-  val dynamicEndpointsUrl: Set[(String, HttpMethod)] = Set()
+  private lazy val dynamicEndpointInfos: CopyOnWriteArrayList[DynamicEndpointInfo] = {
+    val dynamicEndpoints: List[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.getAll()
+    val infos = dynamicEndpoints.map(it => swaggerToResourceDocs(it.swaggerString, it.dynamicEndpointId.get))
+    new CopyOnWriteArrayList(infos.asJava)
+  }
 
-  def swaggerToResourceDocs(content: String): mutable.Iterable[ResourceDoc] = {
+  def findExistsEndpoints(openAPI: OpenAPI): List[(String, HttpMethod)] = {
+    val existsUrlToMethod: mutable.Buffer[(String, HttpMethod)] = dynamicEndpointInfos.asScala.flatMap(_.resourceDocs)
+      .map(doc => doc.requestUrl.replace(urlPrefix, "") -> HttpMethod.valueOf(doc.requestVerb))
+
+    def isExists(newUrl: String, newMethod: HttpMethod) = existsUrlToMethod.exists(kv => {
+      val (url, method) = kv
+      isSameUrl(newUrl, url) && newMethod == method
+    })
+
+     for {
+      (path, pathItem) <- openAPI.getPaths.asScala.toList
+      (method: HttpMethod, _) <- pathItem.readOperationsMap.asScala
+      if isExists(path, method)
+    } yield (path, method)
+
+  }
+
+  /**
+   * check whether two url is the same:
+   *  isSameUrl("/abc/efg", "/abc/efg") == true
+   *  isSameUrl("/abc/efg", "/abc/{id}") == true
+   *  isSameUrl("/abc/{userId}", "/abc/{id}") == true
+   *  isSameUrl("/abc/{userId}/", "/abc/{id}") == true
+   *  isSameUrl("/def/abc/", "/abc/{id}") == false
+   * @param path1
+   * @param path2
+   * @return
+   */
+  private def isSameUrl(path1: String, path2: String) = {
+    val path1Parts = StringUtils.split(path1, '/')
+    val path2Parts = StringUtils.split(path2, '/')
+    if(path1Parts.size != path2Parts.size) {
+      false
+    } else {
+      path1Parts.zip(path2Parts).forall {kv =>
+        val (part1, part2) = kv
+        part1 == part2 ||
+          (part1.startsWith("{") && part1.endsWith("}")) ||
+          (part2.startsWith("{") && part2.endsWith("}"))
+      }
+    }
+  }
+
+  def swaggerToResourceDocs(content: String, id: String): DynamicEndpointInfo = {
     val openAPI: OpenAPI = parseSwaggerContent(content)
 
     val tags: List[ResourceDocTag] = List(ApiTag.apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle)
@@ -58,7 +106,7 @@ object DynamicEndpointHelper {
       val partialFunction: OBPEndpoint = APIMethods400.Implementations4_0_0.genericEndpoint // TODO create real endpoint
       val partialFunctionName: String = s"$method-$path".replace('/', '_')
       val requestVerb: String = method.name()
-      val requestUrl: String = s"/$urlPrefix/$path".replace("//", "/")
+      val requestUrl: String = buildRequestUrl(path)
       val summary: String = Option(pathItem.getSummary)
         .filter(StringUtils.isNotBlank)
         .getOrElse(buildSummary(method, op, path))
@@ -103,8 +151,20 @@ object DynamicEndpointHelper {
         connectorMethods = connectorMethods
       )
     }
-    docs
+
+    val serverUrl = {
+      val servers = openAPI.getServers
+      if(servers.isEmpty) {
+        None
+      } else {
+        Some(servers.get(0).getUrl)
+      }
+    }
+    DynamicEndpointInfo(null, docs, serverUrl)
   }
+
+  private def buildRequestUrl(path: String): String =
+    s"/$urlPrefix/$path".replace("//", "/")
 
   def parseSwaggerContent(content: String): OpenAPI = {
     val tempSwaggerFile = File.createTempFile("temp", ".swagger")
@@ -118,10 +178,13 @@ object DynamicEndpointHelper {
   }
 
   def doc: ArrayBuffer[ResourceDoc] = {
-    val dynamicEndpoints: List[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.getAll()
-
-    val docs = dynamicEndpoints.flatMap(it => swaggerToResourceDocs(it.swaggerString))
-    ArrayBuffer[ResourceDoc](docs:_*)
+    val docs = ArrayBuffer[ResourceDoc]()
+    dynamicEndpointInfos.forEach { info =>
+      info.resourceDocs.foreach { doc =>
+        docs += doc
+      }
+    }
+    docs
   }
 
   private def buildSummary(method: HttpMethod, op: Operation, path: String): String = method match {
@@ -246,6 +309,6 @@ object DynamicEndpointHelper {
   }
 }
 
-case class DynamicEndpointInfo(id: String, url: String, method: HttpMethod, apiRole: ApiRole, serverUrl: Option[String]) {
+case class DynamicEndpointInfo(id: String, resourceDocs: mutable.Iterable[ResourceDoc], serverUrl: Option[String]) {
 
 }

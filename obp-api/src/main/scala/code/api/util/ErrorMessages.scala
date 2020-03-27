@@ -49,6 +49,8 @@ object ErrorMessages {
   val DynamicEntityOperationNotAllowed = "OBP-09006: Operation is not allowed, because Current DynamicEntity have upload data, must to delete all the data before this operation."
   val DynamicEntityInstanceValidateFail = "OBP-09007: DynamicEntity data validation failure."
 
+  val DynamicEndpointExists = "OBP-09008: DynamicEndpoint already exists."
+
 
   // General messages (OBP-10XXX)
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
