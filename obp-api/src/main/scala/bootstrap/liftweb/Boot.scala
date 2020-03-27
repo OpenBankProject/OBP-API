@@ -39,6 +39,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs400}
 import code.api.ResourceDocs1_4_0._
 import code.api._
+import code.api.attributedefinition.AttributeDefinition
 import code.api.builder.APIBuilder_Connector
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
@@ -237,6 +238,10 @@ class Boot extends MdcLoggable {
        }
      }
     }
+
+    import java.security.SecureRandom
+    val rand = new SecureRandom(SecureRandom.getSeed(20))
+    rand
     
     
     // ensure our relational database's tables are created/fit the schema
@@ -666,7 +671,8 @@ object ToSchemify {
     MappedTransactionAttribute,
     MappedCardAttribute,
     RateLimiting,
-    MappedCustomerDependant
+    MappedCustomerDependant,
+    AttributeDefinition
   )
 
   // The following tables are accessed directly via Mapper / JDBC

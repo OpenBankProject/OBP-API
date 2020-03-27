@@ -16,7 +16,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, When}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, When}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
@@ -25,7 +25,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
-import com.openbankproject.commons.model.enums.CardAttributeType
+import com.openbankproject.commons.model.enums.{AttributeCategory, CardAttributeType}
 import com.openbankproject.commons.model.{UserAuthContextUpdateStatus, ViewBasic, _}
 import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, ReflectUtils, RequiredArgs, RequiredInfo}
 
@@ -3670,6 +3670,74 @@ object SwaggerDefinitionsJSON {
     `type` = transactionAttributeTypeExample.value,
     value = transactionAttributeValueExample.value
   )
+  
+  val templateAttributeDefinitionJsonV400 = AttributeDefinitionJsonV400(
+    name = customerAttributeNameExample.value,
+    category = AttributeCategory.Customer.toString,
+    `type` = customerAttributeTypeExample.value,
+    description = "description",
+    can_be_seen_on_views = List("bank"),
+    alias = attributeAliasExample.value,
+    is_active = true
+  )  
+  val templateAttributeDefinitionResponseJsonV400 = AttributeDefinitionResponseJsonV400(
+    ATTRIBUTE_DEFINITION_ID = uuidExample.value,
+    bank_id = bankIdExample.value,
+    name = templateAttributeNameExample.value,
+    category = AttributeCategory.Customer.toString,
+    `type` = templateAttributeTypeExample.value,
+    description = "description",
+    can_be_seen_on_views = List("bank"),
+    alias = attributeAliasExample.value,
+    is_active = true
+  ) 
+  
+  val customerAttributeDefinitionJsonV400 =
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Customer.toString)
+    
+  val customerAttributeDefinitionResponseJsonV400 =
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Customer.toString)
+  
+  val accountAttributeDefinitionJsonV400 =
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Account.toString)
+    
+  val accountAttributeDefinitionResponseJsonV400 =
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Account.toString)
+  
+  val productAttributeDefinitionJsonV400 =
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Product.toString)
+  
+  val productAttributeDefinitionResponseJsonV400 =
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Product.toString)
+  
+  val transactionAttributeDefinitionJsonV400 = 
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Transaction.toString)
+  
+  val transactionAttributeDefinitionResponseJsonV400 =
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Transaction.toString)
+  
+  val cardAttributeDefinitionJsonV400 = 
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Card.toString)
+  
+  val cardAttributeDefinitionResponseJsonV400 =
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Card.toString)
+    
+  val transactionAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(transactionAttributeDefinitionResponseJsonV400)
+  )    
+  val cardAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(cardAttributeDefinitionResponseJsonV400)
+  )    
+  val accountAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(accountAttributeDefinitionResponseJsonV400)
+  )    
+  val customerAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(templateAttributeDefinitionResponseJsonV400)
+  )    
+  val productAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(productAttributeDefinitionResponseJsonV400)
+  )
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()
