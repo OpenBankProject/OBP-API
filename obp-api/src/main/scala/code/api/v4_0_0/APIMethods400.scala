@@ -22,6 +22,7 @@ import code.api.v2_1_0._
 import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.{CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310, ListResult}
+import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
 import code.bankconnectors.Connector
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
@@ -2803,11 +2804,13 @@ trait APIMethods400 {
 
               (DynamicEndpointSwagger(swaggerContent), DynamicEndpointHelper.parseSwaggerContent(swaggerContent))
             }
-            duplicatedUrl = DynamicEndpointHelper.findExistsEndpoints(openAPI).map(kv => s"${kv._2}:${kv._1}")
-            _ <- Helper.booleanToFuture(s"""$DynamicEndpointExists Current input is: ${duplicatedUrl.mkString("; ")}""") {
+            duplicatedUrl = DynamicEndpointHelper.findExistsEndpoints(openAPI).map(kv => s"${kv._1}:${kv._2}")
+            errorMsg = s"""$DynamicEndpointExists Duplicated ${if(duplicatedUrl.size > 1) "endpoints" else "endpoint"}: ${duplicatedUrl.mkString("; ")}"""
+            _ <- Helper.booleanToFuture(errorMsg) {
               duplicatedUrl.isEmpty
             }
             (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(postedJson.swaggerString, cc.callContext)
+            _ = DynamicEndpointHelper.addEndpoint(openAPI, dynamicEndpoint.dynamicEndpointId.get)
           } yield {
             val swaggerJson = parse(dynamicEndpoint.swaggerString)
             val responseJson: JObject = ("dynamicEndpointId", dynamicEndpoint.dynamicEndpointId) ~ ("swaggerString", swaggerJson)
@@ -2897,18 +2900,16 @@ trait APIMethods400 {
       }
     }
 
+
     lazy val dynamicEndpoint: OBPEndpoint = {
-      case EntityName(entityName) :: Nil JsonGet req => { cc =>
-        val listName = StringHelpers.snakify(English.plural(entityName))
+      case DynamicReq(url, json, method, params, role) => { cc =>
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
-          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
-          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
-          resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
-        } yield {
-          import net.liftweb.json.JsonDSL._
+          _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
 
-          val jValue: JObject = listName -> filterDynamicObjects(resultList, req)
+          jValue = JObject(JField("name", "hello"))
+        } yield {
+
           (jValue, HttpCode.`200`(Some(cc)))
         }
       }
