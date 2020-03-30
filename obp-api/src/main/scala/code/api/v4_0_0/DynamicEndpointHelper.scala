@@ -5,8 +5,9 @@ import java.nio.charset.Charset
 import java.util
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.regex.Pattern
-import java.util.{Date, Objects, Optional, stream}
+import java.util.{Date, Optional}
 
+import akka.http.scaladsl.model.HttpMethods
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.util.APIUtil.{Catalogs, OBPEndpoint, ResourceDoc, authenticationRequiredMessage, emptyObjectJson, generateUUID, notCore, notOBWG, notPSD2}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
@@ -17,6 +18,7 @@ import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 import com.openbankproject.commons.util.{ApiVersion, Functions}
 import io.swagger.v3.oas.models.{OpenAPI, Operation, PathItem}
 import io.swagger.v3.oas.models.PathItem.HttpMethod
+import akka.http.scaladsl.model.{HttpMethod => AkkaHttpMethod}
 import io.swagger.v3.oas.models.media.{ArraySchema, BooleanSchema, Content, DateSchema, DateTimeSchema, IntegerSchema, NumberSchema, ObjectSchema, Schema, StringSchema}
 import io.swagger.v3.oas.models.parameters.RequestBody
 import io.swagger.v3.oas.models.responses.ApiResponses
@@ -50,6 +52,20 @@ object DynamicEndpointHelper extends RestHelper {
     val infos = dynamicEndpoints.map(it => swaggerToResourceDocs(it.swaggerString, it.dynamicEndpointId.get))
     new CopyOnWriteArrayList(infos.asJava)
   }
+
+  def getRoles(dynamicEndpointId: String): List[ApiRole] = {
+    val foundInfos: Option[DynamicEndpointInfo] = dynamicEndpointInfos.asScala
+      .find(_.id == dynamicEndpointId)
+
+    val roles = foundInfos.toList
+      .flatMap(_.resourceDocs)
+      .map(_.roles)
+      .collect {
+        case Some(role :: _) => role
+      }
+
+    roles
+  }
   /**
    * extract request body, no matter GET, POST, PUT or DELETE method
    */
@@ -59,27 +75,28 @@ object DynamicEndpointHelper extends RestHelper {
      * @param r HttpRequest
      * @return
      */
-    def unapply(r: Req): Option[(String, JValue, HttpMethod, Map[String, List[String]], ApiRole)] = {
+    def unapply(r: Req): Option[(String, JValue, AkkaHttpMethod, Map[String, List[String]], ApiRole)] = {
       val partPath = r.path.partPath
       if (!testResponse_?(r) || partPath.headOption != Option(urlPrefix))
         None
       else {
-        val method = HttpMethod.valueOf(r.requestType.method)
+        val akkaHttpMethod = HttpMethods.getForKeyCaseInsensitive(r.requestType.method).get
+        val httpMethod = HttpMethod.valueOf(r.requestType.method)
         // url that match original swagger endpoint.
         val url = partPath.tail.mkString("/", "/", "")
         val foundDynamicEndpoint: Optional[(DynamicEndpointInfo, ResourceDoc)] = dynamicEndpointInfos.stream()
-          .map[Option[(DynamicEndpointInfo, ResourceDoc)]](_.findDynamicEndpoint(method, url))
+          .map[Option[(DynamicEndpointInfo, ResourceDoc)]](_.findDynamicEndpoint(httpMethod, url))
           .filter(_.isDefined)
           .findFirst()
           .map(_.get)
 
         foundDynamicEndpoint.asScala
-          .flatMap[(String, JValue, HttpMethod, Map[String, List[String]], ApiRole)] { it =>
+          .flatMap[(String, JValue, AkkaHttpMethod, Map[String, List[String]], ApiRole)] { it =>
             val (dynamicEndpointInfo, doc) = it
             val Some(role::_) = doc.roles
             body(r).toOption
               .orElse(Some(JNothing))
-              .map(t => (dynamicEndpointInfo.targetUrl(url), t, method, r.params, role))
+              .map(t => (dynamicEndpointInfo.targetUrl(url), t, akkaHttpMethod, r.params, role))
           }
 
       }
@@ -363,7 +380,7 @@ case class DynamicEndpointInfo(id: String, docsToUrl: mutable.Iterable[(Resource
 
   def existsEndpoint(newMethod: HttpMethod, newUrl: String): Boolean = findDynamicEndpoint(newMethod, newUrl).isDefined
 
-  def targetUrl(url: String): String = s"""${serverUrl.getOrElse("/")}/$url""".replaceAll("/{2,}", "/")
+  def targetUrl(url: String): String = s"""${serverUrl.get}$url"""
 
   /**
    * check whether two url is the same:

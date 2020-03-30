@@ -50,6 +50,7 @@ object ErrorMessages {
   val DynamicEntityInstanceValidateFail = "OBP-09007: DynamicEntity data validation failure."
 
   val DynamicEndpointExists = "OBP-09008: DynamicEndpoint already exists."
+  val DynamicEndpointNotFoundByDynamicEndpointId = "OBP-09009: DynamicEndpoint not found. Please specify a valid value for DYNAMIC_ENDPOINT_ID."
 
 
   // General messages (OBP-10XXX)

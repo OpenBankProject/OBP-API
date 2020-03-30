@@ -2838,6 +2838,7 @@ trait APIMethods400 {
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
+        DynamicEndpointNotFoundByDynamicEndpointId,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -2900,6 +2901,39 @@ trait APIMethods400 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      deleteDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(deleteDynamicEndpoint),
+      "DELETE",
+      "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
+      " Delete Dynamic Endpoint",
+      s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteDynamicEndpoint)))
+
+    lazy val deleteDynamicEndpoint : OBPEndpoint = {
+      case "management" :: "dynamic-endpoints" :: dynamicEndpointId ::  Nil JsonDelete _ => {
+        cc =>
+          for {
+            deleted <- NewStyle.function.deleteDynamicEndpoint(dynamicEndpointId, cc.callContext)
+          } yield {
+            (deleted, HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
 
     lazy val dynamicEndpoint: OBPEndpoint = {
       case DynamicReq(url, json, method, params, role) => { cc =>
@@ -2907,10 +2941,14 @@ trait APIMethods400 {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
 
-          jValue = JObject(JField("name", "hello"))
+          (box, _) <- NewStyle.function.dynamicEndpointProcess(url, json, method, params, callContext)
         } yield {
+          box match {
+            case Full(v) => (v, HttpCode.`200`(Some(cc)))
+            case e: Failure => (e.messageChain, HttpCode.`200`(Some(cc))) // TODO code need change
+            case _ => ("fail", HttpCode.`200`(Some(cc)))
+          }
 
-          (jValue, HttpCode.`200`(Some(cc)))
         }
       }
     }
