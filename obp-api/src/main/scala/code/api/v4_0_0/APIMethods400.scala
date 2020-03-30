@@ -2931,7 +2931,7 @@ trait APIMethods400 {
           for {
             deleted <- NewStyle.function.deleteDynamicEndpoint(dynamicEndpointId, cc.callContext)
           } yield {
-            (deleted, HttpCode.`200`(cc.callContext))
+            (deleted, HttpCode.`204`(cc.callContext))
           }
       }
     }
