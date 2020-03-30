@@ -5,6 +5,7 @@ import java.util.UUID.randomUUID
 
 import code.DynamicEndpoint.DynamicEndpointT
 import code.accountholders.{AccountHolders, MapperAccountHolders}
+import code.api.attributedefinition.AttributeDefinition
 import code.api.{APIFailure, APIFailureNewStyle}
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, _}
@@ -38,7 +39,7 @@ import code.users.Users
 import code.util.Helper._
 import code.util.JsonUtils
 import code.views.Views
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, AttributeCategory, AttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full, ParamFailure}
@@ -1915,6 +1916,35 @@ trait Connector extends MdcLoggable {
                                       callContext: Option[CallContext]
   ): OBPReturnType[Box[CustomerAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
 
+  def createOrUpdateAttributeDefinition(bankId: BankId,
+                                        name: String,
+                                        category: AttributeCategory.Value,
+                                        `type`: AttributeType.Value,
+                                        description: String,
+                                        alias: String,
+                                        canBeSeenOnViews: List[String],
+                                        isActive: Boolean,
+                                        callContext: Option[CallContext]
+                                       ): OBPReturnType[Box[AttributeDefinition]] =
+    Future {
+      (Failure(setUnimplementedError), callContext)
+    }
+
+  def deleteAttributeDefinition(attributeDefinitionId: String,
+                                   category: AttributeCategory.Value,
+                                   callContext: Option[CallContext]
+                                  ): OBPReturnType[Box[Boolean]] =
+    Future {
+      (Failure(setUnimplementedError), callContext)
+    }
+
+  def getAttributeDefinition(category: AttributeCategory.Value,
+                                callContext: Option[CallContext]
+                               ): OBPReturnType[Box[List[AttributeDefinition]]] =
+    Future {
+      (Failure(setUnimplementedError), callContext)
+    }
+  
   def createOrUpdateTransactionAttribute(
     bankId: BankId,
     transactionId: TransactionId,

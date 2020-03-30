@@ -1081,7 +1081,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   case class EmptyClassJson(jsonString: String ="{}")
 
   // Used to document the API calls
-  case class ResourceDoc (
+  case class ResourceDoc(
                           partialFunction: OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
                           implementedInApiVersion: ScannedApiVersion, // TODO: Use ApiVersion enumeration instead of string
                           partialFunctionName: String, // The string name of the partial function that implements this resource. Could use it to link to the source code that implements the call
@@ -1290,21 +1290,36 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           val request: Box[Req] = S.request
           val session: Box[LiftSession] = S.session
 
+          /**
+            * Please note the order of validations:
+            * 1. authentication
+            * 2. check bankId
+            * 3. roles check
+            * 4. check accountId
+            * 5. view
+            * 
+            * A Bank MUST be checked before Roles.
+            * In opposite case we get next paradox:
+            * - We set non existing bank
+            * - We get error message that we don't have a proper role
+            * - We cannot assign the role to non existing bank
+            */
           cc: CallContext => {
             // if authentication check, do authorizedAccess, else do Rate Limit check
             for {
               (boxUser, callContext) <- checkAuth(cc)
 
+              // check bankId is valid
+              (bank, callContext) <- checkBank(bankId, callContext)
 
               // roles check
               _ <- checkRoles(bankId, boxUser)
-              // check bankId valid
-              (bank, callContext) <- checkBank(bankId, callContext)
-              // check accountId valid
+              
+              // check accountId is valid
               (account, callContext) <- checkAccount(bankId, accountId, callContext)
+
               // check user access permission of this viewId corresponding view
               view <- checkView(viewId, bankId, accountId, boxUser, callContext)
-
             } yield {
               val Some(newCallContext) = if(boxUser.isDefined) callContext.map(_.copy(user=boxUser)) else callContext
               //pass session and request to endpoint body

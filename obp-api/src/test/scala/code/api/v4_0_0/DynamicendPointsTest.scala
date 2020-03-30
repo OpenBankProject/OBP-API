@@ -72,9 +72,9 @@ class DynamicEndpointsTest extends V400ServerSetup {
       responseWithRole.code should equal(201)
       responseWithRole.body.toString contains("dynamic_endpoint_id") should be (true)
       responseWithRole.body.toString contains("swagger_string") should be (true)
-      responseWithRole.body.toString contains("Portus EVS sandbox demo API") should be (true)
-      responseWithRole.body.toString contains("content user-friendly error message") should be (true)
-      responseWithRole.body.toString contains("create user successful and return created user object") should be (true)
+      responseWithRole.body.toString contains("Example Title") should be (true)
+      responseWithRole.body.toString contains("Example Description") should be (true)
+      responseWithRole.body.toString contains("Example Company") should be (true)
     }
   }
 
@@ -123,9 +123,9 @@ class DynamicEndpointsTest extends V400ServerSetup {
       val request400 = (v4_0_0_Request / "management" / "dynamic-endpoints").GET<@ (user1)
       val response400 = makeGetRequest(request400)
       response400.code should be (200)
-      response400.body.toString contains("Portus EVS sandbox demo API") should be (true)
-      response400.body.toString contains("content user-friendly error message") should be (true)
-      response400.body.toString contains("create user successful and return created user object") should be (true)
+      response400.body.toString contains("Example Title") should be (true)
+      response400.body.toString contains("Example Description") should be (true)
+      response400.body.toString contains("Example Company") should be (true)
       
     }
   }  
@@ -179,9 +179,9 @@ class DynamicEndpointsTest extends V400ServerSetup {
       response400.code should be (200)
       response400.body.toString contains("dynamic_endpoint_id") should be (true)
       response400.body.toString contains("swagger_string") should be (true)
-      response400.body.toString contains("Portus EVS sandbox demo API") should be (true)
-      response400.body.toString contains("content user-friendly error message") should be (true)
-      response400.body.toString contains("create user successful and return created user object") should be (true)
+      response400.body.toString contains("Example Title") should be (true)
+      response400.body.toString contains("Example Description") should be (true)
+      response400.body.toString contains("Example Company") should be (true)
       
     }
   }  

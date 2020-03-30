@@ -7,7 +7,7 @@ import code.model.{AppType, Consumer}
 
 import scala.concurrent.Future
 
-object consumer {
+object Consumer {
 
   import com.openbankproject.commons.ExecutionContext.Implicits.global
 

@@ -89,9 +89,18 @@ object ExampleValue {
   
   lazy val customerAttributeNameExample = ConnectorField("SPECIAL_TAX_NUMBER", s"Customer attribute name")
   glossaryItems += makeGlossaryItem("Customer.attributeName", customerAttributeNameExample)
+  
+  lazy val templateAttributeNameExample = ConnectorField("SPECIAL_TAX_NUMBER", s"Attribute name")
+  glossaryItems += makeGlossaryItem("Template.attributeName", templateAttributeNameExample)
 
   lazy val customerAttributeTypeExample = ConnectorField("STRING", s"Customer attribute type.")
   glossaryItems += makeGlossaryItem("Customer.attributeType", customerAttributeTypeExample)
+  
+  lazy val templateAttributeTypeExample = ConnectorField("STRING", s"Attribute type.")
+  glossaryItems += makeGlossaryItem("Template.attributeType", templateAttributeTypeExample)
+  
+  lazy val attributeAliasExample = ConnectorField("STRING", s"Customer attribute alias.")
+  glossaryItems += makeGlossaryItem("Customer.attributeAlias", attributeAliasExample)
 
   lazy val customerAttributeValueExample = ConnectorField("123456789", s"Customer attribute value.")
   glossaryItems += makeGlossaryItem("Customer.attributeValue", customerAttributeValueExample)
@@ -324,6 +333,8 @@ object ExampleValue {
   // if yes, please rename the follow to lastOkDateExample, and delete outBoundCreateCustomerLastOkDateExample
   lazy val outBoundCreateCustomerLastOkDateExample = ConnectorField("2019-09-12", "fix me, lastOkDate Date string")
 
+  lazy val uuidExample = ConnectorField("9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1", "UUID value")
+
 
   //this is only for dynamicEntity post or request body example
   """
@@ -367,11 +378,11 @@ object ExampleValue {
       |  "swagger": "2.0",
       |  "info": {
       |    "version": "0.0.1",
-      |    "title": "Portus EVS sandbox demo API",
-      |    "description": "Portus EVS sandbox demo API",
+      |    "title": "Example Title",
+      |    "description": "Example Description",
       |    "contact": {
-      |      "name": "Digital & FinTech, Grant Thornton",
-      |      "email": "peng.xu@ie.gt.com",
+      |      "name": "Example Company",
+      |      "email": " simon@example.com",
       |      "url": "https://www.tesobe.com/"
       |    }
       |  },
