@@ -2789,6 +2789,7 @@ trait APIMethods400 {
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
+        DynamicEndpointExists,
         InvalidJsonFormat,
         UnknownError
       ),

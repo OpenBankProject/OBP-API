@@ -2,13 +2,14 @@ package code.api.v4_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{DynamicEndpointExists, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.ExampleValue
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
@@ -116,9 +117,21 @@ class DynamicEndpointsTest extends V400ServerSetup {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetDynamicEndpoints.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateDynamicEndpoint.toString)
 
-      val responseWithRole = makePostRequest(request, write(postDynamicEndpointRequestBodyExample))
+
+      val newSwagger = postDynamicEndpointRequestBodyExample.transformField {
+        case JField(name, value) if name.startsWith("/") => JField(s"$name/abc", value)
+      }
+
+      val responseWithRole = makePostRequest(request, write(newSwagger))
       Then("We should get a 201")
       responseWithRole.code should equal(201)
+
+
+      val duplicatedRequest = makePostRequest(request, write(newSwagger))
+      Then("We should get a 400")
+      duplicatedRequest.code should equal(400)
+      duplicatedRequest.body.extract[ErrorMessage].message.toString contains (DynamicEndpointExists) should be (true)
+
 
       val request400 = (v4_0_0_Request / "management" / "dynamic-endpoints").GET<@ (user1)
       val response400 = makeGetRequest(request400)
@@ -167,10 +180,21 @@ class DynamicEndpointsTest extends V400ServerSetup {
       Then("We grant the role to the user1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetDynamicEndpoint.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateDynamicEndpoint.toString)
-      
-      val responseWithRole = makePostRequest(request, write(postDynamicEndpointRequestBodyExample))
+
+      val newSwagger = postDynamicEndpointRequestBodyExample.transformField {
+        case JField(name, value) if name.startsWith("/") => JField(s"$name/def", value)
+      }
+
+      val responseWithRole = makePostRequest(request, write(newSwagger))
       Then("We should get a 201")
       responseWithRole.code should equal(201)
+
+
+      val duplicatedRequest = makePostRequest(request, write(newSwagger))
+      Then("We should get a 400")
+      duplicatedRequest.code should equal(400)
+      duplicatedRequest.body.extract[ErrorMessage].message.toString contains (DynamicEndpointExists) should be (true)
+
 
       val id = responseWithRole.body.\\("dynamic_endpoint_id").values.get("dynamic_endpoint_id").head.toString
 
