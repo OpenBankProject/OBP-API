@@ -421,7 +421,7 @@ object JsonUtils {
    * @param pathExpress path, can be prefix by - or !, e.g: "-result.count" "!value.isDeleted"
    * @return given nested field value
    */
-  private def getValueByPath(jValue: JValue, pathExpress: String): JValue = {
+  def getValueByPath(jValue: JValue, pathExpress: String): JValue = {
     pathExpress match {
       case str if str.trim == "$root" || str.trim.isEmpty => jValue // if path is "$root" or "", return whole original json
       case RegexBoolean(b) => JBool(b.toBoolean)
@@ -479,5 +479,15 @@ object JsonUtils {
       case JNothing | JNull => expectValue == ""
       case v => v.values.toString == expectValue
     }
+  }
+
+  def toString(jValue: JValue) = jValue match{
+    case JString(s) => s
+    case JInt(num) => num.toString()
+    case JDouble(num) => num.toString()
+    case JBool(b) => b.toString()
+    case JNothing => ""
+    case JNull => "null"
+    case v => json.compactRender(v)
   }
 }

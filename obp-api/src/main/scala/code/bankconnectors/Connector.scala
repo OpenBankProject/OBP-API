@@ -59,6 +59,7 @@ import scala.concurrent.duration._
 import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
 import scala.reflect.runtime.universe.{MethodSymbol, typeOf}
+import _root_.akka.http.scaladsl.model.HttpMethod
 
 /*
 So we can switch between different sources of resources e.g.
@@ -2151,6 +2152,9 @@ trait Connector extends MdcLoggable {
                              entityName: String,
                              requestBody: Option[JObject],
                              entityId: Option[String],
+                             callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def dynamicEndpointProcess(url: String, jValue: JValue, method: HttpMethod, params: Map[String, List[String]], pathParams: Map[String, String],
                              callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = Future{(Failure(setUnimplementedError), callContext)}
   
   def createDirectDebit(bankId: String,

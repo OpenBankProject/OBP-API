@@ -1922,9 +1922,9 @@ object NewStyle {
           }
       }
     }
-    def dynamicEndpointProcess(url: String, jValue: JValue, method: HttpMethod, params: Map[String, List[String]],
+    def dynamicEndpointProcess(url: String, jValue: JValue, method: HttpMethod, params: Map[String, List[String]], pathParams: Map[String, String],
       callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
-      RestConnector_vMar2019.dynamicEndpointProcess(url, jValue, method, params, callContext)
+      Connector.connector.vend.dynamicEndpointProcess(url, jValue, method, params, pathParams, callContext)
     }
 
 

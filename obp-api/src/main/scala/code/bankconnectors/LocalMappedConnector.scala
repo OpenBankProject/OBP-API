@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import scala.concurrent.duration._
 import code.DynamicData.DynamicDataProvider
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -80,6 +81,7 @@ import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 import org.mindrot.jbcrypt.BCrypt
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
+
 import scala.collection.immutable.{List, Nil}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 
@@ -88,6 +90,7 @@ import scala.language.postfixOps
 import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
 
+import _root_.akka.http.scaladsl.model.HttpMethod
 
 object LocalMappedConnector extends Connector with MdcLoggable {
   
@@ -3039,6 +3042,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
       (processResult, callContext)
     }
+  }
+
+  /* delegate to rest connector
+   */
+  override def dynamicEndpointProcess(url: String, jValue: JValue, method: HttpMethod, params: Map[String, List[String]], pathParams: Map[String, String],
+                                      callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
+    Connector.getConnectorInstance("rest_vMar2019").dynamicEndpointProcess(url,jValue, method, params, pathParams, callContext)
   }
 
   override def createDirectDebit(bankId: String,

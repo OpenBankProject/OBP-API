@@ -70,12 +70,20 @@ object DynamicEndpointHelper extends RestHelper {
    * extract request body, no matter GET, POST, PUT or DELETE method
    */
   object DynamicReq extends JsonTest with JsonBody {
+
+    private val ExpressionRegx = """\{(.+?)\}""".r
     /**
-     * unapply Request to (swagger url, json, http method, request parameters, role)
+     * unapply Request to (request url, json, http method, request parameters, path parameters, role)
+     * request url is  current request url
+     * json is request body
+     * http method is request http method
+     * request parameters is http request parameters
+     * path parameters: /banks/{bankId}/users/{userId} bankId and userId corresponding key to value
+     * role is current endpoint required entitlement
      * @param r HttpRequest
      * @return
      */
-    def unapply(r: Req): Option[(String, JValue, AkkaHttpMethod, Map[String, List[String]], ApiRole)] = {
+    def unapply(r: Req): Option[(String, JValue, AkkaHttpMethod, Map[String, List[String]], Map[String, String], ApiRole)] = {
       val partPath = r.path.partPath
       if (!testResponse_?(r) || partPath.headOption != Option(urlPrefix))
         None
@@ -84,19 +92,29 @@ object DynamicEndpointHelper extends RestHelper {
         val httpMethod = HttpMethod.valueOf(r.requestType.method)
         // url that match original swagger endpoint.
         val url = partPath.tail.mkString("/", "/", "")
-        val foundDynamicEndpoint: Optional[(DynamicEndpointInfo, ResourceDoc)] = dynamicEndpointInfos.stream()
-          .map[Option[(DynamicEndpointInfo, ResourceDoc)]](_.findDynamicEndpoint(httpMethod, url))
+        val foundDynamicEndpoint: Optional[(DynamicEndpointInfo, ResourceDoc, String)] = dynamicEndpointInfos.stream()
+          .map[Option[(DynamicEndpointInfo, ResourceDoc, String)]](_.findDynamicEndpoint(httpMethod, url))
           .filter(_.isDefined)
           .findFirst()
           .map(_.get)
 
         foundDynamicEndpoint.asScala
-          .flatMap[(String, JValue, AkkaHttpMethod, Map[String, List[String]], ApiRole)] { it =>
-            val (dynamicEndpointInfo, doc) = it
+          .flatMap[(String, JValue, AkkaHttpMethod, Map[String, List[String]], Map[String, String], ApiRole)] { it =>
+            val (dynamicEndpointInfo, doc, originalUrl) = it
+
+            val pathParams: Map[String, String] = if(originalUrl == url) {
+              Map.empty[String, String]
+            } else {
+              val tuples: Array[(String, String)] = StringUtils.split(originalUrl, "/").zip(partPath.tail)
+              tuples.collect {
+                case (ExpressionRegx(name), value) => name->value
+              }.toMap
+            }
+
             val Some(role::_) = doc.roles
             body(r).toOption
               .orElse(Some(JNothing))
-              .map(t => (dynamicEndpointInfo.targetUrl(url), t, akkaHttpMethod, r.params, role))
+              .map(t => (dynamicEndpointInfo.targetUrl(url), t, akkaHttpMethod, r.params, pathParams, role))
           }
 
       }
@@ -132,6 +150,12 @@ object DynamicEndpointHelper extends RestHelper {
   private def swaggerToResourceDocs(openAPI: OpenAPI, id: String): DynamicEndpointInfo = {
     val tags: List[ResourceDocTag] = List(ApiTag.apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle)
 
+    val serverUrl = {
+      val servers = openAPI.getServers
+      assert(!servers.isEmpty, s"swagger host is mandatory, but current swagger host is empty, id=$id")
+      servers.get(0).getUrl
+    }
+
     val paths: mutable.Map[String, PathItem] = openAPI.getPaths.asScala
     def entitlementSuffix(path: String) = Math.abs(path.hashCode).toString.substring(0, 3) // to avoid different swagger have same entitlement
     val docs: mutable.Iterable[(ResourceDoc, String)] = for {
@@ -151,7 +175,34 @@ object DynamicEndpointHelper extends RestHelper {
         .orElse(Option(op.getDescription))
         .filter(StringUtils.isNotBlank)
         .map(_.capitalize)
-        .getOrElse(summary)
+        .getOrElse(summary) +
+        s"""
+          |
+          |MethodRouting settings example:
+          |```
+          |{
+          |  "is_bank_id_exact_match":false,
+          |  "method_name":"dynamicEndpointProcess",
+          |  "connector_name":"rest_vMar2019",
+          |  "bank_id_pattern":".*",
+          |  "parameters":[
+          |    {
+          |        "key":"url_pattern",
+          |        "value":"$serverUrl$path"
+          |    },
+          |    {
+          |        "key":"http_method",
+          |        "value":"$requestVerb"
+          |    }
+          |    {
+          |        "key":"url",
+          |        "value":"http://mydomain.com/xxx"
+          |    }
+          |  ]
+          |}
+          |```
+          |
+          |""".stripMargin
       val exampleRequestBody: Product = getRequestExample(openAPI, op.getRequestBody)
       val successResponseBody: Product = getResponseExample(openAPI, op.getResponses)
       val errorResponseBodies: List[String] = List(
@@ -169,7 +220,7 @@ object DynamicEndpointHelper extends RestHelper {
           ApiRole.getOrCreateDynamicApiRole(roleName)
         ))
       }
-      val connectorMethods = Some(List(s"""dynamicEntityProcess: parameters contains {"key": "entityName", "value": "$summary"}""")) //TODO temp
+      val connectorMethods = Some(List("dynamicEndpointProcess"))
       val doc = ResourceDoc(
         partialFunction,
         implementedInApiVersion,
@@ -189,18 +240,10 @@ object DynamicEndpointHelper extends RestHelper {
       (doc, path)
     }
 
-    val serverUrl = {
-      val servers = openAPI.getServers
-      if(servers.isEmpty) {
-        None
-      } else {
-        Some(servers.get(0).getUrl)
-      }
-    }
     DynamicEndpointInfo(id, docs, serverUrl)
   }
 
-  private val PathParamRegx = """\{(.+)\}""".r
+  private val PathParamRegx = """\{(.+?)\}""".r
   private val WordBoundPattern = Pattern.compile("(?<=[a-z])(?=[A-Z])|-")
 
   private def buildRequestUrl(path: String): String = {
@@ -363,7 +406,7 @@ object DynamicEndpointHelper extends RestHelper {
  * @param docsToUrl ResourceDoc to url that defined in swagger content
  * @param serverUrl base url that defined in swagger content
  */
-case class DynamicEndpointInfo(id: String, docsToUrl: mutable.Iterable[(ResourceDoc, String)], serverUrl: Option[String]) {
+case class DynamicEndpointInfo(id: String, docsToUrl: mutable.Iterable[(ResourceDoc, String)], serverUrl: String) {
   val resourceDocs: mutable.Iterable[ResourceDoc] = docsToUrl.map(_._1)
 
   private val existsUrlToMethod: mutable.Iterable[(HttpMethod, String, ResourceDoc)] =
@@ -373,14 +416,14 @@ case class DynamicEndpointInfo(id: String, docsToUrl: mutable.Iterable[(Resource
       (HttpMethod.valueOf(doc.requestVerb), path, doc)
     })
 
-  def findDynamicEndpoint(newMethod: HttpMethod, newUrl: String): Option[(DynamicEndpointInfo, ResourceDoc)] = existsUrlToMethod.find(it => {
+  def findDynamicEndpoint(newMethod: HttpMethod, newUrl: String): Option[(DynamicEndpointInfo, ResourceDoc, String)] = existsUrlToMethod.find(it => {
     val (method, url, _) = it
     isSameUrl(newUrl, url) && newMethod == method
-  }).map(this -> _._3)
+  }).map(it => (this, it._3, it._2))
 
   def existsEndpoint(newMethod: HttpMethod, newUrl: String): Boolean = findDynamicEndpoint(newMethod, newUrl).isDefined
 
-  def targetUrl(url: String): String = s"""${serverUrl.get}$url"""
+  def targetUrl(url: String): String = s"""$serverUrl$url"""
 
   /**
    * check whether two url is the same:

@@ -9327,16 +9327,52 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     result
   }
 
-  //TODO params process
-  def dynamicEndpointProcess(url: String, jValue: JValue, method: HttpMethod, params: Map[String, List[String]],
+
+  override def dynamicEndpointProcess(url: String, jValue: JValue, method: HttpMethod, params: Map[String, List[String]], pathParams: Map[String, String],
                            callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
     val urlInMethodRouting: Option[String] = MethodRoutingHolder.methodRouting match {
       case _: EmptyBox => None
       case Full(routing) => routing.parameters.find(_.key == "url").map(_.value)
     }
-    val targetUrl = urlInMethodRouting.getOrElse(url)
+    val pathVariableRex = """\{:(.+?)\}""".r
+    val targetUrl = urlInMethodRouting.map { urlInRouting =>
+      val tuples: Iterator[(String, String)] = pathVariableRex.findAllMatchIn(urlInRouting).map{ regex =>
+        val expression = regex.group(0)
+        val paramName = regex.group(1)
+        val paramValue =
+          if(paramName.startsWith("body.")) {
+            val path = StringUtils.substringAfter(paramName, "body.")
+            val value = JsonUtils.getValueByPath(jValue, path)
+            JsonUtils.toString(value)
+          } else {
+            pathParams.get(paramName)
+              .orElse(params.get(paramName).flatMap(_.headOption)).getOrElse(throw new RuntimeException(s"param $paramName not exists."))
+          }
+        expression -> paramValue
+      }
+
+      (urlInRouting /: tuples) {(pre, kv)=>
+        pre.replace(kv._1, kv._2)
+      }
+    }.getOrElse(url)
+
+    val paramNameToValue = for {
+      (name, values) <- params
+      value <- values
+      param = s"$name=$value"
+    } yield param
+
+    val paramUrl: String =
+      if(params.isEmpty){
+        targetUrl
+      } else if(targetUrl.contains("?")) {
+        targetUrl + "&" + paramNameToValue.mkString("&")
+      } else {
+        targetUrl + "?" + paramNameToValue.mkString("&")
+      }
+
     val jsonToSend = if(jValue == JNothing) "" else compactRender(jValue)
-    val request = prepareHttpRequest(url, method, HttpProtocol("HTTP/1.1"), jsonToSend).withHeaders(callContext)
+    val request = prepareHttpRequest(paramUrl, method, HttpProtocol("HTTP/1.1"), jsonToSend).withHeaders(callContext)
     logger.debug(s"RestConnector_vMar2019 request is : $request")
     val responseFuture = makeHttpRequest(request)
 

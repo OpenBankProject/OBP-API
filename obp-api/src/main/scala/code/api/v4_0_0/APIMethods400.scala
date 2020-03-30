@@ -2866,9 +2866,9 @@ trait APIMethods400 {
       "GET",
       "/management/dynamic-endpoints",
       " Get DynamicEndpoints",
-      s"""Get DynamicEndpoints.
+      s"""
          |
-         |Get DynamicEndpoints,
+         |Get DynamicEndpoints.
          |
          |""",
       emptyObjectJson,
@@ -2936,12 +2936,12 @@ trait APIMethods400 {
 
 
     lazy val dynamicEndpoint: OBPEndpoint = {
-      case DynamicReq(url, json, method, params, role) => { cc =>
+      case DynamicReq(url, json, method, params, pathParams, role) => { cc =>
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
 
-          (box, _) <- NewStyle.function.dynamicEndpointProcess(url, json, method, params, callContext)
+          (box, _) <- NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
         } yield {
           box match {
             case Full(v) => (v, HttpCode.`200`(Some(cc)))
