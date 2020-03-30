@@ -5,6 +5,7 @@ import java.util.UUID.randomUUID
 
 import scala.concurrent.duration._
 import code.DynamicData.DynamicDataProvider
+import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.accountapplication.AccountApplicationX
 import code.accountattribute.AccountAttributeX
 import code.accountholders.{AccountHolders, MapperAccountHolders}
@@ -78,7 +79,6 @@ import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{hours, now, time, tryo}
 import net.liftweb.util.Mailer
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
-import org.apache.commons.lang3.StringUtils
 import org.mindrot.jbcrypt.BCrypt
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
@@ -91,6 +91,7 @@ import scala.language.postfixOps
 import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
 
+import _root_.akka.http.scaladsl.model.HttpMethod
 
 object LocalMappedConnector extends Connector with MdcLoggable {
 
@@ -3158,6 +3159,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  /* delegate to rest connector
+   */
+  override def dynamicEndpointProcess(url: String, jValue: JValue, method: HttpMethod, params: Map[String, List[String]], pathParams: Map[String, String],
+                                      callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
+    Connector.getConnectorInstance("rest_vMar2019").dynamicEndpointProcess(url,jValue, method, params, pathParams, callContext)
+  }
+
   override def createDirectDebit(bankId: String,
                                  accountId: String,
                                  customerId: String,
@@ -4143,6 +4151,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       trtc
     }
     Full(res)
+  }
+  
+  override def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEndpointT]] = Future {
+    (DynamicEndpointProvider.connectorMethodProvider.vend.create(swaggerString), callContext)
+  }
+
+  override  def getDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEndpointT]] = Future {
+    (DynamicEndpointProvider.connectorMethodProvider.vend.get(dynamicEndpointId), callContext)
+  }
+  
+  override def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
+    (DynamicEndpointProvider.connectorMethodProvider.vend.getAll(), callContext)
   }
 
   override def deleteCustomerAttribute(customerAttributeId: String, callContext: Option[CallContext] ): OBPReturnType[Box[Boolean]] = {

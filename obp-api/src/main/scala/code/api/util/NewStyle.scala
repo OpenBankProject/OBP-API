@@ -3,7 +3,9 @@ package code.api.util
 import java.util.Date
 import java.util.UUID.randomUUID
 
+import akka.http.scaladsl.model.HttpMethod
 import code.DynamicData.DynamicDataProvider
+import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
@@ -13,8 +15,9 @@ import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
-import code.api.v4_0_0.DynamicEntityInfo
+import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityInfo}
 import code.bankconnectors.Connector
+import code.bankconnectors.rest.RestConnector_vMar2019
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
 import code.directdebit.DirectDebitTrait
@@ -1919,6 +1922,10 @@ object NewStyle {
           }
       }
     }
+    def dynamicEndpointProcess(url: String, jValue: JValue, method: HttpMethod, params: Map[String, List[String]], pathParams: Map[String, String],
+      callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
+      Connector.connector.vend.dynamicEndpointProcess(url, jValue, method, params, pathParams, callContext)
+    }
 
 
     def createDirectDebit(bankId : String, 
@@ -1994,6 +2001,54 @@ object NewStyle {
 
     def getConnectorMethod(connectorName: String, methodName: String): Option[MethodSymbol] = {
       getConnectorByName(connectorName).flatMap(_.implementedMethods.get(methodName))
+    }
+
+    def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
+      Connector.connector.vend.createDynamicEndpoint(
+        swaggerString,
+        callContext
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def getDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
+      val dynamicEndpointBox: Box[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.get(dynamicEndpointId)
+      val dynamicEndpoint = unboxFullOrFail(dynamicEndpointBox, callContext, DynamicEndpointNotFoundByDynamicEndpointId, 404)
+      Future{
+        (dynamicEndpoint, callContext)
+      }
+    }
+
+    def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = {
+      Connector.connector.vend.getDynamicEndpoints(
+        callContext
+      ) 
+    }
+    /**
+     * delete one DynamicEndpoint and corresponding entitlement and dynamic entitlement
+     * @param dynamicEndpointId
+     * @param callContext
+     * @return
+     */
+    def deleteDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): Future[Box[Boolean]] = {
+      val dynamicEndpoint: OBPReturnType[DynamicEndpointT] = this.getDynamicEndpoint(dynamicEndpointId, callContext)
+        for {
+          (entity, _) <- dynamicEndpoint
+          deleteSuccess = DynamicEndpointProvider.connectorMethodProvider.vend.delete(dynamicEndpointId)
+
+          deleteEndpointResult: Box[Boolean] = if(deleteSuccess) {
+            val roles = DynamicEndpointHelper.getRoles(dynamicEndpointId).map(_.toString())
+            DynamicEndpointHelper.removeEndpoint(dynamicEndpointId)
+            val rolesDeleteResult: Box[Boolean] = Entitlement.entitlement.vend.deleteEntitlements(roles)
+
+              Box !! (rolesDeleteResult == Full(true))
+          } else {
+            Box !! false
+          }
+        } yield {
+          deleteEndpointResult
+        }
     }
 
     def deleteCustomerAttribute(customerAttributeId : String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {

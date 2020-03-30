@@ -6,6 +6,7 @@ import java.net.URI
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.connector.RestConnector_vMar2019_FrozenUtil.{connectorMethodNames, persistFilePath, typeNameToFieldsInfo}
 import com.openbankproject.commons.util.ReflectUtils
+import net.liftweb.common.Logger
 import org.apache.commons.io.IOUtils
 import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.{BeforeAndAfter, FlatSpec, Matchers, Tag}
@@ -19,14 +20,19 @@ import scala.reflect.runtime.universe._
 class RestConnector_vMar2019_FrozenTest extends FlatSpec with Matchers with BeforeAndAfter {
   private var connectorMethodNamesPersisted: List[String] = _
   private var typeNameToFieldsInfoPersisted: Map[String, Map[String, String]] = _
+  private val logger = Logger(classOf[RestConnector_vMar2019_FrozenTest])
 
   before {
-    val in = new ObjectInputStream(new FileInputStream(persistFilePath))
+    var in: ObjectInputStream = null
     try {
+      in = new ObjectInputStream(new FileInputStream(persistFilePath))
       in.readUTF()
       connectorMethodNamesPersisted = in.readObject().asInstanceOf[List[String]]
       typeNameToFieldsInfoPersisted = in.readObject().asInstanceOf[Map[String, Map[String, String]]]
-    } finally {
+    } catch {
+      case e: Throwable =>
+        logger.error("read frozen file fail.", e)
+    }finally {
       IOUtils.closeQuietly(in)
     }
   }
@@ -85,7 +91,7 @@ object RestConnector_vMar2019_FrozenUtil {
     .filter(_.overrides.nonEmpty)
     .filter(_.paramLists.flatten.nonEmpty)
     .map(_.name.toString)
-    .toList
+    .toList.filterNot(_ == "dynamicEndpointProcess")
 
   // typeNameToFieldsInfo sturcture is: (typeFullName, Map(fieldName->fieldTypeName))
   val typeNameToFieldsInfo: Map[String, Map[String, String]] = {
