@@ -819,7 +819,7 @@ trait APIMethods400 {
       s"""Get the all Dynamic Entities.""",
       emptyObjectJson,
       ListResult(
-        "dynamic-entities",
+        "dynamic_entities",
         List(dynamicEntityResponseBodyExample)
       ),
       List(
