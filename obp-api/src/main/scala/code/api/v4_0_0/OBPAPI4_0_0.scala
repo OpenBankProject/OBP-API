@@ -55,7 +55,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Possible Endpoints from 4.0.0, exclude one endpoint use - method,exclude multiple endpoints use -- method,
   // e.g getEndpoints(Implementations4_0_0) -- List(Implementations4_0_0.genericEndpoint, Implementations4_0_0.root)
-  val endpointsOf4_0_0 = getEndpoints(Implementations4_0_0) - Implementations4_0_0.genericEndpoint
+  val endpointsOf4_0_0 = getEndpoints(Implementations4_0_0) - Implementations4_0_0.genericEndpoint - Implementations4_0_0.dynamicEndpoint
   
   lazy val excludeEndpoints =
     nameOf(Implementations1_2_1.addPermissionForUserForBankAccountForMultipleViews) ::
@@ -67,7 +67,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
   def allResourceDocs = collectResourceDocs(OBPAPI3_1_0.allResourceDocs,
                                             Implementations4_0_0.resourceDocs,
-                                            MockerConnector.doc)
+                                            MockerConnector.doc, DynamicEndpointHelper.doc)
      .filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
     //TODO exclude two endpoints, after training we need add logic to exclude endpoints
 
@@ -85,6 +85,8 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   registerRoutes(routes, allResourceDocs, apiPrefix, true)
 
   oauthServe(apiPrefix{Implementations4_0_0.genericEndpoint}, None)
+  oauthServe(apiPrefix{Implementations4_0_0.dynamicEndpoint}, None)
+
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 
   // specified response for OPTIONS request.

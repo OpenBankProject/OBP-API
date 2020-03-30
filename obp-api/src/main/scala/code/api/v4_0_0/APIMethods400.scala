@@ -3,6 +3,7 @@ package code.api.v4_0_0
 import java.util.Date
 
 import code.DynamicData.DynamicData
+import code.DynamicEndpoint.{DynamicEndpointCommons, DynamicEndpointSwagger}
 import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -10,7 +11,7 @@ import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
+import code.api.util.ExampleValue.{dynamicEndpointRequestBodyExample, dynamicEndpointResponseBodyExample, dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util.newstyle.AttributeDefinition._
 import code.api.util.newstyle.Consumer._
@@ -23,6 +24,7 @@ import code.api.v2_1_0._
 import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.{CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310, ListResult}
+import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
 import code.bankconnectors.Connector
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
@@ -50,6 +52,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
@@ -60,6 +63,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import code.model._
 import org.apache.commons.lang3.StringUtils
+import net.liftweb.json.compactRender
 
 trait APIMethods400 {
   self: RestHelper =>
@@ -131,11 +135,11 @@ trait APIMethods400 {
          |  INITIATED => COMPLETED
          |In case n persons needs to answer security challenge we have next flow of state of an `transaction request`:
          |  INITIATED => NEXT_CHALLENGE_PENDING => ... => NEXT_CHALLENGE_PENDING => COMPLETED
-         |
+         |  
          |The security challenge is bound to a user i.e. in case of right answer and the user is different than expected one the challenge will fail.
          |
          |Rule for calculating number of security challenges:
-         |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges
+         |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges 
          |(one for every user that has a View where permission "can_add_transaction_request_to_any_account"=true)
          |In case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute default value is 1.
          |
@@ -363,7 +367,7 @@ trait APIMethods400 {
       ),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
-
+    
     // FREE_FORM.
     resourceDocs += ResourceDoc(
       createTransactionRequestFreeForm,
@@ -424,7 +428,7 @@ trait APIMethods400 {
 
             account = BankIdAccountId(bankId, accountId)
             _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, u, cc.callContext)
-
+            
             _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
               u.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) ||
                 hasEntitlement(bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest)
@@ -467,7 +471,7 @@ trait APIMethods400 {
                   transactionRequestBodyRefundJson <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $ACCOUNT json format", 400, cc.callContext) {
                     json.extract[TransactionRequestBodyRefundJsonV400]
                   }
-
+                  
                   transactionId = TransactionId(transactionRequestBodyRefundJson.refund.transaction_id)
                   toBankId = BankId(transactionRequestBodyRefundJson.to.bank_id)
                   toAccountId = AccountId(transactionRequestBodyRefundJson.to.account_id)
@@ -476,28 +480,28 @@ trait APIMethods400 {
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
                     write(transactionRequestBodyRefundJson)(Serialization.formats(NoTypeHints))
                   }
-
+                  
                   _ <- Helper.booleanToFuture(s"${RefundedTransaction} Current input amount is: '${transDetailsJson.value.amount}'. It can not be more than the original amount(${(transaction.amount).abs})") {
                     (transaction.amount).abs  >= transactionAmountNumber
                   }
-                  //TODO, we need additional field to guarantee the transaction is refunded...
+                  //TODO, we need additional field to guarantee the transaction is refunded...  
 //                  _ <- Helper.booleanToFuture(s"${RefundedTransaction}") {
 //                    !((transaction.description.toString contains(" Refund to ")) && (transaction.description.toString contains(" and transaction_id(")))
 //                  }
-
+                  
                   //we add the extro info (counterparty name + transaction_id) for this special Refund endpoint.
                   newDescription = s"${transactionRequestBodyRefundJson.description} - Refund for transaction_id: (${transactionId.value}) to ${transaction.otherAccount.counterpartyName}"
-
-                  //This is the refund endpoint, the original fromAccount is the `toAccount` which will receive money.
+                  
+                  //This is the refund endpoint, the original fromAccount is the `toAccount` which will receive money. 
                   refundToAccount = fromAccount
-                  //This is the refund endpoint, the original toAccount is the `fromAccount` which will lose money.
+                  //This is the refund endpoint, the original toAccount is the `fromAccount` which will lose money. 
                   refundFromAccount = toAccount
-
+                  
                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
                     viewId,
                     refundFromAccount,
                     refundToAccount,
-                    transactionRequestType,
+                    transactionRequestType, 
                     transactionRequestBodyRefundJson.copy(description = newDescription),
                     transDetailsSerialized,
                     sharedChargePolicy.toString,
@@ -782,7 +786,7 @@ trait APIMethods400 {
                 .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
                 .count(_.successful == true) match {
                   case number if number >= quorum => true
-                  case _ =>
+                  case _ => 
                     MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
                     false
                 }
@@ -813,9 +817,9 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getDynamicEntities),
       "GET",
-      "/management/dynamic_entities",
-      "Get DynamicEntities",
-      s"""Get the all DynamicEntities.""",
+      "/management/dynamic-entities",
+      "Get Dynamic Entities",
+      s"""Get the all Dynamic Entities.""",
       emptyObjectJson,
       ListResult(
         "dynamic_entities",
@@ -833,7 +837,7 @@ trait APIMethods400 {
 
 
     lazy val getDynamicEntities: OBPEndpoint = {
-      case "management" :: "dynamic_entities" :: Nil JsonGet req => {
+      case "management" :: "dynamic-entities" :: Nil JsonGet req => {
         cc =>
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities())
@@ -850,8 +854,8 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(createDynamicEntity),
       "POST",
-      "/management/dynamic_entities",
-      "Create DynamicEntity",
+      "/management/dynamic-entities",
+      "Create Dynamic Entity",
       s"""Create a DynamicEntity.
          |
          |
@@ -883,7 +887,7 @@ trait APIMethods400 {
       Some(List(canCreateDynamicEntity)))
 
     lazy val createDynamicEntity: OBPEndpoint = {
-      case "management" :: "dynamic_entities" :: Nil JsonPost json -> _ => {
+      case "management" :: "dynamic-entities" :: Nil JsonPost json -> _ => {
         cc =>
           val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None)
           for {
@@ -901,8 +905,8 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(updateDynamicEntity),
       "PUT",
-      "/management/dynamic_entities/DYNAMIC_ENTITY_ID",
-      "Update DynamicEntity",
+      "/management/dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Update Dynamic Entity",
       s"""Update a DynamicEntity.
          |
          |
@@ -934,7 +938,7 @@ trait APIMethods400 {
       Some(List(canUpdateDynamicEntity)))
 
     lazy val updateDynamicEntity: OBPEndpoint = {
-      case "management" :: "dynamic_entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
+      case "management" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
         cc =>
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
@@ -959,8 +963,8 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(deleteDynamicEntity),
       "DELETE",
-      "/management/dynamic_entities/DYNAMIC_ENTITY_ID",
-      "Delete DynamicEntity",
+      "/management/dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Delete Dynamic Entity",
       s"""Delete a DynamicEntity specified by DYNAMIC_ENTITY_ID.
          |
          |""",
@@ -976,7 +980,7 @@ trait APIMethods400 {
       Some(List(canDeleteDynamicEntity)))
 
     lazy val deleteDynamicEntity: OBPEndpoint = {
-      case "management" :: "dynamic_entities" :: dynamicEntityId :: Nil JsonDelete _ => {
+      case "management" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonDelete _ => {
         cc =>
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
@@ -1114,7 +1118,7 @@ trait APIMethods400 {
               json.extract[PostResetPasswordUrlJsonV400]
             }
           } yield {
-             val resetLink = AuthUser.passwordResetUrl(postedData.username, postedData.email, postedData.user_id)
+             val resetLink = AuthUser.passwordResetUrl(postedData.username, postedData.email, postedData.user_id) 
             (ResetPasswordUrlJsonV400(resetLink), HttpCode.`201`(cc.callContext))
           }
       }
@@ -2181,7 +2185,7 @@ trait APIMethods400 {
               CustomerAttributeType.withName(postedData.`type`)
             }
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
-            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId}
+            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId} 
             (accountAttribute, callContext) <- NewStyle.function.getCustomerAttributeById(
               customerAttributeId,
               callContext
@@ -2768,7 +2772,188 @@ trait APIMethods400 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      createDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(createDynamicEndpoint),
+      "POST",
+      "/management/dynamic-endpoints",
+      " Create DynamicEndpoint",
+      s"""Create a DynamicEndpoint.
+         |
+         |Create one DynamicEndpoint,
+         |
+         |""",
+      dynamicEndpointRequestBodyExample,
+      dynamicEndpointResponseBodyExample,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        DynamicEndpointExists,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateDynamicEndpoint)))
 
+    lazy val createDynamicEndpoint: OBPEndpoint = {
+      case "management" :: "dynamic-endpoints" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (postedJson, openAPI) <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
+              val swaggerContent = compactRender(json)
+
+              (DynamicEndpointSwagger(swaggerContent), DynamicEndpointHelper.parseSwaggerContent(swaggerContent))
+            }
+            duplicatedUrl = DynamicEndpointHelper.findExistsEndpoints(openAPI).map(kv => s"${kv._1}:${kv._2}")
+            errorMsg = s"""$DynamicEndpointExists Duplicated ${if(duplicatedUrl.size > 1) "endpoints" else "endpoint"}: ${duplicatedUrl.mkString("; ")}"""
+            _ <- Helper.booleanToFuture(errorMsg) {
+              duplicatedUrl.isEmpty
+            }
+            (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(postedJson.swaggerString, cc.callContext)
+            _ = DynamicEndpointHelper.addEndpoint(openAPI, dynamicEndpoint.dynamicEndpointId.get)
+          } yield {
+            val swaggerJson = parse(dynamicEndpoint.swaggerString)
+            val responseJson: JObject = ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+            (responseJson, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(getDynamicEndpoint),
+      "GET",
+      "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
+      " Get DynamicEndpoint",
+      s"""Get a DynamicEndpoint.
+         |
+         |
+         |Get one DynamicEndpoint,
+         |
+         |""",
+      emptyObjectJson,
+      dynamicEndpointResponseBodyExample,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canGetDynamicEndpoint)))
+
+    lazy val getDynamicEndpoint: OBPEndpoint = {
+      case "management" :: "dynamic-endpoints" :: dynamicEndpointId :: Nil JsonGet req => {
+        cc =>
+          for {
+            (dynamicEndpoint, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
+          } yield {
+            val swaggerJson = parse(dynamicEndpoint.swaggerString)
+            val responseJson: JObject = ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+            (responseJson, HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      getDynamicEndpoints,
+      implementedInApiVersion,
+      nameOf(getDynamicEndpoints),
+      "GET",
+      "/management/dynamic-endpoints",
+      " Get DynamicEndpoints",
+      s"""
+         |
+         |Get DynamicEndpoints.
+         |
+         |""",
+      emptyObjectJson,
+      ListResult(
+        "dynamic_endpoints",
+        List(dynamicEndpointResponseBodyExample)
+      ),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canGetDynamicEndpoints)))
+
+    lazy val getDynamicEndpoints: OBPEndpoint = {
+      case "management" :: "dynamic-endpoints" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (dynamicEndpoints, _) <- NewStyle.function.getDynamicEndpoints(cc.callContext)
+          } yield {
+            val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint=>
+              val swaggerJson = parse(dynamicEndpoint.swaggerString)
+               ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+            }
+            (ListResult("dynamic_endpoints", resultList), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      deleteDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(deleteDynamicEndpoint),
+      "DELETE",
+      "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
+      " Delete Dynamic Endpoint",
+      s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteDynamicEndpoint)))
+
+    lazy val deleteDynamicEndpoint : OBPEndpoint = {
+      case "management" :: "dynamic-endpoints" :: dynamicEndpointId ::  Nil JsonDelete _ => {
+        cc =>
+          for {
+            deleted <- NewStyle.function.deleteDynamicEndpoint(dynamicEndpointId, cc.callContext)
+          } yield {
+            (deleted, HttpCode.`204`(cc.callContext))
+          }
+      }
+    }
+
+
+    lazy val dynamicEndpoint: OBPEndpoint = {
+      case DynamicReq(url, json, method, params, pathParams, role) => { cc =>
+        for {
+          (Full(u), callContext) <- authenticatedAccess(cc)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
+
+          (box, _) <- NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
+        } yield {
+          box match {
+            case Full(v) => (v, HttpCode.`200`(Some(cc)))
+            case e: Failure => (e.messageChain, HttpCode.`200`(Some(cc))) // TODO code need change
+            case _ => ("fail", HttpCode.`200`(Some(cc)))
+          }
+
+        }
+      }
+    }
 
     resourceDocs += ResourceDoc(
       createOrUpdateCustomerAttributeAttributeDefinition,

@@ -406,6 +406,21 @@ object ApiRole {
 
   case class CanDeleteDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteDynamicEntity = CanDeleteDynamicEntity()
+
+  case class CanGetDynamicEndpoint(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetDynamicEndpoint = CanGetDynamicEndpoint()
+  
+  case class CanGetDynamicEndpoints(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetDynamicEndpoints = CanGetDynamicEndpoints()
+
+  case class CanCreateDynamicEndpoint(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateDynamicEndpoint = CanCreateDynamicEndpoint()
+
+  case class CanUpdateDynamicEndpoint(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateDynamicEndpoint = CanUpdateDynamicEndpoint()
+
+  case class CanDeleteDynamicEndpoint(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteDynamicEndpoint = CanDeleteDynamicEndpoint()
   
   case class CanCreateResetPasswordUrl(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateResetPasswordUrl = CanCreateResetPasswordUrl()

@@ -56,4 +56,8 @@ object RemotedataEntitlements extends ObpActorInit with EntitlementProvider {
     (actor ? cc.deleteDynamicEntityEntitlement(entityName)).mapTo[Box[Boolean]]
   )
 
+  override def deleteEntitlements(entityNames: List[String]) : Box[Boolean]  = getValueFromFuture(
+    (actor ? cc.deleteEntitlements(entityNames)).mapTo[Box[Boolean]]
+  )
+
 }

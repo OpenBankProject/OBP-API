@@ -61,8 +61,10 @@ import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
 import code.util.{Helper, JsonUtils}
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
 import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation}
-import net.liftweb.json._
+import net.liftweb.json
+import net.liftweb.json.{JValue, _}
 import net.liftweb.json.Extraction.decompose
+import org.apache.commons.lang3.StringUtils
 
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
   //this one import is for implicit convert, don't delete
@@ -9322,6 +9324,81 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     val url = getUrl(callContext, "dynamicEntityProcess")
     val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , operation, entityName, requestBody, entityId)
     val result: OBPReturnType[Box[JValue]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
+    result
+  }
+
+
+  override def dynamicEndpointProcess(url: String, jValue: JValue, method: HttpMethod, params: Map[String, List[String]], pathParams: Map[String, String],
+                           callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
+    val urlInMethodRouting: Option[String] = MethodRoutingHolder.methodRouting match {
+      case _: EmptyBox => None
+      case Full(routing) => routing.parameters.find(_.key == "url").map(_.value)
+    }
+    val pathVariableRex = """\{:(.+?)\}""".r
+    val targetUrl = urlInMethodRouting.map { urlInRouting =>
+      val tuples: Iterator[(String, String)] = pathVariableRex.findAllMatchIn(urlInRouting).map{ regex =>
+        val expression = regex.group(0)
+        val paramName = regex.group(1)
+        val paramValue =
+          if(paramName.startsWith("body.")) {
+            val path = StringUtils.substringAfter(paramName, "body.")
+            val value = JsonUtils.getValueByPath(jValue, path)
+            JsonUtils.toString(value)
+          } else {
+            pathParams.get(paramName)
+              .orElse(params.get(paramName).flatMap(_.headOption)).getOrElse(throw new RuntimeException(s"param $paramName not exists."))
+          }
+        expression -> paramValue
+      }
+
+      (urlInRouting /: tuples) {(pre, kv)=>
+        pre.replace(kv._1, kv._2)
+      }
+    }.getOrElse(url)
+
+    val paramNameToValue = for {
+      (name, values) <- params
+      value <- values
+      param = s"$name=$value"
+    } yield param
+
+    val paramUrl: String =
+      if(params.isEmpty){
+        targetUrl
+      } else if(targetUrl.contains("?")) {
+        targetUrl + "&" + paramNameToValue.mkString("&")
+      } else {
+        targetUrl + "?" + paramNameToValue.mkString("&")
+      }
+
+    val jsonToSend = if(jValue == JNothing) "" else compactRender(jValue)
+    val request = prepareHttpRequest(paramUrl, method, HttpProtocol("HTTP/1.1"), jsonToSend).withHeaders(callContext)
+    logger.debug(s"RestConnector_vMar2019 request is : $request")
+    val responseFuture = makeHttpRequest(request)
+
+    val result: Future[(Box[JValue], Option[CallContext])] = responseFuture.map {
+      case response@HttpResponse(status, _, entity@_, _) => (status, entity)
+    }.flatMap {
+      case (status, entity) if status.isSuccess() =>
+        this.extractBody(entity)
+          .map{
+            case v if StringUtils.isBlank(v) => (Empty, callContext)
+            case v => (Full(json.parse(v)), callContext)
+          }
+      case (status, entity) => {
+        val future: Future[Box[Box[JValue]]] = extractBody(entity) map { msg =>
+          tryo {
+            val failure: Box[JValue] = ParamFailure(msg, APIFailureNewStyle(msg, status.intValue()))
+            failure
+          } ~> APIFailureNewStyle(msg, status.intValue())
+        }
+        future.map{
+          case Full(v) => (v, callContext)
+          case e: EmptyBox => (e, callContext)
+        }
+      }
+    }
+
     result
   }
     

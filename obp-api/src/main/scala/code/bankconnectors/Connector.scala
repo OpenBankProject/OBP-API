@@ -3,6 +3,7 @@ package code.bankconnectors
 import java.util.Date
 import java.util.UUID.randomUUID
 
+import code.DynamicEndpoint.DynamicEndpointT
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.attributedefinition.AttributeDefinition
 import code.api.{APIFailure, APIFailureNewStyle}
@@ -59,6 +60,7 @@ import scala.concurrent.duration._
 import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
 import scala.reflect.runtime.universe.{MethodSymbol, typeOf}
+import _root_.akka.http.scaladsl.model.HttpMethod
 
 /*
 So we can switch between different sources of resources e.g.
@@ -2181,6 +2183,9 @@ trait Connector extends MdcLoggable {
                              requestBody: Option[JObject],
                              entityId: Option[String],
                              callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def dynamicEndpointProcess(url: String, jValue: JValue, method: HttpMethod, params: Map[String, List[String]], pathParams: Map[String, String],
+                             callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = Future{(Failure(setUnimplementedError), callContext)}
   
   def createDirectDebit(bankId: String,
                         accountId: String,
@@ -2210,4 +2215,16 @@ trait Connector extends MdcLoggable {
 
   def deleteCustomerAttribute(customerAttributeId: String,
                            callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEndpointT]] = Future {
+    (Failure(setUnimplementedError), callContext)
+  }
+
+  def getDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEndpointT]] = Future {
+    (Failure(setUnimplementedError), callContext)
+  }
+
+  def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
+    (List.empty[DynamicEndpointT], callContext)
+  }
 }

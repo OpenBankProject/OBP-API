@@ -1,7 +1,9 @@
 package code
 
 import java.lang.reflect.Method
+import java.util.regex.Pattern
 
+import akka.http.scaladsl.model.HttpMethod
 import code.api.{APIFailureNewStyle, ApiVersionHolder}
 import code.api.util.{CallContext, NewStyle}
 import code.methodrouting.{MethodRouting, MethodRoutingT}
@@ -17,7 +19,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.reflect.runtime.universe.{MethodSymbol, Type, typeOf}
 import code.api.util.ErrorMessages.InvalidConnectorResponseForMissingRequiredValues
 import code.api.util.APIUtil.fullBoxOrException
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion, ReflectUtils}
 import com.openbankproject.commons.util.ReflectUtils._
 import com.openbankproject.commons.util.Functions.Implicits._
 import net.liftweb.util.ThreadGlobal
@@ -97,6 +99,18 @@ package object bankconnectors extends MdcLoggable {
         NewStyle.function.getMethodRoutings(Some(methodName))
           .find(_.parameters.exists(it => it.key == "entityName" && it.value == entityName))
       }
+      case _ if methodName == "dynamicEndpointProcess" => {
+        val Array(url: String, _, method: HttpMethod, _*) = args
+        NewStyle.function.getMethodRoutings(Some(methodName))
+          .find(routing => {
+            routing.parameters.exists(it => it.key == "http_method" && it.value.equalsIgnoreCase(method.value)) &&
+              routing.parameters.exists(it => it.key == "url")&&
+              routing.parameters.exists(
+                it => it.key == "url_pattern" &&
+                  (it.value == url || Pattern.compile(it.value).matcher(url).matches())
+              )
+          })
+      }
       case None => NewStyle.function.getMethodRoutings(Some(methodName), Some(false))
         .find {routing =>
           val bankIdPattern = routing.bankIdPattern
@@ -123,7 +137,7 @@ package object bankconnectors extends MdcLoggable {
       case name => Connector.getConnectorInstance(name)
     }
     val methodSymbol = connector.implementedMethods(methodName).alternatives match {
-      case m::Nil if m.isInstanceOf[MethodSymbol] => m.asMethod
+      case m::Nil if m.isMethod => m.asMethod
       case _ =>
         findMethodByArgs(connector, methodName, args:_*)
         .getOrElse(sys.error(s"not found matched method, method name: ${methodName}, params: ${args.mkString(",")}"))
@@ -179,7 +193,8 @@ package object bankconnectors extends MdcLoggable {
 
     processObj match {
       case None => None
-      case Some(value) => {
+
+      case Some(value) if ReflectUtils.isObpObject(value) => {
         val argNameToValues: Map[String, Any] = getConstructorArgs(value)
         //find from current object constructor args
         // orElse: if current object constructor args not found value, recursive search args
@@ -192,6 +207,8 @@ package object bankconnectors extends MdcLoggable {
               .find(it => it.isDefined)
           }
       }
+
+      case _ => None
     }
   }
 

@@ -2019,34 +2019,8 @@ object SwaggerDefinitionsJSON {
     branch_id = ExampleValue.branchIdExample.value,
     name_suffix = ExampleValue.nameSuffixExample.value
   )
-  
-  val customersJsonV300 = code.api.v3_0_0.CustomerJSONs(List(customerJsonV300))
-  
-  val customerWithAttributesJsonV300 = CustomerWithAttributesJsonV300(
-    bank_id = bankIdExample.value,
-    customer_id = ExampleValue.customerIdExample.value,
-    customer_number = ExampleValue.customerNumberExample.value,
-    legal_name = ExampleValue.legalNameExample.value,
-    mobile_phone_number = ExampleValue.mobileNumberExample.value,
-    email = ExampleValue.emailExample.value,
-    face_image = customerFaceImageJson,
-    date_of_birth = "19900101",
-    relationship_status = ExampleValue.relationshipStatusExample.value,
-    dependants = ExampleValue.dependentsExample.value.toInt,
-    dob_of_dependants = List("19900101"),
-    credit_rating = Option(customerCreditRatingJSON),
-    credit_limit = Option(amountOfMoneyJsonV121),
-    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
-    employment_status = ExampleValue.employmentStatusExample.value,
-    kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
-    last_ok_date = DateWithDayExampleObject,
-    title  = ExampleValue.titleExample.value,
-    branch_id = ExampleValue.branchIdExample.value,
-    name_suffix = ExampleValue.nameSuffixExample.value,
-    customer_attributes = List(customerAttributeResponseJson)
-  )
 
-  val customersWithAttributesJsonV300 = CustomersWithAttributesJsonV300(List(customerWithAttributesJsonV300))
+  val customersJsonV300 = code.api.v3_0_0.CustomerJSONs(List(customerJsonV300))
   
   val postCustomerJsonV310 =
     PostCustomerJsonV310(
@@ -2122,6 +2096,32 @@ object SwaggerDefinitionsJSON {
     name_suffix = ExampleValue.nameSuffixExample.value,
     customer_attributes = List(customerAttributeResponseJson)
   )
+
+  val customerWithAttributesJsonV300 = CustomerWithAttributesJsonV300(
+    bank_id = bankIdExample.value,
+    customer_id = ExampleValue.customerIdExample.value,
+    customer_number = ExampleValue.customerNumberExample.value,
+    legal_name = ExampleValue.legalNameExample.value,
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
+    email = ExampleValue.emailExample.value,
+    face_image = customerFaceImageJson,
+    date_of_birth = "19900101",
+    relationship_status = ExampleValue.relationshipStatusExample.value,
+    dependants = ExampleValue.dependentsExample.value.toInt,
+    dob_of_dependants = List("19900101"),
+    credit_rating = Option(customerCreditRatingJSON),
+    credit_limit = Option(amountOfMoneyJsonV121),
+    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+    employment_status = ExampleValue.employmentStatusExample.value,
+    kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
+    last_ok_date = DateWithDayExampleObject,
+    title  = ExampleValue.titleExample.value,
+    branch_id = ExampleValue.branchIdExample.value,
+    name_suffix = ExampleValue.nameSuffixExample.value,
+    customer_attributes = List(customerAttributeResponseJson)
+  )
+
+  val customersWithAttributesJsonV300 = CustomersWithAttributesJsonV300(List(customerWithAttributesJsonV300))
 
   val putUpdateCustomerDataJsonV310 = PutUpdateCustomerDataJsonV310(
     face_image = customerFaceImageJson,
@@ -3631,8 +3631,7 @@ object SwaggerDefinitionsJSON {
     product_code = accountTypeExample.value,
     balance =  amountOfMoneyJsonV121,
     branch_id  = branchIdExample.value,
-    account_routing = accountRoutingJsonV121,
-    account_attributes=  List(accountAttributeResponseJson)
+    account_routing = accountRoutingJsonV121
   )
   
   val postAccountAccessJsonV400 = PostAccountAccessJsonV400(userIdExample.value, PostViewJsonV400(ExampleValue.viewIdExample.value, true))
