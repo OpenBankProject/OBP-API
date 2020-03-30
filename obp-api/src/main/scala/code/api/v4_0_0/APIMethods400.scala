@@ -2846,7 +2846,7 @@ trait APIMethods400 {
           } yield {
             val swaggerJson = parse(dynamicEndpoint.swaggerString)
             val responseJson: JObject = ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
-            (responseJson, HttpCode.`201`(callContext))
+            (responseJson, HttpCode.`200`(callContext))
           }
       }
     }
