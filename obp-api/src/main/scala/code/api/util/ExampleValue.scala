@@ -367,11 +367,11 @@ object ExampleValue {
       |  "swagger": "2.0",
       |  "info": {
       |    "version": "0.0.1",
-      |    "title": "Portus EVS sandbox demo API",
-      |    "description": "Portus EVS sandbox demo API",
+      |    "title": "Example Title",
+      |    "description": "Example Description",
       |    "contact": {
-      |      "name": "Digital & FinTech, Grant Thornton",
-      |      "email": "peng.xu@ie.gt.com",
+      |      "name": "Example Company",
+      |      "email": " simon@example.com",
       |      "url": "https://www.tesobe.com/"
       |    }
       |  },
