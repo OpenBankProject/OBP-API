@@ -19,7 +19,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.reflect.runtime.universe.{MethodSymbol, Type, typeOf}
 import code.api.util.ErrorMessages.InvalidConnectorResponseForMissingRequiredValues
 import code.api.util.APIUtil.fullBoxOrException
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion, ReflectUtils}
 import com.openbankproject.commons.util.ReflectUtils._
 import com.openbankproject.commons.util.Functions.Implicits._
 import net.liftweb.util.ThreadGlobal
@@ -193,7 +193,8 @@ package object bankconnectors extends MdcLoggable {
 
     processObj match {
       case None => None
-      case Some(value) => {
+
+      case Some(value) if ReflectUtils.isObpObject(value) => {
         val argNameToValues: Map[String, Any] = getConstructorArgs(value)
         //find from current object constructor args
         // orElse: if current object constructor args not found value, recursive search args
@@ -206,6 +207,8 @@ package object bankconnectors extends MdcLoggable {
               .find(it => it.isDefined)
           }
       }
+
+      case _ => None
     }
   }
 
