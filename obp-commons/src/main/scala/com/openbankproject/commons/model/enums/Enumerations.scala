@@ -114,3 +114,21 @@ object LanguageParam extends OBPEnumeration[LanguageParam] {
   object EN extends Value
   object ZH extends Value
 }
+
+
+sealed trait AttributeType extends EnumValue
+object AttributeType extends OBPEnumeration[AttributeType]{
+  object STRING extends Value
+  object INTEGER extends Value
+  object DOUBLE extends Value
+  object DATE_WITH_DAY extends Value
+}
+
+sealed trait AttributeCategory extends EnumValue
+object AttributeCategory extends OBPEnumeration[AttributeCategory]{
+  object Customer extends Value
+  object Product extends Value
+  object Account extends Value
+  object Transaction extends Value
+  object Card extends Value
+}

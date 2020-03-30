@@ -13,6 +13,8 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue.{dynamicEndpointRequestBodyExample, dynamicEndpointResponseBodyExample, dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
+import code.api.util.newstyle.AttributeDefinition._
+import code.api.util.newstyle.Consumer._
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
@@ -40,7 +42,7 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType, TransactionAttributeType}
+import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType, CustomerAttributeType, DynamicEntityFieldType, TransactionAttributeType}
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Failure, Full}
@@ -2696,7 +2698,6 @@ trait APIMethods400 {
     lazy val createConsumer: OBPEndpoint = {
       case "management" :: "consumers" :: Nil JsonPost json -> _ => {
         cc =>
-          import code.api.util.newstyle.consumer.createConsumerNewStyle
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
@@ -2909,6 +2910,714 @@ trait APIMethods400 {
         }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      createOrUpdateCustomerAttributeAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(createOrUpdateCustomerAttributeAttributeDefinition),
+      "PUT",
+      "/banks/BANK_ID/attribute-definitions/customer",
+      "Create or Update Customer Attribute Definition",
+      s""" Create or Update Customer Attribute Definition
+         |
+         |The category field must be one of: ${AttributeCategory.Customer}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      templateAttributeDefinitionJsonV400,
+      templateAttributeDefinitionResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canCreateCustomerAttributeDefinitionAtOneBank)))
+
+    lazy val createOrUpdateCustomerAttributeAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "customer" :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDefinitionJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+              s"${AttributeCategory.Customer}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDefiniion, callContext) <- createOrUpdateAttributeDefinition(
+              bankId,
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.can_be_seen_on_views,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefiniion), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      createOrUpdateAccountAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(createOrUpdateAccountAttributeDefinition),
+      "PUT",
+      "/banks/BANK_ID/attribute-definitions/account",
+      "Create or Update Account Attribute Definition",
+      s""" Create or Update Account Attribute Definition
+         |
+         |The category field must be ${AttributeCategory.Account}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      accountAttributeDefinitionJsonV400,
+      accountAttributeDefinitionResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagNewStyle),
+      Some(List(canCreateAccountAttributeDefinitionAtOneBank)))
+
+    lazy val createOrUpdateAccountAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "account" :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDefinitionJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+              s"${AttributeCategory.Account}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDefiniion, callContext) <- createOrUpdateAttributeDefinition(
+              bankId,
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.can_be_seen_on_views,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefiniion), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      createOrUpdateProductAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(createOrUpdateProductAttributeDefinition),
+      "PUT",
+      "/banks/BANK_ID/attribute-definitions/product",
+      "Create or Update Product Attribute Definition",
+      s""" Create or Update Product Attribute Definition
+         |
+         |The category field must be ${AttributeCategory.Product}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productAttributeDefinitionJsonV400,
+      productAttributeDefinitionResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canCreateProductAttributeDefinitionAtOneBank)))
+
+    lazy val createOrUpdateProductAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "product" :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDefinitionJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+              s"${AttributeCategory.Product}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDefiniion, callContext) <- createOrUpdateAttributeDefinition(
+              bankId,
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.can_be_seen_on_views,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefiniion), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createOrUpdateTransactionAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(createOrUpdateTransactionAttributeDefinition),
+      "PUT",
+      "/banks/BANK_ID/attribute-definitions/transaction",
+      "Create or Update Transaction Attribute Definition",
+      s""" Create or Update Transaction Attribute Definition
+         |
+         |The category field must be ${AttributeCategory.Transaction}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      transactionAttributeDefinitionJsonV400,
+      transactionAttributeDefinitionResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canCreateTransactionAttributeDefinitionAtOneBank)))
+
+    lazy val createOrUpdateTransactionAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "transaction" :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDefinitionJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+              s"${AttributeCategory.Transaction}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDefiniion, callContext) <- createOrUpdateAttributeDefinition(
+              bankId,
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.can_be_seen_on_views,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefiniion), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      createOrUpdateCardAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(createOrUpdateCardAttributeDefinition),
+      "PUT",
+      "/banks/BANK_ID/attribute-definitions/card",
+      "Create or Update Card Attribute Definition",
+      s""" Create or Update Card Attribute Definition
+         |
+         |The category field must be ${AttributeCategory.Card}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      cardAttributeDefinitionJsonV400,
+      cardAttributeDefinitionResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canCreateCardAttributeDefinitionAtOneBank)))
+
+    lazy val createOrUpdateCardAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "card" :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDefinitionJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+              s"${AttributeCategory.Card}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDefiniion, callContext) <- createOrUpdateAttributeDefinition(
+              bankId,
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.can_be_seen_on_views,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefiniion), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      deleteTransactionAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(deleteTransactionAttributeDefinition),
+      "DELETE",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/transaction",
+      "Delete Transaction Attribute Definition",
+      s""" Delete Transaction Attribute Definition by ATTRIBUTE_DEFINITION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canDeleteTransactionAttributeDefinitionAtOneBank)))
+
+    lazy val deleteTransactionAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "transaction" :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
+              AttributeCategory.withName(AttributeCategory.Transaction.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      deleteCustomerAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(deleteCustomerAttributeDefinition),
+      "DELETE",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/customer",
+      "Delete Customer Attribute Definition",
+      s""" Delete Customer Attribute Definition by ATTRIBUTE_DEFINITION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canDeleteCustomerAttributeDefinitionAtOneBank)))
+
+    lazy val deleteCustomerAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "customer" :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
+              AttributeCategory.withName(AttributeCategory.Customer.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      deleteAccountAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(deleteAccountAttributeDefinition),
+      "DELETE",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/account",
+      "Delete Account Attribute Definition",
+      s""" Delete Account Attribute Definition by ATTRIBUTE_DEFINITION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagNewStyle),
+      Some(List(canDeleteAccountAttributeDefinitionAtOneBank)))
+
+    lazy val deleteAccountAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "account" :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
+              AttributeCategory.withName(AttributeCategory.Account.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      deleteProductAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(deleteProductAttributeDefinition),
+      "DELETE",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/product",
+      "Delete Product Attribute Definition",
+      s""" Delete Product Attribute Definition by ATTRIBUTE_DEFINITION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canDeleteProductAttributeDefinitionAtOneBank)))
+
+    lazy val deleteProductAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "product" :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
+              AttributeCategory.withName(AttributeCategory.Product.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      deleteCardAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(deleteCardAttributeDefinition),
+      "DELETE",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/card",
+      "Delete Card Attribute Definition",
+      s""" Delete Card Attribute Definition by ATTRIBUTE_DEFINITION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canDeleteCardAttributeDefinitionAtOneBank)))
+
+    lazy val deleteCardAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "card" :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
+              AttributeCategory.withName(AttributeCategory.Card.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getProductAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(getProductAttributeDefinition),
+      "GET",
+      "/banks/BANK_ID/attribute-definitions/product",
+      "Get Product Attribute Definition",
+      s""" Get Product Attribute Definition
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      productAttributeDefinitionsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canGetProductAttributeDefinitionAtOneBank)))
+
+    lazy val getProductAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "product" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributeDefiniions, callContext) <- getAttributeDefinition(
+              AttributeCategory.withName(AttributeCategory.Product.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefiniions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getCustomerAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(getCustomerAttributeDefinition),
+      "GET",
+      "/banks/BANK_ID/attribute-definitions/customer",
+      "Get Customer Attribute Definition",
+      s""" Get Customer Attribute Definition
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      customerAttributeDefinitionsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCustomerAttributeDefinitionAtOneBank)))
+
+    lazy val getCustomerAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "customer" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributeDefiniions, callContext) <- getAttributeDefinition(
+              AttributeCategory.withName(AttributeCategory.Customer.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefiniions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getAccountAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(getAccountAttributeDefinition),
+      "GET",
+      "/banks/BANK_ID/attribute-definitions/account",
+      "Get Account Attribute Definition",
+      s""" Get Account Attribute Definition
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      accountAttributeDefinitionsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagNewStyle),
+      Some(List(canGetAccountAttributeDefinitionAtOneBank)))
+
+    lazy val getAccountAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "account" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributeDefiniions, callContext) <- getAttributeDefinition(
+              AttributeCategory.withName(AttributeCategory.Account.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefiniions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getTransactionAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(getTransactionAttributeDefinition),
+      "GET",
+      "/banks/BANK_ID/attribute-definitions/transaction",
+      "Get Transaction Attribute Definition",
+      s""" Get Transaction Attribute Definition
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      transactionAttributeDefinitionsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canGetTransactionAttributeDefinitionAtOneBank)))
+
+    lazy val getTransactionAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "transaction" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributeDefiniions, callContext) <- getAttributeDefinition(
+              AttributeCategory.withName(AttributeCategory.Transaction.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefiniions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      getCardAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(getCardAttributeDefinition),
+      "GET",
+      "/banks/BANK_ID/attribute-definitions/card",
+      "Get Card Attribute Definition",
+      s""" Get Card Attribute Definition
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      cardAttributeDefinitionsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canGetCardAttributeDefinitionAtOneBank)))
+
+    lazy val getCardAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "card" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributeDefiniions, callContext) <- getAttributeDefinition(
+              AttributeCategory.withName(AttributeCategory.Card.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefiniions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
 
   }
 

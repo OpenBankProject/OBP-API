@@ -28,6 +28,7 @@ package code.api.v4_0_0
 
 import java.util.Date
 
+import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
 import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
@@ -259,6 +260,31 @@ case class ConsumerJson(consumer_id: String,
                         enabled: Boolean,
                         created: Date
                        )
+
+case class AttributeDefinitionJsonV400(
+                                        name: String,
+                                        category: String,
+                                        `type`: String,
+                                        description: String,
+                                        alias: String,
+                                        can_be_seen_on_views: List[String],
+                                        is_active: Boolean
+                                      )
+
+case class AttributeDefinitionResponseJsonV400(ATTRIBUTE_DEFINITION_ID: String,
+                                               bank_id: String,
+                                               name: String,
+                                               category: String,
+                                               `type`: String,
+                                               description: String,
+                                               alias: String,
+                                               can_be_seen_on_views: List[String],
+                                               is_active: Boolean
+                                              )
+
+case class AttributeDefinitionsResponseJsonV400(
+                                                 attributes: List[AttributeDefinitionResponseJsonV400]
+                                               )
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
@@ -493,6 +519,25 @@ object JSONFactory400 {
       enabled=c.isActive.get,
       created=c.createdAt.get
     )
+  }
+
+
+  def createAttributeDefinitionJson(attributeDefinition: AttributeDefinition) : AttributeDefinitionResponseJsonV400 = {
+    AttributeDefinitionResponseJsonV400(
+      ATTRIBUTE_DEFINITION_ID = attributeDefinition.attributeDefinitionId,
+      bank_id = attributeDefinition.bankId.value,
+      name = attributeDefinition.name,
+      category = attributeDefinition.category.toString,
+      `type` = attributeDefinition.`type`.toString,
+      description = attributeDefinition.description,
+      can_be_seen_on_views = attributeDefinition.canBeSeenOnViews,
+      alias = attributeDefinition.alias,
+      is_active = attributeDefinition.isActive,
+    )
+  }
+
+  def createAttributeDefinitionsJson(attributeDefinitions: List[AttributeDefinition]) : AttributeDefinitionsResponseJsonV400 = {
+    AttributeDefinitionsResponseJsonV400(attributeDefinitions.map(createAttributeDefinitionJson))
   }
   
 }

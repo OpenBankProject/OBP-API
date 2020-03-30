@@ -89,9 +89,18 @@ object ExampleValue {
   
   lazy val customerAttributeNameExample = ConnectorField("SPECIAL_TAX_NUMBER", s"Customer attribute name")
   glossaryItems += makeGlossaryItem("Customer.attributeName", customerAttributeNameExample)
+  
+  lazy val templateAttributeNameExample = ConnectorField("SPECIAL_TAX_NUMBER", s"Attribute name")
+  glossaryItems += makeGlossaryItem("Template.attributeName", templateAttributeNameExample)
 
   lazy val customerAttributeTypeExample = ConnectorField("STRING", s"Customer attribute type.")
   glossaryItems += makeGlossaryItem("Customer.attributeType", customerAttributeTypeExample)
+  
+  lazy val templateAttributeTypeExample = ConnectorField("STRING", s"Attribute type.")
+  glossaryItems += makeGlossaryItem("Template.attributeType", templateAttributeTypeExample)
+  
+  lazy val attributeAliasExample = ConnectorField("STRING", s"Customer attribute alias.")
+  glossaryItems += makeGlossaryItem("Customer.attributeAlias", attributeAliasExample)
 
   lazy val customerAttributeValueExample = ConnectorField("123456789", s"Customer attribute value.")
   glossaryItems += makeGlossaryItem("Customer.attributeValue", customerAttributeValueExample)
@@ -323,6 +332,8 @@ object ExampleValue {
   // @Simon, whether can make customerLastOkDateExample and outBoundCreateCustomerLastOkDateExample a single one: lastOkDateExample
   // if yes, please rename the follow to lastOkDateExample, and delete outBoundCreateCustomerLastOkDateExample
   lazy val outBoundCreateCustomerLastOkDateExample = ConnectorField("2019-09-12", "fix me, lastOkDate Date string")
+
+  lazy val uuidExample = ConnectorField("9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1", "UUID value")
 
 
   //this is only for dynamicEntity post or request body example
