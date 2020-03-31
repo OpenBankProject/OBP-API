@@ -74,7 +74,7 @@ object DynamicEndpointHelper extends RestHelper {
     private val ExpressionRegx = """\{(.+?)\}""".r
     /**
      * unapply Request to (request url, json, http method, request parameters, path parameters, role)
-     * request url is  current request url
+     * request url is  current request target url to remote server
      * json is request body
      * http method is request http method
      * request parameters is http request parameters
