@@ -220,7 +220,6 @@ object DynamicEndpointHelper extends RestHelper {
           ApiRole.getOrCreateDynamicApiRole(roleName)
         ))
       }
-      val connectorMethods = Some(List("dynamicEndpointProcess"))
       val doc = ResourceDoc(
         partialFunction,
         implementedInApiVersion,
@@ -234,8 +233,7 @@ object DynamicEndpointHelper extends RestHelper {
         errorResponseBodies,
         catalogs,
         tags,
-        roles,
-        connectorMethods = connectorMethods
+        roles
       )
       (doc, path)
     }

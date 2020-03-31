@@ -58,12 +58,14 @@ import code.api.util.APIUtil._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
-import code.util.{Helper, JsonUtils}
+import code.util.JsonUtils
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
-import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation}
+import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json
 import net.liftweb.json.{JValue, _}
+import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Extraction.decompose
+import net.liftweb.json.JsonParser.ParseException
 import org.apache.commons.lang3.StringUtils
 
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
@@ -9382,21 +9384,34 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       case (status, entity) if status.isSuccess() =>
         this.extractBody(entity)
           .map{
-            case v if StringUtils.isBlank(v) => (Empty, callContext)
-            case v => (Full(json.parse(v)), callContext)
+            case v if StringUtils.isBlank(v) =>
+              (Full{
+                ("code", status.intValue()) ~ ("value", JString(""))
+              }, callContext)
+            case v =>
+              (Full{
+                ("code", status.intValue()) ~ ("value", json.parse(v))
+              }, callContext)
           }
       case (status, entity) => {
-        val future: Future[Box[Box[JValue]]] = extractBody(entity) map { msg =>
-          tryo {
-            val failure: Box[JValue] = ParamFailure(msg, APIFailureNewStyle(msg, status.intValue()))
-            failure
-          } ~> APIFailureNewStyle(msg, status.intValue())
+        val future: Future[JObject] = extractBody(entity) map { msg =>
+          try {
+            ("code", status.intValue()) ~ ("value", json.parse(msg))
+          } catch {
+            case _: ParseException => ("code", status.intValue()) ~ ("value", JString(msg))
+          }
         }
-        future.map{
-          case Full(v) => (v, callContext)
-          case e: EmptyBox => (e, callContext)
+        future.map { jObject =>
+          (Full(jObject), callContext)
         }
       }
+    }.recoverWith {
+      case e: Exception if e.getMessage.contains(s"$httpRequestTimeout seconds") =>
+        Future.failed(
+          new Exception(s"$AdapterTimeOurError Please Check Adapter Side, the response should be returned to OBP-Side in $httpRequestTimeout seconds. Details: ${e.getMessage}", e)
+        )
+      case e: Exception =>
+        Future.failed(new Exception(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}", e))
     }
 
     result
