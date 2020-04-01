@@ -1326,7 +1326,7 @@ trait APIMethods400 {
             // Format the data as V2.0.0 json
             if (isSuperAdmin(userId)) {
               // If the user is SuperAdmin add it to the list
-              json = EntitlementJSONs(JSONFactory200.createEntitlementJSONs(entitlements).list:::List(EntitlementJSON("", "SuperAdmin", "")))
+              json = JSONFactory200.addedSuperAdminEntitlementJson(entitlements)
             } else {
               json = JSONFactory200.createEntitlementJSONs(entitlements)
             }
@@ -2778,8 +2778,8 @@ trait APIMethods400 {
       nameOf(createDynamicEndpoint),
       "POST",
       "/management/dynamic-endpoints",
-      " Create DynamicEndpoint",
-      s"""Create a DynamicEndpoint.
+      " Create Dynamic Endpoint",
+      s"""Create a Dynamic Endpoint.
          |
          |Create one DynamicEndpoint,
          |
@@ -2828,8 +2828,8 @@ trait APIMethods400 {
       nameOf(getDynamicEndpoint),
       "GET",
       "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
-      " Get DynamicEndpoint",
-      s"""Get a DynamicEndpoint.
+      " Get Dynamic Endpoint",
+      s"""Get a Dynamic Endpoint.
          |
          |
          |Get one DynamicEndpoint,
@@ -2867,10 +2867,10 @@ trait APIMethods400 {
       nameOf(getDynamicEndpoints),
       "GET",
       "/management/dynamic-endpoints",
-      " Get DynamicEndpoints",
+      " Get Dynamic Endpoints",
       s"""
          |
-         |Get DynamicEndpoints.
+         |Get Dynamic Endpoints.
          |
          |""",
       emptyObjectJson,

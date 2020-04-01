@@ -1648,7 +1648,7 @@ object SwaggerDefinitionsJSON {
 
   val createEntitlementJSON = CreateEntitlementJSON(
     bank_id = bankIdExample.value,
-    role_name = "String"
+    role_name = CanCreateBranch.toString()
   )
 
   val coreCounterpartyJSON = CoreCounterpartyJSON(

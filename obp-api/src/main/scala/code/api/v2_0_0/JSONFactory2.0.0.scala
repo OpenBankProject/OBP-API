@@ -837,6 +837,10 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
           ))
     )))
 
+  def addedSuperAdminEntitlementJson(entitlements: List[Entitlement]) = {
+    EntitlementJSONs(JSONFactory200.createEntitlementJSONs(entitlements).list ::: List(EntitlementJSON("", "SuperAdmin", "")))
+  }
+
 
 
 
