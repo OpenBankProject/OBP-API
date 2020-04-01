@@ -1998,7 +1998,9 @@ trait APIMethods200 {
             allowedEntitlements = canCreateEntitlementAtOneBank ::
                                   canCreateEntitlementAtAnyBank ::
                                   Nil
-            _ <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~! { UserNotSuperAdminOrMissRole + allowedEntitlements.mkString(", ") + "!" }
+            _ <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~! {
+              UserNotSuperAdmin +" or" + UserHasMissingRoles + canCreateEntitlementAtOneBank + s" BankId(${postedData.bank_id})." + " or" + UserHasMissingRoles + canCreateEntitlementAtAnyBank
+            }
             _ <- booleanToBox(postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), Some(cc)).map(_._1).isEmpty == false) ?~! BankNotFound
             _ <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, EntitlementAlreadyExists )
             addedEntitlement <- Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
