@@ -456,8 +456,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def errorJsonResponse(message : String = "error", httpCode : Int = 400)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
+    val forbidden = message.contains(UserHasMissingRoles) || 
+      message.contains(UserNoPermissionAccessView) || 
+      message.contains(UserHasMissingRoles) ||
+      message.contains(UserNotSuperAdminOrMissRole) ||
+      message.contains(ConsumerHasMissingRoles)
     val code =
-      message.contains(UserHasMissingRoles) match {
+      forbidden match {
         case true =>
           403
         case _ =>
