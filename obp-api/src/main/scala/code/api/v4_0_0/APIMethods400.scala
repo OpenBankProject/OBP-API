@@ -1326,7 +1326,7 @@ trait APIMethods400 {
             // Format the data as V2.0.0 json
             if (isSuperAdmin(userId)) {
               // If the user is SuperAdmin add it to the list
-              json = EntitlementJSONs(JSONFactory200.createEntitlementJSONs(entitlements).list:::List(EntitlementJSON("", "SuperAdmin", "")))
+              json = JSONFactory200.addedSuperAdminEntitlementJson(entitlements)
             } else {
               json = JSONFactory200.createEntitlementJSONs(entitlements)
             }
