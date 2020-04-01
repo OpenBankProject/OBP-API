@@ -1718,7 +1718,7 @@ trait APIMethods310 {
       """.stripMargin,
       emptyObjectJson,
       entitlementJSONs,
-      List(UserNotLoggedIn, UserNotSuperAdmin, UnknownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagNewStyle))
 
@@ -1728,8 +1728,8 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
-              isSuperAdmin(u.userId)
+            _ <- Helper.booleanToFuture(failMsg =  UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank) {
+              hasEntitlement("", u.userId, canGetEntitlementsForAnyUserAtAnyBank)
             }
             roleName = APIUtil.getHttpRequestUrlParam(cc.url, "role")
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByRoleFuture(roleName) map {
