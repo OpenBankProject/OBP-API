@@ -51,16 +51,16 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       responseGet.code should equal(200)
     }
 
-    scenario("We try to delete some entitlement as a super admin - deleteEntitlement") {
+    scenario("We try to delete some entitlement - deleteEntitlement") {
       When("We add required entitlement")
       val ent = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString).openOrThrowException(attemptedToOpenAnEmptyBox)
       And("We make the request")
       val requestDelete = (v2_0Request / "users" / resourceUser1.userId / "entitlement" / ent.entitlementId).DELETE <@ (user1)
+      And("We grant the role to the user")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canDeleteEntitlementAtAnyBank.toString)
       val responseDelete = makeDeleteRequest(requestDelete)
-      Then("We should get a 400")
-      responseDelete.code should equal(400)
-      And("We should get a message: " + ErrorMessages.UserNotSuperAdmin)
-      responseDelete.body.extract[ErrorMessage].message should equal (ErrorMessages.UserNotSuperAdmin)
+      Then("We should get a 204")
+      responseDelete.code should equal(204)
     }
   }
 
