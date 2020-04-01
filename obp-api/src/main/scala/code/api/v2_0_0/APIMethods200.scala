@@ -2070,7 +2070,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UserNotSuperAdmin, EntitlementNotFound, UnknownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, EntitlementNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagUser, apiTagEntitlement))
 
@@ -2080,7 +2080,7 @@ trait APIMethods200 {
         cc =>
             for {
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
-              _ <- booleanToBox(isSuperAdmin(u.userId)) ?~ UserNotSuperAdmin
+              _ <- booleanToBox(hasEntitlement("", u.userId, canDeleteEntitlementAtAnyBank), UserHasMissingRoles + CanDeleteEntitlementAtAnyBank)
               entitlement <- tryo{Entitlement.entitlement.vend.getEntitlementById(entitlementId)} ?~ EntitlementNotFound
               _ <- entitlement.filter(_.userId == userId) ?~ UserDoesNotHaveEntitlement
               _ <- Entitlement.entitlement.vend.deleteEntitlement(entitlement)
@@ -2115,8 +2115,8 @@ trait APIMethods200 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
-              isSuperAdmin(u.userId)
+            _ <- Helper.booleanToFuture(failMsg =  UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank) {
+              hasEntitlement("", u.userId, canGetEntitlementsForAnyUserAtAnyBank)
             }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsFuture() map {
               connectorEmptyResponse(_, callContext)
