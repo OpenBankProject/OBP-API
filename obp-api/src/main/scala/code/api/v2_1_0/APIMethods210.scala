@@ -594,7 +594,7 @@ trait APIMethods210 {
         UserNoPermissionAccessView,
         TransactionRequestStatusNotInitiated,
         TransactionRequestTypeHasChanged,
-        InvalidTransactionRequesChallengeId,
+        InvalidTransactionRequestChallengeId,
         AllowedAttemptsUsedUp,
         TransactionDisabled,
         UnknownError
@@ -638,7 +638,7 @@ trait APIMethods210 {
               }
               
               // Check the challengeId is valid for this existingTransactionRequest
-              _ <- Helper.booleanToFuture(s"${InvalidTransactionRequesChallengeId}") {
+              _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
                 existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
               }
               
