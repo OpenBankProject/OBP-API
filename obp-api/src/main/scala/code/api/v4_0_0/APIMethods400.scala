@@ -3242,7 +3242,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransaction, apiTagNewStyle),
+      List(apiTagCard, apiTagNewStyle),
       Some(List(canCreateCardAttributeDefinitionAtOneBank)))
 
     lazy val createOrUpdateCardAttributeDefinition : OBPEndpoint = {
@@ -3458,7 +3458,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagProduct, apiTagNewStyle),
+      List(apiTagCard, apiTagNewStyle),
       Some(List(canDeleteCardAttributeDefinitionAtOneBank)))
 
     lazy val deleteCardAttributeDefinition : OBPEndpoint = {
@@ -3650,7 +3650,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransaction, apiTagNewStyle),
+      List(apiTagCard, apiTagNewStyle),
       Some(List(canGetCardAttributeDefinitionAtOneBank)))
 
     lazy val getCardAttributeDefinition : OBPEndpoint = {
