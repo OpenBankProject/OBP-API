@@ -1365,7 +1365,7 @@ trait APIMethods200 {
         InvalidJsonFormat,
         InvalidTransactionRequestId,
         TransactionRequestTypeHasChanged,
-        InvalidTransactionRequesChallengeId,
+        InvalidTransactionRequestChallengeId,
         TransactionRequestStatusNotInitiated,
         TransactionDisabled,
         UnknownError
@@ -1399,7 +1399,7 @@ trait APIMethods200 {
               _ <- booleanToBox(existingTransactionRequestType.equals(transactionRequestType.value),s"${ErrorMessages.TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType' ")
 
               //check the challenge id is same as when the user create the existingTransactionRequest
-              _ <- booleanToBox(existingTransactionRequest.challenge.id.equals(answerJson.id),{ErrorMessages.InvalidTransactionRequesChallengeId})
+              _ <- booleanToBox(existingTransactionRequest.challenge.id.equals(answerJson.id),{ErrorMessages.InvalidTransactionRequestChallengeId})
 
               //check the challenge statue whether is initiated, only retreive INITIATED transaction requests.
               _ <- booleanToBox(existingTransactionRequest.status.equals("INITIATED"),ErrorMessages.TransactionRequestStatusNotInitiated)
