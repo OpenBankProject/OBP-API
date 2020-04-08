@@ -456,8 +456,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def errorJsonResponse(message : String = "error", httpCode : Int = 400)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
+    val forbidden = message.contains(UserHasMissingRoles) || 
+      message.contains(UserNoPermissionAccessView) || 
+      message.contains(UserHasMissingRoles) ||
+      message.contains(UserNotSuperAdminOrMissRole) ||
+      message.contains(ConsumerHasMissingRoles)
     val code =
-      message.contains(UserHasMissingRoles) match {
+      forbidden match {
         case true =>
           403
         case _ =>
@@ -2580,7 +2585,9 @@ Returns a string showed to the developer
     val sysEnvironmentPropertyName = sysEnvironmentPropertyNamePrefix.concat(brandSpecificPropertyName.replace('.', '_').toUpperCase())
     val sysEnvironmentPropertyValue: Box[String] = tryo{sys.env(sysEnvironmentPropertyName)}
     sysEnvironmentPropertyValue match {
-      case Full(_) => sysEnvironmentPropertyValue
+      case Full(_) =>
+        logger.debug("System environment property value found for: " + sysEnvironmentPropertyName)
+        sysEnvironmentPropertyValue
       case _  =>
         (Props.get(brandSpecificPropertyName), Props.get(brandSpecificPropertyName + ".is_encrypted"), Props.get(brandSpecificPropertyName + ".is_obfuscated") ) match {
           case (Full(base64PropsValue), Full(isEncrypted), Empty)  if isEncrypted == "true" =>

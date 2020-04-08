@@ -104,10 +104,16 @@ package object bankconnectors extends MdcLoggable {
         NewStyle.function.getMethodRoutings(Some(methodName))
           .find(routing => {
             routing.parameters.exists(it => it.key == "http_method" && it.value.equalsIgnoreCase(method.value)) &&
-              routing.parameters.exists(it => it.key == "url")&&
+              routing.parameters.exists(it => it.key == "url") &&
               routing.parameters.exists(
-                it => it.key == "url_pattern" &&
-                  (it.value == url || Pattern.compile(it.value).matcher(url).matches())
+                it => {
+                  val value = it.value
+                  it.key == "url_pattern" &&  // url_pattern is equals with current target url to remote server or as regex match
+                    (value == url || {
+                      val regexStr = value.replaceAll("""\{[^/]+?\}""", "[^/]+?")
+                      Pattern.compile(regexStr).matcher(url).matches()
+                    })
+                }
               )
           })
       }

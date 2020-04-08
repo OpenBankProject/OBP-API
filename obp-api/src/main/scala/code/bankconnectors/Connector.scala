@@ -930,22 +930,27 @@ trait Connector extends MdcLoggable {
           }
         case TransactionRequestStatus.INITIATED =>
           def getUsersForChallenges(bankId: BankId,
-                                    accountId: AccountId) = {
+                                    accountId: AccountId): Future[Box[List[User]]] = {
             Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None) map {
               _._1.map {
                 x =>
                   {
                     if(x.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt > 1) {
-                      for (
+                      val usersForChallenge: List[Option[User]] = for (
+                        // List all users with grated access to views on this bank account
+                        // in form (user : User, views : List[View])
                         permission <- Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
                       ) yield {
+                        // Check the user has granted view with action canAddTransactionRequestToAnyAccount
+                        // in case it's true the a challenge will be sent to it 
                         permission.views.exists(_.canAddTransactionRequestToAnyAccount == true) match {
                           case true => Some(permission.user)
                           case _ => None
                         }
                       }
+                      Some(initiator) :: usersForChallenge
                     } else List(Some(initiator))
-                    }.flatten.distinct
+                  }.flatten.distinct
               }
             }
           }

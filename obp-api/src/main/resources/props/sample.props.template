@@ -485,9 +485,18 @@ apiOptions.getCurrentFxRateIsPublic = true
 defaultBank.bank_id=THE_DEFAULT_BANK_ID
 
 
-## Super Admin Users (not database so we don't have to edit database)
-super_admin_user_ids=USER_ID1,USER_ID2,
 
+################################################################################
+## Super Admin Users are used to boot strap User Entitlements (access to Roles).
+## Super Admins are receive **ONLY TWO** implicit entitlements which are:
+## CanCreateEntitlementAtAnyBank
+## and
+## CanCreateEntitlementAtOneBank
+## THUS, probably the first thing a Super Admin will do is to grant themselves or other users a number of Roles
+## For instance, a Super Admin *CANNOT delete an entitlement* unless they grant themselves CanDeleteEntitlementAtAnyBank or CanDeleteEntitlementAtOneBank
+## List the Users here, with their user_id(s), that should be Super Admins
+super_admin_user_ids=USER_ID1,USER_ID2,
+################################################################################
 
 
 ######## Enable / Disable Versions and individual endpoints. ########

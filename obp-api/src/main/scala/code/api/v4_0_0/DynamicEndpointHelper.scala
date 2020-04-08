@@ -74,7 +74,7 @@ object DynamicEndpointHelper extends RestHelper {
     private val ExpressionRegx = """\{(.+?)\}""".r
     /**
      * unapply Request to (request url, json, http method, request parameters, path parameters, role)
-     * request url is  current request url
+     * request url is  current request target url to remote server
      * json is request body
      * http method is request http method
      * request parameters is http request parameters
@@ -220,7 +220,6 @@ object DynamicEndpointHelper extends RestHelper {
           ApiRole.getOrCreateDynamicApiRole(roleName)
         ))
       }
-      val connectorMethods = Some(List("dynamicEndpointProcess"))
       val doc = ResourceDoc(
         partialFunction,
         implementedInApiVersion,
@@ -234,8 +233,7 @@ object DynamicEndpointHelper extends RestHelper {
         errorResponseBodies,
         catalogs,
         tags,
-        roles,
-        connectorMethods = connectorMethods
+        roles
       )
       (doc, path)
     }

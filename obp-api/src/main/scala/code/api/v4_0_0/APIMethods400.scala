@@ -710,7 +710,7 @@ trait APIMethods400 {
         $BankAccountNotFound,
         TransactionRequestStatusNotInitiated,
         TransactionRequestTypeHasChanged,
-        InvalidTransactionRequesChallengeId,
+        InvalidTransactionRequestChallengeId,
         AllowedAttemptsUsedUp,
         TransactionDisabled,
         UnknownError
@@ -741,7 +741,7 @@ trait APIMethods400 {
             // Check transReqId is valid
             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transReqId, cc.callContext)
 
-            // Check the Transaction Request is still INITIATED
+            // Check the Transaction Request is still INITIATED or NEXT_CHALLENGE_PENDING
             _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiatedOrPending) {
               existingTransactionRequest.status.equals(TransactionRequestStatus.INITIATED.toString) ||
               existingTransactionRequest.status.equals(TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
@@ -754,19 +754,19 @@ trait APIMethods400 {
             }
 
             // Check the challengeId is valid for this existingTransactionRequest
-            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequesChallengeId}") {
+            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
               existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
               MappedExpectedChallengeAnswer
                 .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
                 .exists(_.challengeId == challengeAnswerJson.id)
             }
 
-            //Check the allowed attemps, Note: not support yet, the default value is 3
+            //Check the allowed attempts, Note: not supported yet, the default value is 3
             _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}") {
               existingTransactionRequest.challenge.allowed_attempts > 0
             }
 
-            //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
+            //Check the challenge type, Note: not supported yet, the default value is SANDBOX_TAN
             _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ") {
               List(
                 OTP_VIA_API.toString,
@@ -2946,9 +2946,14 @@ trait APIMethods400 {
           (box, _) <- NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
         } yield {
           box match {
-            case Full(v) => (v, HttpCode.`200`(Some(cc)))
-            case e: Failure => (e.messageChain, HttpCode.`200`(Some(cc))) // TODO code need change
-            case _ => ("fail", HttpCode.`200`(Some(cc)))
+            case Full(v) =>
+              val code = (v \ "code").asInstanceOf[JInt].num.toInt
+              (v \ "value", callContext.map(_.copy(httpCode = Some(code))))
+
+            case e: Failure =>
+              val changedMsgFailure = e.copy(msg = s"$InternalServerError ${e.msg}")
+              fullBoxOrException[JValue](changedMsgFailure)
+              ??? // will not execute to here, Because the failure message is thrown by upper line.
           }
 
         }
@@ -3237,7 +3242,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransaction, apiTagNewStyle),
+      List(apiTagCard, apiTagNewStyle),
       Some(List(canCreateCardAttributeDefinitionAtOneBank)))
 
     lazy val createOrUpdateCardAttributeDefinition : OBPEndpoint = {
@@ -3453,7 +3458,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagProduct, apiTagNewStyle),
+      List(apiTagCard, apiTagNewStyle),
       Some(List(canDeleteCardAttributeDefinitionAtOneBank)))
 
     lazy val deleteCardAttributeDefinition : OBPEndpoint = {
@@ -3645,7 +3650,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransaction, apiTagNewStyle),
+      List(apiTagCard, apiTagNewStyle),
       Some(List(canGetCardAttributeDefinitionAtOneBank)))
 
     lazy val getCardAttributeDefinition : OBPEndpoint = {

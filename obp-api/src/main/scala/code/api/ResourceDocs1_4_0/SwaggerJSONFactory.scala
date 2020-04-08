@@ -187,7 +187,7 @@ object SwaggerJSONFactory {
     def setReferenceObject(rd: ResourceDoc): Option[ResponseObjectSchemaJson] = {
       val caseClassName = rd.successResponseBody match {
         case s:scala.Product => s.getClass.getSimpleName
-        case _ => "NoSupportYet"
+        case _ => "NotSupportedYet"
       }
       Some(ResponseObjectSchemaJson(s"#/definitions/${caseClassName}"))
     }
@@ -402,7 +402,7 @@ object SwaggerJSONFactory {
             parameters ={
               val caseClassName = rd.exampleRequestBody match {
                 case s:scala.Product => s.getClass.getSimpleName
-                case _ => "NoSupportYet"
+                case _ => "NotSupportedYet"
               }//Here we only use `EmptyClassJson` to make sure the json body. now, for connector swagger, the get method also has body.
 //              if ("EmptyClassJson".equals(caseClassName)){
 //                pathParameters
