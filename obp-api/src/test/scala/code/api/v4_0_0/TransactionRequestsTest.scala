@@ -111,9 +111,9 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
       //prepare for counterparty and SEPA stuff
       //For SEPA, otherAccountRoutingScheme must be 'IBAN'
-      val counterpartySEPA = createCounterparty(bankId.value, accountId2.value, "IBAN", "IBAN", true, UUID.randomUUID.toString);
+      val counterpartySEPA = createCounterparty(bankId.value, accountId2.value, true, UUID.randomUUID.toString);
       //For Counterpart local mapper, the  mOtherAccountRoutingScheme='OBP' and  mOtherBankRoutingScheme = 'OBP'
-      val counterpartyCounterparty = createCounterparty(bankId.value, accountId2.value, "IBAN", "OBP", true, UUID.randomUUID.toString);
+      val counterpartyCounterparty = createCounterparty(bankId.value, accountId2.value, true, UUID.randomUUID.toString);
 
       var transactionRequestBodySEPA = TransactionRequestBodySEPAJSON(bodyValue, IbanJson(counterpartySEPA.otherAccountSecondaryRoutingAddress), description, sharedChargePolicy)
 
