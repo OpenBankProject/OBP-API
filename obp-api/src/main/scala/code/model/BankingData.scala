@@ -499,15 +499,23 @@ object BankAccountX {
     * @return BankAccount
     */
   def toBankAccount(counterparty: CounterpartyTrait) : Box[BankAccount] = {
-    if (APIUtil.isSandboxMode)
+    if (counterparty.otherBankRoutingScheme =="OBP_BANK_ID" && counterparty.otherAccountRoutingScheme =="OBP_ACCOUNT_ID")
       for{
         toBankId <- Full(BankId(counterparty.otherBankRoutingAddress))
         toAccountId <- Full(AccountId(counterparty.otherAccountRoutingAddress))
-        toAccount <- BankAccountX(toBankId, toAccountId) ?~! s"${ErrorMessages.CounterpartyNotFound} Current Value: BANK_ID(counterparty.otherBankRoutingAddress=$toBankId) and ACCOUNT_ID(counterparty.otherAccountRoutingAddress=$toAccountId), please use correct OBP BankAccount to create the Counterparty.!!!!! "
+        toAccount <- BankAccountX(toBankId, toAccountId) ?~! s"${ErrorMessages.BankNotFound} Current Value: BANK_ID(counterparty.otherBankRoutingAddress=$toBankId) and ACCOUNT_ID(counterparty.otherAccountRoutingAddress=$toAccountId), please use correct OBP BankAccount to create the Counterparty.!!!!! "
       } yield{
         toAccount
       }
-    else
+    else if (counterparty.otherBankRoutingScheme =="OBP_BANK_ID" && counterparty.otherAccountSecondaryRoutingScheme == "OBP_ACCOUNT_ID")
+      for{
+        toBankId <- Full(BankId(counterparty.otherBankRoutingAddress))
+        toAccountId <- Full(AccountId(counterparty.otherAccountSecondaryRoutingAddress))
+        toAccount <- BankAccountX(toBankId, toAccountId) ?~! s"${ErrorMessages.BankNotFound} Current Value: BANK_ID(counterparty.otherBankRoutingAddress=$toBankId) and ACCOUNT_ID(counterparty.otherAccountRoutingAddress=$toAccountId), please use correct OBP BankAccount to create the Counterparty.!!!!! "
+      } yield{
+        toAccount
+      }
+    else  //If we can not create the `BankAccount` from the counterparty, then we just faked the object in memory. 
       Full(
         BankAccountInMemory(
 
@@ -523,7 +531,7 @@ object BankAccountX {
           ),
 
 
-          //Can not get from counterparty
+         
           bankId = BankId(""),
           accountId = AccountId(""),
           accountType = null,
