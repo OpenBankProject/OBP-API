@@ -1038,7 +1038,7 @@ trait APIMethods220 {
          |
          |is_beneficiary : must be set to `true` in order to send payments to this counterparty
          |
-         |bespoke: It support list of key-value, you can add it to the counterparty.
+         |bespoke: It supports a list of key-value, you can add it to the counterparty.
          |
          |bespoke.key : any info-key you want to add to this counterparty
          | 
