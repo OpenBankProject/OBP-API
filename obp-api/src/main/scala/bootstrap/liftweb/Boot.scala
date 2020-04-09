@@ -281,7 +281,15 @@ class Boot extends MdcLoggable {
     LiftRules.addToPackages("code")
 
     
-
+    // H2 web console
+    // Help accessing H2 from outside Lift, and be able to run any queries against it.
+    // It's enabled only in Dev and Test mode
+    if (Props.devMode || Props.testMode) {
+      LiftRules.liftRequest.append({case r if (r.path.partPath match {
+        case "console" :: _ => true
+        case _ => false}
+        ) => false})
+    }
 
     /**
       * Function that determines if foreign key constraints are
