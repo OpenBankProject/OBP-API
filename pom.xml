@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.tesobe</groupId>
   <artifactId>obp-parent</artifactId>
-  <version>1.4.0</version>
+  <version>1.4.1</version>
   <packaging>pom</packaging>
   <name>Open Bank Project API Parent</name>
   <inceptionYear>2011</inceptionYear>
@@ -85,6 +85,16 @@
         <groupId>net.liftweb</groupId>
         <artifactId>lift-common_${scala.version}</artifactId>
         <version>${lift.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-collections4</artifactId>
+        <version>4.4</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>3.10</version>
       </dependency>
       <dependency>
         <groupId>org.scalatest</groupId>
