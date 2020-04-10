@@ -785,3 +785,10 @@ dynamic_endpoints_url_prefix=dynamic
 # In case is not defined default value is 5
 # max.bad.login.attempts=5
 # --------------------------------------------------------------------
+
+# --- Cookies --------------------------------------------------------------
+# Defines use of the cookie consent kit
+# In case is not defined default value is false
+# display_accept_cookies_question = false
+# More info at page https://wikis.ec.europa.eu/display/WEBGUIDE/04.+Cookies
+# --------------------------------------------------------------------------
