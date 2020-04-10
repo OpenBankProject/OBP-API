@@ -294,10 +294,10 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
 }
 
 object DynamicEntityInfo {
-  def canCreateRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanCreateDynamic" + entityName)
-  def canUpdateRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanUpdateDynamic" + entityName)
-  def canGetRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanGetDynamic" + entityName)
-  def canDeleteRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanDeleteDynamic" + entityName)
+  def canCreateRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanCreateDynamicEntity_" + entityName)
+  def canUpdateRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanUpdateDynamicEntity_" + entityName)
+  def canGetRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanGetDynamicEntity_" + entityName)
+  def canDeleteRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanDeleteDynamicEntity_" + entityName)
 
   def roleNames(entityName: String): List[String] = List(
       canCreateRole(entityName), canUpdateRole(entityName),
