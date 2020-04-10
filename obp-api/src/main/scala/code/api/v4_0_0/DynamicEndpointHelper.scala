@@ -5,38 +5,35 @@ import java.nio.charset.Charset
 import java.util
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.regex.Pattern
-import java.util.{Date, Optional}
+import java.util.{Date, Optional, UUID}
 
-import akka.http.scaladsl.model.HttpMethods
+import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
-import code.api.util.APIUtil.{Catalogs, OBPEndpoint, ResourceDoc, authenticationRequiredMessage, emptyObjectJson, generateUUID, notCore, notOBWG, notPSD2}
+import code.api.util.APIUtil.{Catalogs, OBPEndpoint, ResourceDoc, notCore, notOBWG, notPSD2}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
-import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{APIUtil, ApiRole, ApiTag, CustomJsonFormats, NewStyle}
-import code.api.util.ApiRole.getOrCreateDynamicApiRole
-import com.openbankproject.commons.model.enums.DynamicEntityFieldType
-import com.openbankproject.commons.util.{ApiVersion, Functions}
-import io.swagger.v3.oas.models.{OpenAPI, Operation, PathItem}
+import code.api.util.ErrorMessages.{UnknownError, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.{APIUtil, ApiRole, ApiTag, CustomJsonFormats}
+import com.openbankproject.commons.util.ApiVersion
 import io.swagger.v3.oas.models.PathItem.HttpMethod
-import akka.http.scaladsl.model.{HttpMethod => AkkaHttpMethod}
-import io.swagger.v3.oas.models.media.{ArraySchema, BooleanSchema, Content, DateSchema, DateTimeSchema, IntegerSchema, NumberSchema, ObjectSchema, Schema, StringSchema}
+import io.swagger.v3.oas.models.media._
 import io.swagger.v3.oas.models.parameters.RequestBody
-import io.swagger.v3.oas.models.responses.ApiResponses
+import io.swagger.v3.oas.models.responses.{ApiResponse, ApiResponses}
+import io.swagger.v3.oas.models.{OpenAPI, Operation, PathItem}
 import io.swagger.v3.parser.OpenAPIV3Parser
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JObject}
-import net.liftweb.json.JsonDSL._
 import net.liftweb.json
 import net.liftweb.json.JValue
+import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JObject}
 import net.liftweb.util.StringHelpers
+import org.apache.commons.collections4.MapUtils
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 
-import scala.collection.immutable.{List, Nil}
+import scala.collection.JavaConverters._
+import scala.collection.immutable.List
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.JavaConverters._
 import scala.compat.java8.OptionConverters._
 
 
@@ -169,7 +166,7 @@ object DynamicEndpointHelper extends RestHelper {
       val requestUrl: String = buildRequestUrl(path)
       val summary: String = Option(pathItem.getSummary)
         .filter(StringUtils.isNotBlank)
-        .getOrElse(buildSummary(method, op, path))
+        .getOrElse(buildSummary(openAPI, method, op, path))
       val description: String = Option(pathItem.getDescription)
         .filter(StringUtils.isNotBlank)
         .orElse(Option(op.getDescription))
@@ -213,9 +210,32 @@ object DynamicEndpointHelper extends RestHelper {
       val catalogs: Catalogs = Catalogs(notCore, notPSD2, notOBWG)
 
       val roles: Option[List[ApiRole]] = {
-        val roleName = s"Can$summary${entitlementSuffix(path)}"
-          .replaceFirst("Can(Create|Update|Get|Delete)", "Can$1Dynamic")
-          .replace(" ", "")
+        val entityName = getEntityName(openAPI, op)
+        val roleNamePrefix = if(method == HttpMethod.POST) {
+          "CanCreateDynamic"
+        } else if(method == HttpMethod.PUT) {
+          "CanUpdateDynamic"
+        } else {
+          val opName = method.name().toLowerCase().capitalize
+          s"Can${opName}Dynamic"
+        }
+        val roleName = if(StringUtils.isNotBlank(op.getOperationId)) {
+          val prettyOperationId = op.getOperationId
+            .replaceAll("""(?i)(get|find|search|add|create|delete|update|of|new|the|one|that|\s)""", "")
+            .capitalize
+
+          s"$roleNamePrefix$prettyOperationId${entitlementSuffix(path)}"
+        } else if(StringUtils.isNotBlank(entityName)) {
+          s"$roleNamePrefix$entityName${entitlementSuffix(path)}"
+        } else {
+          // Capitalize summary, remove disturbed word
+          val prettySummary = StringHelpers.capify{
+            summary.replaceAll("""(?i)\b(get|find|search|add|create|delete|update|a|new|the|one|that)\b""", "")
+          }.replace(" ", "")
+
+          s"$roleNamePrefix$prettySummary${entitlementSuffix(path)}"
+        }
+
         Some(List(
           ApiRole.getOrCreateDynamicApiRole(roleName)
         ))
@@ -226,7 +246,7 @@ object DynamicEndpointHelper extends RestHelper {
         partialFunctionName,
         requestVerb,
         requestUrl,
-        summary,
+        StringHelpers.capify(summary),
         description,
         exampleRequestBody,
         successResponseBody,
@@ -273,128 +293,205 @@ object DynamicEndpointHelper extends RestHelper {
     docs
   }
 
-  private def buildSummary(method: HttpMethod, op: Operation, path: String): String = method match {
-    case _ if StringUtils.isNotBlank(op.getSummary) => op.getSummary
-    case HttpMethod.GET | HttpMethod.DELETE =>
-      val opName = if(method == HttpMethod.GET) "Get" else "Delete"
-      op.getResponses.asScala
-        .find(_._1.startsWith("20"))
-        .flatMap(it => getRef(it._2.getContent, it._2.get$ref()) )
-        .map(StringUtils.substringAfterLast(_, "/"))
+  private def buildSummary(openAPI: OpenAPI, method: HttpMethod, op: Operation, path: String): String = {
+    if(StringUtils.isNotBlank(op.getSummary)) {
+      op.getSummary
+    } else {
+      val opName = method.name().toLowerCase.capitalize
+      Option(getEntityName(openAPI, op))
         .map(entityName => s"$opName $entityName")
-        .orElse(Option(op.getDescription))
-        .filter(StringUtils.isNotBlank)
+        .orElse(Option(op.getDescription).filterNot(StringUtils.isBlank))
         .orElse(Option(s"$opName $path"))
         .map(_.replaceFirst("(?i)((get|delete)\\s+\\S+).*", "$1"))
         .map(capitalize)
         .get
-
-    case m@(HttpMethod.POST | HttpMethod.PUT) =>
-      val opName = if(m == HttpMethod.POST) "Create" else "Update"
-
-      getRef(op.getRequestBody.getContent, op.getRequestBody.get$ref())
-        .map(StringUtils.substringAfterLast(_, "/"))
-        .map(entityName => s"$opName $entityName")
-        .orElse(Option(op.getDescription))
-        .filter(StringUtils.isNotBlank)
-        .orElse(Option(s"$method $path"))
-        .map(capitalize)
-        .get
-    case _ => throw new RuntimeException(s"Support HTTP METHOD: GET, POST, PUT, DELETE, current method is $method")
+    }
   }
+
+  private def getEntityName(openAPI: OpenAPI, op: Operation): String = {
+    def getName(ref: String) = StringUtils.substringAfterLast(ref, "/").capitalize
+
+    val body = op.getRequestBody
+
+    val successResponse = Option(op.getResponses).flatMap(_.asScala.find(_._1.startsWith("20"))).map(_._2)
+    if(body == null && successResponse.isEmpty) {
+      null
+    } else if(body != null && StringUtils.isNotBlank(body.get$ref())) {
+      getName(body.get$ref())
+    } else if(successResponse.isDefined && StringUtils.isNotBlank(successResponse.get.get$ref())) {
+      getName(successResponse.get.get$ref())
+    } else {
+      val maybeMediaType: Option[MediaType] = Option(body)
+        .flatMap(it => getMediaType(it.getContent))
+        .orElse {
+          successResponse.flatMap(it => getMediaType(it.getContent))
+        }
+      maybeMediaType match {
+        case Some(mediaType) if mediaType.getSchema() != null =>
+          val schema = mediaType.getSchema()
+          if(schema.isInstanceOf[ArraySchema]) {
+            val itemsRef = schema.asInstanceOf[ArraySchema].getItems.get$ref()
+            getName(itemsRef)
+          } else {
+            List(schema.getName(), schema.get$ref())
+              .find(StringUtils.isNotBlank)
+              .map(getName)
+              .orNull
+          }
+        case None => null
+      }
+    }
+  }
+
   private def capitalize(str: String): String =
     StringUtils.split(str, " ").map(_.capitalize).mkString(" ")
 
   private def getRequestExample(openAPI: OpenAPI, body: RequestBody): Product = {
     if(body == null || body.getContent == null) {
        JObject()
+    } else if(StringUtils.isNotBlank(body.get$ref())) {
+      val schema = getRefSchema(openAPI, body.get$ref())
+
+      getExample(openAPI, schema)
     } else {
-      getExample(openAPI, getRef(body.getContent, body.get$ref()).orNull)
+      val mediaType = getMediaType(body.getContent())
+      assert(mediaType.isDefined, s"RequestBody $body have no MediaType of 'application/json', 'application/x-www-form-urlencoded', 'multipart/form-data' or '*/*'")
+      val schema = mediaType.get.getSchema
+      getExample(openAPI, schema)
     }
   }
+
+  private def getMediaType(content: Content) = content match {
+    case null => None
+    case v if v.containsKey("application/json") => Some(v.get("application/json"))
+    case v if v.containsKey("*/*") => Some(v.get("*/*"))
+    case v if v.containsKey("application/x-www-form-urlencoded") => Some(v.get("application/x-www-form-urlencoded"))
+    case v if v.containsKey("multipart/form-data") => Some(v.get("multipart/form-data"))
+    case _ => None
+  }
+
   private def getResponseExample(openAPI: OpenAPI, apiResponses: ApiResponses): Product = {
     if(apiResponses == null || apiResponses.isEmpty) {
-      JObject()
+      return JObject()
+    }
+
+    val successResponse: Option[ApiResponse] = apiResponses.asScala
+      .find(_._1.startsWith("20")).map(_._2)
+
+    val result: Option[Product] = for {
+     response <- successResponse
+     schema <- getResponseSchema(openAPI, response)
+     example = getExample(openAPI, schema)
+    } yield example
+
+    result.getOrElse(JObject())
+  }
+
+  private def getResponseSchema(openAPI: OpenAPI, apiResponse: ApiResponse): Option[Schema[_]] = {
+    val ref = apiResponse.get$ref()
+    if(StringUtils.isNotBlank(ref)) {
+      Option(getRefSchema(openAPI, ref))
     } else {
-      val ref: Option[String] = apiResponses.asScala
-        .find(_._1.startsWith("20"))
-        .flatMap(it => getRef(it._2.getContent, it._2.get$ref()))
-      getExample(openAPI, ref.orNull)
+      val mediaType = getMediaType(apiResponse.getContent)
+      mediaType.map(_.getSchema)
     }
   }
 
-  private def getRef(content: Content, $ref: String): Option[String] = {
-    if(StringUtils.isNoneBlank($ref)) {
-       Option($ref)
-    } else {
-      val schemaRef: Option[String] = Option(content.get("application/json"))
-        .flatMap(it => Option[Schema[_]](it.getSchema))
-        .map(_.get$ref())
-        .filter(StringUtils.isNoneBlank(_))
-
-      if(schemaRef.isDefined) {
-        Option(schemaRef.get)
-      } else  {
-        val supportMediaTypes = content.values().asScala
-        supportMediaTypes.collectFirst {
-          case mediaType if mediaType.getSchema != null && StringUtils.isNotBlank(mediaType.getSchema.get$ref()) =>
-            mediaType.getSchema.get$ref()
-        }
-      }
-    }
-
-  }
   private val RegexDefinitions = """(?:#/components/schemas(?:/#definitions)?/)(.+)""".r
   private val RegexResponse = """#/responses/(.+)""".r
 
-  private def getExample(openAPI: OpenAPI, ref: String): Product = {
+  private def getRefSchema(openAPI: OpenAPI, ref: String): Schema[_] = ref match{
+    case RegexResponse(refName) =>
+      val response: ApiResponse = openAPI.getComponents.getResponses.get(refName)
+      getResponseSchema(openAPI, response).orNull
+
+    case RegexDefinitions(refName) =>
+      val schema: Schema[_] = openAPI.getComponents.getSchemas.get(refName)
+      schema
+    case _ => null
+  }
+
+  private def getExample(openAPI: OpenAPI, schema: Schema[_]): Product = {
     implicit val formats = CustomJsonFormats.formats
-    ref match {
-      case null => JObject()
 
-      case RegexResponse(refName) =>
-        val response = openAPI.getComponents.getResponses.get(refName)
-        val ref = getRef(response.getContent, response.get$ref())
-        getExample(openAPI, ref.get)
+    val example: Any = getExampleBySchema(openAPI, schema)
 
-      case RegexDefinitions(refName) =>
-        openAPI.getComponents.getSchemas.get(refName) match {
-          case o: ObjectSchema =>
-            val properties: util.Map[String, Schema[_]] = o.getProperties
-
-            val jFields: mutable.Iterable[JField] = properties.asScala.map { kv =>
-              val (name, value) = kv
-              val valueExample = if(value.getClass == classOf[Schema[_]]) getExample(openAPI, value.get$ref()) else getPropertyExample(value)
-              JField(name, json.Extraction.decompose(valueExample))
-            }
-            JObject(jFields.toList)
-
-          case a: ArraySchema =>
-            Option(a.getExample)
-              .map(json.Extraction.decompose(_).asInstanceOf[JObject])
-              .getOrElse {
-                val schema: Schema[_] = a.getItems
-                val singleItem: Any = if(schema.getClass == classOf[Schema[_]]) getExample(openAPI, schema.get$ref()) else getPropertyExample(schema)
-                val jItem = json.Extraction.decompose(singleItem)
-                jItem :: Nil
-              }
-        }
-
+    example match {
+      case v :scala.Product => v
+      case JArray(arr) => List(arr)
+      case v => json.Extraction.decompose(v) match {
+        case o: JObject => o
+        case JArray(arr) => arr
+        case jv: JValue => JObject(JField("value", jv)) // TODO need process simple example of ResourceDoc
+        case _ => throw new RuntimeException(s"Not supporting example type: $v, ${v.getClass}")
+      }
     }
   }
 
-  private def getPropertyExample(schema: Schema[_]) = schema match {
-    case b: BooleanSchema => Option(b.getExample).getOrElse(true)
-    case d: DateSchema => Option(d.getExample).getOrElse {
-      APIUtil.DateWithDayFormat.format(new Date())
+  private def getExampleBySchema(openAPI: OpenAPI, schema: Schema[_]):Any = {
+    def getDefaultValue[T](schema: Schema[_<:T], t: => T): T = Option(schema.getExample.asInstanceOf[T])
+      .orElse(Option(schema.getDefault))
+      .orElse{
+        Option(schema.getEnum())
+          .filterNot(_.isEmpty)
+          .map(_.get(0))
+      }
+      .getOrElse(t)
+
+    schema match {
+      case v: BooleanSchema => getDefaultValue(v, true)
+      case v if v.getType() =="boolean" => true
+      case v: DateSchema => getDefaultValue(v, {
+        APIUtil.DateWithDayFormat.format(new Date())
+      })
+      case v if v.getFormat() == "date" => getDefaultValue(v, {
+        APIUtil.DateWithDayFormat.format(new Date())
+      })
+      case v: DateTimeSchema => getDefaultValue(v, {
+        APIUtil.DateWithSecondsFormat.format(new Date())
+      })
+      case v if v.getFormat() == "date-time" => getDefaultValue(v, {
+        APIUtil.DateWithSecondsFormat.format(new Date())
+      })
+      case v: IntegerSchema => getDefaultValue(v, 1)
+      case v if v.getFormat() == "int32" => 1
+      case v: NumberSchema => getDefaultValue(v, 1.2)
+      case v if v.getType() == "number" => 1.2
+      case v: StringSchema => getDefaultValue(v, "string")
+      case v: UUIDSchema => getDefaultValue(v, UUID.randomUUID())
+      case v if v.getFormat() == "uuid" =>  UUID.randomUUID()
+      case v: EmailSchema => getDefaultValue(v, "example@tesobe.com")
+      case v if v.getFormat() == "email" => "example@tesobe.com"
+      case v: FileSchema => getDefaultValue(v, "file_example.txt")
+      case v if v.getFormat() == "binary" =>  "file_example.txt"
+      case v: PasswordSchema => getDefaultValue(v, "very_complex_password_I_promise_!!")
+      case v if v.getFormat() == "password" => "very_complex_password_I_promise_!!"
+      case v: ArraySchema =>
+        getDefaultValue(v, {
+          val itemsSchema: Schema[_] = v.getItems
+          val singleItemExample = getExampleBySchema(openAPI, itemsSchema)
+          Array(singleItemExample)
+        })
+      case v: MapSchema => getDefaultValue(v, Map("name"-> "John", "age" -> 12))
+
+      case v if v.isInstanceOf[ObjectSchema] || MapUtils.isNotEmpty(v.getProperties()) =>
+        val properties: util.Map[String, Schema[_]] = v.getProperties
+
+        val jFields: mutable.Iterable[JField] = properties.asScala.map { kv =>
+          val (name, value) = kv
+          val valueExample = getExampleBySchema(openAPI, value)
+          JField(name, json.Extraction.decompose(valueExample))
+        }
+        JObject(jFields.toList)
+
+      case v: Schema[_] if StringUtils.isNotBlank(v.get$ref()) =>
+        val refSchema = getRefSchema(openAPI, v.get$ref())
+
+        getExample(openAPI, refSchema)
+
+      case v if v.getType() == "string" => "string"
+      case _ => throw new RuntimeException(s"Not support type $schema, please support it if necessary.")
     }
-    case t: DateTimeSchema => Option(t.getExample).getOrElse {
-      APIUtil.DateWithSecondsFormat.format(new Date())
-    }
-    case i: IntegerSchema => Option(i.getExample).getOrElse(1)
-    case n: NumberSchema => Option(n.getExample).getOrElse(1.2)
-    case s: StringSchema => Option(s.getExample).getOrElse("string")
-    case _ => throw new RuntimeException(s"Not support type $schema, please support it if necessary.")
   }
 }
 
