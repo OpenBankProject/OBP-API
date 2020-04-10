@@ -212,12 +212,12 @@ object DynamicEndpointHelper extends RestHelper {
       val roles: Option[List[ApiRole]] = {
         val entityName = getEntityName(openAPI, op)
         val roleNamePrefix = if(method == HttpMethod.POST) {
-          "CanCreateDynamic"
+          "CanCreateDynamicEndpoint_"
         } else if(method == HttpMethod.PUT) {
-          "CanUpdateDynamic"
+          "CanUpdateDynamicEndpoint_"
         } else {
           val opName = method.name().toLowerCase().capitalize
-          s"Can${opName}Dynamic"
+          s"Can${opName}DynamicEndpoint_"
         }
         val roleName = if(StringUtils.isNotBlank(op.getOperationId)) {
           val prettyOperationId = op.getOperationId
