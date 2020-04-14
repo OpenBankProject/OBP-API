@@ -26,5 +26,16 @@ PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
   </cookie-config>
 </session-config>
 -->
+  
+<!-- H2 web console -->
+<servlet>
+  <servlet-name>H2Console</servlet-name>
+  <servlet-class>org.h2.server.web.WebServlet</servlet-class>
+  <load-on-startup>0</load-on-startup>
+</servlet>
+<servlet-mapping>
+  <servlet-name>H2Console</servlet-name>
+  <url-pattern>/console/*</url-pattern>
+</servlet-mapping>
 
 </web-app>

@@ -3680,7 +3680,7 @@ object SwaggerDefinitionsJSON {
     is_active = true
   )  
   val templateAttributeDefinitionResponseJsonV400 = AttributeDefinitionResponseJsonV400(
-    ATTRIBUTE_DEFINITION_ID = uuidExample.value,
+    attribute_definition_id = uuidExample.value,
     bank_id = bankIdExample.value,
     name = templateAttributeNameExample.value,
     category = AttributeCategory.Customer.toString,

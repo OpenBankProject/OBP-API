@@ -64,10 +64,15 @@ class WebUI extends MdcLoggable{
   // cookie consent kit available at:
   // http://ec.europa.eu/ipg/basics/legal/cookies/index_en.htm#section_2
   def cookieConsent = {
-    var onclick = "removeByIdAndSaveIndicatorCookie('cookies-consent'); "
-    val buttonString = """<input id="clickMe" class="btn btn-default" type="button" value="Accept and close" onclick="%s"/> <script>showIndicatorCookiePage('cookies-consent'); </script>""".format(onclick)
-    val button  = scala.xml.Unparsed(s"""$buttonString""")
-    "#clickMe" #> button
+    val toDisplay = APIUtil.getPropsAsBoolValue("display_accept_cookies_question",false)
+    if (toDisplay) {
+      var onclick = "removeByIdAndSaveIndicatorCookie('cookies-consent'); "
+      val buttonString = """<input id="clickMe" class="btn btn-default" type="button" value="Accept and close" onclick="%s"/> <script>showIndicatorCookiePage('cookies-consent'); </script>""".format(onclick)
+      val button  = scala.xml.Unparsed(s"""$buttonString""")
+      "#clickMe" #> button
+    } else {
+      "*" #> NodeSeq.Empty
+    }
   }
 
   private object firstKnownIPAddress extends SessionVar("")

@@ -779,3 +779,16 @@ dynamic_entities_have_prefix=true
 
 # Url prefix of dynamic endpoints, default is dynamic. e.g if set to foobar, one url can be /obp/v4.0.0/foobar/Address
 dynamic_endpoints_url_prefix=dynamic
+
+# --- Locking a user due to consecutively failed login attempts ------
+# Defines consecutively failed login attempts before a user is locked 
+# In case is not defined default value is 5
+# max.bad.login.attempts=5
+# --------------------------------------------------------------------
+
+# --- Cookies --------------------------------------------------------------
+# Defines use of the cookie consent kit
+# In case is not defined default value is false
+# display_accept_cookies_question = false
+# More info at page https://wikis.ec.europa.eu/display/WEBGUIDE/04.+Cookies
+# --------------------------------------------------------------------------

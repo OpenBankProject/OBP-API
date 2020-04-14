@@ -128,6 +128,21 @@ The current workaround is to move the project directory onto a different partiti
 
 The default database for testing etc is H2. PostgreSQL is used for the sandboxes (user accounts, metadata, transaction cache).
 
+### Notes on using H2 web console in Dev and Test mode:
+
+Set DB options in props file:
+
+    db.driver=org.h2.Driver
+    db.url=jdbc:h2:./obp_api.db;DB_CLOSE_ON_EXIT=FALSE
+    
+In order to start H2 web console go to http://127.0.0.1:8080/console and you will see a login screen.
+Please use next values:
+
+    Driver Class: org.h2.Driver
+    JDBC URL: jdbc:h2:./obp_api.db;AUTO_SERVER=FALSE
+    User Name:
+    Password:
+
 ### Notes on using Postgres with SSL:
 
 Postgres needs to be compiled with SSL support.

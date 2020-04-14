@@ -3006,7 +3006,7 @@ trait APIMethods400 {
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
             }
-            (attributeDefiniion, callContext) <- createOrUpdateAttributeDefinition(
+            (attributeDefinition, callContext) <- createOrUpdateAttributeDefinition(
               bankId,
               postedData.name,
               category,
@@ -3018,7 +3018,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDefinitionJson(attributeDefiniion), HttpCode.`201`(callContext))
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefinition), HttpCode.`201`(callContext))
           }
       }
     }
@@ -3071,7 +3071,7 @@ trait APIMethods400 {
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
             }
-            (attributeDefiniion, callContext) <- createOrUpdateAttributeDefinition(
+            (attributeDefinition, callContext) <- createOrUpdateAttributeDefinition(
               bankId,
               postedData.name,
               category,
@@ -3083,7 +3083,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDefinitionJson(attributeDefiniion), HttpCode.`201`(callContext))
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefinition), HttpCode.`201`(callContext))
           }
       }
     }
@@ -3135,7 +3135,7 @@ trait APIMethods400 {
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
             }
-            (attributeDefiniion, callContext) <- createOrUpdateAttributeDefinition(
+            (attributeDefinition, callContext) <- createOrUpdateAttributeDefinition(
               bankId,
               postedData.name,
               category,
@@ -3147,7 +3147,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDefinitionJson(attributeDefiniion), HttpCode.`201`(callContext))
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefinition), HttpCode.`201`(callContext))
           }
       }
     }
@@ -3198,7 +3198,7 @@ trait APIMethods400 {
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
             }
-            (attributeDefiniion, callContext) <- createOrUpdateAttributeDefinition(
+            (attributeDefinition, callContext) <- createOrUpdateAttributeDefinition(
               bankId,
               postedData.name,
               category,
@@ -3210,7 +3210,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDefinitionJson(attributeDefiniion), HttpCode.`201`(callContext))
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefinition), HttpCode.`201`(callContext))
           }
       }
     }
@@ -3263,7 +3263,7 @@ trait APIMethods400 {
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
             }
-            (attributeDefiniion, callContext) <- createOrUpdateAttributeDefinition(
+            (attributeDefinition, callContext) <- createOrUpdateAttributeDefinition(
               bankId,
               postedData.name,
               category,
@@ -3275,7 +3275,7 @@ trait APIMethods400 {
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDefinitionJson(attributeDefiniion), HttpCode.`201`(callContext))
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefinition), HttpCode.`201`(callContext))
           }
       }
     }
@@ -3504,12 +3504,12 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "product" :: Nil JsonGet _ => {
         cc =>
           for {
-            (attributeDefiniions, callContext) <- getAttributeDefinition(
+            (attributeDefinitions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.Product.toString),
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDefinitionsJson(attributeDefiniions), HttpCode.`200`(callContext))
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefinitions), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3542,12 +3542,12 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "customer" :: Nil JsonGet _ => {
         cc =>
           for {
-            (attributeDefiniions, callContext) <- getAttributeDefinition(
+            (attributeDefinitions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.Customer.toString),
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDefinitionsJson(attributeDefiniions), HttpCode.`200`(callContext))
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefinitions), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3580,12 +3580,12 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "account" :: Nil JsonGet _ => {
         cc =>
           for {
-            (attributeDefiniions, callContext) <- getAttributeDefinition(
+            (attributeDefinitions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.Account.toString),
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDefinitionsJson(attributeDefiniions), HttpCode.`200`(callContext))
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefinitions), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3618,12 +3618,12 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "transaction" :: Nil JsonGet _ => {
         cc =>
           for {
-            (attributeDefiniions, callContext) <- getAttributeDefinition(
+            (attributeDefinitions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.Transaction.toString),
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDefinitionsJson(attributeDefiniions), HttpCode.`200`(callContext))
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefinitions), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3657,12 +3657,12 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "card" :: Nil JsonGet _ => {
         cc =>
           for {
-            (attributeDefiniions, callContext) <- getAttributeDefinition(
+            (attributeDefinitions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.Card.toString),
               cc.callContext
             )
           } yield {
-            (JSONFactory400.createAttributeDefinitionsJson(attributeDefiniions), HttpCode.`200`(callContext))
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefinitions), HttpCode.`200`(callContext))
           }
       }
     }

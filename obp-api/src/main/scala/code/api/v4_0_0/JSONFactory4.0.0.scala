@@ -271,7 +271,7 @@ case class AttributeDefinitionJsonV400(
                                         is_active: Boolean
                                       )
 
-case class AttributeDefinitionResponseJsonV400(ATTRIBUTE_DEFINITION_ID: String,
+case class AttributeDefinitionResponseJsonV400(attribute_definition_id: String,
                                                bank_id: String,
                                                name: String,
                                                category: String,
@@ -524,7 +524,7 @@ object JSONFactory400 {
 
   def createAttributeDefinitionJson(attributeDefinition: AttributeDefinition) : AttributeDefinitionResponseJsonV400 = {
     AttributeDefinitionResponseJsonV400(
-      ATTRIBUTE_DEFINITION_ID = attributeDefinition.attributeDefinitionId,
+      attribute_definition_id = attributeDefinition.attributeDefinitionId,
       bank_id = attributeDefinition.bankId.value,
       name = attributeDefinition.name,
       category = attributeDefinition.category.toString,
