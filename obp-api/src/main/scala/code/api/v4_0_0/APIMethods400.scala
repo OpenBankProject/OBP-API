@@ -3,7 +3,7 @@ package code.api.v4_0_0
 import java.util.Date
 
 import code.DynamicData.DynamicData
-import code.DynamicEndpoint.{DynamicEndpointCommons, DynamicEndpointSwagger}
+import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -13,13 +13,14 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue.{dynamicEndpointRequestBodyExample, dynamicEndpointResponseBodyExample, dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
+import code.api.util._
 import code.api.util.newstyle.AttributeDefinition._
 import code.api.util.newstyle.Consumer._
-import code.api.util._
+import code.api.util.newstyle.UserCustomerLinkNewStyle
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
-import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
+import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
@@ -31,39 +32,37 @@ import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.entitlement.Entitlement
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import code.model.toUserExtended
+import code.model.{toUserExtended, _}
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.MappedTransactionRequestProvider
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
-import code.transactionrequests.TransactionRequests.{TransactionRequestStatus, TransactionRequestTypes}
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
+import code.transactionrequests.TransactionRequests.{TransactionRequestStatus, TransactionRequestTypes}
 import code.users.Users
 import code.util.{Helper, JsonUtils}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType, CustomerAttributeType, DynamicEntityFieldType, TransactionAttributeType}
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
+import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.Serialization.write
-import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
+import net.liftweb.json.Serialization.write
+import net.liftweb.json.{compactRender, _}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
+import org.apache.commons.lang3.StringUtils
 import org.atteo.evo.inflector.English
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
-import code.model._
-import org.apache.commons.lang3.StringUtils
-import net.liftweb.json.compactRender
 
 trait APIMethods400 {
   self: RestHelper =>
@@ -3663,6 +3662,83 @@ trait APIMethods400 {
             )
           } yield {
             (JSONFactory400.createAttributeDefinitionsJson(attributeDefinitions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      deleteUserCustomerLink,
+      implementedInApiVersion,
+      nameOf(deleteUserCustomerLink),
+      "DELETE",
+      "/banks/BANK_ID/user_customer_links/USER_CUSTOMER_LINK_ID",
+      "Delete User Customer Link",
+      s""" Delete User Customer Link by USER_CUSTOMER_LINK_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canDeleteUserCustomerLink)))
+
+    lazy val deleteUserCustomerLink : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "user_customer_links" :: userCustomerLinkId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- UserCustomerLinkNewStyle.deleteUserCustomerLink(
+              userCustomerLinkId,
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getUserCustomerLinksByUserId,
+      implementedInApiVersion,
+      nameOf(getUserCustomerLinksByUserId),
+      "GET",
+      "/banks/BANK_ID/user_customer_links/users/USER_ID",
+      "Get User Customer Links",
+      s""" Get User Customer Links by USER_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      userCustomerLinksJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canDeleteUserCustomerLink)))
+
+    lazy val getUserCustomerLinksByUserId : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "user_customer_links" :: "users" :: userId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (userCustomerLinks, callContext) <- UserCustomerLinkNewStyle.getUserCustomerLink(
+              userId,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory200.createUserCustomerLinkJSONs(userCustomerLinks), HttpCode.`200`(callContext))
           }
       }
     }

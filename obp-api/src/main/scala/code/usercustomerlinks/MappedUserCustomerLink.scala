@@ -1,13 +1,17 @@
 package code.usercustomerlinks
 
 import java.util.Date
-import code.util.{UUIDString, MappedUUID}
-import net.liftweb.common.{Box, Full}
+
+import code.api.util.ErrorMessages
+import code.util.{MappedUUID, UUIDString}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper._
 
+import scala.concurrent.Future
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
-  override def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] = {
+  def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] = {
 
     val createUserCustomerLink = MappedUserCustomerLink.create
       .mUserId(userId)
@@ -19,29 +23,45 @@ object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
     Some(createUserCustomerLink)
   }
 
-  override def getUserCustomerLinkByCustomerId(customerId: String): Box[UserCustomerLink] = {
+  def getUserCustomerLinkByCustomerId(customerId: String): Box[UserCustomerLink] = {
     MappedUserCustomerLink.find(
       By(MappedUserCustomerLink.mCustomerId, customerId))
   }
 
-  override def getUserCustomerLinksByUserId(userId: String): List[UserCustomerLink] = {
+  def getUserCustomerLinksByUserId(userId: String): List[UserCustomerLink] = {
     val userCustomerLinks : List[UserCustomerLink] = MappedUserCustomerLink.findAll(
       By(MappedUserCustomerLink.mUserId, userId)).sortWith(_.id.get < _.id.get)
     userCustomerLinks
   }
 
-  override def getUserCustomerLink(userId : String, customerId: String): Box[UserCustomerLink] = {
+  def getUserCustomerLink(userId : String, customerId: String): Box[UserCustomerLink] = {
     MappedUserCustomerLink.find(
       By(MappedUserCustomerLink.mUserId, userId),
       By(MappedUserCustomerLink.mCustomerId, customerId))
   }
 
-  override def getUserCustomerLinks: Box[List[UserCustomerLink]] = {
+  def getUserCustomerLinks: Box[List[UserCustomerLink]] = {
     Full(MappedUserCustomerLink.findAll())
   }
 
-  override def bulkDeleteUserCustomerLinks(): Boolean = {
+  def bulkDeleteUserCustomerLinks(): Boolean = {
     MappedUserCustomerLink.bulkDelete_!!()
+  }
+
+  def deleteUserCustomerLink(userCustomerLinkId: String): Future[Box[Boolean]] = {
+    Future {
+      MappedUserCustomerLink.find(By(MappedUserCustomerLink.mUserCustomerLinkId, userCustomerLinkId)) match {
+        case Full(t) => 
+          org.scalameta.logger.elem(userCustomerLinkId)
+          Full(t.delete_!)
+        case Empty =>
+          org.scalameta.logger.elem(userCustomerLinkId)
+          Empty ?~! ErrorMessages.UserCustomerLinkNotFound
+        case Failure(msg, exception, chain) =>
+          org.scalameta.logger.elem(userCustomerLinkId)
+          Failure(msg, exception, chain)
+      }
+    }
   }
 }
 

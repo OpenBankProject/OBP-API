@@ -1775,7 +1775,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val userCustomerLinksJson = UserCustomerLinksJson(
-    l = List(userCustomerLinkJson)
+    user_customer_links = List(userCustomerLinkJson)
   )
 
   val createUserCustomerLinkJson = CreateUserCustomerLinkJson(

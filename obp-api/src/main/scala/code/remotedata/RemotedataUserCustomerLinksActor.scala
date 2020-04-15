@@ -38,6 +38,10 @@ class RemotedataUserCustomerLinksActor extends Actor with ObpActorHelper with Md
     case cc.bulkDeleteUserCustomerLinks() =>
       logger.debug(s"bulkDeleteUserCustomerLinks()")
       sender ! (mapper.bulkDeleteUserCustomerLinks())
+      
+    case cc.deleteUserCustomerLink(userCustomerLinkId) =>
+      logger.debug(s"deleteUserCustomerLink($userCustomerLinkId)")
+      sender ! (mapper.deleteUserCustomerLink(userCustomerLinkId))
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
