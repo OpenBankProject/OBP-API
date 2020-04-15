@@ -3727,7 +3727,7 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canDeleteUserCustomerLink)))
+      Some(List(canGetUserCustomerLink)))
 
     lazy val getUserCustomerLinksByUserId : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "user_customer_links" :: "users" :: userId :: Nil JsonGet _ => {
