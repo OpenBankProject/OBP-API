@@ -107,6 +107,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
       val deleteRequest = (v4_0_0_Request / "banks" / bankId / "user_customer_links" / user_customer_link_id).DELETE <@(user1)
       val deleteResponse = makeDeleteRequest(deleteRequest)
       Then("We should get a 200")
+      org.scalameta.logger.elem(deleteResponse)
       deleteResponse.code should equal(200)
       
       // 2nd Delete User Customer Link call should fail due to already deleted row in a table

@@ -51,15 +51,9 @@ object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
   def deleteUserCustomerLink(userCustomerLinkId: String): Future[Box[Boolean]] = {
     Future {
       MappedUserCustomerLink.find(By(MappedUserCustomerLink.mUserCustomerLinkId, userCustomerLinkId)) match {
-        case Full(t) => 
-          org.scalameta.logger.elem(userCustomerLinkId)
-          Full(t.delete_!)
-        case Empty =>
-          org.scalameta.logger.elem(userCustomerLinkId)
-          Empty ?~! ErrorMessages.UserCustomerLinkNotFound
-        case Failure(msg, exception, chain) =>
-          org.scalameta.logger.elem(userCustomerLinkId)
-          Failure(msg, exception, chain)
+        case Full(t) => Full(t.delete_!)
+        case Empty => Empty ?~! ErrorMessages.UserCustomerLinkNotFound
+        case Failure(msg, exception, chain) => Failure(msg, exception, chain)
       }
     }
   }
