@@ -417,8 +417,8 @@ object DynamicEndpointHelper extends RestHelper {
     val example: Any = getExampleBySchema(openAPI, schema)
 
     example match {
-      case v :scala.Product => v
       case JArray(arr) => List(arr)
+      case v :scala.Product => v
       case v => json.Extraction.decompose(v) match {
         case o: JObject => o
         case JArray(arr) => arr
