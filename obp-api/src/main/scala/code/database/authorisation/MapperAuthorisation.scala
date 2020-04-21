@@ -80,7 +80,7 @@ object MappedAuthorisationProvider extends AuthorisationProvider {
           case value if value == ScaStatus.received.toString =>
             val status = if (authorisation.challengeData == challengeData) ScaStatus.finalised.toString else ScaStatus.failed.toString
             tryo(authorisation.ScaStatus(status).saveMe())
-          case _ => //make sure, only `reveived` can be processed, all others are invalid .
+          case _ => //make sure, only `received` can be processed, all others are invalid .
             Failure(s"${ErrorMessages.InvalidAuthorisationStatus}.It should be `received`, but now it is `${authorisation.scaStatus}`")
         }
       case Empty =>
