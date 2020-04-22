@@ -7,6 +7,8 @@ import code.remotedata.RemotedataUserCustomerLinks
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
 
+import scala.concurrent.Future
+
 
 object UserCustomerLink extends SimpleInjector {
 
@@ -27,6 +29,7 @@ trait UserCustomerLinkProvider {
   def getUserCustomerLink(userId: String, customerId: String): Box[UserCustomerLink]
   def getUserCustomerLinks: Box[List[UserCustomerLink]]
   def bulkDeleteUserCustomerLinks(): Boolean
+  def deleteUserCustomerLink(userCustomerLinkId: String): Future[Box[Boolean]]
 }
 
 class RemotedataUserCustomerLinkProviderCaseClass {
@@ -36,6 +39,7 @@ class RemotedataUserCustomerLinkProviderCaseClass {
   case class getUserCustomerLink(userId: String, customerId: String)
   case class getUserCustomerLinks()
   case class bulkDeleteUserCustomerLinks()
+  case class deleteUserCustomerLink(userCustomerLinkId: String)
 }
 
 object RemotedataUserCustomerLinkProviderCaseClass extends RemotedataUserCustomerLinkProviderCaseClass

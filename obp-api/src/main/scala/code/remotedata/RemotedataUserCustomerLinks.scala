@@ -7,6 +7,9 @@ import code.actorsystem.ObpActorInit
 import code.usercustomerlinks.{RemotedataUserCustomerLinkProviderCaseClass, UserCustomerLink, UserCustomerLinkProvider}
 import net.liftweb.common._
 
+import scala.collection.immutable.List
+import scala.concurrent.Future
+
 
 object RemotedataUserCustomerLinks extends ObpActorInit with UserCustomerLinkProvider {
 
@@ -35,5 +38,8 @@ object RemotedataUserCustomerLinks extends ObpActorInit with UserCustomerLinkPro
   def bulkDeleteUserCustomerLinks(): Boolean = getValueFromFuture(
     (actor ? cc.bulkDeleteUserCustomerLinks()).mapTo[Boolean]
   )
+  def deleteUserCustomerLink(userCustomerLinkId: String): Future[Box[Boolean]] = 
+    (actor ? cc.deleteUserCustomerLink(userCustomerLinkId)).mapTo[Box[Boolean]]
+  
 
 }

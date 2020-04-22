@@ -111,9 +111,21 @@ object ApiRole {
 
   case class CanCreateUserCustomerLink(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateUserCustomerLink = CanCreateUserCustomerLink()
+  
+  case class CanDeleteUserCustomerLink(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteUserCustomerLink = CanDeleteUserCustomerLink()
+  
+  case class CanGetUserCustomerLink(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetUserCustomerLink = CanGetUserCustomerLink()
 
   case class CanCreateUserCustomerLinkAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateUserCustomerLinkAtAnyBank = CanCreateUserCustomerLinkAtAnyBank()
+  
+  case class CanGetUserCustomerLinkAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetUserCustomerLinkAtAnyBank = CanGetUserCustomerLinkAtAnyBank()
+  
+  case class CanDeleteUserCustomerLinkAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteUserCustomerLinkAtAnyBank = CanDeleteUserCustomerLinkAtAnyBank()
 
   case class CanCreateAccount(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateAccount = CanCreateAccount()

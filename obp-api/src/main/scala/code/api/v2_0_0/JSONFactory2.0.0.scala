@@ -112,7 +112,7 @@ case class UserCustomerLinkJson(
   date_inserted: Date,
   is_active: Boolean
 )
-case class UserCustomerLinksJson(l: List[UserCustomerLinkJson])
+case class UserCustomerLinksJson(user_customer_links: List[UserCustomerLinkJson])
 
 case class CreateUserCustomerLinkJson(user_id: String, customer_id: String)
 

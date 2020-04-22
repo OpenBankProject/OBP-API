@@ -3,10 +3,11 @@ package code.remotedata
 import java.util.Date
 
 import akka.actor.Actor
+import akka.pattern.pipe
 import code.actorsystem.ObpActorHelper
 import code.usercustomerlinks.{MappedUserCustomerLinkProvider, RemotedataUserCustomerLinkProviderCaseClass}
 import code.util.Helper.MdcLoggable
-
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class RemotedataUserCustomerLinksActor extends Actor with ObpActorHelper with MdcLoggable {
 
@@ -38,6 +39,10 @@ class RemotedataUserCustomerLinksActor extends Actor with ObpActorHelper with Md
     case cc.bulkDeleteUserCustomerLinks() =>
       logger.debug(s"bulkDeleteUserCustomerLinks()")
       sender ! (mapper.bulkDeleteUserCustomerLinks())
+      
+    case cc.deleteUserCustomerLink(userCustomerLinkId) =>
+      logger.debug(s"deleteUserCustomerLink($userCustomerLinkId)")
+      mapper.deleteUserCustomerLink(userCustomerLinkId) pipeTo sender
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
