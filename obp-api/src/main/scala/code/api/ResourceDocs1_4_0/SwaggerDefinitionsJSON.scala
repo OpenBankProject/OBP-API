@@ -2020,7 +2020,7 @@ object SwaggerDefinitionsJSON {
     name_suffix = ExampleValue.nameSuffixExample.value
   )
 
-  val customersJsonV300 = code.api.v3_0_0.CustomerJSONs(List(customerJsonV300))
+  val customersJsonV300 = code.api.v3_0_0.CustomerJSONsV300(List(customerJsonV300))
   
   val postCustomerJsonV310 =
     PostCustomerJsonV310(

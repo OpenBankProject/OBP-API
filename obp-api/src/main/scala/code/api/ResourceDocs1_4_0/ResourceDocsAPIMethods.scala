@@ -22,7 +22,6 @@ import com.openbankproject.commons.model.enums.LanguageParam._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftRules, S}
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JString, JValue}
@@ -475,6 +474,35 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
 
     private def getResourceDocsSwaggerCached(showCore: Option[Boolean],showPSD2: Option[Boolean],showOBWG: Option[Boolean], requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
+
+      // build swagger and remove not used definitions
+      def buildSwagger(resourceDoc: SwaggerJSONFactory.SwaggerResourceDoc, definitions: json.JValue) = {
+        val jValue = Extraction.decompose(resourceDoc)
+        val JObject(pathsRef) = definitions \\ "$ref"
+        val JObject(definitionsRef) = jValue \\ "$ref"
+        val RefRegx = "#/definitions/([^/]+)".r
+
+        val allRefTypeName: Set[String] = Set(pathsRef, definitionsRef).flatMap { fields =>
+          fields.collect {
+            case JField(_, JString(RefRegx(v))) => v
+          }
+        }
+        // filter out all not used definitions
+        val usedDefinitions = {
+          val JObject(fields) = definitions \ "definitions"
+           JObject(
+              JField("definitions",
+                JObject(
+                  fields.collect {
+                    case jf @JField(name, _) if allRefTypeName.contains(name) => jf
+                  }
+                )
+              ) :: Nil
+           )
+        }
+
+        jValue merge usedDefinitions
+      }
       // cache this function with the parameters of the function
       /**
        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -499,7 +527,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             val allSwaggerDefinitionCaseClasses = SwaggerDefinitionsJSON.allFields
             val jsonAST = SwaggerJSONFactory.loadDefinitions(rdFiltered, allSwaggerDefinitionCaseClasses)
             // Merge both results and return
-            successJsonResponse(Extraction.decompose(json) merge jsonAST)
+            successJsonResponse(buildSwagger(json, jsonAST))
           }
           jsonOut
         }
@@ -569,8 +597,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     }
 
   }
-
-
 
 }
 
