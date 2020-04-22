@@ -1,11 +1,16 @@
 package code.util
 
+import java.util.Objects
+
 import net.liftweb.json
 import net.liftweb.json.{Diff, JNothing, JNull}
 import net.liftweb.json.JsonAST.{JArray, JBool, JDouble, JField, JInt, JObject, JString, JValue}
 import org.apache.commons.lang3.StringUtils
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonParser.ParseException
+
+import scala.reflect.runtime.universe
+import scala.reflect.runtime.universe.typeOf
 
 object JsonUtils {
   /* match string that end with '[number]', e.g: hobby[3] */
@@ -489,5 +494,19 @@ object JsonUtils {
     case JNothing => ""
     case JNull => "null"
     case v => json.compactRender(v)
+  }
+
+  def getType(jValue: JValue): universe.Type = {
+    Objects.requireNonNull(jValue)
+    jValue match {
+      case JNothing => typeOf[JNothing.type]
+      case JNull => typeOf[JNull.type]
+      case _: JInt => typeOf[JInt]
+      case _: JDouble => typeOf[JDouble]
+      case _: JBool => typeOf[JBool]
+      case _: JString => typeOf[JString]
+      case _: JObject => typeOf[JObject]
+      case _: JArray => typeOf[JArray]
+    }
   }
 }

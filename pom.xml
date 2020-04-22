@@ -5,18 +5,18 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.tesobe</groupId>
   <artifactId>obp-parent</artifactId>
-  <version>1.4.1</version>
+  <version>1.4.3</version>
   <packaging>pom</packaging>
   <name>Open Bank Project API Parent</name>
   <inceptionYear>2011</inceptionYear>
   <properties>
     <scala.version>2.12</scala.version>
-    <scala.compiler>2.12.6</scala.compiler>
+    <scala.compiler>2.12.10</scala.compiler>
     <akka.version>2.5.19</akka.version>
     <akka-streams-kafka.version>0.22</akka-streams-kafka.version>
     <kafka.version>1.1.0</kafka.version>
     <avro.version>1.8.2</avro.version>
-    <lift.version>3.3.0</lift.version>
+    <lift.version>3.4.1</lift.version>
     <jetty.version>9.4.12.v20180830</jetty.version>
     <log4j.version>2.6.2</log4j.version>
     <obp-ri.version>2016.11-RC6-SNAPSHOT</obp-ri.version>
@@ -117,7 +117,7 @@
         <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
-          <version>4.3.0</version>
+          <version>4.3.1</version>
           <configuration>
             <scalaVersion>${scala.compiler}</scalaVersion>
             <charset>${project.build.sourceEncoding}</charset>

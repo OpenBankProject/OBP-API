@@ -434,7 +434,7 @@ object ExampleValue {
       |            "$ref": "#/parameters/userId"
       |          }
       |        ],
-      |        "consumes": [],
+      |        "consumes": ["application/json"],
       |        "responses": {
       |          "200": {
       |            "description": "the successful get requested user by user ID",
@@ -466,7 +466,7 @@ object ExampleValue {
       |    "/listUsers": {
       |      "get": {
       |        "description": "get list of users",
-      |        "consumes": [],
+      |        "consumes": ["application/json"],
       |        "responses": {
       |          "200": {
       |            "description": "get all users",
@@ -519,7 +519,7 @@ object ExampleValue {
       |            "$ref": "#/parameters/userId"
       |          }
       |        ],
-      |        "consumes": [],
+      |        "consumes": ["application/json"],
       |        "responses": {
       |          "204": {
       |            "description": "the successful delete user by user ID"
