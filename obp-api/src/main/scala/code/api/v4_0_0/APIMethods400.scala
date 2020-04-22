@@ -819,7 +819,7 @@ trait APIMethods400 {
       "/management/dynamic-entities",
       "Get Dynamic Entities",
       s"""Get the all Dynamic Entities.""",
-      emptyObjectJson,
+      EmptyBody,
       ListResult(
         "dynamic_entities",
         List(dynamicEntityResponseBodyExample)
@@ -967,8 +967,8 @@ trait APIMethods400 {
       s"""Delete a DynamicEntity specified by DYNAMIC_ENTITY_ID.
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -2834,7 +2834,7 @@ trait APIMethods400 {
          |Get one DynamicEndpoint,
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       dynamicEndpointResponseBodyExample,
       List(
         $UserNotLoggedIn,
@@ -2872,7 +2872,7 @@ trait APIMethods400 {
          |Get Dynamic Endpoints.
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       ListResult(
         "dynamic_endpoints",
         List(dynamicEndpointResponseBodyExample)
@@ -2912,8 +2912,8 @@ trait APIMethods400 {
       s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,

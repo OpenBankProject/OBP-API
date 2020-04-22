@@ -81,7 +81,7 @@ import scala.collection.JavaConverters._
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.util.{ApiVersion, JsonAble, ReflectUtils, ScannedApiVersion}
+import com.openbankproject.commons.util.{ApiVersion, Functions, JsonAble, ReflectUtils, ScannedApiVersion}
 import com.openbankproject.commons.util.Functions.Implicits._
 import org.apache.commons.lang3.StringUtils
 
@@ -1093,6 +1093,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _: BooleanBody => "boolean"
       case _: IntBody | _: LongBody | _: BigIntBody => "integer"
       case _: FloatBody | _: DoubleBody | _: BigDecimalBody => "number"
+      case _: JArrayBody => "array"
       case EmptyBody => throw new IllegalArgumentException(s"$EmptyBody have no type name.")
     }
 
@@ -1107,6 +1108,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case FloatBody(v) => JDouble(v)
           case DoubleBody(v) => JDouble(v)
           case BigDecimalBody(v) => JDouble(v.doubleValue())
+          case JArrayBody(v) => v
           case _ => throw new RuntimeException(s"$value is not supported, please add a case for it.")
         }
     }
@@ -1129,6 +1131,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   case class FloatBody(value: Float) extends PrimaryDataBody[Float]
   case class BigDecimalBody(value: BigDecimal) extends PrimaryDataBody[BigDecimal]
   case class BigIntBody(value: BigInt) extends PrimaryDataBody[BigInt]
+  case class JArrayBody(value: JArray) extends PrimaryDataBody[JArray]
+
+  /**
+   * Any dynamic endpoint'ResourceDoc, it's partialFunction should set this stub endpoint.
+   */
+  val genericEndpointStub: OBPEndpoint = Functions.doNothing
 
   // Used to document the API calls
   case class ResourceDoc(

@@ -13,7 +13,6 @@ import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
 import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
-import APIMethods400.Implementations4_0_0.genericEndpoint
 import code.api.OBPRestHelper
 import code.api.util.ApiRole.{CanReadResourceDoc, canCreateAnyTransactionRequest}
 import code.util.Helper.MdcLoggable
@@ -130,7 +129,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val versionRoutes = requestedApiVersion match {
         case ApiVersion.`apiBuilder`     => OBP_APIBuilder.routes
-        case ApiVersion.v4_0_0 => OBPAPI4_0_0.routes
+        case ApiVersion.v4_0_0 => APIUtil.genericEndpointStub :: OBPAPI4_0_0.routes
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.routes
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.routes
@@ -517,7 +516,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           val jsonOut = for {
             requestedApiVersion <- Full(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
-            rd <- getResourceDocsList(requestedApiVersion).map(_.filterNot(_.partialFunction == genericEndpoint)) // exclude all DynamicEntity endpoints
+            rd <- getResourceDocsList(requestedApiVersion)
           } yield {
             // Filter
             val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)

@@ -2,7 +2,7 @@ package code.api.ResourceDocs1_4_0
 
 import java.util.{Date, Objects}
 
-import code.api.util.APIUtil.{ EmptyBody, PrimaryDataBody, ResourceDoc}
+import code.api.util.APIUtil.{EmptyBody, JArrayBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import com.openbankproject.commons.util.{ApiVersion, EnumValue, JsonAble, OBPEnumeration, ReflectUtils}
@@ -20,15 +20,16 @@ import net.liftweb.util.StringHelpers
 
 import scala.collection.mutable.ListBuffer
 import code.api.v3_1_0.ListResult
-import code.api.v4_0_0.APIMethods400.Implementations4_0_0.genericEndpoint
+import code.util.Helper.MdcLoggable
 import code.util.JsonUtils
 import net.liftweb.common.{EmptyBox, Full}
 import net.liftweb.json
-import org.apache.commons.lang3.StringUtils
 
+import scala.collection.GenTraversableLike
 import scala.reflect.runtime.universe
 
-object SwaggerJSONFactory {
+object SwaggerJSONFactory extends MdcLoggable {
+  type Coll[T] = GenTraversableLike[T, _]
   //Info Object
   //link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#infoObject
   case class InfoJson(
@@ -76,10 +77,43 @@ object SwaggerJSONFactory {
 
   case class RefSchemaJson(`$ref`: String) extends ResponseObjectSchemaJson
   case class BasicTypeSchemaJson(`type`: String) extends ResponseObjectSchemaJson
+  case class ListResultSchemaJson(listResult: ListResult[List[_]]) extends ResponseObjectSchemaJson with JsonAble {
+
+    override def toJValue: json.JValue = {
+      implicit val formats = CustomJsonFormats.formats
+      val ListResult(name, head::_) = listResult
+      val schema = buildSwaggerSchema(ReflectUtils.getType(head), head)
+      val definition =
+          s"""
+            |{
+            |     "type": "object",
+            |     "required": [
+            |          "$name"
+            |     ],
+            |     "properties": {
+            |          "$name": {
+            |               "type": "array",
+            |               "items": $schema
+            |          }
+            |     }
+            |}
+            |""".stripMargin
+      json.parse(definition)
+    }
+  }
   case class JObjectSchemaJson(jObject: JObject) extends ResponseObjectSchemaJson with JsonAble {
 
     override def toJValue: json.JValue = {
       val schema = buildSwaggerSchema(typeOf[JObject], jObject)
+      implicit val formats = CustomJsonFormats.formats
+      json.parse(schema)
+    }
+
+  }
+  case class JArraySchemaJson(jArray: JArray) extends ResponseObjectSchemaJson with JsonAble {
+
+    override def toJValue: json.JValue = {
+      val schema = buildSwaggerSchema(typeOf[JArray], jArray)
       implicit val formats = CustomJsonFormats.formats
       json.parse(schema)
     }
@@ -90,8 +124,13 @@ object SwaggerJSONFactory {
     def apply(`$ref`: String): ResponseObjectSchemaJson =
       RefSchemaJson(`$ref`)
 
-    def apply(bodyExample: PrimaryDataBody[_]) : ResponseObjectSchemaJson =
-      BasicTypeSchemaJson(bodyExample.swaggerDataTypeName)
+    def apply(listResult: ListResult[List[_]]): ResponseObjectSchemaJson =
+      ListResultSchemaJson(listResult)
+
+    def apply(bodyExample: PrimaryDataBody[_]) : ResponseObjectSchemaJson = bodyExample match {
+      case JArrayBody(v) => JArraySchemaJson(v)
+      case _ => BasicTypeSchemaJson(bodyExample.swaggerDataTypeName)
+    }
 
     def apply(jObject:JObject) = JObjectSchemaJson(jObject)
 
@@ -106,6 +145,9 @@ object SwaggerJSONFactory {
         case EmptyBody => None
         case example: PrimaryDataBody[_] => Some(ResponseObjectSchemaJson(example))
         case example: JObject => Some(JObjectSchemaJson(example))
+        case example: ListResult[_] =>
+          val listResult = example.asInstanceOf[ListResult[List[_]]]
+          Some(ResponseObjectSchemaJson(listResult))
         case s:scala.Product => Some(ResponseObjectSchemaJson(s"#/definitions/${s.getClass.getSimpleName}"))
         case _ => Some(ResponseObjectSchemaJson(s"#/definitions/NotSupportedYet"))
       }
@@ -580,76 +622,76 @@ object SwaggerJSONFactory {
     paramType match {
       case _ if isTypeOf[EnumValue]                    => s""" {"type":"string","enum": [${enumsToString(paramType)}]}"""
       case _ if isTypeOf[Option[EnumValue]]            => s""" {"type":"string","enum": [${enumsToString(paramType)}]}"""
-      case _ if isTypeOf[List[EnumValue]]             => s""" {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
-      case _ if isTypeOf[Option[List[EnumValue]]]     => s""" {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
+      case _ if isTypeOf[Coll[EnumValue]]             => s""" {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
+      case _ if isTypeOf[Option[Coll[EnumValue]]]     => s""" {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
 
       //Boolean - 4 kinds
       case _ if isAnyOfType[Boolean, JBool, XBoolean]                                         => s""" {"type":"boolean" $example}"""
       case _ if isAnyOfType[Option[Boolean], Option[JBool], Option[XBoolean]]                 => s""" {"type":"boolean" $example}"""
-      case _ if isAnyOfType[List[Boolean], List[JBool], List[XBoolean]]                       => s""" {"type":"array", "items":{"type": "boolean"}}"""
-      case _ if isAnyOfType[Option[List[Boolean]],Option[List[JBool]],Option[List[XBoolean]]] => s""" {"type":"array", "items":{"type": "boolean"}}"""
+      case _ if isAnyOfType[Coll[Boolean], Coll[JBool], Coll[XBoolean]]                       => s""" {"type":"array", "items":{"type": "boolean"}}"""
+      case _ if isAnyOfType[Option[Coll[Boolean]],Option[Coll[JBool]],Option[Coll[XBoolean]]] => s""" {"type":"array", "items":{"type": "boolean"}}"""
 
       //String
       case t if isAnyOfType[String, JString, XString] || isEnumeration(t)                                                  => s""" {"type":"string" $example}"""
-      case t if isAnyOfType[List[String], List[JString], List[XString]] || isNestEnumeration[List[_]](t)                         => s""" {"type":"array", "items":{"type": "string"}}"""
-      case t if isAnyOfType[Option[List[String]], Option[List[JString]], Option[List[XString]]] || isNestEnumeration[Option[List[_]]](t) => s""" {"type":"array", "items":{"type": "string"}}"""
+      case t if isAnyOfType[Coll[String], Coll[JString], Coll[XString]] || isNestEnumeration[List[_]](t)                         => s""" {"type":"array", "items":{"type": "string"}}"""
+      case t if isAnyOfType[Option[Coll[String]], Option[Coll[JString]], Option[Coll[XString]]] || isNestEnumeration[Option[List[_]]](t) => s""" {"type":"array", "items":{"type": "string"}}"""
       case t if isAnyOfType[Option[String], Option[JString], Option[XString]] || isNestEnumeration[Option[_]](t)                   => s""" {"type":"string" $example}"""
 
       //Int
       case _ if isAnyOfType[Int, JInt, XInt]                                           => s""" {"type":"integer", "format":"int32" $example}"""
       case _ if isAnyOfType[Option[Int], Option[JInt], Option[XInt]]                   => s""" {"type":"integer", "format":"int32" $example}"""
-      case _ if isAnyOfType[List[Int], List[JInt], List[XInt]]                         => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
-      case _ if isAnyOfType[Option[List[Int]], Option[List[JInt]], Option[List[XInt]]] => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+      case _ if isAnyOfType[Coll[Int], Coll[JInt], Coll[XInt]]                         => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+      case _ if isAnyOfType[Option[Coll[Int]], Option[Coll[JInt]], Option[Coll[XInt]]] => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
       //Long
       case _ if isOneOfType[Long, XLong]                             => s""" {"type":"integer", "format":"int64" $example}"""
       case _ if isOneOfType[Option[Long], Option[XLong]]             => s""" {"type":"integer", "format":"int64" $example}"""
-      case _ if isOneOfType[List[Long], List[XLong]]                 => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
-      case _ if isOneOfType[Option[List[Long]], Option[List[XLong]]] => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+      case _ if isOneOfType[Coll[Long], Coll[XLong]]                 => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+      case _ if isOneOfType[Option[Coll[Long]], Option[Coll[XLong]]] => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
       //Float
       case _ if isOneOfType[Float, XFloat]                             => s""" {"type":"number", "format":"float" $example}"""
       case _ if isOneOfType[Option[Float], Option[XFloat]]             => s""" {"type":"number", "format":"float" $example}"""
-      case _ if isOneOfType[List[Float], List[XFloat]]                 => s""" {"type":"array", "items":{"type": "float"}}"""
-      case _ if isOneOfType[Option[List[Float]], Option[List[XFloat]]] => s""" {"type":"array", "items":{"type": "float"}}"""
+      case _ if isOneOfType[Coll[Float], Coll[XFloat]]                 => s""" {"type":"array", "items":{"type": "float"}}"""
+      case _ if isOneOfType[Option[Coll[Float]], Option[Coll[XFloat]]] => s""" {"type":"array", "items":{"type": "float"}}"""
       //Double
       case _ if isAnyOfType[Double, JDouble, XDouble]                                           => s""" {"type":"number", "format":"double" $example}"""
       case _ if isAnyOfType[Option[Double], Option[JDouble], Option[XDouble]]                   => s""" {"type":"number", "format":"double" $example}"""
-      case _ if isAnyOfType[List[Double], List[JDouble], List[XDouble]]                         => s""" {"type":"array", "items":{"type": "double"}}"""
-      case _ if isAnyOfType[Option[List[Double]], Option[List[JDouble]], Option[List[XDouble]]] => s""" {"type":"array", "items":{"type": "double"}}"""
+      case _ if isAnyOfType[Coll[Double], Coll[JDouble], Coll[XDouble]]                         => s""" {"type":"array", "items":{"type": "double"}}"""
+      case _ if isAnyOfType[Option[Coll[Double]], Option[Coll[JDouble]], Option[Coll[XDouble]]] => s""" {"type":"array", "items":{"type": "double"}}"""
       //BigDecimal
       case _ if isOneOfType[BigDecimal, JBigDecimal]                             => s""" {"type":"string", "format":"double" $example}"""
       case _ if isOneOfType[Option[BigDecimal], Option[JBigDecimal]]             => s""" {"type":"string", "format":"double" $example}"""
-      case _ if isOneOfType[List[BigDecimal], List[JBigDecimal]]                 => s""" {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
-      case _ if isOneOfType[Option[List[BigDecimal]], Option[List[JBigDecimal]]] => s""" {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
+      case _ if isOneOfType[Coll[BigDecimal], Coll[JBigDecimal]]                 => s""" {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
+      case _ if isOneOfType[Option[Coll[BigDecimal]], Option[Coll[JBigDecimal]]] => s""" {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
       //Date
       case _ if isOneOfType[Date, Option[Date]]                   => s""" {"type":"string", "format":"date","example":"${APIUtil.DateWithSecondsFormat.format(exampleValue)}"}"""
-      case _ if isOneOfType[List[Date], Option[List[Date]]]       => s""" {"type":"array", "items":{"type":"string", "format":"date"}}"""
+      case _ if isOneOfType[Coll[Date], Option[Coll[Date]]]       => s""" {"type":"array", "items":{"type":"string", "format":"date"}}"""
 
       //List or Array Option data.
-      case t if isOneOfType[List[Option[_]], Array[Option[_]]]  =>
+      case t if isOneOfType[Coll[Option[_]], Array[Option[_]]]  =>
         val tp = ReflectUtils.getNestTypeArg(t, 0, 0)
         val value = exampleValue match {
-          case Some(v)::_ => v
           case v: Array[_] => v.headOption.flatMap(_.asInstanceOf[Option[_]]).orNull
+          case coll: Coll[_]  => coll.headOption.flatMap(_.asInstanceOf[Option[_]]).orNull
           case _ => null
         }
         s""" {"type": "array", "items":${buildSwaggerSchema(tp, value)}}"""
 
       // Option List or Array data
-      case t if isOneOfType[Option[List[_]], Option[Array[_]]] =>
+      case t if isOneOfType[Option[Coll[_]], Option[Array[_]]] =>
         val tp = ReflectUtils.getNestTypeArg(t, 0, 0)
         val value = exampleValue match {
-          case Some(v ::_) => v
           case Some(v: Array[_]) if v.nonEmpty => v.head
+          case Some(coll :Coll[_]) if coll.nonEmpty  => coll.head
           case _ => null
         }
         s""" {"type": "array", "items":${buildSwaggerSchema(tp, value)}}"""
 
       // List or Array data
-      case t if isOneOfType[List[_], Array[_]]   =>
+      case t if isOneOfType[Coll[_], Array[_]]   =>
         val tp = ReflectUtils.getNestTypeArg(t, 0)
         val value = exampleValue match {
-          case v ::_ => v
           case v: Array[_] => v.head
+          case coll : Coll[_] if coll.nonEmpty => coll.head
           case _ => null
         }
         s""" {"type": "array", "items":${buildSwaggerSchema(tp, value)}}"""
@@ -670,7 +712,9 @@ object SwaggerJSONFactory {
       case _ if isTypeOf[JArray]                   =>
         exampleValue match {
           case JArray(v ::_) => s""" {"type": "array", "items":${buildSwaggerSchema(JsonUtils.getType(v), v)} }"""
-          case _ => throw new RuntimeException("JArray type should not be empty.")
+          case _ =>
+            logger.error(s"Empty JArray is not allowed in request body and response body example.")
+            throw new RuntimeException("JArray type should not be empty.")
         }
 
       case _ if isTypeOf[JObject]         =>
@@ -699,47 +743,47 @@ object SwaggerJSONFactory {
   private[this] val noneRefTypes = List(
     typeOf[JValue]
     , typeOf[Option[JValue]]
-    , typeOf[List[JValue]]
-    , typeOf[Option[List[JValue]]]
+    , typeOf[Coll[JValue]]
+    , typeOf[Option[Coll[JValue]]]
 
     //Boolean - 4 kinds
     , typeOf[Boolean], typeOf[JBool], typeOf[XBoolean]
     , typeOf[Option[Boolean]], typeOf[ Option[JBool]], typeOf[ Option[XBoolean]]
-    , typeOf[List[Boolean]], typeOf[ List[JBool]], typeOf[ List[XBoolean]]
-    , typeOf[Option[List[Boolean]]], typeOf[Option[List[JBool]]], typeOf[Option[List[XBoolean]]]
+    , typeOf[Coll[Boolean]], typeOf[ Coll[JBool]], typeOf[ Coll[XBoolean]]
+    , typeOf[Option[Coll[Boolean]]], typeOf[Option[Coll[JBool]]], typeOf[Option[Coll[XBoolean]]]
     //String
     , typeOf[String], typeOf[JString], typeOf[XString]
     , typeOf[Option[String]], typeOf[Option[JString]], typeOf[Option[XString]]
-    , typeOf[List[String]], typeOf[List[JString]], typeOf[List[XString]]
-    , typeOf[Option[List[String]]], typeOf[Option[List[JString]]] , typeOf[Option[List[XString]]]
+    , typeOf[Coll[String]], typeOf[Coll[JString]], typeOf[Coll[XString]]
+    , typeOf[Option[Coll[String]]], typeOf[Option[Coll[JString]]] , typeOf[Option[Coll[XString]]]
     //Int
     , typeOf[Int], typeOf[JInt], typeOf[XInt]
     , typeOf[Option[Int]], typeOf[ Option[JInt]], typeOf[ Option[XInt]]
-    , typeOf[List[Int]], typeOf[ List[JInt]], typeOf[ List[XInt]]
-    , typeOf[Option[List[Int]]], typeOf[ Option[List[JInt]]], typeOf[ Option[List[XInt]]]
+    , typeOf[Coll[Int]], typeOf[ Coll[JInt]], typeOf[ Coll[XInt]]
+    , typeOf[Option[Coll[Int]]], typeOf[ Option[Coll[JInt]]], typeOf[ Option[Coll[XInt]]]
     //Long
     , typeOf[Long], typeOf[XLong]
     , typeOf[Option[Long]], typeOf[ Option[XLong]]
-    , typeOf[List[Long]], typeOf[ List[XLong]]
-    , typeOf[Option[List[Long]]], typeOf[ Option[List[XLong]]]
+    , typeOf[Coll[Long]], typeOf[ Coll[XLong]]
+    , typeOf[Option[Coll[Long]]], typeOf[ Option[Coll[XLong]]]
     //Float
     , typeOf[Float], typeOf[XFloat]
     , typeOf[Option[Float]], typeOf[ Option[XFloat]]
-    , typeOf[List[Float]], typeOf[ List[XFloat]]
-    , typeOf[Option[List[Float]]], typeOf[ Option[List[XFloat]]]
+    , typeOf[Coll[Float]], typeOf[ Coll[XFloat]]
+    , typeOf[Option[Coll[Float]]], typeOf[ Option[Coll[XFloat]]]
     //Double
     , typeOf[Double], typeOf[JDouble], typeOf[XDouble]
     , typeOf[Option[Double]], typeOf[ Option[JDouble]], typeOf[ Option[XDouble]]
-    , typeOf[List[Double]], typeOf[ List[JDouble]], typeOf[ List[XDouble]]
-    , typeOf[Option[List[Double]]], typeOf[ Option[List[JDouble]]], typeOf[ Option[List[XDouble]]]
+    , typeOf[Coll[Double]], typeOf[ Coll[JDouble]], typeOf[ Coll[XDouble]]
+    , typeOf[Option[Coll[Double]]], typeOf[ Option[Coll[JDouble]]], typeOf[ Option[Coll[XDouble]]]
     //BigDecimal
     , typeOf[BigDecimal], typeOf[JBigDecimal]
     , typeOf[Option[BigDecimal]], typeOf[ Option[JBigDecimal]]
-    , typeOf[List[BigDecimal]], typeOf[ List[JBigDecimal]]
-    , typeOf[Option[List[BigDecimal]]], typeOf[ Option[List[JBigDecimal]]]
+    , typeOf[Coll[BigDecimal]], typeOf[ Coll[JBigDecimal]]
+    , typeOf[Option[Coll[BigDecimal]]], typeOf[ Option[Coll[JBigDecimal]]]
     //Date
     , typeOf[Date], typeOf[Option[Date]]
-    , typeOf[List[Date]], typeOf[ Option[List[Date]]]
+    , typeOf[Coll[Date]], typeOf[ Option[Coll[Date]]]
   )
 
   /**
@@ -778,7 +822,7 @@ object SwaggerJSONFactory {
       case seq: Seq[_] if(seq.isEmpty) => Nil
       case Some(v) => getNestedRefEntities(v, excludeTypes)
       case Full(v) => getNestedRefEntities(v, excludeTypes)
-      case seq: Seq[_] => seq.toList.flatMap(getNestedRefEntities(_, excludeTypes))
+      case coll: Coll[_] => coll.toList.flatMap(getNestedRefEntities(_, excludeTypes))
       case v if(! ReflectUtils.isObpObject(v)) => Nil
       case _ => {
         val entityType = ReflectUtils.getType(obj)
@@ -847,7 +891,7 @@ object SwaggerJSONFactory {
 
     // filter function: not null and not type of EnumValue, PrimaryDataBody, JObject, JArray.
     val predicate: Any => Boolean = {
-      val excludeTypes: Set[Class[_]] = Set(classOf[EnumValue], classOf[PrimaryDataBody[_]], classOf[JValue])
+      val excludeTypes: Set[Class[_]] = Set(classOf[EnumValue], classOf[ListResult[_]], classOf[PrimaryDataBody[_]], classOf[JValue])
       any => any != null && !excludeTypes.exists(_.isInstance(any))
     }
 
@@ -888,22 +932,12 @@ object SwaggerJSONFactory {
          }""".stripMargin
       })
 
-    // extract uploaded DynamicEntities definitions, only when processing resourceDocList have DynamicEntity
-    val dynamicEntityDefinitions = resourceDocList
-      .find(_.partialFunction == genericEndpoint)
-      .map(_ => {
-        NewStyle.function.getDynamicEntities()
-          .map(_.metadataJson)
-          .map(StringUtils.substring(_, 1, -1))
-      })
-      .toList.flatten
 
 
     //Add a comma between elements of a list and make a string 
     val particularDefinitionsPart = (
         errorDefinitions :::
-        translatedEntities :::
-        dynamicEntityDefinitions
+        translatedEntities
       ) mkString (",")
   
     //Make a final string

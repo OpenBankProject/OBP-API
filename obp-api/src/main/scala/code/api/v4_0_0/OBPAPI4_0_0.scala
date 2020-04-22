@@ -76,7 +76,6 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
-      Implementations4_0_0.genericEndpoint::
       Implementations4_0_0.root :: // For now we make this mandatory
       getAllowedEndpoints(endpoints, allResourceDocs)
 
