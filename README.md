@@ -511,7 +511,7 @@ The same as `Frozen APIs`, if related unit test fail, make sure whether the modi
 
 * A good book on Lift: "Lift in Action" by Timothy Perrett published by Manning.
 
-## Be tested JDK Version
+## Supported JDK Versions
 * OracleJDK: 1.8, 13
 * OpenJdk: 11
 
