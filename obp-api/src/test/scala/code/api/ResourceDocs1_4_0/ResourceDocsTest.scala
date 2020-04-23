@@ -5,7 +5,7 @@ import java.util
 import code.api.ResourceDocs1_4_0.ResourceDocsV140ServerSetup
 import code.api.util.{ApiRole, CustomJsonFormats}
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion, Functions}
 import io.swagger.parser.OpenAPIParser
 import net.liftweb.json
 import net.liftweb.json.JsonAST._
@@ -24,33 +24,11 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup {
     private val CLAZZ = classOf[Product]
 
     override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, json.JValue), Product] = {
-      case (TypeInfo(CLAZZ, _), json) if json == JNull => null
-      case (TypeInfo(CLAZZ, _), json: JObject) => {
-        val keyValues = json.obj.map(pair => {
-          val JField(name, jvalue) = pair
-          val value = jvalue match {
-            case JBool(v) => v
-            case JString(v) => v
-            case JInt(v) => v
-            case JDouble(v) => v
-            case JArray(arr) => arr
-            case JObject(v) => v.map(it => (it.name, it.value))
-            case _ => jvalue
-          }
-          (name, value)
-        })
-
-        new Product {
-          override def productElement(n: Int): Any = keyValues.lift(n)
-          override def productArity: Int = keyValues.size
-          override def canEqual(that: Any): Boolean = false
-        }
-      }
+      case (TypeInfo(CLAZZ, _), json) if json == JNull || json == JNothing => null
+      case (TypeInfo(CLAZZ, _), json: JObject) => json
     }
 
-    override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = {
-      case null => JNull // not need do serialize
-    }
+    override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = Functions.doNothing
   }
   // here must supply a Serializer of json, to support Product type, because the follow type are ApiRole:
   //ResourceDocsJson#ResourceDocJson.roles

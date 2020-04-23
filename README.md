@@ -510,3 +510,25 @@ The same as `Frozen APIs`, if related unit test fail, make sure whether the modi
 * Advanced architecture: http://exploring.liftweb.net/master/index-9.html
 
 * A good book on Lift: "Lift in Action" by Timothy Perrett published by Manning.
+
+## Be tested JDK Version
+* OracleJDK: 1.8, 13
+* OpenJdk: 11
+
+## Endpoint Request and Response Example
+    ResourceDoc#exampleRequestBody and ResourceDoc#successResponseBody can be the follow type
+* Any Case class
+* JObject
+* Wrapper JArray: JArrayBody(jArray)
+* Wrapper String: StringBody("Hello")
+* Wrapper primary type: IntBody(1), BooleanBody(true), FloatBody(1.2F)...
+* Empty: EmptyBody
+
+example: 
+```
+resourceDocs += ResourceDoc(
+      exampleRequestBody= EmptyBody,
+      successResponseBody= BooleanBody(true),
+      ...
+)
+```
