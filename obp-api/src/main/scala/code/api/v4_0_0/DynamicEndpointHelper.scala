@@ -9,7 +9,7 @@ import java.util.{Date, Optional, UUID}
 
 import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
-import code.api.util.APIUtil.{Catalogs, OBPEndpoint, ResourceDoc, notCore, notOBWG, notPSD2}
+import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, Catalogs, DoubleBody, EmptyBody, FloatBody, IntBody, LongBody, OBPEndpoint, ResourceDoc, StringBody, notCore, notOBWG, notPSD2}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
 import code.api.util.ErrorMessages.{UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ApiTag, CustomJsonFormats}
@@ -297,7 +297,11 @@ object DynamicEndpointHelper extends RestHelper {
     if(StringUtils.isNotBlank(op.getSummary)) {
       op.getSummary
     } else {
-      val opName = method.name().toLowerCase.capitalize
+      val opName = method.name().toLowerCase match {
+        case "post" => "Create"
+        case "put" => "Update"
+        case v => v.capitalize
+      }
       Option(getEntityName(openAPI, op))
         .map(entityName => s"$opName $entityName")
         .orElse(Option(op.getDescription).filterNot(StringUtils.isBlank))
@@ -348,7 +352,7 @@ object DynamicEndpointHelper extends RestHelper {
 
   private def getRequestExample(openAPI: OpenAPI, body: RequestBody): Product = {
     if(body == null || body.getContent == null) {
-       JObject()
+       EmptyBody
     } else if(StringUtils.isNotBlank(body.get$ref())) {
       val schema = getRefSchema(openAPI, body.get$ref())
 
@@ -372,11 +376,13 @@ object DynamicEndpointHelper extends RestHelper {
 
   private def getResponseExample(openAPI: OpenAPI, apiResponses: ApiResponses): Product = {
     if(apiResponses == null || apiResponses.isEmpty) {
-      return JObject()
+      return EmptyBody
     }
 
     val successResponse: Option[ApiResponse] = apiResponses.asScala
-      .find(_._1.startsWith("20")).map(_._2)
+      .find(_._1.startsWith("20"))
+      .orElse(apiResponses.asScala.find(_._1 == "default"))
+      .map(_._2)
 
     val result: Option[Product] = for {
      response <- successResponse
@@ -384,7 +390,13 @@ object DynamicEndpointHelper extends RestHelper {
      example = getExample(openAPI, schema)
     } yield example
 
-    result.getOrElse(JObject())
+    result
+      .orElse(
+          successResponse.collect { //if only exists default ApiResponse, use description as example
+            case v if StringUtils.isNoneBlank(v.getDescription) => StringBody(v.getDescription)
+          }
+       )
+      .getOrElse(EmptyBody)
   }
 
   private def getResponseSchema(openAPI: OpenAPI, apiResponse: ApiResponse): Option[Schema[_]] = {
@@ -417,12 +429,21 @@ object DynamicEndpointHelper extends RestHelper {
     val example: Any = getExampleBySchema(openAPI, schema)
 
     example match {
-      case v :scala.Product => v
+      case null => EmptyBody
+      case v: String => StringBody(v)
+      case v: Boolean => BooleanBody(v)
+      case v: Int => IntBody(v)
+      case v: Long => LongBody(v)
+      case v: BigInt => BigIntBody(v)
+      case v: Float => FloatBody(v)
+      case v: Double => DoubleBody(v)
+      case v: BigDecimal => BigDecimalBody(v)
       case JArray(arr) => List(arr)
+      case v: JObject => v
+      case v :scala.Product => v
       case v => json.Extraction.decompose(v) match {
         case o: JObject => o
         case JArray(arr) => arr
-        case jv: JValue => JObject(JField("value", jv)) // TODO need process simple example of ResourceDoc
         case _ => throw new RuntimeException(s"Not supporting example type: $v, ${v.getClass}")
       }
     }
@@ -439,6 +460,7 @@ object DynamicEndpointHelper extends RestHelper {
       .getOrElse(t)
 
     schema match {
+      case null => null
       case v: BooleanSchema => getDefaultValue(v, true)
       case v if v.getType() =="boolean" => true
       case v: DateSchema => getDefaultValue(v, {

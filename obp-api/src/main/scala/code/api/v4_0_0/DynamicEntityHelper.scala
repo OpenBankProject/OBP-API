@@ -33,12 +33,51 @@ object MockerConnector {
   def definitionsMap = NewStyle.function.getDynamicEntities().map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName))).toMap
 
   def doc: ArrayBuffer[ResourceDoc] = {
-    val docs: Seq[ResourceDoc] = definitionsMap.values.flatMap(createDocs).toSeq
+    val addPrefix = APIUtil.getPropsAsBoolValue("dynamic_entities_have_prefix", true)
+
+    // record exists tag names, to avoid duplicated dynamic tag name.
+    var existsTagNames = ApiTag.staticTagNames
+    // match string that start with _, e.g: "_abc"
+    val Regex = "(_+)(.+)".r
+    def apiTag(entityName: String, singularName: String): ResourceDocTag = {
+
+      val existsSameStaticEntity: Boolean = existsTagNames
+        .exists(it => it.equalsIgnoreCase(singularName) || it.equalsIgnoreCase(entityName))
+
+      if(addPrefix || existsSameStaticEntity) {
+        var tagName = singularName match {
+          case Regex(a,b) => s"$a${b.capitalize}"
+          case v => s"_${v.capitalize}"
+        }
+
+        while(existsTagNames.exists(it => it.equalsIgnoreCase(tagName))) {
+          tagName = s"_$tagName"
+        }
+
+        existsTagNames += tagName
+        ApiTag(tagName)
+      } else {
+        val tagName = singularName.capitalize
+        existsTagNames += tagName
+        ApiTag(tagName)
+      }
+    }
+    val fun: DynamicEntityInfo => ArrayBuffer[ResourceDoc] = createDocs(apiTag)
+    val docs: Seq[ResourceDoc] = definitionsMap.values.flatMap(fun).toSeq
+
+
     collection.mutable.ArrayBuffer(docs:_*)
   }
 
   // TODO the requestBody and responseBody is not correct ref type
-  def createDocs(dynamicEntityInfo: DynamicEntityInfo) = {
+  /**
+   *
+   * @param fun (singularName, entityName) => ResourceDocTag
+   * @param dynamicEntityInfo dynamicEntityInfo
+   * @return all ResourceDoc of given dynamicEntity
+   */
+  private def createDocs(fun: (String, String) => ResourceDocTag)
+                (dynamicEntityInfo: DynamicEntityInfo): ArrayBuffer[ResourceDoc] = {
     val entityName = dynamicEntityInfo.entityName
     // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
     val capitalizedNameParts = entityName.split("(?<=[a-z])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
@@ -51,19 +90,8 @@ object MockerConnector {
     val endPoint = APIMethods400.Implementations4_0_0.genericEndpoint
     val implementedInApiVersion = ApiVersion.v4_0_0
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-    val apiTag: ResourceDocTag = {
-      val addPrefix = APIUtil.getPropsAsBoolValue("dynamic_entities_have_prefix", true)
+    val apiTag: ResourceDocTag = fun(singularName, entityName)
 
-      def existsSameStaticEntity: Boolean = ApiTag.allDisplayTagNames
-            .exists(it => it.equalsIgnoreCase(singularName) || it.equalsIgnoreCase(entityName))
-
-      if((addPrefix && !singularName.startsWith("_")) || existsSameStaticEntity) {
-        ApiTag("_" + singularName)
-      } else {
-        ApiTag(' ' + singularName)
-      }
-    };
-    val connectorMethods = Some(List(s"""dynamicEntityProcess: parameters contains {"key": "entityName", "value": "$entityName"}"""))
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
@@ -75,6 +103,10 @@ object MockerConnector {
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
+         |
+         |${methodRoutingExample(entityName)}
+         |
+         |${authenticationRequiredMessage(true)}
          |
          |Can do filter on the fields
          |e.g: /${entityName}?name=James%20Brown&number=123.456&number=11.11
@@ -89,8 +121,7 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List(dynamicEntityInfo.canGetRole)),
-      connectorMethods = connectorMethods
+      Some(List(dynamicEntityInfo.canGetRole))
     )
     resourceDocs += ResourceDoc(
       endPoint,
@@ -103,6 +134,10 @@ object MockerConnector {
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
+         |
+         |${methodRoutingExample(entityName)}
+         |
+         |${authenticationRequiredMessage(true)}
          |""".stripMargin,
       emptyObjectJson,
       dynamicEntityInfo.getSingleExample,
@@ -113,8 +148,7 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List(dynamicEntityInfo.canGetRole)),
-      connectorMethods = connectorMethods
+      Some(List(dynamicEntityInfo.canGetRole))
     )
 
     resourceDocs += ResourceDoc(
@@ -129,6 +163,8 @@ object MockerConnector {
          |
          |${dynamicEntityInfo.fieldsDescription}
          |
+         |${methodRoutingExample(entityName)}
+         |
          |${authenticationRequiredMessage(true)}
          |
          |""",
@@ -142,8 +178,7 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List(dynamicEntityInfo.canCreateRole)),
-      connectorMethods = connectorMethods
+      Some(List(dynamicEntityInfo.canCreateRole))
       )
 
     resourceDocs += ResourceDoc(
@@ -158,6 +193,8 @@ object MockerConnector {
          |
          |${dynamicEntityInfo.fieldsDescription}
          |
+         |${methodRoutingExample(entityName)}
+         |
          |${authenticationRequiredMessage(true)}
          |
          |""",
@@ -171,8 +208,7 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List(dynamicEntityInfo.canUpdateRole)),
-      connectorMethods = connectorMethods
+      Some(List(dynamicEntityInfo.canUpdateRole))
     )
 
     resourceDocs += ResourceDoc(
@@ -184,6 +220,7 @@ object MockerConnector {
       s"Delete one $singularName",
       s"""Delete one $singularName
          |
+         |${methodRoutingExample(entityName)}
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -198,12 +235,34 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List(dynamicEntityInfo.canDeleteRole)),
-      connectorMethods = connectorMethods
+      Some(List(dynamicEntityInfo.canDeleteRole))
     )
 
     resourceDocs
   }
+
+  private def methodRoutingExample(entityName: String) =
+    s"""
+      |MethodRouting settings example:
+      |```
+      |{
+      |  "is_bank_id_exact_match":false,
+      |  "method_name":"dynamicEntityProcess",
+      |  "connector_name":"rest_vMar2019",
+      |  "bank_id_pattern":".*",
+      |  "parameters":[
+      |    {
+      |        "key":"entityName",
+      |        "value":"$entityName"
+      |    }
+      |    {
+      |        "key":"url",
+      |        "value":"http://mydomain.com/xxx"
+      |    }
+      |  ]
+      |}
+      |```
+      |""".stripMargin
 
 }
 case class DynamicEntityInfo(definition: String, entityName: String) {

@@ -59,7 +59,7 @@ import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import code.views.Views
-import com.github.dwickern.macros.NameOf.nameOf
+import com.github.dwickern.macros.NameOf.{nameOf, nameOfType}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{Customer, _}
@@ -1085,6 +1085,51 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // So create the EmptyClassJson to set the empty JValue "{}"
   case class EmptyClassJson(jsonString: String ="{}")
 
+  sealed abstract class PrimaryDataBody[T] extends JsonAble {
+    def value: T
+
+    def swaggerDataTypeName: String = this.asInstanceOf[PrimaryDataBody[_]] match {
+      case _: StringBody => "string"
+      case _: BooleanBody => "boolean"
+      case _: IntBody | _: LongBody | _: BigIntBody => "integer"
+      case _: FloatBody | _: DoubleBody | _: BigDecimalBody => "number"
+      case EmptyBody => throw new IllegalArgumentException(s"$EmptyBody have no type name.")
+    }
+
+    override def toJValue: json.JValue = {
+      this.asInstanceOf[PrimaryDataBody[_]] match {
+          case EmptyBody => JNothing
+          case StringBody(v) => JString(v)
+          case BooleanBody(v) => JBool(v)
+          case IntBody(v) => JInt(v)
+          case LongBody(v) => JInt(v)
+          case BigIntBody(v) => JInt(v)
+          case FloatBody(v) => JDouble(v)
+          case DoubleBody(v) => JDouble(v)
+          case BigDecimalBody(v) => JDouble(v.doubleValue())
+          case _ => throw new RuntimeException(s"$value is not supported, please add a case for it.")
+        }
+    }
+  }
+
+  case object EmptyBody extends PrimaryDataBody[Any] {
+     val value = null
+
+    /**
+     * @return "EmptyBody"
+     */
+    override def toString: String = nameOfType[APIUtil.EmptyBody.type]
+  }
+
+  case class StringBody(value: String) extends PrimaryDataBody[String]
+  case class BooleanBody(value: Boolean) extends PrimaryDataBody[Boolean]
+  case class IntBody(value: Int) extends PrimaryDataBody[Int]
+  case class LongBody(value: Long) extends PrimaryDataBody[Long]
+  case class DoubleBody(value: Double) extends PrimaryDataBody[Double]
+  case class FloatBody(value: Float) extends PrimaryDataBody[Float]
+  case class BigDecimalBody(value: BigDecimal) extends PrimaryDataBody[BigDecimal]
+  case class BigIntBody(value: BigInt) extends PrimaryDataBody[BigInt]
+
   // Used to document the API calls
   case class ResourceDoc(
                           partialFunction: OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
@@ -1094,8 +1139,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           requestUrl: String, // The URL. THIS GETS MODIFIED TO include the implemented in prefix e.g. /obp/vX.X). Starts with / No trailing slash.
                           summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
                           var description: String, // Longer description (originally taken from github wiki)
-                          exampleRequestBody: scala.Product, // An example of the body required (maybe empty)
-                          successResponseBody: scala.Product, // A successful response body
+                          exampleRequestBody: scala.Product, // An example of the request body, any type of: case class, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
+                          successResponseBody: scala.Product, // A successful response body, any type of: case class, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
                           var errorResponseBodies: List[String], // Possible error responses
                           catalogs: Catalogs,
                           tags: List[ResourceDocTag],
