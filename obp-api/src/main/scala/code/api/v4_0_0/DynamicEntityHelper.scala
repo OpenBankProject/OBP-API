@@ -1,6 +1,6 @@
 package code.api.v4_0_0
 
-import code.api.util.APIUtil.{Catalogs, ResourceDoc, authenticationRequiredMessage, emptyObjectJson, generateUUID, notCore, notOBWG, notPSD2}
+import code.api.util.APIUtil.{Catalogs, EmptyBody, ResourceDoc, authenticationRequiredMessage, generateUUID, notCore, notOBWG, notPSD2}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ApiTag, NewStyle}
@@ -87,7 +87,7 @@ object MockerConnector {
     val idNameInUrl = StringHelpers.snakify(dynamicEntityInfo.idName).toUpperCase()
     val listName = dynamicEntityInfo.listName
 
-    val endPoint = APIMethods400.Implementations4_0_0.genericEndpoint
+    val endPoint = APIUtil.dynamicEndpointStub
     val implementedInApiVersion = ApiVersion.v4_0_0
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiTag: ResourceDocTag = fun(singularName, entityName)
@@ -112,7 +112,7 @@ object MockerConnector {
          |e.g: /${entityName}?name=James%20Brown&number=123.456&number=11.11
          |Will do filter by this rule: name == "James Brown" && (number==123.456 || number=11.11)
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       dynamicEntityInfo.getExampleList,
       List(
         UserNotLoggedIn,
@@ -139,7 +139,7 @@ object MockerConnector {
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       dynamicEntityInfo.getSingleExample,
       List(
         UserNotLoggedIn,

@@ -9,7 +9,7 @@ import java.util.{Date, Optional, UUID}
 
 import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
-import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, Catalogs, DoubleBody, EmptyBody, FloatBody, IntBody, LongBody, OBPEndpoint, ResourceDoc, StringBody, notCore, notOBWG, notPSD2}
+import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, Catalogs, DoubleBody, EmptyBody, FloatBody, IntBody, JArrayBody, LongBody, OBPEndpoint, ResourceDoc, StringBody, notCore, notOBWG, notPSD2}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
 import code.api.util.ErrorMessages.{UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ApiTag, CustomJsonFormats}
@@ -160,7 +160,7 @@ object DynamicEndpointHelper extends RestHelper {
       (method: HttpMethod, op: Operation) <- pathItem.readOperationsMap.asScala
     } yield {
       val implementedInApiVersion = ApiVersion.v4_0_0
-      val partialFunction: OBPEndpoint = APIMethods400.Implementations4_0_0.genericEndpoint // this function is just placeholder, not need a real value.
+
       val partialFunctionName: String = s"$method-$path".replaceAll("\\W", "_")
       val requestVerb: String = method.name()
       val requestUrl: String = buildRequestUrl(path)
@@ -241,7 +241,7 @@ object DynamicEndpointHelper extends RestHelper {
         ))
       }
       val doc = ResourceDoc(
-        partialFunction,
+        APIUtil.dynamicEndpointStub,
         implementedInApiVersion,
         partialFunctionName,
         requestVerb,
@@ -438,7 +438,7 @@ object DynamicEndpointHelper extends RestHelper {
       case v: Float => FloatBody(v)
       case v: Double => DoubleBody(v)
       case v: BigDecimal => BigDecimalBody(v)
-      case JArray(arr) => List(arr)
+      case v: JArray => JArrayBody(v)
       case v: JObject => v
       case v :scala.Product => v
       case v => json.Extraction.decompose(v) match {
@@ -492,7 +492,10 @@ object DynamicEndpointHelper extends RestHelper {
         getDefaultValue(v, {
           val itemsSchema: Schema[_] = v.getItems
           val singleItemExample = getExampleBySchema(openAPI, itemsSchema)
-          Array(singleItemExample)
+          singleItemExample match {
+            case v: JValue => JArray(v::Nil)
+            case v => json.Extraction.decompose(Array(v))
+          }
         })
       case v: MapSchema => getDefaultValue(v, Map("name"-> "John", "age" -> 12))
 
