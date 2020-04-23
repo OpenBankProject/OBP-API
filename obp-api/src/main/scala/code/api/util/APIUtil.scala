@@ -1136,7 +1136,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   /**
    * Any dynamic endpoint'ResourceDoc, it's partialFunction should set this stub endpoint.
    */
-  val genericEndpointStub: OBPEndpoint = Functions.doNothing
+  val dynamicEndpointStub: OBPEndpoint = Functions.doNothing
 
   // Used to document the API calls
   case class ResourceDoc(

@@ -87,7 +87,7 @@ object MockerConnector {
     val idNameInUrl = StringHelpers.snakify(dynamicEntityInfo.idName).toUpperCase()
     val listName = dynamicEntityInfo.listName
 
-    val endPoint = APIUtil.genericEndpointStub
+    val endPoint = APIUtil.dynamicEndpointStub
     val implementedInApiVersion = ApiVersion.v4_0_0
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiTag: ResourceDocTag = fun(singularName, entityName)

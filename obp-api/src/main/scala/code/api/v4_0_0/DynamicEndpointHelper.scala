@@ -241,7 +241,7 @@ object DynamicEndpointHelper extends RestHelper {
         ))
       }
       val doc = ResourceDoc(
-        APIUtil.genericEndpointStub,
+        APIUtil.dynamicEndpointStub,
         implementedInApiVersion,
         partialFunctionName,
         requestVerb,
