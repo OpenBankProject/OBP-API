@@ -28,7 +28,7 @@ package code.api.v4_0_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
-import code.api.util.VersionedOBPApis
+import code.api.util.{APIUtil, VersionedOBPApis}
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
@@ -76,9 +76,9 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
+      APIUtil.dynamicEndpointStub ::  // corresponding all dynamic generated endpoints's OBPEndpoint
       Implementations4_0_0.root :: // For now we make this mandatory
       getAllowedEndpoints(endpoints, allResourceDocs)
-
 
   // register v4.0.0 apis first, Make them available for use!
   registerRoutes(routes, allResourceDocs, apiPrefix, true)

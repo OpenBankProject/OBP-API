@@ -129,7 +129,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val versionRoutes = requestedApiVersion match {
         case ApiVersion.`apiBuilder`     => OBP_APIBuilder.routes
-        case ApiVersion.v4_0_0 => APIUtil.dynamicEndpointStub :: OBPAPI4_0_0.routes
+        case ApiVersion.v4_0_0 => OBPAPI4_0_0.routes
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.routes
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.routes
