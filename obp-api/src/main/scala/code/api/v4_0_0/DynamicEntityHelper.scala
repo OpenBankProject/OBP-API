@@ -80,7 +80,7 @@ object MockerConnector {
                 (dynamicEntityInfo: DynamicEntityInfo): ArrayBuffer[ResourceDoc] = {
     val entityName = dynamicEntityInfo.entityName
     // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
-    val capitalizedNameParts = entityName.split("(?<=[a-z])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
+    val capitalizedNameParts = entityName.split("(?<=[a-z0-9])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
     val singularName = capitalizedNameParts.mkString(" ")
     val pluralName = English.plural(singularName)
 

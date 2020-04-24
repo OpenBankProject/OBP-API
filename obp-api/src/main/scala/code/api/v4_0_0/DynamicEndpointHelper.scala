@@ -262,7 +262,7 @@ object DynamicEndpointHelper extends RestHelper {
   }
 
   private val PathParamRegx = """\{(.+?)\}""".r
-  private val WordBoundPattern = Pattern.compile("(?<=[a-z])(?=[A-Z])|-")
+  private val WordBoundPattern = Pattern.compile("(?<=[a-z0-9])(?=[A-Z])|-")
 
   private def buildRequestUrl(path: String): String = {
     val url = StringUtils.split(s"$urlPrefix/$path", "/")
