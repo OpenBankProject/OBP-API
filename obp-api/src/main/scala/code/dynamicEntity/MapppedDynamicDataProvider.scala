@@ -46,7 +46,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   }
 
   private def getIdName(entityName: String) = {
-    s"${entityName}_id".replaceAll("(?<=[a-z0-9])(?=[A-Z])|-", "_").toLowerCase
+    s"${entityName}_Id".replaceAll("(?<=[a-z0-9])(?=[A-Z])|-", "_").toLowerCase
   }
 }
 
