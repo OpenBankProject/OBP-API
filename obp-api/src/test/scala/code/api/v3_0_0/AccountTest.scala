@@ -1,6 +1,6 @@
 package code.api.v3_0_0
 
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanUseFirehoseAtAnyBank
 import com.openbankproject.commons.util.ApiVersion
@@ -37,7 +37,6 @@ class AccountTest extends V300ServerSetup {
       val httpResponse = getCorePrivateAccountsAllBanksV300(user1)
 
       Then("We should get a 200 and check the response body")
-      org.scalameta.logger.elem(httpResponse)
       httpResponse.code should equal(200)
       httpResponse.body.extract[CoreAccountsJsonV300]
 

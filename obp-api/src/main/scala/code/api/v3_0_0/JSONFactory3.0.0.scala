@@ -38,7 +38,7 @@ import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.EntitlementJSONs
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
-import code.api.v3_1_0.AccountAttributeResponseJson
+import code.api.v3_1_0.{AccountAttributeResponseJson, CustomerWithAttributesJsonV310}
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.atms.Atms.Atm
 import code.branches.Branches.Branch
@@ -458,6 +458,39 @@ case class CustomerJsonV300(
                              branch_id: String,
                              name_suffix: String)
 case class CustomerJSONs(customers: List[CustomerJsonV300])
+
+case class CustomerAttributeResponseJsonV300(
+  customer_attribute_id: String,
+  name: String,
+  `type`: String,
+  value: String
+)
+
+case class CustomerWithAttributesJsonV300(
+  bank_id: String,
+  customer_id: String,
+  customer_number : String,
+  legal_name : String,
+  mobile_phone_number : String,
+  email : String,
+  face_image : CustomerFaceImageJson,
+  date_of_birth: String,
+  relationship_status: String,
+  dependants: Integer,
+  dob_of_dependants: List[String],
+  credit_rating: Option[CustomerCreditRatingJSON],
+  credit_limit: Option[AmountOfMoneyJsonV121],
+  highest_education_attained: String,
+  employment_status: String,
+  kyc_status: lang.Boolean,
+  last_ok_date: Date,
+  title: String,
+  branch_id: String,
+  name_suffix: String,
+  customer_attributes: List[CustomerAttributeResponseJsonV300]
+)
+
+case class CustomersWithAttributesJsonV300(customers: List[CustomerWithAttributesJsonV300])
 
 case class EntitlementRequestJSON(entitlement_request_id: String, user: UserJsonV200, role_name: String, bank_id: String, created: Date)
 case class EntitlementRequestsJSON(entitlement_requests: List[EntitlementRequestJSON])
@@ -1147,6 +1180,34 @@ object JSONFactory300{
   }
 
 
+  def createCustomerWithAttributesJson(cInfo : Customer, customerAttributes: List[CustomerAttribute]) : CustomerWithAttributesJsonV300 = {
+    CustomerWithAttributesJsonV300(
+      bank_id = cInfo.bankId.toString,
+      customer_id = cInfo.customerId,
+      customer_number = cInfo.number,
+      legal_name = cInfo.legalName,
+      mobile_phone_number = cInfo.mobileNumber,
+      email = cInfo.email,
+      face_image = CustomerFaceImageJson(
+        url = cInfo.faceImage.url, 
+        date = cInfo.faceImage.date),
+      date_of_birth = (if (cInfo.dateOfBirth==null) "" else (APIUtil.DateWithDayFormat).format(cInfo.dateOfBirth)),
+      relationship_status = cInfo.relationshipStatus,
+      dependants = cInfo.dependents,
+      dob_of_dependants = cInfo.dobOfDependents.map(x => if (x==null) "" else (APIUtil.DateWithDayFormat).format(x)),
+      credit_rating = Option(CustomerCreditRatingJSON(rating = cInfo.creditRating.rating, source = cInfo.creditRating.source)),
+      credit_limit = Option(AmountOfMoneyJsonV121(currency = cInfo.creditLimit.currency, amount = cInfo.creditLimit.amount)),
+      highest_education_attained = cInfo.highestEducationAttained,
+      employment_status = cInfo.employmentStatus,
+      kyc_status = cInfo.kycStatus,
+      last_ok_date = cInfo.lastOkDate,
+      title = cInfo.title,
+      branch_id = cInfo.branchId,
+      name_suffix = cInfo.nameSuffix,
+      customer_attributes = customerAttributes.map(JSONFactory300.createCustomerAttributeJson)
+    )
+  }
+  
   def createCustomerJson(cInfo : Customer) : CustomerJsonV300 = {
 
     CustomerJsonV300(
@@ -1177,6 +1238,14 @@ object JSONFactory300{
     CustomerJSONs(customers.map(createCustomerJson))
   }
 
+  def createCustomersWithAttributesJson(customersAndAttributesPairs : List[(Customer, List[CustomerAttribute])]) :CustomersWithAttributesJsonV300 = {
+    CustomersWithAttributesJsonV300(
+      customersAndAttributesPairs.map(
+        customerAndAttributesPair => createCustomerWithAttributesJson(customerAndAttributesPair._1,customerAndAttributesPair._2)
+      )
+    )
+  }
+  
   def createEntitlementRequestJSON(e: EntitlementRequest): EntitlementRequestJSON = {
     EntitlementRequestJSON(
       entitlement_request_id = e.entitlementRequestId,
@@ -1217,5 +1286,14 @@ object JSONFactory300{
           aggregateMetric.maxResponseTime
         )
       )
+  }
+
+  def createCustomerAttributeJson(customerAttribute: CustomerAttribute) : CustomerAttributeResponseJsonV300 = {
+    CustomerAttributeResponseJsonV300(
+      customer_attribute_id = customerAttribute.customerAttributeId,
+      name = customerAttribute.name,
+      `type` = customerAttribute.attributeType.toString,
+      value = customerAttribute.value
+    )
   }
 }

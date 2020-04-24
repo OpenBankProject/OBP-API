@@ -27,6 +27,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.UUID.randomUUID
 
+import code.api.APIFailure
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
@@ -57,12 +58,16 @@ import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.util.{ApiVersion, RequiredFieldValidation}
+
+import scala.reflect.runtime.universe._
 
 trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcLoggable {
   //this one import is for implicit convert, don't delete
@@ -1147,8 +1152,6 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
     
     
 //---------------- dynamic end ---------------------please don't modify this line
-    
-
 
   //-----helper methods
 

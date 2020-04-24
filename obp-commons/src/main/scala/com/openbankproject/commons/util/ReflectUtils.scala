@@ -63,6 +63,7 @@ object ReflectUtils {
     (tp.members ++ tp.decls).toSet
       .withFilter(_.isTerm)
       .map(_.asTerm)
+      .withFilter(!_.isImplicit)
       .withFilter(it => it.isLazy || it.isVal || it.isVar)
       .withFilter(predicate)
       .map(it => {
@@ -109,6 +110,11 @@ object ReflectUtils {
    * @return field value
    */
   def getField(objName: String, fieldName: String): Any = getField(getObject(objName), fieldName)
+
+
+  def getFieldByType[T](obj: AnyRef, fieldName: String): T = getField(obj, fieldName).asInstanceOf[T]
+
+  def getFieldByType[T](objName: String, fieldName: String): T = getField(objName, fieldName).asInstanceOf[T]
 
   /**
    * get given instance by full name.
@@ -275,7 +281,7 @@ object ReflectUtils {
     (typeArgIndexes.toList, tp.typeArgs) match {
       case (Nil, _) => tp
       case (head :: tail, args) => {
-        assume(head < args.size, s"index $head is too big for $args")
+        assume(head < args.size, s"$tp have no enough type parameters for index $head, it's type parameters: ${tp.typeArgs.mkString("[", ",", "]")}")
         getNestTypeArg(args(head), tail:_*)
       }
     }

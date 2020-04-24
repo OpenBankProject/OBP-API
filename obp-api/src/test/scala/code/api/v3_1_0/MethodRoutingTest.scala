@@ -25,7 +25,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_1_0
 
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import com.openbankproject.commons.util.ApiVersion
@@ -54,8 +54,8 @@ class MethodRoutingTest extends V310ServerSetup {
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getMethodRoutings))
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.deleteMethodRouting))
 
-  val rightEntity = MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")))
-  val wrongEntity = MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_([")) // wrong regex
+  val rightEntity = MethodRoutingCommons("getBank", "mapped", false, Some("some_bankId_.*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")))
+  val wrongEntity = MethodRoutingCommons("getBank", "mapped", false, Some("some_bankId_([")) // wrong regex
 
 
   feature("Add a MethodRouting v3.1.0 - Unauthorized access") {

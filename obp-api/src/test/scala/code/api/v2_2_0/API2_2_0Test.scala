@@ -28,7 +28,7 @@ package code.api.v2_2_0
 
 import code.api.Constant._
 import _root_.net.liftweb.json.Serialization.write
-import code.api.ErrorMessage
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2._

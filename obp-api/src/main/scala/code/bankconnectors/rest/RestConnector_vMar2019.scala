@@ -30,7 +30,8 @@ import java.util.Date
 import akka.http.scaladsl.model.{HttpProtocol, _}
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.util.ByteString
-import code.api.{APIFailureNewStyle, ErrorMessage}
+import code.api.{APIFailure, APIFailureNewStyle}
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.cache.Caching
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric}
 import code.api.util.ErrorMessages._
@@ -57,9 +58,11 @@ import code.api.util.APIUtil._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
+import code.util.{Helper, JsonUtils}
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
-import com.openbankproject.commons.util.ReflectUtils
+import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation}
 import net.liftweb.json._
+import net.liftweb.json.Extraction.decompose
 
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
   //this one import is for implicit convert, don't delete
@@ -9379,13 +9382,14 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     val basicUserAuthContext: List[BasicUserAuthContext] = callContext.map(_.toOutboundAdapterCallContext.outboundAdapterAuthInfo.map(_.userAuthContext)).flatten.flatten.getOrElse(List.empty[BasicUserAuthContext])
     val bankId = basicUserAuthContext.find(_.key=="bank-id").map(_.value)
     val accountId = basicUserAuthContext.find(_.key=="account-id").map(_.value)
-    val parameterUrl = if (bankId.isDefined &&accountId.isDefined)  s"/${bankId.get},${accountId.get}" else ""
+    val parameterUrl = if (bankId.isDefined && accountId.isDefined)  s"/${bankId.get},${accountId.get}" else ""
     
      //http://127.0.0.1:8080/restConnector/getBankAccountsBalances/bankIdAccountIds
-     val urlInMethodRouting = NewStyle.function.getMethodRoutings(Some(methodName))
-       .flatMap(_.parameters)
-       .find(_.key == "url")
-       .map(_.value)
+
+     val urlInMethodRouting: Option[String] = MethodRoutingHolder.methodRouting match {
+       case Full(routing) => routing.parameters.find(_.key == "url").map(_.value)
+       case _ => None
+     }
 
     // http://127.0.0.1:8080/restConnector/getBankAccountsBalances/bankIdAccountIds/dmo.02.de.de,60e65f3f-0743-41f5-9efd-3c6f0438aa42
     if(urlInMethodRouting.isDefined) {
@@ -9420,7 +9424,17 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](url: String, method: HttpMethod, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
     //transfer accountId to accountReference and customerId to customerReference in outBound
     this.convertToReference(outBound)
-    val outBoundJson = net.liftweb.json.Serialization.write(outBound)
+    val methodRouting = MethodRoutingHolder.methodRouting
+    val inBoundMapping = methodRouting.flatMap(_.getInBoundMapping)
+    val outBoundMapping = methodRouting.flatMap(_.getOutBoundMapping)
+
+    val outBoundJson = outBoundMapping match {
+      case Full(m) =>
+        val source = decompose(outBound)
+        val builtJson = JsonUtils.buildJson(source, m)
+        compactRender(builtJson)
+      case _ => net.liftweb.json.Serialization.write(outBound)
+    }
     val request = prepareHttpRequest(url, method, HttpProtocol("HTTP/1.1"), outBoundJson).withHeaders(callContext)
     logger.debug(s"RestConnector_vMar2019 request is : $request")
     val responseFuture = makeHttpRequest(request)
@@ -9428,16 +9442,19 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     responseFuture.map {
       case response@HttpResponse(status, _, entity@_, _) => (status, entity)
     }.flatMap {
-      case (status, entity) if status.isSuccess() => extractEntity[T](entity)
+      case (status, entity) if status.isSuccess() => extractEntity[T](entity, inBoundMapping)
       case (status, entity) => {
           val future: Future[Box[Box[T]]] = extractBody(entity) map { msg =>
             tryo {
             val errorMsg = parse(msg).extract[ErrorMessage]
-            val failure: Box[T] = ParamFailure("", APIFailureNewStyle(errorMsg.message, status.intValue()))
+            val failure: Box[T] = ParamFailure(errorMsg.message, APIFailureNewStyle(errorMsg.message, status.intValue()))
             failure
           } ~> APIFailureNewStyle(msg, status.intValue())
         }
-        future.map(_.flatten)
+        future.map{
+          case Full(v) => v
+          case e: EmptyBox => e
+        }
       }
     }.map(convertToId(_)) recoverWith {
       //Can not catch the `StreamTcpException` here, so I used the contains to show the error.
@@ -9452,14 +9469,11 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       .map(_.utf8String)
   }
 
-  private[this] def extractEntity[T: Manifest](responseEntity: ResponseEntity): Future[Box[T]] = {
+  private[this] def extractEntity[T: TypeTag: Manifest](responseEntity: ResponseEntity, inBoundMapping: Box[JObject]): Future[Box[T]] = {
     this.extractBody(responseEntity)
       .map({
         case null => Empty
-        case str => tryo {
-          implicit val formats: Formats = CustomJsonFormats.nullTolerateFormats
-          parse(str).extract[T]
-        } ~> APIFailureNewStyle(s"$InvalidJsonFormat The Json body should be the ${manifest[T]} ", 400)
+        case str => Connector.extractAdapterResponse[T](str, inBoundMapping)
       })
   }
 
@@ -9493,9 +9507,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       case Full(in) if (in.status.hasNoError) => Full(in.data)
       case Full(inbound) if (inbound.status.hasError) =>
         Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
-      case failureOrEmpty: Failure => 
-        logger.debug(s"RestConnector_vMar2019.convertToTuple.failureOrEmpty: $failureOrEmpty")
-        Failure(s"INTERNAL-$AdapterUnknownError" )
+      case failureOrEmpty: Failure => failureOrEmpty
     }
     (boxedResult, callContext)
   }
@@ -9578,7 +9590,11 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     def accountIdConverter(accountReference: String): String = MappedAccountIdMappingProvider
       .getOrCreateAccountId(accountReference)
       .map(_.value).openOrThrowException(s"$InvalidAccountIdFormat the invalid accountReference is $accountReference")
-    convertId[T](obj, customerIdConverter, accountIdConverter)
+    if(obj.isInstanceOf[EmptyBox]) {
+      obj
+    } else {
+      convertId[T](obj, customerIdConverter, accountIdConverter)
+    }
   }
 }
 

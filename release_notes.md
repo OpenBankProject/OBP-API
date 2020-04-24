@@ -3,6 +3,9 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+20/02/2020    3f04a7a0      Added props: webui_featured_sdks_external_link. default is obp static file: https://static.openbankproject.com/obp/sdks.html. 
+19/02/2020    3f04a7a0      Added props: resource_docs_requires_role. default is false. If set it as `true`, then OBP will 
+                            check the authentication and CanReadResourceDoc Role for the endpoint: `Get Resource Docs`.
 21/11/2019    51f97330      Added props: portal_hostname. default use the same value as hostname. This props is only useful when we split obp to
                             two instances: apis and portal. So portal one need its own hostname, portal_hostname can be used for it.  
 18/11/2019    de4aec71      Added props: grpc.server.enabled. default is false. 
@@ -56,7 +59,7 @@ Date          Commit        Action
 08/03/2017    d8b6907       added new pair to props : post_consumer_registration_more_info_url, post_consumer_registration_more_info_text , details see ticket #433
 20/02/2017    d8b6907       added new pair to props : # If true, get counterparties from OBP db, else put message on Kafka queue. <--> get_counterparties_from_OBP_DB = true
 05/04/2017                  added 8 new caching props to sample.props.template which start with connector.cache.ttl.seconds.* and end with function names (getBank, getBanks, getAccount, getAccounts, getTransaction, getTransactions, getCounterpartyFromTransaction, getCounterpartiesFromTransaction). If it's omitted default value is 0 i.e. no caching.
-02/05/2017    3084827       added 1 new caching props to sample.props.template connector.cache.ttl.seconds.APIMethods121.getTransactions. If it's omitted default value is 0 i.e. no caching. This cacahe is from API level.
+02/05/2017    3084827       added 1 new caching props to sample.props.template api.cache.ttl.seconds.APIMethods121.getTransactions. If it's omitted default value is 0 i.e. no caching. This cacahe is from API level.
 10/05/2017    7f95a5c       added allow_public_views=false, we will not create the public views and will not access them (if public views are exsiting)when it is false.
 17/07/2017    1530231       added account_id.length=64, this will set all relevant accountid length to 64, when create new sandbox.  
 17/02/2016    e3bead1       Added Props defaultBank.bank_id. Default Bank. Incase the server wants to support a default bank so developers don't have to specify BANK_ID

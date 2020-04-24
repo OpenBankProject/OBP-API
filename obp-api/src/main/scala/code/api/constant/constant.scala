@@ -36,6 +36,7 @@ object ChargePolicy extends Enumeration {
 }
 
 object RequestHeader {
+  final lazy val `Consumer-Key` = "Consumer-Key"
   final lazy val `Consent-Id` = "Consent-Id"
   final lazy val `PSD2-CERT` = "PSD2-CERT"
 }

@@ -9,10 +9,10 @@ import code.api.util.ApiRole.rolesMappedToClasses
 import code.api.v3_1_0.ListResult
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.JsonFieldReName
-import com.openbankproject.commons.util.{EnumValue, JsonAbleSerializer, OBPEnumeration, ReflectUtils}
+import com.openbankproject.commons.util.{EnumValue, Functions, JsonAbleSerializer, OBPEnumeration, ReflectUtils}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.{TypeInfo, _}
+import net.liftweb.json.{TypeInfo, compactRender, _}
 import net.liftweb.util.StringHelpers
 
 import scala.concurrent.duration._
@@ -25,11 +25,11 @@ trait CustomJsonFormats {
 
 object CustomJsonFormats {
 
-  val formats: Formats = net.liftweb.json.DefaultFormats + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer + JsonAbleSerializer
+  val formats: Formats = net.liftweb.json.DefaultFormats + BigDecimalSerializer + StringSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer + JsonAbleSerializer
 
-  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer + JsonAbleSerializer
+  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + BigDecimalSerializer + StringSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer + JsonAbleSerializer
 
-  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer + JsonAbleSerializer
+  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) + BigDecimalSerializer + StringSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer + JsonAbleSerializer
 
   implicit val nullTolerateFormats = formats + JNothingSerializer
 
@@ -37,7 +37,18 @@ object CustomJsonFormats {
     val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
 
     override val typeHints = ShortTypeHints(rolesMappedToClasses)
-  } + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer + JsonAbleSerializer
+  } + BigDecimalSerializer + StringSerializer + FiledRenameSerializer + ListResultSerializer + EnumValueSerializer + JsonAbleSerializer
+}
+
+object StringSerializer extends Serializer[String] {
+  private val IntervalClass = classOf[String]
+
+  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), String] = {
+    case (TypeInfo(IntervalClass, _), json) if !json.isInstanceOf[JString] =>
+      compactRender(json)
+  }
+
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = Functions.doNothing
 }
 
 object BigDecimalSerializer extends Serializer[BigDecimal] {

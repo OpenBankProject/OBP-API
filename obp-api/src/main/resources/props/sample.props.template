@@ -26,15 +26,32 @@ connector=mapped
 
 ## Connector cache time-to-live in seconds, caching defaults to 10 seconds
 #connector.cache.ttl.seconds=3
-#connector.cache.ttl.seconds.getBank=10
-#connector.cache.ttl.seconds.getBanks=10
-#connector.cache.ttl.seconds.getAccount=10
-#connector.cache.ttl.seconds.getAccounts=10
-#connector.cache.ttl.seconds.getTransaction=10
-#connector.cache.ttl.seconds.getTransactions=10
-#connector.cache.ttl.seconds.getCounterpartyFromTransaction=10
-#connector.cache.ttl.seconds.getCounterpartiesFromTransaction=10
-#connector.cache.ttl.seconds.APIMethods121.getTransactions=10
+#connector.cache.ttl.seconds.getBank=0
+#connector.cache.ttl.seconds.getBanks=0
+#connector.cache.ttl.seconds.getUser=0
+#connector.cache.ttl.seconds.getAccount=0
+#connector.cache.ttl.seconds.getAccounts=0
+#connector.cache.ttl.seconds.getTransaction=0
+#connector.cache.ttl.seconds.getTransactions=0
+#connector.cache.ttl.seconds.getTransactionRequests210=0
+#connector.cache.ttl.seconds.getCounterparties=0
+#connector.cache.ttl.seconds.getCounterpartyByCounterpartyId=0
+#connector.cache.ttl.seconds.getCounterpartyTrait=0
+#connector.cache.ttl.seconds.getCustomersByUserId=0
+#connector.cache.ttl.seconds.getBranches=0
+#connector.cache.ttl.seconds.getBranch=0
+#connector.cache.ttl.seconds.getAtms=0
+#connector.cache.ttl.seconds.getAtm=0
+#connector.cache.ttl.seconds.getBankAccountsBalances=0
+#connector.cache.ttl.seconds.getCounterpartyFromTransaction=0
+#connector.cache.ttl.seconds.getCounterpartiesFromTransaction=0
+#connector.cache.ttl.seconds.APIMethods121.getStatusOfCreditCardOrderFuture=0
+#connector.cache.ttl.seconds.APIMethods121.getStatusOfCheckbookOrdersFuture=0
+
+#this is special cache, it is used only in obp side, 
+#MapperCounterparties.cache.ttl.seconds.getOrCreateMetadata=0
+#this cache is used in api level, will cache whole endpoint : v121.getTransactionsForBankAccount
+#api.cache.ttl.seconds.APIMethods121.getTransactions=0
 
 ## MethodRouting cache time-to-live in seconds
 #methodRouting.cache.ttl.seconds=30
@@ -49,6 +66,11 @@ connector=mapped
 ## this value also represent how many seconds before the new endpoints will be shown after upload a new DynamicEntity.
 ## So if you want the new endpoints shown timely, set this value to a small number.
 resourceDocsObp.cache.ttl.seconds=3600
+
+## This can change the behavior of  `Get Resource Docs`. If we set it to `true`, OBP will check the authentication and CanReadResourceDoc Role
+# the default value is false, so the `Get Resource Docs` is anonymous as default. 
+resource_docs_requires_role=false
+
 
 ## enable logging all the database queries in log file
 #logging.database.queries.enable=true
@@ -349,6 +371,9 @@ webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
 # Link for SDKs
 webui_sdks_url = https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS
 
+# the external html page for the sdks. the default link is the obp one. Please following the div to modify it. This link should be anonymous access.
+# then OBP-API can show the content to the HomePage `SDK Showcases`. Please check it over the sandbox homepage first.
+#webui_featured_sdks_external_link = https://static.openbankproject.com/obp/sdks.html   
 
 # Text about data in FAQ
 webui_faq_data_text = We use real data and customer profiles which have been anonymized.
@@ -668,10 +693,12 @@ featured_apis=elasticSearchWarehouseV300
 database_messages_scheduler_interval=3600
 # ---------------------------------------------------
 
-# -- Consents -----------------------------------
+# -- Consents ---------------------------------------------
 # In case isn't defined default value is "false"
 # consents.allowed=true
-# -----------------------------------------------
+# consumer_validation_method_for_consent=CONSUMER_KEY_VALUE
+# consents.max_time_to_live=3600
+# ---------------------------------------------------------
 
 # -- SCA (Strong Customer Authentication) -------
 # For now, OBP-API use `nexmo` server as the SMS provider. Please check `nexmo` website, and get the api key and value there.
@@ -722,7 +749,7 @@ database_messages_scheduler_interval=3600
 
 # Create System Views At Boot
 # In case is not defined default value is true
-#create_system_views_at_boot=false
+#create_system_views_at_boot=true
 
 # Stored procedure related JDBC settings
 stored_procedure_connector.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver

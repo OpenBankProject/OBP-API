@@ -42,7 +42,7 @@ import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
 import code.api.v2_1_0.JSONFactory210.createLicenseJson
 import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
-import code.api.v3_0_0.{AccountRuleJsonV300, ViewBasicV300}
+import code.api.v3_0_0.{AccountRuleJsonV300, CustomerAttributeResponseJsonV300, JSONFactory300, ViewBasicV300}
 import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
 import code.consent.MappedConsent
 import code.entitlement.Entitlement
@@ -52,7 +52,7 @@ import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore, Use
 import code.obp.grpc.HelloWorldServer
 import code.ratelimiting
 import code.webhook.AccountWebhook
-import com.openbankproject.commons.model.{AccountApplication, AmountOfMoneyJsonV121, Product, ProductCollection, ProductCollectionItem, TaxResidence, User, UserAuthContextUpdate, _}
+import com.openbankproject.commons.model.{AccountApplication, AmountOfMoneyJsonV121, CustomerAttribute, Product, ProductCollection, ProductCollectionItem, TaxResidence, User, UserAuthContextUpdate, _}
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
@@ -250,6 +250,29 @@ case class CustomerJsonV310(
   title: String,
   branch_id: String,
   name_suffix: String
+)
+case class CustomerWithAttributesJsonV310(
+  bank_id: String,
+  customer_id: String,
+  customer_number : String,
+  legal_name : String,
+  mobile_phone_number : String,
+  email : String,
+  face_image : CustomerFaceImageJson,
+  date_of_birth: Date,
+  relationship_status: String,
+  dependants: Integer,
+  dob_of_dependants: List[Date],
+  credit_rating: Option[CustomerCreditRatingJSON],
+  credit_limit: Option[AmountOfMoneyJsonV121],
+  highest_education_attained: String,
+  employment_status: String,
+  kyc_status: lang.Boolean,
+  last_ok_date: Date,
+  title: String,
+  branch_id: String,
+  name_suffix: String,
+  customer_attributes: List[CustomerAttributeResponseJsonV300]
 )
 
 case class UpdateAccountRequestJsonV310(
@@ -497,26 +520,36 @@ trait PostConsentCommonBody{
   val everything: Boolean
   val views: List[ViewJsonV400]
   val entitlements: List[EntitlementJsonV400]
+  val consumer_id: Option[String]
 }
 
 case class PostConsentBodyCommonJson(
                                       everything: Boolean,
                                       views:  List[ViewJsonV400],
-                                      entitlements: List[EntitlementJsonV400]
+                                      entitlements: List[EntitlementJsonV400],
+                                      consumer_id: Option[String],
+                                      valid_from: Option[Date],
+                                      time_to_live: Option[Long]
 ) extends PostConsentCommonBody
 
 case class PostConsentEmailJsonV310(
                                      everything: Boolean,
                                      views:  List[ViewJsonV400],
                                      entitlements: List[EntitlementJsonV400],
-                                     email: String
+                                     consumer_id: Option[String],
+                                     email: String,
+                                     valid_from: Option[Date],
+                                     time_to_live: Option[Long]
 ) extends PostConsentCommonBody
 
 case class PostConsentPhoneJsonV310(
                                      everything: Boolean,
                                      views:  List[ViewJsonV400],
                                      entitlements: List[EntitlementJsonV400],
-                                     phone_number: String
+                                     consumer_id: Option[String],
+                                     phone_number: String,
+                                     valid_from: Option[Date],
+                                     time_to_live: Option[Long]
 ) extends PostConsentCommonBody
 
 case class ConsentJsonV310(consent_id: String, jwt: String, status: String)
@@ -904,6 +937,8 @@ object JSONFactory310{
     )
   }
 
+
+  
   def createCustomerJson(cInfo : Customer) : CustomerJsonV310 = {
     CustomerJsonV310(
       bank_id = cInfo.bankId.toString,
@@ -930,6 +965,33 @@ object JSONFactory310{
     )
   }
 
+  def createCustomerWithAttributesJson(cInfo : Customer, customerAttributes: List[CustomerAttribute]) : CustomerWithAttributesJsonV310 = {
+    CustomerWithAttributesJsonV310(
+      bank_id = cInfo.bankId.toString,
+      customer_id = cInfo.customerId,
+      customer_number = cInfo.number,
+      legal_name = cInfo.legalName,
+      mobile_phone_number = cInfo.mobileNumber,
+      email = cInfo.email,
+      face_image = CustomerFaceImageJson(url = cInfo.faceImage.url,
+        date = cInfo.faceImage.date),
+      date_of_birth = cInfo.dateOfBirth,
+      relationship_status = cInfo.relationshipStatus,
+      dependants = cInfo.dependents,
+      dob_of_dependants = cInfo.dobOfDependents,
+      credit_rating = Option(CustomerCreditRatingJSON(rating = cInfo.creditRating.rating, source = cInfo.creditRating.source)),
+      credit_limit = Option(AmountOfMoneyJsonV121(currency = cInfo.creditLimit.currency, amount = cInfo.creditLimit.amount)),
+      highest_education_attained = cInfo.highestEducationAttained,
+      employment_status = cInfo.employmentStatus,
+      kyc_status = cInfo.kycStatus,
+      last_ok_date = cInfo.lastOkDate,
+      title = cInfo.title,
+      branch_id = cInfo.branchId,
+      name_suffix = cInfo.nameSuffix,
+      customer_attributes = customerAttributes.map(JSONFactory300.createCustomerAttributeJson)
+    )
+  }
+  
   def createUpdateResponseAccountJson(bankAccount : BankAccount) : UpdateAccountResponseJsonV310 = {
     UpdateAccountResponseJsonV310(
       bank_id = bankAccount.bankId.value,

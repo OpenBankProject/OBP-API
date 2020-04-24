@@ -392,7 +392,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types",
       "Get Transaction Request Types for Account",
-      """Returns the Transation Request Types that the account specified by ACCOUNT_ID and view specified by VIEW_ID has access to.
+      """Returns the Transaction Request Types that the account specified by ACCOUNT_ID and view specified by VIEW_ID has access to.
         |
         |These are the ways this API Server can create a Transaction via a Transaction Request
         |(as opposed to Transaction Types which include external types too e.g. for Transactions created by core banking etc.)

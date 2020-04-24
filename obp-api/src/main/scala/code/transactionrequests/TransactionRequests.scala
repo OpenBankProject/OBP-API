@@ -17,7 +17,7 @@ object TransactionRequests extends SimpleInjector {
 
   object TransactionRequestStatus extends Enumeration {
     type TransactionRequestStatus = Value
-    val INITIATED, PENDING, FAILED, COMPLETED, FORWARDED, REJECTED = Value
+    val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED = Value
   }
   
   object TransactionChallengeTypes extends Enumeration {
@@ -29,7 +29,7 @@ object TransactionRequests extends SimpleInjector {
     type TransactionRequestTypes = Value
     val SANDBOX_TAN, ACCOUNT, ACCOUNT_OTP, COUNTERPARTY, SEPA, FREE_FORM, TRANSFER_TO_PHONE, TRANSFER_TO_ATM, TRANSFER_TO_ACCOUNT, TRANSFER_TO_REFERENCE_ACCOUNT,
     //The following are BerlinGroup Standard 
-    SEPA_CREDIT_TRANSFERS, INSTANT_SEPA_CREDIT_TRANSFERS, TARGET_2_PAYMENTS, CROSS_BORDER_CREDIT_TRANSFERS= Value
+    SEPA_CREDIT_TRANSFERS, INSTANT_SEPA_CREDIT_TRANSFERS, TARGET_2_PAYMENTS, CROSS_BORDER_CREDIT_TRANSFERS, REFUND = Value
   }
 
   def updatestatus(newStatus: String) = {}

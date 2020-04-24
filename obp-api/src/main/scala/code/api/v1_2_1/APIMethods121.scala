@@ -38,7 +38,7 @@ trait APIMethods121 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
 
-  val apiMethods121GetTransactionsTTL = APIUtil.getPropsValue("connector.cache.ttl.seconds.APIMethods121.getTransactions", "0").toInt * 1000 // Miliseconds
+  val apiMethods121GetTransactionsTTL = APIUtil.getPropsValue("api.cache.ttl.seconds.APIMethods121.getTransactions", "0").toInt * 1000 // Miliseconds
 
   // helper methods begin here
 
@@ -101,7 +101,7 @@ trait APIMethods121 {
       val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
 
       val hostedBy = new HostedBy(organisation, email, phone, organisationWebsite)
-      val apiInfoJSON = new APIInfoJSON(apiVersion.vDottedApiVersion(), apiVersionStatus, gitCommit, connector, hostedBy)
+      val apiInfoJSON = new APIInfoJSON(apiVersion.vDottedApiVersion, apiVersionStatus, gitCommit, connector, hostedBy)
       Extraction.decompose(apiInfoJSON)
     }
     apiDetails

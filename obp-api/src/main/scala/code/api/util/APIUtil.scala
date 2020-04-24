@@ -28,7 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.util
 
 import java.io.InputStream
-import java.net.{URL, URLDecoder}
+import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.{Date, UUID}
@@ -59,6 +59,7 @@ import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import code.views.Views
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{Customer, _}
@@ -74,13 +75,15 @@ import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{Helpers, Props, StringHelpers}
+import net.liftweb.util.{Helpers, LiftFlowOfControlException, Props, StringHelpers, ThreadGlobal}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
+import com.openbankproject.commons.util.{ApiVersion, ReflectUtils, ScannedApiVersion}
+import com.openbankproject.commons.util.Functions.Implicits._
+import org.apache.commons.lang3.StringUtils
 
 import scala.concurrent.Future
 import scala.io.BufferedSource
@@ -1076,25 +1079,336 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   // Used to document the API calls
   case class ResourceDoc(
-                          partialFunction : OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
+                          partialFunction: OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
                           implementedInApiVersion: ScannedApiVersion, // TODO: Use ApiVersion enumeration instead of string
                           partialFunctionName: String, // The string name of the partial function that implements this resource. Could use it to link to the source code that implements the call
                           requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
                           requestUrl: String, // The URL. THIS GETS MODIFIED TO include the implemented in prefix e.g. /obp/vX.X). Starts with / No trailing slash.
                           summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
-                          description: String, // Longer description (originally taken from github wiki)
+                          var description: String, // Longer description (originally taken from github wiki)
                           exampleRequestBody: scala.Product, // An example of the body required (maybe empty)
                           successResponseBody: scala.Product, // A successful response body
-                          errorResponseBodies: List[String], // Possible error responses
+                          var errorResponseBodies: List[String], // Possible error responses
                           catalogs: Catalogs,
                           tags: List[ResourceDocTag],
-                          roles: Option[List[ApiRole]] = None,
+                          var roles: Option[List[ApiRole]] = None,
                           isFeatured: Boolean = false,
                           specialInstructions: Option[String] = None,
                           specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
                           connectorMethods: Option[List[String]] = None
-  )
+                        ) {
+    // this code block will be merged to constructor.
+    {
+      val authenticationIsRequired = authenticationRequiredMessage(true)
+      val authenticationIsOptional = authenticationRequiredMessage(false)
 
+      val rolesIsEmpty = roles.map(_.isEmpty).getOrElse(true)
+      // if required roles not empty, add UserHasMissingRoles to errorResponseBodies
+      if (rolesIsEmpty) {
+        errorResponseBodies ?-= UserHasMissingRoles
+      } else {
+        errorResponseBodies ?+= UserNotLoggedIn
+        errorResponseBodies ?+= UserHasMissingRoles
+      }
+      // if authentication is required, add UserNotLoggedIn to errorResponseBodies
+      if (description.contains(authenticationIsRequired)) {
+        errorResponseBodies ?+= UserNotLoggedIn
+      } else if (description.contains(authenticationIsOptional) && rolesIsEmpty) {
+        errorResponseBodies ?-= UserNotLoggedIn
+      } else if (errorResponseBodies.contains(UserNotLoggedIn)) {
+        description +=
+          s"""
+             |
+             |$authenticationIsRequired
+             |"""
+      } else if (!errorResponseBodies.contains(UserNotLoggedIn)) {
+        description +=
+          s"""
+             |
+             |$authenticationIsOptional
+             |"""
+      }
+    }
+    private val rolesForCheck = roles match {
+      case Some(list) => list
+      case _ => Nil
+    }
+    // un-wrapper roles
+    roles = roles.map(_.flatMap({
+      case RoleCombination(rs) => rs
+      case r => r :: Nil
+    }))
+
+    /**
+     * 0 is notset
+     * 1 is enabled manually
+     * -1 is disabled manually
+     */
+    private var _isAutoValidate = 0
+
+    /**
+     * enable auto validate instead of default manner
+     */
+    def enableAutoValidate(): ResourceDoc = {
+      _isAutoValidate = 1
+      this
+    }
+
+    /**
+     * whether set auto validate manually
+     */
+    def isValidateEnabled = _isAutoValidate == 1
+
+    /**
+     * disable auto validate instead of default manner
+     */
+    def disableAutoValidate(): ResourceDoc = {
+      _isAutoValidate = -1
+      this
+    }
+
+    /**
+     * whether disable auto validate manually
+     */
+    def isValidateDisabled = _isAutoValidate == -1
+
+
+    private var _autoValidateRoles = true
+
+    /**
+     * disable roles auto validation, that means you want do validation by yourself.
+     */
+    def disableAutoValidateRoles(): ResourceDoc = {
+      _autoValidateRoles = false
+      this
+    }
+    private var _autoValidateAuthenticate = true
+    def disableAutoValidateAuthenticate(): ResourceDoc = {
+      _autoValidateAuthenticate = false
+      this
+    }
+
+    /**
+     * According errorResponseBodies whether contains UserNotLoggedIn and UserHasMissingRoles do validation.
+     * So can avoid duplicate code in endpoint body for expression do check.
+     * Note: maybe this will be misused, So currently just comment out.
+     */
+    //lazy val wrappedEndpoint: OBPEndpoint = wrappedWithAuthCheck(partialFunction)
+
+    /**
+     * wrapped an endpoint to a new one, let it do auth check before execute the endpoint body
+     *
+     * @param obpEndpoint original endpoint
+     * @return wrapped endpoint
+     */
+    def wrappedWithAuthCheck(obpEndpoint: OBPEndpoint): OBPEndpoint = {
+
+      val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
+
+      val requestUrlBankId = requestUrlPartPath.indexOf("BANK_ID")
+      val requestUrlAccountId = requestUrlPartPath.indexOf("ACCOUNT_ID")
+      val requestUrlViewId = requestUrlPartPath.indexOf("VIEW_ID")
+
+      def getIds(url: List[String]): (Option[BankId], Option[AccountId], Option[ViewId]) = {
+        val apiPrefixLength = url.size - requestUrlPartPath.size
+
+        val bankId = if (requestUrlBankId != -1) {
+          url.lift(apiPrefixLength + requestUrlBankId).map(BankId(_))
+        } else {
+          None
+        }
+        val accountId = if (bankId.isDefined && requestUrlAccountId != -1) {
+          url.lift(apiPrefixLength + requestUrlAccountId).map(AccountId(_))
+        } else {
+          None
+        }
+
+        val viewId = if (accountId.isDefined && requestUrlViewId != -1) {
+          url.lift(apiPrefixLength + requestUrlViewId).map(ViewId(_))
+        } else {
+          None
+        }
+
+        (bankId, accountId, viewId)
+      }
+
+      def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] =
+        if (errorResponseBodies.contains($UserNotLoggedIn)) authorizedAccess(cc) else anonymousAccess(cc)
+
+      def checkRoles(bankId: Option[BankId], user: Box[User]):Future[Box[Unit]] =
+        if(_autoValidateRoles && rolesForCheck.nonEmpty) {
+            val bankIdStr = bankId.map(_.value).getOrElse("")
+            val userIdStr = user.map(_.userId).openOr("")
+            NewStyle.function.hasAtLeastOneEntitlement(bankIdStr, userIdStr, rolesForCheck)
+          } else {
+              Future.successful(Full(Unit))
+            }
+
+      def checkBank(bankId: Option[BankId], callContext: Option[CallContext]): Future[(Bank, Option[CallContext])] = {
+        val needCheckBank = errorResponseBodies.contains($BankNotFound)
+        (needCheckBank, bankId) match {
+          case (true, Some(bId)) => NewStyle.function.getBank(bId, callContext)
+          case _ => Future.successful(null.asInstanceOf[Bank] -> callContext)
+        }
+      }
+
+      def checkAccount(bankId: Option[BankId], accountId: Option[AccountId], callContext: Option[CallContext]): Future[(BankAccount, Option[CallContext])] = {
+        val needCheckAccount = errorResponseBodies.contains($BankAccountNotFound)
+        (needCheckAccount,bankId, accountId) match {
+          case (true, Some(bId), Some(aId)) => NewStyle.function.getBankAccount(bId, aId, callContext)
+          case _ => Future.successful(null.asInstanceOf[BankAccount] -> callContext)
+        }
+      }
+
+      def checkView(viewId: Option[ViewId],
+                    bankId: Option[BankId],
+                    accountId: Option[AccountId],
+                    boxUser: Box[User],
+                    callContext: Option[CallContext]): Future[View] = {
+        val needCheckView = errorResponseBodies.contains($UserNoPermissionAccessView)
+
+        (needCheckView, bankId, accountId, viewId) match {
+          case (true, Some(bId), Some(aId), Some(vId)) =>
+            val bankIdAccountId = BankIdAccountId(bId, aId)
+            NewStyle.function.checkViewAccessAndReturnView(vId, bankIdAccountId, boxUser, callContext)
+          case _ => Future.successful(null.asInstanceOf[View])
+        }
+      }
+
+      new OBPEndpoint {
+        override def isDefinedAt(x: Req): Boolean = obpEndpoint.isDefinedAt(x)
+
+        override def apply(req: Req): CallContext => Box[JsonResponse] = {
+          val originFn: CallContext => Box[JsonResponse] = obpEndpoint.apply(req)
+
+
+          val (bankId, accountId, viewId) = getIds(req.path.partPath)
+
+          val request: Box[Req] = S.request
+          val session: Box[LiftSession] = S.session
+
+          cc: CallContext => {
+            // if authentication check, do authorizedAccess, else do Rate Limit check
+            for {
+              (boxUser, callContext) <- checkAuth(cc)
+
+              // roles check
+              _ <- checkRoles(bankId, boxUser)
+
+              // check bankId valid
+              (bank, callContext) <- checkBank(bankId, callContext)
+              // check accountId valid
+              (account, callContext) <- checkAccount(bankId, accountId, callContext)
+              // check user access permission of this viewId corresponding view
+              view <- checkView(viewId, bankId, accountId, boxUser, callContext)
+
+            } yield {
+              val Some(newCallContext) = if(boxUser.isDefined) callContext.map(_.copy(user=boxUser)) else callContext
+              //pass session and request to endpoint body
+              val boxResponse = S.init(request, session.orNull) {
+                // pass user, bank, account and view to endpoint body
+                SS.init(boxUser, bank, account, view) {
+                  originFn(newCallContext)
+                }
+              }
+              (boxResponse, callContext)
+            }
+
+          }
+        }
+      }
+
+    }
+  }
+
+  /**
+   * Simulate S pass request and session, this object pass bank, account and view.
+   * This method invoke must fulfill three point:
+   *  1. be invoked at endpoint's body
+   *  2. be invoked out of for comprehension
+   *  3. endpoint's corresponding ResourceDoc.errorResponseBodies must contains $BankNotFound, $BankAccountNotFound or $UserNoPermissionAccessView
+   */
+  object SS {
+    private val _user = new ThreadGlobal[User]
+    private val _bank = new ThreadGlobal[Bank]
+    private val _bankAccount = new ThreadGlobal[BankAccount]
+    private val _view = new ThreadGlobal[View]
+
+    def init[B](boxUser: Box[User], bank: Bank, bankAccount: BankAccount, view: View)(f: => B):B = {
+      _user.doWith(boxUser.orNull){
+        _bank.doWith(bank) {
+          _bankAccount.doWith(bankAccount) {
+            _view.doWith(view) {
+              f
+            }
+          }
+        }
+      }
+    }
+
+    private def bank: Bank = _bank.box.openOrThrowException(buildErrorMsg(nameOf($BankNotFound)))
+    private def bankAccount: BankAccount = _bankAccount.box.openOrThrowException(buildErrorMsg(nameOf($BankAccountNotFound)))
+    private def getView: View = _view.box.openOrThrowException(buildErrorMsg(nameOf($UserNoPermissionAccessView)))
+
+    /**
+     * Get current login user, recommend call cc.loggedInUser instead.
+     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
+     * @return current login user
+     */
+    def user: Future[Box[User]] = Future.successful(_user.box)
+
+    /**
+     * Get current login user, and bank find by url /BANK_ID/.
+     * Validation of id exists passed.
+     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
+     */
+    def userBank: Future[(Box[User], Bank)] = Future.successful(_user.box -> bank)
+    /**
+     * Get current login user and bank find by url /BANK_ID/ and account find by /ACCOUNT_ID/.
+     * Validation of id exists passed.
+     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
+     */
+    def userBankAccount: Future[(Box[User], Bank, BankAccount)] = Future.successful {
+      (_user.box, bank, bankAccount)
+    }
+
+    /**
+     * Get current login user, and bank find by url /BANK_ID/, and account find by /ACCOUNT_ID/, and view find by  /VIEW_ID/.
+     * Validation of id exists passed.
+     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
+     */
+    def userBankAccountView: Future[(Box[User], Bank, BankAccount, View)] = Future.successful {
+      (_user.box, bank, bankAccount, getView)
+    }
+
+    /**
+     * Get view find by  /VIEW_ID/.
+     * Validation of id exists passed.
+     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
+     */
+    def view: Future[View] = Future.successful(getView)
+    /**
+     * Get current login user, and view find by  /VIEW_ID/.
+     * Validation of id exists passed.
+     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
+     */
+    def userView: Future[(Box[User], View)] = Future.successful(_user.box -> getView)
+
+    /**
+     * Get current login user and account find by /ACCOUNT_ID/.
+     * Validation of id exists passed.
+     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
+     */
+    def userAccount: Future[(Box[User], BankAccount)] = Future.successful(_user.box -> bankAccount)
+
+    private def buildErrorMsg(msg: String) =
+      s"""
+         |This method invoke must fulfill three point:
+         | 1. be invoked at endpoint's body
+         | 2. be invoked out of for comprehension
+         | 3. endpoint's corresponding ResourceDoc.errorResponseBodies must contains $msg
+         |""".stripMargin
+  }
 
   def getGlossaryItems : List[GlossaryItem] = {
     Glossary.glossaryItems.toList.sortBy(_.title)
@@ -1352,10 +1666,10 @@ Returns a string showed to the developer
     list.exists(_ == true)
   }
 
-
-
-  def hasEntitlement(bankId: String, userId: String, role: ApiRole): Boolean = {
-    !Entitlement.entitlement.vend.getEntitlement(bankId, userId, role.toString).isEmpty
+  def hasEntitlement(bankId: String, userId: String, apiRole: ApiRole): Boolean = apiRole match {
+      case RoleCombination(roles) => roles.forall(hasEntitlement(bankId, userId, _))
+      case role =>
+        Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId) bankId else "", userId, role.toString).isDefined
   }
 
   case class EntitlementAndScopeStatus(
@@ -1394,22 +1708,17 @@ Returns a string showed to the developer
   
   // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned at least one role from the list
-  def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean = {
-    val list: List[Boolean] = for (role <- roles) yield {
-      !Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId == true) bankId else "", userId, role.toString).isEmpty
-    }
-    list.exists(_ == true)
-  }
+  // when roles is empty, that means no access control, treat as pass auth check
+  def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
+    roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
+
 
   // Function checks does a user specified by a parameter userId has all roles provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned all roles from the list
+  // when roles is empty, that means no access control, treat as pass auth check
   // TODO Should we accept Option[BankId] for bankId  instead of String ?
-  def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean = {
-    val list: List[Boolean] = for (role <- roles) yield {
-      !Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId == true) bankId else "", userId, role.toString).isEmpty
-    }
-    list.forall(_ == true)
-  }
+  def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
+    roles.forall(hasEntitlement(bankId, userId, _))
 
   def getCustomers(ids: List[String]): List[Customer] = {
     val customers = {
@@ -1835,14 +2144,23 @@ Returns a string showed to the developer
     */
   def futureToBoxedResponse[T](in: LAFuture[(T, Option[CallContext])]): Box[JsonResponse] = {
     RestContinuation.async(reply => {
-      in.onSuccess(
-        t => Full(logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight))))))
-      )
+      in.onSuccess{ _ match {
+          case (Full(jsonResponse: JsonResponse), _: Option[_]) =>
+            reply(jsonResponse)
+          case t => Full(logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight))))))
+        }
+      }
       in.onFail {
-        case Failure(null, _, _) =>
+        case Failure("Continuation", Full(e), _) if e.isInstanceOf[LiftFlowOfControlException] =>
+          val f: ((=> LiftResponse) => Unit) => Unit = ReflectUtils.getFieldByType(e, "f")
+              f(reply(_))
+
+        case Failure(null, e, _) =>
+          e.foreach(logger.error("", _))
           val errorResponse: JsonResponse = errorJsonResponse(UnknownError)
           Full(reply.apply(errorResponse))
-        case Failure(msg, _, _) =>
+        case Failure(msg, e, _) =>
+          e.foreach(logger.error("", _))
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
               val callContextLight = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
@@ -1905,7 +2223,7 @@ Returns a string showed to the developer
     val remoteIpAddress = getRemoteIpAddress()
     val res =
     if (APIUtil.hasConsentId(reqHeaders)) {
-      Consent.applyRules(APIUtil.getConsentId(reqHeaders), Some(cc)) 
+      Consent.applyRules(APIUtil.getConsentId(reqHeaders), cc) 
     } else if (hasAnOAuthHeader(cc.authReqHeaderField)) {
       getUserFromOAuthHeaderFuture(cc)
     } else if (hasAnOAuth2Header(cc.authReqHeaderField)) {
@@ -2108,16 +2426,18 @@ Returns a string showed to the developer
       if (x.msg != null) true else { logger.info("Failure: " + obj); false }
     }
 
+    // Remove duplicated content, because in the process of box, the FailBox will be wrapped may multiple times, and message is same.
     getPropsAsBoolValue("display_internal_errors", false) match {
       case true => // Show all error in a chain
-        obj.messageChain
+        obj.messageChain.split(" <- ").distinct.mkString(" <- ")
       case false => // Do not display internal errors
         val obpFailures = obj.failureChain.filter(x => messageIsNotNull(x, obj) && x.msg.startsWith("OBP-"))
         obpFailures match {
           case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
-          case _ => obpFailures.map(_.msg).mkString(" <- ")
+          case _ => obpFailures.map(_.msg).distinct.mkString(" <- ")
         }
     }
+
   }
 
   /**
@@ -2126,7 +2446,7 @@ Returns a string showed to the developer
     * @param box Some boxed type
     * @return Boxed value or throw some exception
     */
-  def fullBoxOrException[T](box: Box[T])(implicit m: Manifest[T]) : Box[T]= {
+  def fullBoxOrException[T](box: Box[T]) : Box[T]= {
     box match {
       case Full(v) => // Just forwarding
         Full(v)
@@ -2436,10 +2756,10 @@ Returns a string showed to the developer
     val bufferedSource: BufferedSource = scala.io.Source.fromFile(filepath)
 
     val proPairs: List[(String, String)] = for{
-      line <- bufferedSource.getLines.toList if(line.startsWith("webui_"))
+      line <- bufferedSource.getLines.toList if(line.startsWith("webui_") || line.startsWith("#webui_"))
       webuiProps = line.toString.split("=", 2)
     } yield {
-      val webuiPropsKey = webuiProps(0).trim //Remove the whitespace 
+      val webuiPropsKey = webuiProps(0).trim.replaceAll("#","") //Remove the whitespace 
       val webuiPropsValue = if (webuiProps.length > 1) webuiProps(1).trim else ""
       (webuiPropsKey, webuiPropsValue)
     }
@@ -2683,7 +3003,7 @@ Returns a string showed to the developer
   /**
     * This function finds the phone numbers of an Customer in accordance to next rule:
     * - User -> User Customer Links -> Customer.phone_number
-    * @param bankId The USER_ID
+    * @param userId The USER_ID
     * @return The phone numbers of a Customer
     */
   def getPhoneNumbersByUserId(userId: String): List[(String, String)] = {

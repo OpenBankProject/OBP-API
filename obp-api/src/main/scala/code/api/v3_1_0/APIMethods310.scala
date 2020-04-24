@@ -51,7 +51,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
-import net.liftweb.util.{Helpers, Mailer}
+import net.liftweb.util.{Helpers, Mailer, Props}
 import org.apache.commons.lang3.{StringUtils, Validate}
 
 import scala.collection.immutable.{List, Nil}
@@ -59,6 +59,9 @@ import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
+import scala.util.Random
+
+import scala.reflect.runtime.universe.MethodSymbol
 
 trait APIMethods310 {
   self: RestHelper =>
@@ -1312,6 +1315,57 @@ trait APIMethods310 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getCustomerByAttributes,
+      implementedInApiVersion,
+      nameOf(getCustomerByAttributes),
+      "GET",
+      "/banks/BANK_ID/customers",
+      "Get Customer by ATTRIBUTES",
+      s"""Gets the Customer specified by attributes
+        |
+        |URL params example: /banks/some-bank-id/customers?name=John&count=8
+        |
+        |""",
+      emptyObjectJson,
+      ListResult(
+        "customers",
+        List(customerWithAttributesJsonV310)
+      ),
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCustomer))
+    ).enableAutoValidate()
+
+    lazy val getCustomerByAttributes : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" ::  Nil JsonGet req => {
+        cc =>
+          for {
+            (customerIds, callContext) <- NewStyle.function.getCustomerIdByAttributeNameValues(bankId, req.params, Some(cc))
+            list: List[CustomerWithAttributesJsonV310] <- {
+              val listCustomerFuture: List[Future[CustomerWithAttributesJsonV310]] = customerIds.map{ customerId =>
+                val customerFuture = NewStyle.function.getCustomerByCustomerId(customerId.value, callContext)
+                customerFuture.flatMap { customerAndCc =>
+                  val (customer, cc) = customerAndCc
+                  NewStyle.function.getCustomerAttributes(bankId, customerId, cc).map { attributesAndCc =>
+                    val (attributes, _) = attributesAndCc
+                    JSONFactory310.createCustomerWithAttributesJson(customer, attributes)
+                  }
+                }
+              }
+              Future.sequence(listCustomerFuture)
+            }
+          } yield {
+            (ListResult("customers", list), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     resourceDocs += ResourceDoc(
       getCustomerByCustomerId,
@@ -1327,14 +1381,16 @@ trait APIMethods310 {
          |
         |""",
       emptyObjectJson,
-      customerJsonV310,
+      customerWithAttributesJsonV310,
       List(
         UserNotLoggedIn,
+        UserHasMissingRoles,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle))
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCustomer)))
 
     lazy val getCustomerByCustomerId : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId ::  Nil JsonGet _ => {
@@ -1344,8 +1400,12 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetCustomer, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
+              bankId,
+              CustomerId(customerId),
+              callContext: Option[CallContext])
           } yield {
-            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+            (JSONFactory310.createCustomerWithAttributesJson(customer, customerAttributes), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1365,7 +1425,7 @@ trait APIMethods310 {
          |
         |""",
       postCustomerNumberJsonV310,
-      customerJsonV310,
+      customerWithAttributesJsonV310,
       List(
         UserNotLoggedIn,
         UserCustomerLinksNotFoundForUser,
@@ -1388,8 +1448,12 @@ trait APIMethods310 {
               json.extract[PostCustomerNumberJsonV310]
             }
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bank.bankId, callContext)
+            (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
+              bankId,
+              CustomerId(customer.customerId),
+              callContext: Option[CallContext])
           } yield {
-            (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
+            (JSONFactory310.createCustomerWithAttributesJson(customer, customerAttributes), HttpCode.`200`(callContext))
           }
       }
     }
@@ -2065,7 +2129,7 @@ trait APIMethods310 {
               json.extract[ProductAttributeJson]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${ProductAttributeType.DOUBLE}, ${ProductAttributeType.STRING}, ${ProductAttributeType.INTEGER} and ${ProductAttributeType.DATE_WITH_DAY}"
+              s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)"
             productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               ProductAttributeType.withName(postedData.`type`)
             }
@@ -2163,7 +2227,7 @@ trait APIMethods310 {
               json.extract[ProductAttributeJson]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${ProductAttributeType.DOUBLE}, ${ProductAttributeType.STRING}, ${ProductAttributeType.INTEGER} and ${ProductAttributeType.DATE_WITH_DAY}"
+              s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)"
             productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               ProductAttributeType.withName(postedData.`type`)
             }
@@ -2777,9 +2841,10 @@ trait APIMethods310 {
       case "banks" :: bankId :: "accounts" :: accountId :: "products" :: productCode :: "attribute" :: Nil JsonPost json -> _=> {
         cc =>
           for {
-            (_, callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, ApiRole.canCreateAccountAttributeAtOneBank, callContext)
             _  <- Future(Connector.connector.vend.getProduct(BankId(bankId), ProductCode(productCode))) map {
               getFullBoxOrFail(_, callContext, ProductNotFoundByProductCode + " {" + productCode + "}", 400)
             }
@@ -2788,7 +2853,7 @@ trait APIMethods310 {
               json.extract[AccountAttributeJson]
             }
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${AccountAttributeType.DOUBLE}, ${AccountAttributeType.STRING}, ${AccountAttributeType.INTEGER} and ${AccountAttributeType.DATE_WITH_DAY}"
+              s"${AccountAttributeType.DOUBLE}(2012-04-23), ${AccountAttributeType.STRING}(TAX_NUMBER), ${AccountAttributeType.INTEGER}(123) and ${AccountAttributeType.DATE_WITH_DAY}(2012-04-23)"
             accountAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               AccountAttributeType.withName(postedData.`type`)
             }
@@ -2853,6 +2918,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canUpdateAccountAttribute, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AccountAttributeJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -2860,12 +2926,11 @@ trait APIMethods310 {
             }
             
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${AccountAttributeType.DOUBLE}, ${AccountAttributeType.STRING}, ${AccountAttributeType.INTEGER} and ${AccountAttributeType.DATE_WITH_DAY}"
+              s"${AccountAttributeType.DOUBLE}(2012-04-23), ${AccountAttributeType.STRING}(TAX_NUMBER), ${AccountAttributeType.INTEGER}(123) and ${AccountAttributeType.DATE_WITH_DAY}(2012-04-23)"
             accountAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               AccountAttributeType.withName(postedData.`type`)
             }
             
-            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), callContext)
             (_, callContext) <- NewStyle.function.getProduct(BankId(bankId), ProductCode(productCode), callContext)
             (_, callContext) <- NewStyle.function.getAccountAttributeById(accountAttributeId, callContext)
@@ -3303,7 +3368,42 @@ trait APIMethods310 {
         |
         |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted.mkString(", ") }.
         |
+        |Each Consent is bound to an consumer i.e. you need to identify yourself over request header value Consumer-Key. 
+        |For example:
+        |GET /obp/v4.0.0/users/current HTTP/1.1
+        |Host: 127.0.0.1:8080
+        |Consent-Id: eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOlt7InJvbGVfbmFtZSI6IkNhbkdldEFueVVzZXIiLCJiYW5rX2lkIjoiIn1dLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIzNDc1MDEzZi03YmY5LTQyNjEtOWUxYy0xZTdlNWZjZTJlN2UiLCJhdWQiOiI4MTVhMGVmMS00YjZhLTQyMDUtYjExMi1lNDVmZDZmNGQzYWQiLCJuYmYiOjE1ODA3NDE2NjcsImlzcyI6Imh0dHA6XC9cLzEyNy4wLjAuMTo4MDgwIiwiZXhwIjoxNTgwNzQ1MjY3LCJpYXQiOjE1ODA3NDE2NjcsImp0aSI6ImJkYzVjZTk5LTE2ZTYtNDM4Yi1hNjllLTU3MTAzN2RhMTg3OCIsInZpZXdzIjpbXX0.L3fEEEhdCVr3qnmyRKBBUaIQ7dk1VjiFaEBW8hUNjfg
+        |Consumer-Key: ejznk505d132ryomnhbx1qmtohurbsbb0kijajsk
+        |cache-control: no-cache
         |
+        |Maximum time to live of te token is specified over props value consents.max_time_to_live. In case isn't defined default value is 3600 seconds.
+        |
+        |Example of POST JSON:
+        |{
+        |  "everything": false,
+        |  "views": [
+        |    {
+        |      "bank_id": "GENODEM1GLS",
+        |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+        |      "view_id": "owner"
+        |    }
+        |  ],
+        |  "entitlements": [
+        |    {
+        |      "bank_id": "GENODEM1GLS",
+        |      "role_name": "CanGetCustomer"
+        |    }
+        |  ],
+        |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+        |  "email": "eveline@example.com",
+        |  "valid_from": "2020-02-07T08:43:34Z",
+        |  "time_to_live": 3600
+        |}
+        |Please ote that only optional fields are: consumer_id, valid_from and time_to_live. 
+        |In case you omit they the default values are used:
+        |consumer_id = consumer of current user
+        |valid_from = current time
+        |time_to_live = consents.max_time_to_live
         |
       """.stripMargin
 
@@ -3316,18 +3416,57 @@ trait APIMethods310 {
       "Create Consent (EMAIL)",
       s"""
          |
-         |$generalObpConsentText
-         |
          |This endpoint starts the process of creating a Consent.
          |
          |The Consent is created in an ${ConsentStatus.INITIATED} state.
          |
-         |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of band (OOB) to the User via the transport defined in SCA_METHOD
          |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
          |
          |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
          |
+         |$generalObpConsentText
+         |
          |${authenticationRequiredMessage(true)}
+         |
+         |Example 1: 
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note that consumer_id is optional field
+         |Example 2:
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note if everything=false you need to explicitly specify views and entitlements
+         |Example 3:
+         |{
+         |  "everything": false,
+         |  "views": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+         |      "view_id": "owner"
+         |    }
+         |  ],
+         |  "entitlements": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "role_name": "CanGetCustomer"
+         |    }
+         |  ],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
          |
          |""",
       postConsentEmailJsonV310,
@@ -3336,6 +3475,11 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
         InvalidConnectorResponse,
         UnknownError
       ),
@@ -3351,18 +3495,57 @@ trait APIMethods310 {
       "Create Consent (SMS)",
       s"""
          |
-         |$generalObpConsentText
-         |
          |This endpoint starts the process of creating a Consent.
          |
          |The Consent is created in an ${ConsentStatus.INITIATED} state.
          |
-         |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
          |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
          |
          |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
          |
+         |$generalObpConsentText
+         |
          |${authenticationRequiredMessage(true)}
+         |
+         |Example 1: 
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note that consumer_id is optional field
+         |Example 2:
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "email": "eveline@example.com"
+         |}
+         |
+         |Please note if everything=false you need to explicitly specify views and entitlements
+         |Example 3:
+         |{
+         |  "everything": false,
+         |  "views": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+         |      "view_id": "owner"
+         |    }
+         |  ],
+         |  "entitlements": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "role_name": "CanGetCustomer"
+         |    }
+         |  ],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com"
+         |}
          |
          |""",
       postConsentPhoneJsonV310,
@@ -3371,6 +3554,13 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
+        MissingPropsValueAtThisInstance,
+        SmsServerNotResponding,
         InvalidConnectorResponse,
         UnknownError
       ),
@@ -3393,13 +3583,61 @@ trait APIMethods310 {
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostConsentBodyCommonJson]
             }
-            createdConsent <- Future(Consents.consentProvider.vend.createConsent(user)) map {
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
+            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)"){
+              consentJson.time_to_live match {
+                case Some(ttl) => ttl <= maxTimeToLive
+                case _ => true
+              }
+            }
+            requestedEntitlements = consentJson.entitlements
+            myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
+            _ <- Helper.booleanToFuture(RolesAllowedInConsent){
+              requestedEntitlements.forall(
+                re => myEntitlements.getOrElse(Nil).exists(
+                  e => e.roleName == re.role_name && e.bankId == re.bank_id
+                )
+              )
+            }
+            requestedViews = consentJson.views
+            (_, assignedViews) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
+            _ <- Helper.booleanToFuture(ViewsAllowedInConsent){
+              requestedViews.forall(
+                rv => assignedViews.exists{
+                  e => 
+                    e.view_id == rv.view_id && 
+                    e.bank_id == rv.bank_id && 
+                    e.account_id == rv.account_id
+                }
+              )
+            }
+            (consumerId, applicationText) <- consentJson.consumer_id match {
+              case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContext) map {
+                c => (Some(c.consumerId.get), c.description)
+              }
+              case None => Future(None, "Any application")
+            }
+            challengeAnswer = Props.mode match {
+              case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
+              case _ => Random.nextInt(99999999).toString()
+            }
+            createdConsent <- Future(Consents.consentProvider.vend.createConsent(user, challengeAnswer)) map {
               i => connectorEmptyResponse(i, callContext)
             }
-            consentJWT = Consent.createConsentJWT(user, consentJson, createdConsent.secret, createdConsent.consentId)
+            consentJWT = 
+              Consent.createConsentJWT(
+                user, 
+                consentJson, 
+                createdConsent.secret, 
+                createdConsent.consentId, 
+                consumerId,
+                consentJson.valid_from,
+                consentJson.time_to_live.getOrElse(3600)
+              )
             _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
               i => connectorEmptyResponse(i, callContext)
             }
+            challengeText = s"Your consent challenge : ${challengeAnswer}, Application: $applicationText"
             _ <- scaMethod match {
             case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
               for{
@@ -3407,7 +3645,7 @@ trait APIMethods310 {
                 postConsentEmailJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                   json.extract[PostConsentEmailJsonV310]
                 }
-                params = PlainMailBodyType(s"Your consent challenge : ${createdConsent.challenge}") :: List(To(postConsentEmailJson.email))
+                params = PlainMailBodyType(challengeText) :: List(To(postConsentEmailJson.email))
                 _ <- Future{Mailer.sendMail(From("challenge@tesobe.com"), Subject("Challenge challenge"), params :_*)}
               } yield Future{true}
             case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
@@ -3431,7 +3669,7 @@ trait APIMethods310 {
                   .apiKey(smsProviderApiKey)
                   .apiSecret(smsProviderApiSecret)
                   .build();
-                messageText = s"Your consent challenge : ${createdConsent.challenge}";
+                messageText = challengeText;
                 message = new TextMessage("OBP-API", phoneNumber, messageText);
                 response <- Future{client.getSmsClient().submitMessage(message)}
                 failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first." 
@@ -3601,7 +3839,7 @@ trait APIMethods310 {
       s"""Create User Auth Context Update.
          |${authenticationRequiredMessage(true)}
          |
-         |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
          |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
          |
          |""",
@@ -4020,6 +4258,23 @@ trait APIMethods310 {
         |note:
         |
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
+        |
+        |If connector name start with rest, parameters can contain "outBoundMapping" and "inBoundMapping", convert OutBound and InBound json structure.
+        |for example:
+        | outBoundMapping example, convert json from source to target:
+        |![Snipaste_outBoundMapping](https://user-images.githubusercontent.com/2577334/75248007-33332e00-580e-11ea-8d2a-d1856035fa24.png)
+        |Build OutBound json value rules:
+        |1 set cId value with: outboundAdapterCallContext.correlationId value
+        |2 set bankId value with: concat bankId.value value with  string helloworld
+        |3 set originalJson value with: whole source json, note: the field value expression is $$root
+        |
+        |
+        | inBoundMapping example, convert json from source to target:
+        |![inBoundMapping](https://user-images.githubusercontent.com/2577334/75248199-a9d02b80-580e-11ea-9238-e073264e9170.png)
+        |Build InBound json value rules:
+        |1 and 2 set inboundAdapterCallContext and status value: because field name ends with "$$default", remove "$$default" from field name, not change the value
+        |3 set fullName value with: concat string full: with result.name value
+        |4 set bankRoutingScheme value: because source value is Array, but target value is not Array, the mapping field name must ends with [0].
         |""",
       MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx"))),
       MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), 
@@ -4030,6 +4285,8 @@ trait APIMethods310 {
         UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
+        InvalidConnectorName,
+        InvalidConnectorMethodName,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -4049,6 +4306,20 @@ trait APIMethods310 {
                 case Some(v) if(StringUtils.isBlank(v) || v.trim == "*") => entity.copy(bankIdPattern = Some(MethodRouting.bankIdPatternMatchAny))
                 case v => entity
               }
+            }
+            _ <-NewStyle.function.tryons(InvalidOutBoundMapping, 400, callContext){
+              postedData.getOutBoundMapping
+            }
+            _ <-NewStyle.function.tryons(InvalidInBoundMapping, 400, callContext){
+              postedData.getInBoundMapping
+            }
+            connectorName = postedData.connectorName
+            methodName = postedData.methodName
+            _ <- Helper.booleanToFuture(s"$InvalidConnectorName please check connectorName: $connectorName", failCode=400) {
+              NewStyle.function.getConnectorByName(connectorName).isDefined
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400) {
+              NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
             }
             invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
             _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
@@ -4088,6 +4359,23 @@ trait APIMethods310 {
         |note:
         |
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
+        |
+        |If connector name start with rest, parameters can contain "outBoundMapping" and "inBoundMapping", to convert OutBound and InBound json structure.
+        |for example:
+        | outBoundMapping example, convert json from source to target:
+        |![Snipaste_outBoundMapping](https://user-images.githubusercontent.com/2577334/75248007-33332e00-580e-11ea-8d2a-d1856035fa24.png)
+        |Build OutBound json value rules:
+        |1 set cId value with: outboundAdapterCallContext.correlationId value
+        |2 set bankId value with: concat bankId.value value with  string helloworld
+        |3 set originalJson value with: whole source json, note: the field value expression is $$root
+        |
+        |
+        | inBoundMapping example, convert json from source to target:
+        |![inBoundMapping](https://user-images.githubusercontent.com/2577334/75248199-a9d02b80-580e-11ea-9238-e073264e9170.png)
+        |Build InBound json value rules:
+        |1 and 2 set inboundAdapterCallContext and status value: because field name ends with "$$default", remove "$$default" from field name, not change the value
+        |3 set fullName value with: concat string full: with result.name value
+        |4 set bankRoutingScheme value: because source value is Array, but target value is not Array, the mapping field name must ends with [0].
         |""",
       MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), List(MethodRoutingParam("url", "http://mydomain.com/xxx"))),
       MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")), Some("this-method-routing-Id")),
@@ -4095,6 +4383,8 @@ trait APIMethods310 {
         UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
+        InvalidConnectorName,
+        InvalidConnectorMethodName,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -4116,7 +4406,20 @@ trait APIMethods310 {
                 case v => entity
               }
             }
-
+            _ <-NewStyle.function.tryons(InvalidOutBoundMapping, 400, callContext){
+              putData.getOutBoundMapping
+            }
+            _ <-NewStyle.function.tryons(InvalidInBoundMapping, 400, callContext){
+              putData.getInBoundMapping
+            }
+            connectorName = putData.connectorName
+            methodName = putData.methodName
+            _ <- Helper.booleanToFuture(s"$InvalidConnectorName please check connectorName: $connectorName", failCode=400) {
+              NewStyle.function.getConnectorByName(connectorName).isDefined
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400) {
+              NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
+            }
             (_, _) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)
 
             invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${putData.bankIdPattern.orNull} "
@@ -4859,7 +5162,7 @@ trait APIMethods310 {
             }
             
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${CardAttributeType.DOUBLE}, ${CardAttributeType.STRING}, ${CardAttributeType.INTEGER} and ${CardAttributeType.DATE_WITH_DAY}"
+              s"${CardAttributeType.DOUBLE}(12.1234), ${CardAttributeType.STRING}(TAX_NUMBER), ${CardAttributeType.INTEGER}(123) and ${CardAttributeType.DATE_WITH_DAY}(2012-04-23)"
             createCardAttribute <- NewStyle.function.tryons(failMsg, 400, callContext) {
               CardAttributeType.withName(postedData.`type`)
             }
@@ -4932,7 +5235,7 @@ trait APIMethods310 {
             }
 
             failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
-              s"${CardAttributeType.DOUBLE}, ${CardAttributeType.STRING}, ${CardAttributeType.INTEGER} and ${CardAttributeType.DATE_WITH_DAY}"
+              s"${CardAttributeType.DOUBLE}(12.1234), ${CardAttributeType.STRING}(TAX_NUMBER), ${CardAttributeType.INTEGER}(123) and ${CardAttributeType.DATE_WITH_DAY}(2012-04-23)"
             createCardAttribute <- NewStyle.function.tryons(failMsg, 400, callContext) {
               CardAttributeType.withName(postedData.`type`)
             }
