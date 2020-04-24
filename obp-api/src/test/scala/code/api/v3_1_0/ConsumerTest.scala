@@ -79,8 +79,8 @@ class ConsumerTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "users" / "current" / "consumers").GET
       val response310 = makeGetRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
@@ -99,8 +99,8 @@ class ConsumerTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "consumers").GET
       val response310 = makeGetRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }

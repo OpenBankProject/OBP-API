@@ -126,8 +126,8 @@ class ViewsTests extends V300ServerSetup {
       val bankAccountId = randomPrivateAccountId(bankId)
       When("the request is sent")
       val reply = getAccountViews(bankId, bankAccountId, None)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 401 code")
+      reply.code should equal (401)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -171,8 +171,8 @@ class ViewsTests extends V300ServerSetup {
       val bankAccountId = randomPrivateAccountId(bankId)
       When("the request is sent")
       val reply = postView(bankId, bankAccountId, postBodyViewJson, None)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 401 code")
+      reply.code should equal (401)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -311,8 +311,8 @@ class ViewsTests extends V300ServerSetup {
 
       When("we don't use an access token")
       val reply = putView(bankId, bankAccountId, createdView.id, viewUpdateJson(createdView), None)
-      Then("we should get a 400")
-      reply.code should equal(400)
+      Then("we should get a 401")
+      reply.code should equal(401)
 
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)

@@ -40,10 +40,10 @@ class BankTests extends V400ServerSetupAsync with DefaultUsers {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "banks").POST
       val responseGet = makePostRequestAsync(requestGet, write(bankJSONV220))
-      Then("We should get a 400")
+      Then("We should get a 401")
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
       responseGet map { r =>
-          r.code should equal(400)
+          r.code should equal(401)
           r.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
       }
     }

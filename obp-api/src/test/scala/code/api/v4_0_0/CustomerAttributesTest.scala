@@ -44,8 +44,8 @@ class CustomerAttributesTest extends V400ServerSetup {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attribute").POST
       val response400 = makePostRequest(request400, write(postCustomerAttributeJsonV400))
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }
@@ -102,8 +102,8 @@ class CustomerAttributesTest extends V400ServerSetup {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attributes" / "customerAttributeId").PUT
       val response400 = makePutRequest(request400, write(putCustomerAttributeJsonV400))
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }
@@ -352,8 +352,8 @@ class CustomerAttributesTest extends V400ServerSetup {
         When("We try to delete the customer attribute without login")
         val requestNoLogin = (v4_0_0_Request / "banks" / bankId / "customers" / "attributes" / customer_attribute_id).DELETE
         val responseNoLogin = makeDeleteRequest(requestNoLogin)
-        Then("We should get a 400")
-        responseNoLogin.code should equal(400)
+        Then("We should get a 401")
+        responseNoLogin.code should equal(401)
         responseNoLogin.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
 
         When("We try to delete the customer attribute with login and without Role")

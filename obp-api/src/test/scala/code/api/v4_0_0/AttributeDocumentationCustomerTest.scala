@@ -32,8 +32,8 @@ class AttributeDefinitionCustomerTest extends V400ServerSetup {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-definitions" / "account").PUT
       val response400 = makePutRequest(request400, write(putJson))
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }
@@ -42,8 +42,8 @@ class AttributeDefinitionCustomerTest extends V400ServerSetup {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-definitions" / "customer").GET
       val response400 = makeGetRequest(request400)
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }
@@ -53,8 +53,8 @@ class AttributeDefinitionCustomerTest extends V400ServerSetup {
       val request400 = (v4_0_0_Request / "banks" / bankId / "attribute-definitions"
         / "ATTRIBUTE_DEFINITION_ID" / "customer").DELETE
       val response400 = makeDeleteRequest(request400)
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }

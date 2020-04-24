@@ -26,8 +26,8 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       When("We make the request")
       val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET
       val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 400")
-      responseGet.code should equal(400)
+      Then("We should get a 401")
+      responseGet.code should equal(401)
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
       responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.UserNotLoggedIn)
 
@@ -37,7 +37,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       When("We make the request")
       val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 40")
+      Then("We should get a 403")
       responseGet.code should equal(403)
       And("We should get a message: " + s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
       responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)

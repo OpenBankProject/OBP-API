@@ -45,8 +45,8 @@ class TransactionAttributesTest extends V400ServerSetup {
       
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId /"transactions" / transactionId / "attribute").POST
       val response400 = makePostRequest(request400, write(postTransactionAttributeJsonV400))
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }
@@ -103,8 +103,8 @@ class TransactionAttributesTest extends V400ServerSetup {
       lazy val transactionId = transaction.id
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId /"transactions" / transactionId / "attributes" / "transactionAttributeId").PUT
       val response400 = makePutRequest(request400, write(putTransactionAttributeJsonV400))
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }

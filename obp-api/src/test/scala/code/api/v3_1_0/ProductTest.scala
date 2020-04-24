@@ -99,8 +99,8 @@ class ProductTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / "CODE").PUT
       val response310 = makePutRequest(request310, write(parentPostPutProductJsonV310))
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
