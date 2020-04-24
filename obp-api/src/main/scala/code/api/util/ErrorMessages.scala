@@ -41,12 +41,17 @@ object ErrorMessages {
   val WebUiPropsNotFound = "OBP-08002: WebUi props not found. Please specify a valid value for WEB_UI_PROPS_ID."
 
   // DynamicEntity Exceptions (OBP-09XXX)
-  val DynamicEntityNotFoundByDynamicEntityId = "OBP-09001: DynamicEntity not found. Please specify a valid value for dynamic_entity_id."
+  val DynamicEntityNotFoundByDynamicEntityId = "OBP-09001: DynamicEntity not found. Please specify a valid value for DYNAMIC_ENTITY_ID."
   val DynamicEntityNameAlreadyExists = "OBP-09002: DynamicEntity's entityName already exists. Please specify a different value for entityName."
   val DynamicEntityNotExists = "OBP-09003: DynamicEntity not exists. Please check entityName." 
   val DynamicEntityMissArgument = "OBP-09004: DynamicEntity process related argument is missing."
   val EntityNotFoundByEntityId = "OBP-09005: Entity not found. Please specify a valid value for entityId."
   val DynamicEntityOperationNotAllowed = "OBP-09006: Operation is not allowed, because Current DynamicEntity have upload data, must to delete all the data before this operation."
+  val DynamicEntityInstanceValidateFail = "OBP-09007: DynamicEntity data validation failure."
+
+  val DynamicEndpointExists = "OBP-09008: DynamicEndpoint already exists."
+  val DynamicEndpointNotFoundByDynamicEndpointId = "OBP-09009: DynamicEndpoint not found. Please specify a valid value for DYNAMIC_ENDPOINT_ID."
+
 
   // General messages (OBP-10XXX)
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
@@ -268,7 +273,8 @@ object ErrorMessages {
   val RefundedTransaction = "OBP-30068: Transaction was already refunded . Please specify a valid value for TRANSACTION_ID."
   val CustomerAttributeNotFound = "OBP-30069: Customer Attribute not found. Please specify a valid value for CUSTOMER_ATTRIBUTE_ID."
   val TransactionAttributeNotFound = "OBP-30070: Transaction Attribute not found. Please specify a valid value for TRANSACTION_ATTRIBUTE_ID."
-
+  val AttributeNotFound = "OBP-30071: Attribute Definition not found. Please specify a valid value for ATTRIBUTE_DEFINITION_ID."
+  
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
@@ -351,8 +357,8 @@ object ErrorMessages {
   val ConsentAlreadyRevoked = "OBP-35012: Consent is already revoked. "
   val RolesAllowedInConsent = "OBP-35013: Consents can only contain Roles that you already have access to."
   val ViewsAllowedInConsent = "OBP-35014: Consents can only contain Views that you already have access to."
-  val ConsentDoesntMatchApp = "OBP-35015: Consent doesn't match your application."
-  val ConsumerKeyHeaderMissing = "OBP-35016: Consumer-Key header value is not defined at this request."
+  val ConsentDoesNotMatchConsumer = "OBP-35015: The Consent does not match a valid Consumer."
+  val ConsumerKeyHeaderMissing = "OBP-35016: The Consumer-Key request header is missing. The request header must contain the Consumer-Key of the Consumer that was used to create the Consent."
   val ConsumerAtConsentDisabled = "OBP-35017: The Consumer specified in this consent is disabled."
   val ConsumerAtConsentCannotBeFound = "OBP-35018: The Consumer specified in this consent cannot be found."
   val ConsumerValidationMethodForConsentNotDefined = "OBP-35019: Consumer validation method for consent is not defined at this instance."
@@ -375,7 +381,7 @@ object ErrorMessages {
   val CreateTransactionTypeUpdateError  = "OBP-40007: Could not update Transaction Type: Non unique BANK_ID / SHORT_CODE"
   val NotPositiveAmount = "OBP-40008: Can't send a payment with a value of 0 or less."
   val TransactionRequestTypeHasChanged = "OBP-40009: The TRANSACTION_REQUEST_TYPE has changed."
-  val InvalidTransactionRequesChallengeId = "OBP-40010: Invalid Challenge Id. Please specify a valid value for CHALLENGE_ID."
+  val InvalidTransactionRequestChallengeId = "OBP-40010: Invalid Challenge Id. Please specify a valid value for CHALLENGE_ID."
   val TransactionRequestStatusNotInitiated = "OBP-40011: Transaction Request Status is not INITIATED."
   val CounterpartyNotFoundOtherAccountProvider = "OBP-40012: Please set up the otherAccountRoutingScheme and otherBankRoutingScheme fields of the Counterparty to 'OBP'"
   val InvalidChargePolicy = "OBP-40013: Invalid Charge Policy. Please specify a valid value for Charge_Policy: SHARED, SENDER or RECEIVER. "

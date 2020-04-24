@@ -1,5 +1,7 @@
 package code.api.util
 
+import java.util.concurrent.ConcurrentHashMap
+
 import com.openbankproject.commons.util.ReflectUtils
 
 sealed trait ApiRole{
@@ -20,6 +22,7 @@ case class RoleCombination(left: ApiRole, right: ApiRole) extends ApiRole{
     case(l: RoleCombination, r: RoleCombination) => l.roles ::: r.roles
     case(l: RoleCombination, r: ApiRole) => l.roles :+ r
     case(l: ApiRole, r: RoleCombination) => l :: r.roles
+    case _ => left :: right :: Nil
   }
   override val requiresBankId: Boolean = roles.exists(_.requiresBankId)
   override def toString() = roles.mkString("(", " and ", ")")
@@ -108,9 +111,21 @@ object ApiRole {
 
   case class CanCreateUserCustomerLink(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateUserCustomerLink = CanCreateUserCustomerLink()
+  
+  case class CanDeleteUserCustomerLink(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteUserCustomerLink = CanDeleteUserCustomerLink()
+  
+  case class CanGetUserCustomerLink(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetUserCustomerLink = CanGetUserCustomerLink()
 
   case class CanCreateUserCustomerLinkAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateUserCustomerLinkAtAnyBank = CanCreateUserCustomerLinkAtAnyBank()
+  
+  case class CanGetUserCustomerLinkAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetUserCustomerLinkAtAnyBank = CanGetUserCustomerLinkAtAnyBank()
+  
+  case class CanDeleteUserCustomerLinkAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteUserCustomerLinkAtAnyBank = CanDeleteUserCustomerLinkAtAnyBank()
 
   case class CanCreateAccount(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateAccount = CanCreateAccount()
@@ -403,6 +418,21 @@ object ApiRole {
 
   case class CanDeleteDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteDynamicEntity = CanDeleteDynamicEntity()
+
+  case class CanGetDynamicEndpoint(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetDynamicEndpoint = CanGetDynamicEndpoint()
+  
+  case class CanGetDynamicEndpoints(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetDynamicEndpoints = CanGetDynamicEndpoints()
+
+  case class CanCreateDynamicEndpoint(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateDynamicEndpoint = CanCreateDynamicEndpoint()
+
+  case class CanUpdateDynamicEndpoint(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateDynamicEndpoint = CanUpdateDynamicEndpoint()
+
+  case class CanDeleteDynamicEndpoint(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteDynamicEndpoint = CanDeleteDynamicEndpoint()
   
   case class CanCreateResetPasswordUrl(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateResetPasswordUrl = CanCreateResetPasswordUrl()
@@ -469,20 +499,87 @@ object ApiRole {
 
   case class CanReadResourceDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadResourceDoc = CanReadResourceDoc()
+
+  case class CanCreateCustomerAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateCustomerAttributeDefinitionAtOneBank = CanCreateCustomerAttributeDefinitionAtOneBank()
   
-  private val roles = ReflectUtils.getFieldsNameToValue[ApiRole](this).values.toList
+  case class CanDeleteCustomerAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteCustomerAttributeDefinitionAtOneBank = CanDeleteCustomerAttributeDefinitionAtOneBank()
+  
+  case class CanGetCustomerAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomerAttributeDefinitionAtOneBank = CanGetCustomerAttributeDefinitionAtOneBank()
+  
+  case class CanCreateAccountAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateAccountAttributeDefinitionAtOneBank = CanCreateAccountAttributeDefinitionAtOneBank() 
+  
+  case class CanDeleteAccountAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteAccountAttributeDefinitionAtOneBank = CanDeleteAccountAttributeDefinitionAtOneBank()
+  
+  case class CanGetAccountAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetAccountAttributeDefinitionAtOneBank = CanGetAccountAttributeDefinitionAtOneBank() 
+  
+  case class CanDeleteProductAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteProductAttributeDefinitionAtOneBank = CanDeleteProductAttributeDefinitionAtOneBank() 
+  
+  case class CanGetProductAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetProductAttributeDefinitionAtOneBank = CanGetProductAttributeDefinitionAtOneBank()
+  
+  case class CanCreateProductAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateProductAttributeDefinitionAtOneBank = CanCreateProductAttributeDefinitionAtOneBank()
+  
+  case class CanCreateTransactionAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateTransactionAttributeDefinitionAtOneBank = CanCreateTransactionAttributeDefinitionAtOneBank()
+  
+  case class CanDeleteTransactionAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteTransactionAttributeDefinitionAtOneBank = CanDeleteTransactionAttributeDefinitionAtOneBank()
+  
+  case class CanGetTransactionAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetTransactionAttributeDefinitionAtOneBank = CanGetTransactionAttributeDefinitionAtOneBank() 
+  
+  case class CanGetCardAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCardAttributeDefinitionAtOneBank = CanGetCardAttributeDefinitionAtOneBank()
+
+  case class CanDeleteCardAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteCardAttributeDefinitionAtOneBank = CanDeleteCardAttributeDefinitionAtOneBank()
+
+  case class CanCreateCardAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateCardAttributeDefinitionAtOneBank = CanCreateCardAttributeDefinitionAtOneBank()
+
+  private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
+
+  private case class DynamicApiRole(role: String, requiresBankId: Boolean = false) extends ApiRole{
+    override def toString(): String = role
+  }
+
+  def getOrCreateDynamicApiRole(roleName: String, requiresBankId: Boolean = false): ApiRole = {
+    dynamicApiRoles.computeIfAbsent(roleName, _ => DynamicApiRole(roleName, requiresBankId))
+  }
+  def removeDynamicApiRole(roleName: String): ApiRole = {
+    dynamicApiRoles.remove(roleName)
+  }
+
+  private val roles = {
+    val list = ReflectUtils.getFieldsNameToValue[ApiRole](this).values.toList
+    val duplicatedRoleName = list.groupBy(_.toString()).filter(_._2.size > 1).map(_._1)
+    assume(duplicatedRoleName.isEmpty, s"Duplicated role: ${duplicatedRoleName.mkString(", ")}")
+    list
+  }
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)
 
   def valueOf(value: String): ApiRole = {
-    roles.filter(_.toString == value) match {
-      case x :: Nil => x // We find exactly one Role
-      case x :: _ => throw new Exception("Duplicated role: " + x) // We find more than one Role
+    roles.find(_.toString == value) match {
+      case Some(x) => x // We find exactly one Role
+      case _ if dynamicApiRoles.containsKey(value) => dynamicApiRoles.get(value)
       case _ => throw new IllegalArgumentException("Incorrect ApiRole value: " + value) // There is no Role
     }
   }
 
-  def availableRoles: List[String] = roles.map(_.toString)
+  def availableRoles: List[String] = {
+    import scala.collection.JavaConverters._
+    val dynamicRoles = dynamicApiRoles.keys().asScala.toList
+    dynamicRoles ::: roles.map(_.toString)
+  }
 
 }
 

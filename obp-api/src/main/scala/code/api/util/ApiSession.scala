@@ -122,14 +122,14 @@ case class CallContext(
     )
   }
   /**
-    * Purpose of this helper function is to get the Consent-Id value from a Request Headers.
-    * @return the Consent-Id value from a Request Header as a String
+    * Purpose of this helper function is to get the Consent-JWT value from a Request Headers.
+    * @return the Consent-JWT value from a Request Header as a String
     */
   def getConsentId(): Option[String] = {
-    APIUtil.getConsentId(this.requestHeaders)
+    APIUtil.getConsentJWT(this.requestHeaders)
   }
   def hasConsentId(): Boolean = {
-    APIUtil.hasConsentId(this.requestHeaders)
+    APIUtil.hasConsentJWT(this.requestHeaders)
   }
 
   // for endpoint body convenient get userId

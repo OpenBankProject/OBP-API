@@ -1,9 +1,12 @@
 package code.api.util
 
 
+import net.liftweb.json.JsonDSL._
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
 import code.dynamicEntity.{DynamicEntityDefinition, DynamicEntityFooBar, DynamicEntityFullBarFields, DynamicEntityIntTypeExample, DynamicEntityStringTypeExample}
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
+import net.liftweb.json
+import net.liftweb.json.JObject
 
 case class ConnectorField(value: String, description: String) {
 
@@ -69,7 +72,7 @@ object ExampleValue {
   lazy val relationshipStatusExample = ConnectorField("single", s"relationship status")
   glossaryItems += makeGlossaryItem("Customer.relationshipStatus", relationshipStatusExample)
   
-  lazy val dependentsExample = ConnectorField("10", s"the number of dependents")
+  lazy val dependentsExample = ConnectorField("1", s"the number of dependents")
   glossaryItems += makeGlossaryItem("Customer.dependents", dependentsExample)
   
   lazy val kycStatusExample = ConnectorField("true", s"This is boolean to indicate if the cusomter's KYC has been checked.") 
@@ -86,9 +89,18 @@ object ExampleValue {
   
   lazy val customerAttributeNameExample = ConnectorField("SPECIAL_TAX_NUMBER", s"Customer attribute name")
   glossaryItems += makeGlossaryItem("Customer.attributeName", customerAttributeNameExample)
+  
+  lazy val templateAttributeNameExample = ConnectorField("SPECIAL_TAX_NUMBER", s"Attribute name")
+  glossaryItems += makeGlossaryItem("Template.attributeName", templateAttributeNameExample)
 
   lazy val customerAttributeTypeExample = ConnectorField("STRING", s"Customer attribute type.")
   glossaryItems += makeGlossaryItem("Customer.attributeType", customerAttributeTypeExample)
+  
+  lazy val templateAttributeTypeExample = ConnectorField("STRING", s"Attribute type.")
+  glossaryItems += makeGlossaryItem("Template.attributeType", templateAttributeTypeExample)
+  
+  lazy val attributeAliasExample = ConnectorField("STRING", s"Customer attribute alias.")
+  glossaryItems += makeGlossaryItem("Customer.attributeAlias", attributeAliasExample)
 
   lazy val customerAttributeValueExample = ConnectorField("123456789", s"Customer attribute value.")
   glossaryItems += makeGlossaryItem("Customer.attributeValue", customerAttributeValueExample)
@@ -321,6 +333,8 @@ object ExampleValue {
   // if yes, please rename the follow to lastOkDateExample, and delete outBoundCreateCustomerLastOkDateExample
   lazy val outBoundCreateCustomerLastOkDateExample = ConnectorField("2019-09-12", "fix me, lastOkDate Date string")
 
+  lazy val uuidExample = ConnectorField("9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1", "UUID value")
+
 
   //this is only for dynamicEntity post or request body example
   """
@@ -358,6 +372,251 @@ object ExampleValue {
   )
 
   lazy val dynamicEntityResponseBodyExample = dynamicEntityRequestBodyExample.copy(dynamicEntityId = Some("dynamic-entity-id"))
+
+  private val dynamicEndpointSwagger =
+    """{
+      |  "swagger": "2.0",
+      |  "info": {
+      |    "version": "0.0.1",
+      |    "title": "Example Title",
+      |    "description": "Example Description",
+      |    "contact": {
+      |      "name": "Example Company",
+      |      "email": " simon@example.com",
+      |      "url": "https://www.tesobe.com/"
+      |    }
+      |  },
+      |  "host": "localhost:8080",
+      |  "basePath": "/user",
+      |  "schemes": [
+      |    "http"
+      |  ],
+      |  "consumes": [
+      |    "application/json"
+      |  ],
+      |  "produces": [
+      |    "application/json"
+      |  ],
+      |  "paths": {
+      |    "/save": {
+      |      "post": {
+      |        "parameters": [
+      |          {
+      |            "name": "body",
+      |            "in": "body",
+      |            "required": true,
+      |            "schema": {
+      |              "$ref": "#/definitions/user"
+      |            }
+      |          }
+      |        ],
+      |        "responses": {
+      |          "201": {
+      |            "description": "create user successful and return created user object",
+      |            "schema": {
+      |              "$ref": "#/definitions/user"
+      |            }
+      |          },
+      |          "500": {
+      |            "description": "unexpected error",
+      |            "schema": {
+      |              "$ref": "#/responses/unexpectedError"
+      |            }
+      |          }
+      |        }
+      |      }
+      |    },
+      |    "/getById/{userId}": {
+      |      "get": {
+      |        "description": "get reuested user by user ID",
+      |        "parameters": [
+      |          {
+      |            "$ref": "#/parameters/userId"
+      |          }
+      |        ],
+      |        "consumes": ["application/json"],
+      |        "responses": {
+      |          "200": {
+      |            "description": "the successful get requested user by user ID",
+      |            "schema": {
+      |              "$ref": "#/definitions/user"
+      |            }
+      |          },
+      |          "400": {
+      |            "description": "bad request",
+      |            "schema": {
+      |              "$ref": "#/responses/invalidRequest"
+      |            }
+      |          },
+      |          "404": {
+      |            "description": "user not found",
+      |            "schema": {
+      |              "$ref": "#/definitions/APIError"
+      |            }
+      |          },
+      |          "500": {
+      |            "description": "unexpected error",
+      |            "schema": {
+      |              "$ref": "#/responses/unexpectedError"
+      |            }
+      |          }
+      |        }
+      |      }
+      |    },
+      |    "/listUsers": {
+      |      "get": {
+      |        "description": "get list of users",
+      |        "consumes": ["application/json"],
+      |        "responses": {
+      |          "200": {
+      |            "description": "get all users",
+      |            "schema": {
+      |              "$ref": "#/definitions/users"
+      |            }
+      |          },
+      |          "404": {
+      |            "description": "user not found",
+      |            "schema": {
+      |              "$ref": "#/definitions/APIError"
+      |            }
+      |          }
+      |        }
+      |      }
+      |    },
+      |    "/updateUser": {
+      |      "put": {
+      |        "parameters": [
+      |          {
+      |            "name": "body",
+      |            "in": "body",
+      |            "required": true,
+      |            "schema": {
+      |              "$ref": "#/definitions/user"
+      |            }
+      |          }
+      |        ],
+      |        "responses": {
+      |          "200": {
+      |            "description": "create user successful and return created user object",
+      |            "schema": {
+      |              "$ref": "#/definitions/user"
+      |            }
+      |          },
+      |          "500": {
+      |            "description": "unexpected error",
+      |            "schema": {
+      |              "$ref": "#/responses/unexpectedError"
+      |            }
+      |          }
+      |        }
+      |      }
+      |    },
+      |    "/delete/{userId}": {
+      |      "delete": {
+      |        "description": "delete user by user ID",
+      |        "parameters": [
+      |          {
+      |            "$ref": "#/parameters/userId"
+      |          }
+      |        ],
+      |        "consumes": ["application/json"],
+      |        "responses": {
+      |          "204": {
+      |            "description": "the successful delete user by user ID"
+      |          },
+      |          "400": {
+      |            "description": "bad request",
+      |            "schema": {
+      |              "$ref": "#/responses/invalidRequest"
+      |            }
+      |          },
+      |          "500": {
+      |            "description": "unexpected error",
+      |            "schema": {
+      |              "$ref": "#/responses/unexpectedError"
+      |            }
+      |          }
+      |        }
+      |      }
+      |    }
+      |  },
+      |  "definitions": {
+      |    "user": {
+      |      "type": "object",
+      |      "properties": {
+      |        "id": {
+      |          "type": "integer",
+      |          "description": "user ID"
+      |        },
+      |        "first_name": {
+      |          "type": "string"
+      |        },
+      |        "last_name": {
+      |          "type": "string"
+      |        },
+      |        "age": {
+      |          "type": "integer"
+      |        },
+      |        "career": {
+      |          "type": "string"
+      |        }
+      |      },
+      |      "required": [
+      |        "first_name",
+      |        "last_name",
+      |        "age"
+      |      ]
+      |    },
+      |    "users": {
+      |      "description": "array of users",
+      |      "type": "array",
+      |      "items": {
+      |        "$ref": "#/definitions/user"
+      |      }
+      |    },
+      |    "APIError": {
+      |      "description": "content any error from API",
+      |      "type": "object",
+      |      "properties": {
+      |        "errorCode": {
+      |          "description": "content error code relate to API",
+      |          "type": "string"
+      |        },
+      |        "errorMessage": {
+      |          "description": "content user-friendly error message",
+      |          "type": "string"
+      |        }
+      |      }
+      |    }
+      |  },
+      |  "responses": {
+      |    "unexpectedError": {
+      |      "description": "unexpected error",
+      |      "schema": {
+      |        "$ref": "#/definitions/APIError"
+      |      }
+      |    },
+      |    "invalidRequest": {
+      |      "description": "invalid request",
+      |      "schema": {
+      |        "$ref": "#/definitions/APIError"
+      |      }
+      |    }
+      |  },
+      |  "parameters": {
+      |    "userId": {
+      |      "name": "userId",
+      |      "in": "path",
+      |      "required": true,
+      |      "type": "string",
+      |      "description": "user ID"
+      |    }
+      |  }
+      |}
+      |""".stripMargin
+  lazy val dynamicEndpointRequestBodyExample = json.parse(dynamicEndpointSwagger).asInstanceOf[JObject]
+  lazy val dynamicEndpointResponseBodyExample = ("dynamic_endpoint_id", "dynamic-endpoint-id") ~ ("swagger_string", dynamicEndpointRequestBodyExample)
+
 }
 
 

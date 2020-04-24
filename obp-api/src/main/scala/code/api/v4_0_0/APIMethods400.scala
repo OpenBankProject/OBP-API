@@ -2,51 +2,62 @@ package code.api.v4_0_0
 
 import java.util.Date
 
+import code.DynamicData.DynamicData
+import code.DynamicEndpoint.DynamicEndpointSwagger
+import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.ExampleValue.{dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
+import code.api.util.ExampleValue.{dynamicEndpointRequestBodyExample, dynamicEndpointResponseBodyExample, dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
+import code.api.util.newstyle.AttributeDefinition._
+import code.api.util.newstyle.Consumer._
+import code.api.util.newstyle.UserCustomerLinkNewStyle
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
-import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200}
+import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
+import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_1_0.{CreateAccountRequestJsonV310, JSONFactory310, ListResult}
+import code.api.v3_1_0.{CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310, ListResult}
+import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
 import code.bankconnectors.Connector
-import code.dynamicEntity.DynamicEntityCommons
+import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.entitlement.Entitlement
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import code.model.toUserExtended
+import code.model.{toUserExtended, _}
 import code.transactionChallenge.MappedExpectedChallengeAnswer
-import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestProvider}
+import code.transactionrequests.MappedTransactionRequestProvider
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
-import code.transactionrequests.TransactionRequests.{TransactionRequestStatus, TransactionRequestTypes}
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
+import code.transactionrequests.TransactionRequests.{TransactionRequestStatus, TransactionRequestTypes}
 import code.users.Users
 import code.util.{Helper, JsonUtils}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType, TransactionAttributeType}
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
+import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.common.{Box, Full, ParamFailure}
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
-import net.liftweb.json._
+import net.liftweb.json.{compactRender, _}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.now
-import net.liftweb.util.StringHelpers
+import net.liftweb.util.{Helpers, StringHelpers}
+import org.apache.commons.lang3.StringUtils
 import org.atteo.evo.inflector.English
 
 import scala.collection.immutable.{List, Nil}
@@ -669,7 +680,7 @@ trait APIMethods400 {
         |
         |3) `id` :  is `challenge.id` field in createTransactionRequest response body.
         |
-        |4) `answer` : must be `123` in case that Strong Customer Authentication method for OTP challenge is dummy. 
+        |4) `answer` : must be `123` in case that Strong Customer Authentication method for OTP challenge is dummy.
         |    For instance: SANDBOX_TAN_OTP_INSTRUCTION_TRANSPORT=dummy
         |    Possible values are dummy,email and sms
         |    In kafka mode, the answer can be got by phone message or other security ways.
@@ -678,11 +689,11 @@ trait APIMethods400 {
         |  INITIATED => COMPLETED
         |In case n persons needs to answer security challenge we have next flow of state of an `transaction request`:
         |  INITIATED => NEXT_CHALLENGE_PENDING => ... => NEXT_CHALLENGE_PENDING => COMPLETED
-        |  
+        |
         |The security challenge is bound to a user i.e. in case of right answer and the user is different than expected one the challenge will fail.
         |
         |Rule for calculating number of security challenges:
-        |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges 
+        |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges
         |(one for every user that has a View where permission "can_add_transaction_request_to_any_account"=true)
         |In case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute default value is 1.
         |
@@ -698,7 +709,7 @@ trait APIMethods400 {
         $BankAccountNotFound,
         TransactionRequestStatusNotInitiated,
         TransactionRequestTypeHasChanged,
-        InvalidTransactionRequesChallengeId,
+        InvalidTransactionRequestChallengeId,
         AllowedAttemptsUsedUp,
         TransactionDisabled,
         UnknownError
@@ -725,14 +736,14 @@ trait APIMethods400 {
 
             account = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
             _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, u, cc.callContext)
-              
+
             // Check transReqId is valid
             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transReqId, cc.callContext)
 
-            // Check the Transaction Request is still INITIATED
+            // Check the Transaction Request is still INITIATED or NEXT_CHALLENGE_PENDING
             _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiatedOrPending) {
               existingTransactionRequest.status.equals(TransactionRequestStatus.INITIATED.toString) ||
-              existingTransactionRequest.status.equals(TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString) 
+              existingTransactionRequest.status.equals(TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
             }
 
             // Check the input transactionRequestType is the same as when the user created the TransactionRequest
@@ -742,19 +753,19 @@ trait APIMethods400 {
             }
 
             // Check the challengeId is valid for this existingTransactionRequest
-            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequesChallengeId}") {
+            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
               existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
               MappedExpectedChallengeAnswer
                 .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
                 .exists(_.challengeId == challengeAnswerJson.id)
             }
 
-            //Check the allowed attemps, Note: not support yet, the default value is 3
+            //Check the allowed attempts, Note: not supported yet, the default value is 3
             _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}") {
               existingTransactionRequest.challenge.allowed_attempts > 0
             }
 
-            //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
+            //Check the challenge type, Note: not supported yet, the default value is SANDBOX_TAN
             _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ") {
               List(
                 OTP_VIA_API.toString,
@@ -805,10 +816,10 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getDynamicEntities),
       "GET",
-      "/management/dynamic_entities",
-      "Get DynamicEntities",
-      s"""Get the all DynamicEntities.""",
-      emptyObjectJson,
+      "/management/dynamic-entities",
+      "Get Dynamic Entities",
+      s"""Get the all Dynamic Entities.""",
+      EmptyBody,
       ListResult(
         "dynamic_entities",
         List(dynamicEntityResponseBodyExample)
@@ -825,7 +836,7 @@ trait APIMethods400 {
 
 
     lazy val getDynamicEntities: OBPEndpoint = {
-      case "management" :: "dynamic_entities" :: Nil JsonGet req => {
+      case "management" :: "dynamic-entities" :: Nil JsonGet req => {
         cc =>
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities())
@@ -842,8 +853,8 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(createDynamicEntity),
       "POST",
-      "/management/dynamic_entities",
-      "Create DynamicEntity",
+      "/management/dynamic-entities",
+      "Create Dynamic Entity",
       s"""Create a DynamicEntity.
          |
          |
@@ -852,8 +863,15 @@ trait APIMethods400 {
          |Create one DynamicEntity, after created success, the corresponding CURD endpoints will be generated automatically
          |
          |Current support filed types as follow:
-         |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", "]")}
+         |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
+         |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
+         |
+         |Value of reference type is corresponding ids, please look at the following examples.
+         |Current supporting reference types and corresponding examples as follow:
+         |```
+         |${ReferenceType.referenceTypeAndExample.mkString("\n")}
+         |```
          |""",
       dynamicEntityRequestBodyExample,
       dynamicEntityResponseBodyExample,
@@ -868,7 +886,7 @@ trait APIMethods400 {
       Some(List(canCreateDynamicEntity)))
 
     lazy val createDynamicEntity: OBPEndpoint = {
-      case "management" :: "dynamic_entities" :: Nil JsonPost json -> _ => {
+      case "management" :: "dynamic-entities" :: Nil JsonPost json -> _ => {
         cc =>
           val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None)
           for {
@@ -886,8 +904,8 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(updateDynamicEntity),
       "PUT",
-      "/management/dynamic_entities/DYNAMIC_ENTITY_ID",
-      "Update DynamicEntity",
+      "/management/dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Update Dynamic Entity",
       s"""Update a DynamicEntity.
          |
          |
@@ -896,8 +914,15 @@ trait APIMethods400 {
          |Update one DynamicEntity, after update finished, the corresponding CURD endpoints will be changed.
          |
          |Current support filed types as follow:
-         |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", "]")}
+         |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
+         |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
+         |
+         |Value of reference type is corresponding ids, please look at the following examples.
+         |Current supporting reference types and corresponding examples as follow:
+         |```
+         |${ReferenceType.referenceTypeAndExample.mkString("\n")}
+         |```
          |""",
       dynamicEntityRequestBodyExample,
       dynamicEntityResponseBodyExample,
@@ -912,7 +937,7 @@ trait APIMethods400 {
       Some(List(canUpdateDynamicEntity)))
 
     lazy val updateDynamicEntity: OBPEndpoint = {
-      case "management" :: "dynamic_entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
+      case "management" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
         cc =>
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
@@ -937,13 +962,13 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(deleteDynamicEntity),
       "DELETE",
-      "/management/dynamic_entities/DYNAMIC_ENTITY_ID",
-      "Delete DynamicEntity",
+      "/management/dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Delete Dynamic Entity",
       s"""Delete a DynamicEntity specified by DYNAMIC_ENTITY_ID.
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -954,7 +979,7 @@ trait APIMethods400 {
       Some(List(canDeleteDynamicEntity)))
 
     lazy val deleteDynamicEntity: OBPEndpoint = {
-      case "management" :: "dynamic_entities" :: dynamicEntityId :: Nil JsonDelete _ => {
+      case "management" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonDelete _ => {
         cc =>
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
@@ -971,9 +996,13 @@ trait APIMethods400 {
     }
 
 
-    private def unboxResult[T: Manifest](box: Box[T]): T = {
-       if(box.isInstanceOf[ParamFailure[_]]) {
-         fullBoxOrException[T](box)
+    private def unboxResult[T: Manifest](box: Box[T], entityName: String): T = {
+       if(box.isInstanceOf[Failure]) {
+         val failure = box.asInstanceOf[Failure]
+         // change the internal db column name 'dynamicdataid' to entity's id name
+         val msg = failure.msg.replace(DynamicData.DynamicDataId.dbColumnName, StringUtils.uncapitalize(entityName) + "Id")
+         val changedMsgFailure = failure.copy(msg = s"$InternalServerError $msg")
+         fullBoxOrException[T](changedMsgFailure)
       }
 
       box.openOrThrowException("impossible error")
@@ -999,8 +1028,10 @@ trait APIMethods400 {
       case EntityName(entityName) :: Nil JsonGet req => { cc =>
         val listName = StringHelpers.snakify(English.plural(entityName))
         for {
+          (Full(u), callContext) <- authenticatedAccess(cc)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
-          resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]])
+          resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
         } yield {
           import net.liftweb.json.JsonDSL._
 
@@ -1010,32 +1041,40 @@ trait APIMethods400 {
       }
       case EntityName(entityName, id) JsonGet req => {cc =>
         for {
+          (Full(u), callContext) <- authenticatedAccess(cc)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
-           entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]])
+           entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           (entity, HttpCode.`200`(Some(cc)))
         }
       }
       case EntityName(entityName) :: Nil JsonPost json -> _ => {cc =>
         for {
+          (Full(u), callContext) <- authenticatedAccess(cc)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canCreateRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, Some(cc))
-          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]])
+          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           (entity, HttpCode.`201`(Some(cc)))
         }
       }
       case EntityName(entityName, id) JsonPut json -> _ => { cc =>
         for {
+          (Full(u), callContext) <- authenticatedAccess(cc)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canUpdateRole(entityName), callContext)
           (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), Some(cc))
-          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]])
+          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           (entity, HttpCode.`200`(Some(cc)))
         }
       }
       case EntityName(entityName, id) JsonDelete req => { cc =>
         for {
+          (Full(u), callContext) <- authenticatedAccess(cc)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canDeleteRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), Some(cc))
-          deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]])
+          deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
         } yield {
           (deleteResult, HttpCode.`200`(Some(cc)))
         }
@@ -1137,7 +1176,7 @@ trait APIMethods400 {
               hasEntitlement(bankId.value, loggedInUserId, canCreateAccount) || userIdAccountOwner == loggedInUserId
             }
             initialBalanceAsString = createAccountJson.balance.amount
-            //Note: here we map the product_code to account_type 
+            //Note: here we map the product_code to account_type
             accountType = createAccountJson.product_code
             accountLabel = createAccountJson.label
             initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
@@ -1178,9 +1217,9 @@ trait APIMethods400 {
         }
       }
     }
-    
-    
-    
+
+
+
     private def getApiInfoJSON() = {
       val (apiVersion, apiVersionStatus) = (implementedInApiVersion, OBPAPI4_0_0.versionStatus)
       val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
@@ -1286,7 +1325,7 @@ trait APIMethods400 {
             // Format the data as V2.0.0 json
             if (isSuperAdmin(userId)) {
               // If the user is SuperAdmin add it to the list
-              json = EntitlementJSONs(JSONFactory200.createEntitlementJSONs(entitlements).list:::List(EntitlementJSON("", "SuperAdmin", "")))
+              json = JSONFactory200.addedSuperAdminEntitlementJson(entitlements)
             } else {
               json = JSONFactory200.createEntitlementJSONs(entitlements)
             }
@@ -1334,7 +1373,7 @@ trait APIMethods400 {
       "addTagForViewOnAccount",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
-      "Add a tag on account.",
+      "Create a tag on account.",
       s"""Posts a tag about an account ACCOUNT_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
          |${authenticationRequiredMessage(true)}
@@ -1722,9 +1761,9 @@ trait APIMethods400 {
             (_, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(postJson.counterparty_id), callContext)
             (directDebit, callContext) <- NewStyle.function.createDirectDebit(
               bankId.value,
-              accountId.value, 
-              postJson.customer_id, 
-              postJson.user_id, 
+              accountId.value,
+              postJson.customer_id,
+              postJson.user_id,
               postJson.counterparty_id,
               if (postJson.date_signed.isDefined) postJson.date_signed.get else new Date(),
               postJson.date_starts,
@@ -1792,7 +1831,7 @@ trait APIMethods400 {
           }
       }
     }
-    
+
     resourceDocs += ResourceDoc(
       createStandingOrder,
       implementedInApiVersion,
@@ -1993,8 +2032,8 @@ trait APIMethods400 {
           }
       }
     }
-    
-    
+
+
     resourceDocs += ResourceDoc(
       revokeUserAccessToView,
       implementedInApiVersion,
@@ -2110,7 +2149,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(updateCustomerAttribute),
       "PUT",
-      "/banks/BANK_ID/customers/CUSTOMER_ID/attributes/ACCOUNT_ATTRIBUTE_ID",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/attributes/CUSTOMER_ATTRIBUTE_ID",
       "Update Customer Attribute",
       s""" Update Customer Attribute
          |
@@ -2247,6 +2286,61 @@ trait APIMethods400 {
           }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      getCustomersByAttributes,
+      implementedInApiVersion,
+      nameOf(getCustomersByAttributes),
+      "GET",
+      "/banks/BANK_ID/customers",
+      "Get Customers by ATTRIBUTES",
+      s"""Gets the Customers specified by attributes
+         |
+         |URL params example: /banks/some-bank-id/customers?name=John&age=8
+         |URL params example: /banks/some-bank-id/customers?manager=John&count=8
+         |
+         |
+         |""",
+      emptyObjectJson,
+      ListResult(
+        "customers",
+        List(customerWithAttributesJsonV310)
+      ),
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCustomer))
+    )
+
+    lazy val getCustomersByAttributes : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" ::  Nil JsonGet req => {
+        cc =>
+          for {
+            (customerIds, callContext) <- NewStyle.function.getCustomerIdsByAttributeNameValues(bankId, req.params, Some(cc))
+            list: List[CustomerWithAttributesJsonV310] <- {
+              val listCustomerFuture: List[Future[CustomerWithAttributesJsonV310]] = customerIds.map{ customerId =>
+                val customerFuture = NewStyle.function.getCustomerByCustomerId(customerId.value, callContext)
+                customerFuture.flatMap { customerAndCc =>
+                  val (customer, cc) = customerAndCc
+                  NewStyle.function.getCustomerAttributes(bankId, customerId, cc).map { attributesAndCc =>
+                    val (attributes, _) = attributesAndCc
+                    JSONFactory310.createCustomerWithAttributesJson(customer, attributes)
+                  }
+                }
+              }
+              Future.sequence(listCustomerFuture)
+            }
+          } yield {
+            (ListResult("customers", list), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
 
     resourceDocs += ResourceDoc(
       createTransactionAttribute,
@@ -2491,7 +2585,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: TransactionRequestId(requestId) :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.isEnabledTransactionRequests()
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (_, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
@@ -2506,8 +2600,1149 @@ trait APIMethods400 {
           }
       }
     }
+
+
+
+    resourceDocs += ResourceDoc(
+      getPrivateAccountsAtOneBank,
+      implementedInApiVersion,
+      "getPrivateAccountsAtOneBank",
+      "GET",
+      "/banks/BANK_ID/accounts",
+      "Get Accounts at Bank.",
+      s"""
+         |Returns the list of accounts at BANK_ID that the user has access to.
+         |For each account the API returns the account ID and the views available to the user..
+         |Each account must have at least one private View.
+         |
+         |optional request parameters for filter with attributes
+         |URL params example: /banks/some-bank-id/accounts?manager=John&count=8
+         |
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      basicAccountsJSON,
+      List($UserNotLoggedIn, $BankNotFound, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle),
+      connectorMethods = Some(List("obp.getBank","obp.getBankAccount"))
+    )
+
+    lazy val getPrivateAccountsAtOneBank: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), bank) <- SS.userBank
+            (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            params = req.params
+            privateAccountAccesses2 <- if(params.isEmpty || privateAccountAccesses.isEmpty) {
+              Future.successful(privateAccountAccesses)
+            } else {
+              AccountAttributeX.accountAttributeProvider.vend
+                .getAccountIdsByParams(bankId, req.params)
+                .map { boxedAccountIds =>
+                  val accountIds = boxedAccountIds.getOrElse(Nil)
+                  privateAccountAccesses.filter(aa => accountIds.contains(aa.account_id.get))
+                }
+            }
+          } yield {
+            val availablePrivateAccounts = bank.privateAccounts(privateAccountAccesses2)
+            val bankAccounts = Implementations2_0_0.processAccounts(privateViewsUserCanAccessAtOneBank, availablePrivateAccounts)
+            (bankAccounts, HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      createConsumer,
+      implementedInApiVersion,
+      "createConsumer",
+      "POST",
+      "/management/consumers",
+      "Post a Consumer",
+      s"""Create a Consumer (Authenticated access).
+         |
+         |""",
+      ConsumerPostJSON(
+        "Test",
+        "Test",
+        "Description",
+        "some@email.com",
+        "redirecturl",
+        "createdby",
+        true,
+        new Date()
+      ),
+      ConsumerPostJSON(
+        "Some app name",
+        "App type",
+        "Description",
+        "some.email@example.com",
+        "Some redirect url",
+        "Created by UUID",
+        true,
+        new Date()
+      ),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagConsumer),
+      Some(List(canCreateConsumer)))
+
+
+    lazy val createConsumer: OBPEndpoint = {
+      case "management" :: "consumers" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
+              json.extract[ConsumerPostJSON]
+            }
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canCreateConsumer, callContext)
+            (consumer, callContext) <- createConsumerNewStyle(
+              key = Some(Helpers.randomString(40).toLowerCase),
+              secret = Some(Helpers.randomString(40).toLowerCase),
+              isActive = Some(postedJson.enabled),
+              name= Some(postedJson.app_name),
+              appType = None,
+              description = Some(postedJson.description),
+              developerEmail = Some(postedJson.developer_email),
+              redirectURL = Some(postedJson.redirect_url),
+              createdByUserId = Some(u.userId),
+              callContext
+            )
+            user <- Users.users.vend.getUserByUserIdFuture(u.userId)
+          } yield {
+            // Format the data as json
+            val json = JSONFactory400.createConsumerJSON(consumer, user)
+            // Return
+            (json, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    val customerAttributeGeneralInfo =
+      s"""
+         |CustomerAttributes are used to enhance the OBP Customer object with Bank specific entities.
+         |
+       """.stripMargin
+
+    resourceDocs += ResourceDoc(
+      deleteCustomerAttribute,
+      implementedInApiVersion,
+      nameOf(deleteCustomerAttribute),
+      "DELETE",
+      "/banks/BANK_ID/CUSTOMER_ID/attributes/CUSTOMER_ATTRIBUTE_ID",
+      "Delete Customer Attribute",
+      s""" Delete Customer Attribute
+         |
+         |$customerAttributeGeneralInfo
+         |
+         |Delete a Customer Attribute by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canDeleteCustomerAttributeAtOneBank)))
+
+    lazy val deleteCustomerAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "customers" :: "attributes" :: customerAttributeId ::  Nil JsonDelete _=> {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            (customerAttribute, callContext) <- NewStyle.function.deleteCustomerAttribute(customerAttributeId, callContext)
+          } yield {
+            (Full(customerAttribute), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(createDynamicEndpoint),
+      "POST",
+      "/management/dynamic-endpoints",
+      " Create Dynamic Endpoint",
+      s"""Create a Dynamic Endpoint.
+         |
+         |Create one DynamicEndpoint,
+         |
+         |""",
+      dynamicEndpointRequestBodyExample,
+      dynamicEndpointResponseBodyExample,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        DynamicEndpointExists,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateDynamicEndpoint)))
+
+    lazy val createDynamicEndpoint: OBPEndpoint = {
+      case "management" :: "dynamic-endpoints" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (postedJson, openAPI) <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
+              val swaggerContent = compactRender(json)
+
+              (DynamicEndpointSwagger(swaggerContent), DynamicEndpointHelper.parseSwaggerContent(swaggerContent))
+            }
+            duplicatedUrl = DynamicEndpointHelper.findExistsEndpoints(openAPI).map(kv => s"${kv._1}:${kv._2}")
+            errorMsg = s"""$DynamicEndpointExists Duplicated ${if(duplicatedUrl.size > 1) "endpoints" else "endpoint"}: ${duplicatedUrl.mkString("; ")}"""
+            _ <- Helper.booleanToFuture(errorMsg) {
+              duplicatedUrl.isEmpty
+            }
+            (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(postedJson.swaggerString, cc.callContext)
+            _ = DynamicEndpointHelper.addEndpoint(openAPI, dynamicEndpoint.dynamicEndpointId.get)
+          } yield {
+            val swaggerJson = parse(dynamicEndpoint.swaggerString)
+            val responseJson: JObject = ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+            (responseJson, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(getDynamicEndpoint),
+      "GET",
+      "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
+      " Get Dynamic Endpoint",
+      s"""Get a Dynamic Endpoint.
+         |
+         |
+         |Get one DynamicEndpoint,
+         |
+         |""",
+      EmptyBody,
+      dynamicEndpointResponseBodyExample,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canGetDynamicEndpoint)))
+
+    lazy val getDynamicEndpoint: OBPEndpoint = {
+      case "management" :: "dynamic-endpoints" :: dynamicEndpointId :: Nil JsonGet req => {
+        cc =>
+          for {
+            (dynamicEndpoint, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
+          } yield {
+            val swaggerJson = parse(dynamicEndpoint.swaggerString)
+            val responseJson: JObject = ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+            (responseJson, HttpCode.`200`(callContext))
+          }
+      }
+    }
     
-    
+    resourceDocs += ResourceDoc(
+      getDynamicEndpoints,
+      implementedInApiVersion,
+      nameOf(getDynamicEndpoints),
+      "GET",
+      "/management/dynamic-endpoints",
+      " Get Dynamic Endpoints",
+      s"""
+         |
+         |Get Dynamic Endpoints.
+         |
+         |""",
+      EmptyBody,
+      ListResult(
+        "dynamic_endpoints",
+        List(dynamicEndpointResponseBodyExample)
+      ),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canGetDynamicEndpoints)))
+
+    lazy val getDynamicEndpoints: OBPEndpoint = {
+      case "management" :: "dynamic-endpoints" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (dynamicEndpoints, _) <- NewStyle.function.getDynamicEndpoints(cc.callContext)
+          } yield {
+            val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint=>
+              val swaggerJson = parse(dynamicEndpoint.swaggerString)
+               ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+            }
+            (ListResult("dynamic_endpoints", resultList), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      deleteDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(deleteDynamicEndpoint),
+      "DELETE",
+      "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
+      " Delete Dynamic Endpoint",
+      s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.
+         |
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteDynamicEndpoint)))
+
+    lazy val deleteDynamicEndpoint : OBPEndpoint = {
+      case "management" :: "dynamic-endpoints" :: dynamicEndpointId ::  Nil JsonDelete _ => {
+        cc =>
+          for {
+            deleted <- NewStyle.function.deleteDynamicEndpoint(dynamicEndpointId, cc.callContext)
+          } yield {
+            (deleted, HttpCode.`204`(cc.callContext))
+          }
+      }
+    }
+
+
+    lazy val dynamicEndpoint: OBPEndpoint = {
+      case DynamicReq(url, json, method, params, pathParams, role) => { cc =>
+        for {
+          (Full(u), callContext) <- authenticatedAccess(cc)
+          _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
+
+          (box, _) <- NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
+        } yield {
+          box match {
+            case Full(v) =>
+              val code = (v \ "code").asInstanceOf[JInt].num.toInt
+              (v \ "value", callContext.map(_.copy(httpCode = Some(code))))
+
+            case e: Failure =>
+              val changedMsgFailure = e.copy(msg = s"$InternalServerError ${e.msg}")
+              fullBoxOrException[JValue](changedMsgFailure)
+              ??? // will not execute to here, Because the failure message is thrown by upper line.
+          }
+
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createOrUpdateCustomerAttributeAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(createOrUpdateCustomerAttributeAttributeDefinition),
+      "PUT",
+      "/banks/BANK_ID/attribute-definitions/customer",
+      "Create or Update Customer Attribute Definition",
+      s""" Create or Update Customer Attribute Definition
+         |
+         |The category field must be one of: ${AttributeCategory.Customer}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      templateAttributeDefinitionJsonV400,
+      templateAttributeDefinitionResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canCreateCustomerAttributeDefinitionAtOneBank)))
+
+    lazy val createOrUpdateCustomerAttributeAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "customer" :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDefinitionJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+              s"${AttributeCategory.Customer}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDefinition, callContext) <- createOrUpdateAttributeDefinition(
+              bankId,
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.can_be_seen_on_views,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefinition), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      createOrUpdateAccountAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(createOrUpdateAccountAttributeDefinition),
+      "PUT",
+      "/banks/BANK_ID/attribute-definitions/account",
+      "Create or Update Account Attribute Definition",
+      s""" Create or Update Account Attribute Definition
+         |
+         |The category field must be ${AttributeCategory.Account}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      accountAttributeDefinitionJsonV400,
+      accountAttributeDefinitionResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagNewStyle),
+      Some(List(canCreateAccountAttributeDefinitionAtOneBank)))
+
+    lazy val createOrUpdateAccountAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "account" :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDefinitionJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+              s"${AttributeCategory.Account}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDefinition, callContext) <- createOrUpdateAttributeDefinition(
+              bankId,
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.can_be_seen_on_views,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefinition), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      createOrUpdateProductAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(createOrUpdateProductAttributeDefinition),
+      "PUT",
+      "/banks/BANK_ID/attribute-definitions/product",
+      "Create or Update Product Attribute Definition",
+      s""" Create or Update Product Attribute Definition
+         |
+         |The category field must be ${AttributeCategory.Product}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productAttributeDefinitionJsonV400,
+      productAttributeDefinitionResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canCreateProductAttributeDefinitionAtOneBank)))
+
+    lazy val createOrUpdateProductAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "product" :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDefinitionJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+              s"${AttributeCategory.Product}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDefinition, callContext) <- createOrUpdateAttributeDefinition(
+              bankId,
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.can_be_seen_on_views,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefinition), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createOrUpdateTransactionAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(createOrUpdateTransactionAttributeDefinition),
+      "PUT",
+      "/banks/BANK_ID/attribute-definitions/transaction",
+      "Create or Update Transaction Attribute Definition",
+      s""" Create or Update Transaction Attribute Definition
+         |
+         |The category field must be ${AttributeCategory.Transaction}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      transactionAttributeDefinitionJsonV400,
+      transactionAttributeDefinitionResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canCreateTransactionAttributeDefinitionAtOneBank)))
+
+    lazy val createOrUpdateTransactionAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "transaction" :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDefinitionJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+              s"${AttributeCategory.Transaction}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDefinition, callContext) <- createOrUpdateAttributeDefinition(
+              bankId,
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.can_be_seen_on_views,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefinition), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      createOrUpdateCardAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(createOrUpdateCardAttributeDefinition),
+      "PUT",
+      "/banks/BANK_ID/attribute-definitions/card",
+      "Create or Update Card Attribute Definition",
+      s""" Create or Update Card Attribute Definition
+         |
+         |The category field must be ${AttributeCategory.Card}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      cardAttributeDefinitionJsonV400,
+      cardAttributeDefinitionResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard, apiTagNewStyle),
+      Some(List(canCreateCardAttributeDefinitionAtOneBank)))
+
+    lazy val createOrUpdateCardAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "card" :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDefinitionJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+              s"${AttributeCategory.Card}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDefinition, callContext) <- createOrUpdateAttributeDefinition(
+              bankId,
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.can_be_seen_on_views,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefinition), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      deleteTransactionAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(deleteTransactionAttributeDefinition),
+      "DELETE",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/transaction",
+      "Delete Transaction Attribute Definition",
+      s""" Delete Transaction Attribute Definition by ATTRIBUTE_DEFINITION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canDeleteTransactionAttributeDefinitionAtOneBank)))
+
+    lazy val deleteTransactionAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "transaction" :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
+              AttributeCategory.withName(AttributeCategory.Transaction.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      deleteCustomerAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(deleteCustomerAttributeDefinition),
+      "DELETE",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/customer",
+      "Delete Customer Attribute Definition",
+      s""" Delete Customer Attribute Definition by ATTRIBUTE_DEFINITION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canDeleteCustomerAttributeDefinitionAtOneBank)))
+
+    lazy val deleteCustomerAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "customer" :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
+              AttributeCategory.withName(AttributeCategory.Customer.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      deleteAccountAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(deleteAccountAttributeDefinition),
+      "DELETE",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/account",
+      "Delete Account Attribute Definition",
+      s""" Delete Account Attribute Definition by ATTRIBUTE_DEFINITION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagNewStyle),
+      Some(List(canDeleteAccountAttributeDefinitionAtOneBank)))
+
+    lazy val deleteAccountAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "account" :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
+              AttributeCategory.withName(AttributeCategory.Account.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      deleteProductAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(deleteProductAttributeDefinition),
+      "DELETE",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/product",
+      "Delete Product Attribute Definition",
+      s""" Delete Product Attribute Definition by ATTRIBUTE_DEFINITION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canDeleteProductAttributeDefinitionAtOneBank)))
+
+    lazy val deleteProductAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "product" :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
+              AttributeCategory.withName(AttributeCategory.Product.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      deleteCardAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(deleteCardAttributeDefinition),
+      "DELETE",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/card",
+      "Delete Card Attribute Definition",
+      s""" Delete Card Attribute Definition by ATTRIBUTE_DEFINITION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard, apiTagNewStyle),
+      Some(List(canDeleteCardAttributeDefinitionAtOneBank)))
+
+    lazy val deleteCardAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "card" :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
+              AttributeCategory.withName(AttributeCategory.Card.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getProductAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(getProductAttributeDefinition),
+      "GET",
+      "/banks/BANK_ID/attribute-definitions/product",
+      "Get Product Attribute Definition",
+      s""" Get Product Attribute Definition
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      productAttributeDefinitionsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canGetProductAttributeDefinitionAtOneBank)))
+
+    lazy val getProductAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "product" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributeDefinitions, callContext) <- getAttributeDefinition(
+              AttributeCategory.withName(AttributeCategory.Product.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefinitions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getCustomerAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(getCustomerAttributeDefinition),
+      "GET",
+      "/banks/BANK_ID/attribute-definitions/customer",
+      "Get Customer Attribute Definition",
+      s""" Get Customer Attribute Definition
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      customerAttributeDefinitionsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCustomerAttributeDefinitionAtOneBank)))
+
+    lazy val getCustomerAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "customer" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributeDefinitions, callContext) <- getAttributeDefinition(
+              AttributeCategory.withName(AttributeCategory.Customer.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefinitions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getAccountAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(getAccountAttributeDefinition),
+      "GET",
+      "/banks/BANK_ID/attribute-definitions/account",
+      "Get Account Attribute Definition",
+      s""" Get Account Attribute Definition
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      accountAttributeDefinitionsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagNewStyle),
+      Some(List(canGetAccountAttributeDefinitionAtOneBank)))
+
+    lazy val getAccountAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "account" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributeDefinitions, callContext) <- getAttributeDefinition(
+              AttributeCategory.withName(AttributeCategory.Account.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefinitions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getTransactionAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(getTransactionAttributeDefinition),
+      "GET",
+      "/banks/BANK_ID/attribute-definitions/transaction",
+      "Get Transaction Attribute Definition",
+      s""" Get Transaction Attribute Definition
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      transactionAttributeDefinitionsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canGetTransactionAttributeDefinitionAtOneBank)))
+
+    lazy val getTransactionAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "transaction" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributeDefinitions, callContext) <- getAttributeDefinition(
+              AttributeCategory.withName(AttributeCategory.Transaction.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefinitions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      getCardAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(getCardAttributeDefinition),
+      "GET",
+      "/banks/BANK_ID/attribute-definitions/card",
+      "Get Card Attribute Definition",
+      s""" Get Card Attribute Definition
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      cardAttributeDefinitionsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard, apiTagNewStyle),
+      Some(List(canGetCardAttributeDefinitionAtOneBank)))
+
+    lazy val getCardAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "card" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributeDefinitions, callContext) <- getAttributeDefinition(
+              AttributeCategory.withName(AttributeCategory.Card.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefinitions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      deleteUserCustomerLink,
+      implementedInApiVersion,
+      nameOf(deleteUserCustomerLink),
+      "DELETE",
+      "/banks/BANK_ID/user_customer_links/USER_CUSTOMER_LINK_ID",
+      "Delete User Customer Link",
+      s""" Delete User Customer Link by USER_CUSTOMER_LINK_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canDeleteUserCustomerLink)))
+
+    lazy val deleteUserCustomerLink : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "user_customer_links" :: userCustomerLinkId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- UserCustomerLinkNewStyle.deleteUserCustomerLink(
+              userCustomerLinkId,
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getUserCustomerLinksByUserId,
+      implementedInApiVersion,
+      nameOf(getUserCustomerLinksByUserId),
+      "GET",
+      "/banks/BANK_ID/user_customer_links/users/USER_ID",
+      "Get User Customer Links",
+      s""" Get User Customer Links by USER_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      userCustomerLinksJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetUserCustomerLink)))
+
+    lazy val getUserCustomerLinksByUserId : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "user_customer_links" :: "users" :: userId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (userCustomerLinks, callContext) <- UserCustomerLinkNewStyle.getUserCustomerLink(
+              userId,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory200.createUserCustomerLinkJSONs(userCustomerLinks), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
 
   }
 

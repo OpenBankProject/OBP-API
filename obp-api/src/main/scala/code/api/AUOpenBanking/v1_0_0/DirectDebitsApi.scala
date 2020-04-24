@@ -87,7 +87,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
        case "banking":: "accounts" :: accountId:: "direct-debits" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              } yield {
             (json.parse("""{
   "data" : {
@@ -190,7 +190,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
        case "banking":: "accounts":: "direct-debits" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              } yield {
             (json.parse("""{
   "data" : {
@@ -298,7 +298,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
        case "banking":: "accounts":: "direct-debits" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              } yield {
             (json.parse("""{
   "data" : {

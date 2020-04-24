@@ -149,7 +149,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       case "banks" :: BankId(bankId) :: "customer" :: customerId ::  "messages" :: Nil JsonPost json -> _ => {
         cc =>{
           for {
-            (Full(user), callContext) <- authorizedAccess(cc)
+            (Full(user), callContext) <- authenticatedAccess(cc)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AddCustomerMessageJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[AddCustomerMessageJson]
@@ -428,7 +428,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
           Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.isEnabledTransactionRequests()
             (bank, callContext ) <- NewStyle.function.getBank(bankId, callContext)
             (fromAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)

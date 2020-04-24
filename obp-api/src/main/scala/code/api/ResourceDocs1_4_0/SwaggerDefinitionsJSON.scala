@@ -16,7 +16,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, When}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, When}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
@@ -25,7 +25,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
-import com.openbankproject.commons.model.enums.CardAttributeType
+import com.openbankproject.commons.model.enums.{AttributeCategory, CardAttributeType}
 import com.openbankproject.commons.model.{UserAuthContextUpdateStatus, ViewBasic, _}
 import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, ReflectUtils, RequiredArgs, RequiredInfo}
 
@@ -1648,7 +1648,7 @@ object SwaggerDefinitionsJSON {
 
   val createEntitlementJSON = CreateEntitlementJSON(
     bank_id = bankIdExample.value,
-    role_name = "String"
+    role_name = CanCreateBranch.toString()
   )
 
   val coreCounterpartyJSON = CoreCounterpartyJSON(
@@ -1775,7 +1775,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val userCustomerLinksJson = UserCustomerLinksJson(
-    l = List(userCustomerLinkJson)
+    user_customer_links = List(userCustomerLinkJson)
   )
 
   val createUserCustomerLinkJson = CreateUserCustomerLinkJson(
@@ -2019,34 +2019,8 @@ object SwaggerDefinitionsJSON {
     branch_id = ExampleValue.branchIdExample.value,
     name_suffix = ExampleValue.nameSuffixExample.value
   )
-  
-  val customersJsonV300 = code.api.v3_0_0.CustomerJSONs(List(customerJsonV300))
-  
-  val customerWithAttributesJsonV300 = CustomerWithAttributesJsonV300(
-    bank_id = bankIdExample.value,
-    customer_id = ExampleValue.customerIdExample.value,
-    customer_number = ExampleValue.customerNumberExample.value,
-    legal_name = ExampleValue.legalNameExample.value,
-    mobile_phone_number = ExampleValue.mobileNumberExample.value,
-    email = ExampleValue.emailExample.value,
-    face_image = customerFaceImageJson,
-    date_of_birth = "19900101",
-    relationship_status = ExampleValue.relationshipStatusExample.value,
-    dependants = ExampleValue.dependentsExample.value.toInt,
-    dob_of_dependants = List("19900101"),
-    credit_rating = Option(customerCreditRatingJSON),
-    credit_limit = Option(amountOfMoneyJsonV121),
-    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
-    employment_status = ExampleValue.employmentStatusExample.value,
-    kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
-    last_ok_date = DateWithDayExampleObject,
-    title  = ExampleValue.titleExample.value,
-    branch_id = ExampleValue.branchIdExample.value,
-    name_suffix = ExampleValue.nameSuffixExample.value,
-    customer_attributes = List(customerAttributeResponseJson)
-  )
 
-  val customersWithAttributesJsonV300 = CustomersWithAttributesJsonV300(List(customerWithAttributesJsonV300))
+  val customersJsonV300 = code.api.v3_0_0.CustomerJSONsV300(List(customerJsonV300))
   
   val postCustomerJsonV310 =
     PostCustomerJsonV310(
@@ -2122,6 +2096,32 @@ object SwaggerDefinitionsJSON {
     name_suffix = ExampleValue.nameSuffixExample.value,
     customer_attributes = List(customerAttributeResponseJson)
   )
+
+  val customerWithAttributesJsonV300 = CustomerWithAttributesJsonV300(
+    bank_id = bankIdExample.value,
+    customer_id = ExampleValue.customerIdExample.value,
+    customer_number = ExampleValue.customerNumberExample.value,
+    legal_name = ExampleValue.legalNameExample.value,
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
+    email = ExampleValue.emailExample.value,
+    face_image = customerFaceImageJson,
+    date_of_birth = "19900101",
+    relationship_status = ExampleValue.relationshipStatusExample.value,
+    dependants = ExampleValue.dependentsExample.value.toInt,
+    dob_of_dependants = List("19900101"),
+    credit_rating = Option(customerCreditRatingJSON),
+    credit_limit = Option(amountOfMoneyJsonV121),
+    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+    employment_status = ExampleValue.employmentStatusExample.value,
+    kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
+    last_ok_date = DateWithDayExampleObject,
+    title  = ExampleValue.titleExample.value,
+    branch_id = ExampleValue.branchIdExample.value,
+    name_suffix = ExampleValue.nameSuffixExample.value,
+    customer_attributes = List(customerAttributeResponseJson)
+  )
+
+  val customersWithAttributesJsonV300 = CustomersWithAttributesJsonV300(List(customerWithAttributesJsonV300))
 
   val putUpdateCustomerDataJsonV310 = PutUpdateCustomerDataJsonV310(
     face_image = customerFaceImageJson,
@@ -3386,10 +3386,10 @@ object SwaggerDefinitionsJSON {
     networks = List("network1", "network2"),
     allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
     account_id =accountIdExample.value,
-    replacement = replacementJSON,
+    replacement = Some(replacementJSON),
     pin_reset = List(pinResetJSON, pinResetJSON1),
-    collected = DateWithDayExampleObject,
-    posted = DateWithDayExampleObject,
+    collected = Some(DateWithDayExampleObject),
+    posted = Some(DateWithDayExampleObject),
     customer_id = customerIdExample.value,
   )
 
@@ -3631,8 +3631,7 @@ object SwaggerDefinitionsJSON {
     product_code = accountTypeExample.value,
     balance =  amountOfMoneyJsonV121,
     branch_id  = branchIdExample.value,
-    account_routing = accountRoutingJsonV121,
-    account_attributes=  List(accountAttributeResponseJson)
+    account_routing = accountRoutingJsonV121
   )
   
   val postAccountAccessJsonV400 = PostAccountAccessJsonV400(userIdExample.value, PostViewJsonV400(ExampleValue.viewIdExample.value, true))
@@ -3670,11 +3669,79 @@ object SwaggerDefinitionsJSON {
     `type` = transactionAttributeTypeExample.value,
     value = transactionAttributeValueExample.value
   )
+  
+  val templateAttributeDefinitionJsonV400 = AttributeDefinitionJsonV400(
+    name = customerAttributeNameExample.value,
+    category = AttributeCategory.Customer.toString,
+    `type` = customerAttributeTypeExample.value,
+    description = "description",
+    can_be_seen_on_views = List("bank"),
+    alias = attributeAliasExample.value,
+    is_active = true
+  )  
+  val templateAttributeDefinitionResponseJsonV400 = AttributeDefinitionResponseJsonV400(
+    attribute_definition_id = uuidExample.value,
+    bank_id = bankIdExample.value,
+    name = templateAttributeNameExample.value,
+    category = AttributeCategory.Customer.toString,
+    `type` = templateAttributeTypeExample.value,
+    description = "description",
+    can_be_seen_on_views = List("bank"),
+    alias = attributeAliasExample.value,
+    is_active = true
+  ) 
+  
+  val customerAttributeDefinitionJsonV400 =
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Customer.toString)
+    
+  val customerAttributeDefinitionResponseJsonV400 =
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Customer.toString)
+  
+  val accountAttributeDefinitionJsonV400 =
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Account.toString)
+    
+  val accountAttributeDefinitionResponseJsonV400 =
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Account.toString)
+  
+  val productAttributeDefinitionJsonV400 =
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Product.toString)
+  
+  val productAttributeDefinitionResponseJsonV400 =
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Product.toString)
+  
+  val transactionAttributeDefinitionJsonV400 = 
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Transaction.toString)
+  
+  val transactionAttributeDefinitionResponseJsonV400 =
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Transaction.toString)
+  
+  val cardAttributeDefinitionJsonV400 = 
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Card.toString)
+  
+  val cardAttributeDefinitionResponseJsonV400 =
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Card.toString)
+    
+  val transactionAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(transactionAttributeDefinitionResponseJsonV400)
+  )    
+  val cardAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(cardAttributeDefinitionResponseJsonV400)
+  )    
+  val accountAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(accountAttributeDefinitionResponseJsonV400)
+  )    
+  val customerAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(templateAttributeDefinitionResponseJsonV400)
+  )    
+  val productAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(productAttributeDefinitionResponseJsonV400)
+  )
+  
   //The common error or success format.
   //Just some helper format to use in Json 
-  case class NoSupportYet()
+  case class NotSupportedYet()
   
-  val noSupportYet = NoSupportYet()
+  val notSupportedYet = NotSupportedYet()
 
   lazy val allFields: Seq[AnyRef] ={
     val allFieldsThisFile = ReflectUtils.getValues(this, List(nameOf(allFields)))

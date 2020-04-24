@@ -36,6 +36,7 @@ object RemotedataActors extends MdcLoggable {
       ActorProps[RemotedataTransactionImagesActor]    -> RemotedataTransactionImages.actorName,
       ActorProps[RemotedataNarrativesActor]           -> RemotedataNarratives.actorName,
       ActorProps[RemotedataCustomersActor]            -> RemotedataCustomers.actorName,
+      ActorProps[RemotedataCustomerDependantsActor]   -> RemotedataCustomerDependants.actorName,
       ActorProps[RemotedataUserCustomerLinksActor]    -> RemotedataUserCustomerLinks.actorName,
       ActorProps[RemotedataConsumersActor]            -> RemotedataConsumers.actorName,
       ActorProps[RemotedataTransactionRequestsActor]  -> RemotedataTransactionRequests.actorName,
@@ -60,7 +61,8 @@ object RemotedataActors extends MdcLoggable {
       ActorProps[RemotedataProductCollectionActor]    -> RemotedataProductCollection.actorName,
       ActorProps[RemotedataCustomerAttributeActor]    -> RemotedataCustomerAttribute.actorName,
       ActorProps[RemotedataTransactionAttributeActor] -> RemotedataTransactionAttribute.actorName,
-      ActorProps[RemotedataRateLimitingActor]        -> RemotedataRateLimiting.actorName
+      ActorProps[RemotedataRateLimitingActor]        -> RemotedataRateLimiting.actorName,
+      ActorProps[RemotedataAttributeDefinitionActor]        -> RemotedataAttributeDefinition.actorName
     )
 
     actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(a._1, name = a._2)) }

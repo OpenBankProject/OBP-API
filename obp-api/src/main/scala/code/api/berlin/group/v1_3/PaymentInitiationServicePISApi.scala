@@ -102,7 +102,7 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
        case payment_service :: payment_product :: paymentId :: Nil JsonDelete _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "challengeData" : {
@@ -151,7 +151,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: cancellationId :: Nil JsonGet _ => {
          cc =>
            for {
-             (_, callContext) <- authorizedAccess(cc)
+             (_, callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
@@ -204,7 +204,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        case paymentService :: paymentProduct :: paymentId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
@@ -264,7 +264,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
-             (_, callContext) <- authorizedAccess(cc)
+             (_, callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
@@ -305,7 +305,7 @@ Retrieve a list of all created cancellation authorisation sub-resources.
        case paymentService :: paymentProduct :: paymentId :: "cancellation-authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
-             (_, callContext) <- authorizedAccess(cc)
+             (_, callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
@@ -346,7 +346,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        case paymentService :: paymentProduct :: paymentId:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
@@ -393,7 +393,7 @@ Check the transaction status of a payment initiation.""",
        case paymentService :: paymentProduct :: paymentId:: "status" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
@@ -544,7 +544,7 @@ $additionalInstructions
        case paymentService :: paymentProduct :: Nil JsonPost json -> _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
@@ -680,7 +680,7 @@ This applies in the following scenarios:
     case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _  => {
       cc =>
         for {
-          (_, callContext) <- authorizedAccess(cc)
+          (_, callContext) <- authenticatedAccess(cc)
           _ <- passesPsd2Pisp(callContext)
           _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
             PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
@@ -765,7 +765,7 @@ This applies in the following scenarios:
        case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (_, callContext) <- authorizedAccess(cc)
+             (_, callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
@@ -862,7 +862,7 @@ There are the following request types on this access path:
        case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: cancellationId :: Nil JsonPut json -> _ => {
          cc =>
            for {
-             (_, callContext) <- authorizedAccess(cc)
+             (_, callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
              failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
              updatePaymentPsuDataJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -962,7 +962,7 @@ There are the following request types on this access path:
        case paymentService :: paymentProduct :: paymentId:: "authorisations" :: authorisationid :: Nil JsonPut json -> _ =>  {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
              failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
              updatePaymentPsuDataJson <- NewStyle.function.tryons(failMsg, 400, callContext) {

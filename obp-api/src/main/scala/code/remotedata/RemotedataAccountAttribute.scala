@@ -43,4 +43,7 @@ object RemotedataAccountAttribute extends ObpActorInit with AccountAttributeProv
 
   override def deleteAccountAttribute(accountAttributeId: String): Future[Box[Boolean]] = 
     (actor ? cc.deleteAccountAttribute(accountAttributeId)).mapTo[Box[Boolean]]
+
+  override def getAccountIdsByParams(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]] =
+    (actor ? cc.getAccountIdsByParams(bankId, params)).mapTo[Box[List[String]]]
 }

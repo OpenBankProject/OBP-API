@@ -84,7 +84,7 @@ object APIMethods_CommonApi extends RestHelper {
        case "common":: "customer" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              } yield {
             (json.parse("""{
   "data" : {
@@ -156,7 +156,7 @@ object APIMethods_CommonApi extends RestHelper {
        case "common":: "customer":: "detail" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              } yield {
             (json.parse("""{
   "data" : {
@@ -213,7 +213,7 @@ object APIMethods_CommonApi extends RestHelper {
        case "discovery":: "outages" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              } yield {
             (json.parse("""{
   "data" : {
@@ -272,7 +272,7 @@ object APIMethods_CommonApi extends RestHelper {
        case "discovery":: "status" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              } yield {
             (json.parse("""{
   "data" : {

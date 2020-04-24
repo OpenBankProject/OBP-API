@@ -401,7 +401,7 @@ trait APIMethods210 {
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.isEnabledTransactionRequests()
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {isValidID(accountId.value)}
             _ <- Helper.booleanToFuture(InvalidBankIdFormat) {isValidID(bankId.value)}
@@ -594,7 +594,7 @@ trait APIMethods210 {
         UserNoPermissionAccessView,
         TransactionRequestStatusNotInitiated,
         TransactionRequestTypeHasChanged,
-        InvalidTransactionRequesChallengeId,
+        InvalidTransactionRequestChallengeId,
         AllowedAttemptsUsedUp,
         TransactionDisabled,
         UnknownError
@@ -608,7 +608,7 @@ trait APIMethods210 {
         cc =>
             for {
               // Check we have a User
-              (Full(u), callContext) <- authorizedAccess(cc)
+              (Full(u), callContext) <- authenticatedAccess(cc)
               _ <- NewStyle.function.isEnabledTransactionRequests()
               _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {isValidID(accountId.value)}
               _ <- Helper.booleanToFuture(InvalidBankIdFormat) {isValidID(bankId.value)}
@@ -638,7 +638,7 @@ trait APIMethods210 {
               }
               
               // Check the challengeId is valid for this existingTransactionRequest
-              _ <- Helper.booleanToFuture(s"${InvalidTransactionRequesChallengeId}") {
+              _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
                 existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
               }
               
@@ -764,7 +764,7 @@ trait APIMethods210 {
       case "roles" :: Nil JsonGet _ => {
         cc =>
           for {
-            _ <- authorizedAccess(cc)
+            _ <- authenticatedAccess(cc)
           }
           yield {
             // Format the data as V2.1.0 json
@@ -821,7 +821,7 @@ trait APIMethods210 {
             // Format the data as V2.1.0 json
             if (isSuperAdmin(userId)) {
               // If the user is SuperAdmin add it to the list
-              json = EntitlementJSONs(JSONFactory200.createEntitlementJSONs(filteredEntitlements).list:::List(EntitlementJSON("", "SuperAdmin", "")))
+              json = JSONFactory200.addedSuperAdminEntitlementJson(filteredEntitlements)
               successJsonResponse(Extraction.decompose(json))
             } else {
               json = JSONFactory200.createEntitlementJSONs(filteredEntitlements)
@@ -982,7 +982,7 @@ trait APIMethods210 {
       case "banks" :: BankId(bankId) :: "cards" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canCreateCardsForBank, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostPhysicalCardJSON "
             postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -1062,7 +1062,7 @@ trait APIMethods210 {
       case "users" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
@@ -1481,7 +1481,7 @@ trait APIMethods210 {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonGet _ => {
         cc => {
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (customers, callContext) <- Connector.connector.vend.getCustomersByUserId(u.userId, callContext) map {
               connectorEmptyResponse(_, callContext)

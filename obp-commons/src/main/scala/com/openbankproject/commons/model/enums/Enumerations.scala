@@ -1,11 +1,11 @@
 package com.openbankproject.commons.model.enums
 
-import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
-import net.liftweb.json.{JArray, JBool, JDouble, JInt, JObject, JValue}
-import net.liftweb.json.JsonAST.JString
+import java.time.format.DateTimeFormatter
 
-import scala.reflect.ClassTag
-import scala.reflect.runtime.universe._
+import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
+import net.liftweb.common.Box
+import net.liftweb.json.JsonAST.JString
+import net.liftweb.json.{JBool, JDouble, JInt, JValue}
 
 sealed trait AccountAttributeType extends EnumValue
 object AccountAttributeType extends OBPEnumeration[AccountAttributeType]{
@@ -70,12 +70,28 @@ object PemCertificateRole extends OBPEnumeration[PemCertificateRole] {
 sealed trait DynamicEntityFieldType extends EnumValue {
   val jValueType: Class[_]
   def isJValueValid(jValue: JValue): Boolean = jValueType.isInstance(jValue)
+  def wrongTypeMsg = s"the value's type should be $this."
 }
 object DynamicEntityFieldType extends OBPEnumeration[DynamicEntityFieldType]{
  object string  extends Value{val jValueType = classOf[JString]}
  object number  extends Value{val jValueType = classOf[JDouble]}
  object integer extends Value{val jValueType = classOf[JInt]}
  object boolean extends Value{val jValueType = classOf[JBool]}
+
+ object DATE_WITH_DAY extends Value {
+   val jValueType = classOf[JString]
+   val dateFormat = "yyyy-MM-dd"
+   override def isJValueValid(jValue: JValue): Boolean = {
+     super.isJValueValid(jValue) && {
+       val value = jValue.asInstanceOf[JString].s
+       Box.tryo{
+         DateTimeFormatter.ofPattern(dateFormat).parse(value)
+       }.isDefined
+     }
+   }
+
+   override def wrongTypeMsg: String = s"the value's type should be $this, format is $dateFormat."
+ }
  //object array extends Value{val jValueType = classOf[JArray]}
  //object `object` extends Value{val jValueType = classOf[JObject]} //TODO in the future, we consider support nested type
 }
@@ -97,4 +113,22 @@ sealed trait LanguageParam extends EnumValue
 object LanguageParam extends OBPEnumeration[LanguageParam] {
   object EN extends Value
   object ZH extends Value
+}
+
+
+sealed trait AttributeType extends EnumValue
+object AttributeType extends OBPEnumeration[AttributeType]{
+  object STRING extends Value
+  object INTEGER extends Value
+  object DOUBLE extends Value
+  object DATE_WITH_DAY extends Value
+}
+
+sealed trait AttributeCategory extends EnumValue
+object AttributeCategory extends OBPEnumeration[AttributeCategory]{
+  object Customer extends Value
+  object Product extends Value
+  object Account extends Value
+  object Transaction extends Value
+  object Card extends Value
 }

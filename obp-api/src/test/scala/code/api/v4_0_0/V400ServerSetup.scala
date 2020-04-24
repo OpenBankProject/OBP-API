@@ -163,8 +163,8 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     createCustomer(consumerAndToken).customer_id
   }
   
-  def createAndGetCustomerAtrributeId (bankId:String, customerId:String, consumerAndToken: Option[(Consumer, Token)]) = {
-    lazy val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
+  def createAndGetCustomerAtrributeId (bankId:String, customerId:String, consumerAndToken: Option[(Consumer, Token)], postCustomerAttributeJson: Option[CustomerAttributeJsonV400] = None) = {
+    lazy val postCustomerAttributeJsonV400 = postCustomerAttributeJson.getOrElse(SwaggerDefinitionsJSON.customerAttributeJsonV400)
     val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attribute").POST <@ (user1)
     Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canCreateCustomerAttributeAtOneBank.toString)
     val responseWithRole = makePostRequest(request400, write(postCustomerAttributeJsonV400))

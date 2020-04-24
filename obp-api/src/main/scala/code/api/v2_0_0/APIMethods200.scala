@@ -258,8 +258,6 @@ trait APIMethods200 {
         |For each account the API returns the account ID and the views available to the user..
         |Each account must have at least one private View.
         |
-        |${accountTypeFilterText("/banks/BANK_ID/accounts")}
-        |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
       emptyObjectJson,
@@ -278,7 +276,7 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
         cc =>
           for{
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
           } yield {
             val (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
@@ -326,7 +324,7 @@ trait APIMethods200 {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" ::  Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
 
           } yield {
@@ -340,7 +338,7 @@ trait APIMethods200 {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
           } yield {
             val (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
@@ -353,7 +351,7 @@ trait APIMethods200 {
       case "bank" :: "accounts" :: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
           } yield {
             val (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, BankId(defaultBankId))
@@ -395,7 +393,7 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
           } yield {
             val (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
@@ -468,7 +466,7 @@ trait APIMethods200 {
       case "customers" :: customerId :: "kyc_documents" :: Nil JsonGet _ => {
         cc => {
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyKycDocuments, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (kycDocuments, callContxt) <- NewStyle.function.getKycDocuments(customerId, callContext)
@@ -502,7 +500,7 @@ trait APIMethods200 {
       case "customers" :: customerId :: "kyc_media" :: Nil JsonGet _ => {
         cc => {
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyKycMedia, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (kycMedias, callContxt) <- NewStyle.function.getKycMedias(customerId, callContext)
@@ -536,7 +534,7 @@ trait APIMethods200 {
       case "customers" :: customerId :: "kyc_checks" :: Nil JsonGet _ => {
         cc => {
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyKycChecks, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (kycChecks, callContxt) <- NewStyle.function.getKycChecks(customerId, callContext)
@@ -569,7 +567,7 @@ trait APIMethods200 {
       case "customers" :: customerId :: "kyc_statuses" :: Nil JsonGet _ => {
         cc => {
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyKycStatuses, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (kycStatuses, callContxt) <- NewStyle.function.getKycStatuses(customerId, callContext)
@@ -641,7 +639,7 @@ trait APIMethods200 {
         // customerNumber is duplicated in postedData. remove from that?
         cc => {
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canAddKycDocument, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
@@ -691,7 +689,7 @@ trait APIMethods200 {
         // customerNumber is in url and duplicated in postedData. remove from that?
         cc => {
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canAddKycMedia, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
@@ -741,7 +739,7 @@ trait APIMethods200 {
         // customerNumber is in url and duplicated in postedData. remove from that?
         cc => {
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canAddKycCheck, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
@@ -792,7 +790,7 @@ trait APIMethods200 {
         // customerNumber is in url and duplicated in postedData. remove from that?
         cc => {
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canAddKycStatus, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
@@ -1367,7 +1365,7 @@ trait APIMethods200 {
         InvalidJsonFormat,
         InvalidTransactionRequestId,
         TransactionRequestTypeHasChanged,
-        InvalidTransactionRequesChallengeId,
+        InvalidTransactionRequestChallengeId,
         TransactionRequestStatusNotInitiated,
         TransactionDisabled,
         UnknownError
@@ -1401,7 +1399,7 @@ trait APIMethods200 {
               _ <- booleanToBox(existingTransactionRequestType.equals(transactionRequestType.value),s"${ErrorMessages.TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType' ")
 
               //check the challenge id is same as when the user create the existingTransactionRequest
-              _ <- booleanToBox(existingTransactionRequest.challenge.id.equals(answerJson.id),{ErrorMessages.InvalidTransactionRequesChallengeId})
+              _ <- booleanToBox(existingTransactionRequest.challenge.id.equals(answerJson.id),{ErrorMessages.InvalidTransactionRequestChallengeId})
 
               //check the challenge statue whether is initiated, only retreive INITIATED transaction requests.
               _ <- booleanToBox(existingTransactionRequest.status.equals("INITIATED"),ErrorMessages.TransactionRequestStatusNotInitiated)
@@ -2000,7 +1998,9 @@ trait APIMethods200 {
             allowedEntitlements = canCreateEntitlementAtOneBank ::
                                   canCreateEntitlementAtAnyBank ::
                                   Nil
-            _ <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~! { UserNotSuperAdminOrMissRole + allowedEntitlements.mkString(", ") + "!" }
+            _ <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~! {
+              UserNotSuperAdmin +" or" + UserHasMissingRoles + canCreateEntitlementAtOneBank + s" BankId(${postedData.bank_id})." + " or" + UserHasMissingRoles + canCreateEntitlementAtAnyBank
+            }
             _ <- booleanToBox(postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), Some(cc)).map(_._1).isEmpty == false) ?~! BankNotFound
             _ <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, EntitlementAlreadyExists )
             addedEntitlement <- Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
@@ -2045,7 +2045,7 @@ trait APIMethods200 {
               // Format the data as V2.0.0 json
               if (isSuperAdmin(userId)) {
                 // If the user is SuperAdmin add it to the list
-                json = EntitlementJSONs(JSONFactory200.createEntitlementJSONs(entitlements).list:::List(EntitlementJSON("", "SuperAdmin", "")))
+                json = addedSuperAdminEntitlementJson(entitlements)
                 successJsonResponse(Extraction.decompose(json))
               } else {
                 json = JSONFactory200.createEntitlementJSONs(entitlements)
@@ -2072,7 +2072,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      List(UserNotLoggedIn, UserNotSuperAdmin, EntitlementNotFound, UnknownError),
+      List(UserNotLoggedIn, UserHasMissingRoles, EntitlementNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagUser, apiTagEntitlement))
 
@@ -2082,7 +2082,7 @@ trait APIMethods200 {
         cc =>
             for {
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
-              _ <- booleanToBox(isSuperAdmin(u.userId)) ?~ UserNotSuperAdmin
+              _ <- booleanToBox(hasEntitlement("", u.userId, canDeleteEntitlementAtAnyBank), UserHasMissingRoles + CanDeleteEntitlementAtAnyBank)
               entitlement <- tryo{Entitlement.entitlement.vend.getEntitlementById(entitlementId)} ?~ EntitlementNotFound
               _ <- entitlement.filter(_.userId == userId) ?~ UserDoesNotHaveEntitlement
               _ <- Entitlement.entitlement.vend.deleteEntitlement(entitlement)
@@ -2116,9 +2116,9 @@ trait APIMethods200 {
       case "entitlements" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
-              isSuperAdmin(u.userId)
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Helper.booleanToFuture(failMsg =  UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank) {
+              hasEntitlement("", u.userId, canGetEntitlementsForAnyUserAtAnyBank)
             }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsFuture() map {
               connectorEmptyResponse(_, callContext)

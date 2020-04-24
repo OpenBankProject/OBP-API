@@ -267,8 +267,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     )
     if(newStyleEndpoints(rd)) {
       fn(cc)
-    } else if (APIUtil.hasConsentId(reqHeaders)) {
-      val (usr, callContext) =  Consent.applyRulesOldStyle(APIUtil.getConsentId(reqHeaders), cc)
+    } else if (APIUtil.hasConsentJWT(reqHeaders)) {
+      val (usr, callContext) =  Consent.applyRulesOldStyle(APIUtil.getConsentJWT(reqHeaders), cc)
       usr match {
         case Full(u) => fn(callContext.copy(user = Full(u))) // Authentication is successful
         case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
@@ -484,12 +484,12 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                                autoValidateAll: Boolean = false): Unit = {
     routes.foreach(route => {
       val maybeResourceDoc = findResourceDoc(route, allResourceDocs)
-      val isAutoValidate = maybeResourceDoc.map{ doc =>
+      val isAutoValidate = maybeResourceDoc.map { doc =>
         doc.isValidateEnabled || (autoValidateAll && !doc.isValidateDisabled && doc.implementedInApiVersion == version)
       }.getOrElse(false)
 
       // if rd contains ResourceDoc, when autoValidateAll or doc isAutoValidate, just wrapped to auth check endpoint
-      val authCheckRoute = (maybeResourceDoc, isAutoValidate) match {
+      val authCheckRoute: OBPEndpoint = (maybeResourceDoc, isAutoValidate) match {
         case (Some(doc), true) => doc.wrappedWithAuthCheck(route)
         case _ => route
       }

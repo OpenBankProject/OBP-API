@@ -59,7 +59,7 @@ import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import code.views.Views
-import com.github.dwickern.macros.NameOf.nameOf
+import com.github.dwickern.macros.NameOf.{nameOf, nameOfType}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{Customer, _}
@@ -81,7 +81,7 @@ import scala.collection.JavaConverters._
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.util.{ApiVersion, ReflectUtils, ScannedApiVersion}
+import com.openbankproject.commons.util.{ApiVersion, Functions, JsonAble, ReflectUtils, ScannedApiVersion}
 import com.openbankproject.commons.util.Functions.Implicits._
 import org.apache.commons.lang3.StringUtils
 
@@ -169,13 +169,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /**
-    * Purpose of this helper function is to get the Consent-Id value from a Request Headers.
-    * @return the Consent-Id value from a Request Header as a String
+    * Purpose of this helper function is to get the Consent-JWT value from a Request Headers.
+    * @return the Consent-JWT value from a Request Header as a String
     */
-  def getConsentId(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
+  def getConsentJWT(requestHeaders: List[HTTPParam]): Option[String] = {
+    requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-JWT`).toList match {
       case x :: Nil => Some(x.values.mkString(", "))
-      case _ => None
+      case _ => requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
+        case x :: Nil => Some(x.values.mkString(", "))
+        case _ => None
+      }
     }
   }
   /**
@@ -188,8 +191,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ => None
     }
   }
-  def hasConsentId(requestHeaders: List[HTTPParam]): Boolean = {
-    getConsentId(requestHeaders).isDefined
+  def hasConsentJWT(requestHeaders: List[HTTPParam]): Boolean = {
+    getConsentJWT(requestHeaders).isDefined
   }
 
   def registeredApplication(consumerKey: String): Boolean = {
@@ -453,8 +456,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def errorJsonResponse(message : String = "error", httpCode : Int = 400)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
+    val forbidden = message.contains(UserHasMissingRoles) || 
+      message.contains(UserNoPermissionAccessView) || 
+      message.contains(UserHasMissingRoles) ||
+      message.contains(UserNotSuperAdminOrMissRole) ||
+      message.contains(ConsumerHasMissingRoles)
     val code =
-      message.contains(UserHasMissingRoles) match {
+      forbidden match {
         case true =>
           403
         case _ =>
@@ -1077,6 +1085,59 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // So create the EmptyClassJson to set the empty JValue "{}"
   case class EmptyClassJson(jsonString: String ="{}")
 
+  sealed abstract class PrimaryDataBody[T] extends JsonAble {
+    def value: T
+
+    def swaggerDataTypeName: String = this.asInstanceOf[PrimaryDataBody[_]] match {
+      case _: StringBody => "string"
+      case _: BooleanBody => "boolean"
+      case _: IntBody | _: LongBody | _: BigIntBody => "integer"
+      case _: FloatBody | _: DoubleBody | _: BigDecimalBody => "number"
+      case _: JArrayBody => "array"
+      case EmptyBody => throw new IllegalArgumentException(s"$EmptyBody have no type name.")
+    }
+
+    override def toJValue: json.JValue = {
+      this.asInstanceOf[PrimaryDataBody[_]] match {
+          case EmptyBody => JNothing
+          case StringBody(v) => JString(v)
+          case BooleanBody(v) => JBool(v)
+          case IntBody(v) => JInt(v)
+          case LongBody(v) => JInt(v)
+          case BigIntBody(v) => JInt(v)
+          case FloatBody(v) => JDouble(v)
+          case DoubleBody(v) => JDouble(v)
+          case BigDecimalBody(v) => JDouble(v.doubleValue())
+          case JArrayBody(v) => v
+          case _ => throw new RuntimeException(s"$value is not supported, please add a case for it.")
+        }
+    }
+  }
+
+  case object EmptyBody extends PrimaryDataBody[Any] {
+     val value = null
+
+    /**
+     * @return "EmptyBody"
+     */
+    override def toString: String = nameOfType[APIUtil.EmptyBody.type]
+  }
+
+  case class StringBody(value: String) extends PrimaryDataBody[String]
+  case class BooleanBody(value: Boolean) extends PrimaryDataBody[Boolean]
+  case class IntBody(value: Int) extends PrimaryDataBody[Int]
+  case class LongBody(value: Long) extends PrimaryDataBody[Long]
+  case class DoubleBody(value: Double) extends PrimaryDataBody[Double]
+  case class FloatBody(value: Float) extends PrimaryDataBody[Float]
+  case class BigDecimalBody(value: BigDecimal) extends PrimaryDataBody[BigDecimal]
+  case class BigIntBody(value: BigInt) extends PrimaryDataBody[BigInt]
+  case class JArrayBody(value: JArray) extends PrimaryDataBody[JArray]
+
+  /**
+   * Any dynamic endpoint'ResourceDoc, it's partialFunction should set this stub endpoint.
+   */
+  val dynamicEndpointStub: OBPEndpoint = Functions.doNothing
+
   // Used to document the API calls
   case class ResourceDoc(
                           partialFunction: OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
@@ -1086,8 +1147,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           requestUrl: String, // The URL. THIS GETS MODIFIED TO include the implemented in prefix e.g. /obp/vX.X). Starts with / No trailing slash.
                           summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
                           var description: String, // Longer description (originally taken from github wiki)
-                          exampleRequestBody: scala.Product, // An example of the body required (maybe empty)
-                          successResponseBody: scala.Product, // A successful response body
+                          exampleRequestBody: scala.Product, // An example of the request body, any type of: case class, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
+                          successResponseBody: scala.Product, // A successful response body, any type of: case class, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
                           var errorResponseBodies: List[String], // Possible error responses
                           catalogs: Catalogs,
                           tags: List[ResourceDocTag],
@@ -1233,7 +1294,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
 
       def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] =
-        if (errorResponseBodies.contains($UserNotLoggedIn)) authorizedAccess(cc) else anonymousAccess(cc)
+        if (errorResponseBodies.contains($UserNotLoggedIn)) authenticatedAccess(cc) else anonymousAccess(cc)
 
       def checkRoles(bankId: Option[BankId], user: Box[User]):Future[Box[Unit]] =
         if(_autoValidateRoles && rolesForCheck.nonEmpty) {
@@ -1287,21 +1348,36 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           val request: Box[Req] = S.request
           val session: Box[LiftSession] = S.session
 
+          /**
+            * Please note the order of validations:
+            * 1. authentication
+            * 2. check bankId
+            * 3. roles check
+            * 4. check accountId
+            * 5. view
+            * 
+            * A Bank MUST be checked before Roles.
+            * In opposite case we get next paradox:
+            * - We set non existing bank
+            * - We get error message that we don't have a proper role
+            * - We cannot assign the role to non existing bank
+            */
           cc: CallContext => {
             // if authentication check, do authorizedAccess, else do Rate Limit check
             for {
               (boxUser, callContext) <- checkAuth(cc)
 
+              // check bankId is valid
+              (bank, callContext) <- checkBank(bankId, callContext)
+
               // roles check
               _ <- checkRoles(bankId, boxUser)
-
-              // check bankId valid
-              (bank, callContext) <- checkBank(bankId, callContext)
-              // check accountId valid
+              
+              // check accountId is valid
               (account, callContext) <- checkAccount(bankId, accountId, callContext)
+
               // check user access permission of this viewId corresponding view
               view <- checkView(viewId, bankId, accountId, boxUser, callContext)
-
             } yield {
               val Some(newCallContext) = if(boxUser.isDefined) callContext.map(_.copy(user=boxUser)) else callContext
               //pass session and request to endpoint body
@@ -2222,8 +2298,8 @@ Returns a string showed to the developer
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
     val remoteIpAddress = getRemoteIpAddress()
     val res =
-    if (APIUtil.hasConsentId(reqHeaders)) {
-      Consent.applyRules(APIUtil.getConsentId(reqHeaders), cc) 
+    if (APIUtil.hasConsentJWT(reqHeaders)) {
+      Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc) 
     } else if (hasAnOAuthHeader(cc.authReqHeaderField)) {
       getUserFromOAuthHeaderFuture(cc)
     } else if (hasAnOAuth2Header(cc.authReqHeaderField)) {
@@ -2394,7 +2470,7 @@ Returns a string showed to the developer
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
-  def authorizedAccess(cc: CallContext, emptyUserErrorMsg: String = UserNotLoggedIn): OBPReturnType[Box[User]] = {
+  def authenticatedAccess(cc: CallContext, emptyUserErrorMsg: String = UserNotLoggedIn): OBPReturnType[Box[User]] = {
     anonymousAccess(cc) map {
       x => (fullBoxOrException(
         x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))),
@@ -2562,7 +2638,9 @@ Returns a string showed to the developer
     val sysEnvironmentPropertyName = sysEnvironmentPropertyNamePrefix.concat(brandSpecificPropertyName.replace('.', '_').toUpperCase())
     val sysEnvironmentPropertyValue: Box[String] = tryo{sys.env(sysEnvironmentPropertyName)}
     sysEnvironmentPropertyValue match {
-      case Full(_) => sysEnvironmentPropertyValue
+      case Full(_) =>
+        logger.debug("System environment property value found for: " + sysEnvironmentPropertyName)
+        sysEnvironmentPropertyValue
       case _  =>
         (Props.get(brandSpecificPropertyName), Props.get(brandSpecificPropertyName + ".is_encrypted"), Props.get(brandSpecificPropertyName + ".is_obfuscated") ) match {
           case (Full(base64PropsValue), Full(isEncrypted), Empty)  if isEncrypted == "true" =>

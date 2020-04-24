@@ -1,6 +1,7 @@
 package code.entitlement
 
 
+import code.api.v4_0_0.DynamicEntityInfo
 import code.util.{MappedUUID, UUIDString}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
@@ -89,6 +90,17 @@ object MappedEntitlementsProvider extends EntitlementProvider {
       yield {
         MappedEntitlement.delete_!(foundEntitlement)
       }
+  }
+
+  override def deleteDynamicEntityEntitlement(entityName: String): Box[Boolean] = {
+    val roleNames = DynamicEntityInfo.roleNames(entityName)
+    deleteEntitlements(roleNames)
+  }
+
+  override def deleteEntitlements(entityNames: List[String]) : Box[Boolean] = {
+    Box.tryo{
+      MappedEntitlement.bulkDelete_!!(ByList(MappedEntitlement.mRoleName, entityNames))
+    }
   }
 
   override def addEntitlement(bankId: String, userId: String, roleName: String): Box[Entitlement] = {

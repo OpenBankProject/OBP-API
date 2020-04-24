@@ -98,7 +98,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId) {
               u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
@@ -266,7 +266,7 @@ trait APIMethods220 {
         cc =>
           for {
             (_, callContext) <- getCurrentFxRateIsPublic match {
-              case false => authorizedAccess(cc)
+              case false => authenticatedAccess(cc)
               case true => anonymousAccess(cc)
             }
             _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanReadFx) {
@@ -314,7 +314,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u), callContext)
             _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty") {
@@ -365,7 +365,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u), callContext)
             _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty") {
@@ -763,7 +763,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
         cc =>{
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             failMsg = s"$InvalidJsonFormat The Json body should be the $CreateAccountJSONV220 "
             createAccountJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[CreateAccountJSONV220]
@@ -858,7 +858,7 @@ trait APIMethods220 {
       case "config" :: Nil JsonGet _ =>
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetConfig, callContext)
           } yield {
             (JSONFactory220.getConfigInfoJSON(), callContext)
@@ -1038,11 +1038,11 @@ trait APIMethods220 {
          |
          |is_beneficiary : must be set to `true` in order to send payments to this counterparty
          |
-         |bespoke: It support list of key-value, you can add it to the counterarty.
+         |bespoke: It supports a list of key-value, you can add it to the counterparty.
          |
-         |bespoke.key : any info-key you want to add to this counerparty
+         |bespoke.key : any info-key you want to add to this counterparty
          | 
-         |bespoke.value : any info-value you want to add to this counerparty
+         |bespoke.value : any info-value you want to add to this counterparty
          |
          |The view specified by VIEW_ID must have the canAddCounterparty permission
          |
@@ -1050,9 +1050,9 @@ trait APIMethods220 {
          | {
          |  "name": "Tesobe1",
          |  "description": "Good Company",
-         |  "other_bank_routing_scheme": "bankId",
+         |  "other_bank_routing_scheme": "OBP_BANK_ID",
          |  "other_bank_routing_address": "gh.29.uk",
-         |  "other_account_routing_scheme": "accountId",
+         |  "other_account_routing_scheme": "OBP_ACCOUNT_ID",
          |  "other_account_routing_address": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
          |  "is_beneficiary": true,
          |  "other_account_secondary_routing_scheme": "",
@@ -1068,9 +1068,9 @@ trait APIMethods220 {
          | {
          |  "name": "Tesobe2",
          |  "description": "Good Company",
-         |  "other_bank_routing_scheme": "bankId",
+         |  "other_bank_routing_scheme": "OBP_BANK_ID",
          |  "other_bank_routing_address": "gh.29.uk",
-         |  "other_account_routing_scheme": "accountId",
+         |  "other_account_routing_scheme": "OBP_ACCOUNT_ID",
          |  "other_account_routing_address": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
          |  "other_account_secondary_routing_scheme": "IBAN",
          |  "other_account_secondary_routing_address": "DE89 3704 0044 0532 0130 00",
@@ -1115,14 +1115,20 @@ trait APIMethods220 {
             _ <- tryo(assert(Counterparties.counterparties.vend.
               checkCounterpartyAvailable(postJson.name,bankId.value, accountId.value,viewId.value) == true)
             ) ?~! CounterpartyAlreadyExists
+            _ <- booleanToBox(postJson.description.length <= 36, s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}")
             
-            //If it is sandbox mode, the counterparty is a real obp bank account. the bank_id is `other_bank_routing_address` and account_id is `other_account_routing_address`.
-            //So we can check the existence of counterparty when we create it . 
-            _<- if (APIUtil.isSandboxMode){
+            //If other_account_routing_scheme=="OBP_ACCOUNT_ID" or other_account_secondary_routing_address=="OBP_ACCOUNT_ID" we will check if it is a real obp bank account.
+            _<- if (postJson.other_bank_routing_scheme == "OBP_BANK_ID" && postJson.other_account_routing_scheme =="OBP_ACCOUNT_ID"){
               for{
-                _ <- booleanToBox(postJson.description.length <= 36, s"$InvalidValueLength. The maxsinec length of `description` filed is ${MappedCounterparty.mDescription.maxLen}")
-                (bank, callContext) <- BankX(BankId(postJson.other_bank_routing_address), Some(cc)) ?~! s"$CounterpartyNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
-                account <- Connector.connector.vend.checkBankAccountExistsLegacy(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address),Some(cc)) ?~! s"$CounterpartyNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
+                (bank, callContext) <- BankX(BankId(postJson.other_bank_routing_address), Some(cc)) ?~! s"$BankNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
+                account <- Connector.connector.vend.checkBankAccountExistsLegacy(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address), callContext) ?~! s"$BankAccountNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
+              } yield {
+                account
+              }
+            } else if (postJson.other_bank_routing_scheme == "OBP_BANK_ID" && postJson.other_account_secondary_routing_scheme=="OBP_ACCOUNT_ID"){
+              for{
+                (bank, callContext) <- BankX(BankId(postJson.other_bank_routing_address), Some(cc)) ?~! s"$BankNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
+                account <- Connector.connector.vend.checkBankAccountExistsLegacy(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_secondary_routing_address), callContext) ?~! s"$BankAccountNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
               } yield {
                 account
               }

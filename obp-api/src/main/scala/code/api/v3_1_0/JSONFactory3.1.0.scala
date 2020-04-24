@@ -574,10 +574,10 @@ case class CreatePhysicalCardJsonV310(
   networks: List[String],
   allows: List[String],
   account_id: String,
-  replacement: ReplacementJSON,
+  replacement: Option[ReplacementJSON],
   pin_reset: List[PinResetJSON],
-  collected: Date,
-  posted: Date,
+  collected: Option[Date],
+  posted: Option[Date],
   customer_id: String)
 
 case class UpdatePhysicalCardJsonV310(
@@ -664,8 +664,7 @@ case class CreateAccountRequestJsonV310(
   product_code : String,
   balance : AmountOfMoneyJsonV121,
   branch_id : String,
-  account_routing: AccountRoutingJsonV121,
-  account_attributes: List[AccountAttributeResponseJson]
+  account_routing: AccountRoutingJsonV121
 )
 
 case class CreateAccountResponseJsonV310(

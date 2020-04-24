@@ -152,7 +152,7 @@ class DynamicEntityTest extends V400ServerSetup {
   feature("Add a DynamicEntity v4.0.4- Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "management" / "dynamic_entities").POST
+      val request400 = (v4_0_0_Request / "management" / "dynamic-entities").POST
       val response400 = makePostRequest(request400, write(rightEntity))
       Then("We should get a 400")
       response400.code should equal(400)
@@ -163,7 +163,7 @@ class DynamicEntityTest extends V400ServerSetup {
   feature("Update a DynamicEntity v4.0.4- Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "management" / "dynamic_entities"/ "some-method-routing-id").PUT
+      val request400 = (v4_0_0_Request / "management" / "dynamic-entities"/ "some-method-routing-id").PUT
       val response400 = makePutRequest(request400, write(rightEntity))
       Then("We should get a 400")
       response400.code should equal(400)
@@ -174,7 +174,7 @@ class DynamicEntityTest extends V400ServerSetup {
   feature("Get DynamicEntities v4.0.4- Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "management" / "dynamic_entities").GET
+      val request400 = (v4_0_0_Request / "management" / "dynamic-entities").GET
       val response400 = makeGetRequest(request400)
       Then("We should get a 400")
       response400.code should equal(400)
@@ -185,7 +185,7 @@ class DynamicEntityTest extends V400ServerSetup {
   feature("Delete the DynamicEntity specified by METHOD_ROUTING_ID v4.0.4- Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "management" / "dynamic_entities" / "METHOD_ROUTING_ID").DELETE
+      val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / "METHOD_ROUTING_ID").DELETE
       val response400 = makeDeleteRequest(request400)
       Then("We should get a 400")
       response400.code should equal(400)
@@ -198,7 +198,7 @@ class DynamicEntityTest extends V400ServerSetup {
   feature("Add a DynamicEntity v4.0.4- Unauthorized access - Authorized access") {
     scenario("We will call the endpoint without the proper Role " + canCreateDynamicEntity, ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0 without a Role " + canCreateDynamicEntity)
-      val request400 = (v4_0_0_Request / "management" / "dynamic_entities").POST <@(user1)
+      val request400 = (v4_0_0_Request / "management" / "dynamic-entities").POST <@(user1)
       val response400 = makePostRequest(request400, write(rightEntity))
       Then("We should get a 403")
       response400.code should equal(403)
@@ -209,7 +209,7 @@ class DynamicEntityTest extends V400ServerSetup {
     scenario("We will call the endpoint with the proper Role " + canCreateDynamicEntity , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateDynamicEntity.toString)
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "dynamic_entities").POST <@(user1)
+      val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@(user1)
       val response = makePostRequest(request, write(rightEntity))
       Then("We should get a 201")
       response.code should equal(201)
@@ -244,7 +244,7 @@ class DynamicEntityTest extends V400ServerSetup {
 
       {
         // update success
-        val request400 = (v4_0_0_Request / "management" / "dynamic_entities" / dynamicEntityId ).PUT <@(user1)
+        val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
         val response400 = makePutRequest(request400, compactRender(updateRequest))
         Then("We should get a 200")
         response400.code should equal(200)
@@ -254,7 +254,7 @@ class DynamicEntityTest extends V400ServerSetup {
 
       {
         // update a not exists DynamicEntity
-        val request404 = (v4_0_0_Request / "management" / "dynamic_entities" / "not-exists-id" ).PUT <@(user1)
+        val request404 = (v4_0_0_Request / "management" / "dynamic-entities" / "not-exists-id" ).PUT <@(user1)
         val response404 = makePutRequest(request404, compactRender(updateRequest))
         Then("We should get a 404")
         response404.code should equal(404)
@@ -263,37 +263,37 @@ class DynamicEntityTest extends V400ServerSetup {
 
       {
         // update a DynamicEntity with wrong required field name
-        val request400 = (v4_0_0_Request / "management" / "dynamic_entities" / dynamicEntityId ).PUT <@(user1)
+        val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
         val response400 = makePutRequest(request400, compactRender(wrongRequiredEntity))
         Then("We should get a 400")
 
         response400.code should equal(400)
-        response400.body.extract[ErrorMessage].message should startWith (InvalidJsonFormat)
+        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
       }
 
       {
         // update a DynamicEntity with wrong type of description
-        val request400 = (v4_0_0_Request / "management" / "dynamic_entities" / dynamicEntityId ).PUT <@(user1)
+        val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
         val response400 = makePutRequest(request400, compactRender(wrongDescriptionEntity))
         Then("We should get a 400")
 
         response400.code should equal(400)
-        response400.body.extract[ErrorMessage].message should startWith (InvalidJsonFormat)
+        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
       }
 
       {
         // update a DynamicEntity with wrong type of property description
-        val request400 = (v4_0_0_Request / "management" / "dynamic_entities" / dynamicEntityId ).PUT <@(user1)
+        val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
         val response400 = makePutRequest(request400, compactRender(wrongPropertyDescriptionEntity))
         Then("We should get a 400")
 
         response400.code should equal(400)
-        response400.body.extract[ErrorMessage].message should startWith (InvalidJsonFormat)
+        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
       }
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetDynamicEntities.toString)
       When("We make a request v4.0.0 with the Role " + canGetDynamicEntities)
-      val requestGet = (v4_0_0_Request / "management" / "dynamic_entities").GET <@(user1)
+      val requestGet = (v4_0_0_Request / "management" / "dynamic-entities").GET <@(user1)
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 200")
       responseGet.code should equal(200)
@@ -308,7 +308,7 @@ class DynamicEntityTest extends V400ServerSetup {
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteDynamicEntity.toString)
       When("We make a request v4.0.0 with the Role " + canDeleteDynamicEntity)
-      val requestDelete400 = (v4_0_0_Request / "management" / "dynamic_entities" / dynamicEntityId).DELETE <@(user1)
+      val requestDelete400 = (v4_0_0_Request / "management" / "dynamic-entities" / dynamicEntityId).DELETE <@(user1)
       val responseDelete400 = makeDeleteRequest(requestDelete400)
       Then("We should get a 200")
       responseDelete400.code should equal(200)

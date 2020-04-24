@@ -128,6 +128,21 @@ The current workaround is to move the project directory onto a different partiti
 
 The default database for testing etc is H2. PostgreSQL is used for the sandboxes (user accounts, metadata, transaction cache).
 
+### Notes on using H2 web console in Dev and Test mode:
+
+Set DB options in props file:
+
+    db.driver=org.h2.Driver
+    db.url=jdbc:h2:./obp_api.db;DB_CLOSE_ON_EXIT=FALSE
+    
+In order to start H2 web console go to http://127.0.0.1:8080/console and you will see a login screen.
+Please use next values:
+
+    Driver Class: org.h2.Driver
+    JDBC URL: jdbc:h2:./obp_api.db;AUTO_SERVER=FALSE
+    User Name:
+    Password:
+
 ### Notes on using Postgres with SSL:
 
 Postgres needs to be compiled with SSL support.
@@ -495,3 +510,25 @@ The same as `Frozen APIs`, if related unit test fail, make sure whether the modi
 * Advanced architecture: http://exploring.liftweb.net/master/index-9.html
 
 * A good book on Lift: "Lift in Action" by Timothy Perrett published by Manning.
+
+## Supported JDK Versions
+* OracleJDK: 1.8, 13
+* OpenJdk: 11
+
+## Endpoint Request and Response Example
+    ResourceDoc#exampleRequestBody and ResourceDoc#successResponseBody can be the follow type
+* Any Case class
+* JObject
+* Wrapper JArray: JArrayBody(jArray)
+* Wrapper String: StringBody("Hello")
+* Wrapper primary type: IntBody(1), BooleanBody(true), FloatBody(1.2F)...
+* Empty: EmptyBody
+
+example: 
+```
+resourceDocs += ResourceDoc(
+      exampleRequestBody= EmptyBody,
+      successResponseBody= BooleanBody(true),
+      ...
+)
+```

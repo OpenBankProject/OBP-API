@@ -279,7 +279,7 @@ object APIMethods_TransactionsApi extends RestHelper {
        case "accounts" :: accountid:: "statements" :: statementid:: "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -753,7 +753,7 @@ object APIMethods_TransactionsApi extends RestHelper {
        case "accounts" :: AccountId(accountId):: "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
             (bankAccount, callContext) <- Future { BankAccountX(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
@@ -1020,7 +1020,7 @@ object APIMethods_TransactionsApi extends RestHelper {
        case "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
 
              (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
 

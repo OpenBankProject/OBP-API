@@ -29,6 +29,10 @@ class RemotedataTransactionAttributeActor extends Actor with ObpActorHelper with
       logger.debug(s"getTransactionAttributeById(${transactionAttributeId})")
       mapper.getTransactionAttributeById(transactionAttributeId) pipeTo sender
 
+    case cc.getTransactionIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]) =>
+      logger.debug(s"getTransactionIdsByAttributeNameValues(${bankId}, ${params.toSeq.toString()})")
+      mapper.getTransactionIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]) pipeTo sender
+      
     case cc.createOrUpdateTransactionAttribute(bankId: BankId,
             transactionId: TransactionId,
             transactionAttributeId: Option[String],
@@ -41,7 +45,7 @@ class RemotedataTransactionAttributeActor extends Actor with ObpActorHelper with
         name,
         attributeType,
         value) pipeTo sender
-      //TODO 这里的 productArributes 是什么? 
+      
     case cc.createTransactionAttributes(bankId: BankId,
             transactionId: TransactionId,
             transactionAttributes: List[TransactionAttribute]) =>

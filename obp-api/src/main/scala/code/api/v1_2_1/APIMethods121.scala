@@ -2,6 +2,7 @@ package code.api.v1_2_1
 
 import java.net.URL
 import java.util.Random
+import java.security.SecureRandom
 import java.util.UUID.randomUUID
 
 import com.tesobe.CacheKeyFromArguments

@@ -485,9 +485,18 @@ apiOptions.getCurrentFxRateIsPublic = true
 defaultBank.bank_id=THE_DEFAULT_BANK_ID
 
 
-## Super Admin Users (not database so we don't have to edit database)
-super_admin_user_ids=USER_ID1,USER_ID2,
 
+################################################################################
+## Super Admin Users are used to boot strap User Entitlements (access to Roles).
+## Super Admins are receive **ONLY TWO** implicit entitlements which are:
+## CanCreateEntitlementAtAnyBank
+## and
+## CanCreateEntitlementAtOneBank
+## THUS, probably the first thing a Super Admin will do is to grant themselves or other users a number of Roles
+## For instance, a Super Admin *CANNOT delete an entitlement* unless they grant themselves CanDeleteEntitlementAtAnyBank or CanDeleteEntitlementAtOneBank
+## List the Users here, with their user_id(s), that should be Super Admins
+super_admin_user_ids=USER_ID1,USER_ID2,
+################################################################################
 
 
 ######## Enable / Disable Versions and individual endpoints. ########
@@ -727,7 +736,8 @@ database_messages_scheduler_interval=3600
 # Possible values: dummy,email,sms
 # -----------------------------------------------------------------------
 
-# convert Bank_Plan_Text_Reference to OBP-UUID switch. Note: this is in process only for RestConnector now.
+# Convert the Bank's plain text reference(s) to OBP UUIDs and visa versa. Note: this is currently only for the Rest Connector.
+# Also known as ID Translation. We convert human readable Ids (e.g. Account Number) <---> UUIDs (e.g. OBP account_id)
 #implicitly_convert_ids = false
 
 # Enable /Disable Create password reset url endpoint
@@ -762,3 +772,23 @@ stored_procedure_connector.poolMaxSize=7
 stored_procedure_connector.poolConnectionTimeoutMillis=1000
 stored_procedure_connector.poolValidationQuery=select 1 as one
 stored_procedure_connector.poolFactoryName=commons-dbcp2
+
+# -----------------------------------------------------------------------
+# Set whether DynamicEntity display name starts with underscore, default is true
+dynamic_entities_have_prefix=true
+
+# Url prefix of dynamic endpoints, default is dynamic. e.g if set to foobar, one url can be /obp/v4.0.0/foobar/Address
+dynamic_endpoints_url_prefix=dynamic
+
+# --- Locking a user due to consecutively failed login attempts ------
+# Defines consecutively failed login attempts before a user is locked 
+# In case is not defined default value is 5
+# max.bad.login.attempts=5
+# --------------------------------------------------------------------
+
+# --- Cookies --------------------------------------------------------------
+# Defines use of the cookie consent kit
+# In case is not defined default value is false
+# display_accept_cookies_question = false
+# More info at page https://wikis.ec.europa.eu/display/WEBGUIDE/04.+Cookies
+# --------------------------------------------------------------------------

@@ -9,6 +9,7 @@ import com.openbankproject.commons.model.{BankId, TransactionAttribute, Transact
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
+import scala.collection.immutable.List
 import scala.concurrent.Future
 
 object TransactionAttributeX extends SimpleInjector {
@@ -43,6 +44,8 @@ trait TransactionAttributeProvider {
 
   def getTransactionAttributeById(transactionAttributeId: String): Future[Box[TransactionAttribute]]
 
+  def getTransactionIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]]
+  
   def createOrUpdateTransactionAttribute(bankId: BankId,
                                      transactionId: TransactionId,
                                      transactionAttributeId: Option[String],
@@ -64,6 +67,8 @@ class RemotedataTransactionAttributeCaseClasses {
                                            transactionId: TransactionId)
 
   case class getTransactionAttributeById(transactionAttributeId: String)
+  
+  case class getTransactionIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]])
 
   case class createOrUpdateTransactionAttribute(bankId: BankId,
                                             transactionId: TransactionId,

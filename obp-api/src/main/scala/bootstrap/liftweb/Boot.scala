@@ -29,7 +29,9 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.{Locale, TimeZone}
 
+import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
+import code.DynamicEndpoint.DynamicEndpoint
 import code.accountapplication.MappedAccountApplication
 import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
@@ -38,6 +40,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs400}
 import code.api.ResourceDocs1_4_0._
 import code.api._
+import code.api.attributedefinition.AttributeDefinition
 import code.api.builder.APIBuilder_Connector
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
@@ -236,6 +239,10 @@ class Boot extends MdcLoggable {
        }
      }
     }
+
+    import java.security.SecureRandom
+    val rand = new SecureRandom(SecureRandom.getSeed(20))
+    rand
     
     
     // ensure our relational database's tables are created/fit the schema
@@ -274,7 +281,15 @@ class Boot extends MdcLoggable {
     LiftRules.addToPackages("code")
 
     
-
+    // H2 web console
+    // Help accessing H2 from outside Lift, and be able to run any queries against it.
+    // It's enabled only in Dev and Test mode
+    if (Props.devMode || Props.testMode) {
+      LiftRules.liftRequest.append({case r if (r.path.partPath match {
+        case "console" :: _ => true
+        case _ => false}
+        ) => false})
+    }
 
     /**
       * Function that determines if foreign key constraints are
@@ -664,7 +679,9 @@ object ToSchemify {
     MappedCustomerAttribute,
     MappedTransactionAttribute,
     MappedCardAttribute,
-    RateLimiting
+    RateLimiting,
+    MappedCustomerDependant,
+    AttributeDefinition
   )
 
   // The following tables are accessed directly via Mapper / JDBC
@@ -704,6 +721,7 @@ object ToSchemify {
     Authorisation,
     DynamicEntity,
     DynamicData,
+    DynamicEndpoint,
     AccountIdMapping,
     DirectDebit,
     StandingOrder
