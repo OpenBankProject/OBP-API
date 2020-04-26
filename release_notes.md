@@ -3,6 +3,12 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+26/04/2020    9b40921c      Added props: use_custom_webapp. default is false. If we set true, we will support the custom obp-api home page
+                            all the files of `resources/custom_webapp` will copy to `webapp` folder when obp-api starts.  
+                            Added props: webui_signup_form_title_text. this will override the singup page title content. 
+                            Added props: webui_signup_body_password_repeat_text. this will overrid the sinup page password text field.
+                            Added props: webui_agree_terms_html. this will override all the agree terms content. 
+                            Added props: webui_login_button_text. this will overrid the login button content.
 20/02/2020    3f04a7a0      Added props: webui_featured_sdks_external_link. default is obp static file: https://static.openbankproject.com/obp/sdks.html. 
 19/02/2020    3f04a7a0      Added props: resource_docs_requires_role. default is false. If set it as `true`, then OBP will 
                             check the authentication and CanReadResourceDoc Role for the endpoint: `Get Resource Docs`.
