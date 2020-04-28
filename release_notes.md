@@ -3,6 +3,8 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+28/04/2020    9b180f2b      Added props: webui_post_consumer_registration_submit_button_value. this will overwrite the submit button value 
+                            in the consumer registration page.  
 26/04/2020    9b40921c      Added props: use_custom_webapp. default is false. If we set true, we will support the custom obp-api home page
                             all the files of `resources/custom_webapp` will copy to `webapp` folder when obp-api starts.  
                             Added props: webui_signup_form_title_text. this will override the singup page title content. 
