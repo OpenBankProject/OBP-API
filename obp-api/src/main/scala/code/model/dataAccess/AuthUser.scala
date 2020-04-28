@@ -790,8 +790,6 @@ def restoreSomeSessions(): Unit = {
         }
       }
     }
-
-    def loginButtonText = getWebUiPropsValue("webui_login_button_text", S.?("log.in"))
     
     // In this function we bind submit button to loginAction function.
     // In case that unique token of submit button cannot be paired submit action will be omitted.
