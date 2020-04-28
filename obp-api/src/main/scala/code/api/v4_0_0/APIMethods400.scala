@@ -30,6 +30,7 @@ import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankA
 import code.bankconnectors.Connector
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.entitlement.Entitlement
+import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.model.{toUserExtended, _}
@@ -39,6 +40,7 @@ import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.transactionrequests.TransactionRequests.{TransactionRequestStatus, TransactionRequestTypes}
 import code.users.Users
+import code.util.Helper.booleanToBox
 import code.util.{Helper, JsonUtils}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
@@ -55,7 +57,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{compactRender, _}
 import net.liftweb.mapper.By
-import net.liftweb.util.Helpers.now
+import net.liftweb.util.Helpers.{now, tryo}
 import net.liftweb.util.{Helpers, StringHelpers}
 import org.apache.commons.lang3.StringUtils
 import org.atteo.evo.inflector.English
@@ -3739,6 +3741,170 @@ trait APIMethods400 {
             )
           } yield {
             (JSONFactory200.createUserCustomerLinkJSONs(userCustomerLinks), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createCounterpartyForAnyAccount,
+      implementedInApiVersion,
+      "createCounterpartyForAnyAccount",
+      "POST",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties",
+      "Create Counterparty (Explicit) for any account",
+      s"""Create Counterparty (Explicit) for an Account.
+         |
+         |In OBP, there are two types of Counterparty.
+         |
+         |* Explicit Counterparties (those here) which we create explicitly and are used in COUNTERPARTY Transaction Requests
+         |
+         |* Implicit Counterparties (AKA Other Accounts) which are generated automatically from the other sides of Transactions.
+         |
+         |Explicit Counterparties are created for the account / view
+         |They are how the user of the view (e.g. account owner) refers to the other side of the transaction
+         |
+         |name : the human readable name (e.g. Piano teacher, Miss Nipa)
+         |
+         |description : the human readable name (e.g. Piano teacher, Miss Nipa)
+         |
+         |bank_routing_scheme : eg: bankId or bankCode or any other strings
+         |
+         |bank_routing_address : eg: `gh.29.uk`, must be valid sandbox bankIds
+         |
+         |account_routing_scheme : eg: AccountId or AccountNumber or any other strings
+         |
+         |account_routing_address : eg: `1d65db7c-a7b2-4839-af41-95`, must be valid accountIds
+         |
+         |other_account_secondary_routing_scheme : eg: IBan or any other strings
+         |
+         |other_account_secondary_routing_address : if it is IBan, it should be unique for each counterparty.
+         |
+         |other_branch_routing_scheme : eg: branchId or any other strings or you can leave it empty, not useful in sandbox mode.
+         |
+         |other_branch_routing_address : eg: `branch-id-123` or you can leave it empty, not useful in sandbox mode.
+         |
+         |is_beneficiary : must be set to `true` in order to send payments to this counterparty
+         |
+         |bespoke: It supports a list of key-value, you can add it to the counterparty.
+         |
+         |bespoke.key : any info-key you want to add to this counterparty
+         |
+         |bespoke.value : any info-value you want to add to this counterparty
+         |
+         |The view specified by VIEW_ID must have the canAddCounterparty permission
+         |
+         |A minimal example for TransactionRequestType == COUNTERPARTY
+         | {
+         |  "name": "Tesobe1",
+         |  "description": "Good Company",
+         |  "other_bank_routing_scheme": "OBP_BANK_ID",
+         |  "other_bank_routing_address": "gh.29.uk",
+         |  "other_account_routing_scheme": "OBP_ACCOUNT_ID",
+         |  "other_account_routing_address": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+         |  "is_beneficiary": true,
+         |  "other_account_secondary_routing_scheme": "",
+         |  "other_account_secondary_routing_address": "",
+         |  "other_branch_routing_scheme": "",
+         |  "other_branch_routing_address": "",
+         |  "bespoke": []
+         |}
+         |
+         |
+         |A minimal example for TransactionRequestType == SEPA
+         |
+         | {
+         |  "name": "Tesobe2",
+         |  "description": "Good Company",
+         |  "other_bank_routing_scheme": "OBP_BANK_ID",
+         |  "other_bank_routing_address": "gh.29.uk",
+         |  "other_account_routing_scheme": "OBP_ACCOUNT_ID",
+         |  "other_account_routing_address": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+         |  "other_account_secondary_routing_scheme": "IBAN",
+         |  "other_account_secondary_routing_address": "DE89 3704 0044 0532 0130 00",
+         |  "is_beneficiary": true,
+         |  "other_branch_routing_scheme": "",
+         |  "other_branch_routing_address": "",
+         |  "bespoke": []
+         |}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      postCounterpartyJSON,
+      counterpartyWithMetadataJson,
+      List(
+        UserNotLoggedIn,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        BankNotFound,
+        AccountNotFound,
+        InvalidJsonFormat,
+        ViewNotFound,
+        CounterpartyAlreadyExists,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCounterparty, apiTagAccount))
+
+
+    lazy val createCounterpartyForAnyAccount: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "counterparties" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            u <- cc.user ?~! UserNotLoggedIn
+            _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
+            _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
+            _ <- booleanToBox(hasEntitlement(bankId.value, u.userId, ApiRole.canCreateCounterpartyAtBank), s"$UserHasMissingRoles+$CanCreateCounterpartyAtBank entitlement required")
+            (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! s"$BankNotFound Current BANK_ID = $bankId"
+            (account, callContext) <- Connector.connector.vend.checkBankAccountExistsLegacy(bankId, AccountId(accountId.value), Some(cc)) ?~! s"$AccountNotFound Current ACCOUNT_ID = ${accountId.value}"
+            postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {InvalidJsonFormat+PostCounterpartyJSON}
+            _ <- tryo(assert(Counterparties.counterparties.vend.checkCounterpartyAvailable(postJson.name,bankId.value, accountId.value,"owner") == true)
+            ) ?~! CounterpartyAlreadyExists
+            _ <- booleanToBox(postJson.description.length <= 36, s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}")
+
+            //If other_account_routing_scheme=="OBP_ACCOUNT_ID" or other_account_secondary_routing_address=="OBP_ACCOUNT_ID" we will check if it is a real obp bank account.
+            _<- if (postJson.other_bank_routing_scheme == "OBP_BANK_ID" && postJson.other_account_routing_scheme =="OBP_ACCOUNT_ID"){
+              for{
+                (bank, callContext) <- BankX(BankId(postJson.other_bank_routing_address), Some(cc)) ?~! s"$BankNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
+                account <- Connector.connector.vend.checkBankAccountExistsLegacy(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address), callContext) ?~! s"$BankAccountNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
+              } yield {
+                account
+              }
+            } else if (postJson.other_bank_routing_scheme == "OBP_BANK_ID" && postJson.other_account_secondary_routing_scheme=="OBP_ACCOUNT_ID"){
+              for{
+                (bank, callContext) <- BankX(BankId(postJson.other_bank_routing_address), Some(cc)) ?~! s"$BankNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
+                account <- Connector.connector.vend.checkBankAccountExistsLegacy(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_secondary_routing_address), callContext) ?~! s"$BankAccountNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
+              } yield {
+                account
+              }
+            }
+            else
+              Full()
+
+            (counterparty, callConext) <- Connector.connector.vend.createCounterparty(
+              name=postJson.name,
+              description=postJson.description,
+              createdByUserId=u.userId,
+              thisBankId=bankId.value,
+              thisAccountId=accountId.value,
+              thisViewId = "owner",
+              otherAccountRoutingScheme=postJson.other_account_routing_scheme,
+              otherAccountRoutingAddress=postJson.other_account_routing_address,
+              otherAccountSecondaryRoutingScheme=postJson.other_account_secondary_routing_scheme,
+              otherAccountSecondaryRoutingAddress=postJson.other_account_secondary_routing_address,
+              otherBankRoutingScheme=postJson.other_bank_routing_scheme,
+              otherBankRoutingAddress=postJson.other_bank_routing_address,
+              otherBranchRoutingScheme=postJson.other_branch_routing_scheme,
+              otherBranchRoutingAddress=postJson.other_branch_routing_address,
+              isBeneficiary=postJson.is_beneficiary,
+              bespoke=postJson.bespoke.map(bespoke =>CounterpartyBespoke(bespoke.key,bespoke.value))
+              , Some(cc))
+
+            counterpartyMetadata <- Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, postJson.name) ?~! CreateOrUpdateCounterpartyMetadataError
+
+          } yield {
+            val list = JSONFactory220.createCounterpartyWithMetadataJSON(counterparty,counterpartyMetadata)
+            successJsonResponse(Extraction.decompose(list))
           }
       }
     }
