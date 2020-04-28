@@ -54,8 +54,10 @@ class OAuthWorkedThanks extends MdcLoggable {
     val requestedOauthToken = Helper.extractOauthToken(redirectUrl.openOr("No Oauth Token here")) openOr("No Oauth Token here")
     logger.debug(s"OAuthWorkedThanks.thanks.requestedOauthToken $requestedOauthToken")
     
-    // 1st, find token --> 2rd, find consumer -->3rd ,find the RedictUrl.
-    val validRedirectURL= Tokens.tokens.vend.getTokenByKey(requestedOauthToken).map(_.consumer.map(_.redirectURL.get)).flatten.getOrElse("invalidRedirectURL")
+    // 1st, find token --> 2rd, find consumer -->3rd ,find the RedirectUrl.
+    val consumer = Tokens.tokens.vend.getTokenByKey(requestedOauthToken).map(_.consumer).flatten
+    val validRedirectURL= consumer.map(_.redirectURL.get).getOrElse("invalidRedirectURL")
+    val appName = consumer.map(_.name.get).getOrElse("Default_App")
     logger.debug(s"OAuthWorkedThanks.thanks.validRedirectURL $validRedirectURL")
     
     redirectUrl match {
@@ -67,7 +69,8 @@ class OAuthWorkedThanks extends MdcLoggable {
 
 
         if(validRedirectURL.equals(requestedRedirectURL)) {
-          "#redirect-link [href]" #> url
+          "#redirect-link [href]" #> url &
+          "#app-name"#> appName
         }else{
           logger.info(incorrectRedirectUrlMessage)
           "#oauth-done-thanks *" #> s"Sorry, the App requested a redirect to a URL that is not registered. $incorrectRedirectUrlMessage - Note to application developers: You can set the redirect URL you will use at consumer registration - or update it with PUT /management/consumers...."
