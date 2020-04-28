@@ -923,7 +923,8 @@ def restoreSomeSessions(): Unit = {
     val usernames: List[String] = this.getResourceUsersByEmail(email).map(_.user.name)
     findAll(ByList(this.username, usernames))
   }
-
+  lazy val signupBubmitButtonValue = getWebUiPropsValue("webui_signup_form_submit_button_value", S.?("sign.up"))
+  
   //overridden to allow redirect to loginRedirect after signup. This is mostly to allow
   // loginFirst menu items to work if the user doesn't have an account. Without this,
   // if a user tries to access a logged-in only page, and then signs up, they don't get redirected
@@ -965,7 +966,7 @@ def restoreSomeSessions(): Unit = {
     }
 
     def innerSignup = {
-      val bind = "type=submit" #> signupSubmitButton(S.?("sign.up"), testSignup _)
+      val bind = "type=submit" #> signupSubmitButton(signupBubmitButtonValue, testSignup _)
       bind(signupXhtml(theUser))
     }
 
