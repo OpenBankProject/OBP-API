@@ -70,7 +70,7 @@ class OAuthWorkedThanks extends MdcLoggable {
 
         if(validRedirectURL.equals(requestedRedirectURL)) {
           "#redirect-link [href]" #> url &
-          "#app-name"#> appName
+          ".app-name"#> appName //there may be several places to be modified in html, so here use the class, not the id.
         }else{
           logger.info(incorrectRedirectUrlMessage)
           "#oauth-done-thanks *" #> s"Sorry, the App requested a redirect to a URL that is not registered. $incorrectRedirectUrlMessage - Note to application developers: You can set the redirect URL you will use at consumer registration - or update it with PUT /management/consumers...."
