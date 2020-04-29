@@ -100,7 +100,7 @@ class Login {
     if(APIUtil.getPropsAsBoolValue("allow_openidconnect", false)){
       val config = OpenIdConnectConfig.get()
       var onclick = "getCode();"
-      if (config.url_login.endsWith(".js") )
+      if (config.authorization_endpoint.endsWith(".js") )
         onclick = "openIdUI.show();"
       val but =
         """
@@ -119,10 +119,10 @@ class Login {
   def openIdConnectScripts : CssSel = {
     if(APIUtil.getPropsAsBoolValue("allow_openidconnect", false)){
       val config = OpenIdConnectConfig.get()
-      val url = config.url_login
+      val url = config.authorization_endpoint
 
       val ext =
-        if (config.url_login.endsWith(".js") )
+        if (config.authorization_endpoint.endsWith(".js") )
           """
             <script src="%s"></script>
           """.format( url )
@@ -130,7 +130,7 @@ class Login {
           """"""
 
       val scr =
-        if (config.url_login.endsWith(".js") )
+        if (config.authorization_endpoint.endsWith(".js") )
         """
         <script type="text/javascript">
           var openIdUI = new Auth0Lock('%s', '%s', {
@@ -144,9 +144,9 @@ class Login {
           });
         </script>
         """.format(
-          config.clientId,
+          config.client_id,
           config.domain,
-          config.callbackURL
+          config.callback_url
         )
         else
           """
@@ -167,9 +167,9 @@ class Login {
             }
             </script>
           """.format(
-            config.url_login,
-            config.clientId,
-            config.clientSecret
+            config.authorization_endpoint,
+            config.client_id,
+            config.client_secret
           )
 
       val scripts = scala.xml.Unparsed(s"""$ext $scr""")

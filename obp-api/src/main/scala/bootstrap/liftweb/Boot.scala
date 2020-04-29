@@ -325,7 +325,7 @@ class Boot extends MdcLoggable {
     
     def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
       //  OpenIdConnect endpoint and validator
-      if(APIUtil.getPropsAsBoolValue("allow_openidconnect", false)) {
+      if(APIUtil.getPropsAsBoolValue("openid_connect.enabled", false)) {
         LiftRules.dispatch.append(OpenIdConnect)
       }
       
