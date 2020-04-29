@@ -89,7 +89,18 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
 
   override lazy val password = new MyPasswordNew
   
+  def signupPasswordRepeatText = getWebUiPropsValue("webui_signup_body_password_repeat_text", S.?("repeat"))
+  
   class MyPasswordNew extends MappedPassword(this) {
+
+    override def _toForm: Box[NodeSeq] = {
+      S.fmapFunc({s: List[String] => this.setFromAny(s)}){funcName =>
+        Full(<span>{appendFieldId(<input type={formInputType} name={funcName}
+                                         value={get.toString}/>)}&nbsp;{signupPasswordRepeatText}&nbsp;<input
+          type={formInputType} name={funcName}
+          value={get.toString}/></span>)
+      }
+    }
     
     override def displayName = fieldOwner.passwordDisplayName
     
@@ -409,12 +420,17 @@ import net.liftweb.util.Helpers._
   }
 
 
-  def agreeTerms = {
-    val url = getWebUiPropsValue("webui_agree_terms_url", "")
-    if (url.isEmpty) {
-      s""
-    } else {
-      scala.xml.Unparsed(s"""<div id="signup-agree-terms" class="checkbox"><label><input type="checkbox" />I hereby agree to the <a href="$url" title="T &amp; C">Terms and Conditions</a></label></div>""")
+  def agreeTermsDiv = {
+    val agreeTermsHtml = getWebUiPropsValue("webui_agree_terms_html", "")
+    if(agreeTermsHtml.isEmpty){
+      val url = getWebUiPropsValue("webui_agree_terms_url", "")
+      if (url.isEmpty) {
+        s""
+      } else {
+        scala.xml.Unparsed(s"""<div id="signup-agree-terms" class="checkbox"><label><input type="checkbox" />I hereby agree to the <a href="$url" title="T &amp; C">Terms and Conditions</a></label></div>""")
+      }
+    } else{
+      scala.xml.Unparsed(s"""$agreeTermsHtml""")
     }
   }
 
@@ -428,13 +444,15 @@ import net.liftweb.util.Helpers._
     }
   }
 
+  def signupFormTitle = getWebUiPropsValue("webui_signup_form_title_text", S.?("sign.up"))
+  
   override def signupXhtml (user:AuthUser) =  {
     <div id="signup">
       <form method="post" action={S.uri}>
-          <h1>Sign Up</h1>
+          <h1>{signupFormTitle}</h1>
           <div id="signup-error" class="alert alert-danger hide"><span data-lift="Msg?id=error"/></div>
           {localForm(user, false, signupFields)}
-          {agreeTerms}
+          {agreeTermsDiv}
           {agreePrivacyPolicy}
           <div id="signup-submit">
             <input type="submit" />
@@ -772,12 +790,12 @@ def restoreSomeSessions(): Unit = {
         }
       }
     }
-
+    
     // In this function we bind submit button to loginAction function.
     // In case that unique token of submit button cannot be paired submit action will be omitted.
     // Implemented in order to prevent a CSRF attack
     def insertSubmitButton = {
-      scala.xml.XML.loadString(loginSubmitButton(S.?("Login"), loginAction _).toString().replace("type=\"submit\"","class=\"submit\" type=\"submit\""))
+      scala.xml.XML.loadString(loginSubmitButton(loginButtonText, loginAction _).toString().replace("type=\"submit\"","class=\"submit\" type=\"submit\""))
     }
 
     val bind =
@@ -905,7 +923,8 @@ def restoreSomeSessions(): Unit = {
     val usernames: List[String] = this.getResourceUsersByEmail(email).map(_.user.name)
     findAll(ByList(this.username, usernames))
   }
-
+  lazy val signupBubmitButtonValue = getWebUiPropsValue("webui_signup_form_submit_button_value", S.?("sign.up"))
+  
   //overridden to allow redirect to loginRedirect after signup. This is mostly to allow
   // loginFirst menu items to work if the user doesn't have an account. Without this,
   // if a user tries to access a logged-in only page, and then signs up, they don't get redirected
@@ -947,7 +966,7 @@ def restoreSomeSessions(): Unit = {
     }
 
     def innerSignup = {
-      val bind = "type=submit" #> signupSubmitButton(S.?("sign.up"), testSignup _)
+      val bind = "type=submit" #> signupSubmitButton(signupBubmitButtonValue, testSignup _)
       bind(signupXhtml(theUser))
     }
 
