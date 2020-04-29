@@ -3752,7 +3752,7 @@ trait APIMethods400 {
       "POST",
       "/management/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties",
       "Create Counterparty (Explicit) for any account",
-      s"""Create Counterparty (Explicit) for an Account.
+      s"""Create Counterparty (Explicit) for any Account.
          |
          |In OBP, there are two types of Counterparty.
          |
@@ -3844,44 +3844,49 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCounterparty, apiTagAccount))
+      List(apiTagCounterparty, apiTagAccount),
+      Some(List(canCreateCounterpartyAtBank)))
 
 
     lazy val createCounterpartyForAnyAccount: OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "counterparties" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~! UserNotLoggedIn
-            _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
-            _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-            _ <- booleanToBox(hasEntitlement(bankId.value, u.userId, ApiRole.canCreateCounterpartyAtBank), s"$UserHasMissingRoles+$CanCreateCounterpartyAtBank entitlement required")
-            (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! s"$BankNotFound Current BANK_ID = $bankId"
-            (account, callContext) <- Connector.connector.vend.checkBankAccountExistsLegacy(bankId, AccountId(accountId.value), Some(cc)) ?~! s"$AccountNotFound Current ACCOUNT_ID = ${accountId.value}"
-            postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {InvalidJsonFormat+PostCounterpartyJSON}
-            _ <- tryo(assert(Counterparties.counterparties.vend.checkCounterpartyAvailable(postJson.name,bankId.value, accountId.value,"owner") == true)
-            ) ?~! CounterpartyAlreadyExists
-            _ <- booleanToBox(postJson.description.length <= 36, s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}")
+            (Full(u), _) <- authenticatedAccess(cc)
+            postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
+              json.extract[PostCounterpartyJSON]
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}"){postJson.description.length <= 36}
+            
+            
+            //Note: The following checkCounterpartyAvailable is only obp standard now. It depends how to identify the counterparty. For this, we only use the BANK_ID+ACCOUNT_ID+COUNTERPARTY_NAME here.
+            _ <- Helper.booleanToFuture(CounterpartyAlreadyExists.replace("value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME.",
+              s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${bankId.value}) and ACCOUNT_ID(${accountId.value})")){
+              Counterparties.counterparties.vend.checkCounterpartyAvailable(postJson.name, bankId.value, accountId.value,"owner")
+            }
 
             //If other_account_routing_scheme=="OBP_ACCOUNT_ID" or other_account_secondary_routing_address=="OBP_ACCOUNT_ID" we will check if it is a real obp bank account.
-            _<- if (postJson.other_bank_routing_scheme == "OBP_BANK_ID" && postJson.other_account_routing_scheme =="OBP_ACCOUNT_ID"){
+            (_, callContext)<- if (postJson.other_bank_routing_scheme == "OBP_BANK_ID" && postJson.other_account_routing_scheme =="OBP_ACCOUNT_ID"){
               for{
-                (bank, callContext) <- BankX(BankId(postJson.other_bank_routing_address), Some(cc)) ?~! s"$BankNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
-                account <- Connector.connector.vend.checkBankAccountExistsLegacy(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address), callContext) ?~! s"$BankAccountNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
+                (_, callContext) <- NewStyle.function.getBank(BankId(postJson.other_bank_routing_address), Some(cc))
+                (account, callContext) <- NewStyle.function.checkBankAccountExists(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address), callContext)
+                
               } yield {
-                account
+                (account, callContext)
               }
             } else if (postJson.other_bank_routing_scheme == "OBP_BANK_ID" && postJson.other_account_secondary_routing_scheme=="OBP_ACCOUNT_ID"){
               for{
-                (bank, callContext) <- BankX(BankId(postJson.other_bank_routing_address), Some(cc)) ?~! s"$BankNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
-                account <- Connector.connector.vend.checkBankAccountExistsLegacy(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_secondary_routing_address), callContext) ?~! s"$BankAccountNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
+                (_, callContext) <- NewStyle.function.getBank(BankId(postJson.other_bank_routing_address), Some(cc))
+                (account, callContext) <- NewStyle.function.checkBankAccountExists(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_secondary_routing_address), callContext)
+                
               } yield {
-                account
+                (account, callContext)
               }
             }
             else
-              Full()
+              Future{(Full(), Some(cc))}
 
-            (counterparty, callConext) <- Connector.connector.vend.createCounterparty(
+            (counterparty, callConext) <- NewStyle.function.createCounterparty(
               name=postJson.name,
               description=postJson.description,
               createdByUserId=u.userId,
@@ -3898,13 +3903,12 @@ trait APIMethods400 {
               otherBranchRoutingAddress=postJson.other_branch_routing_address,
               isBeneficiary=postJson.is_beneficiary,
               bespoke=postJson.bespoke.map(bespoke =>CounterpartyBespoke(bespoke.key,bespoke.value))
-              , Some(cc))
+              , callContext)
 
-            counterpartyMetadata <- Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, postJson.name) ?~! CreateOrUpdateCounterpartyMetadataError
+            (counterpartyMetadata, callContext) <- NewStyle.function.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, postJson.name, callConext)
 
           } yield {
-            val list = JSONFactory220.createCounterpartyWithMetadataJSON(counterparty,counterpartyMetadata)
-            successJsonResponse(Extraction.decompose(list))
+            (JSONFactory220.createCounterpartyWithMetadataJSON(counterparty,counterpartyMetadata), HttpCode.`201`(callContext))
           }
       }
     }
