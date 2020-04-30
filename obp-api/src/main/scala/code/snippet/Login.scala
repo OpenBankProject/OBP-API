@@ -46,7 +46,7 @@ class Login {
       ".logout [href]" #> {
         AuthUser.logoutPath.foldLeft("")(_ + "/" + _)
       } &
-      ".logout #username *" #> AuthUser.getCurrentUserUsername
+      "#loggedIn-username *" #> AuthUser.getCurrentUserUsername
     }
   }
 

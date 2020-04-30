@@ -365,6 +365,9 @@ You can obfuscate passwords in the props file the same way as for jetty:
 ## Code Generation
 Please refer to the [Code Generation](https://github.com/OpenBankProject/OBP-API/blob/develop/CONTRIBUTING.md##code-generation) for links
 
+## Customize Portal WebPage
+Please refer to the [Custom Webapp](obp-api/src/main/resources/custom_webapp/README.md) for links
+
 ## Using jetty password obfuscation with props file
 
 You can obfuscate passwords in the props file the same way as for jetty:
