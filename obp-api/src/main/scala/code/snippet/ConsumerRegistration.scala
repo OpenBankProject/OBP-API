@@ -57,6 +57,8 @@ class ConsumerRegistration extends MdcLoggable {
 
   // Can be used to show link to an online form to collect more information about the App / Startup
   val registrationMoreInfoUrl = getWebUiPropsValue("webui_post_consumer_registration_more_info_url", "")
+  
+  val registrationConsumerButtonValue = getWebUiPropsValue("webui_post_consumer_registration_submit_button_value", "Register consumer")
 
   val registrationMoreInfoText : String = registrationMoreInfoUrl match {
     case "" => ""
@@ -84,7 +86,7 @@ class ConsumerRegistration extends MdcLoggable {
           "#appDev" #> SHtml.text(devEmailVar, devEmailVar(_)) &
           "#appDesc" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
           "#appUserAuthenticationUrl" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_)) &
-          "type=submit" #> SHtml.submit("Register consumer", () => submitButtonDefense)
+          "type=submit" #> SHtml.submit(s"$registrationConsumerButtonValue", () => submitButtonDefense)
       } &
       "#register-consumer-success" #> ""
     }
