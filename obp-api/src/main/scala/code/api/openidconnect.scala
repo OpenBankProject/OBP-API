@@ -168,7 +168,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       .username(user.idGivenByProvider)
       .provider(user.provider)
       // No need to store password, so store dummy string instead
-      .password(generateUUID())
+      .password(Helpers.randomString(40))
       .validated(true)
     // Save the user in order to be able to log in
     newUser.saveMe()
