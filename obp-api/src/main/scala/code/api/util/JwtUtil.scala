@@ -120,7 +120,7 @@ object JwtUtil extends MdcLoggable {
       signedJWT.getJWTClaimsSet.getStringClaim(name)
     } catch {
       case e: Exception =>
-        logger.error(msg = "code.api.util.JwtUtil.getIssuer")
+        logger.error(msg = s"code.api.util.JwtUtil.getClaim: $name")
         logger.error(e)
         ""
     }

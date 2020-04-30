@@ -31,6 +31,8 @@ import java.util.Date
 
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, JwtUtil}
+import code.consumer.Consumers
+import code.model.Consumer
 import code.model.dataAccess.AuthUser
 import code.token.Tokens
 import code.users.Users
@@ -40,7 +42,6 @@ import com.openbankproject.commons.util.ApiVersion
 import javax.net.ssl.HttpsURLConnection
 import net.liftweb.common._
 import net.liftweb.http._
-import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json
 import net.liftweb.json.JValue
 import net.liftweb.mapper.By
@@ -65,8 +66,8 @@ case class OpenIdConnectConfig(client_secret: String,
                               )
 
 object OpenIdConnectConfig {
-  def get() = {
-    def getProps(props: String) = APIUtil.getPropsValue(props).openOrThrowException(s"no $props set")
+  def get(): OpenIdConnectConfig = {
+    def getProps(props: String): String = APIUtil.getPropsValue(props).openOrThrowException(s"no $props set")
     OpenIdConnectConfig(
       getProps("openid_connect.client_secret"),
       getProps("openid_connect.client_id"),
@@ -85,6 +86,8 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
   val version = ApiVersion.openIdConnect1 // "1.0" // TODO: Should this be the lowest version supported or when introduced?
   val versionStatus = "DRAFT"
 
+  val openIdConnect = "OpenID Connect"
+
   serve {
     case Req("my" :: "logins" :: "openid-connect" :: Nil, _, PostRequest | GetRequest) => {
       var httpCode = 500
@@ -97,24 +100,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
         message=code
         exchangeAuthorizationCodeForTokens(code) match {
           case Full((idToken, accessToken, tokenType)) =>
-            val subject = JwtUtil.getSubject(idToken).getOrElse("")
-            val issuer = JwtUtil.getIssuer(idToken).getOrElse("")
-            def getClaim(name: String, idToken: String): Option[String] = {
-              val claim = JwtUtil.getClaim(name = name, jwtToken = idToken)
-              claim match {
-              case null => None
-              case string => Some(string)
-              }
-            }
-            Users.users.vend.getUserByProviderId(provider = issuer, idGivenByProvider = subject).or { // Find a user
-              Users.users.vend.createResourceUser( // Otherwise create a new one
-                provider = issuer,
-                providerId = Some(subject),
-                name = getClaim(name = "given_name", idToken = idToken).orElse(Some(subject)),
-                email = getClaim(name = "email", idToken = idToken),
-                userId = None
-              )
-            } match {
+            saveUser(idToken) match {
               case Full(user) =>
                 for {
                   authUser: AuthUser <- AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value)) match {
@@ -122,7 +108,8 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                     case _          => createAuthUser(user)
                   }
                 } yield {
-                  saveAuthorizationToken(accessToken, accessToken, user.userPrimaryKey.value)
+                  val consumer: Box[Consumer] = saveConsumer(idToken, user.userId)
+                  saveAuthorizationToken(accessToken, accessToken, user.userPrimaryKey.value, consumer)
                   httpCode = 200
                   message= String.format("oauth_token=%s&oauth_token_secret=%s", accessToken, accessToken)
                   val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
@@ -134,13 +121,34 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                 }
               case _ => message=String.format("Could not find user with token %s", accessToken)
             }
-            case _ => message=String.format("Could not get token for code %s", code)
+          case _ => message=String.format("Could not get token for code %s", code)
         }
       }
       errorJsonResponse(message, httpCode)
     }
   }
-
+  
+  private def saveUser(idToken: String): Box[User] = {
+    val subject = JwtUtil.getSubject(idToken)
+    val issuer = JwtUtil.getIssuer(idToken).getOrElse("")
+    Users.users.vend.getUserByProviderId(provider = issuer, idGivenByProvider = subject.getOrElse("")).or { // Find a user
+      Users.users.vend.createResourceUser( // Otherwise create a new one
+        provider = issuer,
+        providerId = subject,
+        name = getClaim(name = "given_name", idToken = idToken).orElse(subject),
+        email = getClaim(name = "email", idToken = idToken),
+        userId = None
+      )
+    }
+  }
+  
+  private def getClaim(name: String, idToken: String): Option[String] = {
+    val claim = JwtUtil.getClaim(name = name, jwtToken = idToken)
+    claim match {
+      case null => None
+      case string => Some(string)
+    }
+  }
   private def createAuthUser(user: User): Full[AuthUser] = {
     val newUser = AuthUser.create
       .firstName(user.name)
@@ -188,21 +196,37 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       case _ => Empty
     }
   }
-
-  private def saveAuthorizationToken(tokenKey: String, tokenSecret: String, userId: Long) =
+  
+  private def saveConsumer(idToken: String, userId: String): Box[Consumer] = {
+    Consumers.consumers.vend.getOrCreateConsumer(
+      consumerId=Some(APIUtil.generateUUID()),
+      Some(Helpers.randomString(40).toLowerCase),
+      Some(Helpers.randomString(40).toLowerCase),
+      getClaim(name = "azp", idToken = idToken),
+      JwtUtil.getIssuer(idToken),
+      JwtUtil.getSubject(idToken),
+      Some(true),
+      name = None,
+      appType = None,
+      description = Some(openIdConnect),
+      developerEmail = getClaim(name = "email", idToken = idToken),
+      redirectURL = None,
+      createdByUserId = Some(userId)
+    )
+  }
+  
+  private def saveAuthorizationToken(tokenKey: String, tokenSecret: String, userId: Long, consumer: Box[Consumer]) =
   {
     import code.model.TokenType
-    // TODO Consumer is not needed with oauth2/openid or is it?
-    //Consumers.consumers.vend.getConsumerByConsumerKey(directLoginParameters.getOrElse("consumer_key", "")) match {
-    //  case Full(consumer) => token.consumerId(consumer.id)
-    //  case _ => None
-    //}
-    //token.consumerId(0)
+    val consumerId = consumer match {
+      case Full(c) => Some(c.id.get)
+      case _       => None
+    }
     val currentTime = Platform.currentTime
     val expiration = APIUtil.getPropsAsIntValue("token_expiration_weeks", 4)
     val tokenDuration : Long = Helpers.weeks(expiration)
     val tokenSaved = Tokens.tokens.vend.createToken(TokenType.Access,
-                                                    None,
+                                                    consumerId,
                                                     Some(userId),
                                                     Some(tokenKey),
                                                     Some(tokenSecret),
