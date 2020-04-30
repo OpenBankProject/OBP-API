@@ -213,6 +213,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       consumerId=Some(APIUtil.generateUUID()),
       Some(Helpers.randomString(40).toLowerCase),
       Some(Helpers.randomString(40).toLowerCase),
+      Some(JwtUtil.getAudience(idToken).mkString(",")),
       getClaim(name = "azp", idToken = idToken),
       JwtUtil.getIssuer(idToken),
       JwtUtil.getSubject(idToken),

@@ -288,6 +288,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
   override def getOrCreateConsumer(consumerId: Option[String],
                                    key: Option[String],
                                    secret: Option[String],
+                                   aud: Option[String],
                                    azp: Option[String],
                                    iss: Option[String],
                                    sub: Option[String],
@@ -318,6 +319,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
           }
           secret match {
             case Some(v) => c.secret(v)
+            case None =>
+          }
+          aud match {
+            case Some(v) => c.aud(v)
             case None =>
           }
           azp match {
@@ -445,6 +450,9 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   object key extends MappedString(this, 250)
   object secret extends MappedString(this, 250)
   object azp extends MappedString(this, 250) {
+    override def defaultValue = null
+  }
+  object aud extends MappedString(this, 250) {
     override def defaultValue = null
   }  
   object iss extends MappedString(this, 250) {

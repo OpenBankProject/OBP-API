@@ -58,7 +58,8 @@ object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
   
   def getOrCreateConsumer(consumerId: Option[String], 
                           key: Option[String], 
-                          secret: Option[String], 
+                          secret: Option[String],
+                          aud: Option[String],
                           azp: Option[String],
                           iss: Option[String],
                           sub: Option[String], 
@@ -69,7 +70,7 @@ object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
                           developerEmail: Option[String], 
                           redirectURL: Option[String], 
                           createdByUserId: Option[String]): Box[Consumer] = getValueFromFuture(
-    (actor ? cc.getOrCreateConsumer(consumerId, key, secret, azp, iss, sub, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId)).mapTo[Box[Consumer]]
+    (actor ? cc.getOrCreateConsumer(consumerId, key, secret, aud, azp, iss, sub, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId)).mapTo[Box[Consumer]]
   )
   def populateMissingUUIDs(): Boolean = getValueFromFuture(
     (actor ? cc.populateMissingUUIDs()).mapTo[Boolean]
