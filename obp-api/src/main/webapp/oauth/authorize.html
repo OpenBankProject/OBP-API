@@ -8,7 +8,6 @@
 				<h1>The application <span id="applicationName">app</span> is asking for access to your data.</h1>
 
 				<form class="login" action="/user_mgt/login" method="post">
-					<div data-lift="Login.openIdConnectScripts" id="openid_scripts"></div>
 					<div class="form-group">
 						<input class="form-control" type="text" placeholder="Username" name="username" tabindex=1 autofocus autocomplete="off"/>
 					</div>
@@ -25,9 +24,6 @@
 					</div>
 					<a href="/user_mgt/lost_password" id="authorise-recover-password" tabindex="5">Recover password</a>
 				</form>
-				<div data-lift="Login.openIdConnectButton">
-					<div id="openid_button"></div>
-				</div>
 			</div>
 
 			<div id="verifierBloc">

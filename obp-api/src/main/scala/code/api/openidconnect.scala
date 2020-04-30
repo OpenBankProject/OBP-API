@@ -58,11 +58,9 @@ import scala.compat.Platform
 case class OpenIdConnectConfig(client_secret: String,
                                client_id: String,
                                callback_url: String,
-                               domain: String,
                                userinfo_endpoint: String,
                                token_endpoint: String,
-                               authorization_endpoint: String,
-                               url_button: String
+                               authorization_endpoint: String
                               )
 
 object OpenIdConnectConfig {
@@ -72,11 +70,9 @@ object OpenIdConnectConfig {
       getProps("openid_connect.client_secret"),
       getProps("openid_connect.client_id"),
       getProps("openid_connect.callback_url"),
-      getProps("openid_connect.domain"),
       getProps("openid_connect.endpoint.userinfo"),
       getProps("openid_connect.endpoint.token"),
-      getProps("openid_connect.endpoint.authorization"),
-      getProps("openid_connect.url.buttonImage")
+      getProps("openid_connect.endpoint.authorization")
     )
   }
 }
