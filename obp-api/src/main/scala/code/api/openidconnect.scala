@@ -30,7 +30,7 @@ import java.net.HttpURLConnection
 import java.util.Date
 
 import code.api.util.APIUtil._
-import code.api.util.{APIUtil, JwtUtil}
+import code.api.util.{APIUtil, ErrorMessages, JwtUtil}
 import code.consumer.Consumers
 import code.model.Consumer
 import code.model.dataAccess.AuthUser
@@ -87,13 +87,12 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
   serve {
     case Req("my" :: "logins" :: "openid-connect" :: Nil, _, PostRequest | GetRequest) => {
       var httpCode = 500
-      var message = "unknown"
+      var message = ErrorMessages.UnknownError
+      var authorizationUser: Option[AuthUser] = None
       for {
         code <- S.params("code")
         state <- S.param("state")
       } yield {
-        // Get the token
-        message=code
         exchangeAuthorizationCodeForTokens(code) match {
           case Full((idToken, accessToken, tokenType)) =>
             saveUser(idToken) match {
@@ -105,22 +104,38 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                   }
                 } yield {
                   val consumer: Box[Consumer] = saveConsumer(idToken, user.userId)
-                  saveAuthorizationToken(accessToken, accessToken, user.userPrimaryKey.value, consumer)
-                  httpCode = 200
-                  message= String.format("oauth_token=%s&oauth_token_secret=%s", accessToken, accessToken)
-                  val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
-                  AuthUser.logUserIn(authUser, () => {
-                    S.notice(S.?("logged.in"))
-                    //This redirect to homePage, it is from scala code, no open redirect issue.
-                    S.redirectTo(AuthUser.homePage)
-                  })
+                  saveAuthorizationToken(accessToken, accessToken, user.userPrimaryKey.value, consumer) match {
+                    case true =>
+                      httpCode = 200
+                      message= String.format("oauth_token=%s&oauth_token_secret=%s", accessToken, accessToken)
+                      authorizationUser = Some(authUser)
+                    case false =>
+                      httpCode = 400
+                      message = ErrorMessages.CannotSaveOpenIDConnectToken
+                      authorizationUser = Some(authUser)
+                  }
                 }
-              case _ => message=String.format("Could not find user with token %s", accessToken)
+              case _ =>
+                httpCode = 400
+                message = ErrorMessages.CannotSaveOpenIDConnectUser
             }
-          case _ => message=String.format("Could not get token for code %s", code)
+          case _ =>
+            httpCode = 400
+            message = ErrorMessages.CannotExchangeAuthorizationCodeForTokens
         }
       }
-      errorJsonResponse(message, httpCode)
+      
+      (httpCode, authorizationUser) match {
+        case (200, Some(user)) =>
+          AuthUser.logUserIn(user, () => {
+            S.notice(S.?("logged.in"))
+            //This redirect to homePage, it is from scala code, no open redirect issue.
+            S.redirectTo(AuthUser.homePage)
+          })
+        case _ =>
+          errorJsonResponse(message, httpCode)
+      }
+      
     }
   }
   
@@ -242,7 +257,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                method: String,
                connectTimeout: Int = 2000,
                readTimeout: Int = 10000
-             ) = {
+             ): String = {
     var content:String = ""
     import java.net.URL
     try {
