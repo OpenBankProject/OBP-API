@@ -3,20 +3,20 @@ package code.snippet
 import java.net.URI
 
 import code.api.OpenIdConnectConfig
-import com.nimbusds.oauth2.sdk.{ResponseType, Scope}
 import com.nimbusds.oauth2.sdk.id.{ClientID, State}
+import com.nimbusds.oauth2.sdk.{ResponseType, Scope}
 import com.nimbusds.openid.connect.sdk.{AuthenticationRequest, Nonce}
-import net.liftweb.util.Helpers._
-import net.liftweb.common.Loggable
-import net.liftweb.http.{S, SHtml}
-import net.liftweb.http.js.{JsCmd, JsCmds}
-import net.liftweb.http.provider.HTTPCookie
+import net.liftweb.common.{Box, Empty, Full, Loggable}
+import net.liftweb.http.js.JsCmd
+import net.liftweb.http.{S, SHtml, SessionVar}
 import net.liftweb.util.CssSel
+import net.liftweb.util.Helpers._
+
+object OpenIDConnectSessionState extends SessionVar[Box[State]](Empty)
 
 object OpenidConnectInvoke extends Loggable {
+  
   def callback(): JsCmd = {
-    logger.info("The button was pressed")
-
     // The client id
     val clientID: ClientID = new ClientID(OpenIdConnectConfig.get().client_id)
 
@@ -40,8 +40,7 @@ object OpenidConnectInvoke extends Loggable {
         state,
         nonce
       )
-    val jSessionId1: List[HTTPCookie] = S.request.map(_.cookies.filter(_.name == "JSESSIONID")).openOrThrowException("There is no JSESSIONID cookie")
-    org.scalameta.logger.elem(jSessionId1)
+    OpenIDConnectSessionState.set(Full(state))
     val redirectTo = req.toHTTPRequest.getURL() + "?" + req.toHTTPRequest.getQuery()
     S.redirectTo(redirectTo)
   }

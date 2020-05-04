@@ -34,6 +34,7 @@ import code.api.util.{APIUtil, ErrorMessages, JwtUtil}
 import code.consumer.Consumers
 import code.model.Consumer
 import code.model.dataAccess.AuthUser
+import code.snippet.{OpenIDConnectSessionState}
 import code.token.Tokens
 import code.users.Users
 import code.util.Helper.MdcLoggable
@@ -85,43 +86,51 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
   val openIdConnect = "OpenID Connect"
 
   serve {
-    case Req("my" :: "logins" :: "openid-connect" :: Nil, _, PostRequest | GetRequest) => {
+    case Req("auth" :: "openid-connect" :: "callback" :: Nil, _, PostRequest | GetRequest) => {
       var httpCode = 500
       var message = ErrorMessages.UnknownError
       var authorizationUser: Option[AuthUser] = None
       for {
         code <- S.params("code")
         state <- S.param("state")
+        sessionState <- OpenIDConnectSessionState.get
       } yield {
-        exchangeAuthorizationCodeForTokens(code) match {
-          case Full((idToken, accessToken, tokenType)) =>
-            saveUser(idToken) match {
-              case Full(user) =>
-                for {
-                  authUser: AuthUser <- AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value)) match {
-                    case Full(user) => Full(user)
-                    case _          => createAuthUser(user)
+        if(state == sessionState.toString()) {
+          exchangeAuthorizationCodeForTokens(code) match {
+            case Full((idToken, accessToken, tokenType)) =>
+              saveUser(idToken) match {
+                case Full(user) =>
+                  for {
+                    authUser: AuthUser <- AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value)) match {
+                      case Full(user) => Full(user)
+                      case _          => createAuthUser(user)
+                    }
+                  } yield {
+                    org.scalameta.logger.elem(state)
+                    org.scalameta.logger.elem(sessionState)
+                    val consumer: Box[Consumer] = saveConsumer(idToken, user.userId)
+                    saveAuthorizationToken(accessToken, accessToken, user.userPrimaryKey.value, consumer) match {
+                      case true =>
+                        httpCode = 200
+                        message= String.format("oauth_token=%s&oauth_token_secret=%s", accessToken, accessToken)
+                        authorizationUser = Some(authUser)
+                      case false =>
+                        httpCode = 400
+                        message = ErrorMessages.CannotSaveOpenIDConnectToken
+                        authorizationUser = Some(authUser)
+                    }
                   }
-                } yield {
-                  val consumer: Box[Consumer] = saveConsumer(idToken, user.userId)
-                  saveAuthorizationToken(accessToken, accessToken, user.userPrimaryKey.value, consumer) match {
-                    case true =>
-                      httpCode = 200
-                      message= String.format("oauth_token=%s&oauth_token_secret=%s", accessToken, accessToken)
-                      authorizationUser = Some(authUser)
-                    case false =>
-                      httpCode = 400
-                      message = ErrorMessages.CannotSaveOpenIDConnectToken
-                      authorizationUser = Some(authUser)
-                  }
-                }
-              case _ =>
-                httpCode = 400
-                message = ErrorMessages.CannotSaveOpenIDConnectUser
-            }
-          case _ =>
-            httpCode = 400
-            message = ErrorMessages.CannotExchangeAuthorizationCodeForTokens
+                case _ =>
+                  httpCode = 400
+                  message = ErrorMessages.CannotSaveOpenIDConnectUser
+              }
+            case _ =>
+              httpCode = 400
+              message = ErrorMessages.CannotExchangeAuthorizationCodeForTokens
+          }
+        } else {
+          httpCode = 401
+          message = ErrorMessages.WrongOpenIDConnectState
         }
       }
       
