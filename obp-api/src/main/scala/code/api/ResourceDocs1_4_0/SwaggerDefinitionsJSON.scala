@@ -3488,10 +3488,16 @@ object SwaggerDefinitionsJSON {
     account_attributes = List(accountAttributeResponseJson),
     tags = List(accountTagJSON)
   )
+
+  val historicalTransactionAccountJsonV310 = HistoricalTransactionAccountJsonV310(
+    bank_id = Some(bankIdExample.value),
+    account_id = Some(accountIdExample.value),
+    counterparty_id = Some(counterpartyIdExample.value)
+  )
   
   val postHistoricalTransactionJson = PostHistoricalTransactionJson(
-    from = transactionRequestAccountJsonV140,
-    to = transactionRequestAccountJsonV140,
+    from = historicalTransactionAccountJsonV310,
+    to = historicalTransactionAccountJsonV310,
     value = amountOfMoneyJsonV121,
     description = "this is for work",
     posted = DateWithSecondsExampleString,
@@ -3501,9 +3507,9 @@ object SwaggerDefinitionsJSON {
   )
 
   val postHistoricalTransactionResponseJson = PostHistoricalTransactionResponseJson(
-    transaction_id = "123",
-    from = transactionRequestAccountJsonV140,
-    to = transactionRequestAccountJsonV140,
+    transaction_id = transactionIdExample.value,
+    from = historicalTransactionAccountJsonV310,
+    to = historicalTransactionAccountJsonV310,
     value = amountOfMoneyJsonV121,
     description = "this is for work",
     posted = DateWithMsExampleObject,

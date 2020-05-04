@@ -64,9 +64,9 @@ class TransactionTest extends V310ServerSetup {
   val bankId2 = testBankId2.value
   val bankAccountId1 = testAccountId1.value
   val bankAccountId2 = testAccountId0.value
-  val postJson = SwaggerDefinitionsJSON.postHistoricalTransactionJson.copy(
-    from = TransactionRequestAccountJsonV140(bankId1,bankAccountId1),
-    to = TransactionRequestAccountJsonV140(bankId2,bankAccountId2),
+  val postJsonAccount = SwaggerDefinitionsJSON.postHistoricalTransactionJson.copy(
+    from = HistoricalTransactionAccountJsonV310(Some(bankId1), Some(bankAccountId1), None),
+    to = HistoricalTransactionAccountJsonV310(Some(bankId2), Some(bankAccountId2), None),
     value = AmountOfMoneyJsonV121("EUR","1000")
   )
   
@@ -104,7 +104,7 @@ class TransactionTest extends V310ServerSetup {
     scenario("We will test saveHistoricalTransaction --user is not Login", ApiEndpoint2, ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "historical" / "transactions").POST
-      val response310 = makePostRequest(request310, write(postJson))
+      val response310 = makePostRequest(request310, write(postJsonAccount))
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
@@ -114,7 +114,7 @@ class TransactionTest extends V310ServerSetup {
     scenario("We will test saveHistoricalTransaction --user is not Login, but no Role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "historical" / "transactions")<@(user1)
-      val response310 = makePostRequest(request310, write(postJson))
+      val response310 = makePostRequest(request310, write(postJsonAccount))
       Then("We should get a 400")
       response310.code should equal(403)
       response310.body.toString contains (ApiRole.canCreateHistoricalTransaction.toString()) should be (true)
@@ -125,13 +125,13 @@ class TransactionTest extends V310ServerSetup {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateHistoricalTransaction.toString)
             
       val request310 = (v3_1_0_Request / "management" / "historical" / "transactions")<@(user1)
-      val response310 = makePostRequest(request310, write(postJson))
+      val response310 = makePostRequest(request310, write(postJsonAccount))
       
       Then("We should get a 201")
       response310.code should equal(201)
       val responseJson = response310.body.extract[PostHistoricalTransactionResponseJson]
-      responseJson.value should be(postJson.value)
-      responseJson.description should be(postJson.description)
+      responseJson.value should be(postJsonAccount.value)
+      responseJson.description should be(postJsonAccount.description)
       responseJson.transaction_id.length > 0 should be (true)
     }
 
@@ -154,13 +154,13 @@ class TransactionTest extends V310ServerSetup {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateHistoricalTransaction.toString)
 
       val request310 = (v3_1_0_Request / "management" / "historical" / "transactions")<@(user1)
-      val response310 = makePostRequest(request310, write(postJson))
+      val response310 = makePostRequest(request310, write(postJsonAccount))
 
       Then("We should get a 201")
       response310.code should equal(201)
       val responseJson = response310.body.extract[PostHistoricalTransactionResponseJson]
-      responseJson.value should be(postJson.value)
-      responseJson.description should be(postJson.description)
+      responseJson.value should be(postJsonAccount.value)
+      responseJson.description should be(postJsonAccount.description)
       responseJson.transaction_id.length > 0 should be (true)
 
       val requestGetAccount1After = (v3_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
@@ -183,8 +183,8 @@ class TransactionTest extends V310ServerSetup {
 
       getTransactionbyIdResponse.code should equal(200)
       getTransactionbyIdResponse.body.extract[TransactionJSON].id should be(transactionNewId)
-      getTransactionbyIdResponse.body.extract[TransactionJSON].details.`type` should be(postJson.`type`)
-      getTransactionbyIdResponse.body.extract[TransactionJSON].details.description should be(postJson.description)
+      getTransactionbyIdResponse.body.extract[TransactionJSON].details.`type` should be(postJsonAccount.`type`)
+      getTransactionbyIdResponse.body.extract[TransactionJSON].details.description should be(postJsonAccount.description)
       
     }
     
