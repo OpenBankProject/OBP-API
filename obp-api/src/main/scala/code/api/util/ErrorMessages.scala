@@ -275,7 +275,7 @@ object ErrorMessages {
   val TransactionAttributeNotFound = "OBP-30070: Transaction Attribute not found. Please specify a valid value for TRANSACTION_ATTRIBUTE_ID."
   val AttributeNotFound = "OBP-30071: Attribute Definition not found. Please specify a valid value for ATTRIBUTE_DEFINITION_ID."
   
-  val CreateCounterpartyError = "OBP-30071: Could not create the Counterparty."
+  val CreateCounterpartyError = "OBP-30072: Could not create the Counterparty."
   
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
