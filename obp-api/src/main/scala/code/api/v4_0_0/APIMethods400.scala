@@ -3750,7 +3750,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       "createCounterpartyForAnyAccount",
       "POST",
-      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
       "Create Counterparty (Explicit) for any account",
       s"""Create Counterparty (Explicit) for any Account.
          |
@@ -3849,7 +3849,7 @@ trait APIMethods400 {
 
 
     lazy val createCounterpartyForAnyAccount: OBPEndpoint = {
-      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "counterparties" :: Nil JsonPost json -> _ => {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: Nil JsonPost json -> _ => {
         cc =>
           for {
             (Full(u), _) <- authenticatedAccess(cc)
@@ -3861,8 +3861,8 @@ trait APIMethods400 {
             
             //Note: The following checkCounterpartyAvailable is only obp standard now. It depends how to identify the counterparty. For this, we only use the BANK_ID+ACCOUNT_ID+COUNTERPARTY_NAME here.
             _ <- Helper.booleanToFuture(CounterpartyAlreadyExists.replace("value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME.",
-              s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${bankId.value}) and ACCOUNT_ID(${accountId.value})")){
-              Counterparties.counterparties.vend.checkCounterpartyAvailable(postJson.name, bankId.value, accountId.value,"owner")
+              s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${bankId.value}) and ACCOUNT_ID(${accountId.value}) and VIEW_ID($viewId)")){
+              Counterparties.counterparties.vend.checkCounterpartyAvailable(postJson.name, bankId.value, accountId.value, viewId.value)
             }
 
             //If other_account_routing_scheme=="OBP_ACCOUNT_ID" or other_account_secondary_routing_address=="OBP_ACCOUNT_ID" we will check if it is a real obp bank account.
