@@ -20,16 +20,21 @@
 
 			<div class="row">
 				<div class="col-xs-6">
+					<a href="/user_mgt/sign_up" id="authorise-signup" class="btn btn-default authorise-button" tabindex="4">Sign up</a>
+				</div>
+				<div class="col-xs-6">
 					<div id="authorise-submit" class="authorise-button" tabindex="3">
 						<!-- Would be nice to have proper HTML here -->
 						<user:submit />
 					</div>
 				</div>
+			</div>
+			<div class="row" style="text-align: right;">
+				<div class="col-xs-6"></div>
 				<div class="col-xs-6">
-					<a href="/user_mgt/sign_up" id="authorise-signup" class="btn btn-default pull-right authorise-button" tabindex="4">Sign up</a>
+					<a href="/user_mgt/lost_password" id="authorise-recover-password" tabindex="5">Recover password</a>
 				</div>
 			</div>
-			<a href="/user_mgt/lost_password" id="authorise-recover-password" tabindex="5">Recover password</a>
 		</form>
 		<div style="text-align: center;" data-lift="OpenidConnectInvoke.linkButton">  <a class="btn btn-default">OpenID Connect</a></div>
 	</div>
