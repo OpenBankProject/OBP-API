@@ -3886,7 +3886,7 @@ trait APIMethods400 {
             else
               Future{(Full(), Some(cc))}
 
-            (counterparty, callConext) <- NewStyle.function.createCounterparty(
+            (counterparty, callContext) <- NewStyle.function.createCounterparty(
               name=postJson.name,
               description=postJson.description,
               createdByUserId=u.userId,
@@ -3905,7 +3905,7 @@ trait APIMethods400 {
               bespoke=postJson.bespoke.map(bespoke =>CounterpartyBespoke(bespoke.key,bespoke.value))
               , callContext)
 
-            (counterpartyMetadata, callContext) <- NewStyle.function.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, postJson.name, callConext)
+            (counterpartyMetadata, callContext) <- NewStyle.function.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, postJson.name, callContext)
 
           } yield {
             (JSONFactory220.createCounterpartyWithMetadataJSON(counterparty,counterpartyMetadata), HttpCode.`201`(callContext))
