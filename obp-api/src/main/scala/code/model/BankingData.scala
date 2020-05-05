@@ -499,7 +499,7 @@ object BankAccountX {
     * @return BankAccount
     */
   def toBankAccount(counterparty: CounterpartyTrait) : Box[BankAccount] = {
-    if (counterparty.otherBankRoutingScheme =="OBP_BANK_ID" && counterparty.otherAccountRoutingScheme =="OBP_ACCOUNT_ID")
+    if (counterparty.otherBankRoutingScheme =="OBP" && counterparty.otherAccountRoutingScheme =="OBP")
       for{
         toBankId <- Full(BankId(counterparty.otherBankRoutingAddress))
         toAccountId <- Full(AccountId(counterparty.otherAccountRoutingAddress))
@@ -507,7 +507,7 @@ object BankAccountX {
       } yield{
         toAccount
       }
-    else if (counterparty.otherBankRoutingScheme =="OBP_BANK_ID" && counterparty.otherAccountSecondaryRoutingScheme == "OBP_ACCOUNT_ID")
+    else if (counterparty.otherBankRoutingScheme =="OBP" && counterparty.otherAccountSecondaryRoutingScheme == "OBP")
       for{
         toBankId <- Full(BankId(counterparty.otherBankRoutingAddress))
         toAccountId <- Full(AccountId(counterparty.otherAccountSecondaryRoutingAddress))

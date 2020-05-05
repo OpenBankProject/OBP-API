@@ -3797,9 +3797,9 @@ trait APIMethods400 {
          | {
          |  "name": "Tesobe1",
          |  "description": "Good Company",
-         |  "other_bank_routing_scheme": "OBP_BANK_ID",
+         |  "other_bank_routing_scheme": "OBP",
          |  "other_bank_routing_address": "gh.29.uk",
-         |  "other_account_routing_scheme": "OBP_ACCOUNT_ID",
+         |  "other_account_routing_scheme": "OBP",
          |  "other_account_routing_address": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
          |  "is_beneficiary": true,
          |  "other_account_secondary_routing_scheme": "",
@@ -3815,9 +3815,9 @@ trait APIMethods400 {
          | {
          |  "name": "Tesobe2",
          |  "description": "Good Company",
-         |  "other_bank_routing_scheme": "OBP_BANK_ID",
+         |  "other_bank_routing_scheme": "OBP",
          |  "other_bank_routing_address": "gh.29.uk",
-         |  "other_account_routing_scheme": "OBP_ACCOUNT_ID",
+         |  "other_account_routing_scheme": "OBP",
          |  "other_account_routing_address": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
          |  "other_account_secondary_routing_scheme": "IBAN",
          |  "other_account_secondary_routing_address": "DE89 3704 0044 0532 0130 00",
@@ -3865,8 +3865,8 @@ trait APIMethods400 {
               Counterparties.counterparties.vend.checkCounterpartyAvailable(postJson.name, bankId.value, accountId.value, viewId.value)
             }
 
-            //If other_account_routing_scheme=="OBP_ACCOUNT_ID" or other_account_secondary_routing_address=="OBP_ACCOUNT_ID" we will check if it is a real obp bank account.
-            (_, callContext)<- if (postJson.other_bank_routing_scheme == "OBP_BANK_ID" && postJson.other_account_routing_scheme =="OBP_ACCOUNT_ID"){
+            //If other_account_routing_scheme=="OBP" or other_account_secondary_routing_address=="OBP" we will check if it is a real obp bank account.
+            (_, callContext)<- if (postJson.other_bank_routing_scheme == "OBP" && postJson.other_account_routing_scheme =="OBP"){
               for{
                 (_, callContext) <- NewStyle.function.getBank(BankId(postJson.other_bank_routing_address), Some(cc))
                 (account, callContext) <- NewStyle.function.checkBankAccountExists(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address), callContext)
@@ -3874,7 +3874,7 @@ trait APIMethods400 {
               } yield {
                 (account, callContext)
               }
-            } else if (postJson.other_bank_routing_scheme == "OBP_BANK_ID" && postJson.other_account_secondary_routing_scheme=="OBP_ACCOUNT_ID"){
+            } else if (postJson.other_bank_routing_scheme == "OBP" && postJson.other_account_secondary_routing_scheme=="OBP"){
               for{
                 (_, callContext) <- NewStyle.function.getBank(BankId(postJson.other_bank_routing_address), Some(cc))
                 (account, callContext) <- NewStyle.function.checkBankAccountExists(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_secondary_routing_address), callContext)

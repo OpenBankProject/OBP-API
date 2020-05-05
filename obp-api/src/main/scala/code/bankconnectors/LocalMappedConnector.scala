@@ -2132,7 +2132,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .map(
         branch =>
           branch.branchRouting.map(_.scheme) == null && branch.branchRouting.map(_.address) == null match {
-            case true => branch.mBranchRoutingScheme("OBP_BRANCH_ID").mBranchRoutingAddress(branch.branchId.value)
+            case true => branch.mBranchRoutingScheme("OBP").mBranchRoutingAddress(branch.branchId.value)
             case _ => branch
           }
       )
