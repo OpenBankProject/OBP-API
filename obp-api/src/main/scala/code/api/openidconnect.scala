@@ -97,25 +97,25 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
           case Full((idToken, accessToken, tokenType, expiresIn, refreshToken)) =>
             JwtUtil.validateIdToken(idToken, OpenIdConnectConfig.get().jwks_uri) match {
               case Full(_) =>
-                saveUser(idToken) match {
+                getOrCreateResourceUser(idToken) match {
                   case Full(user) =>
-                    getOrCreateAuthUser(user)  match {
+                    getOrCreateAuthUser(user) match {
                       case Full(authUser) =>
-                        saveConsumer(idToken, user.userId) match {
+                        getOrCreateConsumer(idToken, user.userId) match {
                           case Full(consumer) =>
                             saveAuthorizationToken(accessToken, refreshToken, user.userPrimaryKey.value, expiresIn, consumer) match {
                               case Full(token) => (200, "OK", Some(authUser))
-                              case _ => (401, ErrorMessages.CannotStoreOpenIDConnectData, Some(authUser))
+                              case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData, Some(authUser))
                             }
-                          case _ => (401, ErrorMessages.CannotStoreOpenIDConnectData, Some(authUser))
+                          case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData, Some(authUser))
                         }
-                      case _ =>  (401, ErrorMessages.CannotStoreOpenIDConnectData, None)
+                      case _ =>  (401, ErrorMessages.CouldNotHandleOpenIDConnectData, None)
                     }
-                  case _ => (401, ErrorMessages.CannotSaveOpenIDConnectUser, None)
+                  case _ => (401, ErrorMessages.CouldNotSaveOpenIDConnectUser, None)
                 }
               case _ => (401, ErrorMessages.CannotValidateIDToken, None)
             }
-          case _ => (401, ErrorMessages.CannotExchangeAuthorizationCodeForTokens, None)
+          case _ => (401, ErrorMessages.CouldNotExchangeAuthorizationCodeForTokens, None)
         }
       } else {
         (401, ErrorMessages.WrongOpenIDConnectState, None)
@@ -155,7 +155,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
     }
   }
 
-  private def saveUser(idToken: String): Box[User] = {
+  private def getOrCreateResourceUser(idToken: String): Box[User] = {
     val subject = JwtUtil.getSubject(idToken)
     val issuer = JwtUtil.getIssuer(idToken).getOrElse("")
     Users.users.vend.getUserByProviderId(provider = issuer, idGivenByProvider = subject.getOrElse("")).or { // Find a user
@@ -225,7 +225,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
     }
   }
   
-  private def saveConsumer(idToken: String, userId: String): Box[Consumer] = {
+  private def getOrCreateConsumer(idToken: String, userId: String): Box[Consumer] = {
     Consumers.consumers.vend.getOrCreateConsumer(
       consumerId=Some(APIUtil.generateUUID()),
       Some(Helpers.randomString(40).toLowerCase),
