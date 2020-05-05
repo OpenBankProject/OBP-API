@@ -97,6 +97,7 @@ import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
 import code.taxresidence.MappedTaxResidence
+import code.token.OpenIDConnectToken
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionStatusScheduler
@@ -679,6 +680,7 @@ object ToSchemify {
     MappedUserCustomerLink,
     Consumer,
     Token,
+    OpenIDConnectToken,
     Nonce,
     MappedCounterparty,
     MappedCounterpartyBespoke,

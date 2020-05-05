@@ -551,6 +551,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # openid_connect.endpoint.userinfo=https://openidconnect.googleapis.com/v1/userinfo
 # openid_connect.endpoint.token=https://oauth2.googleapis.com/token
 # openid_connect.endpoint.jwks_uri=https://www.googleapis.com/oauth2/v3/certs
+# openid_connect.access_type_offline=true
 
 # When new consumers inserted they should use this setting.
 consumers_enabled_by_default=true

@@ -41,7 +41,8 @@ object OpenidConnectInvoke extends Loggable {
         nonce
       )
     OpenIDConnectSessionState.set(Full(state))
-    val redirectTo = req.toHTTPRequest.getURL() + "?" + req.toHTTPRequest.getQuery()
+    val accessType = if (OpenIdConnectConfig.get().access_type_offline) "&access_type=offline" else ""
+    val redirectTo = req.toHTTPRequest.getURL() + "?" + req.toHTTPRequest.getQuery() + accessType
     S.redirectTo(redirectTo)
   }
 

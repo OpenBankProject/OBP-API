@@ -35,7 +35,7 @@ import code.consumer.Consumers
 import code.model.{Consumer, Token}
 import code.model.dataAccess.AuthUser
 import code.snippet.OpenIDConnectSessionState
-import code.token.Tokens
+import code.token.{OpenIDConnectToken, Tokens, TokensOpenIDConnect}
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
@@ -62,7 +62,8 @@ case class OpenIdConnectConfig(client_secret: String,
                                userinfo_endpoint: String,
                                token_endpoint: String,
                                authorization_endpoint: String,
-                               jwks_uri: String
+                               jwks_uri: String,
+                               access_type_offline: Boolean
                               )
 
 object OpenIdConnectConfig {
@@ -75,7 +76,8 @@ object OpenIdConnectConfig {
       getProps("openid_connect.endpoint.userinfo"),
       getProps("openid_connect.endpoint.token"),
       getProps("openid_connect.endpoint.authorization"),
-      getProps("openid_connect.endpoint.jwks_uri")
+      getProps("openid_connect.endpoint.jwks_uri"),
+      APIUtil.getPropsAsBoolValue("openid_connect.access_type_offline", false),
     )
   }
 }
@@ -94,7 +96,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
 
       val (httpCode, message, authorizationUser) = if(state == sessionState) {
         exchangeAuthorizationCodeForTokens(code) match {
-          case Full((idToken, accessToken, tokenType, expiresIn, refreshToken)) =>
+          case Full((idToken, accessToken, tokenType, expiresIn, refreshToken, scope)) =>
             JwtUtil.validateIdToken(idToken, OpenIdConnectConfig.get().jwks_uri) match {
               case Full(_) =>
                 getOrCreateResourceUser(idToken) match {
@@ -103,13 +105,13 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                       case Full(authUser) =>
                         getOrCreateConsumer(idToken, user.userId) match {
                           case Full(consumer) =>
-                            saveAuthorizationToken(accessToken, refreshToken, user.userPrimaryKey.value, expiresIn, consumer) match {
+                            saveAuthorizationToken(tokenType, accessToken, idToken, refreshToken, scope, expiresIn) match {
                               case Full(token) => (200, "OK", Some(authUser))
-                              case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData, Some(authUser))
+                              case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "1", Some(authUser))
                             }
-                          case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData, Some(authUser))
+                          case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "2", Some(authUser))
                         }
-                      case _ =>  (401, ErrorMessages.CouldNotHandleOpenIDConnectData, None)
+                      case _ =>  (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "3", None)
                     }
                   case _ => (401, ErrorMessages.CouldNotSaveOpenIDConnectUser, None)
                 }
@@ -190,7 +192,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
     newUser.saveMe()
   }
 
-  def exchangeAuthorizationCodeForTokens(authorizationCode: String): Box[(String, String, String, Long, String)] = {
+  def exchangeAuthorizationCodeForTokens(authorizationCode: String): Box[(String, String, String, Long, String, String)] = {
     val config = OpenIdConnectConfig.get()
     val data =    "client_id=" + config.client_id + "&" +
                   "client_secret=" + config.client_secret + "&" +
@@ -205,8 +207,9 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       tokenType <- tryo{(tokenResponse \ "token_type").extractOrElse[String]("")}
       expiresIn <- tryo{(tokenResponse \ "expires_in").extractOrElse[String]("")}
       refreshToken <- tryo{(tokenResponse \ "refresh_token").extractOrElse[String]("")}
+      scope <- tryo{(tokenResponse \ "scope").extractOrElse[String]("")}
     } yield {
-      (idToken, accessToken, tokenType, expiresIn.toLong, refreshToken)
+      (idToken, accessToken, tokenType, expiresIn.toLong, refreshToken, scope)
     }
   }
 
@@ -244,25 +247,25 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
     )
   }
 
-  private def saveAuthorizationToken(tokenKey: String, 
-                                     tokenSecret: String, 
-                                     userId: Long,
-                                     expirationInSeconds: Long, 
-                                     consumer: Consumer): Box[Token] = {
-    import code.model.TokenType
-    val currentTime = Platform.currentTime
-    val tokenDuration: Long = Helpers.seconds(expirationInSeconds)
-    Tokens.tokens.vend.createToken(
-      TokenType.IDToken,
-      Some(consumer.id.get),
-      Some(userId),
-      Some(tokenKey),
-      Some(tokenSecret),
-      Some(tokenDuration),
-      Some(new Date(currentTime + tokenDuration)),
-      Some(new Date(currentTime)),
-      None
+  private def saveAuthorizationToken(tokenType: String,
+                                     accessToken: String,
+                                     idToken: String,
+                                     refreshToken: String,
+                                     scope: String,
+                                     expiresIn: Long): Box[OpenIDConnectToken] = {
+    val token = TokensOpenIDConnect.tokens.vend.createToken(
+      tokenType = tokenType,
+      accessToken = accessToken,
+      idToken = idToken,
+      refreshToken = refreshToken,
+      scope = scope,
+      expiresIn = expiresIn
     )
+    token match  {
+      case Full(_) => // All good
+      case error => logger.error(error)
+    }
+    token
   }
 
   def fromUrl( url: String,
