@@ -318,11 +318,15 @@ object ExampleValue {
 
   // the follow examples all contains "others" part, but there are corresponding examples: bankRoutingSchemeExample, bankRoutingAddressExample...
   // if these are duplicate with those examples, just delete the follow examples
-  lazy val counterpartyOtherBankRoutingSchemeExample = ConnectorField("Counterparty otherBankRoutingScheme string", "fix me")
-  lazy val counterpartyOtherBankRoutingAddressExample = ConnectorField("Counterparty otherBankRoutingAddress string", "fix me")
-  lazy val counterpartyOtherAccountRoutingSchemeExample = ConnectorField("Counterparty otherAccountRoutingScheme string", "fix me")
-  lazy val counterpartyOtherAccountRoutingAddressExample = ConnectorField("Counterparty otherAccountRoutingAddress string", "fix me")
+  lazy val counterpartyOtherBankRoutingSchemeExample = ConnectorField("OBP_BANK_ID" ,"Counterparty otherBankRoutingScheme string")
+  lazy val counterpartyOtherBankRoutingAddressExample = ConnectorField("gh.29.uk", "Counterparty otherBankRoutingAddress string")
+  lazy val counterpartyOtherAccountRoutingSchemeExample = ConnectorField("OBP_ACCOUNT_ID", "Counterparty otherAccountRoutingScheme string")
+  lazy val counterpartyOtherAccountRoutingAddressExample = ConnectorField("36f8a9e6-c2b1-407a-8bd0-421b7119307e", "Counterparty otherAccountRoutingAddress string")  
+  lazy val counterpartyOtherAccountSecondaryRoutingSchemeExample = ConnectorField("IBAN", "Counterparty otherAccountSecondaryRoutingScheme string")
+  lazy val counterpartyOtherAccountSecondaryRoutingAddressExample = ConnectorField("DE89370400440532013000", "Counterparty otherAccountSecondaryRoutingAddress string")
   lazy val counterpartyOtherAccountProviderExample = ConnectorField("Counterparty otherAccountProvider string", "fix me")
+  lazy val counterpartyOtherBranchRoutingSchemeExample = ConnectorField("OBP_BRANCH_ID", "Counterparty otherBranchRoutingScheme string")
+  lazy val counterpartyOtherBranchRoutingAddressExample = ConnectorField("12f8a9e6-c2b1-407a-8bd0-421b7119307e", "Counterparty otherBranchRoutingAddress string")
 
 
   lazy val customerFaceImageDateExample = ConnectorField("2019-09-08", "fix me, CustomerFaceImage Date string")
