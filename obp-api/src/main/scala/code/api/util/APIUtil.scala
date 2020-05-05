@@ -2823,9 +2823,10 @@ Returns a string showed to the developer
   lazy val defaultBankId = 
     if (Props.mode == Props.RunModes.Test)
       APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET_Test")
-    else
-      APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET")
-      
+    else {
+      //Note: now if the bank_id is not existing, we will create it during `boot`.
+      APIUtil.getPropsValue("defaultBank.bank_id", "OBP_DEFAULT_BANK_ID")
+    }
   //This method will read sample.props.template file, and get all the fields which start with the webui_
   //it will return the webui_ props paris: 
   //eg: List(("webui_get_started_text","Get started building your application using this sandbox now"),

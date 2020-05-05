@@ -5635,10 +5635,10 @@ trait APIMethods310 {
               }
             } else if (fromAccountPost.bank_id.isEmpty && fromAccountPost.account_id.isEmpty && fromAccountPost.counterparty_id.isDefined){
               for {
-                 (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(fromAccountPost.counterparty_id.get), cc.callContext)
-                 toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
+                 (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(fromAccountPost.counterparty_id.get), cc.callContext)
+                 fromAccount <- NewStyle.function.toBankAccount(fromCounterparty, false, callContext)
               }yield{
-                (toAccount, callContext)
+                (fromAccount, callContext)
               }
             } else {
               throw new RuntimeException(s"$InvalidJsonFormat from object should only contain bank_id and account_id or counterparty_id in the post json body.")
@@ -5656,7 +5656,7 @@ trait APIMethods310 {
             } else if (toAccountPost.bank_id.isEmpty && toAccountPost.account_id.isEmpty && toAccountPost.counterparty_id.isDefined){
               for {
                 (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toAccountPost.counterparty_id.get), cc.callContext)
-                toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
+                toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
               }yield{
                 (toAccount, callContext)
               }

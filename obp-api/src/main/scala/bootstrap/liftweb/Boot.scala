@@ -605,8 +605,9 @@ class Boot extends MdcLoggable {
            |""".stripMargin
       logger.info(comment)
     }
-    
 
+    //see the notes for this method:
+    createDefaultBankAndDefaultAccountsIfNotExisting()
   }
 
   def schemifyAll() = {
@@ -661,6 +662,59 @@ class Boot extends MdcLoggable {
     //if Mailer.sendMail wasn't called (note: this actually isn't checking if the mail failed to send as that is being done asynchronously)
     if(mailSent.isEmpty)
       logger.warn(s"Exception notification failed: $mailSent")
+  }
+  
+  /**
+   *  there will be a default bank and two default accounts in obp mapped mode.                                               
+   *  These bank and accounts will be used for the payments.                                                                  
+   *  when we create transaction request over counterparty and if the counterparty do not link to an existing obp account     
+   *  then we will use the default accounts (incoming and outgoing) to keep the money.                                        
+   */
+  private def createDefaultBankAndDefaultAccountsIfNotExisting() ={
+    val defaultBankId= APIUtil.defaultBankId
+    val incomingAccountId= INCOMING_ACCOUNT_ID
+    val outgoingAccountId= OUTGOING_ACCOUNT_ID
+    
+    MappedBank.find(By(MappedBank.permalink, defaultBankId)) match {
+      case Full(b) =>
+        logger.debug(s"Bank(${defaultBankId}) is found.")
+      case _ =>
+        MappedBank.create
+          .permalink(defaultBankId)
+          .fullBankName("OBP_DEFAULT_BANK")
+          .shortBankName("OBP")
+          .national_identifier("OBP")
+          .mBankRoutingScheme("OBP")
+          .mBankRoutingAddress("OBP_DEFAULT_BANK")
+          .logoURL("")
+          .websiteURL("")
+          .saveMe()
+        logger.debug(s"creating Bank(${defaultBankId})")   
+    }
+    
+    MappedBankAccount.find(By(MappedBankAccount.bank, defaultBankId), By(MappedBankAccount.theAccountId, incomingAccountId)) match {
+      case Full(b) =>
+        logger.debug(s"BankAccount(${defaultBankId}, $incomingAccountId) is found.")
+      case _ =>
+        MappedBankAccount.create
+          .bank(defaultBankId)
+          .theAccountId(incomingAccountId)
+          .accountCurrency("EUR")
+          .saveMe()
+        logger.debug(s"creating BankAccount(${defaultBankId}, $incomingAccountId).")
+    }
+    
+    MappedBankAccount.find(By(MappedBankAccount.bank, defaultBankId), By(MappedBankAccount.theAccountId, outgoingAccountId)) match {
+      case Full(b) =>
+        logger.debug(s"BankAccount(${defaultBankId}, $outgoingAccountId) is found.")
+      case _ =>
+        MappedBankAccount.create
+          .bank(defaultBankId)
+          .theAccountId(outgoingAccountId)
+          .accountCurrency("EUR")
+          .saveMe()
+        logger.debug(s"creating BankAccount(${defaultBankId}, $outgoingAccountId).")
+    }
   }
 }
 

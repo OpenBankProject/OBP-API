@@ -27,10 +27,11 @@ TESOBE (http://www.tesobe.com/)
 package code.model
 
 import code.accountholders.AccountHolders
-import code.api.util.APIUtil.{OBPReturnType, unboxFullOrFail, canGrantAccessToViewCommon, canRevokeAccessToViewCommon}
+import code.api.Constant
+import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.util._
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.customer.CustomerX
 import code.util.Helper
 import code.util.Helper.MdcLoggable
@@ -492,13 +493,16 @@ object BankAccountX {
   }
   /**
     * Mapping a CounterpartyTrait to OBP BankAccount.
-    * If connector=mapped, we will search for the obp BankAccount.
-    * If connector=kafka, we can not find a bankAccount in obp, we only map some fileds. It depends on what we get from Adapter side.
+    * If we can find an mapping OBP BankAccount, we will return it.
+    * If not, we will use the default bankAccounts. Which are created during boot.scala.
     *
     * @param counterparty
+    * @param isOutgoingAccount counterparty can be incoming or outgoing. 
+    *                          outgoing: obp account send money to counterparty.
+    *                          incoming: counterparty send money to obp account.
     * @return BankAccount
     */
-  def toBankAccount(counterparty: CounterpartyTrait) : Box[BankAccount] = {
+  def toBankAccount(counterparty: CounterpartyTrait, isOutgoingAccount: Boolean) : Box[BankAccount] = {
     if (counterparty.otherBankRoutingScheme =="OBP" && counterparty.otherAccountRoutingScheme =="OBP")
       for{
         toBankId <- Full(BankId(counterparty.otherBankRoutingAddress))
@@ -515,38 +519,18 @@ object BankAccountX {
       } yield{
         toAccount
       }
-    else  //If we can not create the `BankAccount` from the counterparty, then we just faked the object in memory. 
-      Full(
-        BankAccountInMemory(
-
-          //Map Counterparty <--> BankAccount, not all fields we can fill.
-          accountHolder = counterparty.name,
-          accountRoutingScheme = counterparty.otherAccountRoutingScheme,
-          accountRoutingAddress = counterparty.otherAccountRoutingAddress,
-          accountRoutings = List(
-            AccountRouting(counterparty.otherAccountRoutingScheme,
-              counterparty.otherAccountRoutingAddress),
-            AccountRouting(counterparty.otherAccountSecondaryRoutingScheme,
-              counterparty.otherAccountSecondaryRoutingAddress)
-          ),
-
-
-         
-          bankId = BankId(""),
-          accountId = AccountId(""),
-          accountType = null,
-          balance = 0,
-          currency = "EUR",
-          lastUpdate = null,
-          name = "",
-          label = "",
-          branchId = "",
-          swift_bic = Option(""),
-          iban = Option(""),
-          number = "",
-          accountRules = Nil
-        )
-      )
+    else {
+      //in obp we have the default bank and default accounts for this case: 
+      //These are just the obp mapped mode, if connector to the bank, bank will decide it. 
+      val defaultBankId= BankId(APIUtil.defaultBankId)
+      val incomingAccountId= AccountId(Constant.INCOMING_ACCOUNT_ID)
+      val outgoingAccountId= AccountId(Constant.OUTGOING_ACCOUNT_ID)
+      if (isOutgoingAccount){
+        LocalMappedConnector.getBankAccount(defaultBankId,outgoingAccountId)
+      } else{
+        LocalMappedConnector.getBankAccount(defaultBankId,incomingAccountId)
+      }
+    }
   }
 
   //This method change CounterpartyTrait to internal counterparty, becuasa of the view stuff.
