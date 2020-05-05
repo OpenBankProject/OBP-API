@@ -32,9 +32,9 @@ import java.util.Date
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ErrorMessages, JwtUtil}
 import code.consumer.Consumers
-import code.model.Consumer
+import code.model.{Consumer, Token}
 import code.model.dataAccess.AuthUser
-import code.snippet.{OpenIDConnectSessionState}
+import code.snippet.OpenIDConnectSessionState
 import code.token.Tokens
 import code.users.Users
 import code.util.Helper.MdcLoggable
@@ -61,7 +61,8 @@ case class OpenIdConnectConfig(client_secret: String,
                                callback_url: String,
                                userinfo_endpoint: String,
                                token_endpoint: String,
-                               authorization_endpoint: String
+                               authorization_endpoint: String,
+                               jwks_uri: String
                               )
 
 object OpenIdConnectConfig {
@@ -73,7 +74,8 @@ object OpenIdConnectConfig {
       getProps("openid_connect.callback_url"),
       getProps("openid_connect.endpoint.userinfo"),
       getProps("openid_connect.endpoint.token"),
-      getProps("openid_connect.endpoint.authorization")
+      getProps("openid_connect.endpoint.authorization"),
+      getProps("openid_connect.endpoint.jwks_uri")
     )
   }
 }
@@ -87,51 +89,36 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
 
   serve {
     case Req("auth" :: "openid-connect" :: "callback" :: Nil, _, PostRequest | GetRequest) => {
-      var httpCode = 500
-      var message = ErrorMessages.UnknownError
-      var authorizationUser: Option[AuthUser] = None
-      for {
-        code <- S.params("code")
-        state <- S.param("state")
-        sessionState <- OpenIDConnectSessionState.get
-      } yield {
-        if(state == sessionState.toString()) {
-          exchangeAuthorizationCodeForTokens(code) match {
-            case Full((idToken, accessToken, tokenType)) =>
-              saveUser(idToken) match {
-                case Full(user) =>
-                  for {
-                    authUser: AuthUser <- AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value)) match {
-                      case Full(user) => Full(user)
-                      case _          => createAuthUser(user)
+      
+      val (code, state, sessionState) = extractParams(S)
+
+      val (httpCode, message, authorizationUser) = if(state == sessionState) {
+        exchangeAuthorizationCodeForTokens(code) match {
+          case Full((idToken, accessToken, tokenType, expiresIn, refreshToken)) =>
+            JwtUtil.validateIdToken(idToken, OpenIdConnectConfig.get().jwks_uri) match {
+              case Full(_) =>
+                saveUser(idToken) match {
+                  case Full(user) =>
+                    getOrCreateAuthUser(user)  match {
+                      case Full(authUser) =>
+                        saveConsumer(idToken, user.userId) match {
+                          case Full(consumer) =>
+                            saveAuthorizationToken(accessToken, refreshToken, user.userPrimaryKey.value, expiresIn, consumer) match {
+                              case Full(token) => (200, "OK", Some(authUser))
+                              case _ => (401, ErrorMessages.CannotStoreOpenIDConnectData, Some(authUser))
+                            }
+                          case _ => (401, ErrorMessages.CannotStoreOpenIDConnectData, Some(authUser))
+                        }
+                      case _ =>  (401, ErrorMessages.CannotStoreOpenIDConnectData, None)
                     }
-                  } yield {
-                    org.scalameta.logger.elem(state)
-                    org.scalameta.logger.elem(sessionState)
-                    val consumer: Box[Consumer] = saveConsumer(idToken, user.userId)
-                    saveAuthorizationToken(accessToken, accessToken, user.userPrimaryKey.value, consumer) match {
-                      case true =>
-                        httpCode = 200
-                        message= String.format("oauth_token=%s&oauth_token_secret=%s", accessToken, accessToken)
-                        authorizationUser = Some(authUser)
-                      case false =>
-                        httpCode = 400
-                        message = ErrorMessages.CannotSaveOpenIDConnectToken
-                        authorizationUser = Some(authUser)
-                    }
-                  }
-                case _ =>
-                  httpCode = 400
-                  message = ErrorMessages.CannotSaveOpenIDConnectUser
-              }
-            case _ =>
-              httpCode = 400
-              message = ErrorMessages.CannotExchangeAuthorizationCodeForTokens
-          }
-        } else {
-          httpCode = 401
-          message = ErrorMessages.WrongOpenIDConnectState
+                  case _ => (401, ErrorMessages.CannotSaveOpenIDConnectUser, None)
+                }
+              case _ => (401, ErrorMessages.CannotValidateIDToken, None)
+            }
+          case _ => (401, ErrorMessages.CannotExchangeAuthorizationCodeForTokens, None)
         }
+      } else {
+        (401, ErrorMessages.WrongOpenIDConnectState, None)
       }
       
       (httpCode, authorizationUser) match {
@@ -144,10 +131,30 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
         case _ =>
           errorJsonResponse(message, httpCode)
       }
-      
     }
   }
-  
+
+  private def extractParams(s: S): (String, String, String) = {
+    val tuple3 = for {
+      code <- s.param("code")
+      state <- s.param("state")
+      sessionState <- OpenIDConnectSessionState.get
+    } yield {
+      (code, state, sessionState.toString())
+    } 
+    tuple3 match {
+      case Full(tuple) => tuple
+      case _ => ("", "", "")
+    }
+  }
+
+  private def getOrCreateAuthUser(user: User): Box[AuthUser] = {
+    AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value)) match {
+      case Full(user) => Full(user)
+      case _ => createAuthUser(user)
+    }
+  }
+
   private def saveUser(idToken: String): Box[User] = {
     val subject = JwtUtil.getSubject(idToken)
     val issuer = JwtUtil.getIssuer(idToken).getOrElse("")
@@ -169,7 +176,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       case string => Some(string)
     }
   }
-  private def createAuthUser(user: User): Full[AuthUser] = {
+  private def createAuthUser(user: User): Box[AuthUser] = tryo {
     val newUser = AuthUser.create
       .firstName(user.name)
       .email(user.emailAddress)
@@ -181,10 +188,9 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       .validated(true)
     // Save the user in order to be able to log in
     newUser.saveMe()
-    Full(newUser)
   }
 
-  def exchangeAuthorizationCodeForTokens(authorizationCode: String): Box[(String, String, String)] = {
+  def exchangeAuthorizationCodeForTokens(authorizationCode: String): Box[(String, String, String, Long, String)] = {
     val config = OpenIdConnectConfig.get()
     val data =    "client_id=" + config.client_id + "&" +
                   "client_secret=" + config.client_secret + "&" +
@@ -197,8 +203,10 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       idToken <- tryo{(tokenResponse \ "id_token").extractOrElse[String]("")}
       accessToken <- tryo{(tokenResponse \ "access_token").extractOrElse[String]("")}
       tokenType <- tryo{(tokenResponse \ "token_type").extractOrElse[String]("")}
+      expiresIn <- tryo{(tokenResponse \ "expires_in").extractOrElse[String]("")}
+      refreshToken <- tryo{(tokenResponse \ "refresh_token").extractOrElse[String]("")}
     } yield {
-      (idToken, accessToken, tokenType)
+      (idToken, accessToken, tokenType, expiresIn.toLong, refreshToken)
     }
   }
 
@@ -235,31 +243,26 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       createdByUserId = Some(userId)
     )
   }
-  
-  private def saveAuthorizationToken(tokenKey: String, tokenSecret: String, userId: Long, consumer: Box[Consumer]) =
-  {
+
+  private def saveAuthorizationToken(tokenKey: String, 
+                                     tokenSecret: String, 
+                                     userId: Long,
+                                     expirationInSeconds: Long, 
+                                     consumer: Consumer): Box[Token] = {
     import code.model.TokenType
-    val consumerId = consumer match {
-      case Full(c) => Some(c.id.get)
-      case _       => None
-    }
     val currentTime = Platform.currentTime
-    val expiration = APIUtil.getPropsAsIntValue("token_expiration_weeks", 4)
-    val tokenDuration : Long = Helpers.weeks(expiration)
-    val tokenSaved = Tokens.tokens.vend.createToken(TokenType.Access,
-                                                    consumerId,
-                                                    Some(userId),
-                                                    Some(tokenKey),
-                                                    Some(tokenSecret),
-                                                    Some(tokenDuration),
-                                                    Some(new Date(currentTime+tokenDuration)),
-                                                    Some(new Date(currentTime)),
-                                                    None
-                                                  )
-    tokenSaved match {
-      case Full(_) => true
-      case _       => false
-    }
+    val tokenDuration: Long = Helpers.seconds(expirationInSeconds)
+    Tokens.tokens.vend.createToken(
+      TokenType.IDToken,
+      Some(consumer.id.get),
+      Some(userId),
+      Some(tokenKey),
+      Some(tokenSecret),
+      Some(tokenDuration),
+      Some(new Date(currentTime + tokenDuration)),
+      Some(new Date(currentTime)),
+      None
+    )
   }
 
   def fromUrl( url: String,

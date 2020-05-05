@@ -546,10 +546,11 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 ## registered on OBP localy.
 # openid_connect.client_secret=OYdWujJlU7fFOW_NXzPlDI4T
 # openid_connect.client_id=883773244832-s4hi72j0rble0iiivq1gn09k7vvptdci.apps.googleusercontent.com
-# openid_connect.callback_url=http://127.0.0.1:8080/my/logins/openid-connect
+# openid_connect.callback_url=http://127.0.0.1:8080/auth/openid-connect/callback
 # openid_connect.endpoint.authorization=https://accounts.google.com/o/oauth2/v2/auth
 # openid_connect.endpoint.userinfo=https://openidconnect.googleapis.com/v1/userinfo
 # openid_connect.endpoint.token=https://oauth2.googleapis.com/token
+# openid_connect.endpoint.jwks_uri=https://www.googleapis.com/oauth2/v3/certs
 
 # When new consumers inserted they should use this setting.
 consumers_enabled_by_default=true

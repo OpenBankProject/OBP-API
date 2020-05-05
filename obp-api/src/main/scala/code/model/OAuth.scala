@@ -61,9 +61,11 @@ sealed trait TokenType
 object TokenType {
   case object Request extends TokenType
   case object Access extends TokenType
+  case object IDToken extends TokenType
   def valueOf(value: String): TokenType = value match {
     case "Request" => Request
     case "Access" => Access
+    case "IDToken" => IDToken
   }
 }
 
