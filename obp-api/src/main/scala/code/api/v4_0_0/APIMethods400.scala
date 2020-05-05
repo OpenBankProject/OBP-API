@@ -3777,7 +3777,7 @@ trait APIMethods400 {
          |
          |other_account_secondary_routing_scheme : eg: IBan or any other strings
          |
-         |other_account_secondary_routing_address : if it is IBan, it should be unique for each counterparty.
+         |other_account_secondary_routing_address : if it is an IBAN, it should be unique for each counterparty.
          |
          |other_branch_routing_scheme : eg: branchId or any other strings or you can leave it empty, not useful in sandbox mode.
          |

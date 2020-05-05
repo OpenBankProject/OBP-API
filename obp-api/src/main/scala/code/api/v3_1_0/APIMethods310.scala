@@ -5693,7 +5693,7 @@ trait APIMethods310 {
             amountOfMoneyJson = AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount)
             chargePolicy = transDetailsJson.charge_policy
             
-            //There is no constrain for the type for now. 
+           //There is no constraint for the type at the moment  
             transactionType = transDetailsJson.`type` 
 
             (transactionId, callContext) <- NewStyle.function.makeHistoricalPayment(
