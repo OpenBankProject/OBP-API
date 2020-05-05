@@ -534,7 +534,7 @@ object BankAccountX {
   }
 
   //This method change CounterpartyTrait to internal counterparty, becuasa of the view stuff.
-  //All the fileds need be controlled by the view, and the `com.openbankproject.commons.model.View.moderate` accept the `Counterparty` as parameter.
+  //All the fields need be controlled by the view, and the `com.openbankproject.commons.model.View.moderate` accept the `Counterparty` as parameter.
   def toInternalCounterparty(counterparty: CounterpartyTrait) : Box[Counterparty] = {
     Full(
       //TODO, check all the `new Counterparty` code, they can be reduced into one gernal method for all.
