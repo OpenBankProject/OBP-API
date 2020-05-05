@@ -263,7 +263,7 @@ object SwaggerDefinitionsJSON {
 
   val transactionRequestIdSwagger = TransactionRequestId(value = "123")
 
-  val counterpartyIdSwagger = CounterpartyId(value = "123")
+  val counterpartyIdSwagger = CounterpartyId(counterpartyIdExample.value)
 
   val accountIdSwagger = model.AccountId(value = "123")
 
@@ -305,7 +305,7 @@ object SwaggerDefinitionsJSON {
     account_id= "String"
   )
 
-  val transactionRequestCounterpartyId = TransactionRequestCounterpartyId (counterparty_id = "String")
+  val transactionRequestCounterpartyId = TransactionRequestCounterpartyId (counterparty_id = counterpartyIdExample.value)
 
   val transactionRequestIban =  TransactionRequestIban (iban = "String")
 
@@ -414,10 +414,10 @@ object SwaggerDefinitionsJSON {
     this_bank_id= bankIdSwagger,
     this_account_id= accountIdSwagger,
     this_view_id= viewIdSwagger,
-    other_account_routing_scheme= "String",
-    other_account_routing_address= "String",
-    other_bank_routing_scheme= "String",
-    other_bank_routing_address= "String",
+    other_account_routing_scheme= counterpartyOtherAccountRoutingSchemeExample.value,
+    other_account_routing_address= counterpartyOtherAccountRoutingAddressExample.value,
+    other_bank_routing_scheme= counterpartyOtherBankRoutingSchemeExample.value,
+    other_bank_routing_address= counterpartyOtherBankRoutingAddressExample.value,
     is_beneficiary= true,
     future_date = Some("20881230")
   )
@@ -1083,14 +1083,14 @@ object SwaggerDefinitionsJSON {
     charge = transactionRequestCharge,
     charge_policy = "String",
     counterparty_id = counterpartyIdSwagger,
-    name = "String",
+    name = counterpartyNameExample.value,
     this_bank_id = bankIdSwagger,
     this_account_id = accountIdSwagger,
     this_view_id = viewIdSwagger,
-    other_account_routing_scheme = "String",
-    other_account_routing_address = "String",
-    other_bank_routing_scheme = "String",
-    other_bank_routing_address = "String",
+    other_account_routing_scheme = counterpartyOtherAccountRoutingSchemeExample.value,
+    other_account_routing_address = counterpartyOtherAccountRoutingAddressExample.value,
+    other_bank_routing_scheme = counterpartyOtherBankRoutingSchemeExample.value,
+    other_bank_routing_address = counterpartyOtherBankRoutingAddressExample.value,
     is_beneficiary = true
   )
 
@@ -1874,7 +1874,7 @@ object SwaggerDefinitionsJSON {
   import code.api.v2_1_0._
 
   val counterpartyIdJson = CounterpartyIdJson(
-    counterparty_id = "123456"
+    counterparty_id = counterpartyIdExample.value
   )
   val ibanJson = IbanJson(
     iban = "123"
@@ -2278,14 +2278,14 @@ object SwaggerDefinitionsJSON {
   val postCounterpartyJSON = PostCounterpartyJSON(
     name = "CounterpartyName",
     description ="My landlord",
-    other_account_routing_scheme = "accountNumber",
-    other_account_routing_address = "7987987-2348987-234234",
-    other_account_secondary_routing_scheme = "IBAN",
-    other_account_secondary_routing_address = "DE89370400440532013000",
-    other_bank_routing_scheme = "bankCode",
-    other_bank_routing_address = "10",
-    other_branch_routing_scheme = "branchNumber",
-    other_branch_routing_address = "10010", 
+    other_account_routing_scheme = counterpartyOtherAccountRoutingSchemeExample.value,
+    other_account_routing_address = counterpartyOtherAccountRoutingAddressExample.value,
+    other_account_secondary_routing_scheme = counterpartyOtherAccountSecondaryRoutingSchemeExample.value,
+    other_account_secondary_routing_address = counterpartyOtherAccountSecondaryRoutingAddressExample.value,
+    other_bank_routing_scheme = counterpartyOtherBankRoutingSchemeExample.value,
+    other_bank_routing_address = counterpartyOtherBankRoutingAddressExample.value,
+    other_branch_routing_scheme = counterpartyOtherBranchRoutingSchemeExample.value,
+    other_branch_routing_address = counterpartyOtherBranchRoutingAddressExample.value, 
     is_beneficiary = true,
     bespoke =  List(postCounterpartyBespokeJson)
   )
@@ -2408,7 +2408,7 @@ object SwaggerDefinitionsJSON {
     this_bank_id = bankIdExample.value,
     this_account_id =accountIdExample.value,
     this_view_id = SYSTEM_OWNER_VIEW_ID,
-    counterparty_id = "1d65db7c-a7b2-4839-af41-958276ab7790",
+    counterparty_id = counterpartyIdExample.value,
     other_bank_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
     other_bank_routing_address = postCounterpartyJSON.other_bank_routing_address,
     other_branch_routing_scheme = postCounterpartyJSON.other_branch_routing_scheme,
@@ -2416,8 +2416,8 @@ object SwaggerDefinitionsJSON {
     other_account_routing_scheme = postCounterpartyJSON.other_account_routing_scheme,
     other_account_routing_address = postCounterpartyJSON.other_account_routing_address,
     is_beneficiary = true,
-    other_account_secondary_routing_scheme = "accountId",
-    other_account_secondary_routing_address= "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+    other_account_secondary_routing_scheme = counterpartyOtherAccountSecondaryRoutingSchemeExample.value,
+    other_account_secondary_routing_address= counterpartyOtherAccountSecondaryRoutingAddressExample.value,
     bespoke = postCounterpartyJSON.bespoke
   )
   
@@ -2439,7 +2439,7 @@ object SwaggerDefinitionsJSON {
     this_bank_id = bankIdExample.value,
     this_account_id =accountIdExample.value,
     this_view_id = SYSTEM_OWNER_VIEW_ID,
-    counterparty_id = "1d65db7c-a7b2-4839-af41-958276ab7790",
+    counterparty_id = counterpartyIdExample.value,
     other_bank_routing_scheme = postCounterpartyJSON.other_bank_routing_scheme,
     other_bank_routing_address = postCounterpartyJSON.other_bank_routing_address,
     other_branch_routing_scheme = postCounterpartyJSON.other_branch_routing_scheme,
@@ -2447,8 +2447,8 @@ object SwaggerDefinitionsJSON {
     other_account_routing_scheme = postCounterpartyJSON.other_account_routing_scheme,
     other_account_routing_address = postCounterpartyJSON.other_account_routing_address,
     is_beneficiary = true,
-    other_account_secondary_routing_scheme = "accountId",
-    other_account_secondary_routing_address= "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+    other_account_secondary_routing_scheme = counterpartyOtherAccountSecondaryRoutingSchemeExample.value,
+    other_account_secondary_routing_address= counterpartyOtherAccountSecondaryRoutingAddressExample.value,
     bespoke = postCounterpartyJSON.bespoke,
     metadata = counterpartyMetadataJson
   )
@@ -3488,10 +3488,16 @@ object SwaggerDefinitionsJSON {
     account_attributes = List(accountAttributeResponseJson),
     tags = List(accountTagJSON)
   )
+
+  val historicalTransactionAccountJsonV310 = HistoricalTransactionAccountJsonV310(
+    bank_id = Some(bankIdExample.value),
+    account_id = Some(accountIdExample.value),
+    counterparty_id = Some(counterpartyIdExample.value)
+  )
   
   val postHistoricalTransactionJson = PostHistoricalTransactionJson(
-    from = transactionRequestAccountJsonV140,
-    to = transactionRequestAccountJsonV140,
+    from = historicalTransactionAccountJsonV310,
+    to = historicalTransactionAccountJsonV310,
     value = amountOfMoneyJsonV121,
     description = "this is for work",
     posted = DateWithSecondsExampleString,
@@ -3501,9 +3507,9 @@ object SwaggerDefinitionsJSON {
   )
 
   val postHistoricalTransactionResponseJson = PostHistoricalTransactionResponseJson(
-    transaction_id = "123",
-    from = transactionRequestAccountJsonV140,
-    to = transactionRequestAccountJsonV140,
+    transaction_id = transactionIdExample.value,
+    from = historicalTransactionAccountJsonV310,
+    to = historicalTransactionAccountJsonV310,
     value = amountOfMoneyJsonV121,
     description = "this is for work",
     posted = DateWithMsExampleObject,

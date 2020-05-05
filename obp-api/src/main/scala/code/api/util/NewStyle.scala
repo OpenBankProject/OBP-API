@@ -2057,5 +2057,59 @@ object NewStyle {
       }
     }
 
+    def createCounterparty(
+      name: String,
+      description: String,
+      createdByUserId: String,
+      thisBankId: String,
+      thisAccountId: String,
+      thisViewId: String,
+      otherAccountRoutingScheme: String,
+      otherAccountRoutingAddress: String,
+      otherAccountSecondaryRoutingScheme: String,
+      otherAccountSecondaryRoutingAddress: String,
+      otherBankRoutingScheme: String,
+      otherBankRoutingAddress: String,
+      otherBranchRoutingScheme: String,
+      otherBranchRoutingAddress: String,
+      isBeneficiary:Boolean,
+      bespoke: List[CounterpartyBespoke],
+      callContext: Option[CallContext]) : OBPReturnType[CounterpartyTrait] = {
+      Future {
+        unboxFullOrFail(Connector.connector.vend.createCounterparty(
+          name: String,
+          description: String,
+          createdByUserId: String,
+          thisBankId: String,
+          thisAccountId: String,
+          thisViewId: String,
+          otherAccountRoutingScheme: String,
+          otherAccountRoutingAddress: String,
+          otherAccountSecondaryRoutingScheme: String,
+          otherAccountSecondaryRoutingAddress: String,
+          otherBankRoutingScheme: String,
+          otherBankRoutingAddress: String,
+          otherBranchRoutingScheme: String,
+          otherBranchRoutingAddress: String,
+          isBeneficiary:Boolean,
+          bespoke: List[CounterpartyBespoke],
+          callContext: Option[CallContext]
+        ), callContext, s"$CreateCounterpartyError ")
+      }}
+
+    def getOrCreateMetadata(
+      bankId: BankId, 
+      accountId : AccountId, 
+      counterpartyId:String, 
+      counterpartyName:String,
+      callContext: Option[CallContext]
+    )  : OBPReturnType[CounterpartyMetadata]= {
+      Future{(unboxFullOrFail(Counterparties.counterparties.vend.getOrCreateMetadata(bankId: BankId,
+        accountId : AccountId,
+        counterpartyId:String,
+        counterpartyName:String
+      ), callContext, CreateOrUpdateCounterpartyMetadataError), callContext)}
+    }
+
   }
 }
