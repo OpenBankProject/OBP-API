@@ -5531,10 +5531,10 @@ trait APIMethods310 {
          |Import the historical transactions.
          |
          |The fields bank_id, account_id, counterparty_id in the json body are all optional ones.
-         |It support transfer money from account <--> account, account <--> counterparty and counterparty <--> counterparty
+         |It support transfer money from account to account, account to counterparty and counterparty to counterparty
          |Both bank_id + account_id and counterparty_id can identify the account, so OBP only need one of them to make the payment.
          |So: 
-         |When you need the account <--> account, just omit counterparty_id field.eg:
+         |When you need the account to account, just omit counterparty_id field.eg:
          |{
          |  "from": {
          |    "bank_id": "gh.29.uk",
@@ -5555,7 +5555,7 @@ trait APIMethods310 {
          |  "charge_policy": "SHARED"
          |}
          |
-         |When you need the counterparty <--> counterparty, need to omit bank_id and account_id field.eg:
+         |When you need the counterparty to counterparty, need to omit bank_id and account_id field.eg:
          |{
          |  "from": {
          |    "counterparty_id": "f6392b7d-4218-45ea-b9a7-eaa71c0202f9"
@@ -5574,7 +5574,7 @@ trait APIMethods310 {
          |  "charge_policy": "SHARED"
          |}
          |
-         |or, you can counterparty  <--> account
+         |or, you can counterparty to account
          |{
          |  "from": {
          |    "counterparty_id": "f6392b7d-4218-45ea-b9a7-eaa71c0202f9"
