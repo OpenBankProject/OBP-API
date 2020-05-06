@@ -316,7 +316,8 @@ import net.liftweb.util.Helpers._
     *          
    */
   def getCurrentUserUsername: String = {
-     getCurrentUser match{
+     getCurrentUser match {
+       case Full(user) if user.provider.contains("google") => user.emailAddress
        case Full(user) => user.name
        case _ => "" //TODO need more error handling for different user cases
      }
@@ -396,7 +397,7 @@ import net.liftweb.util.Helpers._
   //override def def passwordResetMailBody(user: TheUserType, resetLink: String): Elem = { }
 
   /**
-   * Overriden to use the hostname set in the props file
+   * Overridden to use the hostname set in the props file
    */
   override def sendValidationEmail(user: TheUserType) {
     val resetLink = APIUtil.getPropsValue("hostname", "ERROR")+"/"+validateUserPath.mkString("/")+

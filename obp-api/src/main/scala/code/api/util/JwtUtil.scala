@@ -120,7 +120,7 @@ object JwtUtil extends MdcLoggable {
       signedJWT.getJWTClaimsSet.getStringClaim(name)
     } catch {
       case e: Exception =>
-        logger.error(msg = "code.api.util.JwtUtil.getIssuer")
+        logger.error(msg = s"code.api.util.JwtUtil.getClaim: $name")
         logger.error(e)
         ""
     }
@@ -184,10 +184,9 @@ object JwtUtil extends MdcLoggable {
 
     // The required parameters
     val iss: Issuer = new Issuer(getIssuer(idToken).getOrElse(""))
-    val azp = getClaim("azp", idToken)
-    val clientID: ClientID = new ClientID(azp)
+    val aud = getAudience(idToken).headOption.getOrElse("")
+    val clientID: ClientID = new ClientID(aud)
     val jwsAlg: JWSAlgorithm = JWSAlgorithm.RS256
-    //val jwkSetURL: URL = new URL("https://www.googleapis.com/oauth2/v3/certs")
     val jwkSetURL: URL = new URL(remoteJWKSetUrl)
 
     // Create validator for signed ID tokens
