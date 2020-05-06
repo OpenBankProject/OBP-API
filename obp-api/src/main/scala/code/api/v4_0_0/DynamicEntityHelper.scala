@@ -1,5 +1,7 @@
 package code.api.v4_0_0
 
+import java.util.regex.Pattern
+
 import code.api.util.APIUtil.{Catalogs, EmptyBody, ResourceDoc, authenticationRequiredMessage, generateUUID, notCore, notOBWG, notPSD2}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
@@ -39,28 +41,38 @@ object MockerConnector {
     var existsTagNames = ApiTag.staticTagNames
     // match string that start with _, e.g: "_abc"
     val Regex = "(_+)(.+)".r
+
+
+    //convert entity name to tag name, example:
+    //    Csem-case -> Csem Case
+    //    _Csem-case -> _Csem Case
+    //    Csem_case -> Csem Case
+    //    _Csem_case -> _Csem Case
+    //    csem-case -> Csem Case
+    def prettyTagName(s: String) = s.capitalize.split("(?<=[^-_])[-_]+").reduceLeft(_ + " " + _.capitalize)
+
     def apiTag(entityName: String, singularName: String): ResourceDocTag = {
 
       val existsSameStaticEntity: Boolean = existsTagNames
         .exists(it => it.equalsIgnoreCase(singularName) || it.equalsIgnoreCase(entityName))
 
-      if(addPrefix || existsSameStaticEntity) {
-        var tagName = singularName match {
+
+      val tagName = if(addPrefix || existsSameStaticEntity) {
+        var name = singularName match {
           case Regex(a,b) => s"$a${b.capitalize}"
           case v => s"_${v.capitalize}"
         }
 
-        while(existsTagNames.exists(it => it.equalsIgnoreCase(tagName))) {
-          tagName = s"_$tagName"
+        while(existsTagNames.exists(it => it.equalsIgnoreCase(name))) {
+          name = s"_$name"
         }
-
-        existsTagNames += tagName
-        ApiTag(tagName)
+        prettyTagName(name)
       } else {
-        val tagName = singularName.capitalize
-        existsTagNames += tagName
-        ApiTag(tagName)
+        prettyTagName(singularName.capitalize)
       }
+
+      existsTagNames += tagName
+      ApiTag(tagName)
     }
     val fun: DynamicEntityInfo => ArrayBuffer[ResourceDoc] = createDocs(apiTag)
     val docs: Seq[ResourceDoc] = definitionsMap.values.flatMap(fun).toSeq
