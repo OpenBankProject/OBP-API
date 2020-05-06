@@ -400,6 +400,10 @@ webui_oauth_2_documentation_url =
 oauth2_server_url =
 
 # Link to Privacy Policy on signup page
+#webui_signup_form_submit_button_value=
+#webui_signup_form_title_text=Sign Up
+#webui_signup_body_password_repeat_text=Repeat 
+#webui_agree_terms_html=<div id="signup-agree-terms" class="checkbox"><label><input type="checkbox" />I hereby agree to the <a href="$url" title="T &amp; C">Terms and Conditions</a></label></div>
 webui_agree_privacy_policy_url = https://openbankproject.com/privacy-policy
 webui_agree_privacy_policy_html_text =<div id="signup-agree-privacy-policy"><label>By submitting this information you consent to processing your data by TESOBE GmbH according to our <a href="$url" title="Privacy Policy">Privacy Policy</a>. TESOBE shall use this information to send you emails and provide customer support.</label></div>
 
@@ -435,6 +439,7 @@ webui_agree_terms_url =
 # Will be displayed on the post Consumer Registration page.
 #webui_post_consumer_registration_more_info_url =
 #webui_post_consumer_registration_more_info_text = Please tell us more your Application and / or Startup using this link.
+#webui_post_consumer_registration_submit_button_value=Register consumer
 
 
 ## Display For Banks section
@@ -470,6 +475,8 @@ webui_show_dummy_user_tokens=false
 webui_register_consumer_success_message_webpage = Thanks for registering your consumer with the Open Bank Project API! Here is your developer information. Please save it in a secure location.
 webui_register_consumer_success_message_email = Thank you for registering to use the Open Bank Project API.
 
+#Log in page
+#webui_login_button_text = 
 ## End of webui_ section ########
 
 
@@ -655,6 +662,7 @@ featured_apis=elasticSearchWarehouseV300
 # -- Migration Scripts ----------------------------
 # Enable/Disable execution of migration scripts.
 # In case isn't defined default value is "false"
+# Note: migration_scripts.execute MUST be true for the other two props values (list_of_migration_scripts_to_execute and migration_scripts) to have any effect.
 # migration_scripts.execute=false
 # Define list of migration scripts to execute.
 # List is not ordered.

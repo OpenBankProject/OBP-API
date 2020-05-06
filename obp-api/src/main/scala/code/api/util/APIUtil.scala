@@ -59,6 +59,7 @@ import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import code.views.Views
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.github.dwickern.macros.NameOf.{nameOf, nameOfType}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
@@ -3158,5 +3159,7 @@ Returns a string showed to the developer
       stream.close()
     }
   }
-  
+
+  lazy val loginButtonText = getWebUiPropsValue("webui_login_button_text", S.?("log.in"))
+
 }

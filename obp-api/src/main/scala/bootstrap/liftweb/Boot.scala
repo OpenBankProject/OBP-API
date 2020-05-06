@@ -29,6 +29,7 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.{Locale, TimeZone}
 
+import org.apache.commons.io.FileUtils
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
@@ -243,7 +244,31 @@ class Boot extends MdcLoggable {
     import java.security.SecureRandom
     val rand = new SecureRandom(SecureRandom.getSeed(20))
     rand
-    
+
+    //If use_custom_webapp=true, this will copy all the files from `OBP-API/obp-api/src/main/webapp` to `OBP-API/obp-api/src/main/resources/custom_webapp`
+    if (APIUtil.getPropsAsBoolValue("use_custom_webapp", false)){
+      //this `LiftRules.getResource` will get the path of `OBP-API/obp-api/src/main/webapp`: 
+      LiftRules.getResource("/").map { url =>
+        // this following will get the path of `OBP-API/obp-api/src/main/resources/custom_webapp`
+        val source = if (getClass().getClassLoader().getResource("custom_webapp") == null)
+          throw new RuntimeException("If you set `use_custom_webapp = true`, custom_webapp folder can not be Empty!!")
+        else
+          getClass().getClassLoader().getResource("custom_webapp").getPath
+        val srcDir = new File(source);
+
+        // The destination directory to copy to. This directory
+        // doesn't exists and will be created during the copy
+        // directory process.
+        val destDir = new File(url.getPath)
+
+        // Copy source directory into destination directory
+        // including its child directories and files. When
+        // the destination directory is not exists it will
+        // be created. This copy process also preserve the
+        // date information of the file.
+        FileUtils.copyDirectory(srcDir, destDir)
+      }
+    }
     
     // ensure our relational database's tables are created/fit the schema
     val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
