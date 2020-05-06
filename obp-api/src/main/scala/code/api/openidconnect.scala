@@ -67,17 +67,20 @@ case class OpenIdConnectConfig(client_secret: String,
                               )
 
 object OpenIdConnectConfig {
-  def get(): OpenIdConnectConfig = {
-    def getProps(props: String): String = APIUtil.getPropsValue(props).openOrThrowException(s"no $props set")
+  lazy val openIDConnectEnabled = APIUtil.getPropsAsBoolValue("openid_connect.enabled", false)
+  def getProps(props: String): String = {
+    APIUtil.getPropsValue(props).getOrElse("")
+  }
+  def get(provider: Int): OpenIdConnectConfig = {
     OpenIdConnectConfig(
-      getProps("openid_connect.client_secret"),
-      getProps("openid_connect.client_id"),
-      getProps("openid_connect.callback_url"),
-      getProps("openid_connect.endpoint.userinfo"),
-      getProps("openid_connect.endpoint.token"),
-      getProps("openid_connect.endpoint.authorization"),
-      getProps("openid_connect.endpoint.jwks_uri"),
-      APIUtil.getPropsAsBoolValue("openid_connect.access_type_offline", false),
+      getProps(s"openid_connect_$provider.client_secret"),
+      getProps(s"openid_connect_$provider.client_id"),
+      getProps(s"openid_connect_$provider.callback_url"),
+      getProps(s"openid_connect_$provider.endpoint.userinfo"),
+      getProps(s"openid_connect_$provider.endpoint.token"),
+      getProps(s"openid_connect_$provider.endpoint.authorization"),
+      getProps(s"openid_connect_$provider.endpoint.jwks_uri"),
+      APIUtil.getPropsAsBoolValue(s"openid_connect_$provider.access_type_offline", false),
     )
   }
 }
@@ -90,49 +93,55 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
   val openIdConnect = "OpenID Connect"
 
   serve {
-    case Req("auth" :: "openid-connect" :: "callback" :: Nil, _, PostRequest | GetRequest) => {
-      
-      val (code, state, sessionState) = extractParams(S)
+    case Req("auth" :: "openid-connect" :: "callback" :: Nil, _, PostRequest | GetRequest) =>
+      callbackUrlCommonCode(1)    
+    case Req("auth" :: "openid-connect" :: "callback-1" :: Nil, _, PostRequest | GetRequest) =>
+      callbackUrlCommonCode(1)
+    case Req("auth" :: "openid-connect" :: "callback-2" :: Nil, _, PostRequest | GetRequest) =>
+      callbackUrlCommonCode(2)
+  }
 
-      val (httpCode, message, authorizationUser) = if(state == sessionState) {
-        exchangeAuthorizationCodeForTokens(code) match {
-          case Full((idToken, accessToken, tokenType, expiresIn, refreshToken, scope)) =>
-            JwtUtil.validateIdToken(idToken, OpenIdConnectConfig.get().jwks_uri) match {
-              case Full(_) =>
-                getOrCreateResourceUser(idToken) match {
-                  case Full(user) =>
-                    getOrCreateAuthUser(user) match {
-                      case Full(authUser) =>
-                        getOrCreateConsumer(idToken, user.userId) match {
-                          case Full(consumer) =>
-                            saveAuthorizationToken(tokenType, accessToken, idToken, refreshToken, scope, expiresIn) match {
-                              case Full(token) => (200, "OK", Some(authUser))
-                              case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "1", Some(authUser))
-                            }
-                          case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "2", Some(authUser))
-                        }
-                      case _ =>  (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "3", None)
-                    }
-                  case _ => (401, ErrorMessages.CouldNotSaveOpenIDConnectUser, None)
-                }
-              case _ => (401, ErrorMessages.CannotValidateIDToken, None)
-            }
-          case _ => (401, ErrorMessages.CouldNotExchangeAuthorizationCodeForTokens, None)
-        }
-      } else {
-        (401, ErrorMessages.WrongOpenIDConnectState, None)
+  private def callbackUrlCommonCode(identityProvider: Int): JsonResponse = {
+    val (code, state, sessionState) = extractParams(S)
+
+    val (httpCode, message, authorizationUser) = if (state == sessionState) {
+      exchangeAuthorizationCodeForTokens(code, identityProvider) match {
+        case Full((idToken, accessToken, tokenType, expiresIn, refreshToken, scope)) =>
+          JwtUtil.validateIdToken(idToken, OpenIdConnectConfig.get(identityProvider).jwks_uri) match {
+            case Full(_) =>
+              getOrCreateResourceUser(idToken) match {
+                case Full(user) =>
+                  getOrCreateAuthUser(user) match {
+                    case Full(authUser) =>
+                      getOrCreateConsumer(idToken, user.userId) match {
+                        case Full(consumer) =>
+                          saveAuthorizationToken(tokenType, accessToken, idToken, refreshToken, scope, expiresIn) match {
+                            case Full(token) => (200, "OK", Some(authUser))
+                            case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "1", Some(authUser))
+                          }
+                        case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "2", Some(authUser))
+                      }
+                    case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "3", None)
+                  }
+                case _ => (401, ErrorMessages.CouldNotSaveOpenIDConnectUser, None)
+              }
+            case _ => (401, ErrorMessages.CannotValidateIDToken, None)
+          }
+        case _ => (401, ErrorMessages.CouldNotExchangeAuthorizationCodeForTokens, None)
       }
-      
-      (httpCode, authorizationUser) match {
-        case (200, Some(user)) =>
-          AuthUser.logUserIn(user, () => {
-            S.notice(S.?("logged.in"))
-            //This redirect to homePage, it is from scala code, no open redirect issue.
-            S.redirectTo(AuthUser.homePage)
-          })
-        case _ =>
-          errorJsonResponse(message, httpCode)
-      }
+    } else {
+      (401, ErrorMessages.WrongOpenIDConnectState, None)
+    }
+
+    (httpCode, authorizationUser) match {
+      case (200, Some(user)) =>
+        AuthUser.logUserIn(user, () => {
+          S.notice(S.?("logged.in"))
+          //This redirect to homePage, it is from scala code, no open redirect issue.
+          S.redirectTo(AuthUser.homePage)
+        })
+      case _ =>
+        errorJsonResponse(message, httpCode)
     }
   }
 
@@ -192,8 +201,8 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
     newUser.saveMe()
   }
 
-  def exchangeAuthorizationCodeForTokens(authorizationCode: String): Box[(String, String, String, Long, String, String)] = {
-    val config = OpenIdConnectConfig.get()
+  def exchangeAuthorizationCodeForTokens(authorizationCode: String, identityProvider: Int): Box[(String, String, String, Long, String, String)] = {
+    val config = OpenIdConnectConfig.get(identityProvider)
     val data =    "client_id=" + config.client_id + "&" +
                   "client_secret=" + config.client_secret + "&" +
                   "redirect_uri=" + config.callback_url + "&" +
@@ -213,8 +222,8 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
     }
   }
 
-  def getUserInfo(accessToken: String): Box[JValue] = {
-    val config = OpenIdConnectConfig.get()
+  def getUserInfo(accessToken: String, identityProvider: Int): Box[JValue] = {
+    val config = OpenIdConnectConfig.get(identityProvider)
     val userResponse = json.parse(
       fromUrl(
         String.format("%s", config.userinfo_endpoint), 
