@@ -5529,19 +5529,83 @@ trait APIMethods310 {
       "Save Historical Transactions ",
       s"""
          |Import the historical transactions.
+         |
+         |The fields bank_id, account_id, counterparty_id in the json body are all optional ones.
+         |It support transfer money from account to account, account to counterparty and counterparty to counterparty
+         |Both bank_id + account_id and counterparty_id can identify the account, so OBP only need one of them to make the payment.
+         |So: 
+         |When you need the account to account, just omit counterparty_id field.eg:
+         |{
+         |  "from": {
+         |    "bank_id": "gh.29.uk",
+         |    "account_id": "1ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+         |  },
+         |  "to": {
+         |    "bank_id": "gh.29.uk",
+         |    "account_id": "2ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+         |  },
+         |  "value": {
+         |    "currency": "GBP",
+         |    "amount": "10"
+         |  },
+         |  "description": "this is for work",
+         |  "posted": "2017-09-19T02:31:05Z",
+         |  "completed": "2017-09-19T02:31:05Z",
+         |  "type": "SANDBOX_TAN",
+         |  "charge_policy": "SHARED"
+         |}
+         |
+         |When you need the counterparty to counterparty, need to omit bank_id and account_id field.eg:
+         |{
+         |  "from": {
+         |    "counterparty_id": "f6392b7d-4218-45ea-b9a7-eaa71c0202f9"
+         |  },
+         |  "to": {
+         |    "counterparty_id": "26392b7d-4218-45ea-b9a7-eaa71c0202f9"
+         |  },
+         |  "value": {
+         |    "currency": "GBP",
+         |    "amount": "10"
+         |  },
+         |  "description": "this is for work",
+         |  "posted": "2017-09-19T02:31:05Z",
+         |  "completed": "2017-09-19T02:31:05Z",
+         |  "type": "SANDBOX_TAN",
+         |  "charge_policy": "SHARED"
+         |}
+         |
+         |or, you can counterparty to account
+         |{
+         |  "from": {
+         |    "counterparty_id": "f6392b7d-4218-45ea-b9a7-eaa71c0202f9"
+         |  },
+         |  "to": {
+         |    "bank_id": "gh.29.uk",
+         |    "account_id": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+         |  },
+         |  "value": {
+         |    "currency": "GBP",
+         |    "amount": "10"
+         |  },
+         |  "description": "this is for work",
+         |  "posted": "2017-09-19T02:31:05Z",
+         |  "completed": "2017-09-19T02:31:05Z",
+         |  "type": "SANDBOX_TAN",
+         |  "charge_policy": "SHARED"
+         |}
+         |
+         |This call is experimental.
        """.stripMargin,
       postHistoricalTransactionJson,
       postHistoricalTransactionResponseJson,
       List(
-        InvalidBankIdFormat,
-        InvalidAccountIdFormat,
         InvalidJsonFormat,
         BankNotFound,
         AccountNotFound,
+        CounterpartyNotFoundByCounterpartyId,
         InvalidNumber,
         NotPositiveAmount,
         InvalidTransactionRequestCurrency,
-        TransactionDisabled,
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
@@ -5561,14 +5625,45 @@ trait APIMethods310 {
             transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostHistoricalTransactionJson ", 400, callContext) {
               json.extract[PostHistoricalTransactionJson]
             }
-            fromAccountPost =transDetailsJson.from
-            (_, callContext) <- NewStyle.function.getBank(BankId(fromAccountPost.bank_id), callContext)
-            (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(fromAccountPost.bank_id), AccountId(fromAccountPost.account_id), callContext)
-
-            toAccountPost =transDetailsJson.to
-            (_, callContext) <- NewStyle.function.getBank(BankId(toAccountPost.bank_id), callContext)
-            (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(toAccountPost.bank_id), AccountId(toAccountPost.account_id), callContext)
-
+            fromAccountPost = transDetailsJson.from
+            (fromAccount, callContext) <- if (fromAccountPost.bank_id.isDefined && fromAccountPost.account_id.isDefined && fromAccountPost.counterparty_id.isEmpty){
+              for{
+                (_, callContext) <- NewStyle.function.getBank(BankId(fromAccountPost.bank_id.get), callContext)
+                (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(fromAccountPost.bank_id.get), AccountId(fromAccountPost.account_id.get), callContext)
+              } yield {
+                (fromAccount, callContext)
+              }
+            } else if (fromAccountPost.bank_id.isEmpty && fromAccountPost.account_id.isEmpty && fromAccountPost.counterparty_id.isDefined){
+              for {
+                 (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(fromAccountPost.counterparty_id.get), cc.callContext)
+                 toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
+              }yield{
+                (toAccount, callContext)
+              }
+            } else {
+              throw new RuntimeException(s"$InvalidJsonFormat from object should only contain bank_id and account_id or counterparty_id in the post json body.")
+            }
+            
+            
+            toAccountPost = transDetailsJson.to
+            (toAccount, callContext) <- if (toAccountPost.bank_id.isDefined && toAccountPost.account_id.isDefined && toAccountPost.counterparty_id.isEmpty){
+              for{
+                (_, callContext) <- NewStyle.function.getBank(BankId(toAccountPost.bank_id.get), callContext)
+                (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(toAccountPost.bank_id.get), AccountId(toAccountPost.account_id.get), callContext)
+              } yield {
+                (toAccount, callContext)
+              }
+            } else if (toAccountPost.bank_id.isEmpty && toAccountPost.account_id.isEmpty && toAccountPost.counterparty_id.isDefined){
+              for {
+                (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toAccountPost.counterparty_id.get), cc.callContext)
+                toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
+              }yield{
+                (toAccount, callContext)
+              }
+            } else {
+              throw new RuntimeException(s"$InvalidJsonFormat to object should only contain bank_id and account_id or counterparty_id in the post json body.")
+            }
+            
             amountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is ${transDetailsJson.value.amount} ", 400, callContext) {
               BigDecimal(transDetailsJson.value.amount)
             }
@@ -5598,7 +5693,7 @@ trait APIMethods310 {
             amountOfMoneyJson = AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount)
             chargePolicy = transDetailsJson.charge_policy
             
-            //There is no constarin for the type for now. 
+            //There is no constrain for the type for now. 
             transactionType = transDetailsJson.`type` 
 
             (transactionId, callContext) <- NewStyle.function.makeHistoricalPayment(
