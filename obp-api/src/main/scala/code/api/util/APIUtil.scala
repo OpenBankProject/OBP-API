@@ -2647,7 +2647,7 @@ Returns a string showed to the developer
     //Replace "." with "_" (environment vars cannot include ".") and convert to upper case
     // Append "OBP_" because all Open Bank Project environment vars are namespaced with OBP
     val sysEnvironmentPropertyName = sysEnvironmentPropertyNamePrefix.concat(brandSpecificPropertyName.replace('.', '_').toUpperCase())
-    val sysEnvironmentPropertyValue: Box[String] = tryo{sys.env(sysEnvironmentPropertyName)}
+    val sysEnvironmentPropertyValue: Box[String] =  sys.env.get(sysEnvironmentPropertyName)
     sysEnvironmentPropertyValue match {
       case Full(_) =>
         logger.debug("System environment property value found for: " + sysEnvironmentPropertyName)
