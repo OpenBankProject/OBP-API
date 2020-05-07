@@ -1118,14 +1118,20 @@ trait APIMethods220 {
             _ <- booleanToBox(postJson.description.length <= 36, s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}")
             
             //If other_account_routing_scheme=="OBP" or other_account_secondary_routing_address=="OBP" we will check if it is a real obp bank account.
-            _<- if (postJson.other_bank_routing_scheme == "OBP" && postJson.other_account_routing_scheme =="OBP"){
+            _<- if (
+              (postJson.other_bank_routing_scheme == "OBP" || postJson.other_bank_routing_scheme == "OBP_BANK_ID") 
+                && (postJson.other_account_routing_scheme =="OBP" || postJson.other_account_routing_scheme =="OBP_ACCOUNT_ID")
+            ){
               for{
                 (bank, callContext) <- BankX(BankId(postJson.other_bank_routing_address), Some(cc)) ?~! s"$BankNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
                 account <- Connector.connector.vend.checkBankAccountExistsLegacy(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address), callContext) ?~! s"$BankAccountNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
               } yield {
                 account
               }
-            } else if (postJson.other_bank_routing_scheme == "OBP" && postJson.other_account_secondary_routing_scheme=="OBP"){
+            } else if (
+              (postJson.other_bank_routing_scheme == "OBP" || postJson.other_bank_routing_scheme == "OBP_BANK_ID") 
+                && (postJson.other_account_secondary_routing_scheme=="OBP" || postJson.other_account_secondary_routing_scheme=="OBP_ACCOUNT_ID")
+            ){
               for{
                 (bank, callContext) <- BankX(BankId(postJson.other_bank_routing_address), Some(cc)) ?~! s"$BankNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
                 account <- Connector.connector.vend.checkBankAccountExistsLegacy(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_secondary_routing_address), callContext) ?~! s"$BankAccountNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
