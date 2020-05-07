@@ -125,12 +125,12 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                   }
                 case _ => (401, ErrorMessages.CouldNotSaveOpenIDConnectUser, None)
               }
-            case _ => (401, ErrorMessages.CannotValidateIDToken, None)
+            case _ => (401, ErrorMessages.CouldNotValidateIDToken, None)
           }
         case _ => (401, ErrorMessages.CouldNotExchangeAuthorizationCodeForTokens, None)
       }
     } else {
-      (401, ErrorMessages.WrongOpenIDConnectState, None)
+      (401, ErrorMessages.InvalidOpenIDConnectState, None)
     }
 
     (httpCode, authorizationUser) match {

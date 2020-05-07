@@ -188,9 +188,9 @@ object ErrorMessages {
   val CouldNotExchangeAuthorizationCodeForTokens = "OBP-20400: Could not exchange authorization code for tokens."
   val CouldNotSaveOpenIDConnectUser = "OBP-20401: Could not get/save OpenID Connect user."
   val CouldNotSaveOpenIDConnectToken = "OBP-20402: Could not save OpenID Connect token."
-  val WrongOpenIDConnectState = "OBP-20403: Invalid state parameter."
+  val InvalidOpenIDConnectState = "OBP-20403: Invalid OpenIDConnect state parameter."
   val CouldNotHandleOpenIDConnectData = "OBP-20404: Could not handle OpenID Connect data."
-  val CannotValidateIDToken = "OBP-20405: ID token cannot be validated."
+  val CouldNotValidateIDToken = "OBP-20405: ID token could note be validated."
 
   // Resource related messages (OBP-30XXX)
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
