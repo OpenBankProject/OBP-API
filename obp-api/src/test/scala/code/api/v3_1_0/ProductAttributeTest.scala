@@ -131,8 +131,8 @@ class ProductAttributeTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = createProductAttributeEndpoint.POST
       val response310 = makePostRequest(request310, write(postProductAttributeJson))
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
@@ -163,8 +163,8 @@ class ProductAttributeTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = getProductAttributeEndpoint.GET
       val response310 = makeGetRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
@@ -185,8 +185,8 @@ class ProductAttributeTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = updateProductAttributeEndpoint.PUT
       val response310 = makePutRequest(request310, write(putProductAttributeJson))
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
@@ -207,8 +207,8 @@ class ProductAttributeTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = deleteProductAttributeEndpoint.DELETE
       val response310 = makeDeleteRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }

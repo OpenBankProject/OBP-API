@@ -33,8 +33,8 @@ class AccountTagTest extends V400ServerSetup {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "metadata" / "tags").POST
       val response400 = makePostRequest(request400, write(accountTag))
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }
@@ -44,8 +44,8 @@ class AccountTagTest extends V400ServerSetup {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "metadata" / "tags" / "DOES_NOT_MATTER_FOR_THIS").DELETE
       val response400 = makeDeleteRequest(request400)
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }
@@ -55,8 +55,8 @@ class AccountTagTest extends V400ServerSetup {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "metadata" / "tags").GET
       val response400 = makeGetRequest(request400)
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }

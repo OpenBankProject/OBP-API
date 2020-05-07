@@ -118,8 +118,8 @@ class AccountAttributeTest extends V310ServerSetup {
       When(s"We make a request $VersionOfApi")
       val request310 = createAccountAttributeEndpoint.POST
       val response310 = makePostRequest(request310, write(postAccountAttributeJson))
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
@@ -150,8 +150,8 @@ class AccountAttributeTest extends V310ServerSetup {
       When(s"We make a request $VersionOfApi")
       val request310 = updateProductAttributeEndpoint.PUT
       val response310 = makePutRequest(request310, write(putAccountAttributeJson))
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }

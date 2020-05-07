@@ -29,18 +29,22 @@ package code.api
 import java.net.HttpURLConnection
 import java.util.Date
 
-import javax.net.ssl.HttpsURLConnection
 import code.api.util.APIUtil._
-import code.api.util.APIUtil
-import code.model.UserX
-import code.model.dataAccess.{AuthUser, ResourceUser}
-import code.token.Tokens
+import code.api.util.{APIUtil, ErrorMessages, JwtUtil}
+import code.consumer.Consumers
+import code.model.{Consumer, Token}
+import code.model.dataAccess.AuthUser
+import code.snippet.OpenIDConnectSessionState
+import code.token.{OpenIDConnectToken, Tokens, TokensOpenIDConnect}
+import code.users.Users
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.User
 import com.openbankproject.commons.util.ApiVersion
+import javax.net.ssl.HttpsURLConnection
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.json
-import net.liftweb.json.{JObject, JValue}
+import net.liftweb.json.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
@@ -52,27 +56,31 @@ import scala.compat.Platform
   * users using OpenIdConnect (http://openid.net).
   */
 
-case class OpenIdConnectConfig( clientSecret: String,
-                                clientId: String,
-                                callbackURL: String,
-                                domain: String,
-                                url_userinfo: String,
-                                url_token: String,
-                                url_login: String,
-                                url_button: String
+case class OpenIdConnectConfig(client_secret: String,
+                               client_id: String,
+                               callback_url: String,
+                               userinfo_endpoint: String,
+                               token_endpoint: String,
+                               authorization_endpoint: String,
+                               jwks_uri: String,
+                               access_type_offline: Boolean
                               )
 
 object OpenIdConnectConfig {
-  def get() = {
+  lazy val openIDConnectEnabled = APIUtil.getPropsAsBoolValue("openid_connect.enabled", false)
+  def getProps(props: String): String = {
+    APIUtil.getPropsValue(props).getOrElse("")
+  }
+  def get(provider: Int): OpenIdConnectConfig = {
     OpenIdConnectConfig(
-      APIUtil.getPropsValue("openidconnect.clientSecret").openOrThrowException("no openidconnect.clientSecret set"),
-      APIUtil.getPropsValue("openidconnect.clientId").openOrThrowException("no openidconnect.clientId set"),
-      APIUtil.getPropsValue("openidconnect.callbackURL").openOrThrowException("no openidconnect.callbackURL set"),
-      APIUtil.getPropsValue("openidconnect.domain").openOrThrowException("no openidconnect.domain set"),
-      APIUtil.getPropsValue("openidconnect.url.userinfo").openOrThrowException("no openidconnect.url.userinfo set"),
-      APIUtil.getPropsValue("openidconnect.url.token").openOrThrowException("no openidconnect.url.token set"),
-      APIUtil.getPropsValue("openidconnect.url.login").openOrThrowException("no openidconnect.url.login set"),
-      APIUtil.getPropsValue("openidconnect.url.buttonImage").openOrThrowException("no openidconnect.url.buttonImage set")
+      getProps(s"openid_connect_$provider.client_secret"),
+      getProps(s"openid_connect_$provider.client_id"),
+      getProps(s"openid_connect_$provider.callback_url"),
+      getProps(s"openid_connect_$provider.endpoint.userinfo"),
+      getProps(s"openid_connect_$provider.endpoint.token"),
+      getProps(s"openid_connect_$provider.endpoint.authorization"),
+      getProps(s"openid_connect_$provider.endpoint.jwks_uri"),
+      APIUtil.getPropsAsBoolValue(s"openid_connect_$provider.access_type_offline", false),
     )
   }
 }
@@ -80,104 +88,193 @@ object OpenIdConnectConfig {
 object OpenIdConnect extends OBPRestHelper with MdcLoggable {
 
   val version = ApiVersion.openIdConnect1 // "1.0" // TODO: Should this be the lowest version supported or when introduced?
-  val versionStatus = "UNKNOWN"
+  val versionStatus = "DRAFT"
+
+  val openIdConnect = "OpenID Connect"
 
   serve {
-    case Req("my" :: "logins" :: "openidconnect" :: Nil, _, PostRequest | GetRequest) => {
-      var httpCode = 500
-      var message = "unknown"
-      for {
-        code <- S.params("code")
-        //state <- S.param("state")
-      } yield {
-        // Get the token
-        message=code
-        getToken(code) match {
-          case Full((idToken, accessToken, tokenType)) =>
-            getUser(accessToken) match {
+    case Req("auth" :: "openid-connect" :: "callback" :: Nil, _, PostRequest | GetRequest) =>
+      callbackUrlCommonCode(1)    
+    case Req("auth" :: "openid-connect" :: "callback-1" :: Nil, _, PostRequest | GetRequest) =>
+      callbackUrlCommonCode(1)
+    case Req("auth" :: "openid-connect" :: "callback-2" :: Nil, _, PostRequest | GetRequest) =>
+      callbackUrlCommonCode(2)
+  }
 
-              case Full(json_user:JObject) =>
-                for {
-                  emailVerified <- tryo{(json_user \ "email_verified").extractOrElse[Boolean](false)}
-                  userEmail <- tryo{(json_user \ "email").extractOrElse[String]("")}
-                  auth_user: AuthUser <- AuthUser.find(By(AuthUser.email, userEmail))
-                  resource_user: ResourceUser <- UserX.findResourceUserByResourceUserId(auth_user.user.get)
-                  if emailVerified && resource_user.userPrimaryKey.value > 0
-                } yield {
-                  saveAuthorizationToken(accessToken, accessToken, resource_user.userPrimaryKey.value)
-                  httpCode = 200
-                  message= String.format("oauth_token=%s&oauth_token_secret=%s", accessToken, accessToken)
-                  val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
-                  AuthUser.logUserIn(auth_user, () => {
-                    S.notice(S.?("logged.in"))
-                    //This redirect to homePage, it is from scala code, no open redirect issue.
-                    S.redirectTo(AuthUser.homePage)
-                  })
-                }
-              case _ => message=String.format("Could not find user with token %s", accessToken)
-            }
-            case _ => message=String.format("Could not get token for code %s", code)
-        }
+  private def callbackUrlCommonCode(identityProvider: Int): JsonResponse = {
+    val (code, state, sessionState) = extractParams(S)
+
+    val (httpCode, message, authorizationUser) = if (state == sessionState) {
+      exchangeAuthorizationCodeForTokens(code, identityProvider) match {
+        case Full((idToken, accessToken, tokenType, expiresIn, refreshToken, scope)) =>
+          JwtUtil.validateIdToken(idToken, OpenIdConnectConfig.get(identityProvider).jwks_uri) match {
+            case Full(_) =>
+              getOrCreateResourceUser(idToken) match {
+                case Full(user) =>
+                  getOrCreateAuthUser(user) match {
+                    case Full(authUser) =>
+                      getOrCreateConsumer(idToken, user.userId) match {
+                        case Full(consumer) =>
+                          saveAuthorizationToken(tokenType, accessToken, idToken, refreshToken, scope, expiresIn) match {
+                            case Full(token) => (200, "OK", Some(authUser))
+                            case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "1", Some(authUser))
+                          }
+                        case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "2", Some(authUser))
+                      }
+                    case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "3", None)
+                  }
+                case _ => (401, ErrorMessages.CouldNotSaveOpenIDConnectUser, None)
+              }
+            case _ => (401, ErrorMessages.CouldNotValidateIDToken, None)
+          }
+        case _ => (401, ErrorMessages.CouldNotExchangeAuthorizationCodeForTokens, None)
       }
+    } else {
+      (401, ErrorMessages.InvalidOpenIDConnectState, None)
+    }
 
-      errorJsonResponse(message, httpCode)
+    (httpCode, authorizationUser) match {
+      case (200, Some(user)) =>
+        AuthUser.logUserIn(user, () => {
+          S.notice(S.?("logged.in"))
+          //This redirect to homePage, it is from scala code, no open redirect issue.
+          S.redirectTo(AuthUser.homePage)
+        })
+      case _ =>
+        errorJsonResponse(message, httpCode)
     }
   }
 
-  def getToken(code: String): Box[(String, String, String)] = {
-    val config = OpenIdConnectConfig.get()
-    val data =    "client_id=" + config.clientId + "&" +
-                  "client_secret=" + config.clientSecret + "&" +
-                  "redirect_uri=" + config.callbackURL + "&" +
-                  "code=" + code + "&" +
+  private def extractParams(s: S): (String, String, String) = {
+    val tuple3 = for {
+      code <- s.param("code")
+      state <- s.param("state")
+      sessionState <- OpenIDConnectSessionState.get
+    } yield {
+      (code, state, sessionState.toString())
+    } 
+    tuple3 match {
+      case Full(tuple) => tuple
+      case _ => ("", "", "")
+    }
+  }
+
+  private def getOrCreateAuthUser(user: User): Box[AuthUser] = {
+    AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value)) match {
+      case Full(user) => Full(user)
+      case _ => createAuthUser(user)
+    }
+  }
+
+  private def getOrCreateResourceUser(idToken: String): Box[User] = {
+    val subject = JwtUtil.getSubject(idToken)
+    val issuer = JwtUtil.getIssuer(idToken).getOrElse("")
+    Users.users.vend.getUserByProviderId(provider = issuer, idGivenByProvider = subject.getOrElse("")).or { // Find a user
+      Users.users.vend.createResourceUser( // Otherwise create a new one
+        provider = issuer,
+        providerId = subject,
+        name = getClaim(name = "given_name", idToken = idToken).orElse(subject),
+        email = getClaim(name = "email", idToken = idToken),
+        userId = None
+      )
+    }
+  }
+  
+  private def getClaim(name: String, idToken: String): Option[String] = {
+    val claim = JwtUtil.getClaim(name = name, jwtToken = idToken)
+    claim match {
+      case null => None
+      case string => Some(string)
+    }
+  }
+  private def createAuthUser(user: User): Box[AuthUser] = tryo {
+    val newUser = AuthUser.create
+      .firstName(user.name)
+      .email(user.emailAddress)
+      .user(user.userPrimaryKey.value)
+      .username(user.idGivenByProvider)
+      .provider(user.provider)
+      // No need to store password, so store dummy string instead
+      .password(Helpers.randomString(40))
+      .validated(true)
+    // Save the user in order to be able to log in
+    newUser.saveMe()
+  }
+
+  def exchangeAuthorizationCodeForTokens(authorizationCode: String, identityProvider: Int): Box[(String, String, String, Long, String, String)] = {
+    val config = OpenIdConnectConfig.get(identityProvider)
+    val data =    "client_id=" + config.client_id + "&" +
+                  "client_secret=" + config.client_secret + "&" +
+                  "redirect_uri=" + config.callback_url + "&" +
+                  "code=" + authorizationCode + "&" +
                   "grant_type=authorization_code"
-    val response = fromUrl(String.format("%s", config.url_token), data, "POST")
+    val response = fromUrl(String.format("%s", config.token_endpoint), data, "POST")
     val tokenResponse = json.parse(response)
     for {
       idToken <- tryo{(tokenResponse \ "id_token").extractOrElse[String]("")}
       accessToken <- tryo{(tokenResponse \ "access_token").extractOrElse[String]("")}
       tokenType <- tryo{(tokenResponse \ "token_type").extractOrElse[String]("")}
+      expiresIn <- tryo{(tokenResponse \ "expires_in").extractOrElse[String]("")}
+      refreshToken <- tryo{(tokenResponse \ "refresh_token").extractOrElse[String]("")}
+      scope <- tryo{(tokenResponse \ "scope").extractOrElse[String]("")}
     } yield {
-      (idToken, accessToken, tokenType)
+      (idToken, accessToken, tokenType, expiresIn.toLong, refreshToken, scope)
     }
   }
 
-  def getUser(accessToken: String): Box[JValue] = {
-    val config = OpenIdConnectConfig.get()
-    val userResponse = json.parse(fromUrl(String.format("%s", config.url_userinfo), "?access_token="+accessToken, "GET"))
-
+  def getUserInfo(accessToken: String, identityProvider: Int): Box[JValue] = {
+    val config = OpenIdConnectConfig.get(identityProvider)
+    val userResponse = json.parse(
+      fromUrl(
+        String.format("%s", config.userinfo_endpoint), 
+        "?access_token="+accessToken, 
+        "GET"
+      )
+    )
     userResponse match {
       case response: JValue => Full(response)
       case _ => Empty
     }
   }
+  
+  private def getOrCreateConsumer(idToken: String, userId: String): Box[Consumer] = {
+    Consumers.consumers.vend.getOrCreateConsumer(
+      consumerId=Some(APIUtil.generateUUID()),
+      Some(Helpers.randomString(40).toLowerCase),
+      Some(Helpers.randomString(40).toLowerCase),
+      Some(JwtUtil.getAudience(idToken).mkString(",")),
+      getClaim(name = "azp", idToken = idToken),
+      JwtUtil.getIssuer(idToken),
+      JwtUtil.getSubject(idToken),
+      Some(true),
+      name = None,
+      appType = None,
+      description = Some(openIdConnect),
+      developerEmail = getClaim(name = "email", idToken = idToken),
+      redirectURL = None,
+      createdByUserId = Some(userId)
+    )
+  }
 
-  private def saveAuthorizationToken(tokenKey: String, tokenSecret: String, userId: Long) =
-  {
-    import code.model.TokenType
-    // TODO Consumer is not needed with oauth2/openid or is it?
-    //Consumers.consumers.vend.getConsumerByConsumerKey(directLoginParameters.getOrElse("consumer_key", "")) match {
-    //  case Full(consumer) => token.consumerId(consumer.id)
-    //  case _ => None
-    //}
-    //token.consumerId(0)
-    val currentTime = Platform.currentTime
-    val expiration = APIUtil.getPropsAsIntValue("token_expiration_weeks", 4)
-    val tokenDuration : Long = Helpers.weeks(expiration)
-    val tokenSaved = Tokens.tokens.vend.createToken(TokenType.Access,
-                                                    None,
-                                                    Some(userId),
-                                                    Some(tokenKey),
-                                                    Some(tokenSecret),
-                                                    Some(tokenDuration),
-                                                    Some(new Date(currentTime+tokenDuration)),
-                                                    Some(new Date(currentTime)),
-                                                    None
-                                                  )
-    tokenSaved match {
-      case Full(_) => true
-      case _       => false
+  private def saveAuthorizationToken(tokenType: String,
+                                     accessToken: String,
+                                     idToken: String,
+                                     refreshToken: String,
+                                     scope: String,
+                                     expiresIn: Long): Box[OpenIDConnectToken] = {
+    val token = TokensOpenIDConnect.tokens.vend.createToken(
+      tokenType = tokenType,
+      accessToken = accessToken,
+      idToken = idToken,
+      refreshToken = refreshToken,
+      scope = scope,
+      expiresIn = expiresIn
+    )
+    token match  {
+      case Full(_) => // All good
+      case error => logger.error(error)
     }
+    token
   }
 
   def fromUrl( url: String,
@@ -185,7 +282,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                method: String,
                connectTimeout: Int = 2000,
                readTimeout: Int = 10000
-             ) = {
+             ): String = {
     var content:String = ""
     import java.net.URL
     try {

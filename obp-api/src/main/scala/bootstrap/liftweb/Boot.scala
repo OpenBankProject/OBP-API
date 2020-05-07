@@ -97,6 +97,7 @@ import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
 import code.taxresidence.MappedTaxResidence
+import code.token.OpenIDConnectToken
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionStatusScheduler
@@ -350,7 +351,7 @@ class Boot extends MdcLoggable {
     
     def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
       //  OpenIdConnect endpoint and validator
-      if(APIUtil.getPropsAsBoolValue("allow_openidconnect", false)) {
+      if(APIUtil.getPropsAsBoolValue("openid_connect.enabled", false)) {
         LiftRules.dispatch.append(OpenIdConnect)
       }
       
@@ -733,6 +734,7 @@ object ToSchemify {
     MappedUserCustomerLink,
     Consumer,
     Token,
+    OpenIDConnectToken,
     Nonce,
     MappedCounterparty,
     MappedCounterpartyBespoke,

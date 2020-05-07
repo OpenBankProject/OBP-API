@@ -457,19 +457,29 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def errorJsonResponse(message : String = "error", httpCode : Int = 400)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val forbidden = message.contains(UserHasMissingRoles) || 
-      message.contains(UserNoPermissionAccessView) || 
+    def check403(message: String): Boolean = {
       message.contains(UserHasMissingRoles) ||
-      message.contains(UserNotSuperAdminOrMissRole) ||
-      message.contains(ConsumerHasMissingRoles)
-    val code =
-      forbidden match {
-        case true =>
-          403
-        case _ =>
-          httpCode
+        message.contains(UserNoPermissionAccessView) ||
+        message.contains(UserHasMissingRoles) ||
+        message.contains(UserNotSuperAdminOrMissRole) ||
+        message.contains(ConsumerHasMissingRoles)
+    }
+    def check401(message: String): Boolean = {
+      message.contains(UserNotLoggedIn)
+    }
+    val (code, responseHeaders) =
+      message match {
+        case msg if check401(msg) =>
+          val host = APIUtil.getPropsValue("hostname", "unknown host")
+          val headerValue = s"""OAuth realm="$host", Bearer realm="$host", DirectLogin realm="$host""""
+          val addHeader = List((ResponseHeader.`WWW-Authenticate`, headerValue))
+          (401, getHeaders() ::: headers.list ::: addHeader)
+        case msg if check403(msg) => 
+          (403, getHeaders() ::: headers.list)
+        case _ => 
+          (httpCode, getHeaders() ::: headers.list)
       }
-    JsonResponse(Extraction.decompose(ErrorMessage(message = message, code = code)), getHeaders() ::: headers.list, Nil, code)
+    JsonResponse(Extraction.decompose(ErrorMessage(message = message, code = code)), responseHeaders, Nil, code)
   }
 
   def notImplementedJsonResponse(message : String = ErrorMessages.NotImplemented, httpCode : Int = 501)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =

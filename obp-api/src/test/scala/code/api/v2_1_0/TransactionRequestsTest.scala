@@ -299,8 +299,8 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         var response = makePostRequest(request, write(helper.transactionRequestBody))
 
 
-        Then("we should get a 400 created code")
-        response.code should equal(400)
+        Then("we should get a 401 created code")
+        response.code should equal(401)
 
         Then("We should have the error message")
         response.body.extract[ErrorMessage].message should startWith(ErrorMessages.UserNotLoggedIn)

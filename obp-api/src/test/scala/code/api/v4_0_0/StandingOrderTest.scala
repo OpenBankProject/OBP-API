@@ -33,8 +33,8 @@ class StandingOrderTest extends V400ServerSetup {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "standing-order").POST
       val response400 = makePostRequest(request400, write(postStandingOrderJsonV400))
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }
@@ -55,8 +55,8 @@ class StandingOrderTest extends V400ServerSetup {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "banks" / bankId / "accounts" / bankAccount.id / "standing-order").POST
       val response400 = makePostRequest(request400)
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }

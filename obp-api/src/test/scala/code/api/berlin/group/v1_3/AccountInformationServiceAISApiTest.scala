@@ -44,8 +44,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       val requestGet = (V1_3_BG / "accounts").GET
       val response = makeGetRequest(requestGet)
 
-      Then("We should get a 400 ")
-      response.code should equal(400)
+      Then("We should get a 401 ")
+      response.code should equal(401)
       response.body.extract[ErrorMessage].message should startWith(UserNotLoggedIn)
     }
 
@@ -64,8 +64,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       val requestGet = (V1_3_BG / "accounts" / "accountId").GET
       val response = makeGetRequest(requestGet)
 
-      Then("We should get a 400 ")
-      response.code should equal(400)
+      Then("We should get a 401 ")
+      response.code should equal(401)
       response.body.extract[ErrorMessage].message should startWith(UserNotLoggedIn)
     }
 

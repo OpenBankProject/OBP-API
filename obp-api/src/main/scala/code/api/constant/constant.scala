@@ -49,6 +49,7 @@ object RequestHeader {
 }
 object ResponseHeader {
   final lazy val `Correlation-Id` = "Correlation-Id"
+  final lazy val `WWW-Authenticate` = "WWW-Authenticate"
 }
 
 object BerlinGroup extends Enumeration {

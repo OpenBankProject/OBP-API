@@ -254,6 +254,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       * @return an existing or a new consumer
       */
     def getOrCreateConsumer(idToken: String, userId: Box[String]): Box[Consumer] = {
+      val aud = Some(JwtUtil.getAudience(idToken).mkString(","))
       val azp = getClaim(name = "azp", idToken = idToken)
       val iss = getClaim(name = "iss", idToken = idToken)
       val sub = getClaim(name = "sub", idToken = idToken)
@@ -263,13 +264,14 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         consumerId = None,
         key = Some(Helpers.randomString(40).toLowerCase),
         secret = Some(Helpers.randomString(40).toLowerCase),
+        aud = aud,
         azp = azp,
         iss = iss,
         sub = sub,
         Some(true),
         name = name,
         appType = None,
-        description = iss.map(v => "Via " + v),
+        description = Some(OpenIdConnect.openIdConnect),
         developerEmail = email,
         redirectURL = None,
         createdByUserId = userId.toOption

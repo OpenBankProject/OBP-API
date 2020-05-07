@@ -58,8 +58,8 @@ class CardTest extends V310ServerSetup with DefaultUsers {
 
       Then(s"We test with anonymous user.")
       val responseAnonymous = makePostRequest(requestAnonymous, write(properCardJson))
-      And(s"We should get  400 and get the authentication error")
-      responseAnonymous.code should equal(400)
+      And(s"We should get  401 and get the authentication error")
+      responseAnonymous.code should equal(401)
       responseAnonymous.body.toString contains(s"$UserNotLoggedIn") should be (true)
 
 

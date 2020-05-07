@@ -980,7 +980,7 @@ There are the following request types on this access path:
                i => connectorEmptyResponse(i, callContext)
              }
 
-             //Map obp transacition request id with BerlinGroup PaymentId
+             //Map obp transaction request id with BerlinGroup PaymentId
              transactionRequestId = TransactionRequestId(paymentId)
              
              (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)

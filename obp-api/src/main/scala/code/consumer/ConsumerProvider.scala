@@ -4,7 +4,7 @@ import code.api.util.APIUtil
 import code.model.{AppType, Consumer, MappedConsumersProvider}
 import code.remotedata.RemotedataConsumers
 import net.liftweb.common.Box
-import net.liftweb.util.{Props, SimpleInjector}
+import net.liftweb.util.SimpleInjector
 
 import scala.concurrent.Future
 
@@ -36,7 +36,8 @@ trait ConsumersProvider {
   def updateConsumerCallLimits(id: Long, perSecond: Option[String], perMinute: Option[String], perHour: Option[String], perDay: Option[String], perWeek: Option[String], perMonth: Option[String]): Future[Box[Consumer]]
   def getOrCreateConsumer(consumerId: Option[String], 
                           key: Option[String], 
-                          secret: Option[String], 
+                          secret: Option[String],
+                          aud: Option[String],
                           azp: Option[String],
                           iss: Option[String],
                           sub: Option[String], 
@@ -66,7 +67,8 @@ class RemotedataConsumersCaseClasses {
   case class updateConsumerCallLimits(id: Long, perSecond: Option[String], perMinute: Option[String], perHour: Option[String], perDay: Option[String], perWeek: Option[String], perMonth: Option[String])
   case class getOrCreateConsumer(consumerId: Option[String], 
                                  key: Option[String], 
-                                 secret: Option[String], 
+                                 secret: Option[String],
+                                 aud: Option[String],
                                  azp: Option[String],
                                  iss: Option[String],
                                  sub: Option[String], 

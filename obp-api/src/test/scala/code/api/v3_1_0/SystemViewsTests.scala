@@ -118,8 +118,8 @@ class SystemViewsTests extends V310ServerSetup {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint2")
       val response400 = postSystemView(postBodySystemViewJson, None)
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }
@@ -148,8 +148,8 @@ class SystemViewsTests extends V310ServerSetup {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       val response400 = getSystemView("", None)
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }
@@ -180,8 +180,8 @@ class SystemViewsTests extends V310ServerSetup {
     scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When(s"We make a request $ApiEndpoint3")
       val response400 = getSystemView("", None)
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }
@@ -245,8 +245,8 @@ class SystemViewsTests extends V310ServerSetup {
     scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
       When(s"We make a request $ApiEndpoint4")
       val response400 = deleteSystemView("", None)
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }

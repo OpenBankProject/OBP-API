@@ -74,8 +74,8 @@ class ConsentTest extends V310ServerSetup {
       When("We make a request")
       val request400 = (v3_1_0_Request / "banks" / bankId / "my" / "consents" / "EMAIL" ).POST
       val response400 = makePostRequest(request400, write(postConsentEmailJsonV310))
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
     
