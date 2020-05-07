@@ -710,11 +710,9 @@ object NewStyle {
           i._2)
       }
     }
-    
-    
-    def toBankAccount(counterparty: CounterpartyTrait, callContext: Option[CallContext]) : Future[BankAccount] =
+    def toBankAccount(counterparty: CounterpartyTrait, isOutgoingAccount: Boolean, callContext: Option[CallContext]) : Future[BankAccount] =
     {
-      Future{BankAccountX.toBankAccount(counterparty)} map {
+      Future{BankAccountX.toBankAccount(counterparty, isOutgoingAccount)} map {
         unboxFullOrFail(_, callContext, s"$UnknownError ")
       }
     }

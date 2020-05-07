@@ -277,7 +277,7 @@ object SwaggerJSONFactory extends MdcLoggable {
     val schemas = List("http", "https")
     // Paths Object
     // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#paths-object
-    // setting up the following fileds of swagger json,eg apiFunction = bankById
+    // setting up the following fields of swagger json,eg apiFunction = bankById
     //  "paths": {
     //    "/banks/BANK_ID": --> mrd._1
     //      "get": {        --> all following from mrd._2
