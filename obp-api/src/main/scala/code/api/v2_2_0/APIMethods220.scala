@@ -1030,7 +1030,7 @@ trait APIMethods220 {
          |
          |other_account_secondary_routing_scheme : eg: IBan or any other strings
          |
-         |other_account_secondary_routing_address : if it is IBan, it should be unique for each counterparty. 
+         |other_account_secondary_routing_address : if it is an IBAN, it should be unique for each counterparty. 
          |
          |other_branch_routing_scheme : eg: branchId or any other strings or you can leave it empty, not useful in sandbox mode.
          |
@@ -1050,9 +1050,9 @@ trait APIMethods220 {
          | {
          |  "name": "Tesobe1",
          |  "description": "Good Company",
-         |  "other_bank_routing_scheme": "OBP_BANK_ID",
+         |  "other_bank_routing_scheme": "OBP",
          |  "other_bank_routing_address": "gh.29.uk",
-         |  "other_account_routing_scheme": "OBP_ACCOUNT_ID",
+         |  "other_account_routing_scheme": "OBP",
          |  "other_account_routing_address": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
          |  "is_beneficiary": true,
          |  "other_account_secondary_routing_scheme": "",
@@ -1068,9 +1068,9 @@ trait APIMethods220 {
          | {
          |  "name": "Tesobe2",
          |  "description": "Good Company",
-         |  "other_bank_routing_scheme": "OBP_BANK_ID",
+         |  "other_bank_routing_scheme": "OBP",
          |  "other_bank_routing_address": "gh.29.uk",
-         |  "other_account_routing_scheme": "OBP_ACCOUNT_ID",
+         |  "other_account_routing_scheme": "OBP",
          |  "other_account_routing_address": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
          |  "other_account_secondary_routing_scheme": "IBAN",
          |  "other_account_secondary_routing_address": "DE89 3704 0044 0532 0130 00",
@@ -1117,15 +1117,21 @@ trait APIMethods220 {
             ) ?~! CounterpartyAlreadyExists
             _ <- booleanToBox(postJson.description.length <= 36, s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}")
             
-            //If other_account_routing_scheme=="OBP_ACCOUNT_ID" or other_account_secondary_routing_address=="OBP_ACCOUNT_ID" we will check if it is a real obp bank account.
-            _<- if (postJson.other_bank_routing_scheme == "OBP_BANK_ID" && postJson.other_account_routing_scheme =="OBP_ACCOUNT_ID"){
+            //If other_account_routing_scheme=="OBP" or other_account_secondary_routing_address=="OBP" we will check if it is a real obp bank account.
+            _<- if (
+              (postJson.other_bank_routing_scheme == "OBP" || postJson.other_bank_routing_scheme == "OBP_BANK_ID") 
+                && (postJson.other_account_routing_scheme =="OBP" || postJson.other_account_routing_scheme =="OBP_ACCOUNT_ID")
+            ){
               for{
                 (bank, callContext) <- BankX(BankId(postJson.other_bank_routing_address), Some(cc)) ?~! s"$BankNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
                 account <- Connector.connector.vend.checkBankAccountExistsLegacy(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address), callContext) ?~! s"$BankAccountNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
               } yield {
                 account
               }
-            } else if (postJson.other_bank_routing_scheme == "OBP_BANK_ID" && postJson.other_account_secondary_routing_scheme=="OBP_ACCOUNT_ID"){
+            } else if (
+              (postJson.other_bank_routing_scheme == "OBP" || postJson.other_bank_routing_scheme == "OBP_BANK_ID") 
+                && (postJson.other_account_secondary_routing_scheme=="OBP" || postJson.other_account_secondary_routing_scheme=="OBP_ACCOUNT_ID")
+            ){
               for{
                 (bank, callContext) <- BankX(BankId(postJson.other_bank_routing_address), Some(cc)) ?~! s"$BankNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
                 account <- Connector.connector.vend.checkBankAccountExistsLegacy(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_secondary_routing_address), callContext) ?~! s"$BankAccountNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
