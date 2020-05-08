@@ -466,7 +466,7 @@ There are 3 API's endpoint related to webhooks:
 ---
 
 ## OpenID Connect
-In order to enable an OIDC workflow at an instance of OBP-API portal app you need to set up next props:
+In order to enable an OIDC workflow at an instance of OBP-API portal app(login functionality) you need to set-up the following props:
 ```props
 # Google as an identity provider
 # openid_connect_1.client_secret=OYdWujJl******_NXzPlDI4T
@@ -480,8 +480,8 @@ In order to enable an OIDC workflow at an instance of OBP-API portal app you nee
 ```
 Please note in the example above you MUST run OBP-API portal at the URL: http://127.0.0.1:8080
 
-## OAuth 2.0
-In order to enable an OAuth2 workflow at an instance of OBP-API backend app you need to setup next props:
+## OAuth 2.0 Authentication
+In order to enable an OAuth2 workflow at an instance of OBP-API backend app you need to set-up the following props:
 ```
 # -- OAuth 2 ---------------------------------------------------------------------------------
 # Enable/Disable OAuth 2 workflow at a server instance
