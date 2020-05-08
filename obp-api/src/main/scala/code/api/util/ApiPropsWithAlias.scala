@@ -11,7 +11,7 @@ import net.liftweb.common.Full
   * 2. We introduce a new name "require_scopes_for_all_roles"
   * 3. We have to support all instances with old name in order to allow smooth transition from the old to the new name.
   */
-object ApiProsWithAlias {
+object ApiPropsWithAlias {
   import HelperFunctions._
   val requireScopesForAllRoles = getValueByNameOrAliasAsBoolean(
     name="require_scopes_for_all_roles", 
