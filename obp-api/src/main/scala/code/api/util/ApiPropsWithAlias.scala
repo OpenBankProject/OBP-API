@@ -76,11 +76,12 @@ object HelperFunctions extends MdcLoggable {
   private[util] def getValueByNameOrAlias(name: String, alias: String, defaultValue: String): String = {
     (getPropsValue(name), getPropsValue(alias)) match {
       case (Full(actual), Full(deprecated)) => // Both properties are defined. Use actual one and log warning. {true/false}
-        logger.warn(s"The props file has defined actual property name $name as well as deprecated $alias. The deprecated one is ignored!")
+        logger.warn(s"The props file has defined actual property $name as well as deprecated $alias. The deprecated one is ignored!")
         actual
       case (Full(actual), _) => // Only actual name of the property is defined. {true/false}
         actual
       case (_, Full(deprecated)) => // Only deprecated name of the property is defined. {true/false}
+        logger.warn(s"The props file uses deprecated property $alias. Please use $name instead of it")
         deprecated
       case _ => // Not defined. {false}
         defaultValue
