@@ -1766,7 +1766,7 @@ Returns a string showed to the developer
   )
 
   def requireScopes(role: ApiRole) = {
-      ApiProperty.requireScopesForAllRoles match {
+    ApiPropsWithAlias.requireScopesForAllRoles match {
       case false =>
         getPropsValue("enable_scopes_for_roles").toList.map(_.split(",")).flatten.exists(_ == role.toString())
       case true => 

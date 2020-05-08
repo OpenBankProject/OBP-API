@@ -4,7 +4,7 @@ import java.sql.{ResultSet, SQLException}
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, ApiPropsWithAlias}
 import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
 import code.consumer.Consumers
 import code.customer.CustomerX
@@ -18,13 +18,12 @@ import scala.collection.immutable
 import scala.collection.mutable.HashMap
 
 object Migration extends MdcLoggable {
-  
+  private val migrationScriptsEnabled = ApiPropsWithAlias.migrationScriptsEnabled
   private val executeAll = getPropsAsBoolValue("migration_scripts.execute_all", false)
-  private val execute = getPropsAsBoolValue("migration_scripts.execute", false)
   private val scriptsToExecute: immutable.Seq[String] = getPropsValue("list_of_migration_scripts_to_execute").toList.map(_.split(",")).flatten
 
   private def executeScript(blockOfCode: => Boolean): Boolean = {
-    if(execute) blockOfCode else execute
+    if(migrationScriptsEnabled) blockOfCode else migrationScriptsEnabled
   }
   
   private def runOnce(name: String)(blockOfCode: => Boolean): Boolean = {

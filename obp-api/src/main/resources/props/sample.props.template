@@ -546,6 +546,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 ## registered on OBP localy.
 # openid_connect.enabled=true
 # First identity provider
+# openid_connect_1.button_text = Google
 # openid_connect_1.client_secret=OYdWujJlU7fFOW_NXzPlDI4T
 # openid_connect_1.client_id=883773244832-s4hi72j0rble0iiivq1gn09k7vvptdci.apps.googleusercontent.com
 # openid_connect_1.callback_url=http://127.0.0.1:8080/auth/openid-connect/callback
@@ -555,6 +556,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # openid_connect_1.endpoint.jwks_uri=https://www.googleapis.com/oauth2/v3/certs
 # openid_connect_1.access_type_offline=true
 ## Second identity provder
+# openid_connect_2.button_text = name of 2nd provider
 # openid_connect_2.client_secret=OYdWujJlU7fFOW_NXzPlDI4T
 # openid_connect_2.client_id=883773244832-s4hi72j0rble0iiivq1gn09k7vvptdci.apps.googleusercontent.com
 # openid_connect_2.callback_url=http://127.0.0.1:8080/auth/openid-connect/callback
@@ -673,7 +675,7 @@ featured_apis=elasticSearchWarehouseV300
 # Enable/Disable execution of migration scripts.
 # In case isn't defined default value is "false"
 # Note: migration_scripts.execute MUST be true for the other two props values (list_of_migration_scripts_to_execute and migration_scripts) to have any effect.
-# migration_scripts.execute=false
+# migration_scripts.enabled=false
 # Define list of migration scripts to execute.
 # List is not ordered.
 # list_of_migration_scripts_to_execute=dummyScript

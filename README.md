@@ -464,8 +464,24 @@ There are 3 API's endpoint related to webhooks:
 2. `PUT ../banks/BANK_ID/account-web-hooks` - Enable/Disable an Account Webhook
 3. `GET ../management/banks/BANK_ID/account-web-hooks` - Get Account Webhooks
 ---
-## OAuth 2.0
-In order to enable an OAuth2 workflow at an instance of OBP-API backend app you need to setup next props:
+
+## OpenID Connect
+In order to enable an OIDC workflow at an instance of OBP-API portal app(login functionality) you need to set-up the following props:
+```props
+# Google as an identity provider
+# openid_connect_1.client_secret=OYdWujJl******_NXzPlDI4T
+# openid_connect_1.client_id=883**3244***-s4hi72j0rble0iiivq1gn09k7***tdci.apps.googleusercontent.com
+# openid_connect_1.callback_url=http://127.0.0.1:8080/auth/openid-connect/callback
+# openid_connect_1.endpoint.authorization=https://accounts.google.com/o/oauth2/v2/auth
+# openid_connect_1.endpoint.userinfo=https://openidconnect.googleapis.com/v1/userinfo
+# openid_connect_1.endpoint.token=https://oauth2.googleapis.com/token
+# openid_connect_1.endpoint.jwks_uri=https://www.googleapis.com/oauth2/v3/certs
+# openid_connect_1.access_type_offline=false
+```
+Please note in the example above you MUST run OBP-API portal at the URL: http://127.0.0.1:8080
+
+## OAuth 2.0 Authentication
+In order to enable an OAuth2 workflow at an instance of OBP-API backend app you need to set-up the following props:
 ```
 # -- OAuth 2 ---------------------------------------------------------------------------------
 # Enable/Disable OAuth 2 workflow at a server instance

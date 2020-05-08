@@ -35,19 +35,19 @@
 					<a href="/user_mgt/lost_password" id="authorise-recover-password" tabindex="5">Recover password</a>
 				</div>
 			</div>
-			<div class="row">
+			<div class="row"  data-lift="OpenIDConnectSnippet.showFirstButton">
 				<div class="col-xs-6"></div>
 				<div class="col-xs-6" data-lift="OpenidConnectInvoke.linkButtonFirstProvider">
 					<div class="authorise-button-oidc">
-						Log in with: <a class="btn btn-default">OIDC 1</a>
+						Log in with: <a id="open-id-connect-button-1" data-lift="OpenIDConnectSnippet.getFirstButtonText" class="btn btn-default">OIDC 1</a>
 					</div>
 				</div>
 			</div>
-			<div class="row">
+			<div class="row" data-lift="OpenIDConnectSnippet.showSecondButton">
 				<div class="col-xs-6"></div>
 				<div class="col-xs-6" data-lift="OpenidConnectInvoke.linkButtonSecondProvider">
 					<div class="authorise-button-oidc">
-						Log in with: <a class="btn btn-default">OIDC 2</a>
+						Log in with: <a id="open-id-connect-button-2" data-lift="OpenIDConnectSnippet.getSecondButtonText" class="btn btn-default">OIDC 2</a>
 					</div>
 				</div>
 			</div>
