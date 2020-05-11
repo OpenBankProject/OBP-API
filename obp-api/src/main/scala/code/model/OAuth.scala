@@ -410,6 +410,11 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     else Nil
   }
 
+  private def EmptyError(field: MappedText[Consumer])( s : String) = {
+    if(s.isEmpty) List(FieldError(field, {field.displayName + "can not be empty"}))
+    else Nil
+  }
+  
   private def validUrl(field: MappedString[Consumer])(s: String) = {
     import java.net.URL
 
@@ -475,6 +480,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     override def displayName = "Application type:"
   }
   object description extends MappedText(this) {
+    override def validations = EmptyError(this) _ :: super.validations
     override def displayName = "Description:"
   }
   object developerEmail extends MappedEmail(this, 100) {

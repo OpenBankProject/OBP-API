@@ -76,14 +76,52 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
 
   object user extends MappedLongForeignKey(this, ResourceUser)
 
+  override lazy val firstName = new MyFirstName
+  
+  protected class MyFirstName extends MappedString(this, 32) {
+    def isEmpty(msg: => String)(value: String): List[FieldError] =
+      value match {
+        case null                  => List(FieldError(this, Text(msg))) // issue 179
+        case e if e.trim.isEmpty   => List(FieldError(this, Text(msg))) // issue 179
+        case _                     => Nil
+      }
+    
+    override def displayName = fieldOwner.firstNameDisplayName
+    override val fieldId = Some(Text("txtFirstName"))
+    override def validations = isEmpty(Helper.i18n("Please.enter.your.first.name")) _ :: super.validations
+  }
+  
+  override lazy val lastName = new MyLastName
+
+  protected class MyLastName extends MappedString(this, 32) {
+    def isEmpty(msg: => String)(value: String): List[FieldError] =
+      value match {
+        case null                  => List(FieldError(this, Text(msg))) // issue 179
+        case e if e.trim.isEmpty   => List(FieldError(this, Text(msg))) // issue 179
+        case _                     => Nil
+      }
+
+    override def displayName = fieldOwner.lastNameDisplayName
+    override val fieldId = Some(Text("txtLastName"))
+    override def validations = isEmpty(Helper.i18n("Please.enter.your.last.name")) _ :: super.validations
+  }
+  
   /**
     * The username field for the User.
     */
   lazy val username: userName = new userName()
   class userName extends MappedString(this, 64) {
-    override def displayName = S.?("username")
+    def isEmpty(msg: => String)(value: String): List[FieldError] =
+      value match {
+        case null                  => List(FieldError(this, Text(msg))) // issue 179
+        case e if e.trim.isEmpty   => List(FieldError(this, Text(msg))) // issue 179
+        case _                     => Nil
+      }
+    override def displayName = S.?("Username")
     override def dbIndexed_? = true
-    override def validations = valUnique(S.?("unique.username")) _ :: super.validations
+    override def validations = isEmpty(Helper.i18n("Please.enter.your.username")) _ :: 
+                               valUnique(S.?("unique.username")) _ :: 
+                               super.validations
     override val fieldId = Some(Text("txtUsername"))
   }
 
@@ -95,10 +133,18 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
 
     override def _toForm: Box[NodeSeq] = {
       S.fmapFunc({s: List[String] => this.setFromAny(s)}){funcName =>
-        Full(<span>{appendFieldId(<input type={formInputType} name={funcName}
-                                         value={get.toString}/>)}&nbsp;{signupPasswordRepeatText}&nbsp;<input
-          type={formInputType} name={funcName}
-          value={get.toString}/></span>)
+        Full(
+          <span>
+            {appendFieldId(<input id="textPassword" type={formInputType} name={funcName} value={get.toString}/>)}
+            <div id="signup-error" class="alert alert-danger hide">
+              <span data-lift={s"Msg?id=${uniqueFieldId.getOrElse("")}&errorClass=error"}/>
+            </div>
+            <div id ="repeat-password">{signupPasswordRepeatText}</div>
+            <input id="textPasswordRepeat" type={formInputType} name={funcName} value={get.toString}/>
+            <div id="signup-error" class="alert alert-danger hide">
+              <span data-lift={s"Msg?id=${uniqueFieldId.getOrElse("")}_repeat&errorClass=error"}/>
+            </div>
+        </span>)
       }
     }
     
@@ -111,41 +157,58 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
     // TODO Remove double negative and abreviation.
     // TODO  “invalidPw” = false -> “strongPassword = true” etc.
     override def setFromAny(f: Any): String = {
+      def checkPassword() = {
+        def isPasswordEmpty() = {
+          if (passwordValue.isEmpty())
+            true
+          else {
+            passwordValue match {
+              case "*" | null | MappedPassword.blankPw =>
+                true
+              case _ =>
+                false
+            }
+          }
+        }
+        isPasswordEmpty() match {
+          case true =>
+            invalidPw = true;
+            invalidMsg = Helper.i18n("please.enter.your.password")
+            S.error("authuser_password_repeat", Text(Helper.i18n("please.re-enter.your.password")))
+          case false =>
+            if (isValidStrongPassword(passwordValue))
+              invalidPw = false
+            else {
+              invalidPw = true
+              invalidMsg = S.?(ErrorMessages.InvalidStrongPasswordFormat.split(':')(1))
+              S.error("authuser_password_repeat", Text(invalidMsg))
+            }
+        }
+      }
       f match {
         case a: Array[String] if (a.length == 2 && a(0) == a(1)) => {
           passwordValue = a(0).toString
-          if (isValidStrongPassword(passwordValue))
-            invalidPw = false
-          else {
-            invalidPw = true
-            invalidMsg = S.?(ErrorMessages.InvalidStrongPasswordFormat)
-          }
+          checkPassword()
           this.set(a(0))
         }
         case l: List[_] if (l.length == 2 && l.head.asInstanceOf[String] == l(1).asInstanceOf[String]) => {
           passwordValue = l(0).asInstanceOf[String]
-          if (isValidStrongPassword(passwordValue))
-            invalidPw = false
-          else {
-            invalidPw = true
-            invalidMsg = S.?(ErrorMessages.InvalidStrongPasswordFormat)
-          }
-          
+          checkPassword()
           this.set(l.head.asInstanceOf[String])
         }
         case _ => {
           invalidPw = true;
-          invalidMsg = S.?("passwords.do.not.match")
+          invalidMsg = Helper.i18n("passwords.do.not.match")
+          S.error("authuser_password_repeat", Text(invalidMsg))
         }
       }
       get
     }
     
     override def validate: List[FieldError] = {
-      if (super.validate.nonEmpty) super.validate
-      else if (!invalidPw && password.get != "*") Nil
+      if (!invalidPw && password.get != "*") Nil
       else if (invalidPw) List(FieldError(this, Text(invalidMsg)))
-      else List(FieldError(this, Text(S.?("password.must.be.set"))))
+      else List(FieldError(this, Text(Helper.i18n("please.enter.your.password"))))
     }
     
   }
@@ -234,7 +297,12 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
   override lazy val email = new MyEmail(this, 48) {
     override def validations = super.validations
     override def dbIndexed_? = false
-    override def validate = if (isEmailValid(i_is_!)) Nil else List(FieldError(this, Text(S.?("invalid.email.address"))))
+    override def validate = i_is_! match {
+      case null                  => List(FieldError(this, Text(Helper.i18n("Please.enter.your.email"))))
+      case e if e.trim.isEmpty   => List(FieldError(this, Text(Helper.i18n("Please.enter.your.email"))))
+      case e if (!isEmailValid(e))  => List(FieldError(this, Text(S.?("invalid.email.address"))))
+      case _                     => Nil
+    }
   }
 }
 
@@ -451,7 +519,7 @@ import net.liftweb.util.Helpers._
     <div id="signup">
       <form method="post" action={S.uri}>
           <h1>{signupFormTitle}</h1>
-          <div id="signup-error" class="alert alert-danger hide"><span data-lift="Msg?id=error"/></div>
+          <div id="signup-general-error" class="alert alert-danger hide"><span data-lift="Msg?id=error"/></div>
           {localForm(user, false, signupFields)}
           {agreeTermsDiv}
           {agreePrivacyPolicy}
@@ -469,7 +537,21 @@ import net.liftweb.util.Helpers._
       field <- computeFieldFromPointer(user, pointer).toList
       if field.show_? && (!ignorePassword || !pointer.isPasswordField_?)
       form <- field.toForm.toList
-    } yield <div class="form-group"><label>{field.displayName}</label> {form}</div>
+    } yield {
+      if(field.uniqueFieldId.getOrElse("") == "authuser_password") {
+        <div class="form-group">
+          <label>{field.displayName}</label>
+          {form}
+        </div>
+      } else {
+        <div class="form-group">
+          <label>{field.displayName}</label>
+          {form}
+          <div id="signup-error" class="alert alert-danger hide"><span data-lift={s"Msg?id=${field.uniqueFieldId.getOrElse("")}&errorClass=error"}/></div>
+        </div>
+      }
+    }
+      
   }
 
   def userLoginFailed = {
@@ -655,120 +737,78 @@ def restoreSomeSessions(): Unit = {
       if (S.post_?) {
         val usernameFromGui = S.param("username").getOrElse("")
         val passwordFromGui = S.param("password").getOrElse("")
-        findUserByUsernameLocally(usernameFromGui) match {
-          // Check if user came from localhost and
-          // if User is NOT locked and password is good
-          case Full(user) if user.validated_? &&
-            user.getProvider() == APIUtil.getPropsValue("hostname","") &&
-            ! LoginAttempt.userIsLocked(usernameFromGui) &&
-            user.testPassword(Full(passwordFromGui)) => {
-              // Reset any bad attempts
-              LoginAttempt.resetBadLoginAttempts(usernameFromGui)
-              val preLoginState = capturePreLoginState()
-              logger.info("login redir: " + loginRedirect.get)
-              val redir = loginRedirect.get match {
-                case Full(url) =>
-                  loginRedirect(Empty)
-                  url
-                case _ =>
-                  homePage
-              }
-//              registeredUserHelper(user.username)
-            //Check the internal redirect, in case for open redirect issue.
-            // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-            // val currentUrl = S.uriAndQueryString.getOrElse("/")
-            // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
-            if (Helper.isValidInternalRedirectUrl(redir.toString)) {
-              logUserIn(user, () => {
-                S.notice(S.?("logged.in"))
-                preLoginState()
-                S.redirectTo(redir)
-              })
-            } else {
-              S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-              logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
-            }
-          }
-
-          // Check if user came from kafka/obpjvm and
-          // if User is NOT locked. Then check username and password
-          // from connector in case they changed on the south-side
-          case Full(user) if user.validated_? &&
-            user.getProvider() != APIUtil.getPropsValue("hostname","") &&
-            ! LoginAttempt.userIsLocked(usernameFromGui) &&
-            testExternalPassword(Full(user.username.get), Full(passwordFromGui)).getOrElse(false) => {
-              // Reset any bad attempts
-              LoginAttempt.resetBadLoginAttempts(usernameFromGui)
-              val preLoginState = capturePreLoginState()
-              logger.info("login redir: " + loginRedirect.get)
-              val redir = loginRedirect.get match {
-                case Full(url) =>
-                  loginRedirect(Empty)
-                  url
-                case _ =>
-                  homePage
-              }
-              //This method is used for connector = kafka* || obpjvm*
-              //It will update the views and createAccountHolder ....
-              registeredUserHelper(user.username.get)
-              //Check the internal redirect, in case for open redirect issue.
-              // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-              // val currentUrl = S.uriAndQueryString.getOrElse("/")
-              // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
-              if (Helper.isValidInternalRedirectUrl(redir.toString)) {
-                logUserIn(user, () => {
-                  S.notice(S.?("logged.in"))
-                  preLoginState()
-                  S.redirectTo(redir)
-                })
-              } else {
-                S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-                logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
-              }
-            }
-
-          // If user is unlocked AND bad password, increment bad login attempt counter.
-          case Full(user) if user.validated_? &&
-            user.getProvider() == APIUtil.getPropsValue("hostname","") &&
-            ! LoginAttempt.userIsLocked(usernameFromGui) &&
-            ! user.testPassword(Full(passwordFromGui)) =>
-              LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
-              S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
-
-          // If user is locked, send the error to GUI
-          case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>
-            LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
-            S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
-
-          case Full(user) if !user.validated_? =>
-            S.error(S.?("account.validation.error")) // Note: This does not seem to get hit when user is not validated.
-
-          // If not found locally, try to authenticate user via Kafka, if enabled in props
-          case Empty if (connector.startsWith("kafka") || connector == "obpjvm") &&
-            (APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) ||
-            APIUtil.getPropsAsBoolValue("obpjvm.user.authentication", false)) =>
-              val preLoginState = capturePreLoginState()
-              logger.info("login redir: " + loginRedirect.get)
-              val redir = loginRedirect.get match {
-                case Full(url) =>
-                  loginRedirect(Empty)
-                  url
-                case _ =>
-                  homePage
-              }
-              for {
-                user_ <- externalUserHelper(usernameFromGui, passwordFromGui)
-              } yield {
-                user_
-              } match {
-                case u:AuthUser =>
+        val usernameEmptyField = S.param("username").map(_.isEmpty()).getOrElse(true)
+        val passwordEmptyField = S.param("password").map(_.isEmpty()).getOrElse(true)
+        val emptyField = usernameEmptyField || passwordEmptyField
+        emptyField match {
+          case true =>
+            if(usernameEmptyField) 
+              S.error("login-form-username-error", Helper.i18n("please.enter.your.username"))
+            if(passwordEmptyField) 
+              S.error("login-form-password-error", Helper.i18n("please.enter.your.password"))
+          case false =>
+            findUserByUsernameLocally(usernameFromGui) match {
+              // Check if user came from localhost and
+              // if User is NOT locked and password is good
+              case Full(user) if user.validated_? &&
+                user.getProvider() == APIUtil.getPropsValue("hostname","") &&
+                ! LoginAttempt.userIsLocked(usernameFromGui) &&
+                user.testPassword(Full(passwordFromGui)) => {
+                  // Reset any bad attempts
                   LoginAttempt.resetBadLoginAttempts(usernameFromGui)
+                  val preLoginState = capturePreLoginState()
+                  logger.info("login redir: " + loginRedirect.get)
+                  val redir = loginRedirect.get match {
+                    case Full(url) =>
+                      loginRedirect(Empty)
+                      url
+                    case _ =>
+                      homePage
+                  }
+    //              registeredUserHelper(user.username)
+                //Check the internal redirect, in case for open redirect issue.
+                // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
+                // val currentUrl = S.uriAndQueryString.getOrElse("/")
+                // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
+                if (Helper.isValidInternalRedirectUrl(redir.toString)) {
+                  logUserIn(user, () => {
+                    S.notice(S.?("logged.in"))
+                    preLoginState()
+                    S.redirectTo(redir)
+                  })
+                } else {
+                  S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
+                  logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
+                }
+              }
+    
+              // Check if user came from kafka/obpjvm and
+              // if User is NOT locked. Then check username and password
+              // from connector in case they changed on the south-side
+              case Full(user) if user.validated_? &&
+                user.getProvider() != APIUtil.getPropsValue("hostname","") &&
+                ! LoginAttempt.userIsLocked(usernameFromGui) &&
+                testExternalPassword(Full(user.username.get), Full(passwordFromGui)).getOrElse(false) => {
+                  // Reset any bad attempts
+                  LoginAttempt.resetBadLoginAttempts(usernameFromGui)
+                  val preLoginState = capturePreLoginState()
+                  logger.info("login redir: " + loginRedirect.get)
+                  val redir = loginRedirect.get match {
+                    case Full(url) =>
+                      loginRedirect(Empty)
+                      url
+                    case _ =>
+                      homePage
+                  }
+                  //This method is used for connector = kafka* || obpjvm*
+                  //It will update the views and createAccountHolder ....
+                  registeredUserHelper(user.username.get)
                   //Check the internal redirect, in case for open redirect issue.
                   // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
                   // val currentUrl = S.uriAndQueryString.getOrElse("/")
                   // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
                   if (Helper.isValidInternalRedirectUrl(redir.toString)) {
-                    logUserIn(u, () => {
+                    logUserIn(user, () => {
                       S.notice(S.?("logged.in"))
                       preLoginState()
                       S.redirectTo(redir)
@@ -777,17 +817,70 @@ def restoreSomeSessions(): Unit = {
                     S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
                     logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
                   }
-                case _ =>
-                  LoginAttempt.incrementBadLoginAttempts(username.get)
-                  Empty
-              }
-
-          //If the username is not exiting, throw the error message.  
-          case Empty => S.error(S.?("Invalid Login Credentials"))
-            
-          case _ =>
-            LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
-            S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin)) // Note we hit this if user has not clicked email validation link
+                }
+    
+              // If user is unlocked AND bad password, increment bad login attempt counter.
+              case Full(user) if user.validated_? &&
+                user.getProvider() == APIUtil.getPropsValue("hostname","") &&
+                ! LoginAttempt.userIsLocked(usernameFromGui) &&
+                ! user.testPassword(Full(passwordFromGui)) =>
+                  LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
+                  S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
+    
+              // If user is locked, send the error to GUI
+              case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>
+                LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
+                S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
+    
+              case Full(user) if !user.validated_? =>
+                S.error(S.?("account.validation.error")) // Note: This does not seem to get hit when user is not validated.
+    
+              // If not found locally, try to authenticate user via Kafka, if enabled in props
+              case Empty if (connector.startsWith("kafka") || connector == "obpjvm") &&
+                (APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) ||
+                APIUtil.getPropsAsBoolValue("obpjvm.user.authentication", false)) =>
+                  val preLoginState = capturePreLoginState()
+                  logger.info("login redir: " + loginRedirect.get)
+                  val redir = loginRedirect.get match {
+                    case Full(url) =>
+                      loginRedirect(Empty)
+                      url
+                    case _ =>
+                      homePage
+                  }
+                  for {
+                    user_ <- externalUserHelper(usernameFromGui, passwordFromGui)
+                  } yield {
+                    user_
+                  } match {
+                    case u:AuthUser =>
+                      LoginAttempt.resetBadLoginAttempts(usernameFromGui)
+                      //Check the internal redirect, in case for open redirect issue.
+                      // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
+                      // val currentUrl = S.uriAndQueryString.getOrElse("/")
+                      // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
+                      if (Helper.isValidInternalRedirectUrl(redir.toString)) {
+                        logUserIn(u, () => {
+                          S.notice(S.?("logged.in"))
+                          preLoginState()
+                          S.redirectTo(redir)
+                        })
+                      } else {
+                        S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
+                        logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
+                      }
+                    case _ =>
+                      LoginAttempt.incrementBadLoginAttempts(username.get)
+                      Empty
+                  }
+    
+              //If the username is not exiting, throw the error message.  
+              case Empty => S.error(S.?("Invalid Login Credentials"))
+                
+              case _ =>
+                LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
+                S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin)) // Note we hit this if user has not clicked email validation link
+            }
         }
       }
     }
@@ -961,7 +1054,9 @@ def restoreSomeSessions(): Unit = {
           }
 
         case xs =>
-          xs.foreach(e => S.error("error", e.msg))
+          xs.foreach{
+            e => S.error(e.field.uniqueFieldId.openOrThrowException("There is no uniqueFieldId."), e.msg)
+          }
           signupFunc(Full(innerSignup _))
       }
     }
