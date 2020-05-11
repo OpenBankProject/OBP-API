@@ -206,9 +206,9 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
     }
     
     override def validate: List[FieldError] = {
-      if (!invalidPw && password.get != "*") Nil
-      else if (invalidPw) List(FieldError(this, Text(invalidMsg)))
-      else List(FieldError(this, Text(Helper.i18n("please.enter.your.password"))))
+      if (!invalidPw && password.get != "*") super.validate
+      else if (invalidPw) List(FieldError(this, Text(invalidMsg))) ++ super.validate
+      else List(FieldError(this, Text(Helper.i18n("please.enter.your.password")))) ++ super.validate
     }
     
   }
