@@ -64,6 +64,7 @@ object Migration extends MdcLoggable {
       bankAccountHoldersAndOwnerViewAccessInfo()
       alterTableMappedConsent()
       alterColumnChallengeAtTableMappedConsent()
+      alterTableOpenIDConnectToken()
     }
     
     private def dummyScript(): Boolean = {
@@ -156,6 +157,13 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterColumnChallengeAtTableMappedConsent)
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnChallenge(name)
+      }
+    }
+    private def alterTableOpenIDConnectToken(): Boolean = {
+      val name = nameOf(alterTableOpenIDConnectToken)
+      runOnce(name) {
+        MigrationOfOpnIDConnectToken.alterColumnAccessToken(name)
+        MigrationOfOpnIDConnectToken.alterColumnRefreshToken(name)
       }
     }
     

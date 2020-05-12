@@ -25,9 +25,9 @@ object MappedOpenIDConnectTokensProvider extends OpenIDConnectTokensProvider {
 class OpenIDConnectToken extends OpenIDConnectTokenTrait with LongKeyedMapper[OpenIDConnectToken] with IdPK with CreatedUpdated {
 
   def getSingleton: OpenIDConnectToken.type = OpenIDConnectToken
-  object AccessToken extends MappedString(this, 1024)
+  object AccessToken extends MappedText(this)
   object IDToken extends MappedText(this)
-  object RefreshToken extends MappedString(this, 1024)
+  object RefreshToken extends MappedText(this)
   object Scope extends MappedString(this, 250)
   object TokenType extends MappedString(this, 250)
   object ExpiresIn extends MappedLong(this)
