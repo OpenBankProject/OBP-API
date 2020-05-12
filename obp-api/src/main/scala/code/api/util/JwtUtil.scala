@@ -127,6 +127,25 @@ object JwtUtil extends MdcLoggable {
   }
 
   /**
+    * The Issuer Identifier for the Issuer of the response. 
+    * Get the value of the "iss" claim, or None if it's not available.
+    *
+    * @return the Issuer's value or None.
+    */
+  def getAlgorithm(jwtToken: String): Option[JWSAlgorithm] = {
+    try {
+      val signedJWT = SignedJWT.parse(jwtToken)
+      // claims extraction...
+      Some(signedJWT.getHeader().getAlgorithm())
+    } catch {
+      case e: Exception =>
+        logger.error(msg = "code.api.util.JwtUtil.getAlgorithm")
+        logger.error(e)
+        None
+    }
+  }
+
+  /**
     * This function validates Access Token
     * @param accessToken The access token to validate, typically submitted with a HTTP header like
     *                    Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6InMxIn0.eyJzY3A...
@@ -186,7 +205,7 @@ object JwtUtil extends MdcLoggable {
     val iss: Issuer = new Issuer(getIssuer(idToken).getOrElse(""))
     val aud = getAudience(idToken).headOption.getOrElse("")
     val clientID: ClientID = new ClientID(aud)
-    val jwsAlg: JWSAlgorithm = JWSAlgorithm.RS256
+    val jwsAlg: JWSAlgorithm = getAlgorithm(idToken).getOrElse(JWSAlgorithm.RS256)
     val jwkSetURL: URL = new URL(remoteJWKSetUrl)
 
     // Create validator for signed ID tokens

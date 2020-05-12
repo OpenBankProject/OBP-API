@@ -27,15 +27,14 @@ TESOBE (http://www.tesobe.com/)
 package code.api
 
 import java.net.HttpURLConnection
-import java.util.Date
 
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ErrorMessages, JwtUtil}
 import code.consumer.Consumers
-import code.model.{Consumer, Token}
+import code.model.Consumer
 import code.model.dataAccess.AuthUser
 import code.snippet.OpenIDConnectSessionState
-import code.token.{OpenIDConnectToken, Tokens, TokensOpenIDConnect}
+import code.token.{OpenIDConnectToken, TokensOpenIDConnect}
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
@@ -48,8 +47,6 @@ import net.liftweb.json.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
-
-import scala.compat.Platform
 
 /**
   * This object provides the API calls necessary to authenticate
@@ -135,10 +132,18 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
 
     (httpCode, authorizationUser) match {
       case (200, Some(user)) =>
+        val loginRedirect = AuthUser.loginRedirect.get
         AuthUser.logUserIn(user, () => {
           S.notice(S.?("logged.in"))
           //This redirect to homePage, it is from scala code, no open redirect issue.
-          S.redirectTo(AuthUser.homePage)
+          val redirectUrl = loginRedirect match {
+            case Full(url) =>
+              AuthUser.loginRedirect(Empty)
+              url
+            case _ =>
+              AuthUser.homePage
+          }
+          S.redirectTo(redirectUrl)
         })
       case _ =>
         errorJsonResponse(message, httpCode)

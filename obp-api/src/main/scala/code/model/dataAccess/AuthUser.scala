@@ -386,6 +386,7 @@ import net.liftweb.util.Helpers._
   def getCurrentUserUsername: String = {
      getCurrentUser match {
        case Full(user) if user.provider.contains("google") => user.emailAddress
+       case Full(user) if user.provider.contains("yahoo") => user.emailAddress
        case Full(user) => user.name
        case _ => "" //TODO need more error handling for different user cases
      }
