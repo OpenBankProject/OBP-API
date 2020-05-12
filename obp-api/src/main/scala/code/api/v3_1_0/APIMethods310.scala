@@ -3802,13 +3802,13 @@ trait APIMethods310 {
 
 
     resourceDocs += ResourceDoc(
-      createUserAuthContextUpdate,
+      createUserAuthContextUpdateRequest,
       implementedInApiVersion,
-      nameOf(createUserAuthContextUpdate),
+      nameOf(createUserAuthContextUpdateRequest),
       "POST",
       "/banks/BANK_ID/users/current/auth-context-updates/SCA_METHOD",
-      "Create User Auth Context Update",
-      s"""Create User Auth Context Update.
+      "Create User Auth Context Update Request",
+      s"""Create User Auth Context Update Request.
          |${authenticationRequiredMessage(true)}
          |
          |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
@@ -3825,10 +3825,10 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle),
-      Some(canCreateUserAuthContextUpdate :: Nil)
+      None
     )
 
-    lazy val createUserAuthContextUpdate : OBPEndpoint = {
+    lazy val createUserAuthContextUpdateRequest : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "users" :: "current" ::"auth-context-updates" :: scaMethod :: Nil JsonPost  json -> _ => {
         cc =>
           for {

@@ -65,6 +65,7 @@ object Migration extends MdcLoggable {
       alterTableMappedConsent()
       alterColumnChallengeAtTableMappedConsent()
       alterTableOpenIDConnectToken()
+      alterTableMappedUserAuthContext()
     }
     
     private def dummyScript(): Boolean = {
@@ -164,6 +165,12 @@ object Migration extends MdcLoggable {
       runOnce(name) {
         MigrationOfOpnIDConnectToken.alterColumnAccessToken(name)
         MigrationOfOpnIDConnectToken.alterColumnRefreshToken(name)
+      }
+    }
+    private def alterTableMappedUserAuthContext(): Boolean = {
+      val name = nameOf(alterTableMappedUserAuthContext)
+      runOnce(name) {
+        MigrationOfMappedUserAuthContext.dropUniqueIndex(name)
       }
     }
     
