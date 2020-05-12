@@ -7,6 +7,7 @@ import java.util.Date
 import code.api.util.{APIUtil, ApiPropsWithAlias}
 import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
 import code.consumer.Consumers
+import code.context.MappedUserAuthContextUpdate
 import code.customer.CustomerX
 import code.migration.MigrationScriptLogProvider
 import code.util.Helper.MdcLoggable
@@ -66,6 +67,7 @@ object Migration extends MdcLoggable {
       alterColumnChallengeAtTableMappedConsent()
       alterTableOpenIDConnectToken()
       alterTableMappedUserAuthContext()
+      alterTableMappedUserAuthContextUpdate()
     }
     
     private def dummyScript(): Boolean = {
@@ -171,6 +173,12 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterTableMappedUserAuthContext)
       runOnce(name) {
         MigrationOfMappedUserAuthContext.dropUniqueIndex(name)
+      }
+    }
+    private def alterTableMappedUserAuthContextUpdate(): Boolean = {
+      val name = nameOf(MappedUserAuthContextUpdate)
+      runOnce(name) {
+        MigrationOfMappedUserAuthContextUpdate.dropUniqueIndex(name)
       }
     }
     
