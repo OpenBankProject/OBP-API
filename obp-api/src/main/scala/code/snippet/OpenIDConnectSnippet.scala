@@ -17,7 +17,7 @@ class OpenIDConnectSnippet extends MdcLoggable{
   }  
   def getSecondButtonText: CssSel = {
     val text = APIUtil.getPropsValue("openid_connect_2.button_text", "OIDC 2")
-    "#open-id-connect-button-1 *" #> scala.xml.Unparsed(text)
+    "#open-id-connect-button-2 *" #> scala.xml.Unparsed(text)
   }
 
   def showFirstButton =

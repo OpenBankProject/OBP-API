@@ -1,6 +1,5 @@
 package code.token
 
-import code.model.TokenType
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
