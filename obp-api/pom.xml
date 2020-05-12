@@ -38,11 +38,6 @@
       <version>1.2.3</version>
     </dependency>
     <dependency>
-      <groupId>org.scala-lang.modules</groupId>
-      <artifactId>scala-xml_${scala.version}</artifactId>
-      <version>1.2.0</version>
-    </dependency>
-    <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-mapper_${scala.version}</artifactId>
       <version>${lift.version}</version>
@@ -442,6 +437,12 @@
       <version>8.1.0.jre${java.version}-preview</version>
     </dependency>
     <!-- scalikejdbc for call stored procedure end-->
+
+    <dependency>
+      <groupId>org.scala-lang.modules</groupId>
+      <artifactId>scala-xml_${scala.version}</artifactId>
+      <version>1.2.0</version>
+    </dependency>
 
   </dependencies>
 
