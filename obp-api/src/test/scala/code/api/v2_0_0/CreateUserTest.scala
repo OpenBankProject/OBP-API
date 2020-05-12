@@ -30,7 +30,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
   val SECRET = randomString(40).toLowerCase
 
   before {
-    Consumers.consumers.vend.createConsumer(Some(KEY), Some(SECRET), Some(true), Some("test application"), None, None, Some("eveline@example.com"), None, None)
+    Consumers.consumers.vend.createConsumer(Some(KEY), Some(SECRET), Some(true), Some("test application"), None, Some("description"), Some("eveline@example.com"), None, None)
   }
 
   override lazy val consumer = new Consumer(KEY, SECRET)

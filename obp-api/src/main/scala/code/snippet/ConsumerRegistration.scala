@@ -155,10 +155,20 @@ class ConsumerRegistration extends MdcLoggable {
         }
     }
     def showValidationErrors(errors : List[String]): CssSel = {
+      errors.filter(errorMessage => (errorMessage.contains("name") || errorMessage.contains("Name")) ).map(errorMessage => S.error("consumer-registration-app-name-error", errorMessage))
+      errors.filter(errorMessage => (errorMessage.contains("description") || errorMessage.contains("Description"))).map(errorMessage => S.error("consumer-registration-app-description-error", errorMessage))
+      errors.filter(errorMessage => (errorMessage.contains("email")|| errorMessage.contains("Email"))).map(errorMessage => S.error("consumer-registration-app-developer-error", errorMessage))
+      errors.filter(errorMessage => (errorMessage.contains("redirect")|| errorMessage.contains("Redirect"))).map(errorMessage => S.error("consumer-registration-app-redirect-url-error", errorMessage))
+      //Here show not filed related errors to the general part.
+      val unknownErrors: Seq[String] = errors
+        .filterNot(errorMessage => (errorMessage.contains("name") || errorMessage.contains("Name")))
+        .filterNot(errorMessage => (errorMessage.contains("description") || errorMessage.contains("Description")))
+        .filterNot(errorMessage => (errorMessage.contains("email") || errorMessage.contains("Email")))
+        .filterNot(errorMessage => (errorMessage.contains("redirect") || errorMessage.contains("Redirect")))
       register &
         "#register-consumer-errors *" #> {
           ".error *" #>
-            errors.map({ e=>
+            unknownErrors.map({ e=>
               ".errorContent *" #> e
             })
         }
@@ -189,8 +199,6 @@ class ConsumerRegistration extends MdcLoggable {
 
       if(submitButtonDefenseFlag.isEmpty)
         showErrorsForDescription("The 'Register' button random name has been modified !")
-      else if(descriptionVar.isEmpty)
-        showErrorsForDescription("Description of the application can not be empty !")
       else{
         val consumer = Consumers.consumers.vend.createConsumer(
           Some(Helpers.randomString(40).toLowerCase),

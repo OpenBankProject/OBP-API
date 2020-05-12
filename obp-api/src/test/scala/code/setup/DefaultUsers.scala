@@ -8,7 +8,7 @@ import code.api.util.APIUtil.OAuth.{Consumer, Token}
 import code.api.util.ErrorMessages._
 import code.consumer.Consumers
 import code.model.TokenType._
-import code.model.UserX
+import code.model.{AppType, UserX}
 import code.token.Tokens
 import net.liftweb.util.Helpers._
 import net.liftweb.util.TimeHelpers.TimeSpan
@@ -29,7 +29,7 @@ trait DefaultUsers {
     isActive = Some(true),
     name = Some("test application"),
     appType = None,
-    description = None,
+    description = Some("description"),
     developerEmail = Some("eveline@example.com"),
     redirectURL = None,
     createdByUserId = userId
