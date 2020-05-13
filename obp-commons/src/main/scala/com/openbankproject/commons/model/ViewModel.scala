@@ -48,6 +48,7 @@ trait ViewSpecification {
   def description: String
   def metadata_view: String
   def is_public: Boolean
+  def is_firehose: Option[Boolean] = None
   def which_alias_to_use: String
   def hide_metadata_if_alias_used: Boolean
   def allowed_actions : List[String]
@@ -74,6 +75,7 @@ case class UpdateViewJSON(
                            description: String,
                            metadata_view: String,
                            is_public: Boolean,
+                           override val is_firehose: Option[Boolean] = None,
                            which_alias_to_use: String,
                            hide_metadata_if_alias_used: Boolean,
                            allowed_actions: List[String]) extends ViewSpecification

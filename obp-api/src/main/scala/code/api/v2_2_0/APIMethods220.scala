@@ -212,12 +212,12 @@ trait APIMethods220 {
             u <- cc.user ?~!UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~!BankAccountNotFound
             updateViewJson = UpdateViewJSON(
-              updateJsonV121.description,
+              description = updateJsonV121.description,
               metadata_view = view.metadataView, //this only used from V300, here just copy from currentView . 
-              updateJsonV121.is_public,
-              updateJsonV121.which_alias_to_use,
-              updateJsonV121.hide_metadata_if_alias_used,
-              updateJsonV121.allowed_actions
+              is_public = updateJsonV121.is_public,
+              which_alias_to_use = updateJsonV121.which_alias_to_use,
+              hide_metadata_if_alias_used = updateJsonV121.hide_metadata_if_alias_used,
+              allowed_actions = updateJsonV121.allowed_actions
             )
             updatedView <- account.updateView(u, viewId, updateViewJson)
           } yield {
