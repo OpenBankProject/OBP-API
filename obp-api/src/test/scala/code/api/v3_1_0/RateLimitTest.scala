@@ -144,8 +144,8 @@ class RateLimitTest extends V310ServerSetup {
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
       val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT
       val response310 = makePutRequest(request310, write(callLimitJson1))
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
@@ -337,8 +337,8 @@ class RateLimitTest extends V310ServerSetup {
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
       val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").GET
       val response310 = makeGetRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }

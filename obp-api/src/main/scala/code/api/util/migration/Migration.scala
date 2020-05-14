@@ -4,9 +4,10 @@ import java.sql.{ResultSet, SQLException}
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, ApiPropsWithAlias}
 import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
 import code.consumer.Consumers
+import code.context.MappedUserAuthContextUpdate
 import code.customer.CustomerX
 import code.migration.MigrationScriptLogProvider
 import code.util.Helper.MdcLoggable
@@ -18,13 +19,12 @@ import scala.collection.immutable
 import scala.collection.mutable.HashMap
 
 object Migration extends MdcLoggable {
-  
+  private val migrationScriptsEnabled = ApiPropsWithAlias.migrationScriptsEnabled
   private val executeAll = getPropsAsBoolValue("migration_scripts.execute_all", false)
-  private val execute = getPropsAsBoolValue("migration_scripts.execute", false)
   private val scriptsToExecute: immutable.Seq[String] = getPropsValue("list_of_migration_scripts_to_execute").toList.map(_.split(",")).flatten
 
   private def executeScript(blockOfCode: => Boolean): Boolean = {
-    if(execute) blockOfCode else execute
+    if(migrationScriptsEnabled) blockOfCode else migrationScriptsEnabled
   }
   
   private def runOnce(name: String)(blockOfCode: => Boolean): Boolean = {
@@ -65,6 +65,9 @@ object Migration extends MdcLoggable {
       bankAccountHoldersAndOwnerViewAccessInfo()
       alterTableMappedConsent()
       alterColumnChallengeAtTableMappedConsent()
+      alterTableOpenIDConnectToken()
+      alterTableMappedUserAuthContext()
+      alterTableMappedUserAuthContextUpdate()
     }
     
     private def dummyScript(): Boolean = {
@@ -157,6 +160,25 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterColumnChallengeAtTableMappedConsent)
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnChallenge(name)
+      }
+    }
+    private def alterTableOpenIDConnectToken(): Boolean = {
+      val name = nameOf(alterTableOpenIDConnectToken)
+      runOnce(name) {
+        MigrationOfOpnIDConnectToken.alterColumnAccessToken(name)
+        MigrationOfOpnIDConnectToken.alterColumnRefreshToken(name)
+      }
+    }
+    private def alterTableMappedUserAuthContext(): Boolean = {
+      val name = nameOf(alterTableMappedUserAuthContext)
+      runOnce(name) {
+        MigrationOfMappedUserAuthContext.dropUniqueIndex(name)
+      }
+    }
+    private def alterTableMappedUserAuthContextUpdate(): Boolean = {
+      val name = nameOf(MappedUserAuthContextUpdate)
+      runOnce(name) {
+        MigrationOfMappedUserAuthContextUpdate.dropUniqueIndex(name)
       }
     }
     

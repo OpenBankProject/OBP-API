@@ -183,6 +183,14 @@ object ErrorMessages {
   val X509CannotGetCertificate = "OBP-20306: PEM Encoded Certificate cannot be found at request header."
   val X509ActionIsNotAllowed = "OBP-20307: PEM Encoded Certificate does not provide the proper role for the action has been taken."
   val X509ThereAreNoPsd2Roles = "OBP-20308: PEM Encoded Certificate does not contain PSD2 roles."
+  
+  // OpenID Connect
+  val CouldNotExchangeAuthorizationCodeForTokens = "OBP-20400: Could not exchange authorization code for tokens."
+  val CouldNotSaveOpenIDConnectUser = "OBP-20401: Could not get/save OpenID Connect user."
+  val CouldNotSaveOpenIDConnectToken = "OBP-20402: Could not save OpenID Connect token."
+  val InvalidOpenIDConnectState = "OBP-20403: Invalid OpenIDConnect state parameter."
+  val CouldNotHandleOpenIDConnectData = "OBP-20404: Could not handle OpenID Connect data."
+  val CouldNotValidateIDToken = "OBP-20405: ID token could note be validated."
 
   // Resource related messages (OBP-30XXX)
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."

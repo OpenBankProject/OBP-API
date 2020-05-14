@@ -61,9 +61,11 @@ sealed trait TokenType
 object TokenType {
   case object Request extends TokenType
   case object Access extends TokenType
+  case object IDToken extends TokenType
   def valueOf(value: String): TokenType = value match {
     case "Request" => Request
     case "Access" => Access
+    case "IDToken" => IDToken
   }
 }
 
@@ -288,6 +290,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
   override def getOrCreateConsumer(consumerId: Option[String],
                                    key: Option[String],
                                    secret: Option[String],
+                                   aud: Option[String],
                                    azp: Option[String],
                                    iss: Option[String],
                                    sub: Option[String],
@@ -318,6 +321,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
           }
           secret match {
             case Some(v) => c.secret(v)
+            case None =>
+          }
+          aud match {
+            case Some(v) => c.aud(v)
             case None =>
           }
           azp match {
@@ -403,6 +410,11 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     else Nil
   }
 
+  private def EmptyError(field: MappedText[Consumer])( s : String) = {
+    if(s.isEmpty) List(FieldError(field, {field.displayName + "can not be empty"}))
+    else Nil
+  }
+  
   private def validUrl(field: MappedString[Consumer])(s: String) = {
     import java.net.URL
 
@@ -446,6 +458,9 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   object secret extends MappedString(this, 250)
   object azp extends MappedString(this, 250) {
     override def defaultValue = null
+  }
+  object aud extends MappedString(this, 250) {
+    override def defaultValue = null
   }  
   object iss extends MappedString(this, 250) {
     override def defaultValue = null
@@ -465,6 +480,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     override def displayName = "Application type:"
   }
   object description extends MappedText(this) {
+    override def validations = EmptyError(this) _ :: super.validations
     override def displayName = "Description:"
   }
   object developerEmail extends MappedEmail(this, 100) {

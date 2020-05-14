@@ -291,6 +291,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     hideOtherAccountMetadataIfAlias_(viewData.hide_metadata_if_alias_used)
     description_(viewData.description)
     isPublic_(viewData.is_public)
+    isFirehose_(viewData.is_firehose.getOrElse(false))
     metadataView_(viewData.metadata_view)
 
     val actions = viewData.allowed_actions

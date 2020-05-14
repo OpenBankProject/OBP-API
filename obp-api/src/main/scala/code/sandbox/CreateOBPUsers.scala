@@ -29,6 +29,7 @@ trait CreateAuthUsers {
     } else {
       val authUser = AuthUser.create
         .email(u.email)
+        .firstName(u.user_name)
         .lastName(u.user_name)
         .username(u.user_name)
         .password(u.password)

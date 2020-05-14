@@ -25,6 +25,11 @@ object Constant extends MdcLoggable {
   final val SYSTEM_AUDITOR_VIEW_ID = "auditor"
   final val SYSTEM_ACCOUNTANT_VIEW_ID = "accountant"
   final val SYSTEM_FIREHOSE_VIEW_ID = "firehose"
+
+  //These are the default incoming and outgoing account ids. we will create both during the boot.scala.
+  final val INCOMING_ACCOUNT_ID= "OBP_DEFAULT_INCOMING_ACCOUNT_ID"    
+  final val OUTGOING_ACCOUNT_ID= "OBP_DEFAULT_OUTGOING_ACCOUNT_ID"    
+
 }
 
 
@@ -44,6 +49,7 @@ object RequestHeader {
 }
 object ResponseHeader {
   final lazy val `Correlation-Id` = "Correlation-Id"
+  final lazy val `WWW-Authenticate` = "WWW-Authenticate"
 }
 
 object BerlinGroup extends Enumeration {

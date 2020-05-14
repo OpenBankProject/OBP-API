@@ -2132,7 +2132,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .map(
         branch =>
           branch.branchRouting.map(_.scheme) == null && branch.branchRouting.map(_.address) == null match {
-            case true => branch.mBranchRoutingScheme("OBP_BRANCH_ID").mBranchRoutingAddress(branch.branchId.value)
+            case true => branch.mBranchRoutingScheme("OBP").mBranchRoutingAddress(branch.branchId.value)
             case _ => branch
           }
       )
@@ -3903,7 +3903,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             }
             counterpartyId = CounterpartyId(bodyToCounterparty.counterparty_id)
             (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext)
-            toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
+            toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
             counterpartyBody = TransactionRequestBodyCounterpartyJSON(
               to = CounterpartyIdJson(counterpartyId.value),
               value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
@@ -3931,7 +3931,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             }
             toCounterpartyIBan = bodyToCounterpartyIBan.iban
             (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIban(toCounterpartyIBan, callContext)
-            toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
+            toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
             sepaBody = TransactionRequestBodySEPAJSON(
               to = IbanJson(toCounterpartyIBan),
               value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),

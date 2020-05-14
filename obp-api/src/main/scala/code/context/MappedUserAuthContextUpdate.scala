@@ -29,7 +29,7 @@ class MappedUserAuthContextUpdate extends UserAuthContextUpdate with LongKeyedMa
 }
 
 object MappedUserAuthContextUpdate extends MappedUserAuthContextUpdate with LongKeyedMetaMapper[MappedUserAuthContextUpdate] {
-  override def dbIndexes = UniqueIndex(mUserId, mKey) ::super.dbIndexes
+  override def dbIndexes = super.dbIndexes
 }
 
 

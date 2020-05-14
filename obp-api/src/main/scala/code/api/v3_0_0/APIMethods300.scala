@@ -576,7 +576,7 @@ trait APIMethods300 {
               _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
                canUseFirehose(u)
               }
-              (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
+              (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
               (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
               view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId),Some(u), callContext)
               allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")

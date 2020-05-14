@@ -63,9 +63,9 @@ class OAuthTest extends ServerSetup {
 
   val accountValidationError = ResourceBundle.getBundle(LiftRules.liftCoreResourceName).getObject("account.validation.error").toString
 
-  lazy val testConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(true), Some("test application"), None, None, Some("eveline@example.com"), Some(selfCallback), None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val testConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(true), Some("test application"), None, Some("description"), Some("eveline@example.com"), Some(selfCallback), None).openOrThrowException(attemptedToOpenAnEmptyBox)
 
-  lazy val disabledTestConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(false), Some("test application disabled"), None, None, Some("eveline@example.com"), Some(selfCallback), None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val disabledTestConsumer = Consumers.consumers.vend.createConsumer(Some(randomString(40).toLowerCase), Some(randomString(40).toLowerCase), Some(false), Some("test application disabled"), None, Some("description"), Some("eveline@example.com"), Some(selfCallback), None).openOrThrowException(attemptedToOpenAnEmptyBox)
 
   lazy val user1Password = randomString(10)
   lazy val user1 =

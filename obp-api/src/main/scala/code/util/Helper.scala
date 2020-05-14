@@ -11,11 +11,12 @@ import net.liftweb.common._
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.{DateFormat, Formats}
-
 import org.apache.commons.lang3.StringUtils
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{RequiredFieldValidation, RequiredInfo}
 import com.tesobe.CacheKeyFromArguments
+import net.liftweb.http.S
+import net.liftweb.util.Helpers
 
 import scala.concurrent.Future
 import scala.util.Random
@@ -373,6 +374,18 @@ object Helper{
 
       }
     }
+  }
+
+  def i18n(message: String): String = {
+    if(S.?(message)==message) {
+      val words = message.split('.').toList match {
+        case x :: Nil => Helpers.capify(x) :: Nil
+        case x :: xs  => Helpers.capify(x) :: xs
+        case _        => Nil
+      }
+      words.mkString(" ") + "."
+    }
+    else S.?(message)
   }
 
 }

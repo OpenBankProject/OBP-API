@@ -356,6 +356,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       None,
       None,
       None,
+      None,
       Some(true),
       name = Some(consumerName),
       appType = None,

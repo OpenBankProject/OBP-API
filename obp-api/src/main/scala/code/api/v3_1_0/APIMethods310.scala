@@ -3339,7 +3339,12 @@ trait APIMethods310 {
         |For example:
         |GET /obp/v4.0.0/users/current HTTP/1.1
         |Host: 127.0.0.1:8080
-        |Consent-JWT: eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOlt7InJvbGVfbmFtZSI6IkNhbkdldEFueVVzZXIiLCJiYW5rX2lkIjoiIn1dLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIzNDc1MDEzZi03YmY5LTQyNjEtOWUxYy0xZTdlNWZjZTJlN2UiLCJhdWQiOiI4MTVhMGVmMS00YjZhLTQyMDUtYjExMi1lNDVmZDZmNGQzYWQiLCJuYmYiOjE1ODA3NDE2NjcsImlzcyI6Imh0dHA6XC9cLzEyNy4wLjAuMTo4MDgwIiwiZXhwIjoxNTgwNzQ1MjY3LCJpYXQiOjE1ODA3NDE2NjcsImp0aSI6ImJkYzVjZTk5LTE2ZTYtNDM4Yi1hNjllLTU3MTAzN2RhMTg3OCIsInZpZXdzIjpbXX0.L3fEEEhdCVr3qnmyRKBBUaIQ7dk1VjiFaEBW8hUNjfg
+        |Consent-JWT: eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOlt7InJvbGVfbmFtZSI6IkNhbkdldEFueVVzZXIiLCJiYW5rX2lkIjoiIn
+        |1dLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIzNDc1MDEzZi03YmY5LTQyNj
+        |EtOWUxYy0xZTdlNWZjZTJlN2UiLCJhdWQiOiI4MTVhMGVmMS00YjZhLTQyMDUtYjExMi1lNDVmZDZmNGQzYWQiLCJuYmYiOjE1ODA3NDE2NjcsIml
+        |zcyI6Imh0dHA6XC9cLzEyNy4wLjAuMTo4MDgwIiwiZXhwIjoxNTgwNzQ1MjY3LCJpYXQiOjE1ODA3NDE2NjcsImp0aSI6ImJkYzVjZTk5LTE2ZTY
+        |tNDM4Yi1hNjllLTU3MTAzN2RhMTg3OCIsInZpZXdzIjpbXX0.L3fEEEhdCVr3qnmyRKBBUaIQ7dk1VjiFaEBW8hUNjfg
+        |
         |Consumer-Key: ejznk505d132ryomnhbx1qmtohurbsbb0kijajsk
         |cache-control: no-cache
         |
@@ -3797,13 +3802,13 @@ trait APIMethods310 {
 
 
     resourceDocs += ResourceDoc(
-      createUserAuthContextUpdate,
+      createUserAuthContextUpdateRequest,
       implementedInApiVersion,
-      nameOf(createUserAuthContextUpdate),
+      nameOf(createUserAuthContextUpdateRequest),
       "POST",
       "/banks/BANK_ID/users/current/auth-context-updates/SCA_METHOD",
-      "Create User Auth Context Update",
-      s"""Create User Auth Context Update.
+      "Create User Auth Context Update Request",
+      s"""Create User Auth Context Update Request.
          |${authenticationRequiredMessage(true)}
          |
          |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
@@ -3820,10 +3825,10 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle),
-      Some(canCreateUserAuthContextUpdate :: Nil)
+      None
     )
 
-    lazy val createUserAuthContextUpdate : OBPEndpoint = {
+    lazy val createUserAuthContextUpdateRequest : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "users" :: "current" ::"auth-context-updates" :: scaMethod :: Nil JsonPost  json -> _ => {
         cc =>
           for {
@@ -4056,7 +4061,7 @@ trait APIMethods310 {
          |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
          |of a view is not editable (it is only set when a view is created)""",
-      updateSystemViewJSON,
+      updateSystemViewJson310,
       viewJsonV300,
       List(
         InvalidJsonFormat,
@@ -4086,7 +4091,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.systemView(ViewId(viewId), callContext)
             updatedView <- NewStyle.function.updateSystemView(ViewId(viewId), updateJson, callContext)
           } yield {
-            (JSONFactory300.createViewJSON(updatedView), HttpCode.`200`(callContext))
+            (JSONFactory310.createViewJSON(updatedView), HttpCode.`200`(callContext))
           }
       }
     }
@@ -5635,10 +5640,10 @@ trait APIMethods310 {
               }
             } else if (fromAccountPost.bank_id.isEmpty && fromAccountPost.account_id.isEmpty && fromAccountPost.counterparty_id.isDefined){
               for {
-                 (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(fromAccountPost.counterparty_id.get), cc.callContext)
-                 toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
+                 (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(fromAccountPost.counterparty_id.get), cc.callContext)
+                 fromAccount <- NewStyle.function.toBankAccount(fromCounterparty, false, callContext)
               }yield{
-                (toAccount, callContext)
+                (fromAccount, callContext)
               }
             } else {
               throw new RuntimeException(s"$InvalidJsonFormat from object should only contain bank_id and account_id or counterparty_id in the post json body.")
@@ -5656,7 +5661,7 @@ trait APIMethods310 {
             } else if (toAccountPost.bank_id.isEmpty && toAccountPost.account_id.isEmpty && toAccountPost.counterparty_id.isDefined){
               for {
                 (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toAccountPost.counterparty_id.get), cc.callContext)
-                toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
+                toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
               }yield{
                 (toAccount, callContext)
               }
@@ -5693,7 +5698,7 @@ trait APIMethods310 {
             amountOfMoneyJson = AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount)
             chargePolicy = transDetailsJson.charge_policy
             
-            //There is no constrain for the type for now. 
+           //There is no constraint for the type at the moment  
             transactionType = transDetailsJson.`type` 
 
             (transactionId, callContext) <- NewStyle.function.makeHistoricalPayment(

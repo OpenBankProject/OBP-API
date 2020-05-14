@@ -313,8 +313,8 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         var response = makePostRequest(request, write(helper.transactionRequestBody))
 
 
-        Then("we should get a 400 created code")
-        response.code should equal(400)
+        Then("we should get a 401 created code")
+        response.code should equal(401)
 
         Then("We should have the error message")
         response.body.extract[ErrorMessage].message should startWith(ErrorMessages.UserNotLoggedIn)
@@ -1156,8 +1156,8 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId / view / "transaction-requests" / transactionRequestId).GET
       val response400 = makeGetRequest(request400)
-      Then("We should get a 400")
-      response400.code should equal(400)
+      Then("We should get a 401")
+      response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
 
