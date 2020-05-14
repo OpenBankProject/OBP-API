@@ -42,7 +42,7 @@ import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
 import code.api.v2_1_0.JSONFactory210.createLicenseJson
 import code.api.v2_1_0.{CounterpartyIdJson, CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
-import code.api.v3_0_0.{AccountRuleJsonV300, CustomerAttributeResponseJsonV300, JSONFactory300, ViewBasicV300}
+import code.api.v3_0_0.{AccountRuleJsonV300, CustomerAttributeResponseJsonV300, JSONFactory300, ViewBasicV300, ViewJsonV300}
 import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
 import code.consent.MappedConsent
 import code.entitlement.Entitlement
@@ -1461,6 +1461,10 @@ object JSONFactory310{
       overall_balance = accountsBalances.overallBalance,
       overall_balance_date = accountsBalances.overallBalanceDate
     )
+  }
+
+  def createViewJSON(view : View) : ViewJsonV300 = {
+    JSONFactory300.createViewJSON(view).copy(is_firehose = Some(view.isFirehose))
   }
 
 }

@@ -4061,7 +4061,7 @@ trait APIMethods310 {
          |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
          |of a view is not editable (it is only set when a view is created)""",
-      updateSystemViewJSON,
+      updateSystemViewJson310,
       viewJsonV300,
       List(
         InvalidJsonFormat,
@@ -4091,7 +4091,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.systemView(ViewId(viewId), callContext)
             updatedView <- NewStyle.function.updateSystemView(ViewId(viewId), updateJson, callContext)
           } yield {
-            (JSONFactory300.createViewJSON(updatedView), HttpCode.`200`(callContext))
+            (JSONFactory310.createViewJSON(updatedView), HttpCode.`200`(callContext))
           }
       }
     }

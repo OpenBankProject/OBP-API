@@ -255,7 +255,7 @@ object SwaggerDefinitionsJSON {
     )
   )
   
-  lazy val updateSystemViewJSON = updateViewJSON.copy(is_public = false)
+  lazy val updateSystemViewJson310 = updateViewJSON.copy(is_public = false, is_firehose = Some(false))
 
   val transactionTypeIdSwagger = TransactionTypeId(value = "123")
 
