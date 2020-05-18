@@ -80,7 +80,17 @@ trait Views {
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View]
   
   //the following return list[BankIdAccountId], just use the list[View] method, the View object contains enough data for it.
-  final def getAllFirehoseAccounts(bankId: BankId, user : User) : List[BankIdAccountId] = firehoseViewsForBank(bankId, user).map(v => BankIdAccountId(v.bankId, v.accountId)).distinct
+  final def getAllFirehoseAccounts(bankId: BankId, user : User) : List[BankIdAccountId] = {
+    val firehoseAccounts: List[List[BankIdAccountId]] = 
+      for {
+        view <- firehoseViewsForBank(bankId, user)
+      } yield {
+        AccountAccess.findAll(
+          By(AccountAccess.view_fk, view.id)
+        ).map(v => BankIdAccountId(BankId(v.bank_id.get), AccountId(v.account_id.get)))
+      }
+    firehoseAccounts.flatten.distinct
+  }
   final def getPrivateBankAccounts(user : User) : List[BankIdAccountId] =  privateViewsUserCanAccess(user)._2.map(a => BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct 
   final def getPrivateBankAccountsFuture(user : User) : Future[List[BankIdAccountId]] = Future {getPrivateBankAccounts(user)}
   final def getPrivateBankAccounts(user : User, bankId : BankId) : List[BankIdAccountId] = getPrivateBankAccounts(user).filter(_.bankId == bankId).distinct
