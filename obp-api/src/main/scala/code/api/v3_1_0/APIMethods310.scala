@@ -3949,7 +3949,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", user.userId, canGetSystemView, callContext)
             view <- NewStyle.function.systemView(ViewId(viewId), callContext)
           } yield {
-            (JSONFactory300.createViewJSON(view), HttpCode.`200`(callContext))
+            (JSONFactory310.createViewJSON(view), HttpCode.`200`(callContext))
           }
       }
     }
@@ -4006,7 +4006,7 @@ trait APIMethods310 {
             }
             view <- NewStyle.function.createSystemView(createViewJson, callContext)
           } yield {
-            (JSONFactory300.createViewJSON(view),  HttpCode.`201`(callContext))
+            (JSONFactory310.createViewJSON(view),  HttpCode.`201`(callContext))
           }
       }
     }
