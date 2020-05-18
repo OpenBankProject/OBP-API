@@ -243,7 +243,7 @@ object StoredProcedureConnectorBuilder extends App {
   nameSignature.map(_.toString).foreach(println(_))
   println("===================")
 
-  val path = new File(getClass.getResource("").toURI.toString.replaceFirst("target/.*", "").replace("file:", ""), "src/main/scala/code/bankconnectors/storedprocedure/MsStoredProcedureConnector_vDec2019.scala")
+  val path = new File(getClass.getResource("").toURI.toString.replaceFirst("target/.*", "").replace("file:", ""), "src/main/scala/code/bankconnectors/storedprocedure/StoredProcedureConnector_vDec2019.scala")
   val source = FileUtils.readFileToString(path, "utf-8")
   val start = "//---------------- dynamic start -------------------please don't modify this line"
   val end   = "//---------------- dynamic end ---------------------please don't modify this line"
