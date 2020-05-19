@@ -2776,23 +2776,35 @@ Returns a string showed to the developer
       }
   }
   /**
-   * All the get view and check view access must be in one method, can not be separated from now. Because we introduce system views. 
-   * 1st check: if `Custom View is existing` and `have the custom owner view access` ==>  return the customView.
-   * 2rd check: if `Custom view is not find or have no custom owner view access` and `find system owner view` and `have the system owner view access` ==> then return systemView. 
-   * all other cases ==>return no access to the `viewId`
-   * 
-   * Note: this user is Option, for the public views, there is no need for the user. 
+   * This function check does the user(anonymous or authenticated) have account access
+   * to the account specified by parameter bankIdAccountId over the view specified by parameter viewId
+   * Note: The public views means you can use anonymous access which implies that the user is an optional value
    */
-  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User]) = {
-    val customerViewImplBox = Views.views.vend.customView(viewId, bankIdAccountId)
-    customerViewImplBox match {
+  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User]): Box[View] = {
+    val customView = Views.views.vend.customView(viewId, bankIdAccountId)
+    customView match { // CHECK CUSTOM VIEWS
+      // 1st: View is Pubic and Public views are NOT allowed on this instance.
       case Full(v) if(v.isPublic && !ALLOW_PUBLIC_VIEWS) => Failure(PublicViewsNotAllowedOnThisInstance)
-      case Full(v) if(isPublicView(v)) => customerViewImplBox
-      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => customerViewImplBox
-      case _ => Views.views.vend.systemView(viewId) match  {
-        case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => Full(v)
-        case Full(v) if (user.isDefined && hasFirehoseAccess(v, user.get)) => Full(v)
-        case _ => Empty
+      // 2nd: View is Pubic and Public views are allowed on this instance.
+      case Full(v) if(isPublicView(v)) => customView 
+      // 3rd: The user has account access to this custom view
+      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => customView
+      // 4th: The user has firehose access to this custom view
+      case Full(v) if(user.isDefined && hasFirehoseAccess(v, user.get)) => customView
+      // The user has NO account access via custom view
+      case _ => 
+        val systemView = Views.views.vend.systemView(viewId)
+        systemView match  { // CHECK SYSTEM VIEWS
+          // 1st: View is Pubic and Public views are NOT allowed on this instance.
+          case Full(v) if(v.isPublic && !ALLOW_PUBLIC_VIEWS) => Failure(PublicViewsNotAllowedOnThisInstance)
+          // 2nd: View is Pubic and Public views are allowed on this instance.
+          case Full(v) if(isPublicView(v)) => systemView
+          // 3rd: The user has account access to this system view
+          case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => systemView
+          // 4th: The user has firehose access to this system view
+          case Full(v) if (user.isDefined && hasFirehoseAccess(v, user.get)) => systemView
+          // The user has NO account access at all
+          case _ => Empty
       }
     }
   }
