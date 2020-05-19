@@ -3717,7 +3717,7 @@ trait APIMethods400 {
       nameOf(getUserCustomerLinksByUserId),
       "GET",
       "/banks/BANK_ID/user_customer_links/users/USER_ID",
-      "Get User Customer Links",
+      "Get User Customer Links by User",
       s""" Get User Customer Links by USER_ID
          |
          |${authenticationRequiredMessage(true)}
@@ -3740,6 +3740,43 @@ trait APIMethods400 {
           for {
             (userCustomerLinks, callContext) <- UserCustomerLinkNewStyle.getUserCustomerLink(
               userId,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory200.createUserCustomerLinkJSONs(userCustomerLinks), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getUserCustomerLinksByCustomerId,
+      implementedInApiVersion,
+      nameOf(getUserCustomerLinksByCustomerId),
+      "GET",
+      "/banks/BANK_ID/user_customer_links/customers/CUSTOMER_ID",
+      "Get User Customer Links by Customer",
+      s""" Get User Customer Links by CUSTOMER_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      userCustomerLinksJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetUserCustomerLink)))
+
+    lazy val getUserCustomerLinksByCustomerId : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "user_customer_links" :: "customers" :: customerId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (userCustomerLinks, callContext) <- UserCustomerLinkNewStyle.getUserCustomerLinks(
+              customerId,
               cc.callContext
             )
           } yield {

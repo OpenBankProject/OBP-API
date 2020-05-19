@@ -27,6 +27,10 @@ object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
     MappedUserCustomerLink.find(
       By(MappedUserCustomerLink.mCustomerId, customerId))
   }
+  def getUserCustomerLinksByCustomerId(customerId: String): List[UserCustomerLink] = {
+    MappedUserCustomerLink.findAll(
+      By(MappedUserCustomerLink.mCustomerId, customerId))
+  }
 
   def getUserCustomerLinksByUserId(userId: String): List[UserCustomerLink] = {
     val userCustomerLinks : List[UserCustomerLink] = MappedUserCustomerLink.findAll(
