@@ -144,6 +144,8 @@ object CodeGenerateUtils {
       val TypeRef(_, _, args: List[Type]) = tp
       val optionValue = createDocExample(args.head, fieldName, parentFieldName, parentType)
       s"""Some($optionValue)"""
+    } else if(tp <:< typeOf[Map[String, List[String]]]) {
+      s"""Map("some_name" -> List("name1", "name2"))"""
     } else if(typeName.matches("""Array|List|Seq""")) {
       val TypeRef(_, _, args: List[Type]) = tp
       (example, typeName) match {
