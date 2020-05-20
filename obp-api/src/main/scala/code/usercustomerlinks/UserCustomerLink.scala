@@ -24,6 +24,7 @@ object UserCustomerLink extends SimpleInjector {
 
 trait UserCustomerLinkProvider {
   def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink]
+  def getOCreateUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink]
   def getUserCustomerLinkByCustomerId(customerId: String): Box[UserCustomerLink]
   def getUserCustomerLinksByCustomerId(customerId: String): List[UserCustomerLink]
   def getUserCustomerLinksByUserId(userId: String): List[UserCustomerLink]
@@ -35,6 +36,7 @@ trait UserCustomerLinkProvider {
 
 class RemotedataUserCustomerLinkProviderCaseClass {
   case class createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean)
+  case class getOCreateUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean)
   case class getUserCustomerLinkByCustomerId(customerId: String)
   case class getUserCustomerLinksByCustomerId(customerId: String)
   case class getUserCustomerLinksByUserId(userId: String)

@@ -22,6 +22,19 @@ object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
 
     Some(createUserCustomerLink)
   }
+  def getOCreateUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] = {
+    getUserCustomerLink(userId, customerId) match {
+      case Empty =>
+        val createUserCustomerLink = MappedUserCustomerLink.create
+          .mUserId(userId)
+          .mCustomerId(customerId)
+          .mDateInserted(new Date())
+          .mIsActive(isActive)
+          .saveMe()
+        Some(createUserCustomerLink)
+      case everythingElse => everythingElse
+    }
+  }
 
   def getUserCustomerLinkByCustomerId(customerId: String): Box[UserCustomerLink] = {
     MappedUserCustomerLink.find(
