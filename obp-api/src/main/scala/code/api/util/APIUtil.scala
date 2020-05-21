@@ -2752,12 +2752,13 @@ Returns a string showed to the developer
 
 
   val ALLOW_PUBLIC_VIEWS: Boolean = getPropsAsBoolValue("allow_public_views", false)
-  val ALLOW_FIREHOSE_VIEWS: Boolean = getPropsAsBoolValue("allow_firehose_views", false)
+  val ALLOW_ACCOUNT_FIREHOSE: Boolean = ApiPropsWithAlias.allowAccountFirehose
+  val ALLOW_CUSTOMER_FIREHOSE: Boolean = ApiPropsWithAlias.allowCustomerFirehose
   def canUseAccountFirehose(user: User): Boolean = {
-    ALLOW_FIREHOSE_VIEWS && hasEntitlement("", user.userId, ApiRole.canUseAccountFirehoseAtAnyBank)
+    ALLOW_ACCOUNT_FIREHOSE && hasEntitlement("", user.userId, ApiRole.canUseAccountFirehoseAtAnyBank)
   }
   def canUseCustomerFirehose(user: User): Boolean = {
-    ALLOW_FIREHOSE_VIEWS && hasEntitlement("", user.userId, ApiRole.canUseCustomerFirehoseAtAnyBank)
+    ALLOW_CUSTOMER_FIREHOSE && hasEntitlement("", user.userId, ApiRole.canUseCustomerFirehoseAtAnyBank)
   }
   /**
     * This will accept all kinds of view and user.
@@ -2772,7 +2773,7 @@ Returns a string showed to the developer
       true
     else
       user match {
-        case Some(u) if hasFirehoseAccess(view,u)  => true//Login User and Firehose access
+        case Some(u) if hasAccountFirehoseAccess(view,u)  => true//Login User and Firehose access
         case Some(u) if u.hasAccountAccess(view, bankIdAccountId)=> true     // Login User and check view access
         case _ =>
           false
@@ -2803,7 +2804,7 @@ Returns a string showed to the developer
           // 3rd: The user has account access to this system view
           case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => systemView
           // 4th: The user has firehose access to this system view
-          case Full(v) if (user.isDefined && hasFirehoseAccess(v, user.get)) => systemView
+          case Full(v) if (user.isDefined && hasAccountFirehoseAccess(v, user.get)) => systemView
           // The user has NO account access at all
           case _ => Empty
       }
@@ -2829,9 +2830,9 @@ Returns a string showed to the developer
     }
   }
   /**
-    * This view Firehose is true and set `allow_firehose_views = true` and the user has  `CanUseFirehoseAtAnyBank` role
+    * This view Firehose is true and set `allow_account_firehose = true` and the user has  `CanUseAccountFirehoseAtAnyBank` role
     */
-  def hasFirehoseAccess(view: View, user: User) : Boolean = {
+  def hasAccountFirehoseAccess(view: View, user: User) : Boolean = {
     if(view.isFirehose && canUseAccountFirehose(user)) true
     else false
   }

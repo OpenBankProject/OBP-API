@@ -495,7 +495,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  ) {
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  ) {
                canUseAccountFirehose(u)
             }
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
@@ -563,7 +563,7 @@ trait APIMethods300 {
          |""".stripMargin,
       emptyObjectJson,
       transactionsJsonV300,
-      List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
+      List(UserNotLoggedIn, AccountFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagAccountFirehose, apiTagTransactionFirehose, apiTagFirehoseData, apiTagNewStyle),
       Some(List(canUseAccountFirehoseAtAnyBank)))
@@ -575,7 +575,7 @@ trait APIMethods300 {
           val res =
             for {
               (Full(u), callContext) <-  authenticatedAccess(cc)
-              _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  ) {
+              _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  ) {
                canUseAccountFirehose(u)
               }
               (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)

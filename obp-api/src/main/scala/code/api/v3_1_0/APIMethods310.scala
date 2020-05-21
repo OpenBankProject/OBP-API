@@ -469,7 +469,7 @@ trait APIMethods310 {
          |""".stripMargin,
       emptyObjectJson,
       customerJSONs,
-      List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
+      List(UserNotLoggedIn, CustomerFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagFirehoseData, apiTagNewStyle),
       Some(List(canUseCustomerFirehoseAtAnyBank)))
@@ -481,7 +481,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseCustomerFirehoseAtAnyBank  ) {
+            _ <- Helper.booleanToFuture(failMsg = CustomerFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseCustomerFirehoseAtAnyBank  ) {
               canUseCustomerFirehose(u)
             }
             allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
