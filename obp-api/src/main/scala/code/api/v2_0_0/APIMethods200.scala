@@ -1973,6 +1973,7 @@ trait APIMethods200 {
       List(
         UserNotLoggedIn,
         UserNotFoundById,
+        UserNotSuperAdmin,
         InvalidJsonFormat,
         IncorrectRoleName,
         EntitlementIsBankRole, 
@@ -2107,7 +2108,7 @@ trait APIMethods200 {
       """.stripMargin,
       emptyObjectJson,
       entitlementJSONs,
-      List(UserNotLoggedIn, UserNotSuperAdmin, UnknownError),
+      List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagNewStyle))
 

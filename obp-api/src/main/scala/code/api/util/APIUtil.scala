@@ -795,6 +795,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
          case "function_name" => Full(OBPFunctionName(values.head)) 
          case "connector_name" => Full(OBPConnectorName(values.head))
          case "customer_id" => Full(OBPCustomerId(values.head))
+         case "locked_status" => Full(OBPLockedStatus(values.head))
          case _ => Full(OBPEmpty())
        }
      } yield
@@ -832,6 +833,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       connectorName <- getHttpParamValuesByName(httpParams, "connector_name")
       functionName <- getHttpParamValuesByName(httpParams, "function_name")
       customerId <- getHttpParamValuesByName(httpParams, "customer_id")
+      lockedStatus <- getHttpParamValuesByName(httpParams, "locked_status")
     }yield{
       /**
         * sortBy is currently disabled as it would open up a security hole:
@@ -851,7 +853,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       List(limit, offset, ordering, fromDate, toDate, 
            anon, consumerId, userId, url, appName, implementedByPartialFunction, implementedInVersion, 
            verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
-           connectorName,functionName, bankId, accountId, customerId
+           connectorName,functionName, bankId, accountId, customerId, lockedStatus
        ).filter(_ != OBPEmpty())
     }
   }
@@ -888,6 +890,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val currency =  getHttpRequestUrlParam(httpRequestUrl, "currency")
     val amount =  getHttpRequestUrlParam(httpRequestUrl, "amount")
     val customerId =  getHttpRequestUrlParam(httpRequestUrl, "customer_id")
+    val lockedStatus =  getHttpRequestUrlParam(httpRequestUrl, "locked_status")
 
     //The following three are not a string, it should be List of String
     //eg: exclude_app_names=A,B,C --> List(A,B,C)
@@ -910,7 +913,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       HTTPParam("bank_id", bankId),
       HTTPParam("account_id", accountId),
       HTTPParam("connector_name", connectorName),
-      HTTPParam("customer_id", customerId)
+      HTTPParam("customer_id", customerId),
+      HTTPParam("locked_status", lockedStatus)
     ).filter(_.values.head != ""))//Here filter the filed when value = "". 
   }
   
@@ -2647,7 +2651,7 @@ Returns a string showed to the developer
     //Replace "." with "_" (environment vars cannot include ".") and convert to upper case
     // Append "OBP_" because all Open Bank Project environment vars are namespaced with OBP
     val sysEnvironmentPropertyName = sysEnvironmentPropertyNamePrefix.concat(brandSpecificPropertyName.replace('.', '_').toUpperCase())
-    val sysEnvironmentPropertyValue: Box[String] = tryo{sys.env(sysEnvironmentPropertyName)}
+    val sysEnvironmentPropertyValue: Box[String] =  sys.env.get(sysEnvironmentPropertyName)
     sysEnvironmentPropertyValue match {
       case Full(_) =>
         logger.debug("System environment property value found for: " + sysEnvironmentPropertyName)
