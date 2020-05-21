@@ -1,8 +1,8 @@
 package code.views
 
 import code.api.util.APIUtil
-import code.api.util.APIUtil.canUseFirehose
-import code.model.dataAccess.{ViewImpl, ViewPrivileges}
+import code.api.util.APIUtil.canUseAccountFirehose
+import code.model.dataAccess.{MappedBankAccount, ViewImpl, ViewPrivileges}
 import code.remotedata.RemotedataViews
 import code.views.MapperViews.getPrivateBankAccounts
 import code.views.system.AccountAccess
@@ -14,6 +14,7 @@ import net.liftweb.util.{Props, SimpleInjector}
 import scala.collection.immutable.List
 import scala.concurrent.Future
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.Future
 
 object Views  extends SimpleInjector {
@@ -67,7 +68,6 @@ trait Views {
     */
   def publicViews: (List[View], List[AccountAccess])
   def publicViewsForBank(bankId: BankId): (List[View], List[AccountAccess])
-  def firehoseViewsForBank(bankId: BankId, user : User): List[View]
   /**
     * This will return all the views belong to the bankAccount, its own Public + Private views.
     * Do not contain any other account public views.
@@ -80,16 +80,10 @@ trait Views {
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View]
   
   //the following return list[BankIdAccountId], just use the list[View] method, the View object contains enough data for it.
-  final def getAllFirehoseAccounts(bankId: BankId, user : User) : List[BankIdAccountId] = {
-    val firehoseAccounts: List[List[BankIdAccountId]] = 
-      for {
-        view <- firehoseViewsForBank(bankId, user)
-      } yield {
-        AccountAccess.findAll(
-          By(AccountAccess.view_fk, view.id)
-        ).map(v => BankIdAccountId(BankId(v.bank_id.get), AccountId(v.account_id.get)))
-      }
-    firehoseAccounts.flatten.distinct
+  final def getAllFirehoseAccounts(bankId: BankId)= {
+    MappedBankAccount.findAll(
+      By(MappedBankAccount.bank, bankId.value)
+    )
   }
   final def getPrivateBankAccounts(user : User) : List[BankIdAccountId] =  privateViewsUserCanAccess(user)._2.map(a => BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct 
   final def getPrivateBankAccountsFuture(user : User) : Future[List[BankIdAccountId]] = Future {getPrivateBankAccounts(user)}
@@ -146,7 +140,6 @@ class RemotedataViewsCaseClasses {
   case class getAllFirehoseAccounts(bank: Bank, user : User)
   case class publicViews()
   case class publicViewsForBank(bankId: BankId)
-  case class firehoseViewsForBank(bankId: BankId, user : User)
   case class customView(pars: Any*) {
     def apply(viewId: ViewId, bankAccountId: BankIdAccountId): Box[View] = this (viewId, bankAccountId)
   }

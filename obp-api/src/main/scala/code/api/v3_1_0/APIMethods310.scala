@@ -472,7 +472,7 @@ trait APIMethods310 {
       List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagFirehoseData, apiTagNewStyle),
-      Some(List(canUseFirehoseAtAnyBank)))
+      Some(List(canUseCustomerFirehoseAtAnyBank)))
 
     lazy val getFirehoseCustomers : OBPEndpoint = {
       //get private accounts for all banks
@@ -481,8 +481,8 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
-              canUseFirehose(u)
+            _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseCustomerFirehoseAtAnyBank  ) {
+              canUseCustomerFirehose(u)
             }
             allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
             httpParams <- NewStyle.function.createHttpParams(cc.url)

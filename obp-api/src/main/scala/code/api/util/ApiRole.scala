@@ -283,8 +283,11 @@ object ApiRole {
   case class CanGetEntitlementRequestsAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetEntitlementRequestsAtAnyBank = CanGetEntitlementRequestsAtAnyBank()
 
-  case class CanUseFirehoseAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canUseFirehoseAtAnyBank = CanUseFirehoseAtAnyBank()
+  case class CanUseAccountFirehoseAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUseAccountFirehoseAtAnyBank = CanUseAccountFirehoseAtAnyBank()
+  
+  case class CanUseCustomerFirehoseAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUseCustomerFirehoseAtAnyBank = CanUseCustomerFirehoseAtAnyBank()
 
   case class CanReadAggregateMetrics (requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadAggregateMetrics = CanReadAggregateMetrics()

@@ -2,7 +2,7 @@ package code.api.v3_0_0
 
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.CanUseFirehoseAtAnyBank
+import code.api.util.ApiRole.CanUseAccountFirehoseAtAnyBank
 import code.api.util.ErrorMessages.{FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles}
 import code.api.util.{APIUtil, ErrorMessages}
 import org.scalatest.Tag
@@ -393,7 +393,7 @@ class TransactionsTest extends V300ServerSetup {
 
   feature("Assuring that entitlement requirements are checked for transaction(s) related endpoints") {
 
-    scenario("We try to get firehose transactions without required role " + CanUseFirehoseAtAnyBank){
+    scenario("We try to get firehose transactions without required role " + CanUseAccountFirehoseAtAnyBank){
 
       When("We have to find it by endpoint getFirehoseTransactionsForBankAccount")
       val requestGet = (v3_0Request / "banks" / "BANK_ID" / "firehose" / "accounts" /  "AccountId(accountId)" / "views" / "ViewId(viewId)" / "transactions").GET <@ (user1)
@@ -401,7 +401,7 @@ class TransactionsTest extends V300ServerSetup {
 
       And("We should get a 403")
       responseGet.code should equal(403)
-      responseGet.body.extract[ErrorMessage].message should equal(FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  )
+      responseGet.body.extract[ErrorMessage].message should equal(FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  )
     }}
 
 
