@@ -25,14 +25,13 @@ class UserCustomerLinkTest extends V400ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.getUserCustomerLinksByUserId))
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.deleteUserCustomerLink))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getUserCustomerLinksByCustomerId))
+  
   object VersionOfApi2 extends Tag(ApiVersion.v2_0_0.toString)
-  object ApiEndpoint3 extends Tag(nameOf(Implementations2_0_0.createUserCustomerLinks))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations2_0_0.createUserCustomerLinks))
 
   lazy val bankId = randomBankId
-  lazy val customerId = createAndGetCustomerId(bankId, user1)
   lazy val firstUserId = resourceUser1.userId
-  lazy val postJson = SwaggerDefinitionsJSON.createUserCustomerLinkJson
-    .copy(user_id = firstUserId, customer_id = customerId)
   
   
 
@@ -50,6 +49,29 @@ class UserCustomerLinkTest extends V400ServerSetup {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "user_customer_links" / "users" / firstUserId).GET <@(user1)
+      val response400 = makeGetRequest(request400)
+      Then("We should get a 403")
+      response400.code should equal(403)
+      response400.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetUserCustomerLink)
+    }
+  }
+  
+  feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
+    lazy val customerId = createAndGetCustomerId(bankId, user1)
+    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+      When("We make a request v4.0.0")
+      val request400 = (v4_0_0_Request / "banks" / bankId / "user_customer_links" / "customers" / customerId ).GET
+      val response400 = makeGetRequest(request400)
+      Then("We should get a 401")
+      response400.code should equal(401)
+      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+    }
+  }
+  feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access") {
+    lazy val customerId = createAndGetCustomerId(bankId, user1)
+    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+      When("We make a request v4.0.0")
+      val request400 = (v4_0_0_Request / "banks" / bankId / "user_customer_links" / "customers" / customerId).GET <@(user1)
       val response400 = makeGetRequest(request400)
       Then("We should get a 403")
       response400.code should equal(403)
@@ -79,8 +101,12 @@ class UserCustomerLinkTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1, $ApiEndpoint2, $ApiEndpoint3 version $VersionOfApi - All good") {
-    scenario("We will call the endpoints", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+  feature(s"test $ApiEndpoint1, $ApiEndpoint2, $ApiEndpoint4 version $VersionOfApi - All good") {
+    lazy val customerId = createAndGetCustomerId(bankId, user1)
+    lazy val postJson = SwaggerDefinitionsJSON.createUserCustomerLinkJson
+      .copy(user_id = firstUserId, customer_id = customerId)
+    
+    scenario("We will call the endpoints", ApiEndpoint1, ApiEndpoint2, ApiEndpoint4, VersionOfApi) {
 
       // 1st Get User Customer Link
       Entitlement.entitlement.vend.addEntitlement(bankId, firstUserId, CanGetUserCustomerLink.toString())

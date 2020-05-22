@@ -469,10 +469,10 @@ trait APIMethods310 {
          |""".stripMargin,
       emptyObjectJson,
       customerJSONs,
-      List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
+      List(UserNotLoggedIn, CustomerFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagFirehoseData, apiTagNewStyle),
-      Some(List(canUseFirehoseAtAnyBank)))
+      Some(List(canUseCustomerFirehoseAtAnyBank)))
 
     lazy val getFirehoseCustomers : OBPEndpoint = {
       //get private accounts for all banks
@@ -481,8 +481,8 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
-              canUseFirehose(u)
+            _ <- Helper.booleanToFuture(failMsg = CustomerFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseCustomerFirehoseAtAnyBank  ) {
+              canUseCustomerFirehose(u)
             }
             allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
             httpParams <- NewStyle.function.createHttpParams(cc.url)
@@ -3869,7 +3869,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(answerUserAuthContextUpdateChallenge),
       "POST",
-      "/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge",
+      "/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge",
       "Answer Auth Context Update Challenge",
       s"""
          |Answer Auth Context Update Challenge.
@@ -3887,7 +3887,7 @@ trait APIMethods310 {
       apiTagUser :: apiTagNewStyle :: Nil)
 
     lazy val answerUserAuthContextUpdateChallenge : OBPEndpoint = {
-      case "users" :: "current" ::"auth-context-updates"  :: authContextUpdateId :: "challenge" :: Nil JsonPost json -> _  => {
+      case "banks" :: BankId(bankId) :: "users" :: "current" ::"auth-context-updates"  :: authContextUpdateId :: "challenge" :: Nil JsonPost json -> _  => {
         cc =>
           for {
             (_, callContext) <- authenticatedAccess(cc)
@@ -3906,6 +3906,18 @@ trait APIMethods310 {
                     userAuthContextUpdate.key, 
                     userAuthContextUpdate.value, 
                     callContext).map(x => (Some(x._1), x._2))
+                case _ =>
+                  Future((None, callContext))
+              }
+            (_, callContext) <-
+              userAuthContextUpdate.key match {
+                case "CUSTOMER_NUMBER" =>
+                  NewStyle.function.getOCreateUserCustomerLink(
+                    bankId,
+                    userAuthContextUpdate.value, // Customer number
+                    userAuthContextUpdate.userId, 
+                    callContext
+                  )
                 case _ =>
                   Future((None, callContext))
               }

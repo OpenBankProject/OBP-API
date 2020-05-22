@@ -6,7 +6,7 @@ import java.util.UUID
 import code.accountholders.AccountHolders
 import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_FIREHOSE_VIEW_ID, SYSTEM_OWNER_VIEW_ID}
 import code.api.util.APIUtil._
-import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.{APIUtil, ApiPropsWithAlias, ErrorMessages}
 import code.bankconnectors.Connector
 import code.crm.CrmEvent.CrmEvent
 import code.model._
@@ -375,12 +375,12 @@ trait OBPDataImport extends MdcLoggable {
     val ownerView = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).asInstanceOf[Box[ViewType]]
     val auditorsView = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).asInstanceOf[Box[ViewType]]
     val accountantsView = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).asInstanceOf[Box[ViewType]]
-    val firehoseView = 
-      if (APIUtil.getPropsAsBoolValue("allow_firehose_views", false))
+    val accountFirehose = 
+      if (ApiPropsWithAlias.allowAccountFirehose)
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).asInstanceOf[Box[ViewType]]
       else Empty
     
-    List(firehoseView, ownerView, accountantsView, auditorsView, publicView).flatten
+    List(accountFirehose, ownerView, accountantsView, auditorsView, publicView).flatten
     
   }
   

@@ -111,10 +111,6 @@ object RemotedataViews extends ObpActorInit with Views {
   def publicViewsForBank(bankId: BankId) : (List[View], List[AccountAccess]) = getValueFromFuture(
     (actor ? cc.publicViewsForBank(bankId: BankId)).mapTo[(List[View], List[AccountAccess])]
   )
-  
-  def firehoseViewsForBank(bankId: BankId, user : User): List[View] = getValueFromFuture(
-    (actor ? cc.firehoseViewsForBank(bankId: BankId, user : User)).mapTo[List[View]]
-  )
 
   def getOwners(view: View) : Set[User] = getValueFromFuture(
     (actor ? cc.getOwners(view)).mapTo[Set[User]]

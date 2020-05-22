@@ -2,9 +2,9 @@ package code.api.v3_0_0
 
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.CanUseFirehoseAtAnyBank
+import code.api.util.ApiRole.CanUseAccountFirehoseAtAnyBank
 import com.openbankproject.commons.util.ApiVersion
-import code.api.util.ErrorMessages.{FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{AccountFirehoseNotAllowedOnThisInstance, UserHasMissingRoles}
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.setup.APIResponse
 import com.github.dwickern.macros.NameOf.nameOf
@@ -45,7 +45,7 @@ class AccountTest extends V300ServerSetup {
   }
   feature("Assuring that entitlement requirements are checked for account(s) related endpoints") {
 
-    scenario("We try to get firehose accounts without required role " + CanUseFirehoseAtAnyBank, VersionOfApi, ApiEndpoint2){
+    scenario("We try to get firehose accounts without required role " + CanUseAccountFirehoseAtAnyBank, VersionOfApi, ApiEndpoint2){
 
       When("We have to find it by endpoint getFirehoseAccountsAtOneBank")
       val requestGet = (v3_0Request / "banks" / "BANK_ID" / "firehose" / "accounts" / "views" / "VIEW_ID").GET <@ (user1)
@@ -53,7 +53,7 @@ class AccountTest extends V300ServerSetup {
 
       And("We should get a 403")
       responseGet.code should equal(403)
-      responseGet.body.extract[ErrorMessage].message should equal(FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  )
+      responseGet.body.extract[ErrorMessage].message should equal(AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  )
     }}
 
 
