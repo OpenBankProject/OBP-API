@@ -375,12 +375,12 @@ trait OBPDataImport extends MdcLoggable {
     val ownerView = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).asInstanceOf[Box[ViewType]]
     val auditorsView = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).asInstanceOf[Box[ViewType]]
     val accountantsView = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).asInstanceOf[Box[ViewType]]
-    val firehoseView = 
-      if (ApiPropsWithAlias.allowAccountFirehose || ApiPropsWithAlias.allowCustomerFirehose)
+    val accountFirehose = 
+      if (ApiPropsWithAlias.allowAccountFirehose)
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).asInstanceOf[Box[ViewType]]
       else Empty
     
-    List(firehoseView, ownerView, accountantsView, auditorsView, publicView).flatten
+    List(accountFirehose, ownerView, accountantsView, auditorsView, publicView).flatten
     
   }
   
