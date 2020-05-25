@@ -206,6 +206,7 @@ class SystemViewsTests extends V310ServerSetup {
           description = updatedViewDescription,
           metadata_view = originalView.metadata_view,
           is_public = originalView.is_public,
+          is_firehose = Some(true),
           which_alias_to_use = updatedAliasToUse,
           hide_metadata_if_alias_used = !originalView.hide_metadata_if_alias_used,
           allowed_actions = allowedActions
@@ -237,6 +238,7 @@ class SystemViewsTests extends V310ServerSetup {
       updatedView.can_edit_owner_comment should equal(false)
       updatedView.description should equal(updatedViewDescription)
       updatedView.hide_metadata_if_alias_used should equal(true)
+      updatedView.is_firehose should equal(Some(true))
     }
   }
 

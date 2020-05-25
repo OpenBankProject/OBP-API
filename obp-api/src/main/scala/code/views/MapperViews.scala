@@ -440,17 +440,6 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
   
-  def firehoseViewsForBank(bankId: BankId, user : User): List[View] ={
-    if (canUseFirehose(user)) {
-      ViewDefinition.findAll(
-        By(ViewDefinition.isFirehose_, true),
-        By(ViewDefinition.bank_id, bankId.value)
-      )
-    }else{
-      Nil
-    }
-  }
-  
   def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess]) ={
     val accountAccesses = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),

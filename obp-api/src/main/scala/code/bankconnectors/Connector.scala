@@ -167,6 +167,30 @@ trait Connector extends MdcLoggable {
   protected val statusOfCreditcardOrders = getSecondsCache("getStatusOfCreditCardOrderFuture")
   protected val bankAccountsBalancesTTL = getSecondsCache("getBankAccountsBalances")
 
+
+  /**
+   * trait Connector declared methods, name to MethodSymbol.
+   * these methods:
+   *  1. not abstract
+   *  2. public
+   *  3. no override
+   *  4. is not $default$
+   */
+  private lazy val connectorMethods: Map[String, MethodSymbol] = {
+    val tp = typeOf[Connector]
+    val result = tp.decls
+      .withFilter(_.isPublic)
+      .withFilter(_.isMethod)
+      .map(m =>(m.name.decodedName.toString.trim, m.asMethod))
+      .collect{
+        case kv @(name, method)
+          if method.overrides.isEmpty &&
+            method.paramLists.nonEmpty &&
+            method.paramLists.head.nonEmpty &&
+            !name.contains("$default$") => kv
+      }.toMap
+    result
+  }
   /**
    * current connector instance implemented Connector method,
    * methodName to method
@@ -185,7 +209,7 @@ trait Connector extends MdcLoggable {
             method.owner != typeOf[Connector] &&
             !name.contains("$default$") => kv
         }.toMap
-    result
+    connectorMethods ++ result // result put after ++ to make sure methods of Connector's subtype be kept when name conflict.
   }
 
   /**

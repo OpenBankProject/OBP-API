@@ -32,9 +32,10 @@ object ErrorMessages {
 
   val ApiVersionNotSupported = "OBP-00008: The API version you called is not enabled on this server. Please contact your API administrator or use another version."
 
-  val FirehoseViewsNotAllowedOnThisInstance = "OBP-00009: Firehose views not allowed on this instance. Please set allow_firehose_views = true in props files. "
+  val AccountFirehoseNotAllowedOnThisInstance = "OBP-00009: Account firehose is not allowed on this instance. Please set allow_account_firehose = true in props files. "
   val MissingPropsValueAtThisInstance = "OBP-00010: Missing props value at this API instance - "
   val NoValidElasticsearchIndicesConfigured = "OBP-00011: No elasticsearch indices are allowed on this instance. Please set es.warehouse.allowed.indices = index1,index2 (or = ALL for all). "
+  val CustomerFirehoseNotAllowedOnThisInstance = "OBP-00012: Customer firehose is not allowed on this instance. Please set allow_customer_firehose = true in props files. "
 
   // WebUiProps Exceptions (OBP-08XXX)
   val InvalidWebUiProps = "OBP-08001: Incorrect format of name."

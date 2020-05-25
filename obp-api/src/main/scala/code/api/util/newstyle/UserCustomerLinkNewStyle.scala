@@ -15,6 +15,11 @@ object UserCustomerLinkNewStyle {
                             ): OBPReturnType[List[UserCustomerLink]] = {
     Future(UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(userId: String), callContext)
   }
+  def getUserCustomerLinks(customerId: String,
+                           callContext: Option[CallContext]
+                            ): OBPReturnType[List[UserCustomerLink]] = {
+    Future(UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByCustomerId(customerId: String), callContext)
+  }
   
   def deleteUserCustomerLink(UserCustomerLinkId: String,
                              callContext: Option[CallContext]

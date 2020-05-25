@@ -27,8 +27,9 @@ package code.api.v3_1_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanCreateCustomer, CanGetUserAuthContext}
+import code.api.util.ApiRole.{CanCreateCustomer, CanGetUserAuthContext, CanGetUserCustomerLink}
 import code.api.util.ApiRole
+import code.api.v2_0_0.UserCustomerLinksJson
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.consumer.Consumers
 import code.context.UserAuthContextUpdateProvider
@@ -54,7 +55,7 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createUserAuthContextUpdate))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createUserAuthContextUpdateRequest))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.answerUserAuthContextUpdateChallenge))
 
   val postUserAuthContextJson = SwaggerDefinitionsJSON.postUserAuthContextJson
@@ -102,7 +103,7 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
       val authContextUpdateId = createResponseUserAuthContextUpdate310.body.extract[UserAuthContextUpdateJson].user_auth_context_update_id
       val wrongAnswerJson = PostUserAuthContextUpdateJsonV310(answer = "1234567")
       
-      val requestUserAuthContextUpdate310 = (v3_1_0_Request / "users" / "current" / "auth-context-updates" / authContextUpdateId / "challenge").POST <@(user1)
+      val requestUserAuthContextUpdate310 = (v3_1_0_Request/ "banks" / bankId / "users" / "current" / "auth-context-updates" / authContextUpdateId / "challenge").POST <@(user1)
       val responseUserAuthContextUpdate310 = makePostRequest(requestUserAuthContextUpdate310, write(wrongAnswerJson))
       Then("We should get a 200")
       responseUserAuthContextUpdate310.code should equal(200)
@@ -139,7 +140,7 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
       }
       val rightAnswerJson = PostUserAuthContextUpdateJsonV310(answer = challenge)
 
-      val requestUserAuthContextUpdate310 = (v3_1_0_Request / "users" / "current" / "auth-context-updates" / authContextUpdateId / "challenge").POST <@(user1)
+      val requestUserAuthContextUpdate310 = (v3_1_0_Request/ "banks" / bankId / "users" / "current" / "auth-context-updates" / authContextUpdateId / "challenge").POST <@(user1)
       val responseUserAuthContextUpdate310 = makePostRequest(requestUserAuthContextUpdate310, write(rightAnswerJson))
       Then("We should get a 200")
       responseUserAuthContextUpdate310.code should equal(200)
@@ -154,6 +155,16 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
       successGetRes.code should equal(200)
       val userAuthContexts = successGetRes.body.extract[UserAuthContextsJson].user_auth_contexts
       userAuthContexts.map(i => (i.key, i.value) == (postUserAuthContextJson1.key, postUserAuthContextJson1.value)) shouldBe (List(true))
+
+      //Get User Customer Link v4.0.0
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetUserCustomerLink.toString())
+      val getRequest = (baseRequest / "obp" / "v4.0.0" / "banks" / bankId / "user_customer_links" / "customers" / infoPost.customer_id).GET <@(user1)
+      val getResponse = makeGetRequest(getRequest)
+      Then("We should get a 200")
+      getResponse.code should equal(200)
+      val size = getResponse.body.extract[UserCustomerLinksJson]
+        .user_customer_links.filter(_.customer_id == infoPost.customer_id).size
+      size should be equals 1
     }
   }
 }

@@ -795,6 +795,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
          case "function_name" => Full(OBPFunctionName(values.head)) 
          case "connector_name" => Full(OBPConnectorName(values.head))
          case "customer_id" => Full(OBPCustomerId(values.head))
+         case "locked_status" => Full(OBPLockedStatus(values.head))
          case _ => Full(OBPEmpty())
        }
      } yield
@@ -832,6 +833,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       connectorName <- getHttpParamValuesByName(httpParams, "connector_name")
       functionName <- getHttpParamValuesByName(httpParams, "function_name")
       customerId <- getHttpParamValuesByName(httpParams, "customer_id")
+      lockedStatus <- getHttpParamValuesByName(httpParams, "locked_status")
     }yield{
       /**
         * sortBy is currently disabled as it would open up a security hole:
@@ -851,7 +853,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       List(limit, offset, ordering, fromDate, toDate, 
            anon, consumerId, userId, url, appName, implementedByPartialFunction, implementedInVersion, 
            verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
-           connectorName,functionName, bankId, accountId, customerId
+           connectorName,functionName, bankId, accountId, customerId, lockedStatus
        ).filter(_ != OBPEmpty())
     }
   }
@@ -888,6 +890,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val currency =  getHttpRequestUrlParam(httpRequestUrl, "currency")
     val amount =  getHttpRequestUrlParam(httpRequestUrl, "amount")
     val customerId =  getHttpRequestUrlParam(httpRequestUrl, "customer_id")
+    val lockedStatus =  getHttpRequestUrlParam(httpRequestUrl, "locked_status")
 
     //The following three are not a string, it should be List of String
     //eg: exclude_app_names=A,B,C --> List(A,B,C)
@@ -910,7 +913,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       HTTPParam("bank_id", bankId),
       HTTPParam("account_id", accountId),
       HTTPParam("connector_name", connectorName),
-      HTTPParam("customer_id", customerId)
+      HTTPParam("customer_id", customerId),
+      HTTPParam("locked_status", lockedStatus)
     ).filter(_.values.head != ""))//Here filter the filed when value = "". 
   }
   
@@ -2647,7 +2651,7 @@ Returns a string showed to the developer
     //Replace "." with "_" (environment vars cannot include ".") and convert to upper case
     // Append "OBP_" because all Open Bank Project environment vars are namespaced with OBP
     val sysEnvironmentPropertyName = sysEnvironmentPropertyNamePrefix.concat(brandSpecificPropertyName.replace('.', '_').toUpperCase())
-    val sysEnvironmentPropertyValue: Box[String] = tryo{sys.env(sysEnvironmentPropertyName)}
+    val sysEnvironmentPropertyValue: Box[String] =  sys.env.get(sysEnvironmentPropertyName)
     sysEnvironmentPropertyValue match {
       case Full(_) =>
         logger.debug("System environment property value found for: " + sysEnvironmentPropertyName)
@@ -2748,9 +2752,13 @@ Returns a string showed to the developer
 
 
   val ALLOW_PUBLIC_VIEWS: Boolean = getPropsAsBoolValue("allow_public_views", false)
-  val ALLOW_FIREHOSE_VIEWS: Boolean = getPropsAsBoolValue("allow_firehose_views", false)
-  def canUseFirehose(user: User): Boolean = {
-    ALLOW_FIREHOSE_VIEWS && hasEntitlement("", user.userId, ApiRole.canUseFirehoseAtAnyBank)
+  val ALLOW_ACCOUNT_FIREHOSE: Boolean = ApiPropsWithAlias.allowAccountFirehose
+  val ALLOW_CUSTOMER_FIREHOSE: Boolean = ApiPropsWithAlias.allowCustomerFirehose
+  def canUseAccountFirehose(user: User): Boolean = {
+    ALLOW_ACCOUNT_FIREHOSE && hasEntitlement("", user.userId, ApiRole.canUseAccountFirehoseAtAnyBank)
+  }
+  def canUseCustomerFirehose(user: User): Boolean = {
+    ALLOW_CUSTOMER_FIREHOSE && hasEntitlement("", user.userId, ApiRole.canUseCustomerFirehoseAtAnyBank)
   }
   /**
     * This will accept all kinds of view and user.
@@ -2760,34 +2768,45 @@ Returns a string showed to the developer
     * @param user Option User, can be Empty(No Authentication), or Login user.
     *
     */
-  def hasAccess(view: View, bankIdAccountId: BankIdAccountId, user: Option[User]) : Boolean = {
+  def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: Option[User]) : Boolean = {
     if(isPublicView(view: View))// No need for the Login user and public access
       true
     else
       user match {
-        case Some(u) if hasFirehoseAccess(view,u)  => true//Login User and Firehose access
+        case Some(u) if hasAccountFirehoseAccess(view,u)  => true//Login User and Firehose access
         case Some(u) if u.hasAccountAccess(view, bankIdAccountId)=> true     // Login User and check view access
         case _ =>
           false
       }
   }
   /**
-   * All the get view and check view access must be in one method, can not be separated from now. Because we introduce system views. 
-   * 1st check: if `Custom View is existing` and `have the custom owner view access` ==>  return the customView.
-   * 2rd check: if `Custom view is not find or have no custom owner view access` and `find system owner view` and `have the system owner view access` ==> then return systemView. 
-   * all other cases ==>return no access to the `viewId`
-   * 
-   * Note: this user is Option, for the public views, there is no need for the user. 
+   * This function check does the user(anonymous or authenticated) have account access
+   * to the account specified by parameter bankIdAccountId over the view specified by parameter viewId
+   * Note: The public views means you can use anonymous access which implies that the user is an optional value
    */
-  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User]) = {
-    val customerViewImplBox = Views.views.vend.customView(viewId, bankIdAccountId)
-    customerViewImplBox match {
+  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User]): Box[View] = {
+    val customView = Views.views.vend.customView(viewId, bankIdAccountId)
+    customView match { // CHECK CUSTOM VIEWS
+      // 1st: View is Pubic and Public views are NOT allowed on this instance.
       case Full(v) if(v.isPublic && !ALLOW_PUBLIC_VIEWS) => Failure(PublicViewsNotAllowedOnThisInstance)
-      case Full(v) if(isPublicView(v)) => customerViewImplBox
-      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => customerViewImplBox
-      case _ => Views.views.vend.systemView(viewId) match  {
-        case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => Full(v)
-        case _ => Empty
+      // 2nd: View is Pubic and Public views are allowed on this instance.
+      case Full(v) if(isPublicView(v)) => customView 
+      // 3rd: The user has account access to this custom view
+      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => customView
+      // The user has NO account access via custom view
+      case _ => 
+        val systemView = Views.views.vend.systemView(viewId)
+        systemView match  { // CHECK SYSTEM VIEWS
+          // 1st: View is Pubic and Public views are NOT allowed on this instance.
+          case Full(v) if(v.isPublic && !ALLOW_PUBLIC_VIEWS) => Failure(PublicViewsNotAllowedOnThisInstance)
+          // 2nd: View is Pubic and Public views are allowed on this instance.
+          case Full(v) if(isPublicView(v)) => systemView
+          // 3rd: The user has account access to this system view
+          case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => systemView
+          // 4th: The user has firehose access to this system view
+          case Full(v) if (user.isDefined && hasAccountFirehoseAccess(v, user.get)) => systemView
+          // The user has NO account access at all
+          case _ => Empty
       }
     }
   }
@@ -2811,10 +2830,10 @@ Returns a string showed to the developer
     }
   }
   /**
-    * This view Firehose is true and set `allow_firehose_views = true` and the user has  `CanUseFirehoseAtAnyBank` role
+    * This view Firehose is true and set `allow_account_firehose = true` and the user has  `CanUseAccountFirehoseAtAnyBank` role
     */
-  def hasFirehoseAccess(view: View, user: User) : Boolean = {
-    if(view.isFirehose && canUseFirehose(user)) true
+  def hasAccountFirehoseAccess(view: View, user: User) : Boolean = {
+    if(view.isFirehose && canUseAccountFirehose(user)) true
     else false
   }
 

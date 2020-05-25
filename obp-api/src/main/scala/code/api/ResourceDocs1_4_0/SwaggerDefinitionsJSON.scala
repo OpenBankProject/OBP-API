@@ -255,7 +255,7 @@ object SwaggerDefinitionsJSON {
     )
   )
   
-  lazy val updateSystemViewJSON = updateViewJSON.copy(is_public = false)
+  lazy val updateSystemViewJson310 = updateViewJSON.copy(is_public = false, is_firehose = Some(false))
 
   val transactionTypeIdSwagger = TransactionTypeId(value = "123")
 
@@ -1767,7 +1767,7 @@ object SwaggerDefinitionsJSON {
 
 
   val userCustomerLinkJson = UserCustomerLinkJson(
-    user_customer_link_id = "String",
+    user_customer_link_id = uuidExample.value,
     customer_id = customerIdExample.value,
     user_id = userIdExample.value,
     date_inserted = DateWithDayExampleObject,

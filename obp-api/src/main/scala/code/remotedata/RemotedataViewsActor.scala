@@ -115,10 +115,6 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
     case cc.publicViews() =>
       logger.debug("publicViews()")
       sender ! (mapper.publicViews)
-
-    case cc.firehoseViewsForBank(bankId: BankId, user : User) =>
-      logger.debug(s"firehoseViewsForBank($bankId, $user)")
-      sender ! (mapper.firehoseViewsForBank(bankId: BankId, user : User))
       
     case cc.publicViewsForBank(bankId: BankId) =>
       logger.debug("publicViews()")

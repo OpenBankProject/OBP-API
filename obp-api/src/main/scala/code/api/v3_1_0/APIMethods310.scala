@@ -469,10 +469,10 @@ trait APIMethods310 {
          |""".stripMargin,
       emptyObjectJson,
       customerJSONs,
-      List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
+      List(UserNotLoggedIn, CustomerFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagFirehoseData, apiTagNewStyle),
-      Some(List(canUseFirehoseAtAnyBank)))
+      Some(List(canUseCustomerFirehoseAtAnyBank)))
 
     lazy val getFirehoseCustomers : OBPEndpoint = {
       //get private accounts for all banks
@@ -481,8 +481,8 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
-              canUseFirehose(u)
+            _ <- Helper.booleanToFuture(failMsg = CustomerFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseCustomerFirehoseAtAnyBank  ) {
+              canUseCustomerFirehose(u)
             }
             allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
             httpParams <- NewStyle.function.createHttpParams(cc.url)
@@ -3802,13 +3802,13 @@ trait APIMethods310 {
 
 
     resourceDocs += ResourceDoc(
-      createUserAuthContextUpdate,
+      createUserAuthContextUpdateRequest,
       implementedInApiVersion,
-      nameOf(createUserAuthContextUpdate),
+      nameOf(createUserAuthContextUpdateRequest),
       "POST",
       "/banks/BANK_ID/users/current/auth-context-updates/SCA_METHOD",
-      "Create User Auth Context Update",
-      s"""Create User Auth Context Update.
+      "Create User Auth Context Update Request",
+      s"""Create User Auth Context Update Request.
          |${authenticationRequiredMessage(true)}
          |
          |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
@@ -3825,10 +3825,10 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle),
-      Some(canCreateUserAuthContextUpdate :: Nil)
+      None
     )
 
-    lazy val createUserAuthContextUpdate : OBPEndpoint = {
+    lazy val createUserAuthContextUpdateRequest : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "users" :: "current" ::"auth-context-updates" :: scaMethod :: Nil JsonPost  json -> _ => {
         cc =>
           for {
@@ -3869,7 +3869,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(answerUserAuthContextUpdateChallenge),
       "POST",
-      "/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge",
+      "/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge",
       "Answer Auth Context Update Challenge",
       s"""
          |Answer Auth Context Update Challenge.
@@ -3887,7 +3887,7 @@ trait APIMethods310 {
       apiTagUser :: apiTagNewStyle :: Nil)
 
     lazy val answerUserAuthContextUpdateChallenge : OBPEndpoint = {
-      case "users" :: "current" ::"auth-context-updates"  :: authContextUpdateId :: "challenge" :: Nil JsonPost json -> _  => {
+      case "banks" :: BankId(bankId) :: "users" :: "current" ::"auth-context-updates"  :: authContextUpdateId :: "challenge" :: Nil JsonPost json -> _  => {
         cc =>
           for {
             (_, callContext) <- authenticatedAccess(cc)
@@ -3906,6 +3906,18 @@ trait APIMethods310 {
                     userAuthContextUpdate.key, 
                     userAuthContextUpdate.value, 
                     callContext).map(x => (Some(x._1), x._2))
+                case _ =>
+                  Future((None, callContext))
+              }
+            (_, callContext) <-
+              userAuthContextUpdate.key match {
+                case "CUSTOMER_NUMBER" =>
+                  NewStyle.function.getOCreateUserCustomerLink(
+                    bankId,
+                    userAuthContextUpdate.value, // Customer number
+                    userAuthContextUpdate.userId, 
+                    callContext
+                  )
                 case _ =>
                   Future((None, callContext))
               }
@@ -3949,7 +3961,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", user.userId, canGetSystemView, callContext)
             view <- NewStyle.function.systemView(ViewId(viewId), callContext)
           } yield {
-            (JSONFactory300.createViewJSON(view), HttpCode.`200`(callContext))
+            (JSONFactory310.createViewJSON(view), HttpCode.`200`(callContext))
           }
       }
     }
@@ -4006,7 +4018,7 @@ trait APIMethods310 {
             }
             view <- NewStyle.function.createSystemView(createViewJson, callContext)
           } yield {
-            (JSONFactory300.createViewJSON(view),  HttpCode.`201`(callContext))
+            (JSONFactory310.createViewJSON(view),  HttpCode.`201`(callContext))
           }
       }
     }
@@ -4061,7 +4073,7 @@ trait APIMethods310 {
          |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
          |of a view is not editable (it is only set when a view is created)""",
-      updateSystemViewJSON,
+      updateSystemViewJson310,
       viewJsonV300,
       List(
         InvalidJsonFormat,
@@ -4091,7 +4103,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.systemView(ViewId(viewId), callContext)
             updatedView <- NewStyle.function.updateSystemView(ViewId(viewId), updateJson, callContext)
           } yield {
-            (JSONFactory300.createViewJSON(updatedView), HttpCode.`200`(callContext))
+            (JSONFactory310.createViewJSON(updatedView), HttpCode.`200`(callContext))
           }
       }
     }

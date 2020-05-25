@@ -1458,6 +1458,18 @@ object NewStyle {
         i => (unboxFullOrFail(i, callContext, s"$UserCustomerLinksNotFoundForUser Current customerId ($customerId)", 400), callContext)
       }
     }
+    def getOCreateUserCustomerLink(bankId: BankId, customerNumber: String, userId: String, callContext: Option[CallContext]) : OBPReturnType[UserCustomerLink] = {
+      Connector.connector.vend.getCustomerByCustomerNumber(customerNumber, bankId, callContext) map {
+        _ match {
+            case Full(tuple) => 
+              UserCustomerLink.userCustomerLink.vend.getOCreateUserCustomerLink(userId, tuple._1.customerId, new Date(), true)
+            case _ =>
+              Empty
+        }
+      } map {
+        i => (unboxFullOrFail(i, callContext, s"$CreateUserCustomerLinksError Current customerId ($customerNumber)", 400), callContext)
+      }
+    }
 
     def createCustomer(
                         bankId: BankId,

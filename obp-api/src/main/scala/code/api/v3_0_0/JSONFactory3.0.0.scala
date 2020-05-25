@@ -79,6 +79,7 @@ case class ViewJsonV300(
   val metadata_view: String,
   val is_public: Boolean,
   val is_system: Boolean,
+  val is_firehose: Option[Boolean] = None,
   val alias: String,
   val hide_metadata_if_alias_used: Boolean,
   val can_add_comment : Boolean,
