@@ -550,6 +550,9 @@ object ApiRole {
 
   case class CanCreateCardAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCardAttributeDefinitionAtOneBank = CanCreateCardAttributeDefinitionAtOneBank()
+  
+  case class CanDeleteTransactionCascade(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteTransactionCascade = CanDeleteTransactionCascade()
 
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 

@@ -28,6 +28,7 @@ trait Comments {
   //TODO: should commentId be unique among all comments, removing the need for the other parameters?
   def deleteComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(commentId : String) : Box[Boolean]
   def bulkDeleteComments(bankId: BankId, accountId: AccountId) : Boolean
+  def bulkDeleteCommentsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId) : Boolean
   
 }
 
@@ -36,6 +37,7 @@ class RemotedataCommentsCaseClasses {
   case class addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserPrimaryKey, viewId : ViewId, text : String, datePosted : Date)
   case class deleteComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId, commentId : String)
   case class bulkDeleteComments(bankId: BankId, accountId: AccountId)
+  case class bulkDeleteCommentsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
 }
 
 object RemotedataCommentsCaseClasses extends RemotedataCommentsCaseClasses

@@ -49,6 +49,7 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.ApiVersion
+import deletion.DeleteTransactionCascade
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
@@ -3781,6 +3782,43 @@ trait APIMethods400 {
             )
           } yield {
             (JSONFactory200.createUserCustomerLinkJSONs(userCustomerLinks), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteTransactionCascade,
+      implementedInApiVersion,
+      nameOf(deleteTransactionCascade),
+      "DELETE",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID",
+      "Delete Transaction Cascade",
+      s"""Delete a Transaction specified by TRANSACTION_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        //UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteTransactionCascade)))
+
+    lazy val deleteTransactionCascade : OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: TransactionId(transactionId) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            deleted <- Future(DeleteTransactionCascade.delete(bankId, accountId, transactionId))
+          } yield {
+            (Full(deleted), HttpCode.`200`(cc))
           }
       }
     }

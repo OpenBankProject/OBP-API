@@ -31,6 +31,9 @@ object RemotedataComments extends ObpActorInit with Comments {
   def bulkDeleteComments(bankId: BankId, accountId: AccountId): Boolean = getValueFromFuture(
     (actor ? cc.bulkDeleteComments(bankId, accountId)).mapTo[Boolean]
   )
+  def bulkDeleteCommentsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Boolean = getValueFromFuture(
+    (actor ? cc.bulkDeleteCommentsOnTransaction(bankId, accountId, transactionId)).mapTo[Boolean]
+  )
 
 
 }

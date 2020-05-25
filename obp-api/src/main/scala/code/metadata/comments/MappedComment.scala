@@ -57,6 +57,15 @@ object MappedComments extends Comments {
     )
     commentsDeleted
   }
+  
+  override def bulkDeleteCommentsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Boolean = {
+    val commentsDeleted = MappedComment.bulkDelete_!!(
+      By(MappedComment.bank, bankId.value),
+      By(MappedComment.account, accountId.value),
+      By(MappedComment.transaction, transactionId.value)
+    )
+    commentsDeleted
+  }
 
 }
 
