@@ -31,7 +31,7 @@ import java.net.HttpURLConnection
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ErrorMessages, JwtUtil}
 import code.consumer.Consumers
-import code.model.Consumer
+import code.model.{AppType, Consumer}
 import code.model.dataAccess.AuthUser
 import code.snippet.OpenIDConnectSessionState
 import code.token.{OpenIDConnectToken, TokensOpenIDConnect}
@@ -252,8 +252,8 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       JwtUtil.getIssuer(idToken),
       JwtUtil.getSubject(idToken),
       Some(true),
-      name = None,
-      appType = None,
+      name = Some(Helpers.randomString(10).toLowerCase),
+      appType = Some(AppType.Web),
       description = Some(openIdConnect),
       developerEmail = getClaim(name = "email", idToken = idToken),
       redirectURL = None,
