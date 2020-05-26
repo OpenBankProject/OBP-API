@@ -46,6 +46,8 @@ private object MongoTransactionNarrative extends Narrative {
     true
   }
 
+  override def bulkDeleteNarrativeOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Boolean = ???
+  
   override def bulkDeleteNarratives(bankId: BankId, accountId: AccountId): Boolean = ???
 
 }

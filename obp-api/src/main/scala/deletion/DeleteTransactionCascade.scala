@@ -13,18 +13,24 @@ import net.liftweb.util.DefaultConnectionIdentifier
 
 object DeleteTransactionCascade {
   def delete(bankId: BankId, accountId: AccountId, id: TransactionId): Boolean = {
+    val narrative = Narrative.narrative.vend.bulkDeleteNarrativeOnTransaction(bankId, accountId, id)
+    val comments = Comments.comments.vend.bulkDeleteCommentsOnTransaction(bankId, accountId, id)
+    val tags = Tags.tags.vend.bulkDeleteTagsOnTransaction(bankId, accountId, id)
+    val images = TransactionImages.transactionImages.vend.bulkDeleteImagesOnTransaction(bankId, accountId, id)
+    val whereTags = WhereTags.whereTags.vend.bulkDeleteWhereTagsOnTransaction(bankId, accountId, id)
+    val transaction = MappedTransaction.bulkDelete_!!(By(MappedTransaction.transactionId, id.value))
+    val doneTasks = List(narrative, comments, tags, images, whereTags, transaction)
+    doneTasks.forall(_ == true)
+  }
+  def atomicDelete(bankId: BankId, accountId: AccountId, id: TransactionId): Boolean = {
     DB.use(DefaultConnectionIdentifier){_ =>
-      val narrative = Narrative.narrative.vend.setNarrative(bankId, accountId, id)("")
-      val comments = Comments.comments.vend.bulkDeleteCommentsOnTransaction(bankId, accountId, id)
-      val tags = Tags.tags.vend.bulkDeleteTagsOnTransaction(bankId, accountId, id)
-      val images = TransactionImages.transactionImages.vend.bulkDeleteImagesOnTransaction(bankId, accountId, id)
-      val whereTags = WhereTags.whereTags.vend.bulkDeleteWhereTagsOnTransaction(bankId, accountId, id)
-      val transaction = MappedTransaction.bulkDelete_!!(By(MappedTransaction.transactionId, id.value))
-      val doneTasks = List(narrative, comments, tags, images, whereTags, transaction, false)
-      val deleted = doneTasks.forall(_ == true)
-      if(!deleted)
-        DB.rollback(DefaultConnectionIdentifier)
-      deleted
+      delete(bankId, accountId, id) match {
+        case true =>
+          true
+        case false =>
+          DB.rollback(DefaultConnectionIdentifier)
+          false
+      }
     }
   }
 }

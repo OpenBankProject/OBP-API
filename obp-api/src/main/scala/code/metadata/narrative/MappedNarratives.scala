@@ -38,6 +38,13 @@ object MappedNarratives extends Narrative {
     }
   }
 
+  override def bulkDeleteNarrativeOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Boolean = {
+    MappedNarrative.bulkDelete_!!(
+      By(MappedNarrative.bank, bankId.value),
+      By(MappedNarrative.account, accountId.value),
+      By(MappedNarrative.transaction, transactionId.value)
+    )
+  }
   override def bulkDeleteNarratives(bankId: BankId, accountId: AccountId): Boolean = {
       MappedNarrative.bulkDelete_!!(
         By(MappedNarrative.bank, bankId.value),
