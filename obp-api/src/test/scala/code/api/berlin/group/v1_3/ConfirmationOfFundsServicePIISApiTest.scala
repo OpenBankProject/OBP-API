@@ -29,8 +29,8 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
       val response: APIResponse = makePostRequest(requestPost, write(checkAvailabilityOfFundsJsonBody))
 
 
-      Then("We should get a 400 ")
-      response.code should equal(400)
+      Then("We should get a 404 ")
+      response.code should equal(404)
       response.body.extract[ErrorMessage]
         .message should startWith(s"${BankAccountNotFound.replaceAll("BANK_ID and ACCOUNT_ID. ", "IBAN.")}")
     }

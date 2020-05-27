@@ -143,8 +143,8 @@ class CounterpartyTest extends V400ServerSetup {
 
       val requestPost = (v4_0_0_Request / "management" /"banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
-      Then("We should get a 400")
-      responsePost.code should equal(400)
+      Then("We should get a 404")
+      responsePost.code should equal(404)
 
       responsePost.body.extract[ErrorMessage].message should startWith(ErrorMessages.BankAccountNotFound)
     }

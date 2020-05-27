@@ -194,8 +194,8 @@ class ViewsTests extends V300ServerSetup {
       val bankId = randomBankId
       When("the request is sent")
       val reply = postView(bankId, randomString(3), postBodyViewJson, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
