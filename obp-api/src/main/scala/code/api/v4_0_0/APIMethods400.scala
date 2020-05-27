@@ -3791,7 +3791,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(deleteTransactionCascade),
       "DELETE",
-      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID/delete",
+      "/management/cascading/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID",
       "Delete Transaction Cascade",
       s"""Delete a Transaction Cascade specified by TRANSACTION_ID.
          |
@@ -3813,14 +3813,14 @@ trait APIMethods400 {
       Some(List(canDeleteTransactionCascade)))
 
     lazy val deleteTransactionCascade : OBPEndpoint = {
-      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: 
-        "transactions" :: TransactionId(transactionId) :: "delete" :: Nil JsonDelete _ => {
+      case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: 
+        "transactions" :: TransactionId(transactionId) :: Nil JsonDelete _ => {
         cc =>
           for {
             (_, callContext) <- NewStyle.function.getTransaction(bankId, accountId, transactionId, cc.callContext)
-            deleted <- Future(DeleteTransactionCascade.atomicDelete(bankId, accountId, transactionId))
+            _ <- Future(DeleteTransactionCascade.atomicDelete(bankId, accountId, transactionId))
           } yield {
-            (Full(deleted), HttpCode.`200`(callContext))
+            (Full(true), HttpCode.`200`(callContext))
           }
       }
     }
