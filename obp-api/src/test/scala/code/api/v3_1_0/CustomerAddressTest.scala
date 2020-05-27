@@ -138,8 +138,8 @@ class CustomerAddressTest extends V310ServerSetup {
       When("We try to create a customer address with non existing customer v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "address").POST <@(user1)
       val response310 = makePostRequest(request310, write(postCustomerAddressJson))
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 404")
+      response310.code should equal(404)
       And("error should be " + CustomerNotFoundByCustomerId)
       response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
       
