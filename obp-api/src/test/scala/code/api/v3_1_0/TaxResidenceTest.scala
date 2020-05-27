@@ -105,8 +105,8 @@ class TaxResidenceTest extends V310ServerSetup {
       When("We make a request v3.1.0 with the Role " + canCreateTaxResidence + " but with non existing CUSTOMER_ID")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residence").POST <@(user1)
       val response310 = makePostRequest(request310, write(postTaxResidenceJson))
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 404")
+      response310.code should equal(404)
       And("error should be " + CustomerNotFoundByCustomerId)
       response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
     }
@@ -166,8 +166,8 @@ class TaxResidenceTest extends V310ServerSetup {
       When("We make a request v3.1.0 with the Role " + canGetTaxResidence + " but with non existing CUSTOMER_ID")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residences").GET <@(user1)
       val response310 = makeGetRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 404")
+      response310.code should equal(404)
       And("error should be " + CustomerNotFoundByCustomerId)
       response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
     }
@@ -189,8 +189,8 @@ class TaxResidenceTest extends V310ServerSetup {
       When("We make a request v3.1.0 with the Role " + canDeleteTaxResidence + " but with non existing CUSTOMER_ID")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax_residencies" / "TAX_RESIDENCE_ID").DELETE <@(user1)
       val response310 = makeDeleteRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 404")
+      response310.code should equal(404)
       And("error should be " + CustomerNotFoundByCustomerId)
       response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
     }
