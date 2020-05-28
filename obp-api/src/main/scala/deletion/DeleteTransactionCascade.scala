@@ -9,6 +9,7 @@ import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.transaction.MappedTransaction
+import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.MappedTransactionRequestProvider
 import com.openbankproject.commons.model.{AccountId, BankId, TransactionId}
 import net.liftweb.db.DB
@@ -24,9 +25,10 @@ object DeleteTransactionCascade {
     val tags = Tags.tags.vend.bulkDeleteTagsOnTransaction(bankId, accountId, id)
     val images = TransactionImages.transactionImages.vend.bulkDeleteImagesOnTransaction(bankId, accountId, id)
     val whereTags = WhereTags.whereTags.vend.bulkDeleteWhereTagsOnTransaction(bankId, accountId, id)
+    val transactionAttribute = deleteTransactionAttribute(bankId, id)
     val transactionRequest = MappedTransactionRequestProvider.bulkDeleteTransactionRequestsByTransactionId(id)
     val transaction = MappedTransaction.bulkDelete_!!(By(MappedTransaction.transactionId, id.value))
-    val doneTasks = List(narrative, comments, tags, images, whereTags, transactionRequest, transaction)
+    val doneTasks = List(narrative, comments, tags, images, whereTags, transactionAttribute, transactionRequest, transaction)
     doneTasks.forall(_ == true)
   }
   
@@ -39,4 +41,12 @@ object DeleteTransactionCascade {
         fullBoxOrException(Empty ~> APIFailureNewStyle(CouldNotDeleteCascade, 400))
     }
   }
+  
+  private def deleteTransactionAttribute(bankId: BankId, id: TransactionId): Boolean = {
+    MappedTransactionAttribute.bulkDelete_!!(
+      By(MappedTransactionAttribute.mBankId, bankId.value),
+      By(MappedTransactionAttribute.mTransactionId, id.value)
+    )
+  }
+  
 }
