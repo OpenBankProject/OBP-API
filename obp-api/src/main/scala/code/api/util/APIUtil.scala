@@ -2854,7 +2854,7 @@ Returns a string showed to the developer
       APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET_Test")
     else {
       //Note: now if the bank_id is not existing, we will create it during `boot`.
-      APIUtil.getPropsValue("defaultBank.bank_id", "OBP_DEFAULT_BANK_ID")
+      APIUtil.getPropsValue("defaultBank.bank_id", "obp1")
     }
   //This method will read sample.props.template file, and get all the fields which start with the webui_
   //it will return the webui_ props paris: 
