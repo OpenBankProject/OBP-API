@@ -47,7 +47,7 @@ object APIMethods_AISPApi extends RestHelper {
        "GET", 
        "/accounts/ACCOUNTRESOURCEID/balances", 
        "Retrieval of an account balances report (AISP)",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             ### Description
 
 This call returns a set of balances for a given PSU account that is specified by the AISP through an account resource Identification
@@ -130,7 +130,7 @@ The ASPSP answers by providing a list of balances on this account.
        "GET", 
        "/accounts", 
        "Retrieval of the PSU accounts (AISP)",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             ### Description
 
 This call returns all payment accounts that are relevant the PSU on behalf of whom the AISP is connected. Thanks to HYPERMEDIA, each account is returned with the links aiming to ease access to the relevant transactions and balances. The result may be subject to pagination (i.e. retrieving a partial result in case of having too many results) through a set of pages by the ASPSP. Thereafter, the AISP may ask for the first, next, previous or last page of results.
@@ -224,7 +224,7 @@ The TPP sends a request to the ASPSP for retrieving the list of the PSU payment 
        "GET", 
        "/accounts/ACCOUNTRESOURCEID/transactions", 
        "Retrieval of an account transaction set (AISP)",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             ### Description
 
 This call returns transactions for an account for a given PSU account that is specified by the AISP through an account resource identification. The request may use some filter parameter in order to restrict the query
