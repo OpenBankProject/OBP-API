@@ -49,7 +49,7 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.ApiVersion
-import deletion.{DeleteAccountCascade, DeleteTransactionCascade}
+import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCascade}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
@@ -3858,6 +3858,44 @@ trait APIMethods400 {
             _ <- Future(DeleteAccountCascade.atomicDelete(bankId, accountId))
           } yield {
             (Full(true), HttpCode.`200`(cc))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      deleteProductCascade,
+      implementedInApiVersion,
+      nameOf(deleteProductCascade),
+      "DELETE",
+      "/management/cascading/banks/BANK_ID/products/PRODUCT_CODE",
+      "Delete Product Cascade",
+      s"""Delete a Product Cascade specified by PRODUCT_CODE.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteProductCascade)))
+
+    lazy val deleteProductCascade : OBPEndpoint = {
+      case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "products" :: ProductCode(code) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getProduct(bankId, code, Some(cc))
+            _ <- Future(DeleteProductCascade.atomicDelete(bankId, code))
+          } yield {
+            (Full(true), HttpCode.`200`(callContext))
           }
       }
     }
