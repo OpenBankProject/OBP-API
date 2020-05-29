@@ -22,20 +22,29 @@ object MigrationOfConsumer {
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
-        val consumers = 
+        val emptyNameConsumers = 
           for {
-            consumer <- Consumer.findAll() if consumer.name.get.isEmpty() && consumer.appType.get.isEmpty()
+            consumer <- Consumer.findAll() if consumer.name.get.isEmpty()
+          } yield {
+            consumer
+              .name(Helpers.randomString(10).toLowerCase())
+              .saveMe()
+          }
+
+        val emptyAppTypeConsumers =
+          for {
+            consumer <- Consumer.findAll() if consumer.appType.get.isEmpty()
           } yield {
             consumer
               .appType(AppType.Web.toString())
-              .name(Helpers.randomString(10).toLowerCase())
-              .save()
+              .saveMe()
           }
-
+        
+        val consumersAll = (emptyNameConsumers++emptyAppTypeConsumers).distinct
         val endDate = System.currentTimeMillis()
         val comment: String =
           s"""Updated number of rows: 
-             |${consumers.size}
+             |${consumersAll.size}
              |""".stripMargin
         isSuccessful = true
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)

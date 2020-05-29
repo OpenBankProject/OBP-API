@@ -84,7 +84,7 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/checkbook/orders",
       "Get Checkbook orders",
-      s"""${mockedDataText(true)}Get all checkbook orders""",
+      s"""${mockedDataText(false)}Get all checkbook orders""",
       emptyObjectJson,
       checkbookOrdersJson,
       List(
@@ -124,7 +124,7 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/credit_cards/orders",
       "Get status of Credit Card order ",
-      s"""${mockedDataText(true)}Get status of Credit Card orders
+      s"""${mockedDataText(false)}Get status of Credit Card orders
         |Get all orders
         |""",
       emptyObjectJson,
