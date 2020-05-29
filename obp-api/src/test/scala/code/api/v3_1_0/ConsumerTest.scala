@@ -66,8 +66,8 @@ class ConsumerTest extends V310ServerSetup {
       val consumerId = "non existing CONSUMER_ID"
       val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId).GET <@(user1)
       val response310 = makeGetRequest(request310)
-      Then("We should get a 200")
-      response310.code should equal(400)
+      Then("We should get a 404")
+      response310.code should equal(404)
       val errorMessage = s"$ConsumerNotFoundByConsumerId Current ConsumerId is $consumerId"
       And("error should be " + errorMessage)
       response310.body.extract[ErrorMessage].message should equal (errorMessage)

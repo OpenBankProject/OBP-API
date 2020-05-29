@@ -12950,7 +12950,8 @@
       },
       "error_response_bodies": [
         "OBP-20001: User not logged in. Authentication is required!",
-        "OBP-00009: Firehose views not allowed on this instance. Please set allow_firehose_views = true in props files. ",
+        "OBP-00009: Account firehose is not allowed on this instance. Please set allow_account_firehose = true in props files. ",
+        "OBP-00012: Customer firehose is not allowed on this instance. Please set allow_customer_firehose = true in props files. ",
         "OBP-20006: User is missing one or more roles: ",
         "OBP-50000: Unknown Error."
       ],
@@ -36987,7 +36988,8 @@
       },
       "error_response_bodies": [
         "OBP-20001: User not logged in. Authentication is required!",
-        "OBP-00009: Firehose views not allowed on this instance. Please set allow_firehose_views = true in props files. ",
+        "OBP-00009: Account firehose is not allowed on this instance. Please set allow_account_firehose = true in props files. ",
+        "OBP-00012: Customer firehose is not allowed on this instance. Please set allow_customer_firehose = true in props files. ",
         "OBP-20006: User is missing one or more roles: ",
         "OBP-50000: Unknown Error."
       ],

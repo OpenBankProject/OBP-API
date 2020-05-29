@@ -101,15 +101,15 @@ class CardTest extends V310ServerSetup with DefaultUsers {
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canCreateCardsForBank.toString)
       val wrongAccountCardJson = dummyCard
       val responseHasRoleWrongAccountId = makePostRequest(requestWithAuthUser, write(wrongAccountCardJson))
-      And(s"We should get 400 and get the error message: $BankAccountNotFound.")
-      responseHasRoleWrongAccountId.code should equal(400)
+      And(s"We should get 404 and get the error message: $BankAccountNotFound.")
+      responseHasRoleWrongAccountId.code should equal(404)
       responseHasRoleWrongAccountId.body.toString contains(s"$BankAccountNotFound")
 
       Then(s"We grant the user ${ApiRole.canCreateCardsForBank} role, but wrong customerId")
       val wrongCustomerCardJson = properCardJson.copy(customer_id = "wrongId")
       val responsewrongCustomerCardJson = makePostRequest(requestWithAuthUser, write(wrongCustomerCardJson))
       And(s"We should get 400 and get the error message: $CustomerNotFoundByCustomerId.")
-      responsewrongCustomerCardJson.code should equal(400)
+      responsewrongCustomerCardJson.code should equal(404)
       responsewrongCustomerCardJson.body.toString contains(s"$CustomerNotFoundByCustomerId") should be (true)
  
       Then(s"We test the success case, prepare all stuff.")

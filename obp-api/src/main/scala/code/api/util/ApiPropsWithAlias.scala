@@ -21,6 +21,14 @@ object ApiPropsWithAlias {
     name="migration_scripts.enabled",
     alias="migration_scripts.execute",
     defaultValue="false")
+  val allowAccountFirehose = getValueByNameOrAliasAsBoolean(
+    name="allow_account_firehose",
+    alias="allow_firehose_views",
+    defaultValue="false")
+  val allowCustomerFirehose = getValueByNameOrAliasAsBoolean(
+    name="allow_customer_firehose",
+    alias="allow_firehose_views",
+    defaultValue="false")
 }
 
 object HelperFunctions extends MdcLoggable {

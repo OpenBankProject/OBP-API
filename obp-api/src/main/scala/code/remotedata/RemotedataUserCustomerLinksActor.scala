@@ -19,10 +19,18 @@ class RemotedataUserCustomerLinksActor extends Actor with ObpActorHelper with Md
     case cc.createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean) =>
       logger.debug(s"createUserCustomerLink($userId, $dateInserted, $isActive)")
       sender ! (mapper.createUserCustomerLink(userId, customerId, dateInserted, isActive))
+      
+    case cc.getOCreateUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean) =>
+      logger.debug(s"getOCreateUserCustomerLink($userId, $dateInserted, $isActive)")
+      sender ! (mapper.getOCreateUserCustomerLink(userId, customerId, dateInserted, isActive))
 
     case cc.getUserCustomerLinkByCustomerId(customerId: String) =>
       logger.debug(s"getUserCustomerLinkByCustomerId($customerId)")
       sender ! (mapper.getUserCustomerLinkByCustomerId(customerId))
+      
+    case cc.getUserCustomerLinksByCustomerId(customerId: String) =>
+      logger.debug(s"getUserCustomerLinksByCustomerId($customerId)")
+      sender ! (mapper.getUserCustomerLinksByCustomerId(customerId))
 
     case cc.getUserCustomerLinksByUserId(userId: String) =>
       logger.debug(s"getUserCustomerLinksByUserId($userId)")

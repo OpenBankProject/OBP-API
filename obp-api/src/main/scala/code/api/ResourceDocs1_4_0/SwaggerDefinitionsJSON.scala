@@ -1767,7 +1767,7 @@ object SwaggerDefinitionsJSON {
 
 
   val userCustomerLinkJson = UserCustomerLinkJson(
-    user_customer_link_id = "String",
+    user_customer_link_id = uuidExample.value,
     customer_id = customerIdExample.value,
     user_id = userIdExample.value,
     date_inserted = DateWithDayExampleObject,

@@ -136,6 +136,7 @@ class ConsumerRegistration extends MdcLoggable {
 
     def showErrors(errors : List[FieldError]) = {
       val errorsString = errors.map(_.msg.toString)
+      errorsString.map(errorMessage => S.error("register-consumer-errors", errorMessage))
       register &
       "#register-consumer-errors *" #> {
         ".error *" #>
@@ -146,6 +147,7 @@ class ConsumerRegistration extends MdcLoggable {
     }
 
     def showUnknownErrors(errors : List[String]) = {
+      errors.map(errorMessage => S.error("register-consumer-errors", errorMessage))
       register &
         "#register-consumer-errors *" #> {
           ".error *" #>
@@ -165,6 +167,7 @@ class ConsumerRegistration extends MdcLoggable {
         .filterNot(errorMessage => (errorMessage.contains("description") || errorMessage.contains("Description")))
         .filterNot(errorMessage => (errorMessage.contains("email") || errorMessage.contains("Email")))
         .filterNot(errorMessage => (errorMessage.contains("redirect") || errorMessage.contains("Redirect")))
+      unknownErrors.map(errorMessage => S.error("register-consumer-errors", errorMessage))
       register &
         "#register-consumer-errors *" #> {
           ".error *" #>
@@ -176,6 +179,7 @@ class ConsumerRegistration extends MdcLoggable {
 
     //TODO this should be used somewhere else, it is check the empty of description for the hack attack from GUI.
     def showErrorsForDescription (descriptionError : String) = {
+      S.error("register-consumer-errors", descriptionError)
       register &
         "#register-consumer-errors *" #> {
           ".error *" #>

@@ -581,8 +581,10 @@ autocomplete_at_login_form_enabled=false
 # control the create and access to public views.
 # allow_public_views=false
 
-# control access to firehose views.
-# allow_firehose_views=false
+# control access to account firehose.
+# allow_account_firehose=false
+# control access to customer firehose.
+# allow_customer_firehose=false
 
 # -- Gateway login --------------------------------------
 # Enable/Disable Gateway communication at all
