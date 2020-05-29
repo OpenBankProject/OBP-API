@@ -3849,7 +3849,7 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagApi, apiTagNewStyle),
-      Some(List(canDeleteTransactionCascade)))
+      Some(List(canDeleteAccountCascade)))
 
     lazy val deleteAccountCascade : OBPEndpoint = {
       case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonDelete _ => {
