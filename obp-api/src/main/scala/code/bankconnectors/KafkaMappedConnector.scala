@@ -953,7 +953,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
 
-  override def getProducts(bankId: BankId): Box[List[Product]] = Empty
+  override def getProducts(bankId: BankId, params: Map[String, List[String]]): Box[List[Product]] = Empty
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 

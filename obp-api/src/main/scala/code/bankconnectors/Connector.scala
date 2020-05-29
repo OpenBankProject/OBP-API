@@ -3,7 +3,9 @@ package code.bankconnectors
 import java.util.Date
 import java.util.UUID.randomUUID
 
+import code.DynamicEndpoint.DynamicEndpointT
 import code.accountholders.{AccountHolders, MapperAccountHolders}
+import code.api.attributedefinition.AttributeDefinition
 import code.api.{APIFailure, APIFailureNewStyle}
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, _}
@@ -37,7 +39,7 @@ import code.users.Users
 import code.util.Helper._
 import code.util.JsonUtils
 import code.views.Views
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, AttributeCategory, AttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full, ParamFailure}
@@ -58,6 +60,7 @@ import scala.concurrent.duration._
 import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
 import scala.reflect.runtime.universe.{MethodSymbol, typeOf}
+import _root_.akka.http.scaladsl.model.HttpMethod
 
 /*
 So we can switch between different sources of resources e.g.
@@ -164,6 +167,30 @@ trait Connector extends MdcLoggable {
   protected val statusOfCreditcardOrders = getSecondsCache("getStatusOfCreditCardOrderFuture")
   protected val bankAccountsBalancesTTL = getSecondsCache("getBankAccountsBalances")
 
+
+  /**
+   * trait Connector declared methods, name to MethodSymbol.
+   * these methods:
+   *  1. not abstract
+   *  2. public
+   *  3. no override
+   *  4. is not $default$
+   */
+  private lazy val connectorMethods: Map[String, MethodSymbol] = {
+    val tp = typeOf[Connector]
+    val result = tp.decls
+      .withFilter(_.isPublic)
+      .withFilter(_.isMethod)
+      .map(m =>(m.name.decodedName.toString.trim, m.asMethod))
+      .collect{
+        case kv @(name, method)
+          if method.overrides.isEmpty &&
+            method.paramLists.nonEmpty &&
+            method.paramLists.head.nonEmpty &&
+            !name.contains("$default$") => kv
+      }.toMap
+    result
+  }
   /**
    * current connector instance implemented Connector method,
    * methodName to method
@@ -182,7 +209,7 @@ trait Connector extends MdcLoggable {
             method.owner != typeOf[Connector] &&
             !name.contains("$default$") => kv
         }.toMap
-    result
+    connectorMethods ++ result // result put after ++ to make sure methods of Connector's subtype be kept when name conflict.
   }
 
   /**
@@ -927,22 +954,27 @@ trait Connector extends MdcLoggable {
           }
         case TransactionRequestStatus.INITIATED =>
           def getUsersForChallenges(bankId: BankId,
-                                    accountId: AccountId) = {
+                                    accountId: AccountId): Future[Box[List[User]]] = {
             Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None) map {
               _._1.map {
                 x =>
                   {
                     if(x.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt > 1) {
-                      for (
+                      val usersForChallenge: List[Option[User]] = for (
+                        // List all users with grated access to views on this bank account
+                        // in form (user : User, views : List[View])
                         permission <- Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
                       ) yield {
+                        // Check the user has granted view with action canAddTransactionRequestToAnyAccount
+                        // in case it's true the a challenge will be sent to it 
                         permission.views.exists(_.canAddTransactionRequestToAnyAccount == true) match {
                           case true => Some(permission.user)
                           case _ => None
                         }
                       }
+                      Some(initiator) :: usersForChallenge
                     } else List(Some(initiator))
-                    }.flatten.distinct
+                  }.flatten.distinct
               }
             }
           }
@@ -1095,7 +1127,7 @@ trait Connector extends MdcLoggable {
 
   def getTransactionRequestImpl(transactionRequestId: TransactionRequestId, callContext: Option[CallContext]): Box[(TransactionRequest, Option[CallContext])] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId).map(transactionRequest =>(transactionRequest, callContext))
 
-  final def getTransactionRequestTypes(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
+  def getTransactionRequestTypes(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     for {
       isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)), UserNoOwnerView)
       transactionRequestTypes <- getTransactionRequestTypesImpl(fromAccount)
@@ -1215,7 +1247,7 @@ trait Connector extends MdcLoggable {
             }
             counterpartyId = CounterpartyId(bodyToCounterparty.counterparty_id)
             (toCounterparty,callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext)
-            toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
+            toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
             counterpartyBody = TransactionRequestBodyCounterpartyJSON(
               to = CounterpartyIdJson(counterpartyId.value),
               value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
@@ -1243,7 +1275,7 @@ trait Connector extends MdcLoggable {
             }
             toCounterpartyIBan =bodyToCounterpartyIBan.iban
             (toCounterparty, callContext)<- NewStyle.function.getCounterpartyByIban(toCounterpartyIBan, callContext)
-            toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
+            toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
             sepaBody = TransactionRequestBodySEPAJSON(
               to = IbanJson(toCounterpartyIBan),
               value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
@@ -1484,7 +1516,7 @@ trait Connector extends MdcLoggable {
   
   def updateAccount(bankId: BankId, accountId: AccountId, label: String): Box[Boolean] = Failure(setUnimplementedError)
 
-  def getProducts(bankId : BankId) : Box[List[Product]] = Failure(setUnimplementedError)
+  def getProducts(bankId : BankId, params: Map[String, List[String]] = Map.empty) : Box[List[Product]] = Failure(setUnimplementedError)
 
   def getProduct(bankId : BankId, productCode : ProductCode) : Box[Product] = Failure(setUnimplementedError)
 
@@ -1913,6 +1945,35 @@ trait Connector extends MdcLoggable {
                                       callContext: Option[CallContext]
   ): OBPReturnType[Box[CustomerAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
 
+  def createOrUpdateAttributeDefinition(bankId: BankId,
+                                        name: String,
+                                        category: AttributeCategory.Value,
+                                        `type`: AttributeType.Value,
+                                        description: String,
+                                        alias: String,
+                                        canBeSeenOnViews: List[String],
+                                        isActive: Boolean,
+                                        callContext: Option[CallContext]
+                                       ): OBPReturnType[Box[AttributeDefinition]] =
+    Future {
+      (Failure(setUnimplementedError), callContext)
+    }
+
+  def deleteAttributeDefinition(attributeDefinitionId: String,
+                                   category: AttributeCategory.Value,
+                                   callContext: Option[CallContext]
+                                  ): OBPReturnType[Box[Boolean]] =
+    Future {
+      (Failure(setUnimplementedError), callContext)
+    }
+
+  def getAttributeDefinition(category: AttributeCategory.Value,
+                                callContext: Option[CallContext]
+                               ): OBPReturnType[Box[List[AttributeDefinition]]] =
+    Future {
+      (Failure(setUnimplementedError), callContext)
+    }
+  
   def createOrUpdateTransactionAttribute(
     bankId: BankId,
     transactionId: TransactionId,
@@ -1951,7 +2012,7 @@ trait Connector extends MdcLoggable {
    * @param callContext
    * @return filtered CustomerAttribute.customerId
    */
-  def getCustomerIdByAttributeNameValues(
+  def getCustomerIdsByAttributeNameValues(
     bankId: BankId,
     nameValues: Map[String, List[String]],
     callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] =
@@ -1960,6 +2021,12 @@ trait Connector extends MdcLoggable {
   def getCustomerAttributesForCustomers(
     customers: List[Customer],
     callContext: Option[CallContext]): OBPReturnType[Box[List[(Customer, List[CustomerAttribute])]]] =
+    Future{(Failure(setUnimplementedError), callContext)}
+
+  def getTransactionIdsByAttributeNameValues(
+    bankId: BankId,
+    nameValues: Map[String, List[String]],
+    callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] =
     Future{(Failure(setUnimplementedError), callContext)}
   
   def getTransactionAttributes(
@@ -2145,6 +2212,9 @@ trait Connector extends MdcLoggable {
                              requestBody: Option[JObject],
                              entityId: Option[String],
                              callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def dynamicEndpointProcess(url: String, jValue: JValue, method: HttpMethod, params: Map[String, List[String]], pathParams: Map[String, String],
+                             callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = Future{(Failure(setUnimplementedError), callContext)}
   
   def createDirectDebit(bankId: String,
                         accountId: String,
@@ -2170,5 +2240,20 @@ trait Connector extends MdcLoggable {
                           dateExpires: Option[Date],
                           callContext: Option[CallContext]): OBPReturnType[Box[StandingOrderTrait]] = Future {
     (Failure(setUnimplementedError), callContext)
+  }
+
+  def deleteCustomerAttribute(customerAttributeId: String,
+                           callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEndpointT]] = Future {
+    (Failure(setUnimplementedError), callContext)
+  }
+
+  def getDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEndpointT]] = Future {
+    (Failure(setUnimplementedError), callContext)
+  }
+
+  def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
+    (List.empty[DynamicEndpointT], callContext)
   }
 }

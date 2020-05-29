@@ -54,7 +54,7 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createUserAuthContextUpdate))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createUserAuthContextUpdateRequest))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.answerUserAuthContextUpdateChallenge))
 
   val postUserAuthContextJson = SwaggerDefinitionsJSON.postUserAuthContextJson

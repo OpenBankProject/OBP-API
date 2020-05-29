@@ -400,6 +400,10 @@ webui_oauth_2_documentation_url =
 oauth2_server_url =
 
 # Link to Privacy Policy on signup page
+#webui_signup_form_submit_button_value=
+#webui_signup_form_title_text=Sign Up
+#webui_signup_body_password_repeat_text=Repeat 
+#webui_agree_terms_html=<div id="signup-agree-terms" class="checkbox"><label><input type="checkbox" />I hereby agree to the <a href="$url" title="T &amp; C">Terms and Conditions</a></label></div>
 webui_agree_privacy_policy_url = https://openbankproject.com/privacy-policy
 webui_agree_privacy_policy_html_text =<div id="signup-agree-privacy-policy"><label>By submitting this information you consent to processing your data by TESOBE GmbH according to our <a href="$url" title="Privacy Policy">Privacy Policy</a>. TESOBE shall use this information to send you emails and provide customer support.</label></div>
 
@@ -435,6 +439,7 @@ webui_agree_terms_url =
 # Will be displayed on the post Consumer Registration page.
 #webui_post_consumer_registration_more_info_url =
 #webui_post_consumer_registration_more_info_text = Please tell us more your Application and / or Startup using this link.
+#webui_post_consumer_registration_submit_button_value=Register consumer
 
 
 ## Display For Banks section
@@ -470,6 +475,8 @@ webui_show_dummy_user_tokens=false
 webui_register_consumer_success_message_webpage = Thanks for registering your consumer with the Open Bank Project API! Here is your developer information. Please save it in a secure location.
 webui_register_consumer_success_message_email = Thank you for registering to use the Open Bank Project API.
 
+#Log in page
+#webui_login_button_text = 
 ## End of webui_ section ########
 
 
@@ -485,9 +492,18 @@ apiOptions.getCurrentFxRateIsPublic = true
 defaultBank.bank_id=THE_DEFAULT_BANK_ID
 
 
-## Super Admin Users (not database so we don't have to edit database)
-super_admin_user_ids=USER_ID1,USER_ID2,
 
+################################################################################
+## Super Admin Users are used to boot strap User Entitlements (access to Roles).
+## Super Admins are receive **ONLY TWO** implicit entitlements which are:
+## CanCreateEntitlementAtAnyBank
+## and
+## CanCreateEntitlementAtOneBank
+## THUS, probably the first thing a Super Admin will do is to grant themselves or other users a number of Roles
+## For instance, a Super Admin *CANNOT delete an entitlement* unless they grant themselves CanDeleteEntitlementAtAnyBank or CanDeleteEntitlementAtOneBank
+## List the Users here, with their user_id(s), that should be Super Admins
+super_admin_user_ids=USER_ID1,USER_ID2,
+################################################################################
 
 
 ######## Enable / Disable Versions and individual endpoints. ########
@@ -528,15 +544,27 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 ## CallbackURL 127.0.0.1:8080 should work in most cases.
 ## Note: The email address used for login must match one
 ## registered on OBP localy.
-#allow_openidconnect=true
-#openidconnect.clientSecret=CEX3Oud7N8p69qCnNTWvnic3-1ortVlGnD1GXgzxpDW-GjD5_3xG1-G5Kln3K9FA
-#openidconnect.clientId=yzKGC1ZKYqwYRpvbDaTq2r8mEQLY31D4
-#openidconnect.domain=justatest.eu.auth0.com
-#openidconnect.callbackURL=http://127.0.0.1:8080/my/logins/openidconnect
-#openidconnect.url.login=https://cdn.auth0.com/js/lock/10.2/lock.min.js
-#openidconnect.url.userinfo=https://justatest.eu.auth0.com/userinfo
-#openidconnect.url.token=https://justatest.eu.auth0.com/oauth/token
-#openidconnect.url.buttonImage=http://wiki.openid.net/f/openid-logo-wordmark.png
+# openid_connect.enabled=true
+# First identity provider
+# openid_connect_1.button_text = Google
+# openid_connect_1.client_secret=OYdWujJlU7fFOW_NXzPlDI4T
+# openid_connect_1.client_id=883773244832-s4hi72j0rble0iiivq1gn09k7vvptdci.apps.googleusercontent.com
+# openid_connect_1.callback_url=http://127.0.0.1:8080/auth/openid-connect/callback
+# openid_connect_1.endpoint.authorization=https://accounts.google.com/o/oauth2/v2/auth
+# openid_connect_1.endpoint.userinfo=https://openidconnect.googleapis.com/v1/userinfo
+# openid_connect_1.endpoint.token=https://oauth2.googleapis.com/token
+# openid_connect_1.endpoint.jwks_uri=https://www.googleapis.com/oauth2/v3/certs
+# openid_connect_1.access_type_offline=true
+## Second identity provder
+# openid_connect_2.button_text = name of 2nd provider
+# openid_connect_2.client_secret=OYdWujJlU7fFOW_NXzPlDI4T
+# openid_connect_2.client_id=883773244832-s4hi72j0rble0iiivq1gn09k7vvptdci.apps.googleusercontent.com
+# openid_connect_2.callback_url=http://127.0.0.1:8080/auth/openid-connect/callback
+# openid_connect_2.endpoint.authorization=https://accounts.google.com/o/oauth2/v2/auth
+# openid_connect_2.endpoint.userinfo=https://openidconnect.googleapis.com/v1/userinfo
+# openid_connect_2.endpoint.token=https://oauth2.googleapis.com/token
+# openid_connect_2.endpoint.jwks_uri=https://www.googleapis.com/oauth2/v3/certs
+# openid_connect_2.access_type_offline=false
 
 # When new consumers inserted they should use this setting.
 consumers_enabled_by_default=true
@@ -646,7 +674,8 @@ featured_apis=elasticSearchWarehouseV300
 # -- Migration Scripts ----------------------------
 # Enable/Disable execution of migration scripts.
 # In case isn't defined default value is "false"
-# migration_scripts.execute=false
+# Note: migration_scripts.execute MUST be true for the other two props values (list_of_migration_scripts_to_execute and migration_scripts) to have any effect.
+# migration_scripts.enabled=false
 # Define list of migration scripts to execute.
 # List is not ordered.
 # list_of_migration_scripts_to_execute=dummyScript
@@ -727,7 +756,8 @@ database_messages_scheduler_interval=3600
 # Possible values: dummy,email,sms
 # -----------------------------------------------------------------------
 
-# convert Bank_Plan_Text_Reference to OBP-UUID switch. Note: this is in process only for RestConnector now.
+# Convert the Bank's plain text reference(s) to OBP UUIDs and visa versa. Note: this is currently only for the Rest Connector.
+# Also known as ID Translation. We convert human readable Ids (e.g. Account Number) <---> UUIDs (e.g. OBP account_id)
 #implicitly_convert_ids = false
 
 # Enable /Disable Create password reset url endpoint
@@ -762,3 +792,23 @@ stored_procedure_connector.poolMaxSize=7
 stored_procedure_connector.poolConnectionTimeoutMillis=1000
 stored_procedure_connector.poolValidationQuery=select 1 as one
 stored_procedure_connector.poolFactoryName=commons-dbcp2
+
+# -----------------------------------------------------------------------
+# Set whether DynamicEntity display name starts with underscore, default is true
+dynamic_entities_have_prefix=true
+
+# Url prefix of dynamic endpoints, default is dynamic. e.g if set to foobar, one url can be /obp/v4.0.0/foobar/Address
+dynamic_endpoints_url_prefix=dynamic
+
+# --- Locking a user due to consecutively failed login attempts ------
+# Defines consecutively failed login attempts before a user is locked 
+# In case is not defined default value is 5
+# max.bad.login.attempts=5
+# --------------------------------------------------------------------
+
+# --- Cookies --------------------------------------------------------------
+# Defines use of the cookie consent kit
+# In case is not defined default value is false
+# display_accept_cookies_question = false
+# More info at page https://wikis.ec.europa.eu/display/WEBGUIDE/04.+Cookies
+# --------------------------------------------------------------------------

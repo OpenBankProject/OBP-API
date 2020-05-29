@@ -2,8 +2,9 @@ package code.api.v1_4_0
 
 import java.util.Date
 
-import code.api.util.APIUtil.ResourceDoc
+import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.{ApiRole, PegdownOptions}
+import code.api.v2_1_0.CounterpartyIdJson
 import code.api.v3_1_0.ListResult
 import code.crm.CrmEvent.CrmEvent
 import code.transactionrequests.TransactionRequestTypeCharge
@@ -12,7 +13,7 @@ import com.openbankproject.commons.util.{EnumValue, OBPEnumeration, ReflectUtils
 import net.liftweb.common.Full
 import net.liftweb.json
 import net.liftweb.json.{JDouble, JInt, JString}
-import net.liftweb.json.JsonAST.{JArray, JBool, JObject, JValue}
+import net.liftweb.json.JsonAST.{JArray, JBool, JNothing, JObject, JValue}
 import net.liftweb.util.StringHelpers
 
 object JSONFactory1_4_0 {
@@ -510,8 +511,12 @@ object JSONFactory1_4_0 {
   }
   
   def createTypedBody(exampleRequestBody: scala.Product): JValue = {
-    val res = translateEntity(exampleRequestBody,false)
-    json.parse(res)
+    def res = translateEntity(exampleRequestBody,false)
+    exampleRequestBody match {
+      case EmptyBody => JNothing
+      case _: PrimaryDataBody[_] => json.parse(res) \ "value"
+      case _ => json.parse(res)
+    }
   }
 
   //transaction requests

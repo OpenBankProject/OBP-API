@@ -9,6 +9,7 @@ import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.js.JsCmds.SetHtml
 import net.liftweb.http.js.JsCmd
 import code.api.util.ErrorMessages._
+import code.fx.fx
 
 import scala.xml.NodeSeq
 import net.liftweb.http.js.jquery.JqJsCmds.{Hide, Show}
@@ -75,13 +76,11 @@ object CreateTestAccountForm{
    */
   def createAccount(accountId : AccountId, bankId : BankId, accountType: String, accountLabel: String, currency : String, initialBalance : String) : Box[BankAccount] =  {
 
-    val currencies = code.fx.fx.fallbackExchangeRates.keys.toList
-
     if(accountId.value == "") Failure("Account id cannot be empty")
     else if(bankId.value == "") Failure("Bank id cannot be empty")
     else if(currency == "") Failure("Currency cannot be empty")
     else if(initialBalance == "") Failure("Initial balance cannot be empty")
-    else if(!currencies.exists(_ == currency)) Failure("Allowed currencies are: " + currencies.mkString(", "))
+    else if(fx.exchangeRate(currency, "EUR", Some(bankId.value)).isEmpty) Failure(s"Currency($currency) is not allowed, please call `Create Fx` for BANK_ID($BankId) and `EUR` first! ")
     else {
       for {
         initialBalanceAsNumber <- tryo {BigDecimal(initialBalance)} ?~! "Initial balance must be a number, e.g 1000.00"

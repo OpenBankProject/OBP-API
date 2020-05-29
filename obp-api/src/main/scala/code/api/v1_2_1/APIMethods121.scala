@@ -2,6 +2,7 @@ package code.api.v1_2_1
 
 import java.net.URL
 import java.util.Random
+import java.security.SecureRandom
 import java.util.UUID.randomUUID
 
 import com.tesobe.CacheKeyFromArguments
@@ -649,12 +650,12 @@ trait APIMethods121 {
             view <- Views.views.vend.customView(viewId, BankIdAccountId(bankId, accountId)) ?~! ViewNotFound
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             updateViewJson = UpdateViewJSON(
-              updateJsonV121.description,
+              description = updateJsonV121.description,
               metadata_view = view.metadataView, //this only used from V300, here just copy from currentView . 
-              updateJsonV121.is_public,
-              updateJsonV121.which_alias_to_use,
-              updateJsonV121.hide_metadata_if_alias_used,
-              updateJsonV121.allowed_actions
+              is_public = updateJsonV121.is_public,
+              which_alias_to_use = updateJsonV121.which_alias_to_use,
+              hide_metadata_if_alias_used = updateJsonV121.hide_metadata_if_alias_used,
+              allowed_actions = updateJsonV121.allowed_actions
             )
             updatedView <- account.updateView(u, viewId, updateViewJson)
           } yield {

@@ -29,7 +29,10 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.{Locale, TimeZone}
 
+import org.apache.commons.io.FileUtils
+import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
+import code.DynamicEndpoint.DynamicEndpoint
 import code.accountapplication.MappedAccountApplication
 import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
@@ -38,6 +41,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs400}
 import code.api.ResourceDocs1_4_0._
 import code.api._
+import code.api.attributedefinition.AttributeDefinition
 import code.api.builder.APIBuilder_Connector
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
@@ -93,6 +97,7 @@ import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
 import code.taxresidence.MappedTaxResidence
+import code.token.OpenIDConnectToken
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionStatusScheduler
@@ -236,7 +241,35 @@ class Boot extends MdcLoggable {
        }
      }
     }
-    
+
+    import java.security.SecureRandom
+    val rand = new SecureRandom(SecureRandom.getSeed(20))
+    rand
+
+    //If use_custom_webapp=true, this will copy all the files from `OBP-API/obp-api/src/main/webapp` to `OBP-API/obp-api/src/main/resources/custom_webapp`
+    if (APIUtil.getPropsAsBoolValue("use_custom_webapp", false)){
+      //this `LiftRules.getResource` will get the path of `OBP-API/obp-api/src/main/webapp`: 
+      LiftRules.getResource("/").map { url =>
+        // this following will get the path of `OBP-API/obp-api/src/main/resources/custom_webapp`
+        val source = if (getClass().getClassLoader().getResource("custom_webapp") == null)
+          throw new RuntimeException("If you set `use_custom_webapp = true`, custom_webapp folder can not be Empty!!")
+        else
+          getClass().getClassLoader().getResource("custom_webapp").getPath
+        val srcDir = new File(source);
+
+        // The destination directory to copy to. This directory
+        // doesn't exists and will be created during the copy
+        // directory process.
+        val destDir = new File(url.getPath)
+
+        // Copy source directory into destination directory
+        // including its child directories and files. When
+        // the destination directory is not exists it will
+        // be created. This copy process also preserve the
+        // date information of the file.
+        FileUtils.copyDirectory(srcDir, destDir)
+      }
+    }
     
     // ensure our relational database's tables are created/fit the schema
     val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
@@ -274,7 +307,15 @@ class Boot extends MdcLoggable {
     LiftRules.addToPackages("code")
 
     
-
+    // H2 web console
+    // Help accessing H2 from outside Lift, and be able to run any queries against it.
+    // It's enabled only in Dev and Test mode
+    if (Props.devMode || Props.testMode) {
+      LiftRules.liftRequest.append({case r if (r.path.partPath match {
+        case "console" :: _ => true
+        case _ => false}
+        ) => false})
+    }
 
     /**
       * Function that determines if foreign key constraints are
@@ -310,7 +351,7 @@ class Boot extends MdcLoggable {
     
     def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
       //  OpenIdConnect endpoint and validator
-      if(APIUtil.getPropsAsBoolValue("allow_openidconnect", false)) {
+      if(APIUtil.getPropsAsBoolValue("openid_connect.enabled", false)) {
         LiftRules.dispatch.append(OpenIdConnect)
       }
       
@@ -565,8 +606,9 @@ class Boot extends MdcLoggable {
            |""".stripMargin
       logger.info(comment)
     }
-    
 
+    //see the notes for this method:
+    createDefaultBankAndDefaultAccountsIfNotExisting()
   }
 
   def schemifyAll() = {
@@ -622,6 +664,59 @@ class Boot extends MdcLoggable {
     if(mailSent.isEmpty)
       logger.warn(s"Exception notification failed: $mailSent")
   }
+  
+  /**
+   *  there will be a default bank and two default accounts in obp mapped mode.                                               
+   *  These bank and accounts will be used for the payments.                                                                  
+   *  when we create transaction request over counterparty and if the counterparty do not link to an existing obp account     
+   *  then we will use the default accounts (incoming and outgoing) to keep the money.                                        
+   */
+  private def createDefaultBankAndDefaultAccountsIfNotExisting() ={
+    val defaultBankId= APIUtil.defaultBankId
+    val incomingAccountId= INCOMING_ACCOUNT_ID
+    val outgoingAccountId= OUTGOING_ACCOUNT_ID
+    
+    MappedBank.find(By(MappedBank.permalink, defaultBankId)) match {
+      case Full(b) =>
+        logger.debug(s"Bank(${defaultBankId}) is found.")
+      case _ =>
+        MappedBank.create
+          .permalink(defaultBankId)
+          .fullBankName("OBP_DEFAULT_BANK")
+          .shortBankName("OBP")
+          .national_identifier("OBP")
+          .mBankRoutingScheme("OBP")
+          .mBankRoutingAddress("OBP_DEFAULT_BANK")
+          .logoURL("")
+          .websiteURL("")
+          .saveMe()
+        logger.debug(s"creating Bank(${defaultBankId})")   
+    }
+    
+    MappedBankAccount.find(By(MappedBankAccount.bank, defaultBankId), By(MappedBankAccount.theAccountId, incomingAccountId)) match {
+      case Full(b) =>
+        logger.debug(s"BankAccount(${defaultBankId}, $incomingAccountId) is found.")
+      case _ =>
+        MappedBankAccount.create
+          .bank(defaultBankId)
+          .theAccountId(incomingAccountId)
+          .accountCurrency("EUR")
+          .saveMe()
+        logger.debug(s"creating BankAccount(${defaultBankId}, $incomingAccountId).")
+    }
+    
+    MappedBankAccount.find(By(MappedBankAccount.bank, defaultBankId), By(MappedBankAccount.theAccountId, outgoingAccountId)) match {
+      case Full(b) =>
+        logger.debug(s"BankAccount(${defaultBankId}, $outgoingAccountId) is found.")
+      case _ =>
+        MappedBankAccount.create
+          .bank(defaultBankId)
+          .theAccountId(outgoingAccountId)
+          .accountCurrency("EUR")
+          .saveMe()
+        logger.debug(s"creating BankAccount(${defaultBankId}, $outgoingAccountId).")
+    }
+  }
 }
 
 object ToSchemify {
@@ -639,6 +734,7 @@ object ToSchemify {
     MappedUserCustomerLink,
     Consumer,
     Token,
+    OpenIDConnectToken,
     Nonce,
     MappedCounterparty,
     MappedCounterpartyBespoke,
@@ -664,7 +760,9 @@ object ToSchemify {
     MappedCustomerAttribute,
     MappedTransactionAttribute,
     MappedCardAttribute,
-    RateLimiting
+    RateLimiting,
+    MappedCustomerDependant,
+    AttributeDefinition
   )
 
   // The following tables are accessed directly via Mapper / JDBC
@@ -704,6 +802,7 @@ object ToSchemify {
     Authorisation,
     DynamicEntity,
     DynamicData,
+    DynamicEndpoint,
     AccountIdMapping,
     DirectDebit,
     StandingOrder

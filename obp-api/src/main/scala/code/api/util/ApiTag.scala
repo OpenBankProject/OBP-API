@@ -1,10 +1,14 @@
 package code.api.util
 
+import com.openbankproject.commons.util.ReflectUtils
+
 import scala.collection.mutable.{Map => MutableMap}
 
 object ApiTag {
   // Used to tag Resource Docs
-  case class ResourceDocTag(tag: String)
+  case class ResourceDocTag(tag: String) {
+    val displayTag = tag.replace("-", " ")
+  }
 
   // Use the *singular* case. for both the variable name and string.
   // e.g. "This call is Payment related"
@@ -64,6 +68,7 @@ object ApiTag {
   val apiTagMethodRouting = ResourceDocTag("Method-Routing")
   val apiTagWebUiProps = ResourceDocTag("WebUi-Props")
   val apiTagDynamicEntity= ResourceDocTag("Dynamic-Entity")
+  val apiTagDynamicEndpoint= ResourceDocTag("Dynamic-Endpoint")
 
   // To mark the Berlin Group APIs suggested order of implementation
   val apiTagBerlinGroupM = ResourceDocTag("Berlin-Group-M")
@@ -108,6 +113,16 @@ object ApiTag {
     */
   def apply(tagSymbol: String): ResourceDocTag =  this.tagNameSymbolMapTag.getOrElseUpdate(tagSymbol, ResourceDocTag(tagSymbol))
 
+  private lazy val staticTags: Map[String, ResourceDocTag] = ReflectUtils.getFieldsNameToValue[ResourceDocTag](this)
+
+  val staticTagNames: Set[String] = staticTags.values.map(_.displayTag).toSet
+  /**
+   * get all the tag's display name, include dynamic tags.
+   * @return all the tag's display names
+   */
+  def allDisplayTagNames: Set[String] =
+    (staticTags ++ tagNameSymbolMapTag)
+    .values.map(_.displayTag).toSet
 }
 
 

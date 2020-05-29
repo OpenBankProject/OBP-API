@@ -6,17 +6,12 @@ import net.liftweb.mapper.{BaseMappedField, BaseMetaMapper, DB}
 /**
  * Any Attribute type Mapped entity companion object extends this trait, will obtain query with parameter function: getParentIdByParams
  */
-trait AttributeQueryTrait {
-  def mBankIdId: BaseMappedField
+trait AttributeQueryTrait { self: BaseMetaMapper =>
+  val mBankId: BaseMappedField
 
-  def mName: BaseMappedField
+  val mName: BaseMappedField
 
-  def mValue: BaseMappedField
-
-  /**
-   * Mapped entity's companion object
-   */
-  val attributeCompanion: BaseMetaMapper = this.asInstanceOf[BaseMetaMapper]
+  val mValue: BaseMappedField
 
   /**
    * Attribute entity's parent id, for example: CustomerAttribute.customerId,
@@ -25,11 +20,11 @@ trait AttributeQueryTrait {
   val mParentId: BaseMappedField
 
 
-  private lazy val tableName = attributeCompanion.dbTableName
+  private lazy val tableName = self.dbTableName
   private lazy val nameColumn = mName.dbColumnName
   private lazy val valueColumn = mValue.dbColumnName
   private lazy val parentIdColumn = mParentId.dbColumnName
-  private lazy val bankIdColumn = mBankIdId.dbColumnName
+  private lazy val bankIdColumn = mBankId.dbColumnName
 
   /**
    * query attribute's parent id, according request params
@@ -69,9 +64,10 @@ trait AttributeQueryTrait {
            |""".stripMargin
 
       val (columnNames: List[String], list: List[List[String]]) = DB.runQuery(sql, bankId.value :: parameters)
-      val parentIdIndex = columnNames.indexOf(parentIdColumn)
-      val nameIndex = columnNames.indexOf(nameColumn)
-      val valueIndex = columnNames.indexOf(valueColumn)
+      val columnNamesLowerCase = columnNames.map(_.toLowerCase)
+      val parentIdIndex = columnNamesLowerCase.indexOf(parentIdColumn.toLowerCase)
+      val nameIndex = columnNamesLowerCase.indexOf(nameColumn.toLowerCase)
+      val valueIndex = columnNamesLowerCase.indexOf(valueColumn.toLowerCase)
 
       val parentIdToAttributes: Map[String, List[List[String]]] = list.groupBy(_.apply(parentIdIndex))
 

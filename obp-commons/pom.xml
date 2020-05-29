@@ -7,7 +7,7 @@
         <groupId>com.tesobe</groupId>
         <artifactId>obp-parent</artifactId>
         <relativePath>../pom.xml</relativePath>
-        <version>1.2.0</version>
+        <version>1.4.3</version>
     </parent>
     <artifactId>obp-commons</artifactId>
     <packaging>jar</packaging>
@@ -50,6 +50,14 @@
             <groupId>com.alibaba</groupId>
             <artifactId>transmittable-thread-local</artifactId>
             <version>2.11.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
         </dependency>
     </dependencies>
 

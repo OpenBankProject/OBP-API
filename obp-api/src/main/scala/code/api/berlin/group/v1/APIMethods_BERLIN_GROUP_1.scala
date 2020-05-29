@@ -71,7 +71,7 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
       case "accounts" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
   
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
   
@@ -114,7 +114,7 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
       case "accounts" :: AccountId(accountId) :: "balances" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), accountId, callContext)
@@ -156,7 +156,7 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
         cc =>
           for {
             
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
             

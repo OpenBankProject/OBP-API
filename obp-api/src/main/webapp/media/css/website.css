@@ -431,7 +431,12 @@ footer #copyright {
 	margin-bottom: 10px;
 }
 #authorise #authorise-submit {
-	text-align: left;
+	text-align: right;
+}
+.authorise-button-oidc {
+	text-align: right;
+	margin-bottom: 10px;
+	margin-top: 10px;
 }
 #authorise #authorise-submit input,
 #recover-password #recover-password-submit input,

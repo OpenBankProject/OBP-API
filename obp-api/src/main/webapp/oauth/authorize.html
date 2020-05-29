@@ -8,7 +8,6 @@
 				<h1>The application <span id="applicationName">app</span> is asking for access to your data.</h1>
 
 				<form class="login" action="/user_mgt/login" method="post">
-					<div data-lift="Login.openIdConnectScripts" id="openid_scripts"></div>
 					<div class="form-group">
 						<input class="form-control" type="text" placeholder="Username" name="username" tabindex=1 autofocus autocomplete="off"/>
 					</div>
@@ -17,17 +16,38 @@
 					</div>
 					<div class="row">
 						<div class="col-xs-6">
-							<input class="btn btn-default" type="submit" value="Login" tabindex="3" />
+							<a href="/user_mgt/sign_up" id="authorise-signup" class="btn btn-default" tabindex="4">Sign up</a>
 						</div>
 						<div class="col-xs-6">
-							<a href="/user_mgt/sign_up" id="authorise-signup" class="btn btn-default pull-right authorise-button" tabindex="4">Sign up</a>
+							<input class="btn btn-default pull-right authorise-button" type="submit" value="Login" tabindex="3" />
 						</div>
 					</div>
-					<a href="/user_mgt/lost_password" id="authorise-recover-password" tabindex="5">Recover password</a>
+					<div class="row" style="text-align: right;">
+						<div class="col-xs-6"></div>
+						<div class="col-xs-6">
+							<a href="/user_mgt/lost_password" id="authorise-recover-password" tabindex="5">Recover password</a>
+						</div>
+					</div>
+					
+
+					<div class="row"  data-lift="OpenIDConnectSnippet.showFirstButton">
+						<div class="col-xs-6"></div>
+						<div class="col-xs-6" data-lift="OpenidConnectInvoke.linkButtonFirstProvider">
+							<div class="authorise-button-oidc">
+								Log in with: <a id="open-id-connect-button-1" data-lift="OpenIDConnectSnippet.getFirstButtonText" class="btn btn-default">OIDC 1</a>
+							</div>
+						</div>
+					</div>
+					<div class="row" data-lift="OpenIDConnectSnippet.showSecondButton">
+						<div class="col-xs-6"></div>
+						<div class="col-xs-6" data-lift="OpenidConnectInvoke.linkButtonSecondProvider">
+							<div class="authorise-button-oidc">
+								Log in with: <a id="open-id-connect-button-2" data-lift="OpenIDConnectSnippet.getSecondButtonText" class="btn btn-default">OIDC 2</a>
+							</div>
+						</div>
+					</div>
+					
 				</form>
-				<div data-lift="Login.openIdConnectButton">
-					<div id="openid_button"></div>
-				</div>
 			</div>
 
 			<div id="verifierBloc">

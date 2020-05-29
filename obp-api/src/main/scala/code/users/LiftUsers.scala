@@ -1,7 +1,9 @@
 package code.users
 
-import code.api.util.{OBPLimit, OBPOffset, OBPQueryParam}
+import code.api.util.{OBPLimit, OBPLockedStatus, OBPOffset, OBPQueryParam}
 import code.entitlement.Entitlement
+import code.loginattempts.LoginAttempt.maxBadLoginAttempts
+import code.loginattempts.MappedBadLoginAttempt
 import code.model.dataAccess.ResourceUser
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
@@ -10,6 +12,8 @@ import net.liftweb.mapper._
 
 import scala.collection.immutable.List
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
+import scala.collection.immutable
 import scala.concurrent.Future
 
 object LiftUsers extends Users with MdcLoggable{
@@ -113,16 +117,33 @@ object LiftUsers extends Users with MdcLoggable{
   override def getAllUsersF(queryParams: List[OBPQueryParam]): Future[List[(ResourceUser, Box[List[Entitlement]])]] = {
     
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[ResourceUser](value) }.headOption
-    val offset = queryParams.collect { case OBPOffset(value) => StartAt[ResourceUser](value) }.headOption
+    val offset: Option[StartAt[ResourceUser]] = queryParams.collect { case OBPOffset(value) => StartAt[ResourceUser](value) }.headOption
+    val locked: Option[String] = queryParams.collect { case OBPLockedStatus(value) => value }.headOption
   
     val optionalParams: Seq[QueryParam[ResourceUser]] = Seq(limit.toSeq, offset.toSeq).flatten
     
-    logger.debug(s"getAllUsersF parameters $optionalParams")
-    val users = ResourceUser.findAll(optionalParams: _*)
-    logger.debug(s"getAllUsersF response $users")
+    def getAllResourceUsers(): List[ResourceUser] = ResourceUser.findAll(optionalParams: _*)
+    val showUsers: List[ResourceUser] = locked.map(_.toLowerCase()) match {
+      case Some("active") =>
+        val lockedUsers: immutable.Seq[MappedBadLoginAttempt] = 
+          MappedBadLoginAttempt.findAll(
+            By_>(MappedBadLoginAttempt.mBadAttemptsSinceLastSuccessOrReset, maxBadLoginAttempts.toInt)
+          )
+        val exclude: immutable.Seq[ResourceUser] = ResourceUser.findAll(ByList(ResourceUser.name_, lockedUsers.map(_.username)))
+        getAllResourceUsers() diff exclude
+      case Some("locked") =>
+        val lockedUsers: immutable.Seq[MappedBadLoginAttempt] =
+          MappedBadLoginAttempt.findAll(
+            By_>(MappedBadLoginAttempt.mBadAttemptsSinceLastSuccessOrReset, maxBadLoginAttempts.toInt)
+          )
+        val exclude: immutable.Seq[ResourceUser] = ResourceUser.findAll(ByList(ResourceUser.name_, lockedUsers.map(_.username)))
+        getAllResourceUsers() intersect exclude.toList
+      case _ =>
+        getAllResourceUsers()
+    }
     Future {
       for {
-        user <- users
+        user <- showUsers
       } yield {
         (user, Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName)))
       }

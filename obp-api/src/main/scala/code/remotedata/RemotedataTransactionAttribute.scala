@@ -25,6 +25,9 @@ object RemotedataTransactionAttribute extends ObpActorInit with TransactionAttri
   override def getTransactionAttributeById(transactionAttributeId: String): Future[Box[TransactionAttribute]] = 
     (actor ? cc.getTransactionAttributeById(transactionAttributeId)).mapTo[Box[TransactionAttribute]]
 
+  override def getTransactionIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]] =
+    (actor ? cc.getTransactionIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]])).mapTo[Box[List[String]]]
+  
   override def createOrUpdateTransactionAttribute(bankId: BankId,
                                               transactionId: TransactionId,
                                               transactionAttributeId: Option[String],

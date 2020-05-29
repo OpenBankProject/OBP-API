@@ -241,7 +241,7 @@ object APIMethods_StatementsApi extends RestHelper {
        case "accounts" :: accountid:: "statements" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -650,7 +650,7 @@ object APIMethods_StatementsApi extends RestHelper {
        case "accounts" :: accountid:: "statements" :: statementid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -868,7 +868,7 @@ object APIMethods_StatementsApi extends RestHelper {
        case "accounts" :: accountid:: "statements" :: statementid:: "file" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -1118,7 +1118,7 @@ object APIMethods_StatementsApi extends RestHelper {
        case "accounts" :: accountid:: "statements" :: statementid:: "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -1559,7 +1559,7 @@ object APIMethods_StatementsApi extends RestHelper {
        case "statements" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {

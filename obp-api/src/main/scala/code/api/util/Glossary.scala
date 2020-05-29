@@ -1669,6 +1669,17 @@ object Glossary {
 |
  |### Obtain OAuth 2.0 credentials
 |Please refer to the official doc's page: [OpenID Connect](https://developers.google.com/identity/protocols/OpenIDConnect)
+|In case you use Google's [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/)
+|example of an response is shown below:
+|{
+|  "access_token": "ya29.a0Adw1xeVr_WAYaipiH_6QKCFjIFsnZxW7kbxA8a2RU_uy5meEufErwPDLSHMga8IEQghNSX2GbkOfZUQb6j_fMGHL_HaW3RoULZq5AayUdEjI9bC4TMe-Nd4cZR17C0Rg3GLNzuHTXXe05UyMmNODZ6Up0aXZBBTHl-4", 
+|  "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImE1NDFkNmVmMDIyZDc3YTIzMThmN2RkNjU3ZjI3NzkzMjAzYmVkNGEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6ImtrcENIWUFaSTZVOFZiZEJsRHNfX1EiLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUtGMDVuQ1pyaTdmWHdkUUhuZUNwN09pTVh1WGlOMkpVQS9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTg0NTIxNDU3LCJleHAiOjE1ODQ1MjUwNTd9.LgwY-OhltYS2p91l2Lt4u5lUR5blR7L8097J0ZpK0GyxWxOlnhSouk9MRMmyfSGuYfWKBtdSUy3Esaphk2f7wpLS-wBx3KJpvrXhgbsyemt9s7eu5bAdHaCteO8MqHPjbU9tych8iH0tA1MSL_tVZ73hy56rS2irzIC33wYDoBf8C5nEOd2uzQ758ydK5QvvdFwRgkLhKDS8vq2qVJTWgtk9VVd5JwJ5OfiVimXfGUzNJmGreEJKj14iUj-78REybpUbI9mGevRhjLPhs51Uc9j-SsdRMymVbVhVxlbsWAPTpjLAJnOodeHzAvmKFkOUfahQHHctx4fl8V3PVYf1aA", 
+|  "expires_in": 3599, 
+|  "token_type": "Bearer", 
+|  "scope": "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email openid", 
+|  "refresh_token": "1//04w7RCdl9ZnG-CgYIARAAGAQSNwF-L9IrNZVxs6fliP7xAlHjKcZpfpw7JoYyBsvxKMD7n0xyB74G8aRlFoBkkCbloETrWMU6yOA"
+|}
+|Note: The OAuth Playground will automatically revoke refresh tokens after 24h. You can avoid this by specifying your own application OAuth credentials using the Configuration panel.
 |
  |### An ID token's payload
 |

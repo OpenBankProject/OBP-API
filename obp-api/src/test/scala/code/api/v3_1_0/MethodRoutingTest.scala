@@ -63,8 +63,8 @@ class MethodRoutingTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "method_routings").POST
       val response310 = makePostRequest(request310, write(rightEntity))
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
@@ -74,8 +74,8 @@ class MethodRoutingTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "method_routings"/ "some-method-routing-id").PUT
       val response310 = makePutRequest(request310, write(rightEntity))
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
@@ -85,8 +85,8 @@ class MethodRoutingTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "method_routings").GET  <<? (List(("method_name", "getBank")))
       val response310 = makeGetRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
@@ -96,8 +96,8 @@ class MethodRoutingTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "method_routings" / "METHOD_ROUTING_ID").DELETE
       val response310 = makeDeleteRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }

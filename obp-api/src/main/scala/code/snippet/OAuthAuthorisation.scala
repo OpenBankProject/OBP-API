@@ -165,6 +165,7 @@ object OAuthAuthorisation {
       validTokenCase(token, tokenParam)
     }
 
+    
     // Bind submit button to loginAction function.
     // In case that unique token of submit button cannot be paired submit action will be omitted.
     // Please note that unique token is obtained by response from AuthUser.login function.
@@ -172,7 +173,7 @@ object OAuthAuthorisation {
       val allInputFields = (AuthUser.login \\ "input")
       val submitFields = allInputFields.filter(e => e.\@("type").equalsIgnoreCase("submit"))
       val extractToken = submitFields.map(e => e.\@("name"))
-      val submitElem = """<input class="submit" type="submit" value="Login" tabindex="4" name="submitButton"/>""".replace("submitButton", extractToken.headOption.getOrElse(""))
+      val submitElem = s"""<input class="submit" type="submit" value="${APIUtil.loginButtonText}" tabindex="4" name="submitButton"/>""".replace("submitButton", extractToken.headOption.getOrElse(""))
       scala.xml.XML.loadString(submitElem)
     }
 

@@ -40,8 +40,8 @@ class UserTest extends V300ServerSetup with DefaultUsers {
       When("We make the request")
       val requestGet = (v3_0Request / "users").GET
       val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 400")
-      responseGet.code should equal(400)
+      Then("We should get a 401")
+      responseGet.code should equal(401)
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
       responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.UserNotLoggedIn)
 

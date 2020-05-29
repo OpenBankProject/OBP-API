@@ -58,8 +58,8 @@ class TransactionRequestTest extends V310ServerSetup {
       val view = bankAccount.views_available.map(_.id).headOption.getOrElse("owner")
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transaction-requests").GET
       val response310 = makeGetRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
@@ -82,8 +82,8 @@ class TransactionRequestTest extends V310ServerSetup {
         v3_1_0_Request / "banks" / bankId / "accounts" / account.accountId.value 
         / Constant.CUSTOM_OWNER_VIEW_ID / "transaction-requests").GET <@(user2)
       val response310 = makeGetRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 403")
+      response310.code should equal(403)
       And("error should be " + UserNoPermissionAccessView)
       response310.body.extract[ErrorMessage].message should equal (UserNoPermissionAccessView)
     }

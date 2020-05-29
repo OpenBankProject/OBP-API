@@ -60,8 +60,8 @@ class WebUiPropsTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "webui_props").POST
       val response310 = makePostRequest(request310, write(rightEntity))
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
@@ -72,8 +72,8 @@ class WebUiPropsTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "webui_props").GET
       val response310 = makeGetRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
@@ -83,8 +83,8 @@ class WebUiPropsTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "webui_props" / "WEB_UI_PROPS_ID").DELETE
       val response310 = makeDeleteRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }

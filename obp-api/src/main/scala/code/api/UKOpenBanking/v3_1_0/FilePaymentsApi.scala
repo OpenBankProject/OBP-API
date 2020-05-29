@@ -110,7 +110,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        case "file-payment-consents" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -195,7 +195,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        case "file-payment-consents" :: consentid:: "file" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -283,7 +283,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        case "file-payments" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -429,7 +429,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        case "file-payment-consents" :: consentid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -514,7 +514,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        case "file-payment-consents" :: consentid:: "file" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -602,7 +602,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        case "file-payments" :: filepaymentid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -690,7 +690,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        case "file-payments" :: filepaymentid:: "report-file" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (NotImplemented, callContext)
            }

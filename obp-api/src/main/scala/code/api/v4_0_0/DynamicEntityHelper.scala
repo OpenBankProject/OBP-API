@@ -1,9 +1,13 @@
 package code.api.v4_0_0
 
-import code.api.util.APIUtil.{Catalogs, ResourceDoc, authenticationRequiredMessage, emptyObjectJson, generateUUID, notCore, notOBWG, notPSD2}
-import code.api.util.ApiTag.{apiTagApi, apiTagNewStyle}
+import java.util.regex.Pattern
+
+import code.api.util.APIUtil.{Catalogs, EmptyBody, ResourceDoc, authenticationRequiredMessage, generateUUID, notCore, notOBWG, notPSD2}
+import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{ApiTag, NewStyle}
+import code.api.util.{APIUtil, ApiRole, ApiTag, NewStyle}
+import code.api.util.ApiRole.getOrCreateDynamicApiRole
+import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
@@ -30,38 +34,97 @@ object MockerConnector {
 
   def definitionsMap = NewStyle.function.getDynamicEntities().map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName))).toMap
 
-  def doc = {
-    val docs: Seq[ResourceDoc] = definitionsMap.values.flatMap(createDocs).toSeq
+  def doc: ArrayBuffer[ResourceDoc] = {
+    val addPrefix = APIUtil.getPropsAsBoolValue("dynamic_entities_have_prefix", true)
+
+    // record exists tag names, to avoid duplicated dynamic tag name.
+    var existsTagNames = ApiTag.staticTagNames
+    // match string that start with _, e.g: "_abc"
+    val Regex = "(_+)(.+)".r
+
+
+    //convert entity name to tag name, example:
+    //    Csem-case -> Csem Case
+    //    _Csem-case -> _Csem Case
+    //    Csem_case -> Csem Case
+    //    _Csem_case -> _Csem Case
+    //    csem-case -> Csem Case
+    def prettyTagName(s: String) = s.capitalize.split("(?<=[^-_])[-_]+").reduceLeft(_ + " " + _.capitalize)
+
+    def apiTag(entityName: String, singularName: String): ResourceDocTag = {
+
+      val existsSameStaticEntity: Boolean = existsTagNames
+        .exists(it => it.equalsIgnoreCase(singularName) || it.equalsIgnoreCase(entityName))
+
+
+      val tagName = if(addPrefix || existsSameStaticEntity) {
+        var name = singularName match {
+          case Regex(a,b) => s"$a${b.capitalize}"
+          case v => s"_${v.capitalize}"
+        }
+
+        while(existsTagNames.exists(it => it.equalsIgnoreCase(name))) {
+          name = s"_$name"
+        }
+        prettyTagName(name)
+      } else {
+        prettyTagName(singularName.capitalize)
+      }
+
+      existsTagNames += tagName
+      ApiTag(tagName)
+    }
+    val fun: DynamicEntityInfo => ArrayBuffer[ResourceDoc] = createDocs(apiTag)
+    val docs: Seq[ResourceDoc] = definitionsMap.values.flatMap(fun).toSeq
+
+
     collection.mutable.ArrayBuffer(docs:_*)
   }
 
   // TODO the requestBody and responseBody is not correct ref type
-  def createDocs(dynamicEntityInfo: DynamicEntityInfo) = {
+  /**
+   *
+   * @param fun (singularName, entityName) => ResourceDocTag
+   * @param dynamicEntityInfo dynamicEntityInfo
+   * @return all ResourceDoc of given dynamicEntity
+   */
+  private def createDocs(fun: (String, String) => ResourceDocTag)
+                (dynamicEntityInfo: DynamicEntityInfo): ArrayBuffer[ResourceDoc] = {
     val entityName = dynamicEntityInfo.entityName
+    // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
+    val capitalizedNameParts = entityName.split("(?<=[a-z0-9])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
+    val singularName = capitalizedNameParts.mkString(" ")
+    val pluralName = English.plural(singularName)
+
     val idNameInUrl = StringHelpers.snakify(dynamicEntityInfo.idName).toUpperCase()
     val listName = dynamicEntityInfo.listName
-    val pluralEntityName = English.plural(entityName)
-    val endPoint = APIMethods400.Implementations4_0_0.genericEndpoint
+
+    val endPoint = APIUtil.dynamicEndpointStub
     val implementedInApiVersion = ApiVersion.v4_0_0
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-    val apiTag = ApiTag("_" + dynamicEntityInfo.entityName);
+    val apiTag: ResourceDocTag = fun(singularName, entityName)
+
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"get$pluralEntityName",
+      s"getAll$entityName",
       "GET",
-      s"/${entityName}",
-      s"Get $pluralEntityName",
-      s"""Get $pluralEntityName.
+      s"/$entityName",
+      s"Get All $pluralName",
+      s"""Get All $pluralName.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
+         |
+         |${methodRoutingExample(entityName)}
+         |
+         |${authenticationRequiredMessage(true)}
          |
          |Can do filter on the fields
          |e.g: /${entityName}?name=James%20Brown&number=123.456&number=11.11
          |Will do filter by this rule: name == "James Brown" && (number==123.456 || number=11.11)
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       dynamicEntityInfo.getExampleList,
       List(
         UserNotLoggedIn,
@@ -70,21 +133,25 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List())
+      Some(List(dynamicEntityInfo.canGetRole))
     )
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"getSingle$pluralEntityName",
+      s"getSingle$entityName",
       "GET",
-      s"/${entityName}/$idNameInUrl",
-      s"Get $entityName",
-      s"""Get one $entityName by id.
+      s"/$entityName/$idNameInUrl",
+      s"Get one $singularName",
+      s"""Get one $singularName by id.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
+         |
+         |${methodRoutingExample(entityName)}
+         |
+         |${authenticationRequiredMessage(true)}
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       dynamicEntityInfo.getSingleExample,
       List(
         UserNotLoggedIn,
@@ -93,20 +160,22 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List())
+      Some(List(dynamicEntityInfo.canGetRole))
     )
 
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"create$pluralEntityName",
+      s"create$entityName",
       "POST",
-      s"/${entityName}",
-      s"Add $entityName",
-      s"""Add a $entityName.
+      s"/$entityName",
+      s"Create one $singularName",
+      s"""Create one $singularName.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
+         |
+         |${methodRoutingExample(entityName)}
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -121,20 +190,23 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List()))
+      Some(List(dynamicEntityInfo.canCreateRole))
+      )
 
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"update$pluralEntityName",
+      s"update$entityName",
       "PUT",
-      s"/${entityName}/$idNameInUrl",
-      s"Update $entityName",
-      s"""Update a $entityName.
+      s"/$entityName/$idNameInUrl",
+      s"Update one $singularName",
+      s"""Update one $singularName.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
          |
+         |${methodRoutingExample(entityName)}
+         |
          |${authenticationRequiredMessage(true)}
          |
          |""",
@@ -148,17 +220,19 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List()))
+      Some(List(dynamicEntityInfo.canUpdateRole))
+    )
 
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"delete$pluralEntityName",
+      s"delete$entityName",
       "DELETE",
-      s"/${entityName}/$idNameInUrl",
-      s"Delete $entityName",
-      s"""Delete a $entityName.
+      s"/$entityName/$idNameInUrl",
+      s"Delete one $singularName",
+      s"""Delete one $singularName
          |
+         |${methodRoutingExample(entityName)}
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -173,10 +247,34 @@ object MockerConnector {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
-      Some(List()))
+      Some(List(dynamicEntityInfo.canDeleteRole))
+    )
 
     resourceDocs
   }
+
+  private def methodRoutingExample(entityName: String) =
+    s"""
+      |MethodRouting settings example:
+      |```
+      |{
+      |  "is_bank_id_exact_match":false,
+      |  "method_name":"dynamicEntityProcess",
+      |  "connector_name":"rest_vMar2019",
+      |  "bank_id_pattern":".*",
+      |  "parameters":[
+      |    {
+      |        "key":"entityName",
+      |        "value":"$entityName"
+      |    }
+      |    {
+      |        "key":"url",
+      |        "value":"http://mydomain.com/xxx"
+      |    }
+      |  ]
+      |}
+      |```
+      |""".stripMargin
 
 }
 case class DynamicEntityInfo(definition: String, entityName: String) {
@@ -189,13 +287,7 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
 
   val listName = StringHelpers.snakify(English.plural(entityName))
 
-  val jsonTypeMap = Map[String, Class[_]](
-    ("boolean", classOf[JBool]),
-    ("string", classOf[JString]),
-    ("array", classOf[JArray]),
-    ("integer", classOf[JInt]),
-    ("number", classOf[JDouble]),
-  )
+  val jsonTypeMap: Map[String, Class[_]] = DynamicEntityFieldType.nameToValue.mapValues(_.jValueType)
 
   val definitionJson = json.parse(definition).asInstanceOf[JObject]
   val entity = (definitionJson \ entityName).asInstanceOf[JObject]
@@ -265,4 +357,21 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
   def getSingleExample: JObject = JObject(JField(idName, JString(generateUUID())) :: getSingleExampleWithoutId.obj)
 
   def getExampleList: JObject =   listName -> JArray(List(getSingleExample))
+
+  val canCreateRole: ApiRole = DynamicEntityInfo.canCreateRole(entityName)
+  val canUpdateRole: ApiRole = DynamicEntityInfo.canUpdateRole(entityName)
+  val canGetRole: ApiRole = DynamicEntityInfo.canGetRole(entityName)
+  val canDeleteRole: ApiRole = DynamicEntityInfo.canDeleteRole(entityName)
+}
+
+object DynamicEntityInfo {
+  def canCreateRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanCreateDynamicEntity_" + entityName)
+  def canUpdateRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanUpdateDynamicEntity_" + entityName)
+  def canGetRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanGetDynamicEntity_" + entityName)
+  def canDeleteRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanDeleteDynamicEntity_" + entityName)
+
+  def roleNames(entityName: String): List[String] = List(
+      canCreateRole(entityName), canUpdateRole(entityName),
+      canGetRole(entityName), canDeleteRole(entityName)
+    ).map(_.toString())
 }

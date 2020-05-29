@@ -25,6 +25,11 @@ object Constant extends MdcLoggable {
   final val SYSTEM_AUDITOR_VIEW_ID = "auditor"
   final val SYSTEM_ACCOUNTANT_VIEW_ID = "accountant"
   final val SYSTEM_FIREHOSE_VIEW_ID = "firehose"
+
+  //These are the default incoming and outgoing account ids. we will create both during the boot.scala.
+  final val INCOMING_ACCOUNT_ID= "OBP_DEFAULT_INCOMING_ACCOUNT_ID"    
+  final val OUTGOING_ACCOUNT_ID= "OBP_DEFAULT_OUTGOING_ACCOUNT_ID"    
+
 }
 
 
@@ -37,11 +42,14 @@ object ChargePolicy extends Enumeration {
 
 object RequestHeader {
   final lazy val `Consumer-Key` = "Consumer-Key"
+  @deprecated("Use Consent-JWT","11-03-2020")
   final lazy val `Consent-Id` = "Consent-Id"
+  final lazy val `Consent-JWT` = "Consent-JWT"
   final lazy val `PSD2-CERT` = "PSD2-CERT"
 }
 object ResponseHeader {
   final lazy val `Correlation-Id` = "Correlation-Id"
+  final lazy val `WWW-Authenticate` = "WWW-Authenticate"
 }
 
 object BerlinGroup extends Enumeration {

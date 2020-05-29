@@ -261,7 +261,7 @@ object APIMethods_PISApi extends RestHelper {
        case "payments":: "v2_1_1.1":: "bundle" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "payments" : [ {
@@ -323,7 +323,7 @@ object APIMethods_PISApi extends RestHelper {
        case "payments":: "v2_1_1.1":: "cancelPayments" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "payments" : [ {
@@ -377,7 +377,7 @@ object APIMethods_PISApi extends RestHelper {
        case "payments":: "v2_1_1.1":: "cancelRecurringPayment" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "tppRecurringPaymentId" : "tppRecurringPaymentId",
@@ -441,7 +441,7 @@ object APIMethods_PISApi extends RestHelper {
        case "payments":: "v2_1_1.1":: "domestic" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "generalStatus" : { },
@@ -505,7 +505,7 @@ object APIMethods_PISApi extends RestHelper {
        case "payments":: "v2_1_1.1":: "EEA" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "generalStatus" : { },
@@ -569,7 +569,7 @@ object APIMethods_PISApi extends RestHelper {
        case "payments":: "v2_1_1.1":: "getBundle" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "tppBundleId" : "tppBundleId",
@@ -655,7 +655,7 @@ object APIMethods_PISApi extends RestHelper {
        case "payments":: "v2_1_1.1":: "getMultiplePayments" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "payments" : [ {
@@ -705,7 +705,7 @@ object APIMethods_PISApi extends RestHelper {
        case "payments":: "v2_1_1.1":: "getPayment" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse(""""""""), callContext)
            }
@@ -746,7 +746,7 @@ object APIMethods_PISApi extends RestHelper {
        case "payments":: "v2_1_1.1":: "getRecurringPayment" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "tppRecurringPaymentId" : "tppRecurringPaymentId",
@@ -819,7 +819,7 @@ object APIMethods_PISApi extends RestHelper {
        case "payments":: "v2_1_1.1":: "nonEEA" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "generalStatus" : { },
@@ -966,7 +966,7 @@ object APIMethods_PISApi extends RestHelper {
        case "payments":: "v2_1_1.1":: "recurring" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "recurrence" : {
@@ -1044,7 +1044,7 @@ object APIMethods_PISApi extends RestHelper {
        case "payments":: "v2_1_1.1":: "tax" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              } yield {
              (json.parse("""{
   "generalStatus" : { },

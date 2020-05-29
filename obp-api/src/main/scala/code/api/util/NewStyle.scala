@@ -3,16 +3,21 @@ package code.api.util
 import java.util.Date
 import java.util.UUID.randomUUID
 
+import akka.http.scaladsl.model.HttpMethod
+import code.DynamicData.DynamicDataProvider
+import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
 import code.api.cache.Caching
-import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
+import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityInfo}
 import code.bankconnectors.Connector
+import code.bankconnectors.rest.RestConnector_vMar2019
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
 import code.directdebit.DirectDebitTrait
@@ -26,17 +31,19 @@ import code.model._
 import code.standingorders.StandingOrderTrait
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.usercustomerlinks.UserCustomerLink
-import code.util.Helper
+import code.util.{Helper, JsonUtils}
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType}
+import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
 import com.openbankproject.commons.util.ApiVersion
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
+import net.liftweb.json.JsonAST._
+import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JObject, JValue}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
@@ -703,11 +710,9 @@ object NewStyle {
           i._2)
       }
     }
-    
-    
-    def toBankAccount(counterparty: CounterpartyTrait, callContext: Option[CallContext]) : Future[BankAccount] =
+    def toBankAccount(counterparty: CounterpartyTrait, isOutgoingAccount: Boolean, callContext: Option[CallContext]) : Future[BankAccount] =
     {
-      Future{BankAccountX.toBankAccount(counterparty)} map {
+      Future{BankAccountX.toBankAccount(counterparty, isOutgoingAccount)} map {
         unboxFullOrFail(_, callContext, s"$UnknownError ")
       }
     }
@@ -986,16 +991,27 @@ object NewStyle {
      * @param callContext
      * @return filtered CustomerAttribute.customerId
      */
-    def getCustomerIdByAttributeNameValues(
+    def getCustomerIdsByAttributeNameValues(
                                             bankId: BankId,
                                             nameValues: Map[String, List[String]],
                                             callContext: Option[CallContext]): Future[(List[CustomerId], Option[CallContext])] =
-      Connector.connector.vend.getCustomerIdByAttributeNameValues(bankId, nameValues, callContext)  map {
+      Connector.connector.vend.getCustomerIdsByAttributeNameValues(bankId, nameValues, callContext)  map {
         i =>
           val customerIds: Box[List[CustomerId]] = i._1.map(_.map(CustomerId(_)))
           (connectorEmptyResponse(customerIds, callContext), i._2)
       }
 
+    def getTransactionIdsByAttributeNameValues(
+      bankId: BankId,
+      nameValues: Map[String, List[String]],
+      callContext: Option[CallContext]): Future[(List[TransactionId], Option[CallContext])] =
+      Connector.connector.vend.getTransactionIdsByAttributeNameValues(bankId, nameValues, callContext)  map {
+        i =>
+          val transactionIds: Box[List[TransactionId]] = i._1.map(_.map(TransactionId(_)))
+          (connectorEmptyResponse(transactionIds, callContext), i._2)
+      }
+    
+    
     def getCustomerAttributesForCustomers(
       customers: List[Customer],
       callContext: Option[CallContext]): OBPReturnType[List[(Customer, List[CustomerAttribute])]] = {
@@ -1709,8 +1725,8 @@ object NewStyle {
 
     def getMethodRoutingById(methodRoutingId : String, callContext: Option[CallContext]): OBPReturnType[MethodRoutingT] = {
       val methodRoutingBox: Box[MethodRoutingT] = MethodRoutingProvider.connectorMethodProvider.vend.getById(methodRoutingId)
-      val methodRouting = unboxFullOrFail(methodRoutingBox, callContext, MethodRoutingNotFoundByMethodRoutingId)
       Future{
+        val methodRouting = unboxFullOrFail(methodRoutingBox, callContext, MethodRoutingNotFoundByMethodRoutingId)
         (methodRouting, callContext)
       }
     }
@@ -1773,8 +1789,26 @@ object NewStyle {
         case None => createDynamicEntity(dynamicEntity, callContext)
       }
 
+    /**
+     * delete one DynamicEntity and corresponding entitlement and dynamic entitlement
+     * @param dynamicEntityId
+     * @return
+     */
     def deleteDynamicEntity(dynamicEntityId: String): Future[Box[Boolean]] = Future {
-      DynamicEntityProvider.connectorMethodProvider.vend.delete(dynamicEntityId)
+      for {
+        entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(dynamicEntityId)
+        deleteEntityResult <- DynamicEntityProvider.connectorMethodProvider.vend.delete(entity)
+        deleteEntitleMentResult <- if(deleteEntityResult) {
+          Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName)
+        } else {
+          Box !! false
+        }
+      } yield {
+        if(deleteEntitleMentResult) {
+          DynamicEntityInfo.roleNames(entity.entityName).foreach(ApiRole.removeDynamicApiRole(_))
+        }
+        deleteEntitleMentResult
+      }
     }
 
     def getDynamicEntityById(dynamicEntityId : String, callContext: Option[CallContext]): OBPReturnType[DynamicEntityT] = {
@@ -1828,8 +1862,67 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, s"$CreateTransactionsException"), i._2)
       }
 
-    def invokeDynamicConnector(operation: DynamicEntityOperation, entityName: String, requestBody: Option[JObject], entityId: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
-      Connector.connector.vend.dynamicEntityProcess(operation, entityName, requestBody, entityId, callContext)
+    def invokeDynamicConnector(operation: DynamicEntityOperation,
+                               entityName: String,
+                               requestBody: Option[JObject],
+                               entityId: Option[String],
+                               callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
+      import DynamicEntityOperation._
+      val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
+      // do validate, any validate process fail will return immediately
+      if(dynamicEntityBox.isEmpty) {
+        return Helper.booleanToFuture(s"$DynamicEntityNotExists entity's name is '$entityName'")(false)
+          .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+      }
+
+      if(operation == CREATE || operation == UPDATE) {
+        if(requestBody.isEmpty) {
+          return Helper.booleanToFuture(s"$InvalidJsonFormat requestBody is required for $operation operation.")(false)
+            .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+        }
+      }
+      if(operation == GET_ONE || operation == UPDATE || operation == DELETE) {
+        if (entityId.isEmpty) {
+          return Helper.booleanToFuture(s"$InvalidJsonFormat entityId is required for $operation operation.")(entityId.isEmpty || StringUtils.isBlank(entityId.get))
+            .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+        }
+        val id = entityId.get
+        val value = DynamicDataProvider.connectorMethodProvider.vend.get(entityName, id)
+        if (value.isEmpty) {
+          return Helper.booleanToFuture(s"$EntityNotFoundByEntityId please check: entityId = $id", 404)(false)
+            .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+        }
+      }
+      val dynamicInstance: Option[JObject] = requestBody.map { it =>
+        val entityIdName = s"${entityName}_Id".replaceAll("(?<=[a-z0-9])(?=[A-Z])|-", "_").toLowerCase
+        val entityIdValue = it \ entityIdName
+
+        entityIdValue match {
+          case JNothing | JNull => it ~ (entityIdName -> entityId.getOrElse(generateUUID()))
+          case _: JString => it
+          case JInt(i) => JsonUtils.transformField(it){
+            case (jField, "") if jField.name == entityIdName => JField(entityIdName, JString(i.toString))
+          }.asInstanceOf[JObject]
+          case _ => JsonUtils.transformField(it){
+            case (jField, "") if jField.name == entityIdName => JField(entityIdName, JString(entityId.getOrElse(generateUUID())))
+          }.asInstanceOf[JObject]
+        }
+      }
+
+      dynamicInstance match {
+        case empty @None => Connector.connector.vend.dynamicEntityProcess(operation, entityName, empty, entityId, callContext)
+        case v @Some(body) =>
+          val dynamicEntity: DynamicEntityT = dynamicEntityBox.openOrThrowException(DynamicEntityNotExists)
+          dynamicEntity.validateEntityJson(body, callContext).flatMap {
+            case None => Connector.connector.vend.dynamicEntityProcess(operation, entityName, v, entityId, callContext)
+            case Some(errorMsg) => Helper.booleanToFuture(s"$DynamicEntityInstanceValidateFail details: $errorMsg")(false)
+              .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+          }
+      }
+    }
+    def dynamicEndpointProcess(url: String, jValue: JValue, method: HttpMethod, params: Map[String, List[String]], pathParams: Map[String, String],
+      callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
+      Connector.connector.vend.dynamicEndpointProcess(url, jValue, method, params, pathParams, callContext)
     }
 
 
@@ -1906,6 +1999,114 @@ object NewStyle {
 
     def getConnectorMethod(connectorName: String, methodName: String): Option[MethodSymbol] = {
       getConnectorByName(connectorName).flatMap(_.implementedMethods.get(methodName))
+    }
+
+    def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
+      Connector.connector.vend.createDynamicEndpoint(
+        swaggerString,
+        callContext
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def getDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
+      val dynamicEndpointBox: Box[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.get(dynamicEndpointId)
+      val dynamicEndpoint = unboxFullOrFail(dynamicEndpointBox, callContext, DynamicEndpointNotFoundByDynamicEndpointId, 404)
+      Future{
+        (dynamicEndpoint, callContext)
+      }
+    }
+
+    def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = {
+      Connector.connector.vend.getDynamicEndpoints(
+        callContext
+      ) 
+    }
+    /**
+     * delete one DynamicEndpoint and corresponding entitlement and dynamic entitlement
+     * @param dynamicEndpointId
+     * @param callContext
+     * @return
+     */
+    def deleteDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): Future[Box[Boolean]] = {
+      val dynamicEndpoint: OBPReturnType[DynamicEndpointT] = this.getDynamicEndpoint(dynamicEndpointId, callContext)
+        for {
+          (entity, _) <- dynamicEndpoint
+          deleteSuccess = DynamicEndpointProvider.connectorMethodProvider.vend.delete(dynamicEndpointId)
+
+          deleteEndpointResult: Box[Boolean] = if(deleteSuccess) {
+            val roles = DynamicEndpointHelper.getRoles(dynamicEndpointId).map(_.toString())
+            DynamicEndpointHelper.removeEndpoint(dynamicEndpointId)
+            val rolesDeleteResult: Box[Boolean] = Entitlement.entitlement.vend.deleteEntitlements(roles)
+
+              Box !! (rolesDeleteResult == Full(true))
+          } else {
+            Box !! false
+          }
+        } yield {
+          deleteEndpointResult
+        }
+    }
+
+    def deleteCustomerAttribute(customerAttributeId : String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteCustomerAttribute(customerAttributeId, callContext) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def createCounterparty(
+      name: String,
+      description: String,
+      createdByUserId: String,
+      thisBankId: String,
+      thisAccountId: String,
+      thisViewId: String,
+      otherAccountRoutingScheme: String,
+      otherAccountRoutingAddress: String,
+      otherAccountSecondaryRoutingScheme: String,
+      otherAccountSecondaryRoutingAddress: String,
+      otherBankRoutingScheme: String,
+      otherBankRoutingAddress: String,
+      otherBranchRoutingScheme: String,
+      otherBranchRoutingAddress: String,
+      isBeneficiary:Boolean,
+      bespoke: List[CounterpartyBespoke],
+      callContext: Option[CallContext]) : OBPReturnType[CounterpartyTrait] = {
+      Future {
+        unboxFullOrFail(Connector.connector.vend.createCounterparty(
+          name: String,
+          description: String,
+          createdByUserId: String,
+          thisBankId: String,
+          thisAccountId: String,
+          thisViewId: String,
+          otherAccountRoutingScheme: String,
+          otherAccountRoutingAddress: String,
+          otherAccountSecondaryRoutingScheme: String,
+          otherAccountSecondaryRoutingAddress: String,
+          otherBankRoutingScheme: String,
+          otherBankRoutingAddress: String,
+          otherBranchRoutingScheme: String,
+          otherBranchRoutingAddress: String,
+          isBeneficiary:Boolean,
+          bespoke: List[CounterpartyBespoke],
+          callContext: Option[CallContext]
+        ), callContext, s"$CreateCounterpartyError ")
+      }}
+
+    def getOrCreateMetadata(
+      bankId: BankId, 
+      accountId : AccountId, 
+      counterpartyId:String, 
+      counterpartyName:String,
+      callContext: Option[CallContext]
+    )  : OBPReturnType[CounterpartyMetadata]= {
+      Future{(unboxFullOrFail(Counterparties.counterparties.vend.getOrCreateMetadata(bankId: BankId,
+        accountId : AccountId,
+        counterpartyId:String,
+        counterpartyName:String
+      ), callContext, CreateOrUpdateCounterpartyMetadataError), callContext)}
     }
 
   }

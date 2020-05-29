@@ -56,7 +56,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
       case "accounts" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
           } yield {
@@ -89,7 +89,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
       case "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
             (bankAccount, callContext) <- Future { BankAccountX(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
@@ -142,7 +142,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
       case "accounts" :: AccountId(accountId) :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u) map {
               _.filter(_.accountId.value == accountId.value)
             }
@@ -179,7 +179,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
       case "accounts" :: AccountId(accountId) :: "balances" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
 
             (account, callContext) <- Future { BankAccountX(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
@@ -225,7 +225,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
       case "balances" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
 
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           

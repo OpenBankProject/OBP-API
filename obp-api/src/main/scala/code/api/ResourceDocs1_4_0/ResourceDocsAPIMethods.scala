@@ -13,7 +13,6 @@ import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
 import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
-import APIMethods400.Implementations4_0_0.genericEndpoint
 import code.api.OBPRestHelper
 import code.api.util.ApiRole.{CanReadResourceDoc, canCreateAnyTransactionRequest}
 import code.util.Helper.MdcLoggable
@@ -22,7 +21,6 @@ import com.openbankproject.commons.model.enums.LanguageParam._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftRules, S}
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JString, JValue}
@@ -206,7 +204,12 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     // so if you want the new generated endpoints shown timely, set this value to a small number, or set to a big number
     val getResourceDocsTTL : Int = APIUtil.getPropsValue(s"resourceDocsObp.cache.ttl.seconds", "5").toInt
 
-    private def getResourceDocsObpCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : ApiVersion, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
+    private def getResourceDocsObpCached(showCore: Option[Boolean],
+                                         showPSD2: Option[Boolean],
+                                         showOBWG: Option[Boolean],
+                                         requestedApiVersion : ApiVersion,
+                                         resourceDocTags: Option[List[ResourceDocTag]],
+                                         partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       /**
        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
        * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -249,7 +252,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
              * replace JValue value: ApiRole$CanCreateUser --> CanCreateUser
              */
             def replaceJsonValue(json: JValue): JValue = json transformField {
-              case JField("role", JString(x)) => JField("role", JString(x.substring("ApiRole$".length)))
+              case JField("role", JString(x)) => JField("role", JString(x.replace("ApiRole$", "")))
             }
             successJsonResponse(replaceJsonValue(replaceJsonKey(removeJsonKeyAndKeepChildObject(Extraction.decompose(innerJson)))))
           }
@@ -470,6 +473,35 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
 
     private def getResourceDocsSwaggerCached(showCore: Option[Boolean],showPSD2: Option[Boolean],showOBWG: Option[Boolean], requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
+
+      // build swagger and remove not used definitions
+      def buildSwagger(resourceDoc: SwaggerJSONFactory.SwaggerResourceDoc, definitions: json.JValue) = {
+        val jValue = Extraction.decompose(resourceDoc)
+        val JObject(pathsRef) = definitions \\ "$ref"
+        val JObject(definitionsRef) = jValue \\ "$ref"
+        val RefRegx = "#/definitions/([^/]+)".r
+
+        val allRefTypeName: Set[String] = Set(pathsRef, definitionsRef).flatMap { fields =>
+          fields.collect {
+            case JField(_, JString(RefRegx(v))) => v
+          }
+        }
+        // filter out all not used definitions
+        val usedDefinitions = {
+          val JObject(fields) = definitions \ "definitions"
+           JObject(
+              JField("definitions",
+                JObject(
+                  fields.collect {
+                    case jf @JField(name, _) if allRefTypeName.contains(name) => jf
+                  }
+                )
+              ) :: Nil
+           )
+        }
+
+        jValue merge usedDefinitions
+      }
       // cache this function with the parameters of the function
       /**
        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -484,7 +516,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           val jsonOut = for {
             requestedApiVersion <- Full(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
-            rd <- getResourceDocsList(requestedApiVersion).map(_.filterNot(_.partialFunction == genericEndpoint)) // exclude all DynamicEntity endpoints
+            rd <- getResourceDocsList(requestedApiVersion)
           } yield {
             // Filter
             val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
@@ -494,7 +526,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             val allSwaggerDefinitionCaseClasses = SwaggerDefinitionsJSON.allFields
             val jsonAST = SwaggerJSONFactory.loadDefinitions(rdFiltered, allSwaggerDefinitionCaseClasses)
             // Merge both results and return
-            successJsonResponse(Extraction.decompose(json) merge jsonAST)
+            successJsonResponse(buildSwagger(json, jsonAST))
           }
           jsonOut
         }
@@ -564,8 +596,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     }
 
   }
-
-
 
 }
 

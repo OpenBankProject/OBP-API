@@ -40,9 +40,9 @@ import code.api.v1_3_0.{PinResetJSON, ReplacementJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
 import code.api.v2_1_0.JSONFactory210.createLicenseJson
-import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
+import code.api.v2_1_0.{CounterpartyIdJson, CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
-import code.api.v3_0_0.{AccountRuleJsonV300, CustomerAttributeResponseJsonV300, JSONFactory300, ViewBasicV300}
+import code.api.v3_0_0.{AccountRuleJsonV300, CustomerAttributeResponseJsonV300, JSONFactory300, ViewBasicV300, ViewJsonV300}
 import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
 import code.consent.MappedConsent
 import code.entitlement.Entitlement
@@ -574,10 +574,10 @@ case class CreatePhysicalCardJsonV310(
   networks: List[String],
   allows: List[String],
   account_id: String,
-  replacement: ReplacementJSON,
+  replacement: Option[ReplacementJSON],
   pin_reset: List[PinResetJSON],
-  collected: Date,
-  posted: Date,
+  collected: Option[Date],
+  posted: Option[Date],
   customer_id: String)
 
 case class UpdatePhysicalCardJsonV310(
@@ -664,8 +664,7 @@ case class CreateAccountRequestJsonV310(
   product_code : String,
   balance : AmountOfMoneyJsonV121,
   branch_id : String,
-  account_routing: AccountRoutingJsonV121,
-  account_attributes: List[AccountAttributeResponseJson]
+  account_routing: AccountRoutingJsonV121
 )
 
 case class CreateAccountResponseJsonV310(
@@ -743,9 +742,15 @@ case class ListResult[+T <: List[_] : TypeTag](name: String, results: T) {
 
 }
 
+case class HistoricalTransactionAccountJsonV310(
+  bank_id: Option[String],
+  account_id : Option[String],
+  counterparty_id : Option[String],
+)
+
 case class PostHistoricalTransactionJson(
-  from: TransactionRequestAccountJsonV140,
-  to: TransactionRequestAccountJsonV140,
+  from: HistoricalTransactionAccountJsonV310,
+  to: HistoricalTransactionAccountJsonV310,
   value: AmountOfMoneyJsonV121,
   description: String,
   posted: String,
@@ -756,8 +761,8 @@ case class PostHistoricalTransactionJson(
 
 case class PostHistoricalTransactionResponseJson(
   transaction_id: String,
-  from: TransactionRequestAccountJsonV140,
-  to: TransactionRequestAccountJsonV140,
+  from: HistoricalTransactionAccountJsonV310,
+  to: HistoricalTransactionAccountJsonV310,
   value: AmountOfMoneyJsonV121,
   description: String,
   posted: Date,
@@ -1422,8 +1427,8 @@ object JSONFactory310{
   
   def createPostHistoricalTransactionResponseJson(
     transactionId: TransactionId,
-    from: TransactionRequestAccountJsonV140,
-    to: TransactionRequestAccountJsonV140,
+    from: HistoricalTransactionAccountJsonV310,
+    to: HistoricalTransactionAccountJsonV310,
     value: AmountOfMoneyJsonV121,
     description: String,
     posted: Date,
@@ -1433,8 +1438,8 @@ object JSONFactory310{
   ) : PostHistoricalTransactionResponseJson = {
     PostHistoricalTransactionResponseJson(
       transaction_id = transactionId.value,
-      from: TransactionRequestAccountJsonV140,
-      to: TransactionRequestAccountJsonV140,
+      from: HistoricalTransactionAccountJsonV310,
+      to: HistoricalTransactionAccountJsonV310,
       value: AmountOfMoneyJsonV121,
       description: String,
       posted: Date,
@@ -1456,6 +1461,10 @@ object JSONFactory310{
       overall_balance = accountsBalances.overallBalance,
       overall_balance_date = accountsBalances.overallBalanceDate
     )
+  }
+
+  def createViewJSON(view : View) : ViewJsonV300 = {
+    JSONFactory300.createViewJSON(view).copy(is_firehose = Some(view.isFirehose))
   }
 
 }

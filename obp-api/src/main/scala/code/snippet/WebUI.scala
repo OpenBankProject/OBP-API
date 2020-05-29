@@ -64,10 +64,15 @@ class WebUI extends MdcLoggable{
   // cookie consent kit available at:
   // http://ec.europa.eu/ipg/basics/legal/cookies/index_en.htm#section_2
   def cookieConsent = {
-    var onclick = "removeByIdAndSaveIndicatorCookie('cookies-consent'); "
-    val buttonString = """<input id="clickMe" class="btn btn-default" type="button" value="Accept and close" onclick="%s"/> <script>showIndicatorCookiePage('cookies-consent'); </script>""".format(onclick)
-    val button  = scala.xml.Unparsed(s"""$buttonString""")
-    "#clickMe" #> button
+    val toDisplay = APIUtil.getPropsAsBoolValue("display_accept_cookies_question",false)
+    if (toDisplay) {
+      var onclick = "removeByIdAndSaveIndicatorCookie('cookies-consent'); "
+      val buttonString = """<input id="clickMe" class="btn btn-default" type="button" value="Accept and close" onclick="%s"/> <script>showIndicatorCookiePage('cookies-consent'); </script>""".format(onclick)
+      val button  = scala.xml.Unparsed(s"""$buttonString""")
+      "#clickMe" #> button
+    } else {
+      "*" #> NodeSeq.Empty
+    }
   }
 
   private object firstKnownIPAddress extends SessionVar("")
@@ -155,7 +160,7 @@ class WebUI extends MdcLoggable{
                                 |                                                                       src="https://static.openbankproject.com/images/sandbox/showcases/nextjs.png"
                                 |                                                                       width="156" height="156" alt="nextjs"/></a>
                                 |    <h2>Next.JS</h2>
-                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-NextJS">OpenBankProject</a>
+                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-NextJS">Strings.MY</a>
                                 |</div>
                                 |<div class="main-showcases-item">
                                 |    <a href="https://github.com/OpenBankProject/Hello-OBP-Flutter-DirectLogin"><img class="showcase-react"
@@ -163,7 +168,7 @@ class WebUI extends MdcLoggable{
                                 |                                                                                    width="156" height="156"
                                 |                                                                                    alt="flutter"/></a>
                                 |    <h2>Flutter</h2>
-                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-Flutter-DirectLogin">OpenBankProject</a>
+                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-Flutter-DirectLogin">Strings.MY</a>
                                 |</div>
                                 |<div class="main-showcases-item">
                                 |    <a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Mac"><img class="showcase-mac"

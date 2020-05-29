@@ -79,6 +79,7 @@ case class ViewJsonV300(
   val metadata_view: String,
   val is_public: Boolean,
   val is_system: Boolean,
+  val is_firehose: Option[Boolean] = None,
   val alias: String,
   val hide_metadata_if_alias_used: Boolean,
   val can_add_comment : Boolean,
@@ -457,7 +458,7 @@ case class CustomerJsonV300(
                              title: String, 
                              branch_id: String,
                              name_suffix: String)
-case class CustomerJSONs(customers: List[CustomerJsonV300])
+case class CustomerJSONsV300(customers: List[CustomerJsonV300])
 
 case class CustomerAttributeResponseJsonV300(
   customer_attribute_id: String,
@@ -537,7 +538,7 @@ object JSONFactory300{
   // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
   // But we don't want to have to escape underscores (\_) in our documentation
   // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
-  // We return html rather than markdown to the consumer so they don't have to bother with these questions. 
+  // We return html rather than markdown to the consumer so they don't have to bother with these questions.
 
   def createGlossaryItemsJsonV300(glossaryItems: List[GlossaryItem]) : GlossaryItemsJsonV300 = {
     GlossaryItemsJsonV300(glossary_items = glossaryItems.map(createGlossaryItemJsonV300))
@@ -802,16 +803,16 @@ object JSONFactory300{
             mappedView.isPublic
           ))
     )))
-  
+
   def createCoreAccountsByCoreAccountsJSON(accountsHeld : List[AccountHeld]): CoreAccountsHeldJsonV300 =
     CoreAccountsHeldJsonV300(accountsHeld.map(
       account => AccountHeldJson(
         account.id,
-        account.bankId, 
-        account.number, 
+        account.bankId,
+        account.number,
         account.accountRoutings.map(accountRounting =>AccountRoutingJsonV121(accountRounting.scheme, accountRounting.address))
         )))
-  
+
   def createAccountsIdsByBankIdAccountIds(bankaccountIds :  List[BankIdAccountId]): AccountsIdsJsonV300 =
     AccountsIdsJsonV300(bankaccountIds.map(x => AccountIdJson(x.accountId.value)))
 
@@ -837,7 +838,7 @@ object JSONFactory300{
       accountAttributes.map(createAccountAttributeJson)
     )
   }
-  
+
   def createCoreBankAccountJSON(account : ModeratedBankAccountCore) : ModeratedCoreAccountJsonV300 =  {
     new ModeratedCoreAccountJsonV300 (
       account.accountId.value,
@@ -851,11 +852,11 @@ object JSONFactory300{
       createAccountRulesJSON(account.accountRules)
     )
   }
-  
+
   def createFirehoseCoreBankAccountJSON(accounts : List[ModeratedBankAccount]) : ModeratedCoreAccountsJsonV300 =  {
     ModeratedCoreAccountsJsonV300(
       accounts.map(
-        account => 
+        account =>
           ModeratedCoreAccountJsonV300 (
             account.accountId.value,
             stringOrNull(account.bankId.value),
@@ -897,7 +898,7 @@ object JSONFactory300{
 
   def createBranchJsonV300(branch: BranchT): BranchJsonV300 = {
     val getOrCreateLobby: Lobby = branch.lobby.getOrElse(Lobby(List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("","")),List(OpeningTimes("",""))))
-    
+
     BranchJsonV300(branch.branchId.value,
       branch.bankId.value,
       branch.name,
@@ -1189,7 +1190,7 @@ object JSONFactory300{
       mobile_phone_number = cInfo.mobileNumber,
       email = cInfo.email,
       face_image = CustomerFaceImageJson(
-        url = cInfo.faceImage.url, 
+        url = cInfo.faceImage.url,
         date = cInfo.faceImage.date),
       date_of_birth = (if (cInfo.dateOfBirth==null) "" else (APIUtil.DateWithDayFormat).format(cInfo.dateOfBirth)),
       relationship_status = cInfo.relationshipStatus,
@@ -1207,7 +1208,7 @@ object JSONFactory300{
       customer_attributes = customerAttributes.map(JSONFactory300.createCustomerAttributeJson)
     )
   }
-  
+
   def createCustomerJson(cInfo : Customer) : CustomerJsonV300 = {
 
     CustomerJsonV300(
@@ -1234,8 +1235,8 @@ object JSONFactory300{
       name_suffix = cInfo.nameSuffix
     )
   }
-  def createCustomersJson(customers : List[Customer]) : CustomerJSONs = {
-    CustomerJSONs(customers.map(createCustomerJson))
+  def createCustomersJson(customers : List[Customer]) : CustomerJSONsV300 = {
+    CustomerJSONsV300(customers.map(createCustomerJson))
   }
 
   def createCustomersWithAttributesJson(customersAndAttributesPairs : List[(Customer, List[CustomerAttribute])]) :CustomersWithAttributesJsonV300 = {

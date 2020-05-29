@@ -57,8 +57,8 @@ class MeetingsTest extends V310ServerSetup {
       val request310 = (v3_1_0_Request / "banks" / randomBankId / "meetings" ).POST
       val createMeetingJson = SwaggerDefinitionsJSON.createMeetingJsonV310
       val response310 = makePostRequest(request310, write(createMeetingJson))
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }

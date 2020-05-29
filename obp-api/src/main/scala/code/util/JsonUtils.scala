@@ -1,11 +1,16 @@
 package code.util
 
+import java.util.Objects
+
 import net.liftweb.json
 import net.liftweb.json.{Diff, JNothing, JNull}
 import net.liftweb.json.JsonAST.{JArray, JBool, JDouble, JField, JInt, JObject, JString, JValue}
 import org.apache.commons.lang3.StringUtils
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonParser.ParseException
+
+import scala.reflect.runtime.universe
+import scala.reflect.runtime.universe.typeOf
 
 object JsonUtils {
   /* match string that end with '[number]', e.g: hobby[3] */
@@ -163,6 +168,7 @@ object JsonUtils {
             } else {
               JField(newName, jObj)
             }
+          case _ => throw new RuntimeException(s"Not support json value type, value is: $jValue")
         }
 
       }
@@ -420,7 +426,7 @@ object JsonUtils {
    * @param pathExpress path, can be prefix by - or !, e.g: "-result.count" "!value.isDeleted"
    * @return given nested field value
    */
-  private def getValueByPath(jValue: JValue, pathExpress: String): JValue = {
+  def getValueByPath(jValue: JValue, pathExpress: String): JValue = {
     pathExpress match {
       case str if str.trim == "$root" || str.trim.isEmpty => jValue // if path is "$root" or "", return whole original json
       case RegexBoolean(b) => JBool(b.toBoolean)
@@ -477,6 +483,30 @@ object JsonUtils {
         }
       case JNothing | JNull => expectValue == ""
       case v => v.values.toString == expectValue
+    }
+  }
+
+  def toString(jValue: JValue) = jValue match{
+    case JString(s) => s
+    case JInt(num) => num.toString()
+    case JDouble(num) => num.toString()
+    case JBool(b) => b.toString()
+    case JNothing => ""
+    case JNull => "null"
+    case v => json.compactRender(v)
+  }
+
+  def getType(jValue: JValue): universe.Type = {
+    Objects.requireNonNull(jValue)
+    jValue match {
+      case JNothing => typeOf[JNothing.type]
+      case JNull => typeOf[JNull.type]
+      case _: JInt => typeOf[JInt]
+      case _: JDouble => typeOf[JDouble]
+      case _: JBool => typeOf[JBool]
+      case _: JString => typeOf[JString]
+      case _: JObject => typeOf[JObject]
+      case _: JArray => typeOf[JArray]
     }
   }
 }

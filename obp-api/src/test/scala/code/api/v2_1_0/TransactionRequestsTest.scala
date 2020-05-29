@@ -97,9 +97,9 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
       //prepare for counterparty and SEPA stuff
       //For SEPA, otherAccountRoutingScheme must be 'IBAN'
-      val counterpartySEPA = createCounterparty(bankId.value, accountId2.value, "IBAN", "IBAN", true, UUID.randomUUID.toString);
+      val counterpartySEPA = createCounterparty(bankId.value, accountId2.value, true, UUID.randomUUID.toString);
       //For Counterpart local mapper, the  mOtherAccountRoutingScheme='OBP' and  mOtherBankRoutingScheme = 'OBP'
-      val counterpartyCounterparty = createCounterparty(bankId.value, accountId2.value, "IBAN", "OBP", true, UUID.randomUUID.toString);
+      val counterpartyCounterparty = createCounterparty(bankId.value, accountId2.value, true, UUID.randomUUID.toString);
 
       var transactionRequestBodySEPA = TransactionRequestBodySEPAJSON(bodyValue, IbanJson(counterpartySEPA.otherAccountSecondaryRoutingAddress), description, sharedChargePolicy)
 
@@ -299,8 +299,8 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         var response = makePostRequest(request, write(helper.transactionRequestBody))
 
 
-        Then("we should get a 400 created code")
-        response.code should equal(400)
+        Then("we should get a 401 created code")
+        response.code should equal(401)
 
         Then("We should have the error message")
         response.body.extract[ErrorMessage].message should startWith(ErrorMessages.UserNotLoggedIn)

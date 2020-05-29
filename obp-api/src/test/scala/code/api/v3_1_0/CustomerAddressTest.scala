@@ -76,8 +76,8 @@ class CustomerAddressTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "address").POST
       val response310 = makePostRequest(request310, write(postCustomerAddressJson))
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
@@ -95,8 +95,8 @@ class CustomerAddressTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "addresses").GET
       val response310 = makeGetRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
@@ -114,8 +114,8 @@ class CustomerAddressTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "addresses" / "CUSTOMER_ADDRESS_ID").DELETE
       val response310 = makeDeleteRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 401")
+      response310.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
