@@ -2,9 +2,10 @@ package code.api.v4_0_0
 
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, ApiTrigger}
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, CanCreateCustomer, CanCreateProduct, _}
+import code.api.util.ErrorMessages.IncorrectTriggerName
 import code.api.v1_2_1._
 import code.api.v2_0_0.BasicAccountsJSON
 import code.api.v2_1_0.{TransactionRequestWithChargeJSON210, TransactionRequestWithChargeJSONs210}
@@ -12,7 +13,7 @@ import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, TransactionJsonV300, 
 import code.api.v3_1_0._
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
-import com.openbankproject.commons.model.{CreateViewJson, UpdateViewJSON}
+import com.openbankproject.commons.model.{CreateViewJson, ErrorMessage, UpdateViewJSON}
 import dispatch.Req
 import net.liftweb.json.Serialization.write
 
@@ -163,7 +164,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     createCustomer(consumerAndToken).customer_id
   }
   
-  def createAndGetCustomerAtrributeId (bankId:String, customerId:String, consumerAndToken: Option[(Consumer, Token)], postCustomerAttributeJson: Option[CustomerAttributeJsonV400] = None) = {
+  def createAndGetCustomerAttributeId(bankId:String, customerId:String, consumerAndToken: Option[(Consumer, Token)], postCustomerAttributeJson: Option[CustomerAttributeJsonV400] = None) = {
     lazy val postCustomerAttributeJsonV400 = postCustomerAttributeJson.getOrElse(SwaggerDefinitionsJSON.customerAttributeJsonV400)
     val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attribute").POST <@ (user1)
     Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canCreateCustomerAttributeAtOneBank.toString)
@@ -171,7 +172,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     responseWithRole.body.extract[CustomerAttributeResponseJsonV300].customer_attribute_id
   }
 
-  def createAndGetTransactionAtrributeId (bankId:String, accountId:String, transactionId:String,  consumerAndToken: Option[(Consumer, Token)]) = {
+  def createAndGetTransactionAttributeId(bankId:String, accountId:String, transactionId:String, consumerAndToken: Option[(Consumer, Token)]) = {
     lazy val postTransactionAttributeJsonV400 = SwaggerDefinitionsJSON.transactionAttributeJsonV400
     val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId /"transactions" / transactionId / "attribute").POST <@ (user1)
     Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canCreateTransactionAttributeAtOneBank.toString)
@@ -188,5 +189,21 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     response.code should equal(201)
     response.body.extract[ViewJsonV300]
   }
+  
+  def createWebhookV400(bankId: String, 
+                        accountId: String, 
+                        userId: String, 
+                        consumerAndToken: Option[(Consumer, Token)]): AccountWebhookJson = {
+    val postJson = SwaggerDefinitionsJSON.accountWebhookPostJson
+    val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, userId, CanCreateWebhook.toString)
+    When("We make a request v3.1.0 with a Role " + canCreateWebhook)
+    val request310 = (v4_0_0_Request / "banks" / bankId / "account-web-hooks").POST <@(consumerAndToken)
+    val response310 = makePostRequest(request310, write(postJson.copy(account_id = accountId)))
+    Then("We should get a 201")
+    response310.code should equal(201)
+    Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+    response310.body.extract[AccountWebhookJson]
+  }
+  
   
 }
