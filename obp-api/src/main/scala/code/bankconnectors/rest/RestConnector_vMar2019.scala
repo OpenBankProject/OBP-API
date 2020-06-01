@@ -9535,6 +9535,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       case response@HttpResponse(status, _, entity@_, _) => (status, entity)
     }.flatMap {
       case (status, entity) if status.isSuccess() => extractEntity[T](entity, inBoundMapping)
+      case (status, entity) if status.intValue == 404 => Future.successful(Empty)
       case (status, entity) => {
           val future: Future[Box[Box[T]]] = extractBody(entity) map { msg =>
             tryo {
