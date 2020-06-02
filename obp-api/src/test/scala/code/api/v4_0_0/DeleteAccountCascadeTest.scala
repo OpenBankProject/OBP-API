@@ -67,7 +67,7 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       account.account_id should not be empty
 
       val postBodyView = createViewJson.copy(name = "_cascade_delete", metadata_view = "_cascade_delete", is_public = false)
-      createView(bankId, account.account_id, postBodyView, user1)
+      createViewEndpoint(bankId, account.account_id, postBodyView, user1)
       
       createAccountAttribute(
         bankId,
@@ -81,7 +81,8 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
         bankId,
         account.account_id,
         resourceUser2.userId,
-        user1
+        user1,
+        PostViewJsonV400(view_id = "owner", is_system = true)
       )
 
       createWebhookV400(

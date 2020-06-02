@@ -1,9 +1,11 @@
 package code.api.v4_0_0
 
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole
 import code.api.util.ApiRole.CanDeleteTransactionCascade
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
@@ -47,5 +49,21 @@ class DeleteTransactionCascadeTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanDeleteTransactionCascade)
     }
   }
+  feature(s"test $ApiEndpoint1 - Authorized access") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
+      val (fromBankId, fromAccountId, transactionId) = createTransactionRequestForDeleteCascade(bankId)
+      
+      When("We grant the role")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteTransactionCascade.toString)
+      val request400 = (v4_0_0_Request / "management" / "cascading" / "banks" / fromBankId /
+        "accounts" / fromAccountId / "transactions" / transactionId).DELETE <@(user1)
+      val response400 = makeDeleteRequest(request400)
+      Then("We should get a 200")
+      response400.code should equal(200)
+
+      When("We try to delete one more time")
+      makeDeleteRequest(request400).code should equal(404)
+    }
+  }  
 
 }

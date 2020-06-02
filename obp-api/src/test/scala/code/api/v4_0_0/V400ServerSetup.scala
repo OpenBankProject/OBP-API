@@ -1,22 +1,30 @@
 package code.api.v4_0_0
 
+import code.accountholders.AccountHolders
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.util.{APIUtil, ApiTrigger}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
+import code.api.util.{APIUtil, ApiRole, ApiTrigger}
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, CanCreateCustomer, CanCreateProduct, _}
 import code.api.util.ErrorMessages.IncorrectTriggerName
 import code.api.v1_2_1._
-import code.api.v2_0_0.BasicAccountsJSON
+import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
+import code.api.v2_0_0.{BasicAccountsJSON, TransactionRequestBodyJsonV200}
 import code.api.v2_1_0.{TransactionRequestWithChargeJSON210, TransactionRequestWithChargeJSONs210}
 import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, TransactionJsonV300, TransactionsJsonV300, ViewJsonV300}
 import code.api.v3_1_0._
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
-import com.openbankproject.commons.model.{CreateViewJson, ErrorMessage, UpdateViewJSON}
+import code.transactionrequests.MappedTransactionRequest
+import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankId, BankIdAccountId, CreateViewJson, ErrorMessage, Transaction, TransactionRequest, UpdateViewJSON}
 import dispatch.Req
+import net.liftweb.json
+import net.liftweb.json.Extraction
 import net.liftweb.json.Serialization.write
+import net.liftweb.util.Helpers.{now, randomString}
 
+import scala.collection.immutable
 import scala.util.Random.nextInt
 
 trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
@@ -87,12 +95,13 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     reply.body.extract[ViewJsonV300]
   }
   
-  def createView(bankId: String, accountId: String, createViewJson: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): ViewJsonV300 = {
+  def createViewEndpoint(bankId: String, accountId: String, createViewJson: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): ViewJsonV300 = {
     def postView(bankId: String, accountId: String, view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
       val request = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
       makePostRequest(request, write(view))
     }
     val reply = postView(bankId, accountId, createViewJson, consumerAndToken)
+    org.scalameta.logger.elem(reply)
     reply.body.extract[ViewJsonV300]
   }
 
@@ -172,7 +181,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     responseWithRole.body.extract[CustomerAttributeResponseJsonV300].customer_attribute_id
   }
 
-  def createAndGetTransactionAttributeId(bankId:String, accountId:String, transactionId:String, consumerAndToken: Option[(Consumer, Token)]) = {
+  def createTransactionAttributeEndpoint(bankId:String, accountId:String, transactionId:String, consumerAndToken: Option[(Consumer, Token)]) = {
     lazy val postTransactionAttributeJsonV400 = SwaggerDefinitionsJSON.transactionAttributeJsonV400
     val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId /"transactions" / transactionId / "attribute").POST <@ (user1)
     Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canCreateTransactionAttributeAtOneBank.toString)
@@ -181,11 +190,17 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     responseWithRole.body.extract[TransactionAttributeResponseJson].transaction_attribute_id
   }
 
-  def grantUserAccessToViewV400(bankId: String, accountId: String, userId: String, consumerAndToken: Option[(Consumer, Token)]): ViewJsonV300 = {
-    val postJson = PostAccountAccessJsonV400(userId, PostViewJsonV400("owner", true))
+  def grantUserAccessToViewV400(bankId: String, 
+                                accountId: String, 
+                                userId: String, 
+                                consumerAndToken: Option[(Consumer, Token)],
+                                postBody: PostViewJsonV400
+                               ): ViewJsonV300 = {
+    val postJson = PostAccountAccessJsonV400(userId, postBody)
     val request = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / "account-access" / "grant").POST <@ (consumerAndToken)
     val response = makePostRequest(request, write(postJson))
     Then("We should get a 201 and check the response body")
+    org.scalameta.logger.elem(response.body)
     response.code should equal(201)
     response.body.extract[ViewJsonV300]
   }
@@ -204,6 +219,85 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     response310.body.extract[AccountWebhookJson]
   }
+
+  def postCommentForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, comment: PostTransactionCommentJSON, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    val request = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "comments").POST <@(consumerAndToken)
+    makePostRequest(request, write(comment))
+  }
+  def createAccountEndpoint(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]) = {
+    val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310
+      .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
+    Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canCreateAccount.toString)
+    And("We make a request v4.0.0")
+    val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" ).POST <@(consumerAndToken)
+    val response400 = makePostRequest(request400, write(addAccountJson))
+    Then("We should get a 201")
+    response400.code should equal(201)
+    val account = response400.body.extract[CreateAccountResponseJsonV310]
+    account.account_id should not be empty
+    account
+  }
+
+  def createTransactionRequestEndpoint(fromBankId: String,
+                                       fromAccountId: String,
+                                       fromCurrency: String,
+                                       fromViewId: String,
+                                       amount: String,
+                                       toBankId: String,
+                                       toAccountId: String,
+                                       consumerAndToken: Option[(Consumer, Token)]) = {
+    val toAccountJson = TransactionRequestAccountJsonV140(toBankId, toAccountId)
+    val bodyValue = AmountOfMoneyJsonV121(fromCurrency, amount)
+    val description = "Just test it!"
+    val transactionRequestBody = TransactionRequestBodyJsonV200(toAccountJson, bodyValue, description)
+    val createTransReqRequest = (v4_0_0_Request / "banks" / fromBankId / "accounts" / fromAccountId /
+      fromViewId / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@ (consumerAndToken)
+
+    makePostRequest(createTransReqRequest, write(transactionRequestBody)).body.extract[TransactionRequestWithChargeJSON400]
+  }
+
+  def createTransactionRequestForDeleteCascade(bankId: String) = {
+    // Create a Bank
+    val bank = createBank(bankId)
+    // Create from account
+    val fromAccount = createAccountEndpoint(bank.bankId.value, "cascade_from_account", user1)
+    // Create to account
+    val toAccount = createAccountEndpoint(bank.bankId.value, "cascade_to_account", user1)
+    // Create a custom view
+    val customViewJson = createViewJson.copy(name = "_cascade_delete", metadata_view = "_cascade_delete", is_public = false)
+    val customView = createViewEndpoint(bank.bankId.value, toAccount.account_id, customViewJson, user1)
+    // Grant access to the view
+    grantUserAccessToViewV400(
+      bank.bankId.value,
+      toAccount.account_id,
+      resourceUser1.userId,
+      user1,
+      PostViewJsonV400(view_id = customView.id, is_system = false)
+    )
+    // Create a Transaction Request
+    val transactionRequest = createTransactionRequestEndpoint(
+      fromBankId = bank.bankId.value,
+      fromAccountId = fromAccount.account_id,
+      fromCurrency = fromAccount.balance.currency,
+      fromViewId = customView.id,
+      amount = "10",
+      toBankId = bank.bankId.value,
+      toAccountId = toAccount.account_id,
+      user1
+    )
+    val transactionId = transactionRequest.transaction_ids.headOption.getOrElse("")
+    val transactionAttributeId = createTransactionAttributeEndpoint(bank.bankId.value, fromAccount.account_id, transactionId, user1)
+    val comment = postCommentForOneTransaction(
+      bank.bankId.value,
+      fromAccount.account_id,
+      customView.id,
+      transactionId,
+      PostTransactionCommentJSON(randomString(5)),
+      user1
+    )
+    (bank.bankId.value, fromAccount.account_id, transactionId)
+  }
+    
   
   
 }
