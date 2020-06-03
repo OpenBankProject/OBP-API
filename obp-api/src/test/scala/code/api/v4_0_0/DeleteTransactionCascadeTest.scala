@@ -6,9 +6,15 @@ import code.api.util.ApiRole.CanDeleteTransactionCascade
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
+import code.metadata.comments.MappedComment
+import code.metadata.narrative.MappedNarrative
+import code.metadata.transactionimages.MappedTransactionImage
+import code.metadata.wheretags.MappedWhereTag
+import code.transactionattribute.MappedTransactionAttribute
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 class DeleteTransactionCascadeTest extends V400ServerSetup {
@@ -61,8 +67,11 @@ class DeleteTransactionCascadeTest extends V400ServerSetup {
       Then("We should get a 200")
       response400.code should equal(200)
 
-      When("We try to delete one more time")
+      When("We try to delete one more time we should get 404")
       makeDeleteRequest(request400).code should equal(404)
+
+      When("We assure there are no all transaction related date")
+      checkAllTransactionRelatedData(fromBankId, fromAccountId, transactionId) should be (true)
     }
   }  
 

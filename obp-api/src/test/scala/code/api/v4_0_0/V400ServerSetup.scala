@@ -1,13 +1,11 @@
 package code.api.v4_0_0
 
-import code.accountholders.AccountHolders
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
-import code.api.util.{APIUtil, ApiRole, ApiTrigger}
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, CanCreateCustomer, CanCreateProduct, _}
-import code.api.util.ErrorMessages.IncorrectTriggerName
+import code.api.util.{APIUtil, ApiRole}
 import code.api.v1_2_1._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.{BasicAccountsJSON, TransactionRequestBodyJsonV200}
@@ -15,16 +13,18 @@ import code.api.v2_1_0.{TransactionRequestWithChargeJSON210, TransactionRequestW
 import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, TransactionJsonV300, TransactionsJsonV300, ViewJsonV300}
 import code.api.v3_1_0._
 import code.entitlement.Entitlement
+import code.metadata.comments.MappedComment
+import code.metadata.narrative.MappedNarrative
+import code.metadata.transactionimages.MappedTransactionImage
+import code.metadata.wheretags.MappedWhereTag
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
-import code.transactionrequests.MappedTransactionRequest
-import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankId, BankIdAccountId, CreateViewJson, ErrorMessage, Transaction, TransactionRequest, UpdateViewJSON}
+import code.transactionattribute.MappedTransactionAttribute
+import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, CreateViewJson, UpdateViewJSON}
 import dispatch.Req
-import net.liftweb.json
-import net.liftweb.json.Extraction
 import net.liftweb.json.Serialization.write
-import net.liftweb.util.Helpers.{now, randomString}
+import net.liftweb.mapper.By
+import net.liftweb.util.Helpers.randomString
 
-import scala.collection.immutable
 import scala.util.Random.nextInt
 
 trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
@@ -101,7 +101,6 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
       makePostRequest(request, write(view))
     }
     val reply = postView(bankId, accountId, createViewJson, consumerAndToken)
-    org.scalameta.logger.elem(reply)
     reply.body.extract[ViewJsonV300]
   }
 
@@ -200,7 +199,6 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     val request = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / "account-access" / "grant").POST <@ (consumerAndToken)
     val response = makePostRequest(request, write(postJson))
     Then("We should get a 201 and check the response body")
-    org.scalameta.logger.elem(response.body)
     response.code should equal(201)
     response.body.extract[ViewJsonV300]
   }
@@ -255,7 +253,50 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
 
     makePostRequest(createTransReqRequest, write(transactionRequestBody)).body.extract[TransactionRequestWithChargeJSON400]
   }
+  def getTransactionAttributesEndpoint(bankId: String,
+                                       accountId: String,
+                                       transactionId: String,
+                                       userId: String,
+                                       consumerAndToken: Option[(Consumer, Token)]): TransactionAttributesResponseJson = {
+    // We grant the role to the user
+    Entitlement.entitlement.vend.addEntitlement(bankId, userId, CanGetTransactionAttributesAtOneBank.toString)
+    val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId /"transactions" / transactionId / "attributes" ).GET <@ (consumerAndToken)
+    val response400 = makeGetRequest(request400)
+    // We should get a 200
+    response400.code should equal(200)
+    response400.body.extract[TransactionAttributesResponseJson]
+  }
 
+  def checkAllTransactionRelatedData(bankId: String,
+                                     accountId: String,
+                                     transactionId: String): Boolean = {
+    val attributes = MappedTransactionAttribute.findAll(
+      By(MappedTransactionAttribute.mBankId, bankId),
+      By(MappedTransactionAttribute.mTransactionId, transactionId)
+    ).size == 0
+    val comments = MappedComment.findAll(
+      By(MappedComment.bank, bankId),
+      By(MappedComment.account, accountId),
+      By(MappedComment.transaction, transactionId)
+    ).size == 0
+    val narrative = MappedNarrative.findAll(
+      By(MappedNarrative.bank, bankId),
+      By(MappedNarrative.account, accountId),
+      By(MappedNarrative.transaction, transactionId)
+    ).size == 0
+    val images = MappedTransactionImage.findAll(
+      By(MappedTransactionImage.bank, bankId),
+      By(MappedTransactionImage.account, accountId),
+      By(MappedTransactionImage.transaction, transactionId)
+    ).size == 0
+    val whereTag = MappedWhereTag.find(
+      By(MappedWhereTag.bank, bankId),
+      By(MappedWhereTag.account, accountId),
+      By(MappedWhereTag.transaction, transactionId)
+    ).size == 0
+    List(attributes, comments, narrative, images, whereTag).forall(_ == true)
+  }
+  
   def createTransactionRequestForDeleteCascade(bankId: String) = {
     // Create a Bank
     val bank = createBank(bankId)
@@ -297,7 +338,5 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     )
     (bank.bankId.value, fromAccount.account_id, transactionId)
   }
-    
-  
   
 }
