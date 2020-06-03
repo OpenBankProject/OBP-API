@@ -7,6 +7,7 @@ import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYS
 import code.api.util.{APIUtil, OBPLimit, OBPOffset}
 import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.model._
+import code.transactionrequests.MappedTransactionRequest
 import code.views.Views
 import com.openbankproject.commons.model._
 
@@ -17,7 +18,7 @@ trait TestConnectorSetup {
   @deprecated("Please use `createAccountAndOwnerView` instead, we need owner view for each account! ","2018-02-23")
   protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
   protected def createTransaction(account : BankAccount, startDate : Date, finishDate : Date)
-  protected def createTransactionRequest(account: BankAccount)
+  protected def createTransactionRequest(account: BankAccount): List[MappedTransactionRequest]
   protected def updateAccountCurrency(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
 
   protected def createCounterparty(bankId: String, accountId: String, isBeneficiary: Boolean, createdByUserId:String): CounterpartyTrait
@@ -80,17 +81,17 @@ trait TestConnectorSetup {
       val customPublicView = createPublicView(account.bankId, account.accountId) 
       Views.views.vend.grantAccessToCustomView(customPublicView.uid, user)
       
-      val customRandomView = createRandomView(account.bankId, account.accountId) 
+      val customRandomView = createCustomRandomView(account.bankId, account.accountId) 
       Views.views.vend.grantAccessToCustomView(customRandomView.uid, user)
     })
 
     accounts
   }
 
-  final protected def createTransactions(accounts : Traversable[BankAccount]) = {
+  final protected def createTransactions(accounts : Traversable[BankAccount]): List[Transaction] = {
     val NUM_TRANSACTIONS = 10
 
-    accounts.foreach(account => {
+    val transactions = accounts.map(account => {
 
       def add10Minutes(d: Date): Date = {
         val calendar = Calendar.getInstance
@@ -128,6 +129,7 @@ trait TestConnectorSetup {
       //load all transactions for the account to generate the counterparty metadata
       LocalMappedConnector.getTransactionsLegacy(account.bankId, account.accountId, None, OBPOffset(0)::OBPLimit(NUM_TRANSACTIONS)::Nil)
     })
+    transactions.flatten.map(_._1).flatten.toList
   }
   
   final protected def createTransactionRequests(accounts : Traversable[BankAccount]) = {
@@ -147,7 +149,7 @@ trait TestConnectorSetup {
 
   protected def createOwnerView(bankId: BankId, accountId: AccountId) : View
   protected def createPublicView(bankId: BankId, accountId: AccountId) : View
-  protected def createRandomView(bankId: BankId, accountId: AccountId) : View
+  protected def createCustomRandomView(bankId: BankId, accountId: AccountId) : View
 
   protected def setAccountHolder(user: User, bankId : BankId, accountId : AccountId)
 

@@ -50,5 +50,7 @@ private object MongoTransactionWhereTags extends WhereTags with MdcLoggable {
     OBPWhereTag.find(bankId, accountId, transactionId, viewId)
   }
 
+  def bulkDeleteWhereTagsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId) : Boolean = ???
+  
   def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId) : Boolean = ???
 }
