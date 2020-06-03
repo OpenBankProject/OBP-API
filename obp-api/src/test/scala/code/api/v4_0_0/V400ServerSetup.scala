@@ -222,17 +222,16 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     val request = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "comments").POST <@(consumerAndToken)
     makePostRequest(request, write(comment))
   }
-  def createAccountEndpoint(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]) = {
-    val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310
-      .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
-    Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canCreateAccount.toString)
+  def createAccountEndpoint(bankId : String, json: CreateAccountRequestJsonV310, consumerAndToken: Option[(Consumer, Token)]) = {
+    val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canCreateAccount.toString)
     And("We make a request v4.0.0")
     val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" ).POST <@(consumerAndToken)
-    val response400 = makePostRequest(request400, write(addAccountJson))
+    val response400 = makePostRequest(request400, write(json))
     Then("We should get a 201")
     response400.code should equal(201)
     val account = response400.body.extract[CreateAccountResponseJsonV310]
     account.account_id should not be empty
+    Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     account
   }
 
@@ -300,10 +299,12 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   def createTransactionRequestForDeleteCascade(bankId: String) = {
     // Create a Bank
     val bank = createBank(bankId)
+    val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310
+      .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
     // Create from account
-    val fromAccount = createAccountEndpoint(bank.bankId.value, "cascade_from_account", user1)
+    val fromAccount = createAccountEndpoint(bank.bankId.value, addAccountJson, user1)
     // Create to account
-    val toAccount = createAccountEndpoint(bank.bankId.value, "cascade_to_account", user1)
+    val toAccount = createAccountEndpoint(bank.bankId.value, addAccountJson, user1)
     // Create a custom view
     val customViewJson = createViewJson.copy(name = "_cascade_delete", metadata_view = "_cascade_delete", is_public = false)
     val customView = createViewEndpoint(bank.bankId.value, toAccount.account_id, customViewJson, user1)
