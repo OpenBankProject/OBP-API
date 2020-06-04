@@ -28,8 +28,8 @@ class AccountAccessTest extends V400ServerSetup {
 
   
   lazy val bankId = randomBankId
-  lazy val bankAccount = randomPrivateAccount(bankId)
-  lazy val ownerView = randomOwnerViewPermalink(bankId, bankAccount)
+  lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
+  lazy val ownerView = randomOwnerViewPermalinkViaEndpoint(bankId, bankAccount)
   lazy val postAccountAccessJson = PostAccountAccessJsonV400(resourceUser2.userId, PostViewJsonV400("_test_view", false))
   lazy val postBodyViewJson = createViewJson
   
@@ -43,7 +43,7 @@ class AccountAccessTest extends V400ServerSetup {
   }
   
   def createViewForAnAccount(bankId: String, accountId: String): ViewJsonV300 = {
-    createViewEndpoint(bankId, accountId, postBodyViewJson, user1)
+    createViewViaEndpoint(bankId, accountId, postBodyViewJson, user1)
   }
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {

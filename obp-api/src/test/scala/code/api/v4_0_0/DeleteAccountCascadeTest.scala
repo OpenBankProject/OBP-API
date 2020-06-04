@@ -28,7 +28,7 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.deleteAccountCascade))
 
   lazy val bankId = randomBankId
-  lazy val bankAccount = randomPrivateAccount(bankId)
+  lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
   lazy val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
 
 
@@ -67,9 +67,9 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       account.account_id should not be empty
 
       val postBodyView = createViewJson.copy(name = "_cascade_delete", metadata_view = "_cascade_delete", is_public = false)
-      createViewEndpoint(bankId, account.account_id, postBodyView, user1)
+      createViewViaEndpoint(bankId, account.account_id, postBodyView, user1)
       
-      createAccountAttribute(
+      createAccountAttributeViaEndpoint(
         bankId,
         account.account_id,
         "REQUIRED_CHALLENGE_ANSWERS",
@@ -77,7 +77,7 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
         "INTEGER"
       )
 
-      grantUserAccessToViewV400(
+      grantUserAccessToViewViaEndpoint(
         bankId,
         account.account_id,
         resourceUser2.userId,
@@ -85,7 +85,7 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
         PostViewJsonV400(view_id = "owner", is_system = true)
       )
 
-      createWebhookV400(
+      createWebhookViaEndpoint(
         bankId,
         account.account_id,
         resourceUser1.userId,
