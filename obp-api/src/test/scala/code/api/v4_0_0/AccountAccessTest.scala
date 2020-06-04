@@ -43,7 +43,7 @@ class AccountAccessTest extends V400ServerSetup {
   }
   
   def createViewForAnAccount(bankId: String, accountId: String): ViewJsonV300 = {
-    createView(bankId, accountId, postBodyViewJson, user1)
+    createViewEndpoint(bankId, accountId, postBodyViewJson, user1)
   }
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {

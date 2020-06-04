@@ -42,6 +42,12 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
     }
   }
 
+  override def bulkDeleteTransactionRequestsByTransactionId(transactionId: TransactionId): Boolean = {
+    MappedTransactionRequest.bulkDelete_!!(
+      By(MappedTransactionRequest.mTransactionIDs, transactionId.value)
+    )
+  }
+  
   override def bulkDeleteTransactionRequests(): Boolean = {
     MappedTransactionRequest.bulkDelete_!!()
   }

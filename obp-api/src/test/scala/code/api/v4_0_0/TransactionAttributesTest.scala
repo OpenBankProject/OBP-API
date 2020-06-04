@@ -178,7 +178,7 @@ class TransactionAttributesTest extends V400ServerSetup {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canUpdateTransactionAttributeAtOneBank.toString)
 
       Then("we create the Transaction Attribute ")
-      val transactionAttributeId = createAndGetTransactionAtrributeId(bankId:String, accountId:String, transactionId:String,  user1)
+      val transactionAttributeId = createTransactionAttributeEndpoint(bankId:String, accountId:String, transactionId:String,  user1)
      
 
       val requestWithId = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId /"transactions" / transactionId / "attributes" / transactionAttributeId).PUT <@ (user1)
@@ -198,7 +198,7 @@ class TransactionAttributesTest extends V400ServerSetup {
         
         When("We make a request v4.0.0")
         Then("we create the Transaction Attribute ")
-        val transactionAttributeId = createAndGetTransactionAtrributeId(bankId:String, accountId:String, transactionId:String,  user1)
+        val transactionAttributeId = createTransactionAttributeEndpoint(bankId:String, accountId:String, transactionId:String,  user1)
 
 
         val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId /"transactions" / transactionId / "attributes" ).GET <@ (user1)
@@ -223,7 +223,7 @@ class TransactionAttributesTest extends V400ServerSetup {
         lazy val transactionId = transaction.id
         
         Then("we create the Transaction Attribute ")
-        val transactionAttributeId = createAndGetTransactionAtrributeId(bankId, accountId, transactionId, user1)
+        val transactionAttributeId = createTransactionAttributeEndpoint(bankId, accountId, transactionId, user1)
 
         Then("We grant the role to the user1")
         Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canGetTransactionAttributeAtOneBank.toString)

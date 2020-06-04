@@ -97,6 +97,10 @@ class RemotedataTransactionRequestsActor extends Actor with ObpActorHelper with 
     case cc.bulkDeleteTransactionRequests() =>
       logger.debug("bulkDeleteTransactionRequests()")
       sender ! (mapper.bulkDeleteTransactionRequests())
+      
+    case cc.bulkDeleteTransactionRequestsByTransactionId(transactionId: TransactionId) =>
+      logger.debug(s"bulkDeleteTransactionRequestsByTransactionId($transactionId)")
+      sender ! (mapper.bulkDeleteTransactionRequestsByTransactionId(transactionId))
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

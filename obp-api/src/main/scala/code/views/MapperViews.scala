@@ -577,10 +577,10 @@ object MapperViews extends Views with MdcLoggable {
     val entity = ViewDefinition.create.
       isSystem_(false).
       isFirehose_(false).
-      name_(randomString(5)).
+      name_("_" + randomString(5)).
       metadataView_(CUSTOM_OWNER_VIEW_ID).
       description_(randomString(3)).
-      view_id("_"+randomString(3)).
+      view_id("_" + randomString(3)).
       isPublic_(false).
       bank_id(bankId.value).
       account_id(accountId.value).

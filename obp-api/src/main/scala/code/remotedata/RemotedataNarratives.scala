@@ -18,6 +18,10 @@ object RemotedataNarratives extends ObpActorInit with Narrative {
     (actor ? cc.setNarrative(bankId, accountId, transactionId, narrative)).mapTo[Boolean]
   )
 
+  def bulkDeleteNarrativeOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Boolean = getValueFromFuture(
+    (actor ? cc.bulkDeleteNarrativeOnTransaction(bankId, accountId, transactionId)).mapTo[Boolean]
+  )
+  
   def bulkDeleteNarratives(bankId: BankId, accountId: AccountId): Boolean = getValueFromFuture(
     (actor ? cc.bulkDeleteNarratives(bankId, accountId)).mapTo[Boolean]
   )

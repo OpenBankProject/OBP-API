@@ -232,7 +232,6 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
   def randomTransaction(bankId : String, accountId : String, viewId: String) : TransactionJSON = {
     val transactionsJson = getTransactions(bankId, accountId, viewId, user1).body.extract[TransactionsJSON].transactions
-    org.scalameta.logger.elem(transactionsJson)
     val randomPosition = nextInt(transactionsJson.size)
     transactionsJson(randomPosition)
   }

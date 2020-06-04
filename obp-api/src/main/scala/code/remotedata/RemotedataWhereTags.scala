@@ -30,6 +30,10 @@ object RemotedataWhereTags extends ObpActorInit with WhereTags {
   def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId): Boolean = getValueFromFuture(
       (actor ? cc.bulkDeleteWhereTags(bankId, accountId)).mapTo[Boolean]
   )
+  
+  def bulkDeleteWhereTagsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Boolean = getValueFromFuture(
+      (actor ? cc.bulkDeleteWhereTagsOnTransaction(bankId, accountId, transactionId)).mapTo[Boolean]
+  )
 
 
 }

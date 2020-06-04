@@ -1094,7 +1094,8 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
           helper.bankId.value,
           helper.accountId1.value,
           resourceUser2.userId,
-          user1
+          user1,
+          PostViewJsonV400(view_id = "owner", is_system = true)
         )
         
         Then("we call the 'V400 Create Transaction Request' endpoint")

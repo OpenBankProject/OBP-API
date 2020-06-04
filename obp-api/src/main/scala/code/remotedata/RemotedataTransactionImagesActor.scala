@@ -32,6 +32,10 @@ class RemotedataTransactionImagesActor extends Actor with ObpActorHelper with Md
     case cc.bulkDeleteTransactionImage(bankId: BankId, accountId: AccountId) =>
       logger.debug(s"bulkDeleteTransactionImage($bankId, $accountId)")
       sender ! (mapper.bulkDeleteTransactionImage(bankId, accountId))
+      
+    case cc.bulkDeleteImagesOnTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId) =>
+      logger.debug(s"bulkDeleteImagesOnTransaction($bankId, $accountId, $transactionId)")
+      sender ! (mapper.bulkDeleteImagesOnTransaction(bankId, accountId, transactionId))
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

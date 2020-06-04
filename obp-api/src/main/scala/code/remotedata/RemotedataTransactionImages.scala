@@ -26,6 +26,10 @@ object RemotedataTransactionImages extends ObpActorInit with TransactionImages {
   
   def deleteTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(imageId : String) : Box[Boolean] = getValueFromFuture(
     (actor ? cc.deleteTransactionImage(bankId, accountId, transactionId, imageId)).mapTo[Box[Boolean]]
+  ) 
+  
+  def bulkDeleteImagesOnTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId) : Boolean = getValueFromFuture(
+    (actor ? cc.bulkDeleteImagesOnTransaction(bankId, accountId, transactionId)).mapTo[Boolean]
   )
   
   def bulkDeleteTransactionImage(bankId: BankId, accountId: AccountId): Boolean = getValueFromFuture(
