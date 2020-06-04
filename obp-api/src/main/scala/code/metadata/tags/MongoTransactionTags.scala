@@ -51,6 +51,7 @@ private object MongoTransactionTags extends Tags {
   }
 
   def bulkDeleteTags(bankId: BankId, accountId: AccountId): Boolean = ???
+  def bulkDeleteTagsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId) : Boolean = ???
   
 }
 

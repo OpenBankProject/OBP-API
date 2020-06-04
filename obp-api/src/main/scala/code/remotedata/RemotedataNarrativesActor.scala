@@ -22,6 +22,10 @@ class RemotedataNarrativesActor extends Actor with ObpActorHelper with MdcLoggab
       logger.debug(s"setNarrative($bankId, $accountId, $transactionId, $narrative)")
       sender ! (mapper.setNarrative(bankId, accountId, transactionId)(narrative))
 
+    case cc.bulkDeleteNarrativeOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId) =>
+      logger.debug(s"bulkDeleteNarrativeOnTransaction($bankId, $accountId, $transactionId)")
+      sender ! (mapper.bulkDeleteNarrativeOnTransaction(bankId, accountId, transactionId))
+      
     case cc.bulkDeleteNarratives(bankId: BankId, accountId: AccountId) =>
       logger.debug(s"bulkDeleteComments($bankId, $accountId)")
       sender ! (mapper.bulkDeleteNarratives(bankId, accountId))

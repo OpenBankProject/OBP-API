@@ -43,6 +43,7 @@ private object MongoTransactionImages extends TransactionImages with MdcLoggable
     Full(true)
   }
 
+  def bulkDeleteImagesOnTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId) : Boolean = ???
   def bulkDeleteTransactionImage(bankId: BankId, accountId: AccountId): Boolean = ???
   
 }

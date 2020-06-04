@@ -187,7 +187,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canUpdateCustomerAttributeAtOneBank.toString)
 
       Then("we create the Customer Attribute ")
-      val customerAttributeId = createAndGetCustomerAtrributeId(bankId:String, customerId:String, user1)
+      val customerAttributeId = createAndGetCustomerAttributeId(bankId:String, customerId:String, user1)
 
       val requestWithId = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attributes" / customerAttributeId).PUT <@ (user1)
       val responseWithId = makePutRequest(requestWithId, write(putCustomerAttributeJsonV400))
@@ -207,7 +207,7 @@ class CustomerAttributesTest extends V400ServerSetup {
 
         When("We make a request v4.0.0")
         Then("we create the Customer Attribute ")
-        val customerAttributeId = createAndGetCustomerAtrributeId(bankId:String, customerId:String, user1)
+        val customerAttributeId = createAndGetCustomerAttributeId(bankId:String, customerId:String, user1)
 
 
         val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attributes" ).GET <@ (user1)
@@ -234,7 +234,7 @@ class CustomerAttributesTest extends V400ServerSetup {
         val customerId = createAndGetCustomerId(bankId, user1)
 
         Then("we create the Customer Attribute ")
-        val customerAttributeId = createAndGetCustomerAtrributeId(bankId:String, customerId:String, user1)
+        val customerAttributeId = createAndGetCustomerAttributeId(bankId:String, customerId:String, user1)
 
         Then("We grant the role to the user1")
         Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canGetCustomerAttributeAtOneBank.toString)
@@ -255,7 +255,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       val customerId = createAndGetCustomerId(bankId, user1)
 
       Then("we create the Customer Attribute ")
-      createAndGetCustomerAtrributeId(bankId:String, customerId:String, user1)
+      createAndGetCustomerAttributeId(bankId:String, customerId:String, user1)
 
       Then("We grant the role to the user1")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canGetCustomer.toString)
@@ -279,7 +279,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       val customerId = createAndGetCustomerId(bankId, user1)
 
       Then("we create the Customer Attribute ")
-      createAndGetCustomerAtrributeId(bankId: String, customerId: String, user1)
+      createAndGetCustomerAttributeId(bankId: String, customerId: String, user1)
 
       Then("We grant the role to the user1")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canGetCustomer.toString)
@@ -312,8 +312,8 @@ class CustomerAttributesTest extends V400ServerSetup {
       Then("we create more Customer Attribute ")
       val postCustomerAttributeJsonV4001 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name = "Tax", value = "tax123")
       val postCustomerAttributeJsonV4002 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name = "Hause", value = "1230")
-      createAndGetCustomerAtrributeId(bankId: String, customerId: String, user1, Some(postCustomerAttributeJsonV4001))
-      createAndGetCustomerAtrributeId(bankId: String, customerId: String, user1, Some(postCustomerAttributeJsonV4002))
+      createAndGetCustomerAttributeId(bankId: String, customerId: String, user1, Some(postCustomerAttributeJsonV4001))
+      createAndGetCustomerAttributeId(bankId: String, customerId: String, user1, Some(postCustomerAttributeJsonV4002))
 
       Then(s"We can the $ApiEndpoint5 with proper parameters")
       val requestGetCustomersByAttributesWithParameter4 = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1) <<? (List(("Tax", "tax123"), ("Hause", "1230")))

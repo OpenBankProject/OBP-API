@@ -31,6 +31,7 @@ trait Tags {
   def deleteTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(tagId : String) : Box[Boolean]
   def deleteTagOnAccount(bankId : BankId, accountId : AccountId)(tagId : String) : Box[Boolean]
   def bulkDeleteTags(bankId: BankId, accountId: AccountId) : Boolean
+  def bulkDeleteTagsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId) : Boolean
   
 }
 
@@ -42,6 +43,7 @@ class RemotedataTagsCaseClasses{
   case class deleteTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, tagId : String)
   case class deleteTagOnAccount(bankId : BankId, accountId : AccountId, tagId : String)
   case class bulkDeleteTags(bankId: BankId, accountId: AccountId)
+  case class bulkDeleteTagsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
 }
 
 object RemotedataTagsCaseClasses extends RemotedataTagsCaseClasses

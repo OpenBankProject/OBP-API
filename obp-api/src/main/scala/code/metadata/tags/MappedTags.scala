@@ -71,6 +71,14 @@ object MappedTags extends Tags {
     )
     tagsDeleted
   }
+  override def bulkDeleteTagsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Boolean = {
+    val tagsDeleted = MappedTag.bulkDelete_!!(
+      By(MappedTag.bank, bankId.value),
+      By(MappedTag.account, accountId.value),
+      By(MappedTag.transaction, transactionId.value)
+    )
+    tagsDeleted
+  }
 }
 
 class MappedTag extends TransactionTag with LongKeyedMapper[MappedTag] with IdPK with CreatedUpdated {

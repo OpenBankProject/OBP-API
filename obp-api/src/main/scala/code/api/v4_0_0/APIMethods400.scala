@@ -49,6 +49,7 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.ApiVersion
+import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCascade}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
@@ -947,9 +948,10 @@ trait APIMethods400 {
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            (isExists, _) <- NewStyle.function.invokeDynamicConnector(IS_EXISTS_DATA, entity.entityName, None, None, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, cc.callContext)
+            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
-              isExists.isDefined && isExists.contains(JBool(false))
+              resultList.arr.isEmpty
             }
 
             jsonObject = json.asInstanceOf[JObject]
@@ -989,9 +991,10 @@ trait APIMethods400 {
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            (isExists, _) <- NewStyle.function.invokeDynamicConnector(IS_EXISTS_DATA, entity.entityName, None, None, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, cc.callContext)
+            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
-              isExists.isDefined && isExists.contains(JBool(false))
+              resultList.arr.isEmpty
             }
             deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
           } yield {
@@ -1049,7 +1052,10 @@ trait APIMethods400 {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
-           entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
+          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
+            box.isDefined
+          }
+          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           (entity, HttpCode.`200`(Some(cc)))
         }
@@ -1068,6 +1074,10 @@ trait APIMethods400 {
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canUpdateRole(entityName), callContext)
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
+          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
+            box.isDefined
+          }
           (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), Some(cc))
           entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
@@ -1078,6 +1088,10 @@ trait APIMethods400 {
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canDeleteRole(entityName), callContext)
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
+          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
+            box.isDefined
+          }
           (box, _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), Some(cc))
           deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
         } yield {
@@ -3781,6 +3795,120 @@ trait APIMethods400 {
             )
           } yield {
             (JSONFactory200.createUserCustomerLinkJSONs(userCustomerLinks), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteTransactionCascade,
+      implementedInApiVersion,
+      nameOf(deleteTransactionCascade),
+      "DELETE",
+      "/management/cascading/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID",
+      "Delete Transaction Cascade",
+      s"""Delete a Transaction Cascade specified by TRANSACTION_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteTransactionCascade)))
+
+    lazy val deleteTransactionCascade : OBPEndpoint = {
+      case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: 
+        "transactions" :: TransactionId(transactionId) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getTransaction(bankId, accountId, transactionId, cc.callContext)
+            _ <- Future(DeleteTransactionCascade.atomicDelete(bankId, accountId, transactionId))
+          } yield {
+            (Full(true), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      deleteAccountCascade,
+      implementedInApiVersion,
+      nameOf(deleteAccountCascade),
+      "DELETE",
+      "/management/cascading/banks/BANK_ID/accounts/ACCOUNT_ID",
+      "Delete Account Cascade",
+      s"""Delete an Account Cascade specified by ACCOUNT_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteAccountCascade)))
+
+    lazy val deleteAccountCascade : OBPEndpoint = {
+      case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            _ <- Future(DeleteAccountCascade.atomicDelete(bankId, accountId))
+          } yield {
+            (Full(true), HttpCode.`200`(cc))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      deleteProductCascade,
+      implementedInApiVersion,
+      nameOf(deleteProductCascade),
+      "DELETE",
+      "/management/cascading/banks/BANK_ID/products/PRODUCT_CODE",
+      "Delete Product Cascade",
+      s"""Delete a Product Cascade specified by PRODUCT_CODE.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteProductCascade)))
+
+    lazy val deleteProductCascade : OBPEndpoint = {
+      case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "products" :: ProductCode(code) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getProduct(bankId, code, Some(cc))
+            _ <- Future(DeleteProductCascade.atomicDelete(bankId, code))
+          } yield {
+            (Full(true), HttpCode.`200`(callContext))
           }
       }
     }

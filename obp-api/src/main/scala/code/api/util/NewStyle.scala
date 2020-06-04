@@ -98,6 +98,12 @@ object NewStyle {
     def `201`(callContext: CallContext): Option[CallContext] = {
       Some(callContext.copy(httpCode = Some(201)))
     }
+    def `204`(callContext: CallContext): Option[CallContext] = {
+      Some(callContext.copy(httpCode = Some(204)))
+    }
+    def `404`(callContext: CallContext): Option[CallContext] = {
+      Some(callContext.copy(httpCode = Some(404)))
+    }
   }
 
 
@@ -1182,7 +1188,7 @@ object NewStyle {
     }
     def getProduct(bankId : BankId, productCode : ProductCode, callContext: Option[CallContext]) : OBPReturnType[Product] =
       Future {Connector.connector.vend.getProduct(bankId : BankId, productCode : ProductCode)} map {
-        i => (unboxFullOrFail(i, callContext, ProductNotFoundByProductCode + " {" + productCode.value + "}", 400), callContext)
+        i => (unboxFullOrFail(i, callContext, ProductNotFoundByProductCode + " {" + productCode.value + "}", 404), callContext)
       }
     
     def getProductCollection(collectionCode: String, 
@@ -1896,12 +1902,6 @@ object NewStyle {
       if(operation == GET_ONE || operation == UPDATE || operation == DELETE) {
         if (entityId.isEmpty) {
           return Helper.booleanToFuture(s"$InvalidJsonFormat entityId is required for $operation operation.")(entityId.isEmpty || StringUtils.isBlank(entityId.get))
-            .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
-        }
-        val id = entityId.get
-        val value = DynamicDataProvider.connectorMethodProvider.vend.get(entityName, id)
-        if (value.isEmpty) {
-          return Helper.booleanToFuture(s"$EntityNotFoundByEntityId please check: entityId = $id", 404)(false)
             .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
         }
       }

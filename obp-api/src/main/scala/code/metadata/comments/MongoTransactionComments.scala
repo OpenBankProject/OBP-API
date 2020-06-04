@@ -37,6 +37,7 @@ private object MongoTransactionComments extends Comments {
   }
 
   def bulkDeleteComments(bankId: BankId, accountId: AccountId): Boolean = ???
+  def bulkDeleteCommentsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId) : Boolean = ???
 }
 
 private class OBPComment private() extends MongoRecord[OBPComment] with ObjectIdPk[OBPComment] with Comment {
