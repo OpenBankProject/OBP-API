@@ -948,9 +948,10 @@ trait APIMethods400 {
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            (isExists, _) <- NewStyle.function.invokeDynamicConnector(IS_EXISTS_DATA, entity.entityName, None, None, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, cc.callContext)
+            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
-              isExists.isDefined && isExists.contains(JBool(false))
+              resultList.arr.isEmpty
             }
 
             jsonObject = json.asInstanceOf[JObject]
@@ -990,9 +991,10 @@ trait APIMethods400 {
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            (isExists, _) <- NewStyle.function.invokeDynamicConnector(IS_EXISTS_DATA, entity.entityName, None, None, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, cc.callContext)
+            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
-              isExists.isDefined && isExists.contains(JBool(false))
+              resultList.arr.isEmpty
             }
             deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
           } yield {
@@ -1050,7 +1052,10 @@ trait APIMethods400 {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
-           entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
+          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
+            box.isDefined
+          }
+          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           (entity, HttpCode.`200`(Some(cc)))
         }
@@ -1069,6 +1074,10 @@ trait APIMethods400 {
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canUpdateRole(entityName), callContext)
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
+          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
+            box.isDefined
+          }
           (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), Some(cc))
           entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
@@ -1079,6 +1088,10 @@ trait APIMethods400 {
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canDeleteRole(entityName), callContext)
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
+          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
+            box.isDefined
+          }
           (box, _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), Some(cc))
           deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
         } yield {
