@@ -987,7 +987,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser, callContext)
             user <- Users.users.vend.getUserByUserNameFuture(username) map {
-              x => unboxFullOrFail(x, callContext, UserNotFoundByUsername)
+              x => unboxFullOrFail(x, callContext, UserNotFoundByUsername, 404)
             }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, callContext)
           } yield {
