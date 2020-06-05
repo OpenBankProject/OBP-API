@@ -1,6 +1,7 @@
 package code.loginattempts
 
 import code.api.util.APIUtil
+import code.users.Users
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper.By
@@ -70,6 +71,31 @@ object LoginAttempt extends MdcLoggable {
       case _ =>
         // don't need to create here
         Empty // MappedBadLoginAttempt.create.mUsername(username).mBadAttemptsSinceLastSuccessOrReset(0).save()
+    }
+  }
+
+  def lockUser(username: String): Box[Boolean] = {
+    Users.users.vend.getUserByUserName(username) match {
+      case Full(_) =>
+        MappedBadLoginAttempt.find(By(MappedBadLoginAttempt.mUsername, username)) match {
+          case Full(loginAttempt) =>
+            Some(
+              loginAttempt
+              .mLastFailureDate(now)
+              .mBadAttemptsSinceLastSuccessOrReset(maxBadLoginAttempts.toInt + 1)
+              .save()
+            )
+          case _ =>
+            Some(
+              MappedBadLoginAttempt.create
+              .mUsername(username)
+              .mLastFailureDate(now)
+              .mBadAttemptsSinceLastSuccessOrReset(maxBadLoginAttempts.toInt + 1)
+              .save()
+            )
+        }
+      case _ =>
+        Empty
     }
   }
 
