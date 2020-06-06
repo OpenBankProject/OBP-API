@@ -25,7 +25,7 @@ class LockUserTest extends V400ServerSetup {
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "users" / "USERNAME" / "lock").PUT
+      val request400 = (v4_0_0_Request / "users" / "USERNAME" / "locks").PUT
       val response400 = makePutRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
@@ -35,7 +35,7 @@ class LockUserTest extends V400ServerSetup {
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "users" / "USERNAME" / "lock").PUT <@(user1)
+      val request400 = (v4_0_0_Request / "users" / "USERNAME" / "locks").PUT <@(user1)
       val response400 = makePutRequest(request400)
       Then("error should be " + UserHasMissingRoles + CanLockUser)
       response400.code should equal(403)
@@ -47,7 +47,7 @@ class LockUserTest extends V400ServerSetup {
       val username = "USERNAME"
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanLockUser.toString)
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "users" / username / "lock").PUT <@(user1)
+      val request400 = (v4_0_0_Request / "users" / username / "locks").PUT <@(user1)
       val response400 = makePutRequest(request400)
       Then("We should get a 404")
       response400.code should equal(404)

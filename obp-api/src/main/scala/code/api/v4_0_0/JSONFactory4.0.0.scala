@@ -46,6 +46,7 @@ import code.model.{Consumer, ModeratedBankAccountCore}
 import code.standingorders.StandingOrderTrait
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
+import code.userlocks.UserLocks
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
 
@@ -285,7 +286,11 @@ case class AttributeDefinitionResponseJsonV400(attribute_definition_id: String,
 case class AttributeDefinitionsResponseJsonV400(
                                                  attributes: List[AttributeDefinitionResponseJsonV400]
                                                )
-
+case class UserLockStatusJson(
+                               user_id : String,
+                               type_of_lock: String,
+                               last_lock_date : Date
+                             )
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
@@ -538,6 +543,13 @@ object JSONFactory400 {
 
   def createAttributeDefinitionsJson(attributeDefinitions: List[AttributeDefinition]) : AttributeDefinitionsResponseJsonV400 = {
     AttributeDefinitionsResponseJsonV400(attributeDefinitions.map(createAttributeDefinitionJson))
+  }
+
+  def createUserLockStatusJson(userLock: UserLocks) : UserLockStatusJson = {
+    UserLockStatusJson(
+      userLock.userId,
+      userLock.typeOfLock,
+      userLock.lastLockDate)
   }
   
 }

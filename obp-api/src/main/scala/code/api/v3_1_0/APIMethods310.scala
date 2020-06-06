@@ -33,6 +33,7 @@ import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.ratelimiting.RateLimitingDI
+import code.userlocks.{UserLocks, UserLocksProvider}
 import code.users.Users
 import code.util.Helper
 import code.views.Views
@@ -569,6 +570,7 @@ trait APIMethods310 {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUnlockUser, callContext)
             _ <- Future { LoginAttempt.resetBadLoginAttempts(username) } 
+            _ <- Future { UserLocksProvider.unlockUser(username) } 
             badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)", 404) }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))

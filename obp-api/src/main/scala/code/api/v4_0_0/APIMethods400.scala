@@ -41,6 +41,7 @@ import code.transactionrequests.MappedTransactionRequestProvider
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.transactionrequests.TransactionRequests.{TransactionRequestStatus, TransactionRequestTypes}
+import code.userlocks.UserLocksProvider
 import code.users.Users
 import code.util.Helper.booleanToBox
 import code.util.{Helper, JsonUtils}
@@ -1323,7 +1324,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(lockUser),
       "PUT",
-      "/users/USERNAME/lock",
+      "/users/USERNAME/locks",
       "Lock the user",
       s"""
          |Lock a User.
@@ -1332,27 +1333,23 @@ trait APIMethods400 {
          |
          |""".stripMargin,
       EmptyBody,
-      badLoginStatusJson,
+      userLockStatusJson,
       List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canLockUser)))
 
     lazy val lockUser : OBPEndpoint = {
-      //get private accounts for all banks
-      case "users" :: username ::  "lock" :: Nil JsonPut req => {
+      case "users" :: username ::  "locks" :: Nil JsonPut req => {
         cc =>
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canLockUser, callContext)
-            _ <- Future { LoginAttempt.lockUser(username) } map {
+            userLocks <- Future { UserLocksProvider.lockUser(username) } map {
               unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)", 404)
             }
-            badLoginStatus <- Future(LoginAttempt.getBadLoginStatus(username)) map { 
-              unboxFullOrFail(_, callContext, s"$CouldNotGetUserLockStatus($username)", 400) 
-            }
           } yield {
-            (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))
+            (JSONFactory400.createUserLockStatusJson(userLocks), HttpCode.`200`(callContext))
           }
       }
     }

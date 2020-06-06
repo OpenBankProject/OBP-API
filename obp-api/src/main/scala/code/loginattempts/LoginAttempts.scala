@@ -1,6 +1,7 @@
 package code.loginattempts
 
 import code.api.util.APIUtil
+import code.userlocks.{UserLocks, UserLocksProvider}
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Empty, Full}
@@ -50,7 +51,7 @@ object LoginAttempt extends MdcLoggable {
   def userIsLocked(username: String): Boolean = {
 
     val result : Boolean = MappedBadLoginAttempt.find(By(MappedBadLoginAttempt.mUsername, username)) match {
-      case Empty => false // No records so not locked
+      case Empty => UserLocksProvider.isLocked(username)
       case Full(loginAttempt)  => loginAttempt.badAttemptsSinceLastSuccessOrReset > maxBadLoginAttempts.toInt match {
         case true => true
         case false => false
@@ -71,31 +72,6 @@ object LoginAttempt extends MdcLoggable {
       case _ =>
         // don't need to create here
         Empty // MappedBadLoginAttempt.create.mUsername(username).mBadAttemptsSinceLastSuccessOrReset(0).save()
-    }
-  }
-
-  def lockUser(username: String): Box[Boolean] = {
-    Users.users.vend.getUserByUserName(username) match {
-      case Full(_) =>
-        MappedBadLoginAttempt.find(By(MappedBadLoginAttempt.mUsername, username)) match {
-          case Full(loginAttempt) =>
-            Some(
-              loginAttempt
-              .mLastFailureDate(now)
-              .mBadAttemptsSinceLastSuccessOrReset(maxBadLoginAttempts.toInt + 1)
-              .save()
-            )
-          case _ =>
-            Some(
-              MappedBadLoginAttempt.create
-              .mUsername(username)
-              .mLastFailureDate(now)
-              .mBadAttemptsSinceLastSuccessOrReset(maxBadLoginAttempts.toInt + 1)
-              .save()
-            )
-        }
-      case _ =>
-        Empty
     }
   }
 
