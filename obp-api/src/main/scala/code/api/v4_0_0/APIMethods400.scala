@@ -1323,7 +1323,7 @@ trait APIMethods400 {
       lockUser,
       implementedInApiVersion,
       nameOf(lockUser),
-      "PUT",
+      "POST",
       "/users/USERNAME/locks",
       "Lock the user",
       s"""
@@ -1340,7 +1340,7 @@ trait APIMethods400 {
       Some(List(canLockUser)))
 
     lazy val lockUser : OBPEndpoint = {
-      case "users" :: username ::  "locks" :: Nil JsonPut req => {
+      case "users" :: username ::  "locks" :: Nil JsonPost req => {
         cc =>
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)

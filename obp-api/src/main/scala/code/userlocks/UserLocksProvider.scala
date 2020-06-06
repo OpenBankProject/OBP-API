@@ -25,14 +25,13 @@ object UserLocksProvider extends MdcLoggable {
             Some(
               userLocks
               .LastLockDate(now)
-              //.TypeOfLock("")
               .saveMe()
             )
           case _ =>
             Some(
               UserLocks.create
               .UserId(user.userId)
-              //.TypeOfLock("")
+              .TypeOfLock("lock_via_api")
               .LastLockDate(now)
               .saveMe()
             )
