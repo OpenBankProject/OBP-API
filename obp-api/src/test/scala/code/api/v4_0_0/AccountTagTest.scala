@@ -25,8 +25,8 @@ class AccountTagTest extends V400ServerSetup {
 
   lazy val accountTag = SwaggerDefinitionsJSON.accountTagJSON
   lazy val bankId = randomBankId
-  lazy val bankAccount = randomPrivateAccount(bankId)
-  lazy val view = randomOwnerViewPermalink(bankId, bankAccount)
+  lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
+  lazy val view = randomOwnerViewPermalinkViaEndpoint(bankId, bankAccount)
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {

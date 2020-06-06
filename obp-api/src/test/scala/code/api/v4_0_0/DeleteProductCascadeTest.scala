@@ -26,7 +26,7 @@ class DeleteProductCascadeTest extends V400ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.deleteProductCascade))
 
   lazy val bankId = randomBankId
-  lazy val bankAccount = randomPrivateAccount(bankId)
+  lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
   
   
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
@@ -60,7 +60,7 @@ class DeleteProductCascadeTest extends V400ServerSetup {
 
       When("We first prepare the product")
       val product: ProductJsonV310 =
-        createProduct(
+        createProductViaEndpoint(
           bankId = testBankId,
           code = APIUtil.generateUUID(),
           json = parentPostPutProductJsonV310
@@ -68,7 +68,7 @@ class DeleteProductCascadeTest extends V400ServerSetup {
 
       val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310
         .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"), product_code = product.code)
-      createAccountEndpoint(testBankId, addAccountJson, user1)
+      createAccountViaEndpoint(testBankId, addAccountJson, user1)
 
       When("We grant the role")
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, ApiRole.canDeleteProductCascade.toString)

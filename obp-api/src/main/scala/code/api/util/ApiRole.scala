@@ -306,6 +306,9 @@ object ApiRole {
 
   case class CanUnlockUser (requiresBankId: Boolean = false) extends ApiRole
   lazy val canUnlockUser = CanUnlockUser()
+  
+  case class CanLockUser (requiresBankId: Boolean = false) extends ApiRole
+  lazy val canLockUser = CanLockUser()
 
   case class CanReadUserLockedStatus(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadUserLockedStatus = CanReadUserLockedStatus()

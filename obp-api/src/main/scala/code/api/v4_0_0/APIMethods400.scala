@@ -24,12 +24,14 @@ import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
+import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
 import code.api.v3_1_0.{CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310, ListResult}
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
 import code.bankconnectors.Connector
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.entitlement.Entitlement
+import code.loginattempts.LoginAttempt
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -39,6 +41,7 @@ import code.transactionrequests.MappedTransactionRequestProvider
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.transactionrequests.TransactionRequests.{TransactionRequestStatus, TransactionRequestTypes}
+import code.userlocks.UserLocksProvider
 import code.users.Users
 import code.util.Helper.booleanToBox
 import code.util.{Helper, JsonUtils}
@@ -1314,6 +1317,43 @@ trait APIMethods400 {
           }
         }
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      lockUser,
+      implementedInApiVersion,
+      nameOf(lockUser),
+      "POST",
+      "/users/USERNAME/locks",
+      "Lock the user",
+      s"""
+         |Lock a User.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      userLockStatusJson,
+      List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canLockUser)))
+
+    lazy val lockUser : OBPEndpoint = {
+      case "users" :: username ::  "locks" :: Nil JsonPost req => {
+        cc =>
+          for {
+            (Full(u), callContext) <-  authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canLockUser, callContext)
+            userLocks <- Future { UserLocksProvider.lockUser(username) } map {
+              unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)", 404)
+            }
+          } yield {
+            (JSONFactory400.createUserLockStatusJson(userLocks), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
 
     staticResourceDocs += ResourceDoc(
       getEntitlements,
