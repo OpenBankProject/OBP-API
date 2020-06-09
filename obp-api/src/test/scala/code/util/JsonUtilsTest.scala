@@ -130,4 +130,45 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
   }
+
+  val arrayRoot = json.parse(
+    """
+      |[
+      | {"name": "Shuang", "age": 10},
+      | {"name": "Sean", "age": 11},
+      | ["running", "coding"]
+      |]
+      |""".stripMargin)
+
+  val arrayRootSchema = json.parse(
+    """
+      |{
+      | "firstPerson": "[0]"
+      | "secondName": "[1].name",
+      | "secondHobby": "[2][1]",
+      | "noPerson": "[3]",
+      |}
+      |""".stripMargin)
+
+  val expectedZson = json.parse(
+    """
+      |{
+      |  "firstPerson":{
+      |    "name":"Shuang",
+      |    "age":10
+      |  },
+      |  "secondName":"Sean",
+      |  "secondHobby":"coding"
+      |}
+      |""".stripMargin)
+
+  "get Array type json given index, when exists" should "get given item" taggedAs JsonUtilsTag in {
+    val resultJson = buildJson(arrayRoot, arrayRootSchema)
+
+    val str1 = json.prettyRender(resultJson)
+    println(str1)
+    val str2 = json.prettyRender(expectedZson)
+    str1 shouldEqual str2
+  }
+
 }
