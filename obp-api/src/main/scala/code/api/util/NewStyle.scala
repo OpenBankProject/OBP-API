@@ -2001,6 +2001,12 @@ object NewStyle {
        }
     }
 
+    def getSupportedConnectorNames(): List[String] = {
+      Connector.nameToConnector.keys
+        .filter(it => supportedConnectorNames.exists(it.startsWith(_)))
+        .toList
+    }
+
     def getConnectorByName(connectorName: String): Option[Connector] = {
       if(supportedConnectorNames.exists(connectorName.startsWith _)) {
         Connector.nameToConnector.get(connectorName).map(_())

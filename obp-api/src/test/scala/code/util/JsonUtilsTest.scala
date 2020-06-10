@@ -171,4 +171,131 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     str1 shouldEqual str2
   }
 
+  val zsonList = json.parse(
+    """
+      |[
+      |  {
+      |    "id": "xrest-bank-x--uk",
+      |    "shortName": "bank shortName string",
+      |    "fullName": "bank fullName x from rest connector",
+      |    "logo": "bank logoUrl string",
+      |    "websiteUrl": "bank websiteUrl string",
+      |    "bankRouting": [{
+      |      "Scheme": "BIC",
+      |      "Address": "GENODEM1GLS"
+      |    }],
+      |    "swiftBic": "bank swiftBic string",
+      |    "nationalIdentifier": "bank nationalIdentifier string"
+      |  },
+      |  {
+      |    "id": "xrest-bank-y--uk",
+      |    "shortName": "bank shortName y",
+      |    "fullName": "bank fullName y  from rest connector",
+      |    "logo": "bank logoUrl y",
+      |    "websiteUrl": "bank websiteUrl y",
+      |    "bankRouting": [{
+      |      "Scheme": "BIC2",
+      |      "Address": "GENODEM1GLS2"
+      |    }],
+      |    "swiftBic": "bank swiftBic string",
+      |    "nationalIdentifier": "bank nationalIdentifier string"
+      |  }
+      |]
+      |""".stripMargin)
+  val zsonListSchema = json.parse(
+    """
+      |{
+      |  "inboundAdapterCallContext$default":{
+      |    "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+      |    "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+      |    "generalContext":[{
+      |      "key":"5987953",
+      |      "value":"FYIUYF6SUYFSD"
+      |    }]
+      |  },
+      |  "status$default":{
+      |    "errorCode":"status error code string",
+      |    "backendMessages":[{
+      |      "source":"",
+      |      "status":"Status string",
+      |      "errorCode":"",
+      |      "text":"text string"
+      |    }]
+      |  },
+      |  "data[]":{
+      |    "bankId[]":{
+      |      "value":"id"
+      |    },
+      |    "shortName[]":"shortName",
+      |    "fullName[]":"fullName",
+      |    "logoUrl[]":"logo",
+      |    "websiteUrl[]":"websiteUrl",
+      |    "bankRoutingScheme[]":"bankRouting.Scheme",
+      |    "bankRoutingAddress[]":"bankRouting.Address",
+      |    "swiftBic[]":"swiftBic",
+      |    "nationalIdentifier[]":"swiftBic"
+      |  }
+      |}
+      |""".stripMargin)
+  val expectListResult = json.parse(
+    """
+      |{
+      |  "inboundAdapterCallContext":{
+      |    "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+      |    "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+      |    "generalContext":[
+      |      {
+      |        "key":"5987953",
+      |        "value":"FYIUYF6SUYFSD"
+      |      }
+      |    ]
+      |  },
+      |  "status":{
+      |    "errorCode":"status error code string",
+      |    "backendMessages":[
+      |      {
+      |        "source":"",
+      |        "status":"Status string",
+      |        "errorCode":"",
+      |        "text":"text string"
+      |      }
+      |    ]
+      |  },
+      |  "data":[
+      |    {
+      |      "bankId":{
+      |        "value":"xrest-bank-x--uk"
+      |      },
+      |      "shortName":"bank shortName string",
+      |      "fullName":"bank fullName x from rest connector",
+      |      "logoUrl":"bank logoUrl string",
+      |      "websiteUrl":"bank websiteUrl string",
+      |      "bankRoutingScheme":"BIC",
+      |      "bankRoutingAddress":"GENODEM1GLS",
+      |      "swiftBic":"bank swiftBic string",
+      |      "nationalIdentifier":"bank swiftBic string"
+      |    },
+      |    {
+      |      "bankId":{
+      |        "value":"xrest-bank-y--uk"
+      |      },
+      |      "shortName":"bank shortName y",
+      |      "fullName":"bank fullName y  from rest connector",
+      |      "logoUrl":"bank logoUrl y",
+      |      "websiteUrl":"bank websiteUrl y",
+      |      "bankRoutingScheme":"BIC2",
+      |      "bankRoutingAddress":"GENODEM1GLS2",
+      |      "swiftBic":"bank swiftBic string",
+      |      "nationalIdentifier":"bank swiftBic string"
+      |    }
+      |  ]
+      |}
+      |""".stripMargin)
+  "list type fields" should "properly be convert" taggedAs JsonUtilsTag in {
+    val resultJson = buildJson(zsonList, zsonListSchema)
+
+    val str1 = json.prettyRender(resultJson)
+    val str2 = json.prettyRender(expectListResult)
+    str1 shouldEqual str2
+  }
 }
