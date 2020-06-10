@@ -57,7 +57,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
   }
   
   feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
-    lazy val customerId = createAndGetCustomerId(bankId, user1)
+    lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "user_customer_links" / "customers" / customerId ).GET
@@ -68,7 +68,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
     }
   }
   feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access") {
-    lazy val customerId = createAndGetCustomerId(bankId, user1)
+    lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "user_customer_links" / "customers" / customerId).GET <@(user1)
@@ -102,7 +102,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
   }
 
   feature(s"test $ApiEndpoint1, $ApiEndpoint2, $ApiEndpoint4 version $VersionOfApi - All good") {
-    lazy val customerId = createAndGetCustomerId(bankId, user1)
+    lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
     lazy val postJson = SwaggerDefinitionsJSON.createUserCustomerLinkJson
       .copy(user_id = firstUserId, customer_id = customerId)
     
@@ -133,7 +133,6 @@ class UserCustomerLinkTest extends V400ServerSetup {
       val deleteRequest = (v4_0_0_Request / "banks" / bankId / "user_customer_links" / user_customer_link_id).DELETE <@(user1)
       val deleteResponse = makeDeleteRequest(deleteRequest)
       Then("We should get a 200")
-      org.scalameta.logger.elem(deleteResponse)
       deleteResponse.code should equal(200)
       
       // 2nd Delete User Customer Link call should fail due to already deleted row in a table

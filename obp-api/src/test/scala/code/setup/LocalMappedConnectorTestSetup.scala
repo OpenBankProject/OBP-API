@@ -116,9 +116,9 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .toTransaction.orNull
   }
 
-  override protected def createTransactionRequest(account: BankAccount) = {
+  override protected def createTransactionRequest(account: BankAccount): List[MappedTransactionRequest] = {
   
-    MappedTransactionRequest.create
+    val firstRequest = MappedTransactionRequest.create
       .mTransactionRequestId(APIUtil.generateUUID())
       .mType("SANDBOX_TAN")
       .mFrom_BankId(account.bankId.value)
@@ -133,7 +133,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .mEndDate(now)
       .saveMe
   
-    MappedTransactionRequest.create
+    val secondRequest = MappedTransactionRequest.create
       .mTransactionRequestId(APIUtil.generateUUID())
       .mType("SANDBOX_TAN")
       .mFrom_BankId(account.bankId.value)
@@ -147,6 +147,8 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .mStartDate(now)
       .mEndDate(now)
       .saveMe
+    
+    List(firstRequest, secondRequest)
   }
   
   override protected def wipeTestData() = {

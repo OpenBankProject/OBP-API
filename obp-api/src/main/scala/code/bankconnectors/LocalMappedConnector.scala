@@ -3150,10 +3150,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           val deleteResult: Boolean = DynamicDataProvider.connectorMethodProvider.vend.delete(entityName, id)
           Full(JBool(deleteResult))
         }
-        case IS_EXISTS_DATA => {
-          val isExistsData: Boolean = DynamicDataProvider.connectorMethodProvider.vend.existsData(entityName)
-          Full(JBool(isExistsData))
-        }
       }
       (processResult, callContext)
     }

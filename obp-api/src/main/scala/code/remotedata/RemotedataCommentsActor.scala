@@ -30,6 +30,10 @@ class RemotedataCommentsActor extends Actor with ObpActorHelper with MdcLoggable
     case cc.bulkDeleteComments(bankId: BankId, accountId: AccountId) =>
       logger.debug(s"bulkDeleteComments($bankId, $accountId)")
       sender ! (mapper.bulkDeleteComments(bankId, accountId))
+      
+    case cc.bulkDeleteCommentsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId) =>
+      logger.debug(s"bulkDeleteComments($bankId, $accountId, $transactionId)")
+      sender ! (mapper.bulkDeleteCommentsOnTransaction(bankId, accountId, transactionId))
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

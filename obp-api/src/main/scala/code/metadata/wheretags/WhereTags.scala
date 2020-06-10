@@ -33,6 +33,8 @@ trait WhereTags {
 
   def getWhereTagForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Box[GeoTag]
 
+  def bulkDeleteWhereTagsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId) : Boolean
+  
   def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId) : Boolean
 
 }
@@ -41,6 +43,7 @@ class RemotedataWhereTagsCaseClasses {
   case class addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserPrimaryKey, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double)
   case class deleteWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, viewId : ViewId)
   case class getWhereTagForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId, viewId : ViewId)
+  case class bulkDeleteWhereTagsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
   case class bulkDeleteWhereTags(bankId: BankId, accountId: AccountId)
 }
 

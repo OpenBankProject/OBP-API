@@ -81,6 +81,10 @@ object RemotedataTransactionRequests extends ObpActorInit with TransactionReques
   def bulkDeleteTransactionRequests(): Boolean = getValueFromFuture(
     (actor ? cc.bulkDeleteTransactionRequests()).mapTo[Boolean]
   )
+  
+  override def bulkDeleteTransactionRequestsByTransactionId(transactionId: TransactionId): Boolean = getValueFromFuture(
+    (actor ? cc.bulkDeleteTransactionRequestsByTransactionId(transactionId)).mapTo[Boolean]
+  )
 
 
 }

@@ -161,6 +161,7 @@ object ErrorMessages {
   val ElasticSearchDisabled  = "OBP-20056: Elasticsearch is disabled for this API instance."
   val UserNotFoundByUserId = "OBP-20057: User not found by userId."
   val ConsumerIsDisabled = "OBP-20058: Consumer is disabled."
+  val CouldNotGetUserLockStatus = "OBP-20059: Could not get the lock status of the user."
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
 
@@ -466,6 +467,9 @@ object ErrorMessages {
   val InvalidBankIdRegex = "OBP-70001: Incorrect regex for bankIdPattern."
   val MethodRoutingNotFoundByMethodRoutingId = "OBP-70002: MethodRouting not found. Please specify a valid value for method_routing_id."
 
+  // Cascade Deletion Exceptions (OBP-8XXXX)
+  val CouldNotDeleteCascade = "OBP-80001: Could not delete cascade."
+  
   ///////////
 
   private val ObpErrorMsgPattern = Pattern.compile("OBP-\\d+:.+")
