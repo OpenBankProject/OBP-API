@@ -224,6 +224,21 @@ object Migration extends MdcLoggable {
         hasTable(rs)
       }
     }
+    /**
+      * The purpose is to provide answer does a procedure exist at a database instance.
+      */
+    def procedureExists(name: String, connection: SuperConnection): Boolean = {
+      val md = connection.getMetaData
+      using(md.getProcedures(null, getDefaultSchemaName(connection), null)){ rs =>
+        def hasProcedure(rs: ResultSet): Boolean =
+          if (!rs.next) false
+          else rs.getString(3) match {
+            case s if s.toLowerCase == name => true
+            case _ => hasProcedure(rs)
+          }
+        hasProcedure(rs)
+      }
+    }
 
     /**
       * This function is copied from the module "net.liftweb.mapper.Schemifier".
