@@ -1,15 +1,15 @@
 package code.bankconnectors.akka
 
-import java.util.Date
-
 import akka.pattern.ask
 import code.actorsystem.ObpLookupSystem
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.{bankAccountCommons, bankCommons, transactionCommons, _}
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType}
+import code.api.util.ErrorMessages.{AdapterUnknownError, AdapterNotImplemented}
 import code.api.util.ExampleValue._
 import code.api.util._
 import code.bankconnectors._
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model._
 import com.sksamuel.avro4s.SchemaFor
@@ -17,7 +17,6 @@ import net.liftweb.common.{Box, Full}
 import net.liftweb.json.parse
 
 import scala.collection.immutable.{List, Nil}
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
@@ -26,6 +25,13 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   val messageFormat: String = "Dec2018"
   
   lazy val southSideActor = ObpLookupSystem.getAkkaConnectorActor(AkkaConnectorHelperActor.actorName)
+
+  private def recoverFunction[U]: PartialFunction[Throwable, Future[U]] = {
+    case e: ClassCastException =>
+      Future.failed(new Exception(AdapterNotImplemented, e))
+    case e: Exception =>
+      Future.failed(new Exception(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}", e))
+  }
 
   messageDocs += MessageDoc(
     process = "obp.getAdapterInfo",
@@ -49,7 +55,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
   override def getAdapterInfo(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
     val req = OutBoundGetAdapterInfo(callContext.map(_.toOutboundAdapterCallContext).get)
-    val response = (southSideActor ? req).mapTo[InBoundGetAdapterInfo]
+    val response = (southSideActor ? req).mapTo[InBoundGetAdapterInfo] recoverWith { recoverFunction }
     response.map(r => Full(r.data, callContext))
   }
 
@@ -76,7 +82,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   
   override def getBanks(callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = {
     val req = OutBoundGetBanks(callContext.map(_.toOutboundAdapterCallContext).get)
-    val response: Future[InBoundGetBanks] = (southSideActor ? req).mapTo[InBoundGetBanks]
+    val response: Future[InBoundGetBanks] = (southSideActor ? req).mapTo[InBoundGetBanks] recoverWith { recoverFunction }
     response.map(r => Full(r.data, callContext))
   }
 
@@ -104,7 +110,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
   override def getBank(bankId : BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = {
     val req = OutBoundGetBank(callContext.map(_.toOutboundAdapterCallContext).get, bankId)
-    val response: Future[InBoundGetBank] = (southSideActor ? req).mapTo[InBoundGetBank]
+    val response: Future[InBoundGetBank] = (southSideActor ? req).mapTo[InBoundGetBank] recoverWith { recoverFunction }
     response.map(r => Full(r.data, callContext))
   }
 
@@ -130,7 +136,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
   override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = {
     val req = OutBoundGetBankAccountsForUser(callContext.map(_.toOutboundAdapterCallContext).get, username)
-    val response = (southSideActor ? req).mapTo[InBoundGetBankAccountsForUser]
+    val response = (southSideActor ? req).mapTo[InBoundGetBankAccountsForUser] recoverWith { recoverFunction }
     response.map(a =>(Full(a.data, callContext)))
   }
   
@@ -158,7 +164,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
   override def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) = {
     val req = OutBoundCheckBankAccountExists(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId)
-    val response: Future[InBoundCheckBankAccountExists] = (southSideActor ? req).mapTo[InBoundCheckBankAccountExists]
+    val response: Future[InBoundCheckBankAccountExists] = (southSideActor ? req).mapTo[InBoundCheckBankAccountExists] recoverWith { recoverFunction }
     response.map(a =>(Full(a.data), callContext))
     
   }
@@ -187,7 +193,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
   override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
     val req = OutBoundGetBankAccount(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId)
-    val response = (southSideActor ? req).mapTo[InBoundGetBankAccount]
+    val response = (southSideActor ? req).mapTo[InBoundGetBankAccount] recoverWith { recoverFunction }
     response.map(a =>(Full(a.data), callContext))
   }
 
@@ -222,7 +228,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
   override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = {
     val req = OutBoundGetCoreBankAccounts(callContext.map(_.toOutboundAdapterCallContext).get, BankIdAccountIds) 
-    val response = (southSideActor ? req).mapTo[InBoundGetCoreBankAccounts]
+    val response = (southSideActor ? req).mapTo[InBoundGetCoreBankAccounts] recoverWith { recoverFunction }
     response.map(a =>(Full(a.data, callContext)))
   }
 
@@ -253,7 +259,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
   override def getCustomersByUserId(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = {
     val req = OutBoundGetCustomersByUserId(callContext.map(_.toOutboundAdapterCallContext).get, userId)
-    val response= (southSideActor ? req).mapTo[InBoundGetCustomersByUserId]
+    val response= (southSideActor ? req).mapTo[InBoundGetCustomersByUserId] recoverWith { recoverFunction }
     response.map(a =>(Full(a.data, callContext)))
   }
 
@@ -289,7 +295,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     val toDate = queryParams.collect { case OBPToDate(date) => APIUtil.DateWithMsFormat.format(date) }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
 
     val req = OutBoundGetTransactions(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId, limit, offset, fromDate, toDate)
-    val response: Future[InBoundGetTransactions] = (southSideActor ? req).mapTo[InBoundGetTransactions]
+    val response: Future[InBoundGetTransactions] = (southSideActor ? req).mapTo[InBoundGetTransactions] recoverWith { recoverFunction }
     response.map(a =>(Full(a.data), callContext))
   }
 
@@ -318,7 +324,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
   override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = {
     val req = OutBoundGetTransaction(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId, transactionId)
-    val response= (southSideActor ? req).mapTo[InBoundGetTransaction]
+    val response= (southSideActor ? req).mapTo[InBoundGetTransaction] recoverWith { recoverFunction }
     response.map(a =>(Full(a.data), callContext))
   }
  
