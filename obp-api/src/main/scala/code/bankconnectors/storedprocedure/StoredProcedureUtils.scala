@@ -126,8 +126,7 @@ object StoredProceduresMockedData {
         create()
       case (_, _) if thereIsTheProcedure => 
         drop()
-      case _ => 
-        ""
+      case _ =>
         ""
     }
   }

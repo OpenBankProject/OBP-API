@@ -291,6 +291,9 @@ case class UserLockStatusJson(
                                type_of_lock: String,
                                last_lock_date : Date
                              )
+
+case class DatabaseInfoJson(product_name: String, product_version: String)
+case class DatabaseInfoJson(product_name: String, product_version: String)
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
