@@ -59,8 +59,8 @@ class AccountTest extends V400ServerSetup {
       Given("We prepare the accounts in V300ServerSetup, just check the response")
 
       lazy val bankId = randomBankId
-      lazy val bankAccount = randomPrivateAccount(bankId)
-      lazy val view = randomOwnerViewPermalink(bankId, bankAccount)
+      lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
+      lazy val view = randomOwnerViewPermalinkViaEndpoint(bankId, bankAccount)
 
       When("We send the request")
       val request = (v4_0_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "account").GET <@ (user1)
@@ -151,7 +151,7 @@ class AccountTest extends V400ServerSetup {
       
       When("We will first prepare the product")
       val product: ProductJsonV310 =
-        createProduct(
+        createProductViaEndpoint(
           bankId=testBankId,
           code=APIUtil.generateUUID(),
           json=parentPostPutProductJsonV310

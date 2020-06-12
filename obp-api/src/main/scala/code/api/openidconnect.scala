@@ -31,6 +31,7 @@ import java.net.HttpURLConnection
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ErrorMessages, JwtUtil}
 import code.consumer.Consumers
+import code.loginattempts.LoginAttempt
 import code.model.{AppType, Consumer}
 import code.model.dataAccess.AuthUser
 import code.snippet.OpenIDConnectSessionState
@@ -107,7 +108,9 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
           JwtUtil.validateIdToken(idToken, OpenIdConnectConfig.get(identityProvider).jwks_uri) match {
             case Full(_) =>
               getOrCreateResourceUser(idToken) match {
-                case Full(user) =>
+                case Full(user) if LoginAttempt.userIsLocked(user.name) => // User is locked
+                  (401, ErrorMessages.UsernameHasBeenLocked, None)
+                case Full(user) => // All good
                   getOrCreateAuthUser(user) match {
                     case Full(authUser) =>
                       getOrCreateConsumer(idToken, user.userId) match {

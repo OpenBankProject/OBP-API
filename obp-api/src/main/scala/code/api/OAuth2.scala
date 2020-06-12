@@ -28,19 +28,21 @@ package code.api
 
 import java.net.URI
 
-import code.api.util.{APIUtil, CallContext, ErrorMessages, JwtUtil}
+import code.api.util.ErrorMessages._
+import code.api.util.{APIUtil, CallContext, JwtUtil}
 import code.consumer.Consumers
+import code.loginattempts.LoginAttempt
 import code.model.Consumer
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers
 
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 /**
@@ -73,7 +75,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
           MITREId.applyRules(value, cc)
         }
       case false =>
-        (Failure(ErrorMessages.Oauth2IsNotAllowed), Some(cc))
+        (Failure(Oauth2IsNotAllowed), Some(cc))
     }
   }
   /*
@@ -91,7 +93,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
           MITREId.applyRulesFuture(value, cc)
         }
       case false =>
-        Future((Failure(ErrorMessages.Oauth2IsNotAllowed), Some(cc)))
+        Future((Failure(Oauth2IsNotAllowed), Some(cc)))
     }
   }
 
@@ -107,20 +109,23 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         case Failure(msg, t, c) =>
           Failure(msg, t, c)
         case _ =>
-          Failure(ErrorMessages.Oauth2ThereIsNoUrlOfJwkSet)
+          Failure(Oauth2ThereIsNoUrlOfJwkSet)
       }
     }
     def applyRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
       validateAccessToken(value) match {
         case Full(_) =>
           val username = JwtUtil.getSubject(value).getOrElse("")
-          (Users.users.vend.getUserByUserName(username), Some(cc))
+          LoginAttempt.userIsLocked(username) match {
+            case true => (Failure(UsernameHasBeenLocked), Some(cc))
+            case false => (Users.users.vend.getUserByUserName(username), Some(cc))
+          }
         case ParamFailure(a, b, c, apiFailure : APIFailure) =>
           (ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc))
         case Failure(msg, t, c) =>
           (Failure(msg, t, c), Some(cc))
         case _ =>
-          (Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(cc))
+          (Failure(Oauth2IJwtCannotBeVerified), Some(cc))
       }
     }
     def applyRulesFuture(value: String, cc: CallContext): Future[(Box[User], Some[CallContext])] = {
@@ -130,14 +135,17 @@ object OAuth2Login extends RestHelper with MdcLoggable {
           for {
             user <- Users.users.vend.getUserByUserNameFuture(username)
           } yield {
-            (user, Some(cc))
+            LoginAttempt.userIsLocked(username) match {
+              case true => (Failure(UsernameHasBeenLocked), Some(cc))
+              case false => (user, Some(cc))
+            }
           }
         case ParamFailure(a, b, c, apiFailure : APIFailure) =>
           Future((ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc)))
         case Failure(msg, t, c) =>
           Future((Failure(msg, t, c), Some(cc)))
         case _ =>
-          Future((Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(cc)))
+          Future((Failure(Oauth2IJwtCannotBeVerified), Some(cc)))
       }
     }
     
@@ -155,7 +163,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       val jwksUri = jwksUris.filter(_.contains(identityProvider))
       jwksUri match {
         case x :: _ => Full(x)
-        case Nil => Failure(ErrorMessages.Oauth2CannotMatchIssuerAndJwksUriException)
+        case Nil => Failure(Oauth2CannotMatchIssuerAndJwksUriException)
       }
     }
     
@@ -178,7 +186,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         case Failure(msg, t, c) =>
           Failure(msg, t, c)
         case _ =>
-          Failure(ErrorMessages.Oauth2ThereIsNoUrlOfJwkSet)
+          Failure(Oauth2ThereIsNoUrlOfJwkSet)
       }
     }
     /** New Style Endpoints
@@ -281,34 +289,45 @@ object OAuth2Login extends RestHelper with MdcLoggable {
     def applyRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
       validateIdToken(value) match {
         case Full(_) =>
-          val user = Google.getOrCreateResourceUser(value)
-          val consumer = Google.getOrCreateConsumer(value, user.map(_.userId))
-          (user, Some(cc.copy(consumer = consumer)))
+          val user = IdentityProviderCommon.getOrCreateResourceUser(value)
+          val consumer = IdentityProviderCommon.getOrCreateConsumer(value, user.map(_.userId))
+          LoginAttempt.userIsLocked(user.map(_.name).getOrElse("")) match {
+            case true => ((Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer))))
+            case false => (user, Some(cc.copy(consumer = consumer)))
+          }
         case ParamFailure(a, b, c, apiFailure : APIFailure) =>
           (ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc))
         case Failure(msg, t, c) =>
           (Failure(msg, t, c), Some(cc))
         case _ =>
-          (Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(cc))
+          (Failure(Oauth2IJwtCannotBeVerified), Some(cc))
       }
     }
     def applyRulesFuture(value: String, cc: CallContext): Future[(Box[User], Some[CallContext])] = {
       validateIdToken(value) match {
         case Full(_) =>
           for {
-            user <-  Google.getOrCreateResourceUserFuture(value)
-            consumer <-  Future{Google.getOrCreateConsumer(value, user.map(_.userId))}
+            user <-  IdentityProviderCommon.getOrCreateResourceUserFuture(value)
+            consumer <-  Future{IdentityProviderCommon.getOrCreateConsumer(value, user.map(_.userId))}
           } yield {
-            (user, Some(cc.copy(consumer = consumer)))
+            LoginAttempt.userIsLocked(user.map(_.name).getOrElse("")) match {
+              case true => ((Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer))))
+              case false => (user, Some(cc.copy(consumer = consumer)))
+            }
           }
         case ParamFailure(a, b, c, apiFailure : APIFailure) =>
           Future((ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc)))
         case Failure(msg, t, c) =>
           Future((Failure(msg, t, c), Some(cc)))
         case _ =>
-          Future((Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(cc)))
+          Future((Failure(Oauth2IJwtCannotBeVerified), Some(cc)))
       }
     }
+  }
+  
+  object IdentityProviderCommon extends OAuth2Util {
+    override def wellKnownOpenidConfiguration: URI = new URI("")
+    override def urlOfJwkSets: Box[String] = checkUrlOfJwkSets(identityProvider = "common")
   }
 
   object Google extends OAuth2Util {

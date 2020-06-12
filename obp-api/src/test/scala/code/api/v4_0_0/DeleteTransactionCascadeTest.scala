@@ -31,7 +31,7 @@ class DeleteTransactionCascadeTest extends V400ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.deleteTransactionCascade))
 
   lazy val bankId = randomBankId
-  lazy val bankAccount = randomPrivateAccount(bankId)
+  lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {

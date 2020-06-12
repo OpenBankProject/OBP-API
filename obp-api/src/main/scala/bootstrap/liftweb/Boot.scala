@@ -105,6 +105,7 @@ import code.transaction_types.MappedTransactionType
 import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
+import code.userlocks.UserLocks
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
@@ -789,6 +790,7 @@ object ToSchemify {
     MappedPhysicalCard,
     PinReset,
     MappedBadLoginAttempt,
+    UserLocks,
     MappedFXRate,
     MappedCurrency,
     MappedTransactionRequestTypeCharge,
