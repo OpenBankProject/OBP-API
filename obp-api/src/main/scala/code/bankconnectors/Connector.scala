@@ -55,12 +55,13 @@ import com.openbankproject.commons.util.ReflectUtils
 import com.openbankproject.commons.util.Functions.lazyValue
 import net.liftweb.json
 
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
 import scala.reflect.runtime.universe.{MethodSymbol, typeOf}
 import _root_.akka.http.scaladsl.model.HttpMethod
+import com.openbankproject.commons.dto.InBoundTrait
 
 /*
 So we can switch between different sources of resources e.g.
@@ -212,6 +213,15 @@ trait Connector extends MdcLoggable {
     connectorMethods ++ result // result put after ++ to make sure methods of Connector's subtype be kept when name conflict.
   }
 
+  protected implicit def boxToTuple[T](box: Box[(T, Option[CallContext])]): (Box[T], Option[CallContext]) =
+    (box.map(_._1), box.flatMap(_._2))
+
+  protected implicit def tupleToBoxTuple[T](tuple: (Box[T], Option[CallContext])): Box[(T, Option[CallContext])] =
+    tuple._1.map(it => (it, tuple._2))
+
+  protected implicit def tupleToBox[T](tuple: (Box[T], Option[CallContext])): Box[T] = tuple._1
+
+
   /**
     * convert original return type future to OBPReturnType
     *
@@ -219,9 +229,8 @@ trait Connector extends MdcLoggable {
     * @tparam T future success value type
     * @return OBPReturnType type future
     */
-  protected implicit def futureReturnTypeToOBPReturnType[T](future: Future[Box[(T, Option[CallContext])]]): OBPReturnType[Box[T]] = future map {
-    boxedTuple => (boxedTuple.map(_._1), boxedTuple.map(_._2).getOrElse(None))
-  }
+  protected implicit def futureReturnTypeToOBPReturnType[T](future: Future[Box[(T, Option[CallContext])]]): OBPReturnType[Box[T]] =
+    future map boxToTuple
 
   /**
     * convert OBPReturnType return type to original future type
@@ -230,8 +239,61 @@ trait Connector extends MdcLoggable {
     * @tparam T future success value type
     * @return original future type
     */
-  protected implicit def OBPReturnTypeToFutureReturnType[T](value: OBPReturnType[Box[T]]): Future[Box[(T, Option[CallContext])]] = value.map {
-    tuple => tuple._1.map((_, tuple._2))
+  protected implicit def OBPReturnTypeToFutureReturnType[T](value: OBPReturnType[Box[T]]): Future[Box[(T, Option[CallContext])]] =
+    value map tupleToBoxTuple
+
+  private val futureTimeOut: Duration = 20 seconds
+  /**
+    * convert OBPReturnType return type to Tuple type
+    *
+    * @param value Tuple return type
+    * @tparam T future success value type
+    * @return original future tuple box type
+    */
+  protected implicit def OBPReturnTypeToTupleBox[T](value: OBPReturnType[Box[T]]): (Box[T], Option[CallContext]) =
+    Await.result(value, futureTimeOut)
+
+  /**
+    * convert OBPReturnType return type to Box Tuple type
+    *
+    * @param value Box Tuple return type
+    * @tparam T future success value type
+    * @return original future box tuple type
+    */
+  protected implicit def OBPReturnTypeToBoxTuple[T](value: OBPReturnType[Box[T]]):  Box[(T, Option[CallContext])] =
+    Await.result(
+      OBPReturnTypeToFutureReturnType(value), 30 seconds
+    )
+
+  /**
+    * convert OBPReturnType return type to Box value
+    *
+    * @param value Box Tuple return type
+    * @tparam T future success value type
+    * @return original future box value
+    */
+  protected implicit def OBPReturnTypeToBox[T](value: OBPReturnType[Box[T]]): Box[T] =
+    Await.result(
+      value.map(_._1),
+      30 seconds
+    )
+
+  protected def convertToTuple[T](callContext: Option[CallContext])(inbound: Box[InBoundTrait[T]]): (Box[T], Option[CallContext]) = {
+    val boxedResult = inbound match {
+      case Full(in) if (in.status.hasNoError) => Full(in.data)
+      case Full(inbound) if (inbound.status.hasError) => {
+        val errorMessage = "CoreBank - Status: " + inbound.status.backendMessages
+        val errorCode: Int = try {
+          inbound.status.errorCode.toInt
+        } catch {
+          case _: Throwable => 400
+        }
+        ParamFailure(errorMessage, Empty, Empty, APIFailure(errorMessage, errorCode))
+      }
+      case failureOrEmpty: Failure => failureOrEmpty
+    }
+
+    (boxedResult, callContext)
   }
 
   /**

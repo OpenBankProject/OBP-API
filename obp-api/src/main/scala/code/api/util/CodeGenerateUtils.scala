@@ -3,7 +3,7 @@ package code.api.util
 import java.util.Date
 
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
-import com.openbankproject.commons.model.{CardAction, CardReplacementReason, PinResetReason}
+import com.openbankproject.commons.model.{CardAction, CardReplacementReason, InboundAdapterCallContext, OutboundAdapterCallContext, PinResetReason, Status}
 import com.openbankproject.commons.util.{EnumValue, ReflectUtils}
 import org.apache.commons.lang3.StringUtils
 
@@ -15,6 +15,41 @@ import scala.reflect.runtime.{universe => ru}
 object CodeGenerateUtils {
 
   /**
+   * when create example, if fieldName and|or fieldType match, the example is fixed value
+   * @param fieldName fieldName, this value can be null, but should not together with tp are both null
+   * @param tp fieldType, this value can be null, but should not together with fieldName are both null
+   * @param example example string
+   */
+  private case class NameTypeExample(fieldName: String, tp: Type, example: String) {
+    assert(StringUtils.isNotBlank(fieldName) || tp != null, s"fieldName and tp should not both empty")
+
+    def isFieldMatch(fieldName: String, tp: Type): Boolean =
+      if(tp != null && StringUtils.isNotBlank(this.fieldName)) {
+        this.tp <:< tp && fieldName == this.fieldName
+      } else if(tp != null) {
+        this.tp <:< tp
+      } else {
+        fieldName == this.fieldName
+      }
+
+    def getExample(fieldName: String, tp: Type): Option[String] =
+      if(isFieldMatch(fieldName, tp)) {
+        Some(example)
+      } else {
+        None
+      }
+  }
+  // fixed example for given field or type
+  private val fixedExamples: List[NameTypeExample] = List(
+    NameTypeExample(null, typeOf[OutboundAdapterCallContext], "MessageDocsSwaggerDefinitions.outboundAdapterCallContext"),
+    NameTypeExample(null, typeOf[InboundAdapterCallContext], "MessageDocsSwaggerDefinitions.inboundAdapterCallContext"),
+    NameTypeExample("status", typeOf[Status], "MessageDocsSwaggerDefinitions.inboundStatus"),
+  )
+
+  private def getFixedExample(fieldName: String, tp: Type): Option[String] =
+    fixedExamples.find(_.isFieldMatch(fieldName, tp)).map(_.example)
+
+  /**
     * create messageDocs example object string, for example exampleOutboundMessage and exampleInboundMessage,
     * this is just return a string for code generation
     * @param tp to generate type of object
@@ -24,7 +59,11 @@ object CodeGenerateUtils {
     * @return initialize object string
     */
   def createDocExample(tp: ru.Type, fieldName: Option[String] = None, parentFieldName: Option[String] = None, parentType: Option[ru.Type] = None): String = {
-    if(tp =:= typeOf[CardAction]) {
+    // if given fieldName and tp have fixed example, just return fixed example
+    val fixedExample = getFixedExample(fieldName.orNull, tp)
+    if(fixedExample.isDefined) {
+      return fixedExample.get
+    } else if(tp =:= typeOf[CardAction]) {
       return "com.openbankproject.commons.model.CardAction.DEBIT"
     } else if(tp =:= typeOf[CardReplacementReason]) {
       return "com.openbankproject.commons.model.CardReplacementReason.FIRST"

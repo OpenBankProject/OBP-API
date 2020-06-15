@@ -1,12 +1,11 @@
-package code.bankconnectors.rest
+package code.bankconnectors.akka
 
 import code.bankconnectors.ConnectorBuilderUtil
 
 import scala.collection.immutable.List
 import scala.language.postfixOps
 
-object RestConnectorBuilder extends App {
-
+object AkkaConnectorBuilder extends App {
 
   val genMethodNames = List(
     //    "getEmptyBankAccount", //not useful!
@@ -186,8 +185,7 @@ object RestConnectorBuilder extends App {
     "getCustomerByCustomerIdLegacy",
   )
 
-  ConnectorBuilderUtil.buildMethods(genMethodNames,
-    "src/main/scala/code/bankconnectors/rest/RestConnector_vMar2019.scala",
-    methodName => s"""sendRequest[InBound](getUrl(callContext, "$methodName"), HttpMethods.POST, req, callContext)""")
+  ConnectorBuilderUtil.generateMethods(genMethodNames,
+    "src/main/scala/code/bankconnectors/akka/AkkaConnector_vDec2018.scala",
+    "(southSideActor ? req).mapTo[InBound].map(Box !!(_))")
 }
-
