@@ -106,6 +106,7 @@ import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
+import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
@@ -471,7 +472,7 @@ class Boot extends MdcLoggable {
           Menu.i("Plain") / "plain",
           Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
           	submenus(Consumer.menus : _*),
-          Menu("Consumer Registration", "Get API Key") / "consumer-registration" >> AuthUser.loginFirst,
+          Menu("Consumer Registration", Helper.i18n("consumer.registration.nav.name")) / "consumer-registration" >> AuthUser.loginFirst,
           Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
 
           Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,

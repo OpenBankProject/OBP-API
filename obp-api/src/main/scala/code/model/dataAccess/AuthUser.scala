@@ -127,20 +127,20 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
 
   override lazy val password = new MyPasswordNew
   
-  def signupPasswordRepeatText = getWebUiPropsValue("webui_signup_body_password_repeat_text", S.?("repeat"))
-  
+  lazy val signupPasswordRepeatText = getWebUiPropsValue("webui_signup_body_password_repeat_text", S.?("repeat"))
+ 
   class MyPasswordNew extends MappedPassword(this) {
-
+    lazy val preFilledPassword = if (APIUtil.getPropsAsBoolValue("allow_pre_filled_password", true)) {get.toString} else ""
     override def _toForm: Box[NodeSeq] = {
       S.fmapFunc({s: List[String] => this.setFromAny(s)}){funcName =>
         Full(
           <span>
-            {appendFieldId(<input id="textPassword" type={formInputType} name={funcName} value={get.toString}/>)}
+            {appendFieldId(<input id="textPassword" type={formInputType} name={funcName} value={preFilledPassword}/>)}
             <div id="signup-error" class="alert alert-danger hide">
               <span data-lift={s"Msg?id=${uniqueFieldId.getOrElse("")}&errorClass=error"}/>
             </div>
             <div id ="repeat-password">{signupPasswordRepeatText}</div>
-            <input id="textPasswordRepeat" type={formInputType} name={funcName} value={get.toString}/>
+            <input id="textPasswordRepeat" type={formInputType} name={funcName} value={preFilledPassword}/>
             <div id="signup-error" class="alert alert-danger hide">
               <span data-lift={s"Msg?id=${uniqueFieldId.getOrElse("")}_repeat&errorClass=error"}/>
             </div>
