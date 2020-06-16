@@ -37,7 +37,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     // Search by primary key
     case str if str.matches("\\d+") => Some(str) 
     // Get consumer by UUID, extract a primary key and then search by the primary key
-    case str => MappedConsumersProvider.getConsumerByConsumerId(str).map(_.id.get.toString).toOption 
+    // This can not be empty here, it need return the value back as the parameter 
+    case str => MappedConsumersProvider.getConsumerByConsumerId(str).map(_.id.get.toString).toOption.orElse(Some(str)) 
   }
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String): Unit = {
