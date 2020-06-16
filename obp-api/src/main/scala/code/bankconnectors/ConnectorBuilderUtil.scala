@@ -32,6 +32,10 @@ object ConnectorBuilderUtil {
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
   private val clazz: ru.ClassSymbol = ru.typeOf[Connector].typeSymbol.asClass
   private val classMirror: ru.ClassMirror = mirror.reflectClass(clazz)
+  /*
+    * generateMethods and buildMethods has the same function, only responseExpression parameter type
+    * different, because overload method can't compile for different responseExpression parameter.
+   */
 
   def generateMethods(connectorMethodNames: List[String], connectorCodePath: String, responseExpression: String,
                       setTopic: Boolean = false, doCache: Boolean = false) =
@@ -159,16 +163,16 @@ object ConnectorBuilderUtil {
       }
 
       val callContext = if(hasCallContext) {
-        "callContext"
+        ""
       } else {
-        "None"
+        "\n        val callContext: Option[CallContext] = None"
       }
 
       var body =
-      s"""|    import com.openbankproject.commons.dto.{$outBoundName => OutBound, $inBoundName => InBound}
+      s"""|    import com.openbankproject.commons.dto.{$outBoundName => OutBound, $inBoundName => InBound}  $callContext
           |        val req = OutBound($parametersNamesString)
           |        val response: Future[Box[InBound]] = ${responseExpression(methodName)}
-          |        response.map(convertToTuple[$inboundDataFieldType]($callContext))        """.stripMargin
+          |        response.map(convertToTuple[$inboundDataFieldType](callContext))        """.stripMargin
 
 
       if(doCache && methodName.matches("^(get|check|validate).+")) {
