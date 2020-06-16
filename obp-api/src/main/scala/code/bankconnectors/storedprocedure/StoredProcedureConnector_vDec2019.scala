@@ -73,7 +73,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Tue Jun 16 19:55:42 CST 2020
+// ---------- create on Tue Jun 16 22:58:26 CST 2020
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -102,7 +102,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getAdapterInfo(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundGetAdapterInfo => InBound, OutBoundGetAdapterInfo => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetAdapterInfo => OutBound, InBoundGetAdapterInfo => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_adapter_info", req, callContext)
         response.map(convertToTuple[InboundAdapterInfoInternal](callContext))        
@@ -135,7 +135,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
-        import com.openbankproject.commons.dto.{InBoundGetChallengeThreshold => InBound, OutBoundGetChallengeThreshold => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetChallengeThreshold => OutBound, InBoundGetChallengeThreshold => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, viewId, transactionRequestType, currency, userId, userName)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_challenge_threshold", req, callContext)
         response.map(convertToTuple[AmountOfMoney](callContext))        
@@ -168,7 +168,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getChargeLevel(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, userName: String, transactionRequestType: String, currency: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
-        import com.openbankproject.commons.dto.{InBoundGetChargeLevel => InBound, OutBoundGetChargeLevel => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetChargeLevel => OutBound, InBoundGetChargeLevel => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, viewId, userId, userName, transactionRequestType, currency)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_charge_level", req, callContext)
         response.map(convertToTuple[AmountOfMoney](callContext))        
@@ -199,7 +199,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, scaMethod: Option[StrongCustomerAuthentication.SCA], callContext: Option[CallContext]): OBPReturnType[Box[String]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateChallenge => InBound, OutBoundCreateChallenge => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateChallenge => OutBound, InBoundCreateChallenge => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, userId, transactionRequestType, transactionRequestId, scaMethod)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_challenge", req, callContext)
         response.map(convertToTuple[String](callContext))        
@@ -230,7 +230,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createChallenges(bankId: BankId, accountId: AccountId, userIds: List[String], transactionRequestType: TransactionRequestType, transactionRequestId: String, scaMethod: Option[StrongCustomerAuthentication.SCA], callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateChallenges => InBound, OutBoundCreateChallenges => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateChallenges => OutBound, InBoundCreateChallenges => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, userIds, transactionRequestType, transactionRequestId, scaMethod)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_challenges", req, callContext)
         response.map(convertToTuple[List[String]](callContext))        
@@ -257,44 +257,10 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{InBoundValidateChallengeAnswer => InBound, OutBoundValidateChallengeAnswer => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundValidateChallengeAnswer => OutBound, InBoundValidateChallengeAnswer => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, challengeId, hashOfSuppliedAnswer)
         val response: Future[Box[InBound]] = sendRequest[InBound]("validate_challenge_answer", req, callContext)
         response.map(convertToTuple[Boolean](callContext))        
-  }
-          
-  messageDocs += getBankLegacyDoc
-  def getBankLegacyDoc = MessageDoc(
-    process = "obp.getBankLegacy",
-    messageFormat = messageFormat,
-    description = "Get Bank Legacy",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundGetBankLegacy(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      bankId=BankId(bankIdExample.value))
-    ),
-    exampleInboundMessage = (
-     InBoundGetBankLegacy(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= BankCommons(bankId=BankId(bankIdExample.value),
-      shortName=bankShortNameExample.value,
-      fullName=bankFullNameExample.value,
-      logoUrl=bankLogoUrlExample.value,
-      websiteUrl=bankWebsiteUrlExample.value,
-      bankRoutingScheme=bankRoutingSchemeExample.value,
-      bankRoutingAddress=bankRoutingAddressExample.value,
-      swiftBic=bankSwiftBicExample.value,
-      nationalIdentifier=bankNationalIdentifierExample.value))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]): Box[(Bank, Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{InBoundGetBankLegacy => InBound, OutBoundGetBankLegacy => OutBound}
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("get_bank_legacy", req, callContext)
-        response.map(convertToTuple[BankCommons](callContext))        
   }
           
   messageDocs += getBankDoc
@@ -325,43 +291,10 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getBank(bankId: BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundGetBank => InBound, OutBoundGetBank => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetBank => OutBound, InBoundGetBank => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_bank", req, callContext)
         response.map(convertToTuple[BankCommons](callContext))        
-  }
-          
-  messageDocs += getBanksLegacyDoc
-  def getBanksLegacyDoc = MessageDoc(
-    process = "obp.getBanksLegacy",
-    messageFormat = messageFormat,
-    description = "Get Banks Legacy",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-          OutBoundGetBanksLegacy(MessageDocsSwaggerDefinitions.outboundAdapterCallContext)
-    ),
-    exampleInboundMessage = (
-     InBoundGetBanksLegacy(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( BankCommons(bankId=BankId(bankIdExample.value),
-      shortName=bankShortNameExample.value,
-      fullName=bankFullNameExample.value,
-      logoUrl=bankLogoUrlExample.value,
-      websiteUrl=bankWebsiteUrlExample.value,
-      bankRoutingScheme=bankRoutingSchemeExample.value,
-      bankRoutingAddress=bankRoutingAddressExample.value,
-      swiftBic=bankSwiftBicExample.value,
-      nationalIdentifier=bankNationalIdentifierExample.value)))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def getBanksLegacy(callContext: Option[CallContext]): Box[(List[Bank], Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{InBoundGetBanksLegacy => InBound, OutBoundGetBanksLegacy => OutBound}
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("get_banks_legacy", req, callContext)
-        response.map(convertToTuple[List[BankCommons]](callContext))        
   }
           
   messageDocs += getBanksDoc
@@ -391,50 +324,10 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getBanks(callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundGetBanks => InBound, OutBoundGetBanks => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetBanks => OutBound, InBoundGetBanks => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_banks", req, callContext)
         response.map(convertToTuple[List[BankCommons]](callContext))        
-  }
-          
-  messageDocs += getBankAccountsForUserLegacyDoc
-  def getBankAccountsForUserLegacyDoc = MessageDoc(
-    process = "obp.getBankAccountsForUserLegacy",
-    messageFormat = messageFormat,
-    description = "Get Bank Accounts For User Legacy",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundGetBankAccountsForUserLegacy(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      username=usernameExample.value)
-    ),
-    exampleInboundMessage = (
-     InBoundGetBankAccountsForUserLegacy(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( InboundAccountCommons(bankId=bankIdExample.value,
-      branchId=branchIdExample.value,
-      accountId=accountIdExample.value,
-      accountNumber=accountNumberExample.value,
-      accountType=accountTypeExample.value,
-      balanceAmount=balanceAmountExample.value,
-      balanceCurrency=balanceCurrencyExample.value,
-      owners=inboundAccountOwnersExample.value.split("[,;]").toList,
-      viewsToGenerate=inboundAccountViewsToGenerateExample.value.split("[,;]").toList,
-      bankRoutingScheme=bankRoutingSchemeExample.value,
-      bankRoutingAddress=bankRoutingAddressExample.value,
-      branchRoutingScheme=branchRoutingSchemeExample.value,
-      branchRoutingAddress=branchRoutingAddressExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value)))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def getBankAccountsForUserLegacy(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{InBoundGetBankAccountsForUserLegacy => InBound, OutBoundGetBankAccountsForUserLegacy => OutBound}
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, username)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("get_bank_accounts_for_user_legacy", req, callContext)
-        response.map(convertToTuple[List[InboundAccountCommons]](callContext))        
   }
           
   messageDocs += getBankAccountsForUserDoc
@@ -471,7 +364,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundGetBankAccountsForUser => InBound, OutBoundGetBankAccountsForUser => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetBankAccountsForUser => OutBound, InBoundGetBankAccountsForUser => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, username)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_bank_accounts_for_user", req, callContext)
         response.map(convertToTuple[List[InboundAccountCommons]](callContext))        
@@ -498,7 +391,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getUser(name: String, password: String): Box[InboundUser] = {
-        import com.openbankproject.commons.dto.{InBoundGetUser => InBound, OutBoundGetUser => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetUser => OutBound, InBoundGetUser => InBound}  
         val callContext: Option[CallContext] = None
         val req = OutBound(name, password)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_user", req, callContext)
@@ -541,54 +434,10 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getBankAccountOld(bankId: BankId, accountId: AccountId): Box[BankAccount] = {
-        import com.openbankproject.commons.dto.{InBoundGetBankAccountOld => InBound, OutBoundGetBankAccountOld => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetBankAccountOld => OutBound, InBoundGetBankAccountOld => InBound}  
         val callContext: Option[CallContext] = None
         val req = OutBound(bankId, accountId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_bank_account_old", req, callContext)
-        response.map(convertToTuple[BankAccountCommons](callContext))        
-  }
-          
-  messageDocs += getBankAccountLegacyDoc
-  def getBankAccountLegacyDoc = MessageDoc(
-    process = "obp.getBankAccountLegacy",
-    messageFormat = messageFormat,
-    description = "Get Bank Account Legacy",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundGetBankAccountLegacy(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      bankId=BankId(bankIdExample.value),
-      accountId=AccountId(accountIdExample.value))
-    ),
-    exampleInboundMessage = (
-     InBoundGetBankAccountLegacy(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= BankAccountCommons(accountId=AccountId(accountIdExample.value),
-      accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
-      currency=currencyExample.value,
-      name=bankAccountNameExample.value,
-      label=labelExample.value,
-      iban=Some(ibanExample.value),
-      number=bankAccountNumberExample.value,
-      bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
-      branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
-      value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def getBankAccountLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{InBoundGetBankAccountLegacy => InBound, OutBoundGetBankAccountLegacy => OutBound}
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("get_bank_account_legacy", req, callContext)
         response.map(convertToTuple[BankAccountCommons](callContext))        
   }
           
@@ -630,7 +479,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
-        import com.openbankproject.commons.dto.{InBoundGetBankAccount => InBound, OutBoundGetBankAccount => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetBankAccount => OutBound, InBoundGetBankAccount => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_bank_account", req, callContext)
         response.map(convertToTuple[BankAccountCommons](callContext))        
@@ -673,7 +522,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getBankAccountByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
-        import com.openbankproject.commons.dto.{InBoundGetBankAccountByIban => InBound, OutBoundGetBankAccountByIban => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetBankAccountByIban => OutBound, InBoundGetBankAccountByIban => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, iban)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_bank_account_by_iban", req, callContext)
         response.map(convertToTuple[BankAccountCommons](callContext))        
@@ -717,7 +566,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getBankAccountByRouting(scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{InBoundGetBankAccountByRouting => InBound, OutBoundGetBankAccountByRouting => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetBankAccountByRouting => OutBound, InBoundGetBankAccountByRouting => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, scheme, address)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_bank_account_by_routing", req, callContext)
         response.map(convertToTuple[BankAccountCommons](callContext))        
@@ -761,7 +610,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccount]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetBankAccounts => InBound, OutBoundGetBankAccounts => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetBankAccounts => OutBound, InBoundGetBankAccounts => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankIdAccountIds)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_bank_accounts", req, callContext)
         response.map(convertToTuple[List[BankAccountCommons]](callContext))        
@@ -797,42 +646,10 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[Box[AccountsBalances]] = {
-        import com.openbankproject.commons.dto.{InBoundGetBankAccountsBalances => InBound, OutBoundGetBankAccountsBalances => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetBankAccountsBalances => OutBound, InBoundGetBankAccountsBalances => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankIdAccountIds)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_bank_accounts_balances", req, callContext)
         response.map(convertToTuple[AccountsBalances](callContext))        
-  }
-          
-  messageDocs += getCoreBankAccountsLegacyDoc
-  def getCoreBankAccountsLegacyDoc = MessageDoc(
-    process = "obp.getCoreBankAccountsLegacy",
-    messageFormat = messageFormat,
-    description = "Get Core Bank Accounts Legacy",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundGetCoreBankAccountsLegacy(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      bankIdAccountIds=List( BankIdAccountId(bankId=BankId(bankIdExample.value),
-      accountId=AccountId(accountIdExample.value))))
-    ),
-    exampleInboundMessage = (
-     InBoundGetCoreBankAccountsLegacy(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( CoreAccount(id=accountIdExample.value,
-      label=labelExample.value,
-      bankId=bankIdExample.value,
-      accountType=accountTypeExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)))))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def getCoreBankAccountsLegacy(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): Box[(List[CoreAccount], Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{InBoundGetCoreBankAccountsLegacy => InBound, OutBoundGetCoreBankAccountsLegacy => OutBound}
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankIdAccountIds)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("get_core_bank_accounts_legacy", req, callContext)
-        response.map(convertToTuple[List[CoreAccount]](callContext))        
   }
           
   messageDocs += getCoreBankAccountsDoc
@@ -861,41 +678,10 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): Future[Box[(List[CoreAccount], Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCoreBankAccounts => InBound, OutBoundGetCoreBankAccounts => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCoreBankAccounts => OutBound, InBoundGetCoreBankAccounts => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankIdAccountIds)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_core_bank_accounts", req, callContext)
         response.map(convertToTuple[List[CoreAccount]](callContext))        
-  }
-          
-  messageDocs += getBankAccountsHeldLegacyDoc
-  def getBankAccountsHeldLegacyDoc = MessageDoc(
-    process = "obp.getBankAccountsHeldLegacy",
-    messageFormat = messageFormat,
-    description = "Get Bank Accounts Held Legacy",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundGetBankAccountsHeldLegacy(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      bankIdAccountIds=List( BankIdAccountId(bankId=BankId(bankIdExample.value),
-      accountId=AccountId(accountIdExample.value))))
-    ),
-    exampleInboundMessage = (
-     InBoundGetBankAccountsHeldLegacy(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( AccountHeld(id="string",
-      bankId=bankIdExample.value,
-      number="string",
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)))))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def getBankAccountsHeldLegacy(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): Box[List[AccountHeld]] = {
-        import com.openbankproject.commons.dto.{InBoundGetBankAccountsHeldLegacy => InBound, OutBoundGetBankAccountsHeldLegacy => OutBound}
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankIdAccountIds)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("get_bank_accounts_held_legacy", req, callContext)
-        response.map(convertToTuple[List[AccountHeld]](callContext))        
   }
           
   messageDocs += getBankAccountsHeldDoc
@@ -923,54 +709,10 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[Box[List[AccountHeld]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetBankAccountsHeld => InBound, OutBoundGetBankAccountsHeld => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetBankAccountsHeld => OutBound, InBoundGetBankAccountsHeld => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankIdAccountIds)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_bank_accounts_held", req, callContext)
         response.map(convertToTuple[List[AccountHeld]](callContext))        
-  }
-          
-  messageDocs += checkBankAccountExistsLegacyDoc
-  def checkBankAccountExistsLegacyDoc = MessageDoc(
-    process = "obp.checkBankAccountExistsLegacy",
-    messageFormat = messageFormat,
-    description = "Check Bank Account Exists Legacy",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundCheckBankAccountExistsLegacy(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      bankId=BankId(bankIdExample.value),
-      accountId=AccountId(accountIdExample.value))
-    ),
-    exampleInboundMessage = (
-     InBoundCheckBankAccountExistsLegacy(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= BankAccountCommons(accountId=AccountId(accountIdExample.value),
-      accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
-      currency=currencyExample.value,
-      name=bankAccountNameExample.value,
-      label=labelExample.value,
-      iban=Some(ibanExample.value),
-      number=bankAccountNumberExample.value,
-      bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
-      branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
-      value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def checkBankAccountExistsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{InBoundCheckBankAccountExistsLegacy => InBound, OutBoundCheckBankAccountExistsLegacy => OutBound}
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("check_bank_account_exists_legacy", req, callContext)
-        response.map(convertToTuple[BankAccountCommons](callContext))        
   }
           
   messageDocs += getCounterpartyTraitDoc
@@ -1012,52 +754,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, couterpartyId: String, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCounterpartyTrait => InBound, OutBoundGetCounterpartyTrait => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCounterpartyTrait => OutBound, InBoundGetCounterpartyTrait => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, couterpartyId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_counterparty_trait", req, callContext)
-        response.map(convertToTuple[CounterpartyTraitCommons](callContext))        
-  }
-          
-  messageDocs += getCounterpartyByCounterpartyIdLegacyDoc
-  def getCounterpartyByCounterpartyIdLegacyDoc = MessageDoc(
-    process = "obp.getCounterpartyByCounterpartyIdLegacy",
-    messageFormat = messageFormat,
-    description = "Get Counterparty By Counterparty Id Legacy",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundGetCounterpartyByCounterpartyIdLegacy(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      counterpartyId=CounterpartyId(counterpartyIdExample.value))
-    ),
-    exampleInboundMessage = (
-     InBoundGetCounterpartyByCounterpartyIdLegacy(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= CounterpartyTraitCommons(createdByUserId="string",
-      name="string",
-      description="string",
-      thisBankId="string",
-      thisAccountId="string",
-      thisViewId="string",
-      counterpartyId=counterpartyIdExample.value,
-      otherAccountRoutingScheme=accountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=accountRoutingAddressExample.value,
-      otherAccountSecondaryRoutingScheme="string",
-      otherAccountSecondaryRoutingAddress="string",
-      otherBankRoutingScheme=bankRoutingSchemeExample.value,
-      otherBankRoutingAddress=bankRoutingAddressExample.value,
-      otherBranchRoutingScheme=branchRoutingSchemeExample.value,
-      otherBranchRoutingAddress=branchRoutingAddressExample.value,
-      isBeneficiary=isBeneficiaryExample.value.toBoolean,
-      bespoke=List( CounterpartyBespoke(key=keyExample.value,
-      value=valueExample.value))))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def getCounterpartyByCounterpartyIdLegacy(counterpartyId: CounterpartyId, callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{InBoundGetCounterpartyByCounterpartyIdLegacy => InBound, OutBoundGetCounterpartyByCounterpartyIdLegacy => OutBound}
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, counterpartyId)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("get_counterparty_by_counterparty_id_legacy", req, callContext)
         response.map(convertToTuple[CounterpartyTraitCommons](callContext))        
   }
           
@@ -1098,7 +797,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCounterpartyByCounterpartyId => InBound, OutBoundGetCounterpartyByCounterpartyId => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCounterpartyByCounterpartyId => OutBound, InBoundGetCounterpartyByCounterpartyId => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, counterpartyId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_counterparty_by_counterparty_id", req, callContext)
         response.map(convertToTuple[CounterpartyTraitCommons](callContext))        
@@ -1141,55 +840,10 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCounterpartyByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCounterpartyByIban => InBound, OutBoundGetCounterpartyByIban => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCounterpartyByIban => OutBound, InBoundGetCounterpartyByIban => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, iban)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_counterparty_by_iban", req, callContext)
         response.map(convertToTuple[CounterpartyTraitCommons](callContext))        
-  }
-          
-  messageDocs += getCounterpartiesLegacyDoc
-  def getCounterpartiesLegacyDoc = MessageDoc(
-    process = "obp.getCounterpartiesLegacy",
-    messageFormat = messageFormat,
-    description = "Get Counterparties Legacy",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundGetCounterpartiesLegacy(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      thisBankId=BankId(bankIdExample.value),
-      thisAccountId=AccountId(accountIdExample.value),
-      viewId=ViewId(viewIdExample.value))
-    ),
-    exampleInboundMessage = (
-     InBoundGetCounterpartiesLegacy(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( CounterpartyTraitCommons(createdByUserId="string",
-      name="string",
-      description="string",
-      thisBankId="string",
-      thisAccountId="string",
-      thisViewId="string",
-      counterpartyId=counterpartyIdExample.value,
-      otherAccountRoutingScheme=accountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=accountRoutingAddressExample.value,
-      otherAccountSecondaryRoutingScheme="string",
-      otherAccountSecondaryRoutingAddress="string",
-      otherBankRoutingScheme=bankRoutingSchemeExample.value,
-      otherBankRoutingAddress=bankRoutingAddressExample.value,
-      otherBranchRoutingScheme=branchRoutingSchemeExample.value,
-      otherBranchRoutingAddress=branchRoutingAddressExample.value,
-      isBeneficiary=isBeneficiaryExample.value.toBoolean,
-      bespoke=List( CounterpartyBespoke(key=keyExample.value,
-      value=valueExample.value)))))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def getCounterpartiesLegacy(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext]): Box[(List[CounterpartyTrait], Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{InBoundGetCounterpartiesLegacy => InBound, OutBoundGetCounterpartiesLegacy => OutBound}
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, thisBankId, thisAccountId, viewId)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("get_counterparties_legacy", req, callContext)
-        response.map(convertToTuple[List[CounterpartyTraitCommons]](callContext))        
   }
           
   messageDocs += getCounterpartiesDoc
@@ -1231,79 +885,10 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext]): OBPReturnType[Box[List[CounterpartyTrait]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCounterparties => InBound, OutBoundGetCounterparties => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCounterparties => OutBound, InBoundGetCounterparties => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, thisBankId, thisAccountId, viewId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_counterparties", req, callContext)
         response.map(convertToTuple[List[CounterpartyTraitCommons]](callContext))        
-  }
-          
-  messageDocs += getTransactionsLegacyDoc
-  def getTransactionsLegacyDoc = MessageDoc(
-    process = "obp.getTransactionsLegacy",
-    messageFormat = messageFormat,
-    description = "Get Transactions Legacy",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundGetTransactionsLegacy(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      bankId=BankId(bankIdExample.value),
-      accountID=AccountId(accountIdExample.value),
-      limit=limitExample.value.toInt,
-      offset=offsetExample.value.toInt,
-      fromDate="string",
-      toDate="string")
-    ),
-    exampleInboundMessage = (
-     InBoundGetTransactionsLegacy(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( TransactionCommons(uuid=transactionUuidExample.value,
-      id=TransactionId(transactionIdExample.value),
-      thisAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
-      accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
-      currency=currencyExample.value,
-      name=bankAccountNameExample.value,
-      label=labelExample.value,
-      iban=Some(ibanExample.value),
-      number=bankAccountNumberExample.value,
-      bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
-      branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
-      value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      otherAccount= Counterparty(nationalIdentifier=counterpartyNationalIdentifierExample.value,
-      kind=counterpartyKindExample.value,
-      counterpartyId=counterpartyIdExample.value,
-      counterpartyName=counterpartyNameExample.value,
-      thisBankId=BankId(bankIdExample.value),
-      thisAccountId=AccountId(accountIdExample.value),
-      otherBankRoutingScheme=counterpartyOtherBankRoutingSchemeExample.value,
-      otherBankRoutingAddress=Some(counterpartyOtherBankRoutingAddressExample.value),
-      otherAccountRoutingScheme=counterpartyOtherAccountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=Some(counterpartyOtherAccountRoutingAddressExample.value),
-      otherAccountProvider=counterpartyOtherAccountProviderExample.value,
-      isBeneficiary=isBeneficiaryExample.value.toBoolean),
-      transactionType=transactionTypeExample.value,
-      amount=BigDecimal(transactionAmountExample.value),
-      currency=currencyExample.value,
-      description=Some(transactionDescriptionExample.value),
-      startDate=parseDate(transactionStartDateExample.value).getOrElse(sys.error("transactionStartDateExample.value is not validate date format.")),
-      finishDate=parseDate(transactionFinishDateExample.value).getOrElse(sys.error("transactionFinishDateExample.value is not validate date format.")),
-      balance=BigDecimal(balanceAmountExample.value))))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def getTransactionsLegacy(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Box[(List[Transaction], Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{InBoundGetTransactionsLegacy => InBound, OutBoundGetTransactionsLegacy => OutBound}
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountID, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
-        val response: Future[Box[InBound]] = sendRequest[InBound]("get_transactions_legacy", req, callContext)
-        response.map(convertToTuple[List[TransactionCommons]](callContext))        
   }
           
   messageDocs += getTransactionsDoc
@@ -1369,7 +954,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getTransactions(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): OBPReturnType[Box[List[Transaction]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetTransactions => InBound, OutBoundGetTransactions => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetTransactions => OutBound, InBoundGetTransactions => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountID, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_transactions", req, callContext)
         response.map(convertToTuple[List[TransactionCommons]](callContext))        
@@ -1436,76 +1021,10 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionCore]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetTransactionsCore => InBound, OutBoundGetTransactionsCore => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetTransactionsCore => OutBound, InBoundGetTransactionsCore => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountID, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_transactions_core", req, callContext)
         response.map(convertToTuple[List[TransactionCore]](callContext))        
-  }
-          
-  messageDocs += getTransactionLegacyDoc
-  def getTransactionLegacyDoc = MessageDoc(
-    process = "obp.getTransactionLegacy",
-    messageFormat = messageFormat,
-    description = "Get Transaction Legacy",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundGetTransactionLegacy(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      bankId=BankId(bankIdExample.value),
-      accountID=AccountId(accountIdExample.value),
-      transactionId=TransactionId(transactionIdExample.value))
-    ),
-    exampleInboundMessage = (
-     InBoundGetTransactionLegacy(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= TransactionCommons(uuid=transactionUuidExample.value,
-      id=TransactionId(transactionIdExample.value),
-      thisAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
-      accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
-      currency=currencyExample.value,
-      name=bankAccountNameExample.value,
-      label=labelExample.value,
-      iban=Some(ibanExample.value),
-      number=bankAccountNumberExample.value,
-      bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
-      branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
-      value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      otherAccount= Counterparty(nationalIdentifier=counterpartyNationalIdentifierExample.value,
-      kind=counterpartyKindExample.value,
-      counterpartyId=counterpartyIdExample.value,
-      counterpartyName=counterpartyNameExample.value,
-      thisBankId=BankId(bankIdExample.value),
-      thisAccountId=AccountId(accountIdExample.value),
-      otherBankRoutingScheme=counterpartyOtherBankRoutingSchemeExample.value,
-      otherBankRoutingAddress=Some(counterpartyOtherBankRoutingAddressExample.value),
-      otherAccountRoutingScheme=counterpartyOtherAccountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=Some(counterpartyOtherAccountRoutingAddressExample.value),
-      otherAccountProvider=counterpartyOtherAccountProviderExample.value,
-      isBeneficiary=isBeneficiaryExample.value.toBoolean),
-      transactionType=transactionTypeExample.value,
-      amount=BigDecimal(transactionAmountExample.value),
-      currency=currencyExample.value,
-      description=Some(transactionDescriptionExample.value),
-      startDate=parseDate(transactionStartDateExample.value).getOrElse(sys.error("transactionStartDateExample.value is not validate date format.")),
-      finishDate=parseDate(transactionFinishDateExample.value).getOrElse(sys.error("transactionFinishDateExample.value is not validate date format.")),
-      balance=BigDecimal(balanceAmountExample.value)))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def getTransactionLegacy(bankId: BankId, accountID: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): Box[(Transaction, Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{InBoundGetTransactionLegacy => InBound, OutBoundGetTransactionLegacy => OutBound}
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountID, transactionId)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("get_transaction_legacy", req, callContext)
-        response.map(convertToTuple[TransactionCommons](callContext))        
   }
           
   messageDocs += getTransactionDoc
@@ -1568,7 +1087,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = {
-        import com.openbankproject.commons.dto.{InBoundGetTransaction => InBound, OutBoundGetTransaction => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetTransaction => OutBound, InBoundGetTransaction => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountID, transactionId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_transaction", req, callContext)
         response.map(convertToTuple[TransactionCommons](callContext))        
@@ -1634,7 +1153,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getPhysicalCardForBank(bankId: BankId, cardId: String, callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCardTrait]] = {
-        import com.openbankproject.commons.dto.{InBoundGetPhysicalCardForBank => InBound, OutBoundGetPhysicalCardForBank => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetPhysicalCardForBank => OutBound, InBoundGetPhysicalCardForBank => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, cardId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_physical_card_for_bank", req, callContext)
         response.map(convertToTuple[PhysicalCard](callContext))        
@@ -1661,7 +1180,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def deletePhysicalCardForBank(bankId: BankId, cardId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{InBoundDeletePhysicalCardForBank => InBound, OutBoundDeletePhysicalCardForBank => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundDeletePhysicalCardForBank => OutBound, InBoundDeletePhysicalCardForBank => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, cardId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("delete_physical_card_for_bank", req, callContext)
         response.map(convertToTuple[Boolean](callContext))        
@@ -1744,96 +1263,10 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getPhysicalCardsForBank(bank: Bank, user: User, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[PhysicalCard]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetPhysicalCardsForBank => InBound, OutBoundGetPhysicalCardsForBank => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetPhysicalCardsForBank => OutBound, InBoundGetPhysicalCardsForBank => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bank, user, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_physical_cards_for_bank", req, callContext)
         response.map(convertToTuple[List[PhysicalCard]](callContext))        
-  }
-          
-  messageDocs += createPhysicalCardLegacyDoc
-  def createPhysicalCardLegacyDoc = MessageDoc(
-    process = "obp.createPhysicalCardLegacy",
-    messageFormat = messageFormat,
-    description = "Create Physical Card Legacy",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundCreatePhysicalCardLegacy(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      bankCardNumber=bankCardNumberExample.value,
-      nameOnCard=nameOnCardExample.value,
-      cardType=cardTypeExample.value,
-      issueNumber=issueNumberExample.value,
-      serialNumber=serialNumberExample.value,
-      validFrom=new Date(),
-      expires=new Date(),
-      enabled=true,
-      cancelled=true,
-      onHotList=true,
-      technology="string",
-      networks=List("string"),
-      allows=List("string"),
-      accountId=accountIdExample.value,
-      bankId=bankIdExample.value,
-      replacement=Some( CardReplacementInfo(requestedDate=new Date(),
-      reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
-      pinResets=List( PinResetInfo(requestedDate=new Date(),
-      reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
-      collected=Some(CardCollectionInfo(new Date())),
-      posted=Some(CardPostedInfo(new Date())),
-      customerId=customerIdExample.value)
-    ),
-    exampleInboundMessage = (
-     InBoundCreatePhysicalCardLegacy(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= PhysicalCard(cardId=cardIdExample.value,
-      bankId=bankIdExample.value,
-      bankCardNumber=bankCardNumberExample.value,
-      cardType=cardTypeExample.value,
-      nameOnCard=nameOnCardExample.value,
-      issueNumber=issueNumberExample.value,
-      serialNumber=serialNumberExample.value,
-      validFrom=new Date(),
-      expires=new Date(),
-      enabled=true,
-      cancelled=true,
-      onHotList=true,
-      technology="string",
-      networks=List("string"),
-      allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
-      account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
-      accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
-      currency=currencyExample.value,
-      name=bankAccountNameExample.value,
-      label=labelExample.value,
-      iban=Some(ibanExample.value),
-      number=accountNumberExample.value,
-      bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
-      branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
-      value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      replacement=Some( CardReplacementInfo(requestedDate=new Date(),
-      reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
-      pinResets=List( PinResetInfo(requestedDate=new Date(),
-      reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
-      collected=Some(CardCollectionInfo(new Date())),
-      posted=Some(CardPostedInfo(new Date())),
-      customerId=customerIdExample.value))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def createPhysicalCardLegacy(bankCardNumber: String, nameOnCard: String, cardType: String, issueNumber: String, serialNumber: String, validFrom: Date, expires: Date, enabled: Boolean, cancelled: Boolean, onHotList: Boolean, technology: String, networks: List[String], allows: List[String], accountId: String, bankId: String, replacement: Option[CardReplacementInfo], pinResets: List[PinResetInfo], collected: Option[CardCollectionInfo], posted: Option[CardPostedInfo], customerId: String, callContext: Option[CallContext]): Box[PhysicalCard] = {
-        import com.openbankproject.commons.dto.{InBoundCreatePhysicalCardLegacy => InBound, OutBoundCreatePhysicalCardLegacy => OutBound}
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankCardNumber, nameOnCard, cardType, issueNumber, serialNumber, validFrom, expires, enabled, cancelled, onHotList, technology, networks, allows, accountId, bankId, replacement, pinResets, collected, posted, customerId)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("create_physical_card_legacy", req, callContext)
-        response.map(convertToTuple[PhysicalCard](callContext))        
   }
           
   messageDocs += createPhysicalCardDoc
@@ -1916,7 +1349,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createPhysicalCard(bankCardNumber: String, nameOnCard: String, cardType: String, issueNumber: String, serialNumber: String, validFrom: Date, expires: Date, enabled: Boolean, cancelled: Boolean, onHotList: Boolean, technology: String, networks: List[String], allows: List[String], accountId: String, bankId: String, replacement: Option[CardReplacementInfo], pinResets: List[PinResetInfo], collected: Option[CardCollectionInfo], posted: Option[CardPostedInfo], customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCard]] = {
-        import com.openbankproject.commons.dto.{InBoundCreatePhysicalCard => InBound, OutBoundCreatePhysicalCard => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreatePhysicalCard => OutBound, InBoundCreatePhysicalCard => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankCardNumber, nameOnCard, cardType, issueNumber, serialNumber, validFrom, expires, enabled, cancelled, onHotList, technology, networks, allows, accountId, bankId, replacement, pinResets, collected, posted, customerId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_physical_card", req, callContext)
         response.map(convertToTuple[PhysicalCard](callContext))        
@@ -2003,7 +1436,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def updatePhysicalCard(cardId: String, bankCardNumber: String, nameOnCard: String, cardType: String, issueNumber: String, serialNumber: String, validFrom: Date, expires: Date, enabled: Boolean, cancelled: Boolean, onHotList: Boolean, technology: String, networks: List[String], allows: List[String], accountId: String, bankId: String, replacement: Option[CardReplacementInfo], pinResets: List[PinResetInfo], collected: Option[CardCollectionInfo], posted: Option[CardPostedInfo], customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCardTrait]] = {
-        import com.openbankproject.commons.dto.{InBoundUpdatePhysicalCard => InBound, OutBoundUpdatePhysicalCard => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundUpdatePhysicalCard => OutBound, InBoundUpdatePhysicalCard => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, cardId, bankCardNumber, nameOnCard, cardType, issueNumber, serialNumber, validFrom, expires, enabled, cancelled, onHotList, technology, networks, allows, accountId, bankId, replacement, pinResets, collected, posted, customerId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("update_physical_card", req, callContext)
         response.map(convertToTuple[PhysicalCard](callContext))        
@@ -2071,7 +1504,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def makePaymentv210(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amount: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
-        import com.openbankproject.commons.dto.{InBoundMakePaymentv210 => InBound, OutBoundMakePaymentv210 => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundMakePaymentv210 => OutBound, InBoundMakePaymentv210 => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccount, toAccount, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy)
         val response: Future[Box[InBound]] = sendRequest[InBound]("make_paymentv210", req, callContext)
         response.map(convertToTuple[TransactionId](callContext))        
@@ -2212,7 +1645,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createTransactionRequestv210(initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestv210 => InBound, OutBoundCreateTransactionRequestv210 => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateTransactionRequestv210 => OutBound, InBoundCreateTransactionRequestv210 => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, viewId, fromAccount, toAccount, transactionRequestType, transactionRequestCommonBody, detailsPlain, chargePolicy, challengeType, scaMethod)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_transaction_requestv210", req, callContext)
         response.map(convertToTuple[TransactionRequest](callContext))        
@@ -2353,7 +1786,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createTransactionRequestv400(initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestv400 => InBound, OutBoundCreateTransactionRequestv400 => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateTransactionRequestv400 => OutBound, InBoundCreateTransactionRequestv400 => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, viewId, fromAccount, toAccount, transactionRequestType, transactionRequestCommonBody, detailsPlain, chargePolicy, challengeType, scaMethod)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_transaction_requestv400", req, callContext)
         response.map(convertToTuple[TransactionRequest](callContext))        
@@ -2467,7 +1900,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getTransactionRequests210(initiator: User, fromAccount: BankAccount, callContext: Option[CallContext]): Box[(List[TransactionRequest], Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{InBoundGetTransactionRequests210 => InBound, OutBoundGetTransactionRequests210 => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetTransactionRequests210 => OutBound, InBoundGetTransactionRequests210 => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, fromAccount)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_transaction_requests210", req, callContext)
         response.map(convertToTuple[List[TransactionRequest]](callContext))        
@@ -2558,7 +1991,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId, callContext: Option[CallContext]): Box[(TransactionRequest, Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{InBoundGetTransactionRequestImpl => InBound, OutBoundGetTransactionRequestImpl => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetTransactionRequestImpl => OutBound, InBoundGetTransactionRequestImpl => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionRequestId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_transaction_request_impl", req, callContext)
         response.map(convertToTuple[TransactionRequest](callContext))        
@@ -2732,7 +2165,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createTransactionAfterChallengeV210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateTransactionAfterChallengeV210 => InBound, OutBoundCreateTransactionAfterChallengeV210 => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateTransactionAfterChallengeV210 => OutBound, InBoundCreateTransactionAfterChallengeV210 => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccount, transactionRequest)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_transaction_after_challenge_v210", req, callContext)
         response.map(convertToTuple[TransactionRequest](callContext))        
@@ -2781,7 +2214,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def updateBankAccount(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, branchId: String, accountRoutingScheme: String, accountRoutingAddress: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
-        import com.openbankproject.commons.dto.{InBoundUpdateBankAccount => InBound, OutBoundUpdateBankAccount => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundUpdateBankAccount => OutBound, InBoundUpdateBankAccount => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, accountType, accountLabel, branchId, accountRoutingScheme, accountRoutingAddress)
         val response: Future[Box[InBound]] = sendRequest[InBound]("update_bank_account", req, callContext)
         response.map(convertToTuple[BankAccountCommons](callContext))        
@@ -2833,7 +2266,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createBankAccount(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, currency: String, initialBalance: BigDecimal, accountHolderName: String, branchId: String, accountRoutingScheme: String, accountRoutingAddress: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateBankAccount => InBound, OutBoundCreateBankAccount => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateBankAccount => OutBound, InBoundCreateBankAccount => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName, branchId, accountRoutingScheme, accountRoutingAddress)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_bank_account", req, callContext)
         response.map(convertToTuple[BankAccountCommons](callContext))        
@@ -2858,7 +2291,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def accountExists(bankId: BankId, accountNumber: String): Box[Boolean] = {
-        import com.openbankproject.commons.dto.{InBoundAccountExists => InBound, OutBoundAccountExists => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundAccountExists => OutBound, InBoundAccountExists => InBound}  
         val callContext: Option[CallContext] = None
         val req = OutBound(bankId, accountNumber)
         val response: Future[Box[InBound]] = sendRequest[InBound]("account_exists", req, callContext)
@@ -2942,7 +2375,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getBranch(bankId: BankId, branchId: BranchId, callContext: Option[CallContext]): Future[Box[(BranchT, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundGetBranch => InBound, OutBoundGetBranch => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetBranch => OutBound, InBoundGetBranch => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, branchId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_branch", req, callContext)
         response.map(convertToTuple[BranchTCommons](callContext))        
@@ -3028,7 +2461,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getBranches(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[BranchT], Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundGetBranches => InBound, OutBoundGetBranches => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetBranches => OutBound, InBoundGetBranches => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_branches", req, callContext)
         response.map(convertToTuple[List[BranchTCommons]](callContext))        
@@ -3091,7 +2524,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getAtm(bankId: BankId, atmId: AtmId, callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundGetAtm => InBound, OutBoundGetAtm => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetAtm => OutBound, InBoundGetAtm => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, atmId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_atm", req, callContext)
         response.map(convertToTuple[AtmTCommons](callContext))        
@@ -3157,7 +2590,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[AtmT], Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundGetAtms => InBound, OutBoundGetAtms => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetAtms => OutBound, InBoundGetAtms => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_atms", req, callContext)
         response.map(convertToTuple[List[AtmTCommons]](callContext))        
@@ -3273,7 +2706,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createTransactionAfterChallengev300(initiator: User, fromAccount: BankAccount, transReqId: TransactionRequestId, transactionRequestType: TransactionRequestType, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateTransactionAfterChallengev300 => InBound, OutBoundCreateTransactionAfterChallengev300 => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateTransactionAfterChallengev300 => OutBound, InBoundCreateTransactionAfterChallengev300 => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, fromAccount, transReqId, transactionRequestType)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_transaction_after_challengev300", req, callContext)
         response.map(convertToTuple[TransactionRequest](callContext))        
@@ -3363,7 +2796,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def makePaymentv300(initiator: User, fromAccount: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, transactionRequestType: TransactionRequestType, chargePolicy: String, callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundMakePaymentv300 => InBound, OutBoundMakePaymentv300 => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundMakePaymentv300 => OutBound, InBoundMakePaymentv300 => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, fromAccount, toAccount, toCounterparty, transactionRequestCommonBody, transactionRequestType, chargePolicy)
         val response: Future[Box[InBound]] = sendRequest[InBound]("make_paymentv300", req, callContext)
         response.map(convertToTuple[TransactionId](callContext))        
@@ -3520,7 +2953,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createTransactionRequestv300(initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, callContext: Option[CallContext]): Future[Box[(TransactionRequest, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestv300 => InBound, OutBoundCreateTransactionRequestv300 => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateTransactionRequestv300 => OutBound, InBoundCreateTransactionRequestv300 => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, viewId, fromAccount, toAccount, toCounterparty, transactionRequestType, transactionRequestCommonBody, detailsPlain, chargePolicy)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_transaction_requestv300", req, callContext)
         response.map(convertToTuple[TransactionRequest](callContext))        
@@ -3579,7 +3012,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createCounterparty(name: String, description: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, bespoke: List[CounterpartyBespoke], callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{InBoundCreateCounterparty => InBound, OutBoundCreateCounterparty => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateCounterparty => OutBound, InBoundCreateCounterparty => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, name, description, createdByUserId, thisBankId, thisAccountId, thisViewId, otherAccountRoutingScheme, otherAccountRoutingAddress, otherAccountSecondaryRoutingScheme, otherAccountSecondaryRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress, otherBranchRoutingScheme, otherBranchRoutingAddress, isBeneficiary, bespoke)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_counterparty", req, callContext)
         response.map(convertToTuple[CounterpartyTraitCommons](callContext))        
@@ -3606,7 +3039,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def checkCustomerNumberAvailable(bankId: BankId, customerNumber: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{InBoundCheckCustomerNumberAvailable => InBound, OutBoundCheckCustomerNumberAvailable => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCheckCustomerNumberAvailable => OutBound, InBoundCheckCustomerNumberAvailable => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, customerNumber)
         val response: Future[Box[InBound]] = sendRequest[InBound]("check_customer_number_available", req, callContext)
         response.map(convertToTuple[Boolean](callContext))        
@@ -3674,7 +3107,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createCustomer(bankId: BankId, legalName: String, mobileNumber: String, email: String, faceImage: CustomerFaceImageTrait, dateOfBirth: Date, relationshipStatus: String, dependents: Int, dobOfDependents: List[Date], highestEducationAttained: String, employmentStatus: String, kycStatus: Boolean, lastOkDate: Date, creditRating: Option[CreditRatingTrait], creditLimit: Option[AmountOfMoneyTrait], title: String, branchId: String, nameSuffix: String, callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateCustomer => InBound, OutBoundCreateCustomer => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateCustomer => OutBound, InBoundCreateCustomer => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, legalName, mobileNumber, email, faceImage, dateOfBirth, relationshipStatus, dependents, dobOfDependents, highestEducationAttained, employmentStatus, kycStatus, lastOkDate, creditRating, creditLimit, title, branchId, nameSuffix)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_customer", req, callContext)
         response.map(convertToTuple[CustomerCommons](callContext))        
@@ -3725,7 +3158,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def updateCustomerScaData(customerId: String, mobileNumber: Option[String], email: Option[String], customerNumber: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
-        import com.openbankproject.commons.dto.{InBoundUpdateCustomerScaData => InBound, OutBoundUpdateCustomerScaData => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundUpdateCustomerScaData => OutBound, InBoundUpdateCustomerScaData => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId, mobileNumber, email, customerNumber)
         val response: Future[Box[InBound]] = sendRequest[InBound]("update_customer_sca_data", req, callContext)
         response.map(convertToTuple[CustomerCommons](callContext))        
@@ -3777,7 +3210,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def updateCustomerCreditData(customerId: String, creditRating: Option[String], creditSource: Option[String], creditLimit: Option[AmountOfMoney], callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
-        import com.openbankproject.commons.dto.{InBoundUpdateCustomerCreditData => InBound, OutBoundUpdateCustomerCreditData => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundUpdateCustomerCreditData => OutBound, InBoundUpdateCustomerCreditData => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId, creditRating, creditSource, creditLimit)
         val response: Future[Box[InBound]] = sendRequest[InBound]("update_customer_credit_data", req, callContext)
         response.map(convertToTuple[CustomerCommons](callContext))        
@@ -3836,7 +3269,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def updateCustomerGeneralData(customerId: String, legalName: Option[String], faceImage: Option[CustomerFaceImageTrait], dateOfBirth: Option[Date], relationshipStatus: Option[String], dependents: Option[Int], highestEducationAttained: Option[String], employmentStatus: Option[String], title: Option[String], branchId: Option[String], nameSuffix: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
-        import com.openbankproject.commons.dto.{InBoundUpdateCustomerGeneralData => InBound, OutBoundUpdateCustomerGeneralData => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundUpdateCustomerGeneralData => OutBound, InBoundUpdateCustomerGeneralData => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId, legalName, faceImage, dateOfBirth, relationshipStatus, dependents, highestEducationAttained, employmentStatus, title, branchId, nameSuffix)
         val response: Future[Box[InBound]] = sendRequest[InBound]("update_customer_general_data", req, callContext)
         response.map(convertToTuple[CustomerCommons](callContext))        
@@ -3884,58 +3317,10 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCustomersByUserId(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCustomersByUserId => InBound, OutBoundGetCustomersByUserId => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCustomersByUserId => OutBound, InBoundGetCustomersByUserId => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_customers_by_user_id", req, callContext)
         response.map(convertToTuple[List[CustomerCommons]](callContext))        
-  }
-          
-  messageDocs += getCustomerByCustomerIdLegacyDoc
-  def getCustomerByCustomerIdLegacyDoc = MessageDoc(
-    process = "obp.getCustomerByCustomerIdLegacy",
-    messageFormat = messageFormat,
-    description = "Get Customer By Customer Id Legacy",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundGetCustomerByCustomerIdLegacy(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      customerId=customerIdExample.value)
-    ),
-    exampleInboundMessage = (
-     InBoundGetCustomerByCustomerIdLegacy(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= CustomerCommons(customerId=customerIdExample.value,
-      bankId=bankIdExample.value,
-      number=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      mobileNumber=mobileNumberExample.value,
-      email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
-      url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
-      relationshipStatus=relationshipStatusExample.value,
-      dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
-      highestEducationAttained=highestEducationAttainedExample.value,
-      employmentStatus=employmentStatusExample.value,
-      creditRating= CreditRating(rating=ratingExample.value,
-      source=sourceExample.value),
-      creditLimit= CreditLimit(currency=currencyExample.value,
-      amount=creditLimitAmountExample.value),
-      kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
-      title=customerTitleExample.value,
-      branchId=branchIdExample.value,
-      nameSuffix=nameSuffixExample.value))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def getCustomerByCustomerIdLegacy(customerId: String, callContext: Option[CallContext]): Box[(Customer, Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{InBoundGetCustomerByCustomerIdLegacy => InBound, OutBoundGetCustomerByCustomerIdLegacy => OutBound}
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("get_customer_by_customer_id_legacy", req, callContext)
-        response.map(convertToTuple[CustomerCommons](callContext))        
   }
           
   messageDocs += getCustomerByCustomerIdDoc
@@ -3980,7 +3365,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCustomerByCustomerId(customerId: String, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCustomerByCustomerId => InBound, OutBoundGetCustomerByCustomerId => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCustomerByCustomerId => OutBound, InBoundGetCustomerByCustomerId => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_customer_by_customer_id", req, callContext)
         response.map(convertToTuple[CustomerCommons](callContext))        
@@ -4029,7 +3414,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCustomerByCustomerNumber(customerNumber: String, bankId: BankId, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCustomerByCustomerNumber => InBound, OutBoundGetCustomerByCustomerNumber => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCustomerByCustomerNumber => OutBound, InBoundGetCustomerByCustomerNumber => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerNumber, bankId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_customer_by_customer_number", req, callContext)
         response.map(convertToTuple[CustomerCommons](callContext))        
@@ -4067,7 +3452,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCustomerAddress(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAddress]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCustomerAddress => InBound, OutBoundGetCustomerAddress => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCustomerAddress => OutBound, InBoundGetCustomerAddress => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_customer_address", req, callContext)
         response.map(convertToTuple[List[CustomerAddressCommons]](callContext))        
@@ -4115,7 +3500,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createCustomerAddress(customerId: String, line1: String, line2: String, line3: String, city: String, county: String, state: String, postcode: String, countryCode: String, tags: String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateCustomerAddress => InBound, OutBoundCreateCustomerAddress => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateCustomerAddress => OutBound, InBoundCreateCustomerAddress => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId, line1, line2, line3, city, county, state, postcode, countryCode, tags, status)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_customer_address", req, callContext)
         response.map(convertToTuple[CustomerAddressCommons](callContext))        
@@ -4163,7 +3548,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def updateCustomerAddress(customerAddressId: String, line1: String, line2: String, line3: String, city: String, county: String, state: String, postcode: String, countryCode: String, tags: String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] = {
-        import com.openbankproject.commons.dto.{InBoundUpdateCustomerAddress => InBound, OutBoundUpdateCustomerAddress => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundUpdateCustomerAddress => OutBound, InBoundUpdateCustomerAddress => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerAddressId, line1, line2, line3, city, county, state, postcode, countryCode, tags, status)
         val response: Future[Box[InBound]] = sendRequest[InBound]("update_customer_address", req, callContext)
         response.map(convertToTuple[CustomerAddressCommons](callContext))        
@@ -4189,7 +3574,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def deleteCustomerAddress(customerAddressId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{InBoundDeleteCustomerAddress => InBound, OutBoundDeleteCustomerAddress => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundDeleteCustomerAddress => OutBound, InBoundDeleteCustomerAddress => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerAddressId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("delete_customer_address", req, callContext)
         response.map(convertToTuple[Boolean](callContext))        
@@ -4220,7 +3605,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createTaxResidence(customerId: String, domain: String, taxNumber: String, callContext: Option[CallContext]): OBPReturnType[Box[TaxResidence]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateTaxResidence => InBound, OutBoundCreateTaxResidence => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateTaxResidence => OutBound, InBoundCreateTaxResidence => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId, domain, taxNumber)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_tax_residence", req, callContext)
         response.map(convertToTuple[TaxResidenceCommons](callContext))        
@@ -4249,7 +3634,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getTaxResidence(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[TaxResidence]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetTaxResidence => InBound, OutBoundGetTaxResidence => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetTaxResidence => OutBound, InBoundGetTaxResidence => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_tax_residence", req, callContext)
         response.map(convertToTuple[List[TaxResidenceCommons]](callContext))        
@@ -4275,7 +3660,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def deleteTaxResidence(taxResourceId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{InBoundDeleteTaxResidence => InBound, OutBoundDeleteTaxResidence => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundDeleteTaxResidence => OutBound, InBoundDeleteTaxResidence => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, taxResourceId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("delete_tax_residence", req, callContext)
         response.map(convertToTuple[Boolean](callContext))        
@@ -4327,7 +3712,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCustomers(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCustomers => InBound, OutBoundGetCustomers => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCustomers => OutBound, InBoundGetCustomers => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_customers", req, callContext)
         response.map(convertToTuple[List[CustomerCommons]](callContext))        
@@ -4376,7 +3761,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCustomersByCustomerPhoneNumber(bankId: BankId, phoneNumber: String, callContext: Option[CallContext]): OBPReturnType[Box[List[Customer]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCustomersByCustomerPhoneNumber => InBound, OutBoundGetCustomersByCustomerPhoneNumber => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCustomersByCustomerPhoneNumber => OutBound, InBoundGetCustomersByCustomerPhoneNumber => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, phoneNumber)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_customers_by_customer_phone_number", req, callContext)
         response.map(convertToTuple[List[CustomerCommons]](callContext))        
@@ -4416,7 +3801,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCheckbookOrders(bankId: String, accountId: String, callContext: Option[CallContext]): Future[Box[(CheckbookOrdersJson, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCheckbookOrders => InBound, OutBoundGetCheckbookOrders => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCheckbookOrders => OutBound, InBoundGetCheckbookOrders => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_checkbook_orders", req, callContext)
         response.map(convertToTuple[CheckbookOrdersJson](callContext))        
@@ -4445,7 +3830,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getStatusOfCreditCardOrder(bankId: String, accountId: String, callContext: Option[CallContext]): Future[Box[(List[CardObjectJson], Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{InBoundGetStatusOfCreditCardOrder => InBound, OutBoundGetStatusOfCreditCardOrder => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetStatusOfCreditCardOrder => OutBound, InBoundGetStatusOfCreditCardOrder => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_status_of_credit_card_order", req, callContext)
         response.map(convertToTuple[List[CardObjectJson]](callContext))        
@@ -4476,7 +3861,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createUserAuthContext(userId: String, key: String, value: String, callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContext]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateUserAuthContext => InBound, OutBoundCreateUserAuthContext => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateUserAuthContext => OutBound, InBoundCreateUserAuthContext => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userId, key, value)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_user_auth_context", req, callContext)
         response.map(convertToTuple[UserAuthContextCommons](callContext))        
@@ -4509,7 +3894,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createUserAuthContextUpdate(userId: String, key: String, value: String, callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextUpdate]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateUserAuthContextUpdate => InBound, OutBoundCreateUserAuthContextUpdate => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateUserAuthContextUpdate => OutBound, InBoundCreateUserAuthContextUpdate => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userId, key, value)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_user_auth_context_update", req, callContext)
         response.map(convertToTuple[UserAuthContextUpdateCommons](callContext))        
@@ -4535,7 +3920,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def deleteUserAuthContexts(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{InBoundDeleteUserAuthContexts => InBound, OutBoundDeleteUserAuthContexts => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundDeleteUserAuthContexts => OutBound, InBoundDeleteUserAuthContexts => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("delete_user_auth_contexts", req, callContext)
         response.map(convertToTuple[Boolean](callContext))        
@@ -4561,7 +3946,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def deleteUserAuthContextById(userAuthContextId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{InBoundDeleteUserAuthContextById => InBound, OutBoundDeleteUserAuthContextById => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundDeleteUserAuthContextById => OutBound, InBoundDeleteUserAuthContextById => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userAuthContextId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("delete_user_auth_context_by_id", req, callContext)
         response.map(convertToTuple[Boolean](callContext))        
@@ -4590,7 +3975,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getUserAuthContexts(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAuthContext]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetUserAuthContexts => InBound, OutBoundGetUserAuthContexts => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetUserAuthContexts => OutBound, InBoundGetUserAuthContexts => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_user_auth_contexts", req, callContext)
         response.map(convertToTuple[List[UserAuthContextCommons]](callContext))        
@@ -4626,7 +4011,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createOrUpdateProductAttribute(bankId: BankId, productCode: ProductCode, productAttributeId: Option[String], name: String, productAttributeType: ProductAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[ProductAttribute]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateProductAttribute => InBound, OutBoundCreateOrUpdateProductAttribute => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateProductAttribute => OutBound, InBoundCreateOrUpdateProductAttribute => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, productCode, productAttributeId, name, productAttributeType, value)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_or_update_product_attribute", req, callContext)
         response.map(convertToTuple[ProductAttributeCommons](callContext))        
@@ -4657,7 +4042,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getProductAttributeById(productAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[ProductAttribute]] = {
-        import com.openbankproject.commons.dto.{InBoundGetProductAttributeById => InBound, OutBoundGetProductAttributeById => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetProductAttributeById => OutBound, InBoundGetProductAttributeById => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, productAttributeId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_product_attribute_by_id", req, callContext)
         response.map(convertToTuple[ProductAttributeCommons](callContext))        
@@ -4689,7 +4074,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getProductAttributesByBankAndCode(bank: BankId, productCode: ProductCode, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductAttribute]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetProductAttributesByBankAndCode => InBound, OutBoundGetProductAttributesByBankAndCode => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetProductAttributesByBankAndCode => OutBound, InBoundGetProductAttributesByBankAndCode => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bank, productCode)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_product_attributes_by_bank_and_code", req, callContext)
         response.map(convertToTuple[List[ProductAttributeCommons]](callContext))        
@@ -4715,7 +4100,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def deleteProductAttribute(productAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{InBoundDeleteProductAttribute => InBound, OutBoundDeleteProductAttribute => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundDeleteProductAttribute => OutBound, InBoundDeleteProductAttribute => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, productAttributeId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("delete_product_attribute", req, callContext)
         response.map(convertToTuple[Boolean](callContext))        
@@ -4747,7 +4132,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getAccountAttributeById(accountAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountAttribute]] = {
-        import com.openbankproject.commons.dto.{InBoundGetAccountAttributeById => InBound, OutBoundGetAccountAttributeById => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetAccountAttributeById => OutBound, InBoundGetAccountAttributeById => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, accountAttributeId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_account_attribute_by_id", req, callContext)
         response.map(convertToTuple[AccountAttributeCommons](callContext))        
@@ -4778,7 +4163,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getTransactionAttributeById(transactionAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionAttribute]] = {
-        import com.openbankproject.commons.dto.{InBoundGetTransactionAttributeById => InBound, OutBoundGetTransactionAttributeById => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetTransactionAttributeById => OutBound, InBoundGetTransactionAttributeById => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionAttributeId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_transaction_attribute_by_id", req, callContext)
         response.map(convertToTuple[TransactionAttributeCommons](callContext))        
@@ -4816,7 +4201,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createOrUpdateAccountAttribute(bankId: BankId, accountId: AccountId, productCode: ProductCode, productAttributeId: Option[String], name: String, accountAttributeType: AccountAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountAttribute]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateAccountAttribute => InBound, OutBoundCreateOrUpdateAccountAttribute => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateAccountAttribute => OutBound, InBoundCreateOrUpdateAccountAttribute => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, productCode, productAttributeId, name, accountAttributeType, value)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_or_update_account_attribute", req, callContext)
         response.map(convertToTuple[AccountAttributeCommons](callContext))        
@@ -4852,7 +4237,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createOrUpdateCustomerAttribute(bankId: BankId, customerId: CustomerId, customerAttributeId: Option[String], name: String, attributeType: CustomerAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAttribute]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateCustomerAttribute => InBound, OutBoundCreateOrUpdateCustomerAttribute => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateCustomerAttribute => OutBound, InBoundCreateOrUpdateCustomerAttribute => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, customerId, customerAttributeId, name, attributeType, value)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_or_update_customer_attribute", req, callContext)
         response.map(convertToTuple[CustomerAttributeCommons](callContext))        
@@ -4888,7 +4273,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createOrUpdateTransactionAttribute(bankId: BankId, transactionId: TransactionId, transactionAttributeId: Option[String], name: String, attributeType: TransactionAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionAttribute]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateTransactionAttribute => InBound, OutBoundCreateOrUpdateTransactionAttribute => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateTransactionAttribute => OutBound, InBoundCreateOrUpdateTransactionAttribute => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, transactionId, transactionAttributeId, name, attributeType, value)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_or_update_transaction_attribute", req, callContext)
         response.map(convertToTuple[TransactionAttributeCommons](callContext))        
@@ -4928,7 +4313,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createAccountAttributes(bankId: BankId, accountId: AccountId, productCode: ProductCode, accountAttributes: List[ProductAttribute], callContext: Option[CallContext]): OBPReturnType[Box[List[AccountAttribute]]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateAccountAttributes => InBound, OutBoundCreateAccountAttributes => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateAccountAttributes => OutBound, InBoundCreateAccountAttributes => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, productCode, accountAttributes)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_account_attributes", req, callContext)
         response.map(convertToTuple[List[AccountAttributeCommons]](callContext))        
@@ -4961,7 +4346,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getAccountAttributesByAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[List[AccountAttribute]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetAccountAttributesByAccount => InBound, OutBoundGetAccountAttributesByAccount => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetAccountAttributesByAccount => OutBound, InBoundGetAccountAttributesByAccount => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_account_attributes_by_account", req, callContext)
         response.map(convertToTuple[List[AccountAttributeCommons]](callContext))        
@@ -4993,7 +4378,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCustomerAttributes(bankId: BankId, customerId: CustomerId, callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAttribute]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCustomerAttributes => InBound, OutBoundGetCustomerAttributes => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCustomerAttributes => OutBound, InBoundGetCustomerAttributes => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, customerId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_customer_attributes", req, callContext)
         response.map(convertToTuple[List[CustomerAttributeCommons]](callContext))        
@@ -5020,7 +4405,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCustomerIdsByAttributeNameValues(bankId: BankId, nameValues: Map[String,List[String]], callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCustomerIdsByAttributeNameValues => InBound, OutBoundGetCustomerIdsByAttributeNameValues => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCustomerIdsByAttributeNameValues => OutBound, InBoundGetCustomerIdsByAttributeNameValues => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, nameValues)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_customer_ids_by_attribute_name_values", req, callContext)
         response.map(convertToTuple[List[String]](callContext))        
@@ -5074,7 +4459,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCustomerAttributesForCustomers(customers: List[Customer], callContext: Option[CallContext]): OBPReturnType[Box[List[(Customer, List[CustomerAttribute])]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCustomerAttributesForCustomers => InBound, OutBoundGetCustomerAttributesForCustomers => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCustomerAttributesForCustomers => OutBound, InBoundGetCustomerAttributesForCustomers => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customers)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_customer_attributes_for_customers", req, callContext)
         response.map(convertToTuple[List[(Customer, List[CustomerAttribute])]](callContext))        
@@ -5101,7 +4486,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getTransactionIdsByAttributeNameValues(bankId: BankId, nameValues: Map[String,List[String]], callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetTransactionIdsByAttributeNameValues => InBound, OutBoundGetTransactionIdsByAttributeNameValues => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetTransactionIdsByAttributeNameValues => OutBound, InBoundGetTransactionIdsByAttributeNameValues => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, nameValues)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_transaction_ids_by_attribute_name_values", req, callContext)
         response.map(convertToTuple[List[String]](callContext))        
@@ -5133,7 +4518,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getTransactionAttributes(bankId: BankId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionAttribute]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetTransactionAttributes => InBound, OutBoundGetTransactionAttributes => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetTransactionAttributes => OutBound, InBoundGetTransactionAttributes => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, transactionId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_transaction_attributes", req, callContext)
         response.map(convertToTuple[List[TransactionAttributeCommons]](callContext))        
@@ -5164,7 +4549,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCustomerAttributeById(customerAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAttribute]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCustomerAttributeById => InBound, OutBoundGetCustomerAttributeById => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCustomerAttributeById => OutBound, InBoundGetCustomerAttributeById => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerAttributeId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_customer_attribute_by_id", req, callContext)
         response.map(convertToTuple[CustomerAttributeCommons](callContext))        
@@ -5200,7 +4585,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createOrUpdateCardAttribute(bankId: Option[BankId], cardId: Option[String], cardAttributeId: Option[String], name: String, cardAttributeType: CardAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[CardAttribute]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateCardAttribute => InBound, OutBoundCreateOrUpdateCardAttribute => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateCardAttribute => OutBound, InBoundCreateOrUpdateCardAttribute => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, cardId, cardAttributeId, name, cardAttributeType, value)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_or_update_card_attribute", req, callContext)
         response.map(convertToTuple[CardAttributeCommons](callContext))        
@@ -5231,7 +4616,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCardAttributeById(cardAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[CardAttribute]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCardAttributeById => InBound, OutBoundGetCardAttributeById => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCardAttributeById => OutBound, InBoundGetCardAttributeById => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, cardAttributeId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_card_attribute_by_id", req, callContext)
         response.map(convertToTuple[CardAttributeCommons](callContext))        
@@ -5262,7 +4647,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getCardAttributesFromProvider(cardId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CardAttribute]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetCardAttributesFromProvider => InBound, OutBoundGetCardAttributesFromProvider => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetCardAttributesFromProvider => OutBound, InBoundGetCardAttributesFromProvider => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, cardId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_card_attributes_from_provider", req, callContext)
         response.map(convertToTuple[List[CardAttributeCommons]](callContext))        
@@ -5295,7 +4680,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createAccountApplication(productCode: ProductCode, userId: Option[String], customerId: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateAccountApplication => InBound, OutBoundCreateAccountApplication => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateAccountApplication => OutBound, InBoundCreateAccountApplication => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, productCode, userId, customerId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_account_application", req, callContext)
         response.map(convertToTuple[AccountApplicationCommons](callContext))        
@@ -5325,7 +4710,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getAllAccountApplication(callContext: Option[CallContext]): OBPReturnType[Box[List[AccountApplication]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetAllAccountApplication => InBound, OutBoundGetAllAccountApplication => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetAllAccountApplication => OutBound, InBoundGetAllAccountApplication => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_all_account_application", req, callContext)
         response.map(convertToTuple[List[AccountApplicationCommons]](callContext))        
@@ -5356,7 +4741,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getAccountApplicationById(accountApplicationId: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] = {
-        import com.openbankproject.commons.dto.{InBoundGetAccountApplicationById => InBound, OutBoundGetAccountApplicationById => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetAccountApplicationById => OutBound, InBoundGetAccountApplicationById => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, accountApplicationId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_account_application_by_id", req, callContext)
         response.map(convertToTuple[AccountApplicationCommons](callContext))        
@@ -5388,7 +4773,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def updateAccountApplicationStatus(accountApplicationId: String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] = {
-        import com.openbankproject.commons.dto.{InBoundUpdateAccountApplicationStatus => InBound, OutBoundUpdateAccountApplicationStatus => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundUpdateAccountApplicationStatus => OutBound, InBoundUpdateAccountApplicationStatus => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, accountApplicationId, status)
         val response: Future[Box[InBound]] = sendRequest[InBound]("update_account_application_status", req, callContext)
         response.map(convertToTuple[AccountApplicationCommons](callContext))        
@@ -5416,7 +4801,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getOrCreateProductCollection(collectionCode: String, productCodes: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetOrCreateProductCollection => InBound, OutBoundGetOrCreateProductCollection => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetOrCreateProductCollection => OutBound, InBoundGetOrCreateProductCollection => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, collectionCode, productCodes)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_or_create_product_collection", req, callContext)
         response.map(convertToTuple[List[ProductCollectionCommons]](callContext))        
@@ -5443,7 +4828,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getProductCollection(collectionCode: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetProductCollection => InBound, OutBoundGetProductCollection => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetProductCollection => OutBound, InBoundGetProductCollection => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, collectionCode)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_product_collection", req, callContext)
         response.map(convertToTuple[List[ProductCollectionCommons]](callContext))        
@@ -5471,7 +4856,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getOrCreateProductCollectionItem(collectionCode: String, memberProductCodes: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItem]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetOrCreateProductCollectionItem => InBound, OutBoundGetOrCreateProductCollectionItem => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetOrCreateProductCollectionItem => OutBound, InBoundGetOrCreateProductCollectionItem => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, collectionCode, memberProductCodes)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_or_create_product_collection_item", req, callContext)
         response.map(convertToTuple[List[ProductCollectionItemCommons]](callContext))        
@@ -5498,7 +4883,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getProductCollectionItem(collectionCode: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItem]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetProductCollectionItem => InBound, OutBoundGetProductCollectionItem => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetProductCollectionItem => OutBound, InBoundGetProductCollectionItem => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, collectionCode)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_product_collection_item", req, callContext)
         response.map(convertToTuple[List[ProductCollectionItemCommons]](callContext))        
@@ -5542,7 +4927,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getProductCollectionItemsTree(collectionCode: String, bankId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetProductCollectionItemsTree => InBound, OutBoundGetProductCollectionItemsTree => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetProductCollectionItemsTree => OutBound, InBoundGetProductCollectionItemsTree => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, collectionCode, bankId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_product_collection_items_tree", req, callContext)
         response.map(convertToTuple[List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])]](callContext))        
@@ -5609,7 +4994,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createMeeting(bankId: BankId, staffUser: User, customerUser: User, providerId: String, purposeId: String, when: Date, sessionId: String, customerToken: String, staffToken: String, creator: ContactDetails, invitees: List[Invitee], callContext: Option[CallContext]): OBPReturnType[Box[Meeting]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateMeeting => InBound, OutBoundCreateMeeting => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateMeeting => OutBound, InBoundCreateMeeting => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, staffUser, customerUser, providerId, purposeId, when, sessionId, customerToken, staffToken, creator, invitees)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_meeting", req, callContext)
         response.map(convertToTuple[MeetingCommons](callContext))        
@@ -5657,7 +5042,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getMeetings(bankId: BankId, user: User, callContext: Option[CallContext]): OBPReturnType[Box[List[Meeting]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetMeetings => InBound, OutBoundGetMeetings => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetMeetings => OutBound, InBoundGetMeetings => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, user)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_meetings", req, callContext)
         response.map(convertToTuple[List[MeetingCommons]](callContext))        
@@ -5706,7 +5091,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getMeeting(bankId: BankId, user: User, meetingId: String, callContext: Option[CallContext]): OBPReturnType[Box[Meeting]] = {
-        import com.openbankproject.commons.dto.{InBoundGetMeeting => InBound, OutBoundGetMeeting => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetMeeting => OutBound, InBoundGetMeeting => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, user, meetingId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_meeting", req, callContext)
         response.map(convertToTuple[MeetingCommons](callContext))        
@@ -5750,7 +5135,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createOrUpdateKycCheck(bankId: String, customerId: String, id: String, customerNumber: String, date: Date, how: String, staffUserId: String, mStaffName: String, mSatisfied: Boolean, comments: String, callContext: Option[CallContext]): OBPReturnType[Box[KycCheck]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateKycCheck => InBound, OutBoundCreateOrUpdateKycCheck => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycCheck => OutBound, InBoundCreateOrUpdateKycCheck => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, customerId, id, customerNumber, date, how, staffUserId, mStaffName, mSatisfied, comments)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_or_update_kyc_check", req, callContext)
         response.map(convertToTuple[KycCheckCommons](callContext))        
@@ -5792,7 +5177,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createOrUpdateKycDocument(bankId: String, customerId: String, id: String, customerNumber: String, `type`: String, number: String, issueDate: Date, issuePlace: String, expiryDate: Date, callContext: Option[CallContext]): OBPReturnType[Box[KycDocument]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateKycDocument => InBound, OutBoundCreateOrUpdateKycDocument => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycDocument => OutBound, InBoundCreateOrUpdateKycDocument => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, customerId, id, customerNumber, `type`, number, issueDate, issuePlace, expiryDate)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_or_update_kyc_document", req, callContext)
         response.map(convertToTuple[KycDocument](callContext))        
@@ -5834,7 +5219,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createOrUpdateKycMedia(bankId: String, customerId: String, id: String, customerNumber: String, `type`: String, url: String, date: Date, relatesToKycDocumentId: String, relatesToKycCheckId: String, callContext: Option[CallContext]): OBPReturnType[Box[KycMedia]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateKycMedia => InBound, OutBoundCreateOrUpdateKycMedia => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycMedia => OutBound, InBoundCreateOrUpdateKycMedia => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, customerId, id, customerNumber, `type`, url, date, relatesToKycDocumentId, relatesToKycCheckId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_or_update_kyc_media", req, callContext)
         response.map(convertToTuple[KycMediaCommons](callContext))        
@@ -5868,7 +5253,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createOrUpdateKycStatus(bankId: String, customerId: String, customerNumber: String, ok: Boolean, date: Date, callContext: Option[CallContext]): OBPReturnType[Box[KycStatus]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateKycStatus => InBound, OutBoundCreateOrUpdateKycStatus => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycStatus => OutBound, InBoundCreateOrUpdateKycStatus => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, customerId, customerNumber, ok, date)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_or_update_kyc_status", req, callContext)
         response.map(convertToTuple[KycStatusCommons](callContext))        
@@ -5903,7 +5288,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getKycChecks(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycCheck]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetKycChecks => InBound, OutBoundGetKycChecks => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetKycChecks => OutBound, InBoundGetKycChecks => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_kyc_checks", req, callContext)
         response.map(convertToTuple[List[KycCheckCommons]](callContext))        
@@ -5937,7 +5322,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getKycDocuments(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycDocument]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetKycDocuments => InBound, OutBoundGetKycDocuments => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetKycDocuments => OutBound, InBoundGetKycDocuments => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_kyc_documents", req, callContext)
         response.map(convertToTuple[List[KycDocumentCommons]](callContext))        
@@ -5971,7 +5356,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getKycMedias(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycMedia]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetKycMedias => InBound, OutBoundGetKycMedias => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetKycMedias => OutBound, InBoundGetKycMedias => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_kyc_medias", req, callContext)
         response.map(convertToTuple[List[KycMediaCommons]](callContext))        
@@ -6001,7 +5386,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def getKycStatuses(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycStatus]]] = {
-        import com.openbankproject.commons.dto.{InBoundGetKycStatuses => InBound, OutBoundGetKycStatuses => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundGetKycStatuses => OutBound, InBoundGetKycStatuses => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("get_kyc_statuses", req, callContext)
         response.map(convertToTuple[List[KycStatusCommons]](callContext))        
@@ -6040,7 +5425,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createMessage(user: User, bankId: BankId, message: String, fromDepartment: String, fromPerson: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerMessage]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateMessage => InBound, OutBoundCreateMessage => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateMessage => OutBound, InBoundCreateMessage => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, user, bankId, message, fromDepartment, fromPerson)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_message", req, callContext)
         response.map(convertToTuple[CustomerMessageCommons](callContext))        
@@ -6107,7 +5492,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def makeHistoricalPayment(fromAccount: BankAccount, toAccount: BankAccount, posted: Date, completed: Date, amount: BigDecimal, description: String, transactionRequestType: String, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
-        import com.openbankproject.commons.dto.{InBoundMakeHistoricalPayment => InBound, OutBoundMakeHistoricalPayment => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundMakeHistoricalPayment => OutBound, InBoundMakeHistoricalPayment => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccount, toAccount, posted, completed, amount, description, transactionRequestType, chargePolicy)
         val response: Future[Box[InBound]] = sendRequest[InBound]("make_historical_payment", req, callContext)
         response.map(convertToTuple[TransactionId](callContext))        
@@ -6150,7 +5535,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createDirectDebit(bankId: String, accountId: String, customerId: String, userId: String, counterpartyId: String, dateSigned: Date, dateStarts: Date, dateExpires: Option[Date], callContext: Option[CallContext]): OBPReturnType[Box[DirectDebitTrait]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateDirectDebit => InBound, OutBoundCreateDirectDebit => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundCreateDirectDebit => OutBound, InBoundCreateDirectDebit => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, customerId, userId, counterpartyId, dateSigned, dateStarts, dateExpires)
         val response: Future[Box[InBound]] = sendRequest[InBound]("create_direct_debit", req, callContext)
         response.map(convertToTuple[DirectDebitTraitCommons](callContext))        
@@ -6176,14 +5561,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def deleteCustomerAttribute(customerAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{InBoundDeleteCustomerAttribute => InBound, OutBoundDeleteCustomerAttribute => OutBound}
+        import com.openbankproject.commons.dto.{OutBoundDeleteCustomerAttribute => OutBound, InBoundDeleteCustomerAttribute => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerAttributeId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("delete_customer_attribute", req, callContext)
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- create on Tue Jun 16 19:55:42 CST 2020
-//---------------- dynamic end ---------------------please don't modify this line  
+// ---------- create on Tue Jun 16 22:58:26 CST 2020
+//---------------- dynamic end ---------------------please don't modify this line   
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

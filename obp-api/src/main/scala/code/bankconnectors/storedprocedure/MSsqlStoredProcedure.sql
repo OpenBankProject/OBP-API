@@ -1,4 +1,4 @@
--- auto generated MS sql server procedures script, create on 2020-06-16T21:52:22Z
+-- auto generated MS sql server procedures script, create on 2020-06-16T22:59:24Z
 
 -- drop procedure get_adapter_info
 DROP PROCEDURE IF EXISTS get_adapter_info;
@@ -292,63 +292,6 @@ GO
  
 
 
--- drop procedure get_bank_legacy
-DROP PROCEDURE IF EXISTS get_bank_legacy;
-GO
--- create procedure get_bank_legacy
-CREATE PROCEDURE get_bank_legacy
-@out_bound_json NVARCHAR(MAX),
-@in_bound_json NVARCHAR(MAX) OUT
-AS
-	SET nocount on
-
--- replace the follow example to real logic
-
-	SELECT @in_bound_json = (
-		SELECT
-     N'{
-       "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
-       },
-       "status":{
-         "errorCode":"",
-         "backendMessages":[
-           {
-             "source":"String",
-             "status":"String",
-             "errorCode":"",
-             "text":"String"
-           }
-         ]
-       },
-       "data":{
-         "bankId":{
-           "value":"gh.29.uk"
-         },
-         "shortName":"bank shortName string",
-         "fullName":"bank fullName string",
-         "logoUrl":"bank logoUrl string",
-         "websiteUrl":"bank websiteUrl string",
-         "bankRoutingScheme":"BIC",
-         "bankRoutingAddress":"GENODEM1GLS",
-         "swiftBic":"bank swiftBic string",
-         "nationalIdentifier":"bank nationalIdentifier string"
-       }
-     }'
-	);
-GO
-
- 
- 
-
-
 -- drop procedure get_bank
 DROP PROCEDURE IF EXISTS get_bank;
 GO
@@ -406,65 +349,6 @@ GO
  
 
 
--- drop procedure get_banks_legacy
-DROP PROCEDURE IF EXISTS get_banks_legacy;
-GO
--- create procedure get_banks_legacy
-CREATE PROCEDURE get_banks_legacy
-@out_bound_json NVARCHAR(MAX),
-@in_bound_json NVARCHAR(MAX) OUT
-AS
-	SET nocount on
-
--- replace the follow example to real logic
-
-	SELECT @in_bound_json = (
-		SELECT
-     N'{
-       "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
-       },
-       "status":{
-         "errorCode":"",
-         "backendMessages":[
-           {
-             "source":"String",
-             "status":"String",
-             "errorCode":"",
-             "text":"String"
-           }
-         ]
-       },
-       "data":[
-         {
-           "bankId":{
-             "value":"gh.29.uk"
-           },
-           "shortName":"bank shortName string",
-           "fullName":"bank fullName string",
-           "logoUrl":"bank logoUrl string",
-           "websiteUrl":"bank websiteUrl string",
-           "bankRoutingScheme":"BIC",
-           "bankRoutingAddress":"GENODEM1GLS",
-           "swiftBic":"bank swiftBic string",
-           "nationalIdentifier":"bank nationalIdentifier string"
-         }
-       ]
-     }'
-	);
-GO
-
- 
- 
-
-
 -- drop procedure get_banks
 DROP PROCEDURE IF EXISTS get_banks;
 GO
@@ -514,78 +398,6 @@ AS
            "bankRoutingAddress":"GENODEM1GLS",
            "swiftBic":"bank swiftBic string",
            "nationalIdentifier":"bank nationalIdentifier string"
-         }
-       ]
-     }'
-	);
-GO
-
- 
- 
-
-
--- drop procedure get_bank_accounts_for_user_legacy
-DROP PROCEDURE IF EXISTS get_bank_accounts_for_user_legacy;
-GO
--- create procedure get_bank_accounts_for_user_legacy
-CREATE PROCEDURE get_bank_accounts_for_user_legacy
-@out_bound_json NVARCHAR(MAX),
-@in_bound_json NVARCHAR(MAX) OUT
-AS
-	SET nocount on
-
--- replace the follow example to real logic
-
-	SELECT @in_bound_json = (
-		SELECT
-     N'{
-       "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
-       },
-       "status":{
-         "errorCode":"",
-         "backendMessages":[
-           {
-             "source":"String",
-             "status":"String",
-             "errorCode":"",
-             "text":"String"
-           }
-         ]
-       },
-       "data":[
-         {
-           "bankId":"gh.29.uk",
-           "branchId":"DERBY6",
-           "accountId":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-           "accountNumber":"546387432",
-           "accountType":"AC",
-           "balanceAmount":"50.89",
-           "balanceCurrency":"EUR",
-           "owners":[
-             "InboundAccount",
-             "owners",
-             "list",
-             "string"
-           ],
-           "viewsToGenerate":[
-             "Owner",
-             "Accountant",
-             "Auditor"
-           ],
-           "bankRoutingScheme":"BIC",
-           "bankRoutingAddress":"GENODEM1GLS",
-           "branchRoutingScheme":"BRANCH-CODE",
-           "branchRoutingAddress":"DERBY6",
-           "accountRoutingScheme":"IBAN",
-           "accountRoutingAddress":"DE91 1000 0000 0123 4567 89"
          }
        ]
      }'
@@ -722,82 +534,6 @@ AS
 	SELECT @in_bound_json = (
 		SELECT
      N'{
-       "status":{
-         "errorCode":"",
-         "backendMessages":[
-           {
-             "source":"String",
-             "status":"String",
-             "errorCode":"",
-             "text":"String"
-           }
-         ]
-       },
-       "data":{
-         "accountId":{
-           "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
-         },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
-         "number":"bankAccount number string",
-         "bankId":{
-           "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-08T16:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
-       }
-     }'
-	);
-GO
-
- 
- 
-
-
--- drop procedure get_bank_account_legacy
-DROP PROCEDURE IF EXISTS get_bank_account_legacy;
-GO
--- create procedure get_bank_account_legacy
-CREATE PROCEDURE get_bank_account_legacy
-@out_bound_json NVARCHAR(MAX),
-@in_bound_json NVARCHAR(MAX) OUT
-AS
-	SET nocount on
-
--- replace the follow example to real logic
-
-	SELECT @in_bound_json = (
-		SELECT
-     N'{
-       "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
-       },
        "status":{
          "errorCode":"",
          "backendMessages":[
@@ -1213,66 +949,8 @@ AS
            "currency":"EUR",
            "amount":"string"
          },
-         "overallBalanceDate":"2020-06-16T13:52:22Z"
+         "overallBalanceDate":"2020-06-16T14:59:20Z"
        }
-     }'
-	);
-GO
-
- 
- 
-
-
--- drop procedure get_core_bank_accounts_legacy
-DROP PROCEDURE IF EXISTS get_core_bank_accounts_legacy;
-GO
--- create procedure get_core_bank_accounts_legacy
-CREATE PROCEDURE get_core_bank_accounts_legacy
-@out_bound_json NVARCHAR(MAX),
-@in_bound_json NVARCHAR(MAX) OUT
-AS
-	SET nocount on
-
--- replace the follow example to real logic
-
-	SELECT @in_bound_json = (
-		SELECT
-     N'{
-       "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
-       },
-       "status":{
-         "errorCode":"",
-         "backendMessages":[
-           {
-             "source":"String",
-             "status":"String",
-             "errorCode":"",
-             "text":"String"
-           }
-         ]
-       },
-       "data":[
-         {
-           "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-           "label":"My Account",
-           "bankId":"gh.29.uk",
-           "accountType":"AC",
-           "accountRoutings":[
-             {
-               "scheme":"IBAN",
-               "address":"DE91 1000 0000 0123 4567 89"
-             }
-           ]
-         }
-       ]
      }'
 	);
 GO
@@ -1323,63 +1001,6 @@ AS
            "label":"My Account",
            "bankId":"gh.29.uk",
            "accountType":"AC",
-           "accountRoutings":[
-             {
-               "scheme":"IBAN",
-               "address":"DE91 1000 0000 0123 4567 89"
-             }
-           ]
-         }
-       ]
-     }'
-	);
-GO
-
- 
- 
-
-
--- drop procedure get_bank_accounts_held_legacy
-DROP PROCEDURE IF EXISTS get_bank_accounts_held_legacy;
-GO
--- create procedure get_bank_accounts_held_legacy
-CREATE PROCEDURE get_bank_accounts_held_legacy
-@out_bound_json NVARCHAR(MAX),
-@in_bound_json NVARCHAR(MAX) OUT
-AS
-	SET nocount on
-
--- replace the follow example to real logic
-
-	SELECT @in_bound_json = (
-		SELECT
-     N'{
-       "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
-       },
-       "status":{
-         "errorCode":"",
-         "backendMessages":[
-           {
-             "source":"String",
-             "status":"String",
-             "errorCode":"",
-             "text":"String"
-           }
-         ]
-       },
-       "data":[
-         {
-           "id":"string",
-           "bankId":"gh.29.uk",
-           "number":"string",
            "accountRoutings":[
              {
                "scheme":"IBAN",
@@ -1453,155 +1074,11 @@ GO
  
 
 
--- drop procedure check_bank_account_exists_legacy
-DROP PROCEDURE IF EXISTS check_bank_account_exists_legacy;
-GO
--- create procedure check_bank_account_exists_legacy
-CREATE PROCEDURE check_bank_account_exists_legacy
-@out_bound_json NVARCHAR(MAX),
-@in_bound_json NVARCHAR(MAX) OUT
-AS
-	SET nocount on
-
--- replace the follow example to real logic
-
-	SELECT @in_bound_json = (
-		SELECT
-     N'{
-       "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
-       },
-       "status":{
-         "errorCode":"",
-         "backendMessages":[
-           {
-             "source":"String",
-             "status":"String",
-             "errorCode":"",
-             "text":"String"
-           }
-         ]
-       },
-       "data":{
-         "accountId":{
-           "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
-         },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
-         "number":"bankAccount number string",
-         "bankId":{
-           "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-08T16:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
-       }
-     }'
-	);
-GO
-
- 
- 
-
-
 -- drop procedure get_counterparty_trait
 DROP PROCEDURE IF EXISTS get_counterparty_trait;
 GO
 -- create procedure get_counterparty_trait
 CREATE PROCEDURE get_counterparty_trait
-@out_bound_json NVARCHAR(MAX),
-@in_bound_json NVARCHAR(MAX) OUT
-AS
-	SET nocount on
-
--- replace the follow example to real logic
-
-	SELECT @in_bound_json = (
-		SELECT
-     N'{
-       "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
-       },
-       "status":{
-         "errorCode":"",
-         "backendMessages":[
-           {
-             "source":"String",
-             "status":"String",
-             "errorCode":"",
-             "text":"String"
-           }
-         ]
-       },
-       "data":{
-         "createdByUserId":"string",
-         "name":"string",
-         "description":"string",
-         "thisBankId":"string",
-         "thisAccountId":"string",
-         "thisViewId":"string",
-         "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "otherAccountRoutingScheme":"IBAN",
-         "otherAccountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-         "otherAccountSecondaryRoutingScheme":"string",
-         "otherAccountSecondaryRoutingAddress":"string",
-         "otherBankRoutingScheme":"BIC",
-         "otherBankRoutingAddress":"GENODEM1GLS",
-         "otherBranchRoutingScheme":"BRANCH-CODE",
-         "otherBranchRoutingAddress":"DERBY6",
-         "isBeneficiary":true,
-         "bespoke":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
-       }
-     }'
-	);
-GO
-
- 
- 
-
-
--- drop procedure get_counterparty_by_counterparty_id_legacy
-DROP PROCEDURE IF EXISTS get_counterparty_by_counterparty_id_legacy;
-GO
--- create procedure get_counterparty_by_counterparty_id_legacy
-CREATE PROCEDURE get_counterparty_by_counterparty_id_legacy
 @out_bound_json NVARCHAR(MAX),
 @in_bound_json NVARCHAR(MAX) OUT
 AS
@@ -1801,76 +1278,6 @@ GO
  
 
 
--- drop procedure get_counterparties_legacy
-DROP PROCEDURE IF EXISTS get_counterparties_legacy;
-GO
--- create procedure get_counterparties_legacy
-CREATE PROCEDURE get_counterparties_legacy
-@out_bound_json NVARCHAR(MAX),
-@in_bound_json NVARCHAR(MAX) OUT
-AS
-	SET nocount on
-
--- replace the follow example to real logic
-
-	SELECT @in_bound_json = (
-		SELECT
-     N'{
-       "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
-       },
-       "status":{
-         "errorCode":"",
-         "backendMessages":[
-           {
-             "source":"String",
-             "status":"String",
-             "errorCode":"",
-             "text":"String"
-           }
-         ]
-       },
-       "data":[
-         {
-           "createdByUserId":"string",
-           "name":"string",
-           "description":"string",
-           "thisBankId":"string",
-           "thisAccountId":"string",
-           "thisViewId":"string",
-           "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-           "otherAccountRoutingScheme":"IBAN",
-           "otherAccountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-           "otherAccountSecondaryRoutingScheme":"string",
-           "otherAccountSecondaryRoutingAddress":"string",
-           "otherBankRoutingScheme":"BIC",
-           "otherBankRoutingAddress":"GENODEM1GLS",
-           "otherBranchRoutingScheme":"BRANCH-CODE",
-           "otherBranchRoutingAddress":"DERBY6",
-           "isBeneficiary":true,
-           "bespoke":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ]
-         }
-       ]
-     }'
-	);
-GO
-
- 
- 
-
-
 -- drop procedure get_counterparties
 DROP PROCEDURE IF EXISTS get_counterparties;
 GO
@@ -1932,53 +1339,6 @@ AS
              }
            ]
          }
-       ]
-     }'
-	);
-GO
-
- 
- 
-
-
--- drop procedure get_transactions_legacy
-DROP PROCEDURE IF EXISTS get_transactions_legacy;
-GO
--- create procedure get_transactions_legacy
-CREATE PROCEDURE get_transactions_legacy
-@out_bound_json NVARCHAR(MAX),
-@in_bound_json NVARCHAR(MAX) OUT
-AS
-	SET nocount on
-
--- replace the follow example to real logic
-
-	SELECT @in_bound_json = (
-		SELECT
-     N'{
-       "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
-       },
-       "status":{
-         "errorCode":"",
-         "backendMessages":[
-           {
-             "source":"String",
-             "status":"String",
-             "errorCode":"",
-             "text":"String"
-           }
-         ]
-       },
-       "data":[
-         {}
        ]
      }'
 	);
@@ -2129,56 +1489,11 @@ AS
            "amount":"123.321",
            "currency":"EUR",
            "description":"string",
-           "startDate":"2020-06-16T13:52:22Z",
-           "finishDate":"2020-06-16T13:52:22Z",
+           "startDate":"2020-06-16T14:59:20Z",
+           "finishDate":"2020-06-16T14:59:20Z",
            "balance":"50.89"
          }
        ]
-     }'
-	);
-GO
-
- 
- 
-
-
--- drop procedure get_transaction_legacy
-DROP PROCEDURE IF EXISTS get_transaction_legacy;
-GO
--- create procedure get_transaction_legacy
-CREATE PROCEDURE get_transaction_legacy
-@out_bound_json NVARCHAR(MAX),
-@in_bound_json NVARCHAR(MAX) OUT
-AS
-	SET nocount on
-
--- replace the follow example to real logic
-
-	SELECT @in_bound_json = (
-		SELECT
-     N'{
-       "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
-       },
-       "status":{
-         "errorCode":"",
-         "backendMessages":[
-           {
-             "source":"String",
-             "status":"String",
-             "errorCode":"",
-             "text":"String"
-           }
-         ]
-       },
-       "data":{}
      }'
 	);
 GO
@@ -2276,8 +1591,8 @@ AS
          "nameOnCard":"SusanSmith",
          "issueNumber":"1",
          "serialNumber":"1324234",
-         "validFrom":"2020-06-16T13:52:22Z",
-         "expires":"2020-06-16T13:52:22Z",
+         "validFrom":"2020-06-16T14:59:20Z",
+         "expires":"2020-06-16T14:59:20Z",
          "enabled":true,
          "cancelled":true,
          "onHotList":true,
@@ -2321,20 +1636,20 @@ AS
            "accountHolder":"bankAccount accountHolder string"
          },
          "replacement":{
-           "requestedDate":"2020-06-16T13:52:22Z",
+           "requestedDate":"2020-06-16T14:59:20Z",
            "reasonRequested":{}
          },
          "pinResets":[
            {
-             "requestedDate":"2020-06-16T13:52:22Z",
+             "requestedDate":"2020-06-16T14:59:20Z",
              "reasonRequested":{}
            }
          ],
          "collected":{
-           "date":"2020-06-16T13:52:22Z"
+           "date":"2020-06-16T14:59:20Z"
          },
          "posted":{
-           "date":"2020-06-16T13:52:22Z"
+           "date":"2020-06-16T14:59:20Z"
          },
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
        }
@@ -2436,8 +1751,8 @@ AS
            "nameOnCard":"SusanSmith",
            "issueNumber":"1",
            "serialNumber":"1324234",
-           "validFrom":"2020-06-16T13:52:22Z",
-           "expires":"2020-06-16T13:52:22Z",
+           "validFrom":"2020-06-16T14:59:20Z",
+           "expires":"2020-06-16T14:59:20Z",
            "enabled":true,
            "cancelled":true,
            "onHotList":true,
@@ -2481,138 +1796,24 @@ AS
              "accountHolder":"bankAccount accountHolder string"
            },
            "replacement":{
-             "requestedDate":"2020-06-16T13:52:22Z",
+             "requestedDate":"2020-06-16T14:59:20Z",
              "reasonRequested":{}
            },
            "pinResets":[
              {
-               "requestedDate":"2020-06-16T13:52:22Z",
+               "requestedDate":"2020-06-16T14:59:20Z",
                "reasonRequested":{}
              }
            ],
            "collected":{
-             "date":"2020-06-16T13:52:22Z"
+             "date":"2020-06-16T14:59:20Z"
            },
            "posted":{
-             "date":"2020-06-16T13:52:22Z"
+             "date":"2020-06-16T14:59:20Z"
            },
            "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
          }
        ]
-     }'
-	);
-GO
-
- 
- 
-
-
--- drop procedure create_physical_card_legacy
-DROP PROCEDURE IF EXISTS create_physical_card_legacy;
-GO
--- create procedure create_physical_card_legacy
-CREATE PROCEDURE create_physical_card_legacy
-@out_bound_json NVARCHAR(MAX),
-@in_bound_json NVARCHAR(MAX) OUT
-AS
-	SET nocount on
-
--- replace the follow example to real logic
-
-	SELECT @in_bound_json = (
-		SELECT
-     N'{
-       "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
-       },
-       "status":{
-         "errorCode":"",
-         "backendMessages":[
-           {
-             "source":"String",
-             "status":"String",
-             "errorCode":"",
-             "text":"String"
-           }
-         ]
-       },
-       "data":{
-         "cardId":"36f8a9e6-c2b1-407a-8bd0-421b7119307e ",
-         "bankId":"gh.29.uk",
-         "bankCardNumber":"364435172576215",
-         "cardType":"Credit",
-         "nameOnCard":"SusanSmith",
-         "issueNumber":"1",
-         "serialNumber":"1324234",
-         "validFrom":"2020-06-16T13:52:22Z",
-         "expires":"2020-06-16T13:52:22Z",
-         "enabled":true,
-         "cancelled":true,
-         "onHotList":true,
-         "technology":"string",
-         "networks":[
-           "string"
-         ],
-         "allows":[
-           {}
-         ],
-         "account":{
-           "accountId":{
-             "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
-           },
-           "accountType":"AC",
-           "balance":"50.89",
-           "currency":"EUR",
-           "name":"bankAccount name string",
-           "label":"My Account",
-           "iban":"DE91 1000 0000 0123 4567 89",
-           "number":"546387432",
-           "bankId":{
-             "value":"gh.29.uk"
-           },
-           "lastUpdate":"2018-03-08T16:00:00Z",
-           "branchId":"DERBY6",
-           "accountRoutingScheme":"IBAN",
-           "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-           "accountRoutings":[
-             {
-               "scheme":"IBAN",
-               "address":"DE91 1000 0000 0123 4567 89"
-             }
-           ],
-           "accountRules":[
-             {
-               "scheme":"AccountRule scheme string",
-               "value":"AccountRule value string"
-             }
-           ],
-           "accountHolder":"bankAccount accountHolder string"
-         },
-         "replacement":{
-           "requestedDate":"2020-06-16T13:52:22Z",
-           "reasonRequested":{}
-         },
-         "pinResets":[
-           {
-             "requestedDate":"2020-06-16T13:52:22Z",
-             "reasonRequested":{}
-           }
-         ],
-         "collected":{
-           "date":"2020-06-16T13:52:22Z"
-         },
-         "posted":{
-           "date":"2020-06-16T13:52:22Z"
-         },
-         "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
-       }
      }'
 	);
 GO
@@ -2665,8 +1866,8 @@ AS
          "nameOnCard":"SusanSmith",
          "issueNumber":"1",
          "serialNumber":"1324234",
-         "validFrom":"2020-06-16T13:52:22Z",
-         "expires":"2020-06-16T13:52:22Z",
+         "validFrom":"2020-06-16T14:59:20Z",
+         "expires":"2020-06-16T14:59:20Z",
          "enabled":true,
          "cancelled":true,
          "onHotList":true,
@@ -2710,20 +1911,20 @@ AS
            "accountHolder":"bankAccount accountHolder string"
          },
          "replacement":{
-           "requestedDate":"2020-06-16T13:52:22Z",
+           "requestedDate":"2020-06-16T14:59:20Z",
            "reasonRequested":{}
          },
          "pinResets":[
            {
-             "requestedDate":"2020-06-16T13:52:22Z",
+             "requestedDate":"2020-06-16T14:59:20Z",
              "reasonRequested":{}
            }
          ],
          "collected":{
-           "date":"2020-06-16T13:52:22Z"
+           "date":"2020-06-16T14:59:20Z"
          },
          "posted":{
-           "date":"2020-06-16T13:52:22Z"
+           "date":"2020-06-16T14:59:20Z"
          },
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
        }
@@ -2779,8 +1980,8 @@ AS
          "nameOnCard":"SusanSmith",
          "issueNumber":"1",
          "serialNumber":"1324234",
-         "validFrom":"2020-06-16T13:52:22Z",
-         "expires":"2020-06-16T13:52:22Z",
+         "validFrom":"2020-06-16T14:59:20Z",
+         "expires":"2020-06-16T14:59:20Z",
          "enabled":true,
          "cancelled":true,
          "onHotList":true,
@@ -2824,20 +2025,20 @@ AS
            "accountHolder":"bankAccount accountHolder string"
          },
          "replacement":{
-           "requestedDate":"2020-06-16T13:52:22Z",
+           "requestedDate":"2020-06-16T14:59:20Z",
            "reasonRequested":{}
          },
          "pinResets":[
            {
-             "requestedDate":"2020-06-16T13:52:22Z",
+             "requestedDate":"2020-06-16T14:59:20Z",
              "reasonRequested":{}
            }
          ],
          "collected":{
-           "date":"2020-06-16T13:52:22Z"
+           "date":"2020-06-16T14:59:20Z"
          },
          "posted":{
-           "date":"2020-06-16T13:52:22Z"
+           "date":"2020-06-16T14:59:20Z"
          },
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
        }
@@ -3027,8 +2228,8 @@ AS
          },
          "transaction_ids":"string",
          "status":"string",
-         "start_date":"2020-06-16T13:52:22Z",
-         "end_date":"2020-06-16T13:52:22Z",
+         "start_date":"2020-06-16T14:59:21Z",
+         "end_date":"2020-06-16T14:59:21Z",
          "challenge":{
            "id":"string",
            "allowed_attempts":123,
@@ -3201,8 +2402,8 @@ AS
          },
          "transaction_ids":"string",
          "status":"string",
-         "start_date":"2020-06-16T13:52:22Z",
-         "end_date":"2020-06-16T13:52:22Z",
+         "start_date":"2020-06-16T14:59:21Z",
+         "end_date":"2020-06-16T14:59:21Z",
          "challenge":{
            "id":"string",
            "allowed_attempts":123,
@@ -3376,8 +2577,8 @@ AS
            },
            "transaction_ids":"string",
            "status":"string",
-           "start_date":"2020-06-16T13:52:22Z",
-           "end_date":"2020-06-16T13:52:22Z",
+           "start_date":"2020-06-16T14:59:21Z",
+           "end_date":"2020-06-16T14:59:21Z",
            "challenge":{
              "id":"string",
              "allowed_attempts":123,
@@ -3551,8 +2752,8 @@ AS
          },
          "transaction_ids":"string",
          "status":"string",
-         "start_date":"2020-06-16T13:52:22Z",
-         "end_date":"2020-06-16T13:52:22Z",
+         "start_date":"2020-06-16T14:59:21Z",
+         "end_date":"2020-06-16T14:59:21Z",
          "challenge":{
            "id":"string",
            "allowed_attempts":123,
@@ -3725,8 +2926,8 @@ AS
          },
          "transaction_ids":"string",
          "status":"string",
-         "start_date":"2020-06-16T13:52:22Z",
-         "end_date":"2020-06-16T13:52:22Z",
+         "start_date":"2020-06-16T14:59:21Z",
+         "end_date":"2020-06-16T14:59:21Z",
          "challenge":{
            "id":"string",
            "allowed_attempts":123,
@@ -4012,7 +3213,7 @@ AS
          "location":{
            "latitude":123.123,
            "longitude":123.123,
-           "date":"2020-06-16T13:52:22Z",
+           "date":"2020-06-16T14:59:21Z",
            "user":{
              "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
              "provider":"string",
@@ -4182,7 +3383,7 @@ AS
            "location":{
              "latitude":123.123,
              "longitude":123.123,
-             "date":"2020-06-16T13:52:22Z",
+             "date":"2020-06-16T14:59:21Z",
              "user":{
                "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
                "provider":"string",
@@ -4352,7 +3553,7 @@ AS
          "location":{
            "latitude":123.123,
            "longitude":123.123,
-           "date":"2020-06-16T13:52:22Z",
+           "date":"2020-06-16T14:59:21Z",
            "user":{
              "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
              "provider":"string",
@@ -4450,7 +3651,7 @@ AS
            "location":{
              "latitude":123.123,
              "longitude":123.123,
-             "date":"2020-06-16T13:52:22Z",
+             "date":"2020-06-16T14:59:21Z",
              "user":{
                "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
                "provider":"string",
@@ -4622,8 +3823,8 @@ AS
          },
          "transaction_ids":"string",
          "status":"string",
-         "start_date":"2020-06-16T13:52:22Z",
-         "end_date":"2020-06-16T13:52:22Z",
+         "start_date":"2020-06-16T14:59:21Z",
+         "end_date":"2020-06-16T14:59:21Z",
          "challenge":{
            "id":"string",
            "allowed_attempts":123,
@@ -4843,8 +4044,8 @@ AS
          },
          "transaction_ids":"string",
          "status":"string",
-         "start_date":"2020-06-16T13:52:22Z",
-         "end_date":"2020-06-16T13:52:22Z",
+         "start_date":"2020-06-16T14:59:21Z",
+         "end_date":"2020-06-16T14:59:21Z",
          "challenge":{
            "id":"string",
            "allowed_attempts":123,
@@ -5391,84 +4592,6 @@ GO
  
 
 
--- drop procedure get_customer_by_customer_id_legacy
-DROP PROCEDURE IF EXISTS get_customer_by_customer_id_legacy;
-GO
--- create procedure get_customer_by_customer_id_legacy
-CREATE PROCEDURE get_customer_by_customer_id_legacy
-@out_bound_json NVARCHAR(MAX),
-@in_bound_json NVARCHAR(MAX) OUT
-AS
-	SET nocount on
-
--- replace the follow example to real logic
-
-	SELECT @in_bound_json = (
-		SELECT
-     N'{
-       "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
-       },
-       "status":{
-         "errorCode":"",
-         "backendMessages":[
-           {
-             "source":"String",
-             "status":"String",
-             "errorCode":"",
-             "text":"String"
-           }
-         ]
-       },
-       "data":{
-         "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "bankId":"gh.29.uk",
-         "number":"5987953",
-         "legalName":"Eveline Tripman",
-         "mobileNumber":"+44 07972 444 876",
-         "email":"eveline@example.com",
-         "faceImage":{
-           "date":"2019-09-07T16:00:00Z",
-           "url":"http://www.example.com/id-docs/123/image.png"
-         },
-         "dateOfBirth":"2018-03-08T16:00:00Z",
-         "relationshipStatus":"single",
-         "dependents":1,
-         "dobOfDependents":[
-           "2019-09-07T16:00:00Z",
-           "2019-01-02T16:00:00Z"
-         ],
-         "highestEducationAttained":"Master",
-         "employmentStatus":"worker",
-         "creditRating":{
-           "rating":"",
-           "source":""
-         },
-         "creditLimit":{
-           "currency":"EUR",
-           "amount":"1000.00"
-         },
-         "kycStatus":true,
-         "lastOkDate":"2019-09-07T16:00:00Z",
-         "title":"title of customer",
-         "branchId":"DERBY6",
-         "nameSuffix":"Sr"
-       }
-     }'
-	);
-GO
-
- 
- 
-
-
 -- drop procedure get_customer_by_customer_id
 DROP PROCEDURE IF EXISTS get_customer_by_customer_id;
 GO
@@ -5675,7 +4798,7 @@ AS
            "countryCode":"string",
            "status":"string",
            "tags":"string",
-           "insertDate":"2020-06-16T13:52:22Z"
+           "insertDate":"2020-06-16T14:59:21Z"
          }
        ]
      }'
@@ -5735,7 +4858,7 @@ AS
          "countryCode":"string",
          "status":"string",
          "tags":"string",
-         "insertDate":"2020-06-16T13:52:22Z"
+         "insertDate":"2020-06-16T14:59:21Z"
        }
      }'
 	);
@@ -5794,7 +4917,7 @@ AS
          "countryCode":"string",
          "status":"string",
          "tags":"string",
-         "insertDate":"2020-06-16T13:52:22Z"
+         "insertDate":"2020-06-16T14:59:21Z"
        }
      }'
 	);
@@ -7718,7 +6841,7 @@ AS
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "dateOfApplication":"2020-06-16T13:52:22Z",
+         "dateOfApplication":"2020-06-16T14:59:22Z",
          "status":"string"
        }
      }'
@@ -7773,7 +6896,7 @@ AS
            },
            "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
            "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-           "dateOfApplication":"2020-06-16T13:52:22Z",
+           "dateOfApplication":"2020-06-16T14:59:22Z",
            "status":"string"
          }
        ]
@@ -7828,7 +6951,7 @@ AS
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "dateOfApplication":"2020-06-16T13:52:22Z",
+         "dateOfApplication":"2020-06-16T14:59:22Z",
          "status":"string"
        }
      }'
@@ -7882,7 +7005,7 @@ AS
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "dateOfApplication":"2020-06-16T13:52:22Z",
+         "dateOfApplication":"2020-06-16T14:59:22Z",
          "status":"string"
        }
      }'
@@ -8233,7 +7356,7 @@ AS
            "customerToken":"string",
            "staffToken":"string"
          },
-         "when":"2020-06-16T13:52:22Z",
+         "when":"2020-06-16T14:59:22Z",
          "creator":{
            "name":"string",
            "phone":"string",
@@ -8309,7 +7432,7 @@ AS
              "customerToken":"string",
              "staffToken":"string"
            },
-           "when":"2020-06-16T13:52:22Z",
+           "when":"2020-06-16T14:59:22Z",
            "creator":{
              "name":"string",
              "phone":"string",
@@ -8385,7 +7508,7 @@ AS
            "customerToken":"string",
            "staffToken":"string"
          },
-         "when":"2020-06-16T13:52:22Z",
+         "when":"2020-06-16T14:59:22Z",
          "creator":{
            "name":"string",
            "phone":"string",
@@ -8451,7 +7574,7 @@ AS
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
          "idKycCheck":"string",
          "customerNumber":"5987953",
-         "date":"2020-06-16T13:52:22Z",
+         "date":"2020-06-16T14:59:22Z",
          "how":"string",
          "staffUserId":"string",
          "staffName":"string",
@@ -8509,9 +7632,9 @@ AS
          "customerNumber":"5987953",
          "type":"string",
          "number":"string",
-         "issueDate":"2020-06-16T13:52:22Z",
+         "issueDate":"2020-06-16T14:59:22Z",
          "issuePlace":"string",
-         "expiryDate":"2020-06-16T13:52:22Z"
+         "expiryDate":"2020-06-16T14:59:22Z"
        }
      }'
 	);
@@ -8564,7 +7687,7 @@ AS
          "customerNumber":"5987953",
          "type":"string",
          "url":"http://www.example.com/id-docs/123/image.png",
-         "date":"2020-06-16T13:52:22Z",
+         "date":"2020-06-16T14:59:22Z",
          "relatesToKycDocumentId":"string",
          "relatesToKycCheckId":"string"
        }
@@ -8617,7 +7740,7 @@ AS
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
          "customerNumber":"5987953",
          "ok":true,
-         "date":"2020-06-16T13:52:22Z"
+         "date":"2020-06-16T14:59:22Z"
        }
      }'
 	);
@@ -8669,7 +7792,7 @@ AS
            "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
            "idKycCheck":"string",
            "customerNumber":"5987953",
-           "date":"2020-06-16T13:52:22Z",
+           "date":"2020-06-16T14:59:22Z",
            "how":"string",
            "staffUserId":"string",
            "staffName":"string",
@@ -8729,9 +7852,9 @@ AS
            "customerNumber":"5987953",
            "type":"string",
            "number":"string",
-           "issueDate":"2020-06-16T13:52:22Z",
+           "issueDate":"2020-06-16T14:59:22Z",
            "issuePlace":"string",
-           "expiryDate":"2020-06-16T13:52:22Z"
+           "expiryDate":"2020-06-16T14:59:22Z"
          }
        ]
      }'
@@ -8786,7 +7909,7 @@ AS
            "customerNumber":"5987953",
            "type":"string",
            "url":"http://www.example.com/id-docs/123/image.png",
-           "date":"2020-06-16T13:52:22Z",
+           "date":"2020-06-16T14:59:22Z",
            "relatesToKycDocumentId":"string",
            "relatesToKycCheckId":"string"
          }
@@ -8841,7 +7964,7 @@ AS
            "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
            "customerNumber":"5987953",
            "ok":true,
-           "date":"2020-06-16T13:52:22Z"
+           "date":"2020-06-16T14:59:22Z"
          }
        ]
      }'
@@ -8890,7 +8013,7 @@ AS
        },
        "data":{
          "messageId":"string",
-         "date":"2020-06-16T13:52:22Z",
+         "date":"2020-06-16T14:59:22Z",
          "message":"string",
          "fromDepartment":"string",
          "fromPerson":"string"
@@ -8993,10 +8116,10 @@ AS
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "dateSigned":"2020-06-16T13:52:22Z",
-         "dateCancelled":"2020-06-16T13:52:22Z",
-         "dateStarts":"2020-06-16T13:52:22Z",
-         "dateExpires":"2020-06-16T13:52:22Z",
+         "dateSigned":"2020-06-16T14:59:22Z",
+         "dateCancelled":"2020-06-16T14:59:22Z",
+         "dateStarts":"2020-06-16T14:59:22Z",
+         "dateExpires":"2020-06-16T14:59:22Z",
          "active":true
        }
      }'

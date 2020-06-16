@@ -318,22 +318,22 @@ object ConnectorBuilderUtil {
     "createMessage",
     "makeHistoricalPayment",
     "validateChallengeAnswer",
-    "getBankLegacy",
-    "getBanksLegacy",
-    "getBankAccountsForUserLegacy",
-    "getBankAccountLegacy",
+    //"getBankLegacy", // should not generate for Legacy methods
+    //"getBanksLegacy", // should not generate for Legacy methods
+    //"getBankAccountsForUserLegacy", // should not generate for Legacy methods
+    //"getBankAccountLegacy", // should not generate for Legacy methods
     "getBankAccountByIban",
     "getBankAccountByRouting",
     "getBankAccounts",
-    "getCoreBankAccountsLegacy",
-    "getBankAccountsHeldLegacy",
-    "checkBankAccountExistsLegacy",
-    "getCounterpartyByCounterpartyIdLegacy",
-    "getCounterpartiesLegacy",
-    "getTransactionsLegacy",
-    "getTransactionLegacy",
-    "createPhysicalCardLegacy",
-    "getCustomerByCustomerIdLegacy",
+    //"getCoreBankAccountsLegacy", // should not generate for Legacy methods
+    //"getBankAccountsHeldLegacy", // should not generate for Legacy methods
+    //"checkBankAccountExistsLegacy", // should not generate for Legacy methods
+    //"getCounterpartyByCounterpartyIdLegacy", // should not generate for Legacy methods
+    //"getCounterpartiesLegacy", // should not generate for Legacy methods
+    //"getTransactionsLegacy", // should not generate for Legacy methods
+    //"getTransactionLegacy", // should not generate for Legacy methods
+    //"createPhysicalCardLegacy", // should not generate for Legacy methods
+    //"getCustomerByCustomerIdLegacy", // should not generate for Legacy methods
 
     "createChallenges",
     "createTransactionRequestv400",
@@ -393,9 +393,9 @@ object ConnectorBuilderUtil {
     "getCurrentFxRateCached",
     "getTransactionRequestTypeCharge",
     "getTransactionRequestTypeCharges",
-    "getPhysicalCardsForBankLegacy",
-    "getBranchLegacy",
-    "getAtmLegacy",
+    //"getPhysicalCardsForBankLegacy", // should not generate for Legacy methods
+    //"getBranchLegacy", // should not generate for Legacy methods
+    //"getAtmLegacy", // should not generate for Legacy methods
     "getEmptyBankAccount",
     "getCounterpartyFromTransaction",
     "getCounterpartiesFromTransaction",
@@ -424,7 +424,7 @@ object ConnectorBuilderUtil {
     // "createViews", // should not be auto generated
     // "UpdateUserAccoutViewsByUsername", // a helper function should not be auto generated
     // "updateUserAccountViewsOld", // deprecated
-    // "createBankAccountLegacy", //deprecated
+    //"createBankAccountLegacy", // should not generate for Legacy methods //deprecated
 
     // "createOrUpdateAttributeDefinition", // should not be auto generated
     // "deleteAttributeDefinition", // should not be auto generated
