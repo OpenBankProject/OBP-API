@@ -24,9 +24,8 @@ import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.bankconnectors.vMay2019.KafkaMappedConnector_vMay2019
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.Branch
-import code.customerattribute.MappedCustomerAttribute
-import code.directdebit.DirectDebitTrait
-import code.fx.FXRate
+import com.openbankproject.commons.model.DirectDebitTrait
+import com.openbankproject.commons.model.FXRate
 import code.fx.fx.TTL
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.ResourceUser
@@ -34,12 +33,13 @@ import code.model.toUserExtended
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
-import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
+import code.transactionrequests.TransactionRequests
+import com.openbankproject.commons.model.TransactionRequestTypeCharge
 import code.users.Users
 import code.util.Helper._
 import code.util.JsonUtils
 import code.views.Views
-import com.openbankproject.commons.model.enums.{AccountAttributeType, AttributeCategory, AttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, AttributeCategory, AttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType, TransactionRequestStatus}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full, ParamFailure}
@@ -422,7 +422,7 @@ trait Connector extends MdcLoggable {
   def updateUserAccountViewsOld(user: ResourceUser) = {}
 
   //This is old one, no callContext there. only for old style endpoints.
-  def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount]= {
+  def getBankAccountOld(bankId : BankId, accountId : AccountId) : Box[BankAccount]= {
     getBankAccountLegacy(bankId, accountId, None).map(_._1)
   }
 
@@ -431,12 +431,12 @@ trait Connector extends MdcLoggable {
 
   //This one return the Future.
   def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
-  
+
   def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
   def getBankAccountByRouting(scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
 
   def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : OBPReturnType[Box[List[BankAccount]]]= Future{(Failure(setUnimplementedError), callContext)}
-  
+
   def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : OBPReturnType[Box[AccountsBalances]]= Future{(Failure(setUnimplementedError), callContext)}
 
   def getCoreBankAccountsLegacy(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])] =
@@ -517,10 +517,10 @@ trait Connector extends MdcLoggable {
   }
 
   def getPhysicalCards(user : User) : Box[List[PhysicalCard]] = Failure(setUnimplementedError)
-  
+
   def getPhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) : OBPReturnType[Box[PhysicalCardTrait]] = Future{(Failure(setUnimplementedError), callContext)}
   def deletePhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) : OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
-  
+
   def getPhysicalCardsForBankLegacy(bank: Bank, user : User, queryParams: List[OBPQueryParam]) : Box[List[PhysicalCard]] = Failure(setUnimplementedError)
   def getPhysicalCardsForBank(bank: Bank, user : User, queryParams: List[OBPQueryParam], callContext:Option[CallContext]) : OBPReturnType[Box[List[PhysicalCard]]] = Future{(Failure(setUnimplementedError), callContext)}
 
@@ -596,7 +596,7 @@ trait Connector extends MdcLoggable {
     customerId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[PhysicalCardTrait]] = Future{(Failure{setUnimplementedError}, callContext)}
-  
+
   //Payments api: just return Failure("not supported") from makePaymentImpl if you don't want to implement it
   /**
     * \
@@ -610,10 +610,10 @@ trait Connector extends MdcLoggable {
   def makePayment(initiator : User, fromAccountUID : BankIdAccountId, toAccountUID : BankIdAccountId,
                   amt : BigDecimal, description : String, transactionRequestType: TransactionRequestType) : Box[TransactionId] = {
     for{
-      fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~
+      fromAccount <- getBankAccountOld(fromAccountUID.bankId, fromAccountUID.accountId) ?~
         s"$BankAccountNotFound  Account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
       isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)), UserNoOwnerView)
-      toAccount <- getBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~
+      toAccount <- getBankAccountOld(toAccountUID.bankId, toAccountUID.accountId) ?~
         s"$BankAccountNotFound Account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
       sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
         s"$InvalidTransactionRequestCurrency, Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
@@ -689,10 +689,10 @@ trait Connector extends MdcLoggable {
 
     //create a new transaction request
     val request = for {
-      fromAccountType <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
+      fromAccountType <- getBankAccountOld(fromAccount.bankId, fromAccount.accountId) ?~
         s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
       isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)), UserNoOwnerView)
-      toAccountType <- getBankAccount(toAccount.bankId, toAccount.accountId) ?~
+      toAccountType <- getBankAccountOld(toAccount.bankId, toAccount.accountId) ?~
         s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo { BigDecimal(body.value.amount) } ?~! s"amount ${body.value.amount} not convertible to number"
       sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
@@ -749,9 +749,9 @@ trait Connector extends MdcLoggable {
 
     // Always create a new Transaction Request
     val request = for {
-      fromAccountType <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~ s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
+      fromAccountType <- getBankAccountOld(fromAccount.bankId, fromAccount.accountId) ?~ s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
       isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true || hasEntitlement(fromAccount.bankId.value, initiator.userId, canCreateAnyTransactionRequest) == true, ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
-      toAccountType <- getBankAccount(toAccount.bankId, toAccount.accountId) ?~ s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
+      toAccountType <- getBankAccountOld(toAccount.bankId, toAccount.accountId) ?~ s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo { BigDecimal(body.value.amount) } ?~! s"amount ${body.value.amount} not convertible to number"
       // isValidTransactionRequestType is checked at API layer. Maybe here too.
       isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${rawAmt})")
@@ -913,17 +913,17 @@ trait Connector extends MdcLoggable {
           for {
             //if challenge necessary, create a new one
             (challengeId, callContext) <- createChallenge(
-              fromAccount.bankId, 
-              fromAccount.accountId, 
-              initiator.userId, 
-              transactionRequestType: TransactionRequestType, 
+              fromAccount.bankId,
+              fromAccount.accountId,
+              initiator.userId,
+              transactionRequestType: TransactionRequestType,
               transactionRequest.id.value,
               scaMethod,
               callContext
             ) map { i =>
               (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
             }
-            
+
             newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
             _ <- Future (saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
             transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
@@ -1028,7 +1028,7 @@ trait Connector extends MdcLoggable {
                         permission <- Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
                       ) yield {
                         // Check the user has granted view with action canAddTransactionRequestToAnyAccount
-                        // in case it's true the a challenge will be sent to it 
+                        // in case it's true the a challenge will be sent to it
                         permission.views.exists(_.canAddTransactionRequestToAnyAccount == true) match {
                           case true => Some(permission.user)
                           case _ => None
@@ -1109,14 +1109,14 @@ trait Connector extends MdcLoggable {
       chargePolicy: String
     )
 
-  def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {
+  def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
     //put connector agnostic logic here if necessary
     saveTransactionRequestTransactionImpl(transactionRequestId, transactionId)
   }
 
   protected def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = LocalMappedConnector.saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId)
 
-  def saveTransactionRequestChallenge(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = {
+  def saveTransactionRequestChallenge(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = {
     //put connector agnostic logic here if necessary
     saveTransactionRequestChallengeImpl(transactionRequestId, challenge)
   }
@@ -1128,7 +1128,7 @@ trait Connector extends MdcLoggable {
   def getTransactionRequests(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     val transactionRequests =
       for {
-        fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
+        fromAccount <- getBankAccountOld(fromAccount.bankId, fromAccount.accountId) ?~
           s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
         isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)), UserNoOwnerView)
         transactionRequests <- getTransactionRequestsImpl(fromAccount)

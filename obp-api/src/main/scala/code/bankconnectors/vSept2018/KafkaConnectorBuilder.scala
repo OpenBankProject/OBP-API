@@ -1,6 +1,6 @@
 package code.bankconnectors.vSept2018
 
-import code.bankconnectors.ConnectorBuilderUtil
+import code.bankconnectors.ConnectorBuilderUtil._
 
 import scala.collection.immutable.List
 import scala.language.postfixOps
@@ -20,7 +20,7 @@ object KafkaConnectorBuilder extends App {
     "createBankAccount",
   )
 
-  ConnectorBuilderUtil.generateMethods(genMethodNames,
+  generateMethods(genMethodNames,
     "src/main/scala/code/bankconnectors/vSept2018/KafkaMappedConnector_vSept2018.scala",
      "processRequest[InBound](req)", true)
 }

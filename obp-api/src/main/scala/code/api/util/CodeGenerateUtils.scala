@@ -2,6 +2,8 @@ package code.api.util
 
 import java.util.Date
 
+import com.openbankproject.commons.dto.CustomerAndAttribute
+import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
 import com.openbankproject.commons.model.{CardAction, CardReplacementReason, InboundAdapterCallContext, OutboundAdapterCallContext, PinResetReason, Status}
 import com.openbankproject.commons.util.{EnumValue, ReflectUtils}
@@ -44,7 +46,17 @@ object CodeGenerateUtils {
     NameTypeExample(null, typeOf[OutboundAdapterCallContext], "MessageDocsSwaggerDefinitions.outboundAdapterCallContext"),
     NameTypeExample(null, typeOf[InboundAdapterCallContext], "MessageDocsSwaggerDefinitions.inboundAdapterCallContext"),
     NameTypeExample("status", typeOf[Status], "MessageDocsSwaggerDefinitions.inboundStatus"),
+    NameTypeExample("statusValue", typeOf[String], s""""${TransactionRequestStatus.values.mkString(" | ")}""""),
+    NameTypeExample(null, typeOf[List[CustomerAndAttribute]],
+      """ List(
+        |         CustomerAndAttribute(
+        |             MessageDocsSwaggerDefinitions.customerCommons,
+        |             List(MessageDocsSwaggerDefinitions.customerAttribute)
+        |          )
+        |         )
+        |""".stripMargin),
   )
+
 
   private def getFixedExample(fieldName: String, tp: Type): Option[String] =
     fixedExamples.find(_.isFieldMatch(fieldName, tp)).map(_.example)
@@ -214,7 +226,7 @@ object CodeGenerateUtils {
         val valueName = symbol.name.toString.replaceFirst("^type$", "`type`")
         s"""$str,
            |${valueName}=${value}""".stripMargin
-      }).substring(2)
+      }).replaceFirst("""^\s*,\s*""", "")
       val withNew = if(!concreteObpType.get.typeSymbol.asClass.isCaseClass) "new" else ""
       s"$withNew ${concreteObpType.get.typeSymbol.name}($fields)"
     } else {

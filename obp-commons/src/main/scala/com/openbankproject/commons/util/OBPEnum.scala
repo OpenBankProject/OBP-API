@@ -16,7 +16,7 @@ import scala.reflect.runtime.{universe => ru}
  *  }
  * }}}
  */
-trait EnumValue {
+trait EnumValue{
   override def toString: String = this.getClass.getSimpleName.replaceFirst("\\$$", "")
 }
 

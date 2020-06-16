@@ -43,9 +43,6 @@ object ConnectorBuilderUtil {
      val nameSignature: Iterable[ConnectorMethodGenerator] = ru.typeOf[Connector].decls
       .filter(_.isMethod)
       .filter(it => connectorMethodNames.contains(it.name.toString))
-      .filter(it => {
-        it.typeSignature.paramLists(0).exists(_.asTerm.info =:= ru.typeOf[Option[CallContext]])
-      })
       .map(it => {
         val (methodName, typeSignature) = (it.name.toString, it.typeSignature)
         ConnectorMethodGenerator(methodName, typeSignature)
@@ -84,7 +81,8 @@ object ConnectorBuilderUtil {
 
   private case class ConnectorMethodGenerator(methodName: String, tp: Type) {
     private[this] def paramAnResult = tp.toString
-      .replaceAll("(\\w+\\.)+", "")
+      .replaceAll("""[.\w]+\.(\w+\.([A-Z]+\b|Value)\b)""", "$1") // two times replaceAll to delete package name, but keep enum type name
+      .replaceAll("""([.\w]+\.){2,}(\w+\b)""", "$2")
       .replaceFirst("\\)", "): ")
       .replace("cardAttributeType: Value", "cardAttributeType: CardAttributeType.Value") // scala enum is bad for Reflection
       .replace("productAttributeType: Value", "productAttributeType: ProductAttributeType.Value") // scala enum is bad for Reflection
@@ -113,6 +111,9 @@ object ConnectorBuilderUtil {
 
     var signature = s"$methodName$paramAnResult"
 
+    val hasCallContext = tp.paramLists(0)
+      .exists(_.asTerm.info =:= ru.typeOf[Option[CallContext]])
+
     /**
      * Get all the parameters name as a String from `typeSignature` object.
      * eg: it will return
@@ -124,8 +125,10 @@ object ConnectorBuilderUtil {
       .map(it => if(it =="type") "`type`" else it)//This is special case for `type`, it is the keyword in scala.
       .map(it => if(it == "queryParams") "OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams)" else it)
     match {
+      case Nil if hasCallContext => "callContext.map(_.toOutboundAdapterCallContext).orNull"
       case Nil => ""
-      case list:List[String] => list.mkString(", ", ", ", "")
+      case list:List[String] if hasCallContext => list.mkString("callContext.map(_.toOutboundAdapterCallContext).orNull, ", ", ", "")
+      case list:List[String] => list.mkString(", ")
     }
 
     // for cache
@@ -155,18 +158,17 @@ object ConnectorBuilderUtil {
         case false => (None, None)
       }
 
-      val missingCallContext = if(tp.paramLists(0) //if parameter have no callContext, add None to Body
-        .exists(_.asTerm.info =:= ru.typeOf[Option[CallContext]])) {
-        ""
+      val callContext = if(hasCallContext) {
+        "callContext"
       } else {
-        "val callContext: Option[CallContext] = None \n"
+        "None"
       }
 
       var body =
       s"""|    import com.openbankproject.commons.dto.{$outBoundName => OutBound, $inBoundName => InBound}
-          |        ${missingCallContext}val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull $parametersNamesString)
+          |        val req = OutBound($parametersNamesString)
           |        val response: Future[Box[InBound]] = ${responseExpression(methodName)}
-          |        response.map(convertToTuple[$inboundDataFieldType](callContext))        """.stripMargin
+          |        response.map(convertToTuple[$inboundDataFieldType]($callContext))        """.stripMargin
 
 
       if(doCache && methodName.matches("^(get|check|validate).+")) {
@@ -213,6 +215,228 @@ object ConnectorBuilderUtil {
           """.stripMargin
     }
   }
+
+  val commonMethodNames = List(
+    "getAdapterInfo",
+    "getChallengeThreshold",
+    "getChargeLevel",
+    "createChallenge",
+    "getBank",
+    "getBanks",
+    "getBankAccountsForUser",
+    "getUser",
+    "getBankAccount",
+    "getBankAccountsBalances",
+    "getCoreBankAccounts",
+    "getBankAccountsHeld",
+    "getCounterpartyTrait",
+    "getCounterpartyByCounterpartyId",
+    "getCounterpartyByIban",
+    "getCounterparties",
+    "getTransactions",
+    "getTransactionsCore",
+    "getTransaction",
+    "getPhysicalCardForBank",
+    "deletePhysicalCardForBank",
+    "getPhysicalCardsForBank",
+    "createPhysicalCard",
+    "updatePhysicalCard",
+    "makePaymentv210",
+    "createTransactionRequestv210",
+    "getTransactionRequests210",
+    "getTransactionRequestImpl",
+    "createTransactionAfterChallengeV210",
+    "updateBankAccount",
+    "createBankAccount",
+    "accountExists",
+    "getBranch",
+    "getBranches",
+    "getAtm",
+    "getAtms",
+    "createTransactionAfterChallengev300",
+    "makePaymentv300",
+    "createTransactionRequestv300",
+    "createCounterparty",
+    "checkCustomerNumberAvailable",
+    "createCustomer",
+    "updateCustomerScaData",
+    "updateCustomerCreditData",
+    "updateCustomerGeneralData",
+    "getCustomersByUserId",
+    "getCustomerByCustomerId",
+    "getCustomerByCustomerNumber",
+    "getCustomerAddress",
+    "createCustomerAddress",
+    "updateCustomerAddress",
+    "deleteCustomerAddress",
+    "createTaxResidence",
+    "getTaxResidence",
+    "deleteTaxResidence",
+    "getCustomers",
+    "getCheckbookOrders",
+    "getStatusOfCreditCardOrder",
+    "createUserAuthContext",
+    "createUserAuthContextUpdate",
+    "deleteUserAuthContexts",
+    "deleteUserAuthContextById",
+    "getUserAuthContexts",
+    "createOrUpdateProductAttribute",
+    "getProductAttributeById",
+    "getProductAttributesByBankAndCode",
+    "deleteProductAttribute",
+    "getAccountAttributeById",
+    "createOrUpdateAccountAttribute",
+    "createAccountAttributes",
+    "getAccountAttributesByAccount",
+    "createOrUpdateCardAttribute",
+    "getCardAttributeById",
+    "getCardAttributesFromProvider",
+    "createAccountApplication",
+    "getAllAccountApplication",
+    "getAccountApplicationById",
+    "updateAccountApplicationStatus",
+    "getOrCreateProductCollection",
+    "getProductCollection",
+    "getOrCreateProductCollectionItem",
+    "getProductCollectionItem",
+    "getProductCollectionItemsTree",
+    "createMeeting",
+    "getMeetings",
+    "getMeeting",
+    "createOrUpdateKycCheck",
+    "createOrUpdateKycDocument",
+    "createOrUpdateKycMedia",
+    "createOrUpdateKycStatus",
+    "getKycChecks",
+    "getKycDocuments",
+    "getKycMedias",
+    "getKycStatuses",
+    "createMessage",
+    "makeHistoricalPayment",
+    "validateChallengeAnswer",
+    "getBankLegacy",
+    "getBanksLegacy",
+    "getBankAccountsForUserLegacy",
+    "getBankAccountLegacy",
+    "getBankAccountByIban",
+    "getBankAccountByRouting",
+    "getBankAccounts",
+    "getCoreBankAccountsLegacy",
+    "getBankAccountsHeldLegacy",
+    "checkBankAccountExistsLegacy",
+    "getCounterpartyByCounterpartyIdLegacy",
+    "getCounterpartiesLegacy",
+    "getTransactionsLegacy",
+    "getTransactionLegacy",
+    "createPhysicalCardLegacy",
+    "getCustomerByCustomerIdLegacy",
+
+    "createChallenges",
+    "createTransactionRequestv400",
+    "getCustomersByCustomerPhoneNumber",
+    "getTransactionAttributeById",
+    "createOrUpdateCustomerAttribute",
+    "createOrUpdateTransactionAttribute",
+    "getCustomerAttributes",
+    "getCustomerIdsByAttributeNameValues",
+    "getCustomerAttributesForCustomers",
+    "getTransactionIdsByAttributeNameValues",
+    "getTransactionAttributes",
+    "getCustomerAttributeById",
+    "createDirectDebit",
+    "deleteCustomerAttribute",
+
+    "getBankAccountOld",    // old method, but v3.0.0 apis use a lot
+  ).distinct
+
+  /**
+   * these connector methods have special parameter or return type
+   */
+  val specialMethods = List(
+    "getCounterparty",
+    "getPhysicalCards",
+    "makePayment",
+    "makePaymentv200",
+    "createTransactionRequest",
+    "createTransactionRequestv200",
+    "getStatus",
+    "getChargeValue",
+    "saveTransactionRequestTransaction",
+    "saveTransactionRequestChallenge",
+    "getTransactionRequests",
+    "getTransactionRequestStatuses",
+    "getTransactionRequestTypes",
+    "createTransactionAfterChallenge",
+    "createTransactionAfterChallengev200",
+    "createBankAndAccount",
+    "createSandboxBankAccount",
+    "accountExists",
+    "removeAccount",
+    "getMatchingTransactionCount",
+    "updateAccountBalance",
+    "setBankAccountLastUpdated",
+    "updateAccountLabel",
+    "updateAccount",
+    "getProducts",
+    "getProduct",
+    "createOrUpdateBranch",
+    "createOrUpdateBank",
+    "createOrUpdateAtm",
+    "createOrUpdateProduct",
+    "createOrUpdateFXRate",
+    "accountOwnerExists",
+    "getCurrentFxRate",
+    "getCurrentFxRateCached",
+    "getTransactionRequestTypeCharge",
+    "getTransactionRequestTypeCharges",
+    "getPhysicalCardsForBankLegacy",
+    "getBranchLegacy",
+    "getAtmLegacy",
+    "getEmptyBankAccount",
+    "getCounterpartyFromTransaction",
+    "getCounterpartiesFromTransaction",
+  ).distinct
+
+  /**
+   * modifier is protected methods, not recommend generate these methods, they should always for special purpose
+   */
+  val protectedMethods = List(
+    "makePaymentImpl",
+    "createTransactionRequestImpl",
+    "createTransactionRequestImpl210",
+    "saveTransactionRequestTransactionImpl",
+    "saveTransactionRequestChallengeImpl",
+    "saveTransactionRequestStatusImpl",
+    "getTransactionRequestStatusesImpl",
+    "getTransactionRequestsImpl",
+    "getTransactionRequestsImpl210",
+    "getTransactionRequestTypesImpl"
+  ).distinct
+
+  val omitMethods = List(
+    // "answerTransactionRequestChallenge", //deprecated
+    //"setAccountHolder", //deprecated
+    // "createImportedTransaction", // should create manually
+    // "createViews", // should not be auto generated
+    // "UpdateUserAccoutViewsByUsername", // a helper function should not be auto generated
+    // "updateUserAccountViewsOld", // deprecated
+    // "createBankAccountLegacy", //deprecated
+
+    // "createOrUpdateAttributeDefinition", // should not be auto generated
+    // "deleteAttributeDefinition", // should not be auto generated
+    // "getAttributeDefinition", // should not be auto generated
+
+    // "createStandingOrder", // should not be auto generated
+
+    // "addBankAccount", // non-standard calls, should be used for test
+
+    //** the follow 5 methods should not be generated, should create manually
+    //      "dynamicEntityProcess",
+    //      "dynamicEndpointProcess",
+    //      "createDynamicEndpoint",
+    //      "getDynamicEndpoint",
+    //      "getDynamicEndpoints",
+  ).distinct
 }
 
 

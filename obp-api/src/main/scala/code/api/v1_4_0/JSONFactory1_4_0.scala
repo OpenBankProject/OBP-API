@@ -4,10 +4,9 @@ import java.util.Date
 
 import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.{ApiRole, PegdownOptions}
-import code.api.v2_1_0.CounterpartyIdJson
 import code.api.v3_1_0.ListResult
 import code.crm.CrmEvent.CrmEvent
-import code.transactionrequests.TransactionRequestTypeCharge
+import com.openbankproject.commons.model.TransactionRequestTypeCharge
 import com.openbankproject.commons.model.{Product, _}
 import com.openbankproject.commons.util.{EnumValue, OBPEnumeration, ReflectUtils}
 import net.liftweb.common.Full

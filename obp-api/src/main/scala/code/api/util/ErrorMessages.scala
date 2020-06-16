@@ -2,7 +2,7 @@ package code.api.util
 
 import java.util.Objects
 import java.util.regex.Pattern
-import code.transactionrequests.TransactionRequests.TransactionRequestStatus._
+import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 import code.api.Constant._
 
 object ErrorMessages {

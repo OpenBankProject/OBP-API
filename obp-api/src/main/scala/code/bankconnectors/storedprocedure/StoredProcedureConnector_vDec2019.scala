@@ -902,40 +902,12 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetUser(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundGetUser(
       name=usernameExample.value,
       password="string")
     ),
     exampleInboundMessage = (
-     InBoundGetUser(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundGetUser(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -952,7 +924,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetUser => OutBound, InBoundGetUser => InBound}
         val procedureName = "get_user"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , name, password)
+        val req = OutBound(name, password)
         val result: OBPReturnType[Box[InboundUser]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -1031,11 +1003,11 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // stored procedure name: get_bank_account
-  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccount] = {
-        import com.openbankproject.commons.dto.{OutBoundGetBankAccount => OutBound, InBoundGetBankAccount => InBound}
+  override def getBankAccountOld(bankId: BankId, accountId: AccountId): Box[BankAccount] = {
+        import com.openbankproject.commons.dto.{OutBoundGetBankAccountOld => OutBound, InBoundGetBankAccountOld => InBound}
         val procedureName = "get_bank_account"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId)
+        val req = OutBound(bankId, accountId)
         val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -1990,41 +1962,13 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetCounterparty(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundGetCounterparty(
       thisBankId=BankId(bankIdExample.value),
       thisAccountId=AccountId(accountIdExample.value),
       couterpartyId="string")
     ),
     exampleInboundMessage = (
-     InBoundGetCounterparty(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundGetCounterparty(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -2050,7 +1994,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetCounterparty => OutBound, InBoundGetCounterparty => InBound}
         val procedureName = "get_counterparty"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , thisBankId, thisAccountId, couterpartyId)
+        val req = OutBound(thisBankId, thisAccountId, couterpartyId)
         val result: OBPReturnType[Box[Counterparty]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -3098,32 +3042,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetPhysicalCards(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundGetPhysicalCards(
       user= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
@@ -3132,10 +3051,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       name=usernameExample.value))
     ),
     exampleInboundMessage = (
-     InBoundGetPhysicalCards(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundGetPhysicalCards(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -3189,7 +3105,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetPhysicalCards => OutBound, InBoundGetPhysicalCards => InBound}
         val procedureName = "get_physical_cards"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , user)
+        val req = OutBound(user)
         val result: OBPReturnType[Box[List[PhysicalCard]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -3378,32 +3294,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetPhysicalCardsForBankLegacy(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundGetPhysicalCardsForBankLegacy(
       bank= BankCommons(bankId=BankId(bankIdExample.value),
       shortName=bankShortNameExample.value,
       fullName=bankFullNameExample.value,
@@ -3425,10 +3316,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       toDate="string")
     ),
     exampleInboundMessage = (
-     InBoundGetPhysicalCardsForBankLegacy(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundGetPhysicalCardsForBankLegacy(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -3482,7 +3370,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetPhysicalCardsForBankLegacy => OutBound, InBoundGetPhysicalCardsForBankLegacy => InBound}
         val procedureName = "get_physical_cards_for_bank_legacy"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bank, user, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
+        val req = OutBound(bank, user, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val result: OBPReturnType[Box[List[PhysicalCard]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -3998,32 +3886,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundMakePayment(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundMakePayment(
       initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
@@ -4039,10 +3902,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value))
     ),
     exampleInboundMessage = (
-     InBoundMakePayment(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundMakePayment(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -4057,7 +3917,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundMakePayment => OutBound, InBoundMakePayment => InBound}
         val procedureName = "make_payment"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , initiator, fromAccountUID, toAccountUID, amt, description, transactionRequestType)
+        val req = OutBound(initiator, fromAccountUID, toAccountUID, amt, description, transactionRequestType)
         val result: OBPReturnType[Box[TransactionId]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -4075,32 +3935,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundMakePaymentv200(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundMakePaymentv200(
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
       balance=BigDecimal(balanceAmountExample.value),
@@ -4146,10 +3981,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       chargePolicy="string")
     ),
     exampleInboundMessage = (
-     InBoundMakePaymentv200(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundMakePaymentv200(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -4164,7 +3996,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundMakePaymentv200 => OutBound, InBoundMakePaymentv200 => InBound}
         val procedureName = "make_paymentv200"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , fromAccount, toAccount, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy)
+        val req = OutBound(fromAccount, toAccount, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy)
         val result: OBPReturnType[Box[TransactionId]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -4289,32 +4121,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundMakePaymentImpl(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundMakePaymentImpl(
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
       balance=BigDecimal(balanceAmountExample.value),
@@ -4360,10 +4167,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       chargePolicy="string")
     ),
     exampleInboundMessage = (
-     InBoundMakePaymentImpl(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundMakePaymentImpl(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -4378,7 +4182,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundMakePaymentImpl => OutBound, InBoundMakePaymentImpl => InBound}
         val procedureName = "make_payment_impl"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , fromAccount, toAccount, transactionRequestCommonBody, amt, description, transactionRequestType, chargePolicy)
+        val req = OutBound(fromAccount, toAccount, transactionRequestCommonBody, amt, description, transactionRequestType, chargePolicy)
         val result: OBPReturnType[Box[TransactionId]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -4396,32 +4200,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundCreateTransactionRequest(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundCreateTransactionRequest(
       initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
@@ -4472,10 +4251,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       description="string"))
     ),
     exampleInboundMessage = (
-     InBoundCreateTransactionRequest(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundCreateTransactionRequest(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -4555,7 +4331,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundCreateTransactionRequest => OutBound, InBoundCreateTransactionRequest => InBound}
         val procedureName = "create_transaction_request"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , initiator, fromAccount, toAccount, transactionRequestType, body)
+        val req = OutBound(initiator, fromAccount, toAccount, transactionRequestType, body)
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -4573,32 +4349,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundCreateTransactionRequestv200(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundCreateTransactionRequestv200(
       initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
@@ -4649,10 +4400,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       description="string"))
     ),
     exampleInboundMessage = (
-     InBoundCreateTransactionRequestv200(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundCreateTransactionRequestv200(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -4732,7 +4480,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundCreateTransactionRequestv200 => OutBound, InBoundCreateTransactionRequestv200 => InBound}
         val procedureName = "create_transaction_requestv200"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , initiator, fromAccount, toAccount, transactionRequestType, body)
+        val req = OutBound(initiator, fromAccount, toAccount, transactionRequestType, body)
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -4930,32 +4678,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundCreateTransactionRequestImpl(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundCreateTransactionRequestImpl(
       transactionRequestId=TransactionRequestId("string"),
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value),
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
@@ -5005,10 +4728,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       amount="string")))
     ),
     exampleInboundMessage = (
-     InBoundCreateTransactionRequestImpl(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundCreateTransactionRequestImpl(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -5088,7 +4808,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundCreateTransactionRequestImpl => OutBound, InBoundCreateTransactionRequestImpl => InBound}
         val procedureName = "create_transaction_request_impl"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , transactionRequestId, transactionRequestType, fromAccount, counterparty, body, status, charge)
+        val req = OutBound(transactionRequestId, transactionRequestType, fromAccount, counterparty, body, status, charge)
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -5106,32 +4826,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundCreateTransactionRequestImpl210(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundCreateTransactionRequestImpl210(
       transactionRequestId=TransactionRequestId("string"),
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value),
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
@@ -5181,10 +4876,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       chargePolicy="string")
     ),
     exampleInboundMessage = (
-     InBoundCreateTransactionRequestImpl210(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundCreateTransactionRequestImpl210(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -5264,7 +4956,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundCreateTransactionRequestImpl210 => OutBound, InBoundCreateTransactionRequestImpl210 => InBound}
         val procedureName = "create_transaction_request_impl210"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , transactionRequestId, transactionRequestType, fromAccount, toAccount, transactionRequestCommonBody, details, status, charge, chargePolicy)
+        val req = OutBound(transactionRequestId, transactionRequestType, fromAccount, toAccount, transactionRequestCommonBody, details, status, charge, chargePolicy)
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -5282,32 +4974,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetTransactionRequests(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundGetTransactionRequests(
       initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
@@ -5334,10 +5001,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountHolder=bankAccountAccountHolderExample.value))
     ),
     exampleInboundMessage = (
-     InBoundGetTransactionRequests(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundGetTransactionRequests(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -5417,7 +5081,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetTransactionRequests => OutBound, InBoundGetTransactionRequests => InBound}
         val procedureName = "get_transaction_requests"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , initiator, fromAccount)
+        val req = OutBound(initiator, fromAccount)
         val result: OBPReturnType[Box[List[TransactionRequest]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -5588,32 +5252,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetTransactionRequestsImpl(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundGetTransactionRequestsImpl(
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
       balance=BigDecimal(balanceAmountExample.value),
@@ -5634,10 +5273,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountHolder=bankAccountAccountHolderExample.value))
     ),
     exampleInboundMessage = (
-     InBoundGetTransactionRequestsImpl(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundGetTransactionRequestsImpl(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -5717,7 +5353,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetTransactionRequestsImpl => OutBound, InBoundGetTransactionRequestsImpl => InBound}
         val procedureName = "get_transaction_requests_impl"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , fromAccount)
+        val req = OutBound(fromAccount)
         val result: OBPReturnType[Box[List[TransactionRequest]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -5735,32 +5371,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetTransactionRequestsImpl210(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundGetTransactionRequestsImpl210(
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
       balance=BigDecimal(balanceAmountExample.value),
@@ -5781,10 +5392,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountHolder=bankAccountAccountHolderExample.value))
     ),
     exampleInboundMessage = (
-     InBoundGetTransactionRequestsImpl210(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundGetTransactionRequestsImpl210(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -5864,7 +5472,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetTransactionRequestsImpl210 => OutBound, InBoundGetTransactionRequestsImpl210 => InBound}
         val procedureName = "get_transaction_requests_impl210"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , fromAccount)
+        val req = OutBound(fromAccount)
         val result: OBPReturnType[Box[List[TransactionRequest]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -6012,32 +5620,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetTransactionRequestTypesImpl(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundGetTransactionRequestTypesImpl(
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
       balance=BigDecimal(balanceAmountExample.value),
@@ -6058,10 +5641,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountHolder=bankAccountAccountHolderExample.value))
     ),
     exampleInboundMessage = (
-     InBoundGetTransactionRequestTypesImpl(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundGetTransactionRequestTypesImpl(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -6076,7 +5656,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetTransactionRequestTypesImpl => OutBound, InBoundGetTransactionRequestTypesImpl => InBound}
         val procedureName = "get_transaction_request_types_impl"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , fromAccount)
+        val req = OutBound(fromAccount)
         val result: OBPReturnType[Box[List[TransactionRequestType]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -6094,32 +5674,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundCreateTransactionAfterChallenge(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundCreateTransactionAfterChallenge(
       initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
@@ -6129,10 +5684,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       transReqId=TransactionRequestId("string"))
     ),
     exampleInboundMessage = (
-     InBoundCreateTransactionAfterChallenge(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundCreateTransactionAfterChallenge(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -6212,7 +5764,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundCreateTransactionAfterChallenge => OutBound, InBoundCreateTransactionAfterChallenge => InBound}
         val procedureName = "create_transaction_after_challenge"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , initiator, transReqId)
+        val req = OutBound(initiator, transReqId)
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -6230,32 +5782,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundCreateTransactionAfterChallengev200(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundCreateTransactionAfterChallengev200(
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
       balance=BigDecimal(balanceAmountExample.value),
@@ -6360,10 +5887,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       future_date=Some("string")))
     ),
     exampleInboundMessage = (
-     InBoundCreateTransactionAfterChallengev200(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundCreateTransactionAfterChallengev200(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -6443,7 +5967,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundCreateTransactionAfterChallengev200 => OutBound, InBoundCreateTransactionAfterChallengev200 => InBound}
         val procedureName = "create_transaction_after_challengev200"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , fromAccount, toAccount, transactionRequest)
+        val req = OutBound(fromAccount, toAccount, transactionRequest)
         val result: OBPReturnType[Box[TransactionRequest]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -6944,39 +6468,11 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetProducts(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
-      bankId=BankId(bankIdExample.value), Map.empty)
+     OutBoundGetProducts(
+      bankId=BankId(bankIdExample.value), Nil)
     ),
     exampleInboundMessage = (
-     InBoundGetProducts(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundGetProducts(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -7002,7 +6498,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetProducts => OutBound, InBoundGetProducts => InBound}
         val procedureName = "get_products"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, params)
+        val req = OutBound(bankId, params)
         val result: OBPReturnType[Box[List[ProductCommons]]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -7020,40 +6516,12 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetProduct(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundGetProduct(
       bankId=BankId(bankIdExample.value),
       productCode=ProductCode("string"))
     ),
     exampleInboundMessage = (
-     InBoundGetProduct(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundGetProduct(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -7079,7 +6547,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetProduct => OutBound, InBoundGetProduct => InBound}
         val procedureName = "get_product"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, productCode)
+        val req = OutBound(bankId, productCode)
         val result: OBPReturnType[Box[ProductCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -7097,32 +6565,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundCreateOrUpdateBank(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundCreateOrUpdateBank(
       bankId=bankIdExample.value,
       fullBankName="string",
       shortBankName="string",
@@ -7134,10 +6577,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       bankRoutingAddress=bankRoutingAddressExample.value)
     ),
     exampleInboundMessage = (
-     InBoundCreateOrUpdateBank(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundCreateOrUpdateBank(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -7160,7 +6600,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateBank => OutBound, InBoundCreateOrUpdateBank => InBound}
         val procedureName = "create_or_update_bank"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, fullBankName, shortBankName, logoURL, websiteURL, swiftBIC, national_identifier, bankRoutingScheme, bankRoutingAddress)
+        val req = OutBound(bankId, fullBankName, shortBankName, logoURL, websiteURL, swiftBIC, national_identifier, bankRoutingScheme, bankRoutingAddress)
         val result: OBPReturnType[Box[BankCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -7178,32 +6618,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundCreateOrUpdateProduct(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundCreateOrUpdateProduct(
       bankId=bankIdExample.value,
       code="string",
       parentProductCode=Some("string"),
@@ -7218,10 +6633,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       metaLicenceName="string")
     ),
     exampleInboundMessage = (
-     InBoundCreateOrUpdateProduct(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundCreateOrUpdateProduct(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -7247,7 +6659,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateProduct => OutBound, InBoundCreateOrUpdateProduct => InBound}
         val procedureName = "create_or_update_product"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, code, parentProductCode, name, category, family, superFamily, moreInfoUrl, details, description, metaLicenceId, metaLicenceName)
+        val req = OutBound(bankId, code, parentProductCode, name, category, family, superFamily, moreInfoUrl, details, description, metaLicenceId, metaLicenceName)
         val result: OBPReturnType[Box[ProductCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -7265,40 +6677,12 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetBranchLegacy(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundGetBranchLegacy(
       bankId=BankId(bankIdExample.value),
       branchId=BranchId(branchIdExample.value))
     ),
     exampleInboundMessage = (
-     InBoundGetBranchLegacy(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundGetBranchLegacy(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -7369,7 +6753,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetBranchLegacy => OutBound, InBoundGetBranchLegacy => InBound}
         val procedureName = "get_branch_legacy"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, branchId)
+        val req = OutBound(bankId, branchId)
         val result: OBPReturnType[Box[BranchTCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -7634,40 +7018,12 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetAtmLegacy(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
+     OutBoundGetAtmLegacy(
       bankId=BankId(bankIdExample.value),
       atmId=AtmId("string"))
     ),
     exampleInboundMessage = (
-     InBoundGetAtmLegacy(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
+     InBoundGetAtmLegacy(
       status= Status(errorCode=statusErrorCodeExample.value,
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
@@ -7718,7 +7074,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetAtmLegacy => OutBound, InBoundGetAtmLegacy => InBound}
         val procedureName = "get_atm_legacy"
         val callContext: Option[CallContext] = None
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, atmId)
+        val req = OutBound(bankId, atmId)
         val result: OBPReturnType[Box[AtmTCommons]] = sendRequest[InBound](procedureName, req, callContext).map(convertToTuple(callContext))
         result
   }
