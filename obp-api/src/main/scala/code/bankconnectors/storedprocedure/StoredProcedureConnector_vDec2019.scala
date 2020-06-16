@@ -12382,24 +12382,6 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
 
   //-----helper methods
 
-  private[this] def convertToTuple[T](callContext: Option[CallContext])(inbound: Box[InBoundTrait[T]]): (Box[T], Option[CallContext]) = {
-      val boxedResult = inbound match {
-        case Full(in) if (in.status.hasNoError) => Full(in.data)
-        case Full(inbound) if (inbound.status.hasError) => {
-            val errorMessage = "CoreBank - Status: " + inbound.status.backendMessages
-            val errorCode: Int = try {
-              inbound.status.errorCode.toInt
-            } catch {
-              case _: Throwable => 400
-            }
-            ParamFailure(errorMessage, Empty, Empty, APIFailure(errorMessage, errorCode))
-        }
-      case failureOrEmpty: Failure => failureOrEmpty
-    }
-
-    (boxedResult, callContext)
-  }
-
   //TODO hongwei confirm the third valu: OutboundAdapterCallContext#adapterAuthInfo
   private[this] def buildCallContext(inboundAdapterCallContext: InboundAdapterCallContext, callContext: Option[CallContext]): Option[CallContext] =
     for (cc <- callContext)

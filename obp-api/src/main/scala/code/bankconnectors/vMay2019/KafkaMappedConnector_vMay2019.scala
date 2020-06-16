@@ -1152,19 +1152,6 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
     
     
 //---------------- dynamic end ---------------------please don't modify this line
-
-  //-----helper methods
-
-  private[this] def convertToTuple[T](callContext: Option[CallContext]) (inbound: Box[InBoundTrait[T]]): (Box[T], Option[CallContext]) = {
-    val boxedResult = inbound match {
-      case Full(in) if (in.status.hasNoError) => Full(in.data)
-      case Full(inbound) if (inbound.status.hasError) =>
-        Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
-      case failureOrEmpty: Failure => failureOrEmpty
-    }
-    (boxedResult, callContext)
-  }
-
 }
 object KafkaMappedConnector_vMay2019 extends KafkaMappedConnector_vMay2019{
 
