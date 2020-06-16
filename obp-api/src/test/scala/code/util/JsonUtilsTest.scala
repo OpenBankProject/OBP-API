@@ -149,29 +149,29 @@ class JsonUtilsTest extends FlatSpec with Matchers {
       | "noPerson": "[3]",
       |}
       |""".stripMargin)
-
-  val expectedZson = json.parse(
-    """
-      |{
-      |  "firstPerson":{
-      |    "name":"Shuang",
-      |    "age":10
-      |  },
-      |  "secondName":"Sean",
-      |  "secondHobby":"coding"
-      |}
-      |""".stripMargin)
-
   "get Array type json given index, when exists" should "get given item" taggedAs JsonUtilsTag in {
     val resultJson = buildJson(arrayRoot, arrayRootSchema)
 
     val str1 = json.prettyRender(resultJson)
     println(str1)
-    val str2 = json.prettyRender(expectedZson)
+
+    val expectedJson = json.parse(
+      """
+        |{
+        |  "firstPerson":{
+        |    "name":"Shuang",
+        |    "age":10
+        |  },
+        |  "secondName":"Sean",
+        |  "secondHobby":"coding"
+        |}
+        |""".stripMargin)
+
+    val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
   }
 
-  val zsonList = json.parse(
+  val jsonList = json.parse(
     """
       |[
       |  {
@@ -202,7 +202,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
       |  }
       |]
       |""".stripMargin)
-  val zsonListSchema = json.parse(
+  val jsonListSchema = json.parse(
     """
       |{
       |  "inboundAdapterCallContext$default":{
@@ -292,7 +292,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
       |}
       |""".stripMargin)
   "list type fields" should "properly be convert" taggedAs JsonUtilsTag in {
-    val resultJson = buildJson(zsonList, zsonListSchema)
+    val resultJson = buildJson(jsonList, jsonListSchema)
 
     val str1 = json.prettyRender(resultJson)
     val str2 = json.prettyRender(expectListResult)

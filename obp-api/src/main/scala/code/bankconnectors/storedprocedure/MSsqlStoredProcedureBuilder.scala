@@ -19,6 +19,9 @@ import org.apache.commons.io.FileUtils
 
 import scala.collection.mutable.ArrayBuffer
 
+/**
+ * create ms sql server stored procedure according messageDocs.
+ */
 object MSsqlStoredProcedureBuilder {
   specialMethods // this line just for modify "MappedWebUiPropsProvider"
   object StatusSerializer extends Serializer[Status] {
