@@ -28,10 +28,12 @@ Berlin 13359, Germany
 
 package code.snippet
 
+import java.io.InputStream
+
 import code.api.util.APIUtil.{activeBrand, getRemoteIpAddress, getServerUrl}
 import code.api.util.{APIUtil, CustomJsonFormats, Glossary, PegdownOptions}
 import code.util.Helper.MdcLoggable
-import net.liftweb.http.{S, SessionVar}
+import net.liftweb.http.{LiftRules, S, SessionVar}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, Props}
 
@@ -122,117 +124,20 @@ class WebUI extends MdcLoggable{
 
   val sdksHtmlLink = getWebUiPropsValue("webui_featured_sdks_external_link","")
   
-  val sdksHtlmDefaultContent= """<h1>SDK Showcases</h1>
-                                |
-                                |<div class="main-showcases-item">
-                                |    <a href="https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python"><img class="showcase-python"
-                                |                                                                                   src="https://static.openbankproject.com/images/sandbox/showcases/python.png"
-                                |                                                                                   width="156" height="156"
-                                |                                                                                   alt="python"/></a>
-                                |    <h2>Python</h2>
-                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python">OpenBankProject</a>
-                                |</div>
-                                |<div class="main-showcases-item">
-                                |    <a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Django"><img class="showcase-django"
-                                |                                                                                 src="https://static.openbankproject.com/images/sandbox/showcases/django.png"
-                                |                                                                                 width="156" height="156" alt="django"/></a>
-                                |    <h2>Django</h2>
-                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Django">OpenBankProject</a>
-                                |</div>
-                                |<div class="main-showcases-item">
-                                |    <a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Node"><img class="showcase-nodejs"
-                                |                                                                               src="https://static.openbankproject.com/images/sandbox/showcases/nodejs.png"
-                                |                                                                               width="156" height="156"
-                                |                                                                               alt="nodejs"/></a>
-                                |    <h2>NodeJS</h2>
-                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Node">OpenBankProject</a>
-                                |</div>
-                                |<div class="main-showcases-item">
-                                |    <a href="https://github.com/OpenBankProject/Hello-OBP-DirectLogin-ReactJs"><img class="showcase-react"
-                                |                                                                                    src="https://static.openbankproject.com/images/sandbox/showcases/nodejs.png"
-                                |                                                                                    width="156" height="156"
-                                |                                                                                    alt="react"/></a>
-                                |    <h2>React</h2>
-                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-DirectLogin-ReactJs">OpenBankProject</a>
-                                |</div>
-                                |<div class="main-showcases-item">
-                                |    <a href="https://github.com/OpenBankProject/Hello-OBP-NextJS"><img class="showcase-react"
-                                |                                                                       src="https://static.openbankproject.com/images/sandbox/showcases/nextjs.png"
-                                |                                                                       width="156" height="156" alt="nextjs"/></a>
-                                |    <h2>Next.JS</h2>
-                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-NextJS">Strings.MY</a>
-                                |</div>
-                                |<div class="main-showcases-item">
-                                |    <a href="https://github.com/OpenBankProject/Hello-OBP-Flutter-DirectLogin"><img class="showcase-react"
-                                |                                                                                    src="https://static.openbankproject.com/images/sandbox/showcases/flutter.png"
-                                |                                                                                    width="156" height="156"
-                                |                                                                                    alt="flutter"/></a>
-                                |    <h2>Flutter</h2>
-                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-Flutter-DirectLogin">Strings.MY</a>
-                                |</div>
-                                |<div class="main-showcases-item">
-                                |    <a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Mac"><img class="showcase-mac"
-                                |                                                                              src="https://static.openbankproject.com/images/sandbox/showcases/mac.png"
-                                |                                                                              width="156" height="156" alt="mac"/></a>
-                                |    <h2>Mac</h2>
-                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Mac">OpenBankProject</a>
-                                |</div>
-                                |<div class="main-showcases-item">
-                                |    <a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-IOS"><img class="showcase-ios"
-                                |                                                                              src="https://static.openbankproject.com/images/sandbox/showcases/ios.png"
-                                |                                                                              width="156" height="156" alt="ios"/></a>
-                                |    <h2>IOS</h2>
-                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-IOS">OpenBankProject</a>
-                                |</div>
-                                |<div class="main-showcases-item">
-                                |    <a href="https://github.com/OpenBankProject/Hello-OBP-SpringBoot"><img class="showcase-springboot"
-                                |                                                                           src="https://static.openbankproject.com/images/sandbox/showcases/springboot.png"
-                                |                                                                           width="156" height="156" alt="csharp"/></a>
-                                |    <h2>Java / Spring Boot</h2>
-                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-SpringBoot">OpenBankProject</a>
-                                |</div>
-                                |<div class="main-showcases-item">
-                                |    <a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Android"><img class="showcase-android"
-                                |                                                                                  src="https://static.openbankproject.com/images/sandbox/showcases/android.png"
-                                |                                                                                  width="156" height="156"
-                                |                                                                                  alt="android"/></a>
-                                |    <h2>Java / Android</h2>
-                                |    By <a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Android">OpenBankProject</a>
-                                |</div>
-                                |<div class="main-showcases-item">
-                                |    <a href="https://github.com/OpenBankProject/Social-Finance"><img class="showcase-scala"
-                                |                                                                     src="https://static.openbankproject.com/images/sandbox/showcases/scala.png"
-                                |                                                                     width="156" height="156" alt="scala"/></a>
-                                |    <h2>Scala / Liftweb</h2>
-                                |    By <a href="https://github.com/OpenBankProject/Social-Finance">OpenBankProject</a>
-                                |</div>
-                                |<div class="main-showcases-item">
-                                |    <a href="https://github.com/solonas/OBP-PHP-HelloWorld"><img class="showcase-php"
-                                |                                                                 src="https://static.openbankproject.com/images/sandbox/showcases/php.png"
-                                |                                                                 width="156" height="156" alt="php"/></a>
-                                |    <h2>PHP</h2>
-                                |    By <a href="https://github.com/solonas/OBP-PHP-HelloWorld">Solonas</a>
-                                |</div>
-                                |<div class="main-showcases-item">
-                                |    <a href="http://obp.sckhoo.com"><img class="showcase-csharp"
-                                |                                         src="https://static.openbankproject.com/images/sandbox/showcases/csharp.png"
-                                |                                         width="156" height="156" alt="csharp"/></a>
-                                |    <h2>C#</h2>
-                                |    By <a href="http://obp.sckhoo.com">Sweechem</a>
-                                |</div>
-                                |
-                                |<p>Please make sure you are using the correct sandbox domain when using the SDKs. In doubt, drop us a line.</p> 
-                                |	""".stripMargin
-  //we read all the content from the static html file. If there is any exceptions, we provide the error back to the homepage.
-  val sdksHtmlContent= try{
-    Source.fromURL(sdksHtmlLink, "UTF-8").mkString
+  val sdksHtmlContent = try{
+    if (sdksHtmlLink.isEmpty)//If the webui_featured_sdks_external_link is not set, we will read the internal sdks.html file instead.
+      LiftRules.getResource("/sdks.html").map{ url =>
+        Source.fromURL(url, "UTF-8").mkString
+      }.openOrThrowException("Please check the content of this file: src/main/webapp/sdks.html")
+    else
+      Source.fromURL(sdksHtmlLink, "UTF-8").mkString
   }catch {
     case _ : Throwable => "<h1>SDK Showcases is wrong, please check the props `webui_featured_sdks_external_link` </h1>"
   }
   
   // webui_featured_sdks_external_link props, we can set the sdks here. check the `SDK Showcases` in Homepage, and you can see all the sdks.
   def featuredSdksHtml: CssSel = {
-    "#main-showcases *" #> (if(sdksHtmlLink.isEmpty) scala.xml.Unparsed(sdksHtlmDefaultContent) else scala.xml.Unparsed(sdksHtmlContent))
+    "#main-showcases *" #> scala.xml.Unparsed(sdksHtmlContent)
   }
 
 
