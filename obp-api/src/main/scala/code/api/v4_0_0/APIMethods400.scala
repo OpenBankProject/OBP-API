@@ -93,7 +93,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getMapperDatabaseInfo),
       "GET",
-      "/database/mapper",
+      "/database/info",
       "Get Mapper Database Info",
       s"""Get basic information about the Mapper Database.
          |
@@ -109,10 +109,10 @@ trait APIMethods400 {
 
 
     lazy val getMapperDatabaseInfo: OBPEndpoint = {
-      case "database" :: "mapper" :: Nil JsonGet _ => {
+      case "database" :: "info" :: Nil JsonGet _ => {
         cc =>
           for {
-            (_, callContext) <- anonymousAccess(cc)
+            (_, callContext) <- authenticatedAccess(cc)
           } yield {
             (Migration.DbFunction.mapperDatabaseInfo(), HttpCode.`200`(callContext))
           }

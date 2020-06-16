@@ -462,7 +462,7 @@ object ErrorMessages {
   val CreateMeetingInviteeException = "OBP-60012: Create Meeting Invitee Exception. "
   val AdapterUnknownError = "OBP-60013: Adapter Unknown Error. "
   val AdapterTimeOurError = "OBP-60014: Adapter Timeout Error. "
-  val AdapterNotImplemented = "OBP-60015: Adapter Call Not Implemented. "
+  val AdapterFunctionNotImplemented = "OBP-60015: Adapter Function Not Implemented."
 
   // MethodRouting Exceptions (OBP-7XXXX)
   val InvalidBankIdRegex = "OBP-70001: Incorrect regex for bankIdPattern."

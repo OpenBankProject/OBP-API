@@ -4,7 +4,7 @@ import akka.pattern.ask
 import code.actorsystem.ObpLookupSystem
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.{bankAccountCommons, bankCommons, transactionCommons, _}
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType}
-import code.api.util.ErrorMessages.{AdapterUnknownError, AdapterNotImplemented}
+import code.api.util.ErrorMessages.{AdapterUnknownError, AdapterFunctionNotImplemented}
 import code.api.util.ExampleValue._
 import code.api.util._
 import code.bankconnectors._
@@ -28,7 +28,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
 
   private def recoverFunction[U]: PartialFunction[Throwable, Future[U]] = {
     case e: ClassCastException =>
-      Future.failed(new Exception(AdapterNotImplemented, e))
+      Future.failed(new Exception(AdapterFunctionNotImplemented, e))
     case e: Exception =>
       Future.failed(new Exception(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}", e))
   }

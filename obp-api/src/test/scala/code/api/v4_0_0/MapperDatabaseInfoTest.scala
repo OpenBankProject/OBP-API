@@ -25,7 +25,7 @@ class MapperDatabaseInfoTest extends V400ServerSetup {
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "database" / "mapper").GET
+      val request400 = (v4_0_0_Request / "database" / "info").GET
       val response400 = makeGetRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
@@ -35,7 +35,7 @@ class MapperDatabaseInfoTest extends V400ServerSetup {
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "database" / "mapper").GET <@(user1)
+      val request400 = (v4_0_0_Request / "database" / "info").GET <@(user1)
       val response400 = makeGetRequest(request400)
       Then("error should be " + UserHasMissingRoles + CanGetDatabaseInfo)
       response400.code should equal(403)
@@ -47,7 +47,7 @@ class MapperDatabaseInfoTest extends V400ServerSetup {
       val username = "USERNAME"
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetDatabaseInfo.toString)
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "database" / "mapper").GET <@(user1)
+      val request400 = (v4_0_0_Request / "database" / "info").GET <@(user1)
       val response400 = makeGetRequest(request400)
       Then("We should get a 200")
       response400.code should equal(200)
