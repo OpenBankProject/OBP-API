@@ -106,6 +106,8 @@ object MessageDocsSwaggerDefinitions
 
   val inboundStatus = Status("Status errorCode", List(inboundStatusMessage))
 
+  val successStatus = Status("", List(inboundStatusMessage.copy(errorCode = "")))
+
   val inboundAdapterInfoInternal = InboundAdapterInfoInternal(
     errorCode ="",
     backendMessages = List(inboundStatusMessage),
@@ -114,7 +116,7 @@ object MessageDocsSwaggerDefinitions
     git_commit = "String",
     date = DateWithMsExampleString
   )
-  
+
   val bankCommons = BankCommons(
       bankId = BankId(bankIdExample.value),
       shortName = "The Royal Bank of Scotland",
