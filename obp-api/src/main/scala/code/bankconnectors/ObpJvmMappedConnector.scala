@@ -10,7 +10,8 @@ import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.branches.Branches.Branch
-import code.fx.{FXRate, fx}
+import code.fx.fx
+import com.openbankproject.commons.model.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
 import code.metadata.narrative.MappedNarrative
@@ -764,7 +765,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     val viewsDeleted = Views.views.vend.removeAllViews(bankId, accountId)
 
     //delete account
-    val account = getBankAccount(bankId, accountId)
+    val account = getBankAccountOld(bankId, accountId)
 
     val accountDeleted = account match {
       case acc => true //acc.delete_! //TODO
@@ -803,7 +804,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
                                          accountType: String, accountLabel: String, currency: String,
                                          balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
-    getBankAccount(bankId, accountId) match {
+    getBankAccountOld(bankId, accountId) match {
       case Full(a) =>
         logger.info(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
         a
@@ -854,7 +855,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getBankAccount(bankId, accountId)
+      acc <- getBankAccountOld(bankId, accountId)
       (bank, _)<- getBankLegacy(bankId, None)
     } yield {
       //acc.balance = newBalance
@@ -946,7 +947,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
       bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
       account <- getAccountByNumber(bankId, accountNumber, AuthUser.getCurrentUserUsername)
     } yield {
-        val acc = getBankAccount(bankId, account.accountId)
+        val acc = getBankAccountOld(bankId, account.accountId)
         acc match {
           case a => true //a.lastUpdate = updateDate //TODO
           // case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
@@ -963,7 +964,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String) = {
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getBankAccount(bankId, accountId)
+      acc <- getBankAccountOld(bankId, accountId)
       (bank, _)<- getBankLegacy(bankId, None)
       d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountId.value), By(MappedBankAccountData.bankId, bank.bankId.value))
     } yield {
@@ -992,7 +993,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
     for {
         cparty <- r.counterparty
-        thisAccount <- getBankAccount(BankId(r.this_account.bank), AccountId(r.this_account.id))
+        thisAccount <- getBankAccountOld(BankId(r.this_account.bank), AccountId(r.this_account.id))
         //creates a dummy Counterparty without an CounterpartyMetadata, which results in one being generated (in Counterparty init)
         dummyCounterparty <- tryo{createCounterparty(cparty, thisAccount, None)}
         //and create the proper Counterparty with the correct "id" attribute set to the metadataId of the CounterpartyMetadata object
@@ -1325,7 +1326,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
       //If it is empty, return the default value : "0.0000000" and set the BankAccount currency
       case _ =>
         for {
-          fromAccount <- getBankAccount(bankId, accountId)
+          fromAccount <- getBankAccountOld(bankId, accountId)
           fromAccountCurrency <- tryo{ fromAccount.currency }
         } yield {
           TransactionRequestTypeChargeMock(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!")

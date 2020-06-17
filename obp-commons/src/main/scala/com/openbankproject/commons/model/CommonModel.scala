@@ -418,7 +418,67 @@ case class CustomerMessageCommons(
 ) extends CustomerMessage
 object CustomerMessageCommons extends Converter[CustomerMessage, CustomerMessageCommons]
 
+case class CustomerAttributeCommons (
+  override val bankId: BankId,
+  override val customerId: CustomerId,
+  override val customerAttributeId: String,
+  override val attributeType: CustomerAttributeType.Value,
+  override val name: String,
+  override val value: String,
+) extends CustomerAttribute
+object CustomerAttributeCommons extends Converter[CustomerAttribute, CustomerAttributeCommons]
 
+case class TransactionAttributeCommons (
+    override val  bankId: BankId,
+    override val  transactionId: TransactionId,
+    override val  transactionAttributeId: String,
+    override val  attributeType: TransactionAttributeType.Value,
+    override val  name: String,
+    override val  value: String,
+) extends TransactionAttribute
+object TransactionAttributeCommons extends Converter[TransactionAttribute, TransactionAttributeCommons]
+
+case class FXRateCommons (
+  override val bankId : BankId,
+  override val fromCurrencyCode: String,
+  override val toCurrencyCode: String,
+  override val conversionValue: Double,
+  override val inverseConversionValue: Double,
+  override val effectiveDate: Date
+) extends FXRate
+object FXRateCommons extends Converter[FXRate, FXRateCommons]
+
+
+case class TransactionRequestTypeChargeCommons (
+   override val transactionRequestTypeId: String,
+   override val bankId: String,
+   override val chargeCurrency: String,
+   override val chargeAmount: String,
+   override val chargeSummary: String
+) extends TransactionRequestTypeCharge
+object TransactionRequestTypeChargeCommons extends Converter[TransactionRequestTypeCharge, TransactionRequestTypeChargeCommons]
+
+case class DirectDebitTraitCommons (
+    override val directDebitId: String,
+    override val bankId: String,
+    override val accountId: String,
+    override val customerId: String,
+    override val userId: String,
+    override val counterpartyId: String,
+    override val dateSigned: Date,
+    override val dateCancelled: Date,
+    override val dateStarts: Date,
+    override val dateExpires: Date,
+    override val active: Boolean
+) extends DirectDebitTrait
+object DirectDebitTraitCommons extends Converter[DirectDebitTrait, DirectDebitTraitCommons]
+
+case class TransactionStatusCommons(
+   override val transactionId : String,
+   override val transactionStatus: String,
+   override val transactionTimestamp: String
+) extends TransactionStatus
+object TransactionStatusCommons extends Converter[TransactionStatus, TransactionStatusCommons]
 
 //----------------obp-api moved to here case classes
 

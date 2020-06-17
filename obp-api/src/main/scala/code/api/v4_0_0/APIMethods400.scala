@@ -41,7 +41,8 @@ import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.MappedTransactionRequestProvider
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
-import code.transactionrequests.TransactionRequests.{TransactionRequestStatus, TransactionRequestTypes}
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes
+import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import code.userlocks.UserLocksProvider
 import code.users.Users
 import code.util.Helper.booleanToBox

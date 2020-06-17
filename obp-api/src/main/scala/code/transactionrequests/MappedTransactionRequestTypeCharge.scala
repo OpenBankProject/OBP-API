@@ -1,6 +1,7 @@
 package code.transactionrequests
 
-import code.util.{UUIDString}
+import code.util.UUIDString
+import com.openbankproject.commons.model.TransactionRequestTypeCharge
 import net.liftweb.mapper._
 
 class MappedTransactionRequestTypeCharge extends TransactionRequestTypeCharge with LongKeyedMapper[MappedTransactionRequestTypeCharge] with IdPK with CreatedUpdated{
@@ -46,17 +47,4 @@ case class TransactionRequestTypeChargeMock(
   override def chargeSummary: String = mChargeSummary
 }
 
-
-trait TransactionRequestTypeCharge {
-
-  def transactionRequestTypeId: String
-
-  def bankId: String
-
-  def chargeCurrency: String
-
-  def chargeAmount: String
-
-  def chargeSummary: String
-}
 

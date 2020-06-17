@@ -15,7 +15,7 @@ import code.bankconnectors.Connector
 import code.fx.fx
 import code.model.BankAccountX
 import code.setup.{APIResponse, DefaultUsers}
-import code.transactionrequests.TransactionRequests.TransactionRequestStatus
+import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import com.openbankproject.commons.model.{AccountId, BankAccount, TransactionRequestId}
 import net.liftweb.json.Serialization.write

@@ -4,6 +4,7 @@ import java.util.Date
 
 import code.api.util.APIUtil
 import code.util.UUIDString
+import com.openbankproject.commons.model.DirectDebitTrait
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 

@@ -507,7 +507,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
 
   //used by the transaction import api
   override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal) = {
-    getBankAccount(bankId, accountId).map(_.asInstanceOf[Account]) match {
+    getBankAccountOld(bankId, accountId).map(_.asInstanceOf[Account]) match {
       case Full(acc) =>
         acc.accountBalance(newBalance).saveTheRecord().isDefined
         Full(true)
@@ -527,7 +527,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   }
 
   override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String) = {
-    getBankAccount(bankId, accountId).map(_.asInstanceOf[Account])  match {
+    getBankAccountOld(bankId, accountId).map(_.asInstanceOf[Account])  match {
       case Full(acc) =>
         acc.accountLabel(label).saveTheRecord().isDefined
         Full(true)

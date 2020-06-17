@@ -33,7 +33,8 @@ import code.api.util._
 import code.api.v2_1_0._
 import code.bankconnectors._
 import code.branches.Branches.Branch
-import code.fx.{FXRate, fx}
+import code.fx.fx
+import com.openbankproject.commons.model.FXRate
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
@@ -48,7 +49,8 @@ import com.openbankproject.commons.model.Product
 import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
-import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
+import code.transactionrequests.TransactionRequests
+import com.openbankproject.commons.model.TransactionRequestTypeCharge
 import code.util.Helper.MdcLoggable
 import code.util.{Helper, TTLCache}
 import code.views.Views
@@ -1165,7 +1167,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       case Full(f) => Full(TransactionRequestTypeCharge2(f))
       case _ =>
         for {
-          fromAccount <- getBankAccount(bankId, accountId)
+          fromAccount <- getBankAccountOld(bankId, accountId)
           fromAccountCurrency <- tryo{ fromAccount.currency }
         } yield {
           TransactionRequestTypeCharge2(InboundTransactionRequestTypeCharge(
@@ -1330,7 +1332,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     val viewsDeleted = Views.views.vend.removeAllViews(bankId, accountId)
 
     //delete account
-    val account = getBankAccount(bankId, accountId)
+    val account = getBankAccountOld(bankId, accountId)
 
     val accountDeleted = account match {
       case acc => true //acc.delete_! //TODO
@@ -1370,7 +1372,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
                                          accountType: String, accountLabel: String, currency: String,
                                          balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
-    getBankAccount(bankId, accountId) match {
+    getBankAccountOld(bankId, accountId) match {
       case Full(a) =>
         logger.info(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
         a
@@ -1420,7 +1422,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getBankAccount(bankId, accountId)
+      acc <- getBankAccountOld(bankId, accountId)
       (bank, _)<- getBankLegacy(bankId, None)
     } yield {
       //acc.balance = newBalance
@@ -1512,7 +1514,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
       account <- getAccountByNumber(bankId, accountNumber)
     } yield {
-        val acc = getBankAccount(bankId, account.accountId)
+        val acc = getBankAccountOld(bankId, account.accountId)
         acc match {
           case a => true //a.lastUpdate = updateDate //TODO
           // case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
@@ -1529,7 +1531,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String) = {
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getBankAccount(bankId, accountId)
+      acc <- getBankAccountOld(bankId, accountId)
       (bank, _)<- getBankLegacy(bankId, None)
       d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountId.value), By(MappedBankAccountData.bankId, bank.bankId.value))
     } yield {
@@ -1595,7 +1597,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     for {
         counterpartyId <- tryo{r.counterpartyId}
         counterpartyName <- tryo{r.counterpartyName}
-        thisAccount <- getBankAccount(BankId(r.bankId), AccountId(r.accountId))
+        thisAccount <- getBankAccountOld(BankId(r.bankId), AccountId(r.accountId))
         //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
         dummyOtherBankAccount <- tryo{createCounterparty(counterpartyId, counterpartyName, thisAccount, None)}
         //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object

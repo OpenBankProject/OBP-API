@@ -40,7 +40,7 @@ import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
 import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, ViewBasicV300}
 import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
-import code.directdebit.DirectDebitTrait
+import com.openbankproject.commons.model.DirectDebitTrait
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccountCore}
 import code.standingorders.StandingOrderTrait
