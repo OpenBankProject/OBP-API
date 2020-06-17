@@ -30,10 +30,10 @@ import java.util.Date
 
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{MessageDoc}
-import code.fx.FXRate
+import com.openbankproject.commons.model.FXRate
 import code.model._
 import code.model.dataAccess.MappedBankAccountData
-import code.transactionrequests.TransactionRequestTypeCharge
+import com.openbankproject.commons.model.TransactionRequestTypeCharge
 import com.openbankproject.commons.model.{CounterpartyTrait, _}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By

@@ -3,7 +3,7 @@ package code.fx
 import java.util.Date
 
 import code.util.UUIDString
-import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.model.{BankId, FXRate}
 import net.liftweb.mapper.{MappedStringForeignKey, _}
 
 class MappedFXRate extends FXRate with LongKeyedMapper[MappedFXRate] with IdPK {
@@ -42,17 +42,4 @@ class MappedFXRate extends FXRate with LongKeyedMapper[MappedFXRate] with IdPK {
 
 object MappedFXRate extends MappedFXRate with LongKeyedMetaMapper[MappedFXRate] {}
 
-trait FXRate {
 
-  def bankId : BankId
-
-  def fromCurrencyCode: String
-
-  def toCurrencyCode: String
-
-  def conversionValue: Double
-
-  def inverseConversionValue: Double
-
-  def effectiveDate: Date
-}

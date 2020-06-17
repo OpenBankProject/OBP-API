@@ -28,10 +28,12 @@ import code.context.{UserAuthContextProvider, UserAuthContextUpdateProvider}
 import code.customer._
 import code.customeraddress.CustomerAddressX
 import code.customerattribute.{CustomerAttributeX, MappedCustomerAttribute}
-import code.directdebit.{DirectDebitTrait, DirectDebits}
+import code.directdebit.DirectDebits
+import com.openbankproject.commons.model.DirectDebitTrait
 import code.dynamicEntity.{DynamicEntityProvider, DynamicEntityT}
 import code.fx.fx.TTL
-import code.fx.{FXRate, MappedFXRate, fx}
+import code.fx.{MappedFXRate, fx}
+import com.openbankproject.commons.model.FXRate
 import code.kycchecks.KycChecks
 import code.kycdocuments.KycDocuments
 import code.kycmedias.KycMedias
@@ -57,7 +59,8 @@ import code.transaction.MappedTransaction
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionattribute.TransactionAttributeX
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{ACCOUNT, ACCOUNT_OTP, COUNTERPARTY, FREE_FORM, REFUND, SANDBOX_TAN, SEPA, SEPA_CREDIT_TRANSFERS}
-import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestStatus, TransactionRequestTypes}
+import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
+import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import code.transactionrequests._
 import code.users.Users
 import code.util.Helper
@@ -434,7 +437,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
           updateAccountTransactions(bankId, accountId)
 
-          for (account <- getBankAccount(bankId, accountId))
+          for (account <- getBankAccountOld(bankId, accountId))
             yield mappedTransactions.flatMap(_.toTransaction(account)) //each transaction will be modified by account, here we return the `class Transaction` not a trait.
         }
       }
@@ -478,7 +481,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
           val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
 
-          for (account <- getBankAccount(bankId, accountId))
+          for (account <- getBankAccountOld(bankId, accountId))
             yield mappedTransactions.flatMap(_.toTransactionCore(account)) //each transaction will be modified by account, here we return the `class Transaction` not a trait.
         }
       }
@@ -504,7 +507,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     for {
       bank <- getMappedBank(bankId)
-      account <- getBankAccount(bankId, accountId).map(_.asInstanceOf[MappedBankAccount])
+      account <- getBankAccountOld(bankId, accountId).map(_.asInstanceOf[MappedBankAccount])
     } {
       Future {
         val useMessageQueue = APIUtil.getPropsAsBoolValue("messageQueue.updateBankAccountsTransaction", false)
@@ -566,7 +569,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (Full(
         bankIdAccountIds.map(
           bankIdAccountId =>
-            getBankAccount(
+            getBankAccountOld(
               bankIdAccountId.bankId,
               bankIdAccountId.accountId
             ).openOrThrowException(s"${ErrorMessages.BankAccountNotFound} current BANK_ID(${bankIdAccountId.bankId}) and ACCOUNT_ID(${bankIdAccountId.accountId})"))
@@ -578,7 +581,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Future {
       val accountsBalances = for {
         bankIdAccountId <- bankIdAccountIds
-        bankAccount <- getBankAccount(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"${ErrorMessages.BankAccountNotFound} current BANK_ID(${bankIdAccountId.bankId}) and ACCOUNT_ID(${bankIdAccountId.accountId})"
+        bankAccount <- getBankAccountOld(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"${ErrorMessages.BankAccountNotFound} current BANK_ID(${bankIdAccountId.bankId}) and ACCOUNT_ID(${bankIdAccountId.accountId})"
         accountBalance = AccountBalance(
           id = bankAccount.accountId.value,
           label = bankAccount.label,
@@ -629,7 +632,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Full(
       bankIdAccountIds
         .map(bankIdAccountId =>
-          getBankAccount(
+          getBankAccountOld(
             bankIdAccountId.bankId,
             bankIdAccountId.accountId)
             .openOrThrowException(s"${ErrorMessages.BankAccountNotFound} current BANK_ID(${bankIdAccountId.bankId}) and ACCOUNT_ID(${bankIdAccountId.accountId})"))
@@ -655,7 +658,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Full(
       bankIdAccountIds
         .map(bankIdAccountId =>
-          getBankAccount(
+          getBankAccountOld(
             bankIdAccountId.bankId,
             bankIdAccountId.accountId)
             .openOrThrowException(s"${ErrorMessages.BankAccountNotFound} current BANK_ID(${bankIdAccountId.bankId}) and ACCOUNT_ID(${bankIdAccountId.accountId})"))
@@ -686,7 +689,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     */
   def createOrUpdateMappedBankAccount(bankId: BankId, accountId: AccountId, currency: String): Box[BankAccount] = {
 
-    val mappedBankAccount = getBankAccount(bankId, accountId).map(_.asInstanceOf[MappedBankAccount]) match {
+    val mappedBankAccount = getBankAccountOld(bankId, accountId).map(_.asInstanceOf[MappedBankAccount]) match {
       case Full(f) =>
         f.bank(bankId.value).theAccountId(accountId.value).accountCurrency(currency.toUpperCase).saveMe()
       case _ =>
@@ -1508,7 +1511,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                           accountRoutingScheme: String,
                                           accountRoutingAddress: String
                                         ): BankAccount = {
-    getBankAccount(bankId, accountId) match {
+    getBankAccountOld(bankId, accountId) match {
       case Full(a) =>
         logger.debug(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
         a
@@ -1543,7 +1546,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     //this will be Full(true) if everything went well
     val result = for {
       bank <- getMappedBank(bankId)
-      account <- getBankAccount(bankId, accountId).map(_.asInstanceOf[MappedBankAccount])
+      account <- getBankAccountOld(bankId, accountId).map(_.asInstanceOf[MappedBankAccount])
     } yield {
       account.accountBalance(Helper.convertToSmallestCurrencyUnits(newBalance, account.currency)).save
       setBankAccountLastUpdated(bank.nationalIdentifier, account.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
@@ -1659,7 +1662,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String) = {
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getBankAccount(bankId, accountId).map(_.asInstanceOf[MappedBankAccount])
+      acc <- getBankAccountOld(bankId, accountId).map(_.asInstanceOf[MappedBankAccount])
       bank <- getMappedBank(bankId)
     } yield {
       acc.accountLabel(label).save
@@ -2255,7 +2258,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
       //If it is empty, return the default value : "0.0000000" and set the BankAccount currency
       case _ =>
-        val fromAccountCurrency: String = getBankAccount(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox).currency
+        val fromAccountCurrency: String = getBankAccountOld(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox).currency
         TransactionRequestTypeChargeMock(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!")
     }
 
@@ -3237,7 +3240,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   //This is old one, no callContext there. only for old style endpoints.
-  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccount] = {
+  override def getBankAccountOld(bankId: BankId, accountId: AccountId): Box[BankAccount] = {
     getBankAccountLegacy(bankId, accountId, None).map(_._1)
   }
 
@@ -3266,10 +3269,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def makePayment(initiator: User, fromAccountUID: BankIdAccountId, toAccountUID: BankIdAccountId,
                            amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType): Box[TransactionId] = {
     for {
-      fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~
+      fromAccount <- getBankAccountOld(fromAccountUID.bankId, fromAccountUID.accountId) ?~
         s"$BankAccountNotFound  Account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
       isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId)), UserNoOwnerView)
-      toAccount <- getBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~
+      toAccount <- getBankAccountOld(toAccountUID.bankId, toAccountUID.accountId) ?~
         s"$BankAccountNotFound Account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
       sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
         s"$InvalidTransactionRequestCurrency, Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
@@ -3323,10 +3326,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     //create a new transaction request
     val request = for {
-      fromAccountType <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
+      fromAccountType <- getBankAccountOld(fromAccount.bankId, fromAccount.accountId) ?~
         s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
       isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId)), UserNoOwnerView)
-      toAccountType <- getBankAccount(toAccount.bankId, toAccount.accountId) ?~
+      toAccountType <- getBankAccountOld(toAccount.bankId, toAccount.accountId) ?~
         s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo {
         BigDecimal(body.value.amount)
@@ -3384,9 +3387,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     // Always create a new Transaction Request
     val request = for {
-      fromAccountType <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~ s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
+      fromAccountType <- getBankAccountOld(fromAccount.bankId, fromAccount.accountId) ?~ s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
       isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId)) == true || hasEntitlement(fromAccount.bankId.value, initiator.userId, canCreateAnyTransactionRequest) == true, ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
-      toAccountType <- getBankAccount(toAccount.bankId, toAccount.accountId) ?~ s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
+      toAccountType <- getBankAccountOld(toAccount.bankId, toAccount.accountId) ?~ s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo {
         BigDecimal(body.value.amount)
       } ?~! s"amount ${body.value.amount} not convertible to number"
@@ -3725,7 +3728,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getTransactionRequests(initiator: User, fromAccount: BankAccount): Box[List[TransactionRequest]] = {
     val transactionRequests =
       for {
-        fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
+        fromAccount <- getBankAccountOld(fromAccount.bankId, fromAccount.accountId) ?~
           s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
         isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId)), UserNoOwnerView)
         transactionRequests <- getTransactionRequestsImpl(fromAccount)

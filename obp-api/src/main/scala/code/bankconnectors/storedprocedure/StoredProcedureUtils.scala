@@ -124,8 +124,6 @@ object StoredProceduresMockedData {
         create()      
       case (Full(mapper), Full(connector)) if(mapper == connector && mapper == "org.postgresql.Driver") =>
         create()
-      case (_, _) if thereIsTheProcedure => 
-        drop()
       case _ =>
         ""
     }

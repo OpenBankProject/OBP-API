@@ -14,11 +14,6 @@ object TransactionRequests extends SimpleInjector {
     type PaymentServiceTypes = Value
     val payments, bulk_payments, periodic_payments = Value
   }
-
-  object TransactionRequestStatus extends Enumeration {
-    type TransactionRequestStatus = Value
-    val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED = Value
-  }
   
   object TransactionChallengeTypes extends Enumeration {
     type TransactionChallengeTypes = Value

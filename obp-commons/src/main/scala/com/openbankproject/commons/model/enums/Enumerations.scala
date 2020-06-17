@@ -131,3 +131,8 @@ object AttributeCategory extends OBPEnumeration[AttributeCategory]{
   object Transaction extends Value
   object Card extends Value
 }
+
+object TransactionRequestStatus extends Enumeration {
+  type TransactionRequestStatus = Value
+  val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED = Value
+}

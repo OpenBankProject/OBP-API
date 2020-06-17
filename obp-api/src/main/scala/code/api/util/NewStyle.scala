@@ -20,11 +20,12 @@ import code.bankconnectors.Connector
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
-import code.directdebit.DirectDebitTrait
+import com.openbankproject.commons.model.DirectDebitTrait
 import code.dynamicEntity.{DynamicEntityProvider, DynamicEntityT}
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
-import code.fx.{FXRate, MappedFXRate, fx}
+import code.fx.{MappedFXRate, fx}
+import com.openbankproject.commons.model.FXRate
 import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingProvider, MethodRoutingT}
 import code.model._

@@ -246,8 +246,8 @@ object ReflectUtils {
    * @param mirror : has the default this.mirror
    * @return
    */
-  def getTypeByName(fullName: String, mirror: ru.Mirror = this.mirror): ru.Type = 
-    mirror.staticClass(fullName).asType.toType
+  def getTypeByName(fullName: String, mirror: ru.Mirror = this.mirror): ru.Type =
+      mirror.staticClass(fullName).asType.toType
 
   /**
    * Check if the class is existing in the java path or not. 
