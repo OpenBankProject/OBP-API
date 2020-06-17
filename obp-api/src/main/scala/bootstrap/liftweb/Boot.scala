@@ -29,7 +29,6 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.{Locale, TimeZone}
 
-import org.apache.commons.io.FileUtils
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
@@ -48,6 +47,7 @@ import code.api.util._
 import code.api.util.migration.Migration
 import code.atms.MappedAtm
 import code.bankconnectors.ConnectorEndpoints
+import code.bankconnectors.storedprocedure.StoredProceduresMockedData
 import code.branches.MappedBranch
 import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
@@ -126,6 +126,7 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, Schedule, _}
+import org.apache.commons.io.FileUtils
 
 import scala.concurrent.ExecutionContext
 
@@ -303,6 +304,10 @@ class Boot extends MdcLoggable {
       case "star" if (APIUtil.getPropsValue("starConnector_supported_types","").split(",").contains("akka"))  =>
         ObpActorSystem.startNorthSideAkkaConnectorActorSystem()
       case _ => // Do nothing
+    }
+
+    if (Props.devMode || Props.testMode) {
+      StoredProceduresMockedData.createOrDropMockedPostgresStoredProcedures()
     }
 
     // where to search snippets

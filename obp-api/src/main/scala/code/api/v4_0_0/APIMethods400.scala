@@ -14,6 +14,7 @@ import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue.{dynamicEndpointRequestBodyExample, dynamicEndpointResponseBodyExample, dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
+import code.api.util.migration.Migration
 import code.api.util.newstyle.AttributeDefinition._
 import code.api.util.newstyle.Consumer._
 import code.api.util.newstyle.UserCustomerLinkNewStyle
@@ -85,6 +86,38 @@ trait APIMethods400 {
 
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(staticResourceDocs, apiRelations)
+
+
+    staticResourceDocs += ResourceDoc(
+      getMapperDatabaseInfo,
+      implementedInApiVersion,
+      nameOf(getMapperDatabaseInfo),
+      "GET",
+      "/database/info",
+      "Get Mapper Database Info",
+      s"""Get basic information about the Mapper Database.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      adapterInfoJsonV300,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(Core, notPSD2, OBWG),
+      List(apiTagApi, apiTagNewStyle),
+      Some(List(canGetDatabaseInfo)))
+
+
+    lazy val getMapperDatabaseInfo: OBPEndpoint = {
+      case "database" :: "info" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- authenticatedAccess(cc)
+          } yield {
+            (Migration.DbFunction.mapperDatabaseInfo(), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
 
     staticResourceDocs += ResourceDoc(
