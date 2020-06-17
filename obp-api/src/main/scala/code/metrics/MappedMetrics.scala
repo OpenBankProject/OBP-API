@@ -450,7 +450,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val extedndedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
 
       for {
-        dbQuery <- Full("SELECT count(*) as count, consumer.id as consumerprimaryid, mappedmetric.appname as appname, consumer.developeremail as email " +
+        dbQuery <- Full("SELECT count(*) as count, consumer.id as consumerprimaryid, mappedmetric.appname as appname, consumer.developeremail as email, consumer.consumerid as consumerid " +
           "FROM mappedmetric, consumer " +
           "WHERE mappedmetric.appname = consumer.name " +
           "AND date_c >= ? " +
@@ -509,10 +509,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         topConsumers <- tryo(resultSet._2.map(
           a =>
             TopConsumer(
-              if (a(0) != null) a(0).toInt else 0,
-              if (a(1) != null) a(1).toString else "",
-              if (a(2) != null) a(2).toString else "",
-              if (a(3) != null) a(3).toString else ""
+              count = if (a(0) != null) a(0).toInt else 0,
+              consumerId = if (a(4) != null) a(4).toString else "",
+              appName = if (a(2) != null) a(2).toString else "",
+              developerEmail = if (a(3) != null) a(3).toString else ""
             ))) ?~! {
           logger.error(s"getTopConsumersBox.create TopConsumer class error. Here is the result from database $resultSet ");
           s"$UnknownError getTopConsumersBox.create TopApi class error. "
