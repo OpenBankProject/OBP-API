@@ -37,11 +37,12 @@ object MSsqlStoredProcedureBuilder {
     implicit val customFormats = formats + StatusSerializer
     val messageDocs: ArrayBuffer[MessageDoc] = StoredProcedureConnector_vDec2019.messageDocs
     def toProcedureName(processName: String) = StringHelpers.snakify(processName.replace("obp.", ""))
-    def inboundToJson(any: Any) = json.prettyRender(json.Extraction.decompose(any))
+    def toJson(any: Any) = json.prettyRender(json.Extraction.decompose(any))
     val procedureNameToInbound = messageDocs.map(doc => {
       val procedureName = toProcedureName(doc.process)
-      val inBoundExample = inboundToJson(doc.exampleInboundMessage)
-      buildProcedure(procedureName, inBoundExample)
+      val outBoundExample = toJson(doc.exampleOutboundMessage)
+      val inBoundExample = toJson(doc.exampleInboundMessage)
+      buildProcedure(procedureName, outBoundExample, inBoundExample)
     }).mkString(s"-- auto generated MS sql server procedures script, create on ${APIUtil.DateWithSecondsFormat.format(new Date())}", " \n \n", "")
 
     val path = new File(getClass.getResource("").toURI.toString.replaceFirst("target/.*", "").replace("file:", ""),
@@ -49,7 +50,7 @@ object MSsqlStoredProcedureBuilder {
     val source = FileUtils.write(path, procedureNameToInbound, "utf-8")
   }
 
-  def buildProcedure(processName: String, inBoundExample: String) = {
+  def buildProcedure(processName: String, outBoundExample: String, inBoundExample: String) = {
     s"""
       |
       |-- drop procedure $processName
@@ -57,13 +58,18 @@ object MSsqlStoredProcedureBuilder {
       |GO
       |-- create procedure $processName
       |CREATE PROCEDURE $processName
-      |@out_bound_json NVARCHAR(MAX),
-      |@in_bound_json NVARCHAR(MAX) OUT
-      |AS
-      |	SET nocount on
+      |   @out_bound_json NVARCHAR(MAX),
+      |   @in_bound_json NVARCHAR(MAX) OUT
+      |   AS
+      |	  SET nocount on
       |
       |-- replace the follow example to real logic
+      |/*
+      |this is example of parameter @out_bound_json
+      |     N'${outBoundExample.replaceAll("(?m)^", "     ").trim()}'
+      |*/
       |
+      |-- return example value
       |	SELECT @in_bound_json = (
       |		SELECT
       |     N'${inBoundExample.replaceAll("(?m)^", "     ").trim()}'

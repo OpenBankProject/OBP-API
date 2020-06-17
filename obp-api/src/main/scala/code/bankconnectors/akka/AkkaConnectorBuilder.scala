@@ -6,7 +6,22 @@ import scala.language.postfixOps
 
 object AkkaConnectorBuilder extends App {
 
-  generateMethods(commonMethodNames,
+  val createManually = List(
+    "getAdapterInfo",
+    "getBanks",
+    "getBank",
+    "getBankAccountsForUser",
+    "checkBankAccountExists",
+    "getBankAccount",
+    "getCoreBankAccounts",
+    "getCustomersByUserId",
+    "getTransactions",
+    "getTransaction",
+  )
+  // exclude manually created methods
+  val toGenerateMethodNames = commonMethodNames.filterNot(createManually.contains)
+
+  generateMethods(toGenerateMethodNames,
     "src/main/scala/code/bankconnectors/akka/AkkaConnector_vDec2018.scala",
-    "(southSideActor ? req).mapTo[InBound].map(Box !! _)")
+    "(southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) ")
 }

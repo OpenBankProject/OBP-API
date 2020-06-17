@@ -3,7 +3,7 @@ package code.bankconnectors
 import java.io.File
 import java.util.Date
 
-import code.api.util.CallContext
+import code.api.util.{APIUtil, CallContext}
 import code.api.util.CodeGenerateUtils.createDocExample
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import com.openbankproject.commons.util.ReflectUtils
@@ -72,11 +72,12 @@ object ConnectorBuilderUtil {
     val start = "//---------------- dynamic start -------------------please don't modify this line"
     val end   = "//---------------- dynamic end ---------------------please don't modify this line"
     val placeHolderInSource = s"""(?s)$start.+$end"""
+    val currentTime = APIUtil.DateWithSecondsFormat.format(new Date())
     val insertCode =
       s"""$start
-         |// ---------- create on ${new Date()}
+         |// ---------- create on $currentTime
          |${codeList.mkString}
-         |// ---------- create on ${new Date()}
+         |// ---------- create on $currentTime
          |$end """.stripMargin
     val newSource = source.replaceFirst(placeHolderInSource, insertCode)
     FileUtils.writeStringToFile(path, newSource, "utf-8")
