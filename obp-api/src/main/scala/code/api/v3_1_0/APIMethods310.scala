@@ -4315,6 +4315,7 @@ trait APIMethods310 {
                 Pattern.compile(postedData.bankIdPattern.get)
               }
             }
+            _ <- NewStyle.function.checkMethodRoutingAlreadyExists(methodName, callContext)
             Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(postedData)
           } yield {
             val commonsData: MethodRoutingCommons = methodRouting
