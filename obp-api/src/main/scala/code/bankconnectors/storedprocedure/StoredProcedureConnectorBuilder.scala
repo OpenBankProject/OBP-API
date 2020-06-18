@@ -9,6 +9,6 @@ object StoredProcedureConnectorBuilder extends App {
 
   buildMethods(commonMethodNames,
     "src/main/scala/code/bankconnectors/storedprocedure/StoredProcedureConnector_vDec2019.scala",
-     methodName => s"""sendRequest[InBound]("${StringHelpers.snakify(methodName)}", req, callContext)""")
+     methodName => s"""sendRequest[InBound]("obp_${StringHelpers.snakify(methodName)}", req, callContext)""")
 }
 

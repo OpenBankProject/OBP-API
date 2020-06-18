@@ -36,7 +36,7 @@ object MSsqlStoredProcedureBuilder {
   def main(args: Array[String]): Unit = {
     implicit val customFormats = formats + StatusSerializer
     val messageDocs: ArrayBuffer[MessageDoc] = StoredProcedureConnector_vDec2019.messageDocs
-    def toProcedureName(processName: String) = StringHelpers.snakify(processName.replace("obp.", ""))
+    def toProcedureName(processName: String) = StringHelpers.snakify(processName.replace("obp.", "obp_"))
     def toJson(any: Any) = json.prettyRender(json.Extraction.decompose(any))
     val procedureNameToInbound = messageDocs.map(doc => {
       val procedureName = toProcedureName(doc.process)
