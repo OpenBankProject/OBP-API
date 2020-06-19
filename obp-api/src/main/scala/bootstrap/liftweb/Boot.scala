@@ -32,6 +32,7 @@ import java.util.{Locale, TimeZone}
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
+import code.UserRefreshes.MappedUserRefreshes
 import code.accountapplication.MappedAccountApplication
 import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
@@ -90,7 +91,6 @@ import code.productcollection.MappedProductCollection
 import code.productcollectionitem.MappedProductCollectionItem
 import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
-import code.refreshuser.MappedRefreshUser
 import code.remotedata.RemotedataActors
 import code.scheduler.DatabaseDriverScheduler
 import code.scope.{MappedScope, MappedUserScope}
@@ -815,7 +815,7 @@ object ToSchemify {
     AccountIdMapping,
     DirectDebit,
     StandingOrder,
-    MappedRefreshUser
+    MappedUserRefreshes
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server

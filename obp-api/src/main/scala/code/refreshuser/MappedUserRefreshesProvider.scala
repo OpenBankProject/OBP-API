@@ -1,4 +1,4 @@
-package code.refreshuser
+package code.UserRefreshes
 
 import java.util.{Calendar, Date}
 
@@ -7,22 +7,22 @@ import code.util.UUIDString
 import net.liftweb.common.Full
 import net.liftweb.mapper._
 
-object MappedRefreshUserProvider extends RefreshUserProvider {
+object MappedUserRefreshesProvider extends UserRefreshesProvider {
 
   //This method will check if we need to refresh user or not..
   //1st: check if last update is empty or not,
-  // if empty --> RefreshUser/true
+  // if empty --> UserRefreshes/true
   // if not empty, compare last update and the props interval--> 
-  //    --> if (lastUpdate + interval) >= current -->  RefreshUser/true
+  //    --> if (lastUpdate + interval) >= current -->  UserRefreshes/true
   //    --> if (lastUpdate + interval) < current -->  false 
   override def needToRefreshUser(userId: String) =  {
-    MappedRefreshUser.find(By(MappedRefreshUser.mUserId, userId)) match {
+    MappedUserRefreshes.find(By(MappedUserRefreshes.mUserId, userId)) match {
       case Full(user) =>{
-        val refreshUserInterval = APIUtil.getPropsAsIntValue("refresh_user.interval", 43200)
+        val UserRefreshesInterval = APIUtil.getPropsAsIntValue("refresh_user.interval", 43200)
         val lastUpdate: Date = user.updatedAt.get
         val lastUpdatePlusInterval: Calendar = Calendar.getInstance()
         lastUpdatePlusInterval.setTime(lastUpdate)
-        lastUpdatePlusInterval.add(Calendar.MINUTE, refreshUserInterval)
+        lastUpdatePlusInterval.add(Calendar.MINUTE, UserRefreshesInterval)
         val currentDate = Calendar.getInstance()
         lastUpdatePlusInterval.before(currentDate)
       }
@@ -32,14 +32,14 @@ object MappedRefreshUserProvider extends RefreshUserProvider {
 
 }
 
-class MappedRefreshUser extends RefreshUser with LongKeyedMapper[MappedRefreshUser] with IdPK with CreatedUpdated {
+class MappedUserRefreshes extends UserRefreshes with LongKeyedMapper[MappedUserRefreshes] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedRefreshUser
+  def getSingleton = MappedUserRefreshes
 
   object mUserId extends UUIDString(this)
   override def userId: String = mUserId.get
 }
 
-object MappedRefreshUser extends MappedRefreshUser with LongKeyedMetaMapper[MappedRefreshUser] {
+object MappedUserRefreshes extends MappedUserRefreshes with LongKeyedMetaMapper[MappedUserRefreshes] {
   override def dbIndexes = UniqueIndex(mUserId) :: super.dbIndexes
 }
