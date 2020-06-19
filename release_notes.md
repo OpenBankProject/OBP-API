@@ -3,6 +3,8 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+19/06/2020    ea819aab      Added props: refresh user.interval. default is 43200 minutes, which means one month. 
+                            This props will set the interval for the internal refresh user process.
 29/04/2020    75925d8c      Added props: allow_pre_filled_password. in Sign Up page the default password form filed is ****
                             This props can set the filed to empty .
 29/04/2020    1ba4f3aa      Added props: webui_signup_form_submit_button_value. this will overwrite the submit button value 
