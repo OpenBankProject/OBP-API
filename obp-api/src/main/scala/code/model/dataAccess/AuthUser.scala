@@ -663,17 +663,7 @@ import net.liftweb.util.Helpers._
   def getUserFromConnector(name: String, password: String):Box[AuthUser] = {
     Connector.connector.vend.getUser(name, password) match {
       case Full(InboundUser(extEmail, extPassword, extUsername)) => {
-        logger.info("external user authenticated. login redir: " + loginRedirect.get)
-        val redir = loginRedirect.get match {
-          case Full(url) =>
-            loginRedirect(Empty)
-            url
-          case _ =>
-            homePage
-        }
-
         val extProvider = connector
-
         val user = findUserByUsernameLocally(name) match {
           // Check if the external user is already created locally
           case Full(user) if user.validated_?
@@ -684,9 +674,9 @@ import net.liftweb.util.Helpers._
             user
           }
 
-          // If not found, create new user
-          case _ => {
-            // Create AuthUser using fetched data from Kafka
+          // If not found, create a new user
+          case _ =>
+            // Create AuthUser using fetched data from connector
             // assuming that user's email is always validated
             logger.info("external user "+ extEmail +" does not exist locally, creating one")
             val newUser = AuthUser.create
@@ -697,11 +687,8 @@ import net.liftweb.util.Helpers._
               .password(generateUUID())
               .provider(extProvider)
               .validated(true)
-            // Save the user in order to be able to log in
-            newUser.save()
             // Return created user
-            newUser
-          }
+            newUser.saveMe()
         }
         Full(user)
       }
@@ -783,7 +770,7 @@ def restoreSomeSessions(): Unit = {
                 }
               }
     
-              // Check if user came from kafka/obpjvm and
+              // Check if user came from kafka/obpjvm/stored_procedure and
               // if User is NOT locked. Then check username and password
               // from connector in case they changed on the south-side
               case Full(user) if user.validated_? &&
@@ -900,10 +887,10 @@ def restoreSomeSessions(): Unit = {
   
   
   /**
-    * The user authentications is not exciting in obp side, it need get the user from south-side
+    * The user authentications is not exciting in obp side, it need get the user via connector
     */
  def testExternalPassword(usernameFromGui: Box[String], passwordFromGui: Box[String]): Box[Boolean] = {
-   if (connector.startsWith("kafka") || connector == "obpjvm") {
+   if (connector.startsWith("kafka") || connector == "obpjvm" || connector == "stored_procedure") {
      val res = for {
        username <- usernameFromGui
        password <- passwordFromGui
