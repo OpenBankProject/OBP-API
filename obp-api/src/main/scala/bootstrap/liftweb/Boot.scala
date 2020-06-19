@@ -694,7 +694,7 @@ class Boot extends MdcLoggable {
           .shortBankName("OBP")
           .national_identifier("OBP")
           .mBankRoutingScheme("OBP")
-          .mBankRoutingAddress("OBP_DEFAULT_BANK")
+          .mBankRoutingAddress("obp1")
           .logoURL("")
           .websiteURL("")
           .saveMe()
