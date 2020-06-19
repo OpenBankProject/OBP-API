@@ -90,6 +90,7 @@ import code.productcollection.MappedProductCollection
 import code.productcollectionitem.MappedProductCollectionItem
 import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
+import code.refreshuser.MappedRefreshUser
 import code.remotedata.RemotedataActors
 import code.scheduler.DatabaseDriverScheduler
 import code.scope.{MappedScope, MappedUserScope}
@@ -813,7 +814,8 @@ object ToSchemify {
     DynamicEndpoint,
     AccountIdMapping,
     DirectDebit,
-    StandingOrder
+    StandingOrder,
+    MappedRefreshUser
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server
