@@ -788,6 +788,18 @@ case class InboundUser(
                         displayName: String
                       )
 
+case class InboundExternalUser(
+                                aud: String,
+                                exp: String,
+                                iat: String,
+                                iss: String,
+                                sub: String,
+                                azp: Option[String],
+                                email: Option[String],
+                                emailVerified: Option[String],
+                                name: Option[String]
+                              )
+
 
 case class ErrorMessage(code: Int, message: String)
 
