@@ -326,6 +326,7 @@ object ConnectorBuilderUtil {
     "getBankAccountByIban",
     "getBankAccountByRouting",
     "getBankAccounts",
+    "checkBankAccountExists",
     //"getCoreBankAccountsLegacy", // should not generate for Legacy methods
     //"getBankAccountsHeldLegacy", // should not generate for Legacy methods
     //"checkBankAccountExistsLegacy", // should not generate for Legacy methods

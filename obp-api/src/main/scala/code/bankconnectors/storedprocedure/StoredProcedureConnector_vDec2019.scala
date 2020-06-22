@@ -73,7 +73,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on 2020-06-18T20:03:31Z
+// ---------- create on 2020-06-19T17:24:19Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -713,6 +713,50 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankIdAccountIds)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_accounts_held", req, callContext)
         response.map(convertToTuple[List[AccountHeld]](callContext))        
+  }
+          
+  messageDocs += checkBankAccountExistsDoc
+  def checkBankAccountExistsDoc = MessageDoc(
+    process = "obp.checkBankAccountExists",
+    messageFormat = messageFormat,
+    description = "Check Bank Account Exists",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundCheckBankAccountExists(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      bankId=BankId(bankIdExample.value),
+      accountId=AccountId(accountIdExample.value))
+    ),
+    exampleInboundMessage = (
+     InBoundCheckBankAccountExists(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= BankAccountCommons(accountId=AccountId(accountIdExample.value),
+      accountType=accountTypeExample.value,
+      balance=BigDecimal(balanceAmountExample.value),
+      currency=currencyExample.value,
+      name=bankAccountNameExample.value,
+      label=labelExample.value,
+      iban=Some(ibanExample.value),
+      number=bankAccountNumberExample.value,
+      bankId=BankId(bankIdExample.value),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      branchId=branchIdExample.value,
+      accountRoutingScheme=accountRoutingSchemeExample.value,
+      accountRoutingAddress=accountRoutingAddressExample.value,
+      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)),
+      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
+      value=accountRuleValueExample.value)),
+      accountHolder=bankAccountAccountHolderExample.value))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
+        import com.openbankproject.commons.dto.{OutBoundCheckBankAccountExists => OutBound, InBoundCheckBankAccountExists => InBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_check_bank_account_exists", req, callContext)
+        response.map(convertToTuple[BankAccountCommons](callContext))        
   }
           
   messageDocs += getCounterpartyTraitDoc
@@ -5567,8 +5611,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- create on 2020-06-18T20:03:31Z
-//---------------- dynamic end ---------------------please don't modify this line    
+// ---------- create on 2020-06-19T17:24:19Z
+//---------------- dynamic end ---------------------please don't modify this line     
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 
