@@ -6,6 +6,7 @@ import java.time.{ZoneId, ZonedDateTime}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.consent.MappedConsent
+import net.liftweb.common.Full
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
 
@@ -24,7 +25,12 @@ object MigrationOfMappedConsent {
 
         val executedSql = 
           DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
-            () => "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken type text;"
+              APIUtil.getPropsValue("db.driver") match    {
+                case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                  () => "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken text;"
+                case _ =>
+                  () => "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken type text;"
+              }
           }
         
         val endDate = System.currentTimeMillis()
