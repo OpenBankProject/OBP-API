@@ -75,9 +75,9 @@ object ConnectorBuilderUtil {
     val currentTime = APIUtil.DateWithSecondsFormat.format(new Date())
     val insertCode =
       s"""$start
-         |// ---------- create on $currentTime
+         |// ---------- created on $currentTime
          |${codeList.mkString}
-         |// ---------- create on $currentTime
+         |// ---------- created on $currentTime
          |$end """.stripMargin
     val newSource = source.replaceFirst(placeHolderInSource, insertCode)
     FileUtils.writeStringToFile(path, newSource, "utf-8")

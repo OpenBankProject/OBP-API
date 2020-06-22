@@ -73,7 +73,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on 2020-06-19T17:24:19Z
+// ---------- created on 2020-06-19T17:24:19Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -5649,7 +5649,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- create on 2020-06-19T17:24:19Z
+// ---------- created on 2020-06-19T17:24:19Z
 //---------------- dynamic end ---------------------please don't modify this line     
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
