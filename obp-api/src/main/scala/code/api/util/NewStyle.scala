@@ -1696,6 +1696,13 @@ object NewStyle {
     def getMethodRoutingsByMethdName(methodName: Box[String]): Future[List[MethodRoutingT]] = Future {
       this.getMethodRoutings(methodName.toOption)
     }
+    def checkMethodRoutingAlreadyExists(methodName: String, callContext:Option[CallContext]): OBPReturnType[Boolean] = Future {
+      val exists = this.getMethodRoutings(Some(methodName)).isEmpty match {
+        case true => Full(true)
+        case false => Empty
+      }
+      (unboxFullOrFail(exists, callContext, s"$MethodRoutingNameAlreadyUsed"), callContext)
+    }
     def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) =
       Connector.connector.vend.getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, s"$CardAttributeNotFound Current CardAttributeId($cardAttributeId)"), i._2)

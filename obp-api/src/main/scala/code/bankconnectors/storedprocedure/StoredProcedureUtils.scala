@@ -32,7 +32,7 @@ object StoredProcedureUtils {
     val initialSize = APIUtil.getPropsAsIntValue("stored_procedure_connector.poolInitialSize", 5)
     val maxSize = APIUtil.getPropsAsIntValue("stored_procedure_connector.poolMaxSize", 20)
     val timeoutMillis = APIUtil.getPropsAsLongValue("stored_procedure_connector.poolConnectionTimeoutMillis", 3000L)
-    val validationQuery = APIUtil.getPropsValue("stored_procedure_connector.poolValidationQuery", "select 1 from dual")
+    val validationQuery = APIUtil.getPropsValue("stored_procedure_connector.poolValidationQuery", "select 1")
     val poolFactoryName = APIUtil.getPropsValue("stored_procedure_connector.poolFactoryName", "commons-dbcp2")
 
 

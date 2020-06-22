@@ -410,6 +410,14 @@ trait Connector extends MdcLoggable {
     * @return
     */
   def getUser(name: String, password: String): Box[InboundUser]= Failure(setUnimplementedError)
+  
+  /**
+    * This method is for checking external User via connector
+    * @param name
+    * @param password
+    * @return
+    */
+  def checkExternalUserCredentials(name: String, password: String): Box[InboundExternalUser] = Failure(setUnimplementedError)
 
   /**
     * This is a helper method

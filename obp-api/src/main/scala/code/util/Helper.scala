@@ -241,6 +241,7 @@ object Helper{
     */
   val matchKafkaVersion = "kafka_v([0-9a-zA-Z_]+)".r
   val matchAnyKafka = "^kafka.*$".r
+  val matchAnyStoredProcedure = "^stored_procedure.*$".r
   
   /**
     * change the TimeZone to the current TimeZOne

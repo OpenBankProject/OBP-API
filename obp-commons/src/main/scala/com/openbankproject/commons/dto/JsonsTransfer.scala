@@ -452,6 +452,11 @@ case class OutBoundGetUser(name: String, password: String) extends TopicTrait
 case class InBoundGetUser(status: Status, data: InboundUser) extends InBoundTrait[InboundUser] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
+case class OutBoundGetExternalUser(name: String, password: String) extends TopicTrait
+
+case class InBoundGetExternalUser(status: Status, data: InboundExternalUser) extends InBoundTrait[InboundExternalUser] {
+  override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
+}
 
 
 //create bound case classes
