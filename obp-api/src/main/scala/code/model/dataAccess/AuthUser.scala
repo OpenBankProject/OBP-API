@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.model.dataAccess
 
+import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.ErrorMessages._
@@ -950,8 +951,10 @@ def restoreSomeSessions(): Unit = {
       (accounts, _) <- Connector.connector.vend.getBankAccountsForUser(user.name,callContext) map {
         connectorEmptyResponse(_, callContext)
       }
-    }yield 
-       updateUserAccountViews(user, accounts)
+    }yield {
+      updateUserAccountViews(user, accounts)
+      UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
+    }
   }
 
   /**

@@ -3078,7 +3078,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Mon May 13 22:38:20 CST 2019
+// ---------- created on Mon May 13 22:38:20 CST 2019
 
   messageDocs += MessageDoc(
     process = "obp.createBankAccount",

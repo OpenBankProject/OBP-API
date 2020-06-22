@@ -1779,6 +1779,10 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = ErrorMessages.InvalidConsumerCredentials) {
               cc.callContext.map(_.consumer.isDefined == true).isDefined
             }
+
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat Min length of BANK_ID should be 5 characters.") {
+              bank.id.length > 5
+            }
             (success, callContext) <- NewStyle.function.createOrUpdateBank(
               bank.id,
               bank.full_name,

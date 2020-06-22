@@ -385,6 +385,23 @@ object Glossary {
 	)
 
 
+	glossaryItems += GlossaryItem(
+		title = "Adapter.Stored_Procedure.Intro",
+		description =
+			s"""
+					|## Use Stored_Procedure as an interface between OBP and your Core Banking System (CBS).
+					|
+					|
+					|For an introduction to Stored Procedures see [here](https://en.wikipedia.org/wiki/Stored_procedure)
+					|
+					|### Installation Prerequisites
+					|
+					|
+					|* You have OBP-API running and it is connected to a stored procedure related database. 
+					|* Ideally you have API Explorer running (the application serving this page) but its not necessary - you could use any other REST client.
+					|* You might want to also run API Manager as it makes it easier to grant yourself roles, but its not necessary - you could use the API Explorer / any REST client instead.
+					|"""
+	)
 
 
 

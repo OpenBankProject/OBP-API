@@ -334,7 +334,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on 2020-06-17T14:19:04Z
+// ---------- created on 2020-06-17T14:19:04Z
 
   messageDocs += getChallengeThresholdDoc
   def getChallengeThresholdDoc = MessageDoc(
@@ -5429,6 +5429,6 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- create on 2020-06-17T14:19:04Z
+// ---------- created on 2020-06-17T14:19:04Z
 //---------------- dynamic end ---------------------please don't modify this line 
 }
