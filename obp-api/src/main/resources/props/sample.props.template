@@ -818,5 +818,7 @@ dynamic_endpoints_url_prefix=dynamic
 
 # --- Refresh User  ------
 # The time to refresh user internally. default is 30 minutes
+# Note: The user is also refreshed after every login.
+# You can also explicitly refresh the user using the refresh user endpoint.
 # refresh_user.interval=30
 # --------------------------------------------------------------------
