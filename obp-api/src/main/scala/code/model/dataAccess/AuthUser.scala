@@ -643,11 +643,25 @@ import net.liftweb.util.Helpers._
                     LoginAttempt.incrementBadLoginAttempts(username)
                     Empty
               }
+            case Helper.matchAnyStoredProcedure() if !LoginAttempt.userIsLocked(username) =>
+                val userId = 
+                  for { 
+                    authUser <- checkExternalUserViaConnector(username, password)
+                    resourceUser <- tryo{authUser.user} 
+                  } yield {
+                    LoginAttempt.resetBadLoginAttempts(username)
+                    resourceUser.get
+                  }
+                userId match {
+                  case Full(l:Long) => Full(l)
+                  case _ =>
+                    LoginAttempt.incrementBadLoginAttempts(username)
+                    Empty
+                }
             case _ =>
               LoginAttempt.incrementBadLoginAttempts(username)
               Empty
           }
-
       case _ =>
         LoginAttempt.incrementBadLoginAttempts(username)
         Empty
@@ -696,6 +710,39 @@ import net.liftweb.util.Helpers._
       case _ => {
         Empty
       }
+    }
+  }
+  /**
+    * This method is belong to AuthUser, it is used for authentication(Login stuff)
+    * 1 get the user over connector.
+    * 2 check whether it is existing in AuthUser table in obp side. 
+    * 3 if not existing, will create new AuthUser. 
+    * @return Return the authUser
+    */
+  def checkExternalUserViaConnector(name: String, password: String):Box[AuthUser] = {
+    Connector.connector.vend.checkExternalUserCredentials(name, password) match {
+      case Full(InboundExternalUser(aud, exp, iat, iss, sub, azp, email, emailVerified, name)) =>
+        val user = findUserByUsernameLocally(sub) match { // Check if the external user is already created locally
+          case Full(user) if user.validated_? => // Return existing user if found
+            logger.debug("external user already exists locally, using that one")
+            user
+          case _ => // If not found, create a new user
+            // Create AuthUser using fetched data from connector
+            // assuming that user's email is always validated
+            logger.debug("external user "+ sub + " does not exist locally, creating one")
+            AuthUser.create
+              .firstName(sub)
+              .email(email.getOrElse(""))
+              .username(sub)
+              // No need to store password, so store dummy string instead
+              .password(generateUUID())
+              .provider(iss)
+              .validated(true)
+              .saveMe()
+        }
+        Full(user)
+      case _ =>
+        Empty
     }
   }
 
@@ -891,8 +938,8 @@ def restoreSomeSessions(): Unit = {
     * The user authentications is not exciting in obp side, it need get the user via connector
     */
  def testExternalPassword(usernameFromGui: Box[String], passwordFromGui: Box[String]): Box[Boolean] = {
-   if (connector.startsWith("kafka") || connector == "obpjvm" || connector == "stored_procedure") {
-     val res = for {
+   if (connector.startsWith("kafka") || connector == "obpjvm") {
+     for {
        username <- usernameFromGui
        password <- passwordFromGui
        user <- getUserFromConnector(username, password)
@@ -900,7 +947,15 @@ def restoreSomeSessions(): Unit = {
        case user:AuthUser => true
        case _ => false
      }
-     res
+   } else if (connector.startsWith("stored_procedure")) {
+     for {
+       username <- usernameFromGui
+       password <- passwordFromGui
+       user <- checkExternalUserViaConnector(username, password)
+     } yield user match {
+       case _: AuthUser => true
+       case _ => false
+     }
    } else Empty
   }
   
