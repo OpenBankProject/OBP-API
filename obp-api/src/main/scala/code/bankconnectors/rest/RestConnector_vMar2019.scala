@@ -92,7 +92,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Tue Sep 03 17:49:04 CEST 2019
+// ---------- created on Tue Sep 03 17:49:04 CEST 2019
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(

@@ -86,7 +86,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Mon Jan 20 22:01:14 CET 2020
+// ---------- created on Mon Jan 20 22:01:14 CET 2020
 
   messageDocs += MessageDoc(
     process = s"obp.${nameOf(getAdapterInfo _)}",

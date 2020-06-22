@@ -33,6 +33,7 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.{Date, UUID}
 
+import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
 import code.api.OAuthHandshake._
@@ -2036,7 +2037,7 @@ Returns a string showed to the developer
     1) Absent from Props api_disabled_versions
     2) Present here (api_enabled_versions=[v2_2_0,v3_0_0]) -OR- api_enabled_versions must be empty.
 
-    Note we use "v" and "_" in the name to match the ApiVersions enumeration in ApiUtil.scala
+    Note we use "v" and "." in the name to match the ApiVersions enumeration in ApiUtil.scala
    */
   def versionIsAllowed(version: ApiVersion) : Boolean = {
     def checkVersion: Boolean = {
@@ -2479,18 +2480,32 @@ Returns a string showed to the developer
   def unboxOptionFuture[T](option: Option[Future[T]]): Future[Box[T]] = unboxFuture(Box(option))
 
   def unboxOptionOBPReturnType[T](option: Option[OBPReturnType[T]]): Future[Box[T]] = unboxOBPReturnType(Box(option))
-  
+
+  /**
+   * This method will be executed only when user is defined and needToRefreshUser return true.
+   * Better also check the logic for needToRefreshUser method.
+   */
+  def refreshUserIfRequired(user: Box[User], callContext: Option[CallContext]) = {
+    if(!APIUtil.isSandboxMode && user.isDefined && UserRefreshes.UserRefreshes.vend.needToRefreshUser(user.head.userId))
+      user.map(AuthUser.updateUserAccountViewsFuture(_, callContext))
+    else
+       None
+  }
 
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
   def authenticatedAccess(cc: CallContext, emptyUserErrorMsg: String = UserNotLoggedIn): OBPReturnType[Box[User]] = {
-    anonymousAccess(cc) map {
-      x => (fullBoxOrException(
-        x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))),
+    anonymousAccess(cc) map{
+      x => (
+        fullBoxOrException(x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))),
         x._2
       )
+    } map {
+      x => 
+        refreshUserIfRequired(x._1,x._2)
+        x
     }
   }
 
@@ -2624,12 +2639,9 @@ Returns a string showed to the developer
     otherAccountRoutingAddress: String
   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName$otherAccountRoutingScheme$otherAccountRoutingAddress")
 
+  //TODO, now we have the star connector, it will break the isSandboxMode method logic. Need to double check how to use this method now. 
   val isSandboxMode: Boolean = (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
   
-  //If we use kafka connector, we need set up kafka server first. For some cases(eg: get Kafka MessageDoc), we do not need kafka.. 
-  val isStarConnectorButNoKafkaSupport: Boolean = 
-    (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("star") && (!(APIUtil.getPropsValue("starConnector_supported_types").openOrThrowException(attemptedToOpenAnEmptyBox).toString).contains("kafka"))
-
   /**
     * This function is implemented in order to support encrypted values in props file.
     * Please note that some value is considered as encrypted if has an encryption mark property in addition to regular props value in props file e.g
@@ -2854,7 +2866,7 @@ Returns a string showed to the developer
       APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET_Test")
     else {
       //Note: now if the bank_id is not existing, we will create it during `boot`.
-      APIUtil.getPropsValue("defaultBank.bank_id", "OBP_DEFAULT_BANK_ID")
+      APIUtil.getPropsValue("defaultBank.bank_id", "obp1")
     }
   //This method will read sample.props.template file, and get all the fields which start with the webui_
   //it will return the webui_ props paris: 

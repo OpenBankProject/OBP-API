@@ -32,6 +32,7 @@ import java.util.{Locale, TimeZone}
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
+import code.UserRefreshes.MappedUserRefreshes
 import code.accountapplication.MappedAccountApplication
 import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
@@ -696,7 +697,7 @@ class Boot extends MdcLoggable {
           .shortBankName("OBP")
           .national_identifier("OBP")
           .mBankRoutingScheme("OBP")
-          .mBankRoutingAddress("OBP_DEFAULT_BANK")
+          .mBankRoutingAddress("obp1")
           .logoURL("")
           .websiteURL("")
           .saveMe()
@@ -816,7 +817,8 @@ object ToSchemify {
     DynamicEndpoint,
     AccountIdMapping,
     DirectDebit,
-    StandingOrder
+    StandingOrder,
+    MappedUserRefreshes
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server
