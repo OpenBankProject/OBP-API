@@ -255,7 +255,8 @@ of the PSU at this ASPSP.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
+       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+       connectorMethods= Some(List("obp.getBank","obp.getBankAccounts"))
      )
 
      lazy val getAccountList : OBPEndpoint = {
@@ -1056,7 +1057,8 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil,
+       connectorMethods=Some(List("obp.checkBankAccountExists"))
      )
 
      lazy val readAccountDetails : OBPEndpoint = {
