@@ -19,7 +19,7 @@ object MappedUserRefreshesProvider extends UserRefreshesProvider {
   override def needToRefreshUser(userId: String) =  {
     MappedUserRefreshes.find(By(MappedUserRefreshes.mUserId, userId)) match {
       case Full(user) =>{
-        val UserRefreshesInterval = APIUtil.getPropsAsIntValue("refresh_user.interval", 43200)
+        val UserRefreshesInterval = APIUtil.getPropsAsIntValue("refresh_user.interval", 30)
         val lastUpdate: Date = user.updatedAt.get
         val lastUpdatePlusInterval: Calendar = Calendar.getInstance()
         lastUpdatePlusInterval.setTime(lastUpdate)

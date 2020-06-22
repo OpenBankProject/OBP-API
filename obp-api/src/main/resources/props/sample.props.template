@@ -817,6 +817,6 @@ dynamic_endpoints_url_prefix=dynamic
 # --------------------------------------------------------------------------
 
 # --- Refresh User  ------
-# The time to refresh user internally. default is one month, mean 60*24*30 = 43,200 minutes
-# refresh_user.interval=43200
+# The time to refresh user internally. default is 30 minutes
+# refresh_user.interval=30
 # --------------------------------------------------------------------
