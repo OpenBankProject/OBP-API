@@ -21,7 +21,10 @@ trait UserRefreshes {
 }
 
 trait UserRefreshesProvider {
+  // This method will check if we need to refresh user or not..
   def needToRefreshUser(userId: String):Boolean
+
+  def createOrUpdateRefreshUser(userId: String):UserRefreshes
   
 }
 

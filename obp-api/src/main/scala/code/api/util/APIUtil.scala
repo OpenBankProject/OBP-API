@@ -33,6 +33,7 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.{Date, UUID}
 
+import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
 import code.api.OAuthHandshake._
@@ -2479,18 +2480,32 @@ Returns a string showed to the developer
   def unboxOptionFuture[T](option: Option[Future[T]]): Future[Box[T]] = unboxFuture(Box(option))
 
   def unboxOptionOBPReturnType[T](option: Option[OBPReturnType[T]]): Future[Box[T]] = unboxOBPReturnType(Box(option))
-  
+
+  /**
+   * This method will be executed only when user is defined and needToRefreshUser return true.
+   * Better also check the logic for needToRefreshUser method.
+   */
+  def refreshUserIfRequired(user: Box[User], callContext: Option[CallContext]) = {
+    if(!APIUtil.isSandboxMode && user.isDefined && UserRefreshes.UserRefreshes.vend.needToRefreshUser(user.head.userId))
+      user.map(AuthUser.updateUserAccountViewsFuture(_, callContext))
+    else
+       None
+  }
 
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
   def authenticatedAccess(cc: CallContext, emptyUserErrorMsg: String = UserNotLoggedIn): OBPReturnType[Box[User]] = {
-    anonymousAccess(cc) map {
-      x => (fullBoxOrException(
-        x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))),
+    anonymousAccess(cc) map{
+      x => (
+        fullBoxOrException(x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))),
         x._2
       )
+    } map {
+      x => 
+        refreshUserIfRequired(x._1,x._2)
+        x
     }
   }
 

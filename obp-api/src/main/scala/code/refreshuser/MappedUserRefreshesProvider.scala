@@ -6,6 +6,7 @@ import code.api.util.APIUtil
 import code.util.UUIDString
 import net.liftweb.common.Full
 import net.liftweb.mapper._
+import net.liftweb.util.Helpers.now
 
 object MappedUserRefreshesProvider extends UserRefreshesProvider {
 
@@ -28,6 +29,11 @@ object MappedUserRefreshesProvider extends UserRefreshesProvider {
       }
       case _ => true
     }
+  }
+
+  override def createOrUpdateRefreshUser(userId: String): MappedUserRefreshes = MappedUserRefreshes.find(By(MappedUserRefreshes.mUserId, userId)) match {
+    case Full(user) => user.updatedAt(now).saveMe() //if we find user, just update the datetime
+    case _ => MappedUserRefreshes.create.mUserId(userId).saveMe() //if can not find user, just create the new one.
   }
 
 }
