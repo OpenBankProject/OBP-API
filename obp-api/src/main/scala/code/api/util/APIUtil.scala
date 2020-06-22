@@ -2037,7 +2037,7 @@ Returns a string showed to the developer
     1) Absent from Props api_disabled_versions
     2) Present here (api_enabled_versions=[v2_2_0,v3_0_0]) -OR- api_enabled_versions must be empty.
 
-    Note we use "v" and "_" in the name to match the ApiVersions enumeration in ApiUtil.scala
+    Note we use "v" and "." in the name to match the ApiVersions enumeration in ApiUtil.scala
    */
   def versionIsAllowed(version: ApiVersion) : Boolean = {
     def checkVersion: Boolean = {

@@ -516,12 +516,12 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # For a VERSION to be allowed it must be:
 
 # 1) Absent from here:
-#api_disabled_versions=[v3_0_0]
+#api_disabled_versions=[v3.0.0]
 
 # 2) Present here OR this entry must be empty.
-#api_enabled_versions=[v2_2_0,v3_0_0]
+#api_enabled_versions=[v2.2.0,v3.0.0]
 
-# Note we use "v" and "_" in the name to match the ApiVersions enumeration in ApiUtil.scala
+# Note we use "v" and "." in the name to match the ApiVersions enumeration in ApiUtil.scala
 
 # For an ENDPOINT to be allowed it must be:
 
