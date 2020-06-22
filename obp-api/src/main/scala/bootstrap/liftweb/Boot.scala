@@ -29,10 +29,10 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.{Locale, TimeZone}
 
-import org.apache.commons.io.FileUtils
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
+import code.UserRefreshes.MappedUserRefreshes
 import code.accountapplication.MappedAccountApplication
 import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
@@ -48,6 +48,7 @@ import code.api.util._
 import code.api.util.migration.Migration
 import code.atms.MappedAtm
 import code.bankconnectors.ConnectorEndpoints
+import code.bankconnectors.storedprocedure.StoredProceduresMockedData
 import code.branches.MappedBranch
 import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
@@ -106,6 +107,7 @@ import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
+import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
@@ -125,6 +127,7 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, Schedule, _}
+import org.apache.commons.io.FileUtils
 
 import scala.concurrent.ExecutionContext
 
@@ -242,6 +245,9 @@ class Boot extends MdcLoggable {
        }
      }
     }
+    
+    logger.info("Mapper database info: ")
+    logger.info(Migration.DbFunction.mapperDatabaseInfo())
 
     import java.security.SecureRandom
     val rand = new SecureRandom(SecureRandom.getSeed(20))
@@ -302,6 +308,10 @@ class Boot extends MdcLoggable {
       case "star" if (APIUtil.getPropsValue("starConnector_supported_types","").split(",").contains("akka"))  =>
         ObpActorSystem.startNorthSideAkkaConnectorActorSystem()
       case _ => // Do nothing
+    }
+
+    if (Props.devMode || Props.testMode) {
+      StoredProceduresMockedData.createOrDropMockedPostgresStoredProcedures()
     }
 
     // where to search snippets
@@ -466,7 +476,7 @@ class Boot extends MdcLoggable {
           Menu.i("Plain") / "plain",
           Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
           	submenus(Consumer.menus : _*),
-          Menu("Consumer Registration", "Get API Key") / "consumer-registration" >> AuthUser.loginFirst,
+          Menu("Consumer Registration", Helper.i18n("consumer.registration.nav.name")) / "consumer-registration" >> AuthUser.loginFirst,
           Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
 
           Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
@@ -687,7 +697,7 @@ class Boot extends MdcLoggable {
           .shortBankName("OBP")
           .national_identifier("OBP")
           .mBankRoutingScheme("OBP")
-          .mBankRoutingAddress("OBP_DEFAULT_BANK")
+          .mBankRoutingAddress("obp1")
           .logoURL("")
           .websiteURL("")
           .saveMe()
@@ -807,7 +817,8 @@ object ToSchemify {
     DynamicEndpoint,
     AccountIdMapping,
     DirectDebit,
-    StandingOrder
+    StandingOrder,
+    MappedUserRefreshes
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server

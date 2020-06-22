@@ -40,7 +40,7 @@ import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
 import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, ViewBasicV300}
 import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
-import code.directdebit.DirectDebitTrait
+import com.openbankproject.commons.model.DirectDebitTrait
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccountCore}
 import code.standingorders.StandingOrderTrait
@@ -291,6 +291,8 @@ case class UserLockStatusJson(
                                type_of_lock: String,
                                last_lock_date : Date
                              )
+
+case class DatabaseInfoJson(product_name: String, product_version: String)
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)

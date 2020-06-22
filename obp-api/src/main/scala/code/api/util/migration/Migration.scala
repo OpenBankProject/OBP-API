@@ -4,8 +4,9 @@ import java.sql.{ResultSet, SQLException}
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import code.api.util.{APIUtil, ApiPropsWithAlias}
 import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
+import code.api.util.{APIUtil, ApiPropsWithAlias}
+import code.api.v4_0_0.DatabaseInfoJson
 import code.consumer.Consumers
 import code.context.MappedUserAuthContextUpdate
 import code.customer.CustomerX
@@ -14,6 +15,7 @@ import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.mapper.Schemifier.getDefaultSchemaName
 import net.liftweb.mapper.{BaseMetaMapper, DB, SuperConnection}
+import net.liftweb.util.DefaultConnectionIdentifier
 
 import scala.collection.immutable
 import scala.collection.mutable.HashMap
@@ -223,6 +225,33 @@ object Migration extends MdcLoggable {
 
         hasTable(rs)
       }
+    }
+    /**
+      * The purpose is to provide answer does a procedure exist at a database instance.
+      */
+    def procedureExists(name: String, connection: SuperConnection): Boolean = {
+      val md = connection.getMetaData
+      using(md.getProcedures(null, getDefaultSchemaName(connection), null)){ rs =>
+        def hasProcedure(rs: ResultSet): Boolean =
+          if (!rs.next) false
+          else rs.getString(3) match {
+            case s if s.toLowerCase == name => true
+            case _ => hasProcedure(rs)
+          }
+        hasProcedure(rs)
+      }
+    }
+
+
+    /**
+      * The purpose is to provide info about the database in mapper mode.
+      */
+    def mapperDatabaseInfo(): DatabaseInfoJson = {
+      val connection = DB.use(DefaultConnectionIdentifier){ conn => conn}
+      val md = connection.getMetaData
+      val productName = md.getDatabaseProductName()
+      val productVersion = md.getDatabaseProductVersion()
+      DatabaseInfoJson(product_name = productName, product_version = productVersion)
     }
 
     /**

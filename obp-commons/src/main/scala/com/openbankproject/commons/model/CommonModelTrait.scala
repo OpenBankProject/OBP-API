@@ -404,6 +404,37 @@ trait TransactionAttribute {
   def value: String
 }
 
+trait FXRate {
+  def bankId : BankId
+  def fromCurrencyCode: String
+  def toCurrencyCode: String
+  def conversionValue: Double
+  def inverseConversionValue: Double
+  def effectiveDate: Date
+}
+
+trait TransactionRequestTypeCharge {
+  def transactionRequestTypeId: String
+  def bankId: String
+  def chargeCurrency: String
+  def chargeAmount: String
+  def chargeSummary: String
+}
+
+trait DirectDebitTrait {
+  def directDebitId: String
+  def bankId: String
+  def accountId: String
+  def customerId: String
+  def userId: String
+  def counterpartyId: String
+  def dateSigned: Date
+  def dateCancelled: Date
+  def dateStarts: Date
+  def dateExpires: Date
+  def active: Boolean
+}
+
 //---------------------------------------- trait dependents of case class
 
 @deprecated("Use Lobby instead which contains detailed fields, not this string","24 July 2017")

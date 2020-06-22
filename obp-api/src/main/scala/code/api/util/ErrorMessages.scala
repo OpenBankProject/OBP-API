@@ -2,7 +2,7 @@ package code.api.util
 
 import java.util.Objects
 import java.util.regex.Pattern
-import code.transactionrequests.TransactionRequests.TransactionRequestStatus._
+import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 import code.api.Constant._
 
 object ErrorMessages {
@@ -462,10 +462,12 @@ object ErrorMessages {
   val CreateMeetingInviteeException = "OBP-60012: Create Meeting Invitee Exception. "
   val AdapterUnknownError = "OBP-60013: Adapter Unknown Error. "
   val AdapterTimeOurError = "OBP-60014: Adapter Timeout Error. "
+  val AdapterFunctionNotImplemented = "OBP-60015: Adapter Function Not Implemented."
 
   // MethodRouting Exceptions (OBP-7XXXX)
   val InvalidBankIdRegex = "OBP-70001: Incorrect regex for bankIdPattern."
   val MethodRoutingNotFoundByMethodRoutingId = "OBP-70002: MethodRouting not found. Please specify a valid value for method_routing_id."
+  val MethodRoutingNameAlreadyUsed = "OBP-70003: Method Routing Name already used."
 
   // Cascade Deletion Exceptions (OBP-8XXXX)
   val CouldNotDeleteCascade = "OBP-80001: Could not delete cascade."

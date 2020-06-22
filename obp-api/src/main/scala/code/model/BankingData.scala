@@ -485,7 +485,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
 object BankAccountX {
 
   def apply(bankId: BankId, accountId: AccountId) : Box[BankAccount] = {
-    Connector.connector.vend.getBankAccount(bankId, accountId)
+    Connector.connector.vend.getBankAccountOld(bankId, accountId)
   }
 
   def apply(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) : Box[(BankAccount,Option[CallContext])] = {
@@ -532,9 +532,9 @@ object BankAccountX {
       val incomingAccountId= AccountId(Constant.INCOMING_ACCOUNT_ID)
       val outgoingAccountId= AccountId(Constant.OUTGOING_ACCOUNT_ID)
       if (isOutgoingAccount){
-        LocalMappedConnector.getBankAccount(defaultBankId,outgoingAccountId)
+        LocalMappedConnector.getBankAccountOld(defaultBankId,outgoingAccountId)
       } else{
-        LocalMappedConnector.getBankAccount(defaultBankId,incomingAccountId)
+        LocalMappedConnector.getBankAccountOld(defaultBankId,incomingAccountId)
       }
     }
   }

@@ -20,11 +20,12 @@ import code.bankconnectors.Connector
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
-import code.directdebit.DirectDebitTrait
+import com.openbankproject.commons.model.DirectDebitTrait
 import code.dynamicEntity.{DynamicEntityProvider, DynamicEntityT}
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
-import code.fx.{FXRate, MappedFXRate, fx}
+import code.fx.{MappedFXRate, fx}
+import com.openbankproject.commons.model.FXRate
 import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingProvider, MethodRoutingT}
 import code.model._
@@ -1695,6 +1696,13 @@ object NewStyle {
     def getMethodRoutingsByMethdName(methodName: Box[String]): Future[List[MethodRoutingT]] = Future {
       this.getMethodRoutings(methodName.toOption)
     }
+    def checkMethodRoutingAlreadyExists(methodName: String, callContext:Option[CallContext]): OBPReturnType[Boolean] = Future {
+      val exists = this.getMethodRoutings(Some(methodName)).isEmpty match {
+        case true => Full(true)
+        case false => Empty
+      }
+      (unboxFullOrFail(exists, callContext, s"$MethodRoutingNameAlreadyUsed"), callContext)
+    }
     def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) =
       Connector.connector.vend.getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, s"$CardAttributeNotFound Current CardAttributeId($cardAttributeId)"), i._2)
@@ -1999,6 +2007,12 @@ object NewStyle {
            .split(',').map(_.trim).toSet
          case conn => Set(conn)
        }
+    }
+
+    def getSupportedConnectorNames(): List[String] = {
+      Connector.nameToConnector.keys
+        .filter(it => supportedConnectorNames.exists(it.startsWith(_)))
+        .toList
     }
 
     def getConnectorByName(connectorName: String): Option[Connector] = {

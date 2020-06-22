@@ -4221,6 +4221,7 @@ trait APIMethods310 {
         .toList
     }
 
+    private val supportedConnectorNames = NewStyle.function.getSupportedConnectorNames().mkString("[", " | ", "]")
     resourceDocs += ResourceDoc(
       createMethodRouting,
       implementedInApiVersion,
@@ -4235,7 +4236,7 @@ trait APIMethods310 {
         |
         |Explaination of Fields:
         |
-        |* method_name is required String value
+        |* method_name is required String value, current supported value: $supportedConnectorNames
         |* connector_name is required String value
         |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
@@ -4314,6 +4315,7 @@ trait APIMethods310 {
                 Pattern.compile(postedData.bankIdPattern.get)
               }
             }
+            _ <- NewStyle.function.checkMethodRoutingAlreadyExists(methodName, callContext)
             Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(postedData)
           } yield {
             val commonsData: MethodRoutingCommons = methodRouting
@@ -4337,7 +4339,7 @@ trait APIMethods310 {
         |
         |Explaination of Fields:
         |
-        |* method_name is required String value
+        |* method_name is required String value, current supported value: $supportedConnectorNames
         |* connector_name is required String value
         |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
