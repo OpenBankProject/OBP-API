@@ -60,7 +60,7 @@ object StoredProcedureUtils {
         callableStatement.setString(1, procedureParam)
 
         callableStatement.registerOutParameter(2, java.sql.Types.LONGVARCHAR)
-        callableStatement.setString(2, "")
+        //        callableStatement.setString(2, "") // MS sql server must comment this line, other DB need check.
         callableStatement.executeUpdate()
         callableStatement.getString(2)
      }
