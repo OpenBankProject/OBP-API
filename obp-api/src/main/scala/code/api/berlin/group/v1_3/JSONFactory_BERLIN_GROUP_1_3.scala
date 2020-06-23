@@ -73,6 +73,8 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 
   case class AccountDetailsJsonV13(account: AccountJsonV13)
   
+  case class CardAccountDetailsJsonV13(cardAccount: AccountJsonV13)
+  
   case class AmountOfMoneyV13(
     currency : String,
     amount : String
@@ -272,6 +274,11 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         )
      }
     )
+  }
+  
+  def createCardAccountDetailsJson(bankAccount: BankAccount, user: User): CardAccountDetailsJsonV13 = {
+    val accountDetailsJsonV13 = createAccountDetailsJson(bankAccount: BankAccount, user: User)
+    CardAccountDetailsJsonV13(accountDetailsJsonV13.account)
   }
   
   def createAccountDetailsJson(bankAccount: BankAccount, user: User): AccountDetailsJsonV13 = {
