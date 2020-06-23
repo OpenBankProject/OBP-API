@@ -449,7 +449,7 @@ respectively the OAuth2 access token.
        "GET",
        "/card-accounts/ACCOUNT_ID/balances",
        "Read card account balances",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Reads balance data from a given card account addressed by 
 "account-id". 
 
@@ -473,29 +473,30 @@ This account-id then can be retrieved by the
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil,
+       connectorMethods = Some(List("obp.getBank","obp.checkBankAccountExists" ,"obp.getTransactionRequests210"))
      )
 
      lazy val getCardAccountBalances : OBPEndpoint = {
-       case "card-accounts" :: account_id:: "balances" :: Nil JsonGet _ => {
+       case "card-accounts" :: accountId:: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "balances" : "",
-  "cardAccount" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
-}"""), callContext)
+             _ <- passesPsd2Aisp(callContext)
+             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
+             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
+             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
+             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
+               u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
+             }
+             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
+               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
+             } map { unboxFull(_) }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(bankAccount, transactionRequests), HttpCode.`200`(callContext))
            }
-         }
        }
+     }
             
      resourceDocs += ResourceDoc(
        getCardAccountTransactionList,

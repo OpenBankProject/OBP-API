@@ -95,6 +95,10 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
                                  account:FromAccount,
                                  `balances`: List[AccountBalance]
   )
+  case class CardAccountBalancesV13(
+                                 cardAccount:FromAccount,
+                                 `balances`: List[AccountBalance]
+                               )
   case class TransactionsLinksV13(
     account: String
   )
@@ -293,6 +297,11 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     (iBan, bBan)
   }
 
+  def createCardAccountBalanceJSON(bankAccount: BankAccount, transactionRequests: List[TransactionRequest]): CardAccountBalancesV13 = {
+    val accountBalancesV13 = createAccountBalanceJSON(bankAccount: BankAccount, transactionRequests: List[TransactionRequest])
+    CardAccountBalancesV13(accountBalancesV13.account,accountBalancesV13.`balances`)
+  }
+  
   def createAccountBalanceJSON(bankAccount: BankAccount, transactionRequests: List[TransactionRequest]): AccountBalancesV13 = {
     // get the latest end_date of `COMPLETED` transactionRequests
     val latestCompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status == "COMPLETED").map(_.end_date).headOption.getOrElse(null)
