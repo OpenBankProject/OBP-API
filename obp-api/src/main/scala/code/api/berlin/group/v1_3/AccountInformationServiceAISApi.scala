@@ -255,7 +255,8 @@ of the PSU at this ASPSP.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
+       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+       connectorMethods= Some(List("obp.getBank","obp.getBankAccounts"))
      )
 
      lazy val getAccountList : OBPEndpoint = {
@@ -448,7 +449,7 @@ respectively the OAuth2 access token.
        "GET",
        "/card-accounts/ACCOUNT_ID/balances",
        "Read card account balances",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Reads balance data from a given card account addressed by 
 "account-id". 
 
@@ -472,29 +473,30 @@ This account-id then can be retrieved by the
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil,
+       connectorMethods = Some(List("obp.getBank","obp.checkBankAccountExists" ,"obp.getTransactionRequests210"))
      )
 
      lazy val getCardAccountBalances : OBPEndpoint = {
-       case "card-accounts" :: account_id:: "balances" :: Nil JsonGet _ => {
+       case "card-accounts" :: accountId:: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "balances" : "",
-  "cardAccount" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
-}"""), callContext)
+             _ <- passesPsd2Aisp(callContext)
+             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
+             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
+             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
+             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
+               u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
+             }
+             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
+               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
+             } map { unboxFull(_) }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(bankAccount, transactionRequests), HttpCode.`200`(callContext))
            }
-         }
        }
+     }
             
      resourceDocs += ResourceDoc(
        getCardAccountTransactionList,
@@ -1056,7 +1058,8 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil,
+       connectorMethods=Some(List("obp.checkBankAccountExists"))
      )
 
      lazy val readAccountDetails : OBPEndpoint = {
@@ -1080,7 +1083,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        "GET",
        "/card-accounts/ACCOUNT_ID",
        "Reads details about a card account",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             Reads details about a card account. 
             It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system. 
             The addressed details of this account depends then on the stored consent addressed by consentId, 
@@ -1113,33 +1116,20 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
      )
 
      lazy val readCardAccount : OBPEndpoint = {
-       case "card-accounts" :: account_id :: Nil JsonGet _ => {
+       case "card-accounts" :: accountId :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "balances" : "",
-  "product" : "product",
-  "resourceId" : "resourceId",
-  "maskedPan" : "123456xxxxxx1234",
-  "_links" : {
-    "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "usage" : "PRIV",
-  "name" : "name",
-  "creditLimit" : {
-    "amount" : "123",
-    "currency" : "EUR"
-  },
-  "currency" : "EUR",
-  "details" : "details",
-  "status" : { }
-}"""), callContext)
+             _ <- passesPsd2Aisp(callContext)
+             _ <- Helper.booleanToFuture(failMsg = DefaultBankIdNotSet) {
+               defaultBankId != "DEFAULT_BANK_ID_NOT_SET"
+             }
+             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountDetailsJson(bankAccount, u), callContext)
            }
-         }
        }
+     }
 
      resourceDocs += ResourceDoc(
        startConsentAuthorisation,
