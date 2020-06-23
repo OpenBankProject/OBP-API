@@ -61,7 +61,7 @@ import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
 import scala.reflect.runtime.universe.{MethodSymbol, typeOf}
 import _root_.akka.http.scaladsl.model.HttpMethod
-import com.openbankproject.commons.dto.InBoundTrait
+import com.openbankproject.commons.dto.{InBoundTrait, ProductCollectionItemsTree}
 
 /*
 So we can switch between different sources of resources e.g.
@@ -2161,7 +2161,7 @@ trait Connector extends MdcLoggable {
 
   def getProductCollectionItemsTree(collectionCode: String,
                                     bankId: String,
-                                    callContext: Option[CallContext]): OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] =
+                                    callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItemsTree]]] =
     Future{(Failure(setUnimplementedError), callContext)}
 
   def createMeeting(

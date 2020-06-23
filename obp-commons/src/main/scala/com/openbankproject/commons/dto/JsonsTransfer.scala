@@ -417,7 +417,11 @@ case class InBoundGetProductCollectionItem(inboundAdapterCallContext: InboundAda
 case class OutBoundGetProductCollectionItemsTree(outboundAdapterCallContext: OutboundAdapterCallContext,
                                                  collectionCode: String,
                                                  bankId: String) extends TopicTrait
-case class InBoundGetProductCollectionItemsTree(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])])extends InBoundTrait[List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])]]
+
+case class ProductCollectionItemsTree(productCollectionItem: ProductCollectionItemCommons, product: ProductCommons, attributes: List[ProductAttributeCommons])
+
+case class InBoundGetProductCollectionItemsTree(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ProductCollectionItemsTree])
+  extends InBoundTrait[List[ProductCollectionItemsTree]]
 
 
 case class OutBoundCreateMeeting(outboundAdapterCallContext: OutboundAdapterCallContext,

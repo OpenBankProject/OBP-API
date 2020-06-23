@@ -30,6 +30,7 @@ import java.util.Date
 import akka.http.scaladsl.model.{HttpProtocol, _}
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.util.ByteString
+import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions
 import code.api.{APIFailure, APIFailureNewStyle}
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.cache.Caching
@@ -8187,7 +8188,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         val result: OBPReturnType[Box[List[ProductCollectionItemCommons]]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
-    
+
   messageDocs += getProductCollectionItemsTreeDoc
   def getProductCollectionItemsTreeDoc = MessageDoc(
     process = "obp.getProductCollectionItemsTree",
@@ -8196,73 +8197,42 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetProductCollectionItemsTree(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
-      collectionCode="string",
-      bankId=bankIdExample.value)
-    ),
+      OutBoundGetProductCollectionItemsTree(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+        collectionCode="string",
+        bankId=bankIdExample.value)
+      ),
     exampleInboundMessage = (
-     InBoundGetProductCollectionItemsTree(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
-      status= Status(errorCode=statusErrorCodeExample.value,
-      backendMessages=List( InboundStatusMessage(source=sourceExample.value,
-      status=inboundStatusMessageStatusExample.value,
-      errorCode=inboundStatusMessageErrorCodeExample.value,
-      text=inboundStatusMessageTextExample.value))),
-      data=List(( ProductCollectionItemCommons(collectionCode="string",
-      memberProductCode="string"),  ProductCommons(bankId=BankId(bankIdExample.value),
-      code=ProductCode("string"),
-      parentProductCode=ProductCode("string"),
-      name="string",
-      category="string",
-      family="string",
-      superFamily="string",
-      moreInfoUrl="string",
-      details="string",
-      description="string",
-      meta=Meta( License(id="string",
-      name="string"))), List( ProductAttributeCommons(bankId=BankId(bankIdExample.value),
-      productCode=ProductCode("string"),
-      productAttributeId="string",
-      name="string",
-      attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
-      value=valueExample.value)))))
-    ),
+      InBoundGetProductCollectionItemsTree(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+        status=MessageDocsSwaggerDefinitions.inboundStatus,
+        data=List( ProductCollectionItemsTree(productCollectionItem= ProductCollectionItemCommons(collectionCode="string",
+          memberProductCode="string"),
+          product= ProductCommons(bankId=BankId(bankIdExample.value),
+            code=ProductCode("string"),
+            parentProductCode=ProductCode("string"),
+            name="string",
+            category="string",
+            family="string",
+            superFamily="string",
+            moreInfoUrl="string",
+            details="string",
+            description="string",
+            meta=Meta( License(id="string",
+              name="string"))),
+          attributes=List( ProductAttributeCommons(bankId=BankId(bankIdExample.value),
+            productCode=ProductCode("string"),
+            productAttributeId="string",
+            name="string",
+            attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
+            value=valueExample.value)))))
+      ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
-  // url example: /getProductCollectionItemsTree
-  override def getProductCollectionItemsTree(collectionCode: String, bankId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetProductCollectionItemsTree => OutBound, InBoundGetProductCollectionItemsTree => InBound}
-        val url = getUrl(callContext, "getProductCollectionItemsTree")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , collectionCode, bankId)
-        val result: OBPReturnType[Box[List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])]]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
-        result
+
+  override def getProductCollectionItemsTree(collectionCode: String, bankId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItemsTree]]] = {
+    import com.openbankproject.commons.dto.{OutBoundGetProductCollectionItemsTree => OutBound, InBoundGetProductCollectionItemsTree => InBound}
+    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, collectionCode, bankId)
+    val response: Future[Box[InBound]] = sendRequest[InBound](getUrl(callContext, "getProductCollectionItemsTree"), HttpMethods.POST, req, callContext)
+    response.map(convertToTuple[List[ProductCollectionItemsTree]](callContext))
   }
     
   messageDocs += createMeetingDoc
