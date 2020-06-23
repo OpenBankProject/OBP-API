@@ -99,6 +99,9 @@ resource_docs_requires_role=false
 ## Enable user authentication via obpjvm
 #obpjvm.user.authentication=true
 
+## Enable user authentication via the connector
+#connector.user.authentication=true
+
 ## Enable SSL for JWT, if set to true must set paths for the keystore locations
 jwt.use.ssl=false
 

@@ -859,27 +859,24 @@ def restoreSomeSessions(): Unit = {
                 S.error(S.?("account.validation.error")) // Note: This does not seem to get hit when user is not validated.
     
               // If not found locally, try to authenticate user via Kafka, if enabled in props
-              case Empty if (connector.startsWith("kafka") || connector == "obpjvm") &&
-                (APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) ||
+              case Empty if (APIUtil.getPropsAsBoolValue("connector.user.authentication", false) || 
+                APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) ||
                 APIUtil.getPropsAsBoolValue("obpjvm.user.authentication", false)) =>
-                  val preLoginState = capturePreLoginState()
-                  logger.info("login redirect: " + loginRedirect.get)
-                  val redirect = redirectUri()
-                  for {
-                    user_ <- externalUserHelper(usernameFromGui, passwordFromGui)
-                  } yield {
-                    user_
-                  } match {
-                    case user:AuthUser =>
+                
+                val preLoginState = capturePreLoginState()
+                logger.info("login redirect: " + loginRedirect.get)
+                val redirect = redirectUri()
+                externalUserHelper(usernameFromGui, passwordFromGui) match {
+                    case Full(user: AuthUser) =>
                       LoginAttempt.resetBadLoginAttempts(usernameFromGui)
                       checkInternalRedirecAndLogUseIn(preLoginState, redirect, user)
                     case _ =>
                       LoginAttempt.incrementBadLoginAttempts(username.get)
                       Empty
-                  }
+                }
               //If the username is not exiting, throw the error message.  
-              case Empty => S.error(S.?("Invalid Login Credentials"))
-                
+              case Empty => 
+                S.error(S.?("Invalid Login Credentials"))
               case _ =>
                 LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
                 S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin)) // Note we hit this if user has not clicked email validation link
@@ -936,6 +933,15 @@ def restoreSomeSessions(): Unit = {
        //u <- user.user.foreign  // this will be issue when the resource user is in remote side
        u <- Users.users.vend.getUserByUserName(name)
        v <- Full (updateUserAccountViews(u, None))
+      } yield {
+        user
+      }
+    }  else if (connector.startsWith("stored_procedure")) {
+      for {
+        user <- checkExternalUserViaConnector(name, password)
+        //u <- user.user.foreign  // this will be issue when the resource user is in remote side
+        u <- Users.users.vend.getUserByUserName(name)
+        v <- Full (updateUserAccountViews(u, None))
       } yield {
         user
       }
