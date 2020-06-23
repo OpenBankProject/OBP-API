@@ -769,6 +769,31 @@ def restoreSomeSessions(): Unit = {
     *  case5: UnKnow error     --> UnexpectedErrorDuringLogin
     */
   override def login = {
+    def redirectUri(): String = {
+      loginRedirect.get match {
+        case Full(url) =>
+          loginRedirect(Empty)
+          url
+        case _ =>
+          homePage
+      }
+    }
+    //Check the internal redirect, in case for open redirect issue.
+    // variable redirect is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
+    // val currentUrl = S.uriAndQueryString.getOrElse("/")
+    // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
+    def checkInternalRedirecAndLogUseIn(preLoginState: () => Unit, redirect: String, user: AuthUser) = {
+      if (Helper.isValidInternalRedirectUrl(redirect)) {
+        logUserIn(user, () => {
+          S.notice(S.?("logged.in"))
+          preLoginState()
+          S.redirectTo(redirect)
+        })
+      } else {
+        S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
+        logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
+      }
+    }
     def loginAction = {
       if (S.post_?) {
         val usernameFromGui = S.param("username").getOrElse("")
@@ -793,29 +818,10 @@ def restoreSomeSessions(): Unit = {
                   // Reset any bad attempts
                   LoginAttempt.resetBadLoginAttempts(usernameFromGui)
                   val preLoginState = capturePreLoginState()
-                  logger.info("login redir: " + loginRedirect.get)
-                  val redir = loginRedirect.get match {
-                    case Full(url) =>
-                      loginRedirect(Empty)
-                      url
-                    case _ =>
-                      homePage
-                  }
+                  logger.info("login redirect: " + loginRedirect.get)
+                  val redirect = redirectUri()
     //              registeredUserHelper(user.username)
-                //Check the internal redirect, in case for open redirect issue.
-                // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-                // val currentUrl = S.uriAndQueryString.getOrElse("/")
-                // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
-                if (Helper.isValidInternalRedirectUrl(redir.toString)) {
-                  logUserIn(user, () => {
-                    S.notice(S.?("logged.in"))
-                    preLoginState()
-                    S.redirectTo(redir)
-                  })
-                } else {
-                  S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-                  logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
-                }
+                checkInternalRedirecAndLogUseIn(preLoginState, redirect, user)
               }
     
               // Check if user came from kafka/obpjvm/stored_procedure and
@@ -828,31 +834,12 @@ def restoreSomeSessions(): Unit = {
                   // Reset any bad attempts
                   LoginAttempt.resetBadLoginAttempts(usernameFromGui)
                   val preLoginState = capturePreLoginState()
-                  logger.info("login redir: " + loginRedirect.get)
-                  val redir = loginRedirect.get match {
-                    case Full(url) =>
-                      loginRedirect(Empty)
-                      url
-                    case _ =>
-                      homePage
-                  }
+                  logger.info("login redirect: " + loginRedirect.get)
+                  val redirect = redirectUri()
                   //This method is used for connector = kafka* || obpjvm*
                   //It will update the views and createAccountHolder ....
                   registeredUserHelper(user.username.get)
-                  //Check the internal redirect, in case for open redirect issue.
-                  // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-                  // val currentUrl = S.uriAndQueryString.getOrElse("/")
-                  // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
-                  if (Helper.isValidInternalRedirectUrl(redir.toString)) {
-                    logUserIn(user, () => {
-                      S.notice(S.?("logged.in"))
-                      preLoginState()
-                      S.redirectTo(redir)
-                    })
-                  } else {
-                    S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-                    logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
-                  }
+                  checkInternalRedirecAndLogUseIn(preLoginState, redirect, user)
                 }
     
               // If user is unlocked AND bad password, increment bad login attempt counter.
@@ -876,40 +863,20 @@ def restoreSomeSessions(): Unit = {
                 (APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) ||
                 APIUtil.getPropsAsBoolValue("obpjvm.user.authentication", false)) =>
                   val preLoginState = capturePreLoginState()
-                  logger.info("login redir: " + loginRedirect.get)
-                  val redir = loginRedirect.get match {
-                    case Full(url) =>
-                      loginRedirect(Empty)
-                      url
-                    case _ =>
-                      homePage
-                  }
+                  logger.info("login redirect: " + loginRedirect.get)
+                  val redirect = redirectUri()
                   for {
                     user_ <- externalUserHelper(usernameFromGui, passwordFromGui)
                   } yield {
                     user_
                   } match {
-                    case u:AuthUser =>
+                    case user:AuthUser =>
                       LoginAttempt.resetBadLoginAttempts(usernameFromGui)
-                      //Check the internal redirect, in case for open redirect issue.
-                      // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-                      // val currentUrl = S.uriAndQueryString.getOrElse("/")
-                      // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
-                      if (Helper.isValidInternalRedirectUrl(redir.toString)) {
-                        logUserIn(u, () => {
-                          S.notice(S.?("logged.in"))
-                          preLoginState()
-                          S.redirectTo(redir)
-                        })
-                      } else {
-                        S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-                        logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
-                      }
+                      checkInternalRedirecAndLogUseIn(preLoginState, redirect, user)
                     case _ =>
                       LoginAttempt.incrementBadLoginAttempts(username.get)
                       Empty
                   }
-    
               //If the username is not exiting, throw the error message.  
               case Empty => S.error(S.?("Invalid Login Credentials"))
                 
