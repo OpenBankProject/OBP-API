@@ -73,6 +73,8 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 
   case class AccountDetailsJsonV13(account: AccountJsonV13)
   
+  case class CardAccountDetailsJsonV13(cardAccount: AccountJsonV13)
+  
   case class AmountOfMoneyV13(
     currency : String,
     amount : String
@@ -95,6 +97,10 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
                                  account:FromAccount,
                                  `balances`: List[AccountBalance]
   )
+  case class CardAccountBalancesV13(
+                                 cardAccount:FromAccount,
+                                 `balances`: List[AccountBalance]
+                               )
   case class TransactionsLinksV13(
     account: String
   )
@@ -270,6 +276,11 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
   
+  def createCardAccountDetailsJson(bankAccount: BankAccount, user: User): CardAccountDetailsJsonV13 = {
+    val accountDetailsJsonV13 = createAccountDetailsJson(bankAccount: BankAccount, user: User)
+    CardAccountDetailsJsonV13(accountDetailsJsonV13.account)
+  }
+  
   def createAccountDetailsJson(bankAccount: BankAccount, user: User): AccountDetailsJsonV13 = {
     val (iBan: String, bBan: String) = getIbanAndBban(bankAccount)
     val account = AccountJsonV13(
@@ -293,6 +304,11 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     (iBan, bBan)
   }
 
+  def createCardAccountBalanceJSON(bankAccount: BankAccount, transactionRequests: List[TransactionRequest]): CardAccountBalancesV13 = {
+    val accountBalancesV13 = createAccountBalanceJSON(bankAccount: BankAccount, transactionRequests: List[TransactionRequest])
+    CardAccountBalancesV13(accountBalancesV13.account,accountBalancesV13.`balances`)
+  }
+  
   def createAccountBalanceJSON(bankAccount: BankAccount, transactionRequests: List[TransactionRequest]): AccountBalancesV13 = {
     // get the latest end_date of `COMPLETED` transactionRequests
     val latestCompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status == "COMPLETED").map(_.end_date).headOption.getOrElse(null)
