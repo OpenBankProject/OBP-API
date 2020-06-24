@@ -1113,7 +1113,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case EmptyBody => throw new IllegalArgumentException(s"$EmptyBody have no type name.")
     }
 
-    override def toJValue: json.JValue = {
+    override def toJValue(implicit format: Formats): json.JValue = {
       this.asInstanceOf[PrimaryDataBody[_]] match {
           case EmptyBody => JNothing
           case StringBody(v) => JString(v)

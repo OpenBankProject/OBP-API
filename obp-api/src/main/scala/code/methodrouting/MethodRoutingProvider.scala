@@ -7,7 +7,7 @@ import com.openbankproject.commons.util.JsonAble
 import net.liftweb.common.Box
 import net.liftweb.json
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json.JValue
+import net.liftweb.json.{Formats, JValue}
 import net.liftweb.json.JsonAST.{JArray, JBool, JField, JNull, JObject, JString}
 import net.liftweb.util.SimpleInjector
 
@@ -49,7 +49,7 @@ case class MethodRoutingCommons(methodName: String,
     * when serialized to json, the  Option filed will be not shown, this method just generate a full fields json, include all None value fields
     * @return JObject include all fields
     */
-  def toJson = {
+  def toJson(implicit format: Formats) = {
     val paramsJson: List[JValue] = this.parameters.map(_.toJValue)
 
     JObject(List(
@@ -68,7 +68,7 @@ object MethodRoutingCommons extends Converter[MethodRoutingT, MethodRoutingCommo
 case class MethodRoutingParam(key: String, value: String) extends JsonAble {
   def this(jObject: JObject) = this(MethodRoutingParam.extractKey(jObject),MethodRoutingParam.extractValue(jObject))
 
-  override def toJValue: JValue =
+  override def toJValue(implicit format: Formats): JValue =
     ("key" -> key) ~
     ("value" -> {
       val trimmedValue = value.trim

@@ -4750,7 +4750,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[ProductCollectionItemCommons]](callContext))        
   }
-          
+
   messageDocs += getProductCollectionItemsTreeDoc
   def getProductCollectionItemsTreeDoc = MessageDoc(
     process = "obp.getProductCollectionItemsTree",
@@ -4766,33 +4766,35 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundGetProductCollectionItemsTree(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List(( ProductCollectionItemCommons(collectionCode="string",
-      memberProductCode="string"),  ProductCommons(bankId=BankId(bankIdExample.value),
-      code=ProductCode("string"),
-      parentProductCode=ProductCode("string"),
-      name="string",
-      category="string",
-      family="string",
-      superFamily="string",
-      moreInfoUrl="string",
-      details="string",
-      description="string",
-      meta=Meta( License(id="string",
-      name="string"))), List( ProductAttributeCommons(bankId=BankId(bankIdExample.value),
-      productCode=ProductCode("string"),
-      productAttributeId="string",
-      name="string",
-      attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
-      value=valueExample.value)))))
+      data=List(ProductCollectionItemsTree(productCollectionItem= ProductCollectionItemCommons(collectionCode="string",
+        memberProductCode="string"),
+        product= ProductCommons(bankId=BankId(bankIdExample.value),
+          code=ProductCode("string"),
+          parentProductCode=ProductCode("string"),
+          name="string",
+          category="string",
+          family="string",
+          superFamily="string",
+          moreInfoUrl="string",
+          details="string",
+          description="string",
+          meta=Meta( License(id="string",
+            name="string"))),
+        attributes=List( ProductAttributeCommons(bankId=BankId(bankIdExample.value),
+          productCode=ProductCode("string"),
+          productAttributeId="string",
+          name="string",
+          attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
+          value=valueExample.value)))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def getProductCollectionItemsTree(collectionCode: String, bankId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetProductCollectionItemsTree => OutBound, InBoundGetProductCollectionItemsTree => InBound}  
+  override def getProductCollectionItemsTree(collectionCode: String, bankId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItemsTree]]] = {
+        import com.openbankproject.commons.dto.{OutBoundGetProductCollectionItemsTree => OutBound, InBoundGetProductCollectionItemsTree => InBound}
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, collectionCode, bankId)
-        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
-        response.map(convertToTuple[List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])]](callContext))        
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _)
+        response.map(convertToTuple[List[ProductCollectionItemsTree]](callContext))
   }
           
   messageDocs += createMeetingDoc

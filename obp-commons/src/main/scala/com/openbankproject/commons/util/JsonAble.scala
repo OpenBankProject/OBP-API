@@ -3,10 +3,10 @@ package com.openbankproject.commons.util
 import net.liftweb.json._
 
 trait JsonAble {
-  def toJValue: JValue
+  def toJValue(implicit format: Formats): JValue
 }
 object JsonAble {
-  def unapply(jsonAble: JsonAble): Option[JValue] = Option(jsonAble).map(_.toJValue)
+  def unapply(jsonAble: JsonAble)(implicit format: Formats): Option[JValue] = Option(jsonAble).map(_.toJValue)
 }
 
 object JsonAbleSerializer extends Serializer[JsonAble] {

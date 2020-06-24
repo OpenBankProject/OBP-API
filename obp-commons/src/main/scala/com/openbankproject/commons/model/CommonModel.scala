@@ -29,8 +29,9 @@ package com.openbankproject.commons.model
 import java.util.Date
 
 import com.openbankproject.commons.model.enums._
-import com.openbankproject.commons.util.ReflectUtils
-import net.liftweb.json.{JInt, JString}
+import com.openbankproject.commons.util.{JsonAble, ReflectUtils}
+import net.liftweb.json
+import net.liftweb.json.{Formats, JInt, JString}
 import net.liftweb.json.JsonAST.{JObject, JValue}
 
 import scala.collection.immutable.List
@@ -706,7 +707,25 @@ case class TransactionCommons(
                    override val startDate : Date,
                    override val finishDate : Date,
                    override val balance :  BigDecimal
-                 )  extends Transaction(uuid, id, thisAccount, otherAccount, transactionType, amount, currency,description, startDate, finishDate, balance)
+                 )  extends Transaction(uuid, id, thisAccount, otherAccount, transactionType, amount, currency,description, startDate, finishDate, balance) with JsonAble {
+  // if constructor override val value pass to parent class constructor, lift json will not work to do serialize, so here manually do serialize.
+  override def toJValue(implicit format: Formats): json.JValue = {
+    val map = Map(
+      "uuid" -> uuid,
+      "id" -> id,
+      "thisAccount" -> thisAccount,
+      "otherAccount" -> otherAccount,
+      "transactionType" -> transactionType,
+      "amount" -> amount,
+      "currency" -> currency,
+      "description" -> description,
+      "startDate" -> startDate,
+      "finishDate" -> finishDate,
+      "balance" -> balance,
+    )
+    json.Extraction.decompose(map)
+  }
+}
 
 case class InternalBasicUser(
   userId:String,
