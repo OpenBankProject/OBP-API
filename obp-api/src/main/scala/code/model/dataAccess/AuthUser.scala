@@ -838,7 +838,7 @@ def restoreSomeSessions(): Unit = {
                   checkInternalRedirecAndLogUseIn(preLoginState, redirect, user)
                 } else { // If user is NOT locked AND password is wrong => increment bad login attempt counter.
                   LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
-                  S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
+                  S.error(Helper.i18n("invalid.login.credentials"))
                 }
 
               // If user is locked, send the error to GUI
@@ -879,7 +879,7 @@ def restoreSomeSessions(): Unit = {
                 
               //If there is NO the username, throw the error message.  
               case Empty => 
-                S.error(S.?("Invalid Login Credentials"))
+                S.error(Helper.i18n("invalid.login.credentials"))
               case _ =>
                 LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
                 S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin)) // Note we hit this if user has not clicked email validation link
