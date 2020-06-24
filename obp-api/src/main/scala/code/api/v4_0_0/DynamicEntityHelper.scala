@@ -103,11 +103,11 @@ object MockerConnector {
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"getAll$entityName",
+      s"get${entityName}List",
       "GET",
       s"/$entityName",
-      s"Get All $splitName",
-      s"""Get All $splitName.
+      s"Get $splitName List",
+      s"""Get $splitName List.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
