@@ -720,7 +720,7 @@ import net.liftweb.util.Helpers._
     * @return Return the authUser
     */
   def checkExternalUserViaConnector(name: String, password: String):Box[AuthUser] = {
-    Connector.connector.vend.checkExternalUserCredentials(name, password) match {
+    Connector.connector.vend.checkExternalUserCredentials(name, password, None) match {
       case Full(InboundExternalUser(aud, exp, iat, iss, sub, azp, email, emailVerified, name)) =>
         val user = findUserByUsernameLocally(sub) match { // Check if the external user is already created locally
           case Full(user) if user.validated_? => // Return existing user if found
