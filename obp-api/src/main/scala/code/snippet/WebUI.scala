@@ -205,6 +205,11 @@ class WebUI extends MdcLoggable{
     "#sandbox-introduction-link [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_documentation_url",s"${getServerUrl}/introduction"))
   }
 
+  def technicalFaqsAnchor: CssSel = {
+    "#technical-faqs-anchor [href]" #> scala.xml.Unparsed(s"${getServerUrl}#technical-faqs")
+  }
+
+
   def apiDocumentation: CssSel = {
     val title = "Sandbox Introduction"
     val propsValue = getWebUiPropsValue("webui_sandbox_introduction", "")
