@@ -4967,7 +4967,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_product_collection_item", req, callContext)
         response.map(convertToTuple[List[ProductCollectionItemCommons]](callContext))        
   }
-          
+
   messageDocs += getProductCollectionItemsTreeDoc
   def getProductCollectionItemsTreeDoc = MessageDoc(
     process = "obp.getProductCollectionItemsTree",
@@ -4976,42 +4976,44 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetProductCollectionItemsTree(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      collectionCode="string",
-      bankId=bankIdExample.value)
-    ),
+      OutBoundGetProductCollectionItemsTree(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+        collectionCode="string",
+        bankId=bankIdExample.value)
+      ),
     exampleInboundMessage = (
-     InBoundGetProductCollectionItemsTree(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List(( ProductCollectionItemCommons(collectionCode="string",
-      memberProductCode="string"),  ProductCommons(bankId=BankId(bankIdExample.value),
-      code=ProductCode("string"),
-      parentProductCode=ProductCode("string"),
-      name="string",
-      category="string",
-      family="string",
-      superFamily="string",
-      moreInfoUrl="string",
-      details="string",
-      description="string",
-      meta=Meta( License(id="string",
-      name="string"))), List( ProductAttributeCommons(bankId=BankId(bankIdExample.value),
-      productCode=ProductCode("string"),
-      productAttributeId="string",
-      name="string",
-      attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
-      value=valueExample.value)))))
-    ),
+      InBoundGetProductCollectionItemsTree(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+        status=MessageDocsSwaggerDefinitions.inboundStatus,
+        data=List( ProductCollectionItemsTree(productCollectionItem= ProductCollectionItemCommons(collectionCode="string",
+          memberProductCode="string"),
+          product= ProductCommons(bankId=BankId(bankIdExample.value),
+            code=ProductCode("string"),
+            parentProductCode=ProductCode("string"),
+            name="string",
+            category="string",
+            family="string",
+            superFamily="string",
+            moreInfoUrl="string",
+            details="string",
+            description="string",
+            meta=Meta( License(id="string",
+              name="string"))),
+          attributes=List( ProductAttributeCommons(bankId=BankId(bankIdExample.value),
+            productCode=ProductCode("string"),
+            productAttributeId="string",
+            name="string",
+            attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
+            value=valueExample.value)))))
+      ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def getProductCollectionItemsTree(collectionCode: String, bankId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetProductCollectionItemsTree => OutBound, InBoundGetProductCollectionItemsTree => InBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, collectionCode, bankId)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_product_collection_items_tree", req, callContext)
-        response.map(convertToTuple[List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])]](callContext))        
+  override def getProductCollectionItemsTree(collectionCode: String, bankId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItemsTree]]] = {
+    import com.openbankproject.commons.dto.{OutBoundGetProductCollectionItemsTree => OutBound, InBoundGetProductCollectionItemsTree => InBound}
+    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, collectionCode, bankId)
+    val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_product_collection_items_tree", req, callContext)
+    response.map(convertToTuple[List[ProductCollectionItemsTree]](callContext))
   }
-          
+
   messageDocs += createMeetingDoc
   def createMeetingDoc = MessageDoc(
     process = "obp.createMeeting",

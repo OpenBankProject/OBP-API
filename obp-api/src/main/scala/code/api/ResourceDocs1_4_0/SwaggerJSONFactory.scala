@@ -79,8 +79,7 @@ object SwaggerJSONFactory extends MdcLoggable {
   case class BasicTypeSchemaJson(`type`: String) extends ResponseObjectSchemaJson
   case class ListResultSchemaJson(listResult: ListResult[List[_]]) extends ResponseObjectSchemaJson with JsonAble {
 
-    override def toJValue: json.JValue = {
-      implicit val formats = CustomJsonFormats.formats
+    override def toJValue(implicit format: Formats): json.JValue = {
       val ListResult(name, head::_) = listResult
       val schema = buildSwaggerSchema(ReflectUtils.getType(head), head)
       val definition =
@@ -103,18 +102,16 @@ object SwaggerJSONFactory extends MdcLoggable {
   }
   case class JObjectSchemaJson(jObject: JObject) extends ResponseObjectSchemaJson with JsonAble {
 
-    override def toJValue: json.JValue = {
+    override def toJValue(implicit format: Formats): json.JValue = {
       val schema = buildSwaggerSchema(typeOf[JObject], jObject)
-      implicit val formats = CustomJsonFormats.formats
       json.parse(schema)
     }
 
   }
   case class JArraySchemaJson(jArray: JArray) extends ResponseObjectSchemaJson with JsonAble {
 
-    override def toJValue: json.JValue = {
+    override def toJValue(implicit format: Formats): json.JValue = {
       val schema = buildSwaggerSchema(typeOf[JArray], jArray)
-      implicit val formats = CustomJsonFormats.formats
       json.parse(schema)
     }
 

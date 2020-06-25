@@ -6,6 +6,7 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
 import code.bankconnectors.Connector
+import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.TopicTrait
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.json.Serialization.write
@@ -18,7 +19,7 @@ import scalikejdbc.{DB => scalikeDB, _}
  * The reason of extract this util: if not call stored procedure connector method, the db connection of
  * stored procedure will not be initialized.
  */
-object StoredProcedureUtils {
+object StoredProcedureUtils extends MdcLoggable{
 
   private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
 
@@ -64,6 +65,7 @@ object StoredProcedureUtils {
         callableStatement.executeUpdate()
         callableStatement.getString(2)
      }
+    logger.debug(s"${StoredProcedureConnector_vDec2019.toString} responseJson: $procedureName = $responseJson" )
     Connector.extractAdapterResponse[T](responseJson, Empty)
   }
 }

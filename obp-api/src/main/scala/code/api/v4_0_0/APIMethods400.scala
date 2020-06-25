@@ -25,14 +25,12 @@ import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
 import code.api.v3_1_0.{CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310, ListResult}
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
 import code.bankconnectors.Connector
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.entitlement.Entitlement
-import code.loginattempts.LoginAttempt
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -40,19 +38,17 @@ import code.model.{toUserExtended, _}
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.MappedTransactionRequestProvider
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
-import com.openbankproject.commons.model.enums.TransactionRequestStatus
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.userlocks.UserLocksProvider
 import code.users.Users
-import code.util.Helper.booleanToBox
 import code.util.{Helper, JsonUtils}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
-import com.openbankproject.commons.model.enums._
+import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.util.ApiVersion
 import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCascade}
 import net.liftweb.common.{Box, Failure, Full}
@@ -63,10 +59,9 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{compactRender, _}
 import net.liftweb.mapper.By
-import net.liftweb.util.Helpers.{now, tryo}
+import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
 import org.apache.commons.lang3.StringUtils
-import org.atteo.evo.inflector.English
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -1071,7 +1066,7 @@ trait APIMethods400 {
 
     lazy val genericEndpoint: OBPEndpoint = {
       case EntityName(entityName) :: Nil JsonGet req => { cc =>
-        val listName = StringHelpers.snakify(English.plural(entityName))
+        val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)

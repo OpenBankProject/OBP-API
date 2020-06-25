@@ -93,8 +93,8 @@ import scala.concurrent._
 import scala.language.postfixOps
 import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
-
 import _root_.akka.http.scaladsl.model.HttpMethod
+import com.openbankproject.commons.dto.ProductCollectionItemsTree
 
 object LocalMappedConnector extends Connector with MdcLoggable {
 
@@ -2935,9 +2935,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getProductCollectionItemsTree(collectionCode: String,
                                              bankId: String,
-                                             callContext: Option[CallContext]): OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] =
-    ProductCollectionItems.productCollectionItem.vend.getProductCollectionItemsTree(collectionCode, bankId) map {
-      (_, callContext)
+                                             callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItemsTree]]] =
+    ProductCollectionItems.productCollectionItem.vend.getProductCollectionItemsTree(collectionCode, bankId) map { it =>
+      val data: Box[List[ProductCollectionItemsTree]] = it.map(boxValue => boxValue.map(it => ProductCollectionItemsTree(it._1, it._2, it._3)))
+      (data, callContext)
     }
 
   override def createMeeting(

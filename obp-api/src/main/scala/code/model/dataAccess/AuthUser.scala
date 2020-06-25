@@ -121,7 +121,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
     override def displayName = S.?("Username")
     override def dbIndexed_? = true
     override def validations = isEmpty(Helper.i18n("Please.enter.your.username")) _ :: 
-                               valUnique(S.?("unique.username")) _ :: 
+                               valUnique(Helper.i18n("unique.username")) _ :: 
                                super.validations
     override val fieldId = Some(Text("txtUsername"))
   }
