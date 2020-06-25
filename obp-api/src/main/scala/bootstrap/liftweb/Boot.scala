@@ -246,8 +246,7 @@ class Boot extends MdcLoggable {
      }
     }
     
-    logger.info("Mapper database info: ")
-    logger.info(Migration.DbFunction.mapperDatabaseInfo())
+    logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo())
 
     import java.security.SecureRandom
     val rand = new SecureRandom(SecureRandom.getSeed(20))

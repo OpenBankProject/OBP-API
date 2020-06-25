@@ -99,6 +99,9 @@ resource_docs_requires_role=false
 ## Enable user authentication via obpjvm
 #obpjvm.user.authentication=true
 
+## Enable user authentication via the connector
+#connector.user.authentication=true
+
 ## Enable SSL for JWT, if set to true must set paths for the keystore locations
 jwt.use.ssl=false
 
@@ -153,8 +156,12 @@ db.url=jdbc:h2:./lift_proto.db;DB_CLOSE_ON_EXIT=FALSE
 #db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
 
 # If you want to use MySQL
-#db.url=jdbc:mysql://localhost:3306/OBP_DB1?user=obp_user_001&password=your-password-here&verifyServerCertificate=false&useSSL=true&serverTimezone=UTC&nullNamePatternMatchesAll=true
+#db.driver=com.mysql.cj.jdbc.Driver
+#db.url=jdbc:mysql://localhost:3306/dbname?user=your-username-here&password=your-password-here&verifyServerCertificate=false&useSSL=true&serverTimezone=UTC&nullNamePatternMatchesAll=true
 
+# If you want to use MS SQL
+#db.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver
+#db.url=jdbc:sqlserver://localhost:1433;databaseName=PSD2_OBP;user=OBPApi;password=********;
 
 ## Enable remote Akka actor for data split
 ## If set to true, must set hostname and port

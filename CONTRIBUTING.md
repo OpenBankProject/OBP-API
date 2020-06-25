@@ -11,6 +11,16 @@ If submitting a pull request please read and sign our [CLA](http://github.com/Op
 
 Please reference Issue Numbers in your commits.
 
+## Git commit messages
+
+Please structure git commit messages in a way as shown below:
+1. bugfix/Something
+2. feature/Something
+3. docfix/Something
+4. refactor/Something
+5. performance/Something
+6. test/Something
+
 ## Code comments
 
 Please comment your code ! :-) Imagine an engineer is trying to fix a production issue: she is working on a tiny screen, via a dodgy mobile Internet connection, in a sandstorm - Your code is fresh in your mind. Your comments could help her!

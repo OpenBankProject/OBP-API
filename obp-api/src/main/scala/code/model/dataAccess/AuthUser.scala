@@ -643,11 +643,25 @@ import net.liftweb.util.Helpers._
                     LoginAttempt.incrementBadLoginAttempts(username)
                     Empty
               }
+            case Helper.matchAnyStoredProcedure() if !LoginAttempt.userIsLocked(username) =>
+                val userId = 
+                  for { 
+                    authUser <- checkExternalUserViaConnector(username, password)
+                    resourceUser <- tryo{authUser.user} 
+                  } yield {
+                    LoginAttempt.resetBadLoginAttempts(username)
+                    resourceUser.get
+                  }
+                userId match {
+                  case Full(l:Long) => Full(l)
+                  case _ =>
+                    LoginAttempt.incrementBadLoginAttempts(username)
+                    Empty
+                }
             case _ =>
               LoginAttempt.incrementBadLoginAttempts(username)
               Empty
           }
-
       case _ =>
         LoginAttempt.incrementBadLoginAttempts(username)
         Empty
@@ -698,6 +712,39 @@ import net.liftweb.util.Helpers._
       }
     }
   }
+  /**
+    * This method is belong to AuthUser, it is used for authentication(Login stuff)
+    * 1 get the user over connector.
+    * 2 check whether it is existing in AuthUser table in obp side. 
+    * 3 if not existing, will create new AuthUser. 
+    * @return Return the authUser
+    */
+  def checkExternalUserViaConnector(name: String, password: String):Box[AuthUser] = {
+    Connector.connector.vend.checkExternalUserCredentials(name, password, None) match {
+      case Full(InboundExternalUser(aud, exp, iat, iss, sub, azp, email, emailVerified, name)) =>
+        val user = findUserByUsernameLocally(sub) match { // Check if the external user is already created locally
+          case Full(user) if user.validated_? => // Return existing user if found
+            logger.debug("external user already exists locally, using that one")
+            user
+          case _ => // If not found, create a new user
+            // Create AuthUser using fetched data from connector
+            // assuming that user's email is always validated
+            logger.debug("external user "+ sub + " does not exist locally, creating one")
+            AuthUser.create
+              .firstName(sub)
+              .email(email.getOrElse(""))
+              .username(sub)
+              // No need to store password, so store dummy string instead
+              .password(generateUUID())
+              .provider(iss)
+              .validated(true)
+              .saveMe()
+        }
+        Full(user)
+      case _ =>
+        Empty
+    }
+  }
 
 
 
@@ -722,6 +769,46 @@ def restoreSomeSessions(): Unit = {
     *  case5: UnKnow error     --> UnexpectedErrorDuringLogin
     */
   override def login = {
+    def redirectUri(): String = {
+      loginRedirect.get match {
+        case Full(url) =>
+          loginRedirect(Empty)
+          url
+        case _ =>
+          homePage
+      }
+    }
+    //Check the internal redirect, in case for open redirect issue.
+    // variable redirect is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
+    // val currentUrl = S.uriAndQueryString.getOrElse("/")
+    // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
+    def checkInternalRedirecAndLogUseIn(preLoginState: () => Unit, redirect: String, user: AuthUser) = {
+      if (Helper.isValidInternalRedirectUrl(redirect)) {
+        logUserIn(user, () => {
+          S.notice(S.?("logged.in"))
+          preLoginState()
+          S.redirectTo(redirect)
+        })
+      } else {
+        S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
+        logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
+      }
+    }
+
+    def isObpProvider(user: AuthUser) = {
+      user.getProvider() == APIUtil.getPropsValue("hostname", "")
+    }
+
+    def obpUserIsValidatedAndNotLocked(usernameFromGui: String, user: AuthUser) = {
+      user.validated_? && !LoginAttempt.userIsLocked(usernameFromGui) &&
+        isObpProvider(user)
+    }
+
+    def externalUserIsValidatedAndNotLocked(usernameFromGui: String, user: AuthUser) = {
+      user.validated_? && !LoginAttempt.userIsLocked(usernameFromGui) &&
+        !isObpProvider(user)
+    }
+
     def loginAction = {
       if (S.post_?) {
         val usernameFromGui = S.param("username").getOrElse("")
@@ -737,135 +824,62 @@ def restoreSomeSessions(): Unit = {
               S.error("login-form-password-error", Helper.i18n("please.enter.your.password"))
           case false =>
             findUserByUsernameLocally(usernameFromGui) match {
-              // Check if user came from localhost and
-              // if User is NOT locked and password is good
-              case Full(user) if user.validated_? &&
-                user.getProvider() == APIUtil.getPropsValue("hostname","") &&
-                ! LoginAttempt.userIsLocked(usernameFromGui) &&
-                user.testPassword(Full(passwordFromGui)) => {
-                  // Reset any bad attempts
+              case Full(user) if !user.validated_? =>
+                S.error(S.?("account.validation.error"))
+              
+              // Check if user comes from localhost and
+              case Full(user) if obpUserIsValidatedAndNotLocked(usernameFromGui, user) =>
+                if(user.testPassword(Full(passwordFromGui))) { // if User is NOT locked and password is good
+                  // Reset any bad attempt
                   LoginAttempt.resetBadLoginAttempts(usernameFromGui)
                   val preLoginState = capturePreLoginState()
-                  logger.info("login redir: " + loginRedirect.get)
-                  val redir = loginRedirect.get match {
-                    case Full(url) =>
-                      loginRedirect(Empty)
-                      url
-                    case _ =>
-                      homePage
-                  }
-    //              registeredUserHelper(user.username)
-                //Check the internal redirect, in case for open redirect issue.
-                // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-                // val currentUrl = S.uriAndQueryString.getOrElse("/")
-                // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
-                if (Helper.isValidInternalRedirectUrl(redir.toString)) {
-                  logUserIn(user, () => {
-                    S.notice(S.?("logged.in"))
-                    preLoginState()
-                    S.redirectTo(redir)
-                  })
-                } else {
-                  S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-                  logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
-                }
-              }
-    
-              // Check if user came from kafka/obpjvm/stored_procedure and
-              // if User is NOT locked. Then check username and password
-              // from connector in case they changed on the south-side
-              case Full(user) if user.validated_? &&
-                user.getProvider() != APIUtil.getPropsValue("hostname","") &&
-                ! LoginAttempt.userIsLocked(usernameFromGui) &&
-                testExternalPassword(Full(user.username.get), Full(passwordFromGui)).getOrElse(false) => {
-                  // Reset any bad attempts
-                  LoginAttempt.resetBadLoginAttempts(usernameFromGui)
-                  val preLoginState = capturePreLoginState()
-                  logger.info("login redir: " + loginRedirect.get)
-                  val redir = loginRedirect.get match {
-                    case Full(url) =>
-                      loginRedirect(Empty)
-                      url
-                    case _ =>
-                      homePage
-                  }
-                  //This method is used for connector = kafka* || obpjvm*
-                  //It will update the views and createAccountHolder ....
-                  registeredUserHelper(user.username.get)
-                  //Check the internal redirect, in case for open redirect issue.
-                  // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-                  // val currentUrl = S.uriAndQueryString.getOrElse("/")
-                  // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
-                  if (Helper.isValidInternalRedirectUrl(redir.toString)) {
-                    logUserIn(user, () => {
-                      S.notice(S.?("logged.in"))
-                      preLoginState()
-                      S.redirectTo(redir)
-                    })
-                  } else {
-                    S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-                    logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
-                  }
-                }
-    
-              // If user is unlocked AND bad password, increment bad login attempt counter.
-              case Full(user) if user.validated_? &&
-                user.getProvider() == APIUtil.getPropsValue("hostname","") &&
-                ! LoginAttempt.userIsLocked(usernameFromGui) &&
-                ! user.testPassword(Full(passwordFromGui)) =>
+                  logger.info("login redirect: " + loginRedirect.get)
+                  val redirect = redirectUri()
+                  checkInternalRedirecAndLogUseIn(preLoginState, redirect, user)
+                } else { // If user is NOT locked AND password is wrong => increment bad login attempt counter.
                   LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
-                  S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
-    
+                  S.error(Helper.i18n("invalid.login.credentials"))
+                }
+
               // If user is locked, send the error to GUI
               case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>
                 LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
                 S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
     
-              case Full(user) if !user.validated_? =>
-                S.error(S.?("account.validation.error")) // Note: This does not seem to get hit when user is not validated.
-    
-              // If not found locally, try to authenticate user via Kafka, if enabled in props
-              case Empty if (connector.startsWith("kafka") || connector == "obpjvm") &&
-                (APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) ||
-                APIUtil.getPropsAsBoolValue("obpjvm.user.authentication", false)) =>
+              // Check if user came from kafka/obpjvm/stored_procedure and
+              // if User is NOT locked. Then check username and password
+              // from connector in case they changed on the south-side
+              case Full(user) if externalUserIsValidatedAndNotLocked(usernameFromGui, user) && testExternalPassword(usernameFromGui, passwordFromGui) =>
+                  // Reset any bad attempts
+                  LoginAttempt.resetBadLoginAttempts(usernameFromGui)
                   val preLoginState = capturePreLoginState()
-                  logger.info("login redir: " + loginRedirect.get)
-                  val redir = loginRedirect.get match {
-                    case Full(url) =>
-                      loginRedirect(Empty)
-                      url
-                    case _ =>
-                      homePage
-                  }
-                  for {
-                    user_ <- externalUserHelper(usernameFromGui, passwordFromGui)
-                  } yield {
-                    user_
-                  } match {
-                    case u:AuthUser =>
+                  logger.info("login redirect: " + loginRedirect.get)
+                  val redirect = redirectUri()
+                  //This method is used for connector = kafka* || obpjvm*
+                  //It will update the views and createAccountHolder ....
+                  registeredUserHelper(user.username.get)
+                  checkInternalRedirecAndLogUseIn(preLoginState, redirect, user)
+    
+              // If user cannot be found locally, try to authenticate user via connector
+              case Empty if (APIUtil.getPropsAsBoolValue("connector.user.authentication", false) || 
+                APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) ||
+                APIUtil.getPropsAsBoolValue("obpjvm.user.authentication", false)) =>
+                
+                val preLoginState = capturePreLoginState()
+                logger.info("login redirect: " + loginRedirect.get)
+                val redirect = redirectUri()
+                externalUserHelper(usernameFromGui, passwordFromGui) match {
+                    case Full(user: AuthUser) =>
                       LoginAttempt.resetBadLoginAttempts(usernameFromGui)
-                      //Check the internal redirect, in case for open redirect issue.
-                      // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-                      // val currentUrl = S.uriAndQueryString.getOrElse("/")
-                      // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
-                      if (Helper.isValidInternalRedirectUrl(redir.toString)) {
-                        logUserIn(u, () => {
-                          S.notice(S.?("logged.in"))
-                          preLoginState()
-                          S.redirectTo(redir)
-                        })
-                      } else {
-                        S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-                        logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
-                      }
+                      checkInternalRedirecAndLogUseIn(preLoginState, redirect, user)
                     case _ =>
                       LoginAttempt.incrementBadLoginAttempts(username.get)
                       Empty
-                  }
-    
-              //If the username is not exiting, throw the error message.  
-              case Empty => S.error(S.?("Invalid Login Credentials"))
+                }
                 
+              //If there is NO the username, throw the error message.  
+              case Empty => 
+                S.error(Helper.i18n("invalid.login.credentials"))
               case _ =>
                 LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
                 S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin)) // Note we hit this if user has not clicked email validation link
@@ -890,24 +904,26 @@ def restoreSomeSessions(): Unit = {
   /**
     * The user authentications is not exciting in obp side, it need get the user via connector
     */
- def testExternalPassword(usernameFromGui: Box[String], passwordFromGui: Box[String]): Box[Boolean] = {
-   if (connector.startsWith("kafka") || connector == "obpjvm" || connector == "stored_procedure") {
-     val res = for {
-       username <- usernameFromGui
-       password <- passwordFromGui
-       user <- getUserFromConnector(username, password)
-     } yield user match {
-       case user:AuthUser => true
+ def testExternalPassword(usernameFromGui: String, passwordFromGui: String): Boolean = {
+   // TODO Remove kafka and obpjvm special cases
+   if (connector.startsWith("kafka") || connector == "obpjvm") {
+     getUserFromConnector(usernameFromGui, passwordFromGui) match {
+       case Full(user:AuthUser) => true
        case _ => false
      }
-     res
-   } else Empty
+   } else {
+     checkExternalUserViaConnector(usernameFromGui, passwordFromGui) match {
+       case Full(user:AuthUser) => true
+       case _ => false
+     }
+   }
   }
   
   /**
     * This method will update the views and createAccountHolder ....
     */
   def externalUserHelper(name: String, password: String): Box[AuthUser] = {
+    // TODO Remove kafka and obpjvm special cases
     if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
        user <- getUserFromConnector(name, password)
@@ -917,7 +933,16 @@ def restoreSomeSessions(): Unit = {
       } yield {
         user
       }
-    } else Empty 
+    } else {
+      for {
+        user <- checkExternalUserViaConnector(name, password)
+        //u <- user.user.foreign  // this will be issue when the resource user is in remote side
+        u <- Users.users.vend.getUserByUserName(name)
+        v <- Full (updateUserAccountViews(u, None))
+      } yield {
+        user
+      }
+    } 
   }
   
   
