@@ -74,7 +74,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-06-26T12:59:44Z
+// ---------- created on 2020-06-30T20:22:54Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -84,25 +84,20 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundGetAdapterInfo(MessageDocsSwaggerDefinitions.outboundAdapterCallContext.copy(
-        correlationIdExample.value,
-        None,
-        None,
-        None,
-        None)
-      )
+          OutBoundGetAdapterInfo(MessageDocsSwaggerDefinitions.outboundAdapterCallContext)
     ),
     exampleInboundMessage = (
-     InBoundGetAdapterInfo(
-       inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext.copy(correlationIdExample.value, None, None),
-       status=Status("",null),
-       data= InboundAdapterInfoInternal(
-        errorCode=null,
-        backendMessages=null,
-        name=inboundAdapterInfoInternalNameExample.value,
-        version=inboundAdapterInfoInternalVersionExample.value,
-        git_commit=inboundAdapterInfoInternalGit_commitExample.value,
-        date=inboundAdapterInfoInternalDateExample.value))
+     InBoundGetAdapterInfo(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= InboundAdapterInfoInternal(errorCode=inboundAdapterInfoInternalErrorCodeExample.value,
+      backendMessages=List( InboundStatusMessage(source=sourceExample.value,
+      status=inboundStatusMessageStatusExample.value,
+      errorCode=inboundStatusMessageErrorCodeExample.value,
+      text=inboundStatusMessageTextExample.value)),
+      name=inboundAdapterInfoInternalNameExample.value,
+      version=inboundAdapterInfoInternalVersionExample.value,
+      git_commit=inboundAdapterInfoInternalGit_commitExample.value,
+      date=inboundAdapterInfoInternalDateExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -277,27 +272,21 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetBank(
-       OutboundAdapterCallContext(correlationIdExample.value, None, None, None, None),
-       bankId=BankId(bankIdExample.value))
+     OutBoundGetBank(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      bankId=BankId(bankIdExample.value))
     ),
     exampleInboundMessage = (
-     InBoundGetBank( 
-       InboundAdapterCallContext(
-        correlationIdExample.value,
-        None,
-        None),
-      status=Status("",null),
-      data= BankCommons(
-        bankId=BankId(bankIdExample.value),
-        shortName=bankShortNameExample.value,
-        fullName=bankFullNameExample.value,
-        logoUrl=bankLogoUrlExample.value,
-        websiteUrl=bankWebsiteUrlExample.value,
-        bankRoutingScheme=bankRoutingSchemeExample.value,
-        bankRoutingAddress=bankRoutingAddressExample.value,
-        swiftBic=null,
-        nationalIdentifier=null))
+     InBoundGetBank(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= BankCommons(bankId=BankId(bankIdExample.value),
+      shortName=bankShortNameExample.value,
+      fullName=bankFullNameExample.value,
+      logoUrl=bankLogoUrlExample.value,
+      websiteUrl=bankWebsiteUrlExample.value,
+      bankRoutingScheme=bankRoutingSchemeExample.value,
+      bankRoutingAddress=bankRoutingAddressExample.value,
+      swiftBic=bankSwiftBicExample.value,
+      nationalIdentifier=bankNationalIdentifierExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -316,25 +305,21 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = "Get Banks",
     outboundTopic = None,
     inboundTopic = None,
-    exampleOutboundMessage = 
-      OutBoundGetBanks(OutboundAdapterCallContext(correlationIdExample.value, None, None, None, None)),
+    exampleOutboundMessage = (
+          OutBoundGetBanks(MessageDocsSwaggerDefinitions.outboundAdapterCallContext)
+    ),
     exampleInboundMessage = (
-     InBoundGetBanks(
-       InboundAdapterCallContext(
-         correlationIdExample.value,
-         None,
-         None),
-      status=Status("",null),
-      data=List( BankCommons(
-        bankId=BankId(bankIdExample.value),
-        shortName=bankShortNameExample.value,
-        fullName=bankFullNameExample.value,
-        logoUrl=bankLogoUrlExample.value,
-        websiteUrl=bankWebsiteUrlExample.value,
-        bankRoutingScheme=bankRoutingSchemeExample.value,
-        bankRoutingAddress=bankRoutingAddressExample.value,
-        swiftBic=null,
-        nationalIdentifier=null)))
+     InBoundGetBanks(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=List( BankCommons(bankId=BankId(bankIdExample.value),
+      shortName=bankShortNameExample.value,
+      fullName=bankFullNameExample.value,
+      logoUrl=bankLogoUrlExample.value,
+      websiteUrl=bankWebsiteUrlExample.value,
+      bankRoutingScheme=bankRoutingSchemeExample.value,
+      bankRoutingAddress=bankRoutingAddressExample.value,
+      swiftBic=bankSwiftBicExample.value,
+      nationalIdentifier=bankNationalIdentifierExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -354,28 +339,27 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetBankAccountsForUser(
-       OutboundAdapterCallContext(correlationIdExample.value, None, None, None, None),
+     OutBoundGetBankAccountsForUser(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       username=usernameExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetBankAccountsForUser(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data=List( InboundAccountCommons(bankId=bankIdExample.value,
-      branchId=null,
+      branchId=branchIdExample.value,
       accountId=accountIdExample.value,
-      accountNumber=null,
-      accountType=null,
-      balanceAmount=null,
-      balanceCurrency=null,
-      owners=null,
+      accountNumber=accountNumberExample.value,
+      accountType=accountTypeExample.value,
+      balanceAmount=balanceAmountExample.value,
+      balanceCurrency=balanceCurrencyExample.value,
+      owners=inboundAccountOwnersExample.value.split("[,;]").toList,
       viewsToGenerate=inboundAccountViewsToGenerateExample.value.split("[,;]").toList,
-      bankRoutingScheme=null,
-      bankRoutingAddress=null,
-      branchRoutingScheme=null,
-      branchRoutingAddress=null,
-      accountRoutingScheme=null,
-      accountRoutingAddress=null)))
+      bankRoutingScheme=bankRoutingSchemeExample.value,
+      bankRoutingAddress=bankRoutingAddressExample.value,
+      branchRoutingScheme=branchRoutingSchemeExample.value,
+      branchRoutingAddress=branchRoutingAddressExample.value,
+      accountRoutingScheme=accountRoutingSchemeExample.value,
+      accountRoutingAddress=accountRoutingAddressExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -472,7 +456,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -517,7 +501,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -560,7 +544,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -604,7 +588,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -632,14 +616,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetBankAccounts(
-       OutboundAdapterCallContext(correlationIdExample.value, None, None, None, None), 
-       bankIdAccountIds=List( 
-         BankIdAccountId(
-           bankId=BankId(bankIdExample.value), 
-            accountId=AccountId(accountIdExample.value))
-       )
-     )
+     OutBoundGetBankAccounts(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      bankIdAccountIds=List( BankIdAccountId(bankId=BankId(bankIdExample.value),
+      accountId=AccountId(accountIdExample.value))))
     ),
     exampleInboundMessage = (
      InBoundGetBankAccounts(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -653,7 +632,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -697,7 +676,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       amount=balanceAmountExample.value))),
       overallBalance= AmountOfMoney(currency=currencyExample.value,
       amount=amountExample.value),
-      overallBalanceDate=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format."))))
+      overallBalanceDate=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format."))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -780,10 +759,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundCheckBankAccountExists(
-       OutboundAdapterCallContext(correlationIdExample.value, None, None, None, None), 
-       bankId=BankId(bankIdExample.value), 
-       accountId=AccountId(accountIdExample.value))
+     OutBoundCheckBankAccountExists(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      bankId=BankId(bankIdExample.value),
+      accountId=AccountId(accountIdExample.value))
     ),
     exampleInboundMessage = (
      InBoundCheckBankAccountExists(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -792,22 +770,21 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountType=accountTypeExample.value,
       balance=BigDecimal(balanceAmountExample.value),
       currency=currencyExample.value,
-      name=null, 
+      name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=None,
+      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
-      accountRoutings=List( 
-        AccountRouting(
-          scheme=accountRoutingSchemeExample.value,
-          address=accountRoutingAddressExample.value)),
-      accountRules=null,
-      accountHolder=null)
-    )),
+      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)),
+      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
+      value=accountRuleValueExample.value)),
+      accountHolder=bankAccountAccountHolderExample.value))
+    ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
@@ -1013,7 +990,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundGetTransactions(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( TransactionCommons(uuid=transactionUuidExample.value,
+      data=List( Transaction(uuid=transactionUuidExample.value,
       id=TransactionId(transactionIdExample.value),
       thisAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -1024,7 +1001,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -1049,8 +1026,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       amount=BigDecimal(transactionAmountExample.value),
       currency=currencyExample.value,
       description=Some(transactionDescriptionExample.value),
-      startDate=parseDate(transactionStartDateExample.value).getOrElse(sys.error("transactionStartDateExample.value is not validate date format.")),
-      finishDate=parseDate(transactionFinishDateExample.value).getOrElse(sys.error("transactionFinishDateExample.value is not validate date format.")),
+      startDate=parseDate(transactionStartDateExample.value).getOrElse(sys.error("transactionStartDateExample.value is not valid date format.")),
+      finishDate=parseDate(transactionFinishDateExample.value).getOrElse(sys.error("transactionFinishDateExample.value is not valid date format.")),
       balance=BigDecimal(balanceAmountExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -1060,7 +1037,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetTransactions => OutBound, InBoundGetTransactions => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountID, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_transactions", req, callContext)
-        response.map(convertToTuple[List[TransactionCommons]](callContext))        
+        response.map(convertToTuple[List[Transaction]](callContext))        
   }
           
   messageDocs += getTransactionsCoreDoc
@@ -1092,7 +1069,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -1116,8 +1093,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       amount=BigDecimal(amountExample.value),
       currency=currencyExample.value,
       description=Some("string"),
-      startDate=parseDate(startDateExample.value).getOrElse(sys.error("startDateExample.value is not validate date format.")),
-      finishDate=parseDate(finishDateExample.value).getOrElse(sys.error("finishDateExample.value is not validate date format.")),
+      startDate=parseDate(startDateExample.value).getOrElse(sys.error("startDateExample.value is not valid date format.")),
+      finishDate=parseDate(finishDateExample.value).getOrElse(sys.error("finishDateExample.value is not valid date format.")),
       balance=BigDecimal(balanceAmountExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -1146,7 +1123,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundGetTransaction(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= TransactionCommons(uuid=transactionUuidExample.value,
+      data= Transaction(uuid=transactionUuidExample.value,
       id=TransactionId(transactionIdExample.value),
       thisAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -1157,7 +1134,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -1182,8 +1159,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       amount=BigDecimal(transactionAmountExample.value),
       currency=currencyExample.value,
       description=Some(transactionDescriptionExample.value),
-      startDate=parseDate(transactionStartDateExample.value).getOrElse(sys.error("transactionStartDateExample.value is not validate date format.")),
-      finishDate=parseDate(transactionFinishDateExample.value).getOrElse(sys.error("transactionFinishDateExample.value is not validate date format.")),
+      startDate=parseDate(transactionStartDateExample.value).getOrElse(sys.error("transactionStartDateExample.value is not valid date format.")),
+      finishDate=parseDate(transactionFinishDateExample.value).getOrElse(sys.error("transactionFinishDateExample.value is not valid date format.")),
       balance=BigDecimal(balanceAmountExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -1193,7 +1170,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetTransaction => OutBound, InBoundGetTransaction => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountID, transactionId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_transaction", req, callContext)
-        response.map(convertToTuple[TransactionCommons](callContext))        
+        response.map(convertToTuple[Transaction](callContext))        
   }
           
   messageDocs += getPhysicalCardForBankDoc
@@ -1218,8 +1195,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       nameOnCard=nameOnCardExample.value,
       issueNumber=issueNumberExample.value,
       serialNumber=serialNumberExample.value,
-      validFrom=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      expires=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      validFrom=parseDate(validFromDateExample.value).getOrElse(sys.error("validFromDateExample.value is not valid date format.")),
+      expires=parseDate(expiresDateExample.value).getOrElse(sys.error("expiresDateExample.value is not valid date format.")),
       enabled=true,
       cancelled=true,
       onHotList=true,
@@ -1235,7 +1212,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=accountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -1244,12 +1221,12 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
       accountHolder=bankAccountAccountHolderExample.value),
-      replacement=Some( CardReplacementInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not validate date format.")),
+      replacement=Some( CardReplacementInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not valid date format.")),
       reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
-      pinResets=List( PinResetInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not validate date format.")),
+      pinResets=List( PinResetInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not valid date format.")),
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
-      collected=Some(CardCollectionInfo(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")))),
-      posted=Some(CardPostedInfo(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")))),
+      collected=Some(CardCollectionInfo(parseDate(collectedDateExample.value).getOrElse(sys.error("collectedDateExample.value is not valid date format.")))),
+      posted=Some(CardPostedInfo(parseDate(postedDateExample.value).getOrElse(sys.error("postedDateExample.value is not valid date format.")))),
       customerId=customerIdExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -1328,8 +1305,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       nameOnCard=nameOnCardExample.value,
       issueNumber=issueNumberExample.value,
       serialNumber=serialNumberExample.value,
-      validFrom=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      expires=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      validFrom=parseDate(validFromDateExample.value).getOrElse(sys.error("validFromDateExample.value is not valid date format.")),
+      expires=parseDate(expiresDateExample.value).getOrElse(sys.error("expiresDateExample.value is not valid date format.")),
       enabled=true,
       cancelled=true,
       onHotList=true,
@@ -1345,7 +1322,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=accountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -1354,12 +1331,12 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
       accountHolder=bankAccountAccountHolderExample.value),
-      replacement=Some( CardReplacementInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not validate date format.")),
+      replacement=Some( CardReplacementInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not valid date format.")),
       reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
-      pinResets=List( PinResetInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not validate date format.")),
+      pinResets=List( PinResetInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not valid date format.")),
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
-      collected=Some(CardCollectionInfo(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")))),
-      posted=Some(CardPostedInfo(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")))),
+      collected=Some(CardCollectionInfo(parseDate(collectedDateExample.value).getOrElse(sys.error("collectedDateExample.value is not valid date format.")))),
+      posted=Some(CardPostedInfo(parseDate(postedDateExample.value).getOrElse(sys.error("postedDateExample.value is not valid date format.")))),
       customerId=customerIdExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -1386,8 +1363,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       cardType=cardTypeExample.value,
       issueNumber=issueNumberExample.value,
       serialNumber=serialNumberExample.value,
-      validFrom=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      expires=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      validFrom=parseDate(validFromDateExample.value).getOrElse(sys.error("validFromDateExample.value is not valid date format.")),
+      expires=parseDate(expiresDateExample.value).getOrElse(sys.error("expiresDateExample.value is not valid date format.")),
       enabled=true,
       cancelled=true,
       onHotList=true,
@@ -1396,12 +1373,12 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       allows=List("string"),
       accountId=accountIdExample.value,
       bankId=bankIdExample.value,
-      replacement=Some( CardReplacementInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not validate date format.")),
+      replacement=Some( CardReplacementInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not valid date format.")),
       reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
-      pinResets=List( PinResetInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not validate date format.")),
+      pinResets=List( PinResetInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not valid date format.")),
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
-      collected=Some(CardCollectionInfo(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")))),
-      posted=Some(CardPostedInfo(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")))),
+      collected=Some(CardCollectionInfo(parseDate(collectedDateExample.value).getOrElse(sys.error("collectedDateExample.value is not valid date format.")))),
+      posted=Some(CardPostedInfo(parseDate(postedDateExample.value).getOrElse(sys.error("postedDateExample.value is not valid date format.")))),
       customerId=customerIdExample.value)
     ),
     exampleInboundMessage = (
@@ -1414,8 +1391,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       nameOnCard=nameOnCardExample.value,
       issueNumber=issueNumberExample.value,
       serialNumber=serialNumberExample.value,
-      validFrom=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      expires=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      validFrom=parseDate(validFromDateExample.value).getOrElse(sys.error("validFromDateExample.value is not valid date format.")),
+      expires=parseDate(expiresDateExample.value).getOrElse(sys.error("expiresDateExample.value is not valid date format.")),
       enabled=true,
       cancelled=true,
       onHotList=true,
@@ -1431,7 +1408,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=accountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -1440,12 +1417,12 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
       accountHolder=bankAccountAccountHolderExample.value),
-      replacement=Some( CardReplacementInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not validate date format.")),
+      replacement=Some( CardReplacementInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not valid date format.")),
       reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
-      pinResets=List( PinResetInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not validate date format.")),
+      pinResets=List( PinResetInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not valid date format.")),
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
-      collected=Some(CardCollectionInfo(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")))),
-      posted=Some(CardPostedInfo(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")))),
+      collected=Some(CardCollectionInfo(parseDate(collectedDateExample.value).getOrElse(sys.error("collectedDateExample.value is not valid date format.")))),
+      posted=Some(CardPostedInfo(parseDate(postedDateExample.value).getOrElse(sys.error("postedDateExample.value is not valid date format.")))),
       customerId=customerIdExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -1473,8 +1450,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       cardType=cardTypeExample.value,
       issueNumber=issueNumberExample.value,
       serialNumber=serialNumberExample.value,
-      validFrom=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      expires=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      validFrom=parseDate(validFromDateExample.value).getOrElse(sys.error("validFromDateExample.value is not valid date format.")),
+      expires=parseDate(expiresDateExample.value).getOrElse(sys.error("expiresDateExample.value is not valid date format.")),
       enabled=true,
       cancelled=true,
       onHotList=true,
@@ -1483,12 +1460,12 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       allows=List("string"),
       accountId=accountIdExample.value,
       bankId=bankIdExample.value,
-      replacement=Some( CardReplacementInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not validate date format.")),
+      replacement=Some( CardReplacementInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not valid date format.")),
       reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
-      pinResets=List( PinResetInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not validate date format.")),
+      pinResets=List( PinResetInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not valid date format.")),
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
-      collected=Some(CardCollectionInfo(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")))),
-      posted=Some(CardPostedInfo(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")))),
+      collected=Some(CardCollectionInfo(parseDate(collectedDateExample.value).getOrElse(sys.error("collectedDateExample.value is not valid date format.")))),
+      posted=Some(CardPostedInfo(parseDate(postedDateExample.value).getOrElse(sys.error("postedDateExample.value is not valid date format.")))),
       customerId=customerIdExample.value)
     ),
     exampleInboundMessage = (
@@ -1501,8 +1478,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       nameOnCard=nameOnCardExample.value,
       issueNumber=issueNumberExample.value,
       serialNumber=serialNumberExample.value,
-      validFrom=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      expires=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      validFrom=parseDate(validFromDateExample.value).getOrElse(sys.error("validFromDateExample.value is not valid date format.")),
+      expires=parseDate(expiresDateExample.value).getOrElse(sys.error("expiresDateExample.value is not valid date format.")),
       enabled=true,
       cancelled=true,
       onHotList=true,
@@ -1518,7 +1495,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=accountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -1527,12 +1504,12 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
       accountHolder=bankAccountAccountHolderExample.value),
-      replacement=Some( CardReplacementInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not validate date format.")),
+      replacement=Some( CardReplacementInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not valid date format.")),
       reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
-      pinResets=List( PinResetInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not validate date format.")),
+      pinResets=List( PinResetInfo(requestedDate=parseDate(requestedDateExample.value).getOrElse(sys.error("requestedDateExample.value is not valid date format.")),
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
-      collected=Some(CardCollectionInfo(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")))),
-      posted=Some(CardPostedInfo(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")))),
+      collected=Some(CardCollectionInfo(parseDate(collectedDateExample.value).getOrElse(sys.error("collectedDateExample.value is not valid date format.")))),
+      posted=Some(CardPostedInfo(parseDate(postedDateExample.value).getOrElse(sys.error("postedDateExample.value is not valid date format.")))),
       customerId=customerIdExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -1563,7 +1540,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -1581,7 +1558,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -1638,7 +1615,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -1656,7 +1633,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -1723,8 +1700,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       description="string"),
       transaction_ids="string",
       status="string",
-      start_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      end_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      start_date=parseDate(transactionRequestStartDateExample.value).getOrElse(sys.error("transactionRequestStartDateExample.value is not valid date format.")),
+      end_date=parseDate(transactionRequestEndDateExample.value).getOrElse(sys.error("transactionRequestEndDateExample.value is not valid date format.")),
       challenge= TransactionRequestChallenge(id="string",
       allowed_attempts=123,
       challenge_type="string"),
@@ -1779,7 +1756,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -1797,7 +1774,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -1864,8 +1841,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       description="string"),
       transaction_ids="string",
       status="string",
-      start_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      end_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      start_date=parseDate(transactionRequestStartDateExample.value).getOrElse(sys.error("transactionRequestStartDateExample.value is not valid date format.")),
+      end_date=parseDate(transactionRequestEndDateExample.value).getOrElse(sys.error("transactionRequestEndDateExample.value is not valid date format.")),
       challenge= TransactionRequestChallenge(id="string",
       allowed_attempts=123,
       challenge_type="string"),
@@ -1919,7 +1896,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -1978,8 +1955,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       description="string"),
       transaction_ids="string",
       status="string",
-      start_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      end_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      start_date=parseDate(transactionRequestStartDateExample.value).getOrElse(sys.error("transactionRequestStartDateExample.value is not valid date format.")),
+      end_date=parseDate(transactionRequestEndDateExample.value).getOrElse(sys.error("transactionRequestEndDateExample.value is not valid date format.")),
       challenge= TransactionRequestChallenge(id="string",
       allowed_attempts=123,
       challenge_type="string"),
@@ -2069,8 +2046,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       description="string"),
       transaction_ids="string",
       status="string",
-      start_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      end_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      start_date=parseDate(transactionRequestStartDateExample.value).getOrElse(sys.error("transactionRequestStartDateExample.value is not valid date format.")),
+      end_date=parseDate(transactionRequestEndDateExample.value).getOrElse(sys.error("transactionRequestEndDateExample.value is not valid date format.")),
       challenge= TransactionRequestChallenge(id="string",
       allowed_attempts=123,
       challenge_type="string"),
@@ -2118,7 +2095,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -2173,8 +2150,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       description="string"),
       transaction_ids="string",
       status="string",
-      start_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      end_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      start_date=parseDate(transactionRequestStartDateExample.value).getOrElse(sys.error("transactionRequestStartDateExample.value is not valid date format.")),
+      end_date=parseDate(transactionRequestEndDateExample.value).getOrElse(sys.error("transactionRequestEndDateExample.value is not valid date format.")),
       challenge= TransactionRequestChallenge(id="string",
       allowed_attempts=123,
       challenge_type="string"),
@@ -2243,8 +2220,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       description="string"),
       transaction_ids="string",
       status="string",
-      start_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      end_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      start_date=parseDate(transactionRequestStartDateExample.value).getOrElse(sys.error("transactionRequestStartDateExample.value is not valid date format.")),
+      end_date=parseDate(transactionRequestEndDateExample.value).getOrElse(sys.error("transactionRequestEndDateExample.value is not valid date format.")),
       challenge= TransactionRequestChallenge(id="string",
       allowed_attempts=123,
       challenge_type="string"),
@@ -2303,7 +2280,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -2355,7 +2332,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -2429,7 +2406,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       countryCode="string"),
       location= Location(latitude=123.123,
       longitude=123.123,
-      date=Some(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format."))),
+      date=Some(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format."))),
       user=Some( BasicResourceUser(userId=userIdExample.value,
       provider="string",
       username=usernameExample.value))),
@@ -2515,7 +2492,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       countryCode="string"),
       location= Location(latitude=123.123,
       longitude=123.123,
-      date=Some(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format."))),
+      date=Some(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format."))),
       user=Some( BasicResourceUser(userId=userIdExample.value,
       provider="string",
       username=usernameExample.value))),
@@ -2598,7 +2575,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       countryCode="string"),
       location= Location(latitude=123.123,
       longitude=123.123,
-      date=Some(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format."))),
+      date=Some(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format."))),
       user=Some( BasicResourceUser(userId=userIdExample.value,
       provider="string",
       username=usernameExample.value))),
@@ -2664,7 +2641,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       countryCode="string"),
       location= Location(latitude=123.123,
       longitude=123.123,
-      date=Some(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format."))),
+      date=Some(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format."))),
       user=Some( BasicResourceUser(userId=userIdExample.value,
       provider="string",
       username=usernameExample.value))),
@@ -2723,7 +2700,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -2784,8 +2761,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       description="string"),
       transaction_ids="string",
       status="string",
-      start_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      end_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      start_date=parseDate(transactionRequestStartDateExample.value).getOrElse(sys.error("transactionRequestStartDateExample.value is not valid date format.")),
+      end_date=parseDate(transactionRequestEndDateExample.value).getOrElse(sys.error("transactionRequestEndDateExample.value is not valid date format.")),
       challenge= TransactionRequestChallenge(id="string",
       allowed_attempts=123,
       challenge_type="string"),
@@ -2839,7 +2816,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -2857,7 +2834,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -2930,7 +2907,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -2948,7 +2925,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -3031,8 +3008,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       description="string"),
       transaction_ids="string",
       status="string",
-      start_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      end_date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      start_date=parseDate(transactionRequestStartDateExample.value).getOrElse(sys.error("transactionRequestStartDateExample.value is not valid date format.")),
+      end_date=parseDate(transactionRequestEndDateExample.value).getOrElse(sys.error("transactionRequestEndDateExample.value is not valid date format.")),
       challenge= TransactionRequestChallenge(id="string",
       allowed_attempts=123,
       challenge_type="string"),
@@ -3161,16 +3138,16 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not valid date format.")),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not valid date format.")),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(outBoundCreateCustomerLastOkDateExample.value).getOrElse(sys.error("outBoundCreateCustomerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=parseDate(outBoundCreateCustomerLastOkDateExample.value).getOrElse(sys.error("outBoundCreateCustomerLastOkDateExample.value is not valid date format.")),
       creditRating=Some( CreditRating(rating=ratingExample.value,
       source=sourceExample.value)),
       creditLimit=Some( AmountOfMoney(currency=currencyExample.value,
@@ -3188,9 +3165,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not valid date format.")),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not valid date format.")),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3201,7 +3178,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not valid date format.")),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value))
@@ -3239,9 +3216,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not valid date format.")),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not valid date format.")),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3252,7 +3229,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not valid date format.")),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value))
@@ -3291,9 +3268,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not valid date format.")),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not valid date format.")),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3304,7 +3281,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not valid date format.")),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value))
@@ -3330,9 +3307,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
      OutBoundUpdateCustomerGeneralData(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       customerId=customerIdExample.value,
       legalName=Some(legalNameExample.value),
-      faceImage=Some( CustomerFaceImage(date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      faceImage=Some( CustomerFaceImage(date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       url=urlExample.value)),
-      dateOfBirth=Some(parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format."))),
+      dateOfBirth=Some(parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not valid date format."))),
       relationshipStatus=Some(relationshipStatusExample.value),
       dependents=Some(dependentsExample.value.toInt),
       highestEducationAttained=Some(highestEducationAttainedExample.value),
@@ -3350,9 +3327,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not valid date format.")),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not valid date format.")),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3363,7 +3340,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not valid date format.")),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value))
@@ -3398,9 +3375,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not valid date format.")),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not valid date format.")),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3411,7 +3388,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not valid date format.")),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value)))
@@ -3446,9 +3423,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not valid date format.")),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not valid date format.")),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3459,7 +3436,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not valid date format.")),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value))
@@ -3495,9 +3472,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not valid date format.")),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not valid date format.")),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3508,7 +3485,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not valid date format.")),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value))
@@ -3549,7 +3526,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       countryCode="string",
       status="string",
       tags="string",
-      insertDate=parseDate(insertDateExample.value).getOrElse(sys.error("insertDateExample.value is not validate date format.")))))
+      insertDate=parseDate(insertDateExample.value).getOrElse(sys.error("insertDateExample.value is not valid date format.")))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -3597,7 +3574,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       countryCode="string",
       status="string",
       tags="string",
-      insertDate=parseDate(insertDateExample.value).getOrElse(sys.error("insertDateExample.value is not validate date format."))))
+      insertDate=parseDate(insertDateExample.value).getOrElse(sys.error("insertDateExample.value is not valid date format."))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -3645,7 +3622,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       countryCode="string",
       status="string",
       tags="string",
-      insertDate=parseDate(insertDateExample.value).getOrElse(sys.error("insertDateExample.value is not validate date format."))))
+      insertDate=parseDate(insertDateExample.value).getOrElse(sys.error("insertDateExample.value is not valid date format."))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -3793,9 +3770,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not valid date format.")),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not valid date format.")),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3806,7 +3783,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not valid date format.")),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value)))
@@ -3842,9 +3819,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not valid date format.")),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not valid date format.")),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3855,7 +3832,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not valid date format.")),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value)))
@@ -4529,9 +4506,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not valid date format.")),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not valid date format.")),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -4542,7 +4519,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not valid date format.")),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value)))
@@ -4776,7 +4753,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       productCode=ProductCode("string"),
       userId=userIdExample.value,
       customerId=customerIdExample.value,
-      dateOfApplication=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      dateOfApplication=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       status="string"))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -4806,7 +4783,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       productCode=ProductCode("string"),
       userId=userIdExample.value,
       customerId=customerIdExample.value,
-      dateOfApplication=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      dateOfApplication=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       status="string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -4837,7 +4814,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       productCode=ProductCode("string"),
       userId=userIdExample.value,
       customerId=customerIdExample.value,
-      dateOfApplication=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      dateOfApplication=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       status="string"))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -4869,7 +4846,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       productCode=ProductCode("string"),
       userId=userIdExample.value,
       customerId=customerIdExample.value,
-      dateOfApplication=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      dateOfApplication=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       status="string"))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -5062,7 +5039,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       name=usernameExample.value),
       providerId="string",
       purposeId="string",
-      when=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      when=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       sessionId=sessionIdExample.value,
       customerToken="string",
       staffToken="string",
@@ -5086,7 +5063,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       keys= MeetingKeys(sessionId=sessionIdExample.value,
       customerToken="string",
       staffToken="string"),
-      when=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      when=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       creator= ContactDetails(name="string",
       phone="string",
       email=emailExample.value),
@@ -5134,7 +5111,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       keys= MeetingKeys(sessionId=sessionIdExample.value,
       customerToken="string",
       staffToken="string"),
-      when=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      when=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       creator= ContactDetails(name="string",
       phone="string",
       email=emailExample.value),
@@ -5183,7 +5160,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       keys= MeetingKeys(sessionId=sessionIdExample.value,
       customerToken="string",
       staffToken="string"),
-      when=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      when=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       creator= ContactDetails(name="string",
       phone="string",
       email=emailExample.value),
@@ -5215,7 +5192,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       customerId=customerIdExample.value,
       id="string",
       customerNumber=customerNumberExample.value,
-      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       how="string",
       staffUserId="string",
       mStaffName="string",
@@ -5229,7 +5206,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       customerId=customerIdExample.value,
       idKycCheck="string",
       customerNumber=customerNumberExample.value,
-      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       how="string",
       staffUserId="string",
       staffName="string",
@@ -5261,9 +5238,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       customerNumber=customerNumberExample.value,
       `type`="string",
       number="string",
-      issueDate=parseDate(issueDateExample.value).getOrElse(sys.error("issueDateExample.value is not validate date format.")),
+      issueDate=parseDate(issueDateExample.value).getOrElse(sys.error("issueDateExample.value is not valid date format.")),
       issuePlace="string",
-      expiryDate=parseDate(expiryDateExample.value).getOrElse(sys.error("expiryDateExample.value is not validate date format.")))
+      expiryDate=parseDate(expiryDateExample.value).getOrElse(sys.error("expiryDateExample.value is not valid date format.")))
     ),
     exampleInboundMessage = (
      InBoundCreateOrUpdateKycDocument(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -5274,9 +5251,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       customerNumber=customerNumberExample.value,
       `type`="string",
       number="string",
-      issueDate=parseDate(issueDateExample.value).getOrElse(sys.error("issueDateExample.value is not validate date format.")),
+      issueDate=parseDate(issueDateExample.value).getOrElse(sys.error("issueDateExample.value is not valid date format.")),
       issuePlace="string",
-      expiryDate=parseDate(expiryDateExample.value).getOrElse(sys.error("expiryDateExample.value is not validate date format."))))
+      expiryDate=parseDate(expiryDateExample.value).getOrElse(sys.error("expiryDateExample.value is not valid date format."))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5303,7 +5280,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       customerNumber=customerNumberExample.value,
       `type`="string",
       url=urlExample.value,
-      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       relatesToKycDocumentId="string",
       relatesToKycCheckId="string")
     ),
@@ -5316,7 +5293,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       customerNumber=customerNumberExample.value,
       `type`="string",
       url=urlExample.value,
-      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       relatesToKycDocumentId="string",
       relatesToKycCheckId="string"))
     ),
@@ -5343,7 +5320,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       customerId=customerIdExample.value,
       customerNumber=customerNumberExample.value,
       ok=true,
-      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")))
+      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")))
     ),
     exampleInboundMessage = (
      InBoundCreateOrUpdateKycStatus(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -5352,7 +5329,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       customerId=customerIdExample.value,
       customerNumber=customerNumberExample.value,
       ok=true,
-      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format."))))
+      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format."))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5382,7 +5359,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       customerId=customerIdExample.value,
       idKycCheck="string",
       customerNumber=customerNumberExample.value,
-      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       how="string",
       staffUserId="string",
       staffName="string",
@@ -5419,9 +5396,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       customerNumber=customerNumberExample.value,
       `type`="string",
       number="string",
-      issueDate=parseDate(issueDateExample.value).getOrElse(sys.error("issueDateExample.value is not validate date format.")),
+      issueDate=parseDate(issueDateExample.value).getOrElse(sys.error("issueDateExample.value is not valid date format.")),
       issuePlace="string",
-      expiryDate=parseDate(expiryDateExample.value).getOrElse(sys.error("expiryDateExample.value is not validate date format.")))))
+      expiryDate=parseDate(expiryDateExample.value).getOrElse(sys.error("expiryDateExample.value is not valid date format.")))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5453,7 +5430,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       customerNumber=customerNumberExample.value,
       `type`="string",
       url=urlExample.value,
-      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       relatesToKycDocumentId="string",
       relatesToKycCheckId="string")))
     ),
@@ -5485,7 +5462,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       customerId=customerIdExample.value,
       customerNumber=customerNumberExample.value,
       ok=true,
-      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")))))
+      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5521,7 +5498,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
      InBoundCreateMessage(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= CustomerMessageCommons(messageId="string",
-      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      date=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not valid date format.")),
       message="string",
       fromDepartment="string",
       fromPerson="string"))
@@ -5554,7 +5531,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -5572,7 +5549,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
@@ -5581,8 +5558,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
       accountHolder=bankAccountAccountHolderExample.value),
-      posted=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      completed=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      posted=parseDate(postedDateExample.value).getOrElse(sys.error("postedDateExample.value is not valid date format.")),
+      completed=parseDate(completedDateExample.value).getOrElse(sys.error("completedDateExample.value is not valid date format.")),
       amount=BigDecimal(amountExample.value),
       description="string",
       transactionRequestType=transactionRequestTypeExample.value,
@@ -5617,9 +5594,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       customerId=customerIdExample.value,
       userId=userIdExample.value,
       counterpartyId=counterpartyIdExample.value,
-      dateSigned=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      dateStarts=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      dateExpires=Some(parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format."))))
+      dateSigned=parseDate(dateSignedExample.value).getOrElse(sys.error("dateSignedExample.value is not valid date format.")),
+      dateStarts=parseDate(dateStartsExample.value).getOrElse(sys.error("dateStartsExample.value is not valid date format.")),
+      dateExpires=Some(parseDate(dateExpiresExample.value).getOrElse(sys.error("dateExpiresExample.value is not valid date format."))))
     ),
     exampleInboundMessage = (
      InBoundCreateDirectDebit(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -5630,10 +5607,10 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       customerId=customerIdExample.value,
       userId=userIdExample.value,
       counterpartyId=counterpartyIdExample.value,
-      dateSigned=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      dateCancelled=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      dateStarts=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
-      dateExpires=parseDate(dateExample.value).getOrElse(sys.error("dateExample.value is not validate date format.")),
+      dateSigned=parseDate(dateSignedExample.value).getOrElse(sys.error("dateSignedExample.value is not valid date format.")),
+      dateCancelled=parseDate(dateCancelledExample.value).getOrElse(sys.error("dateCancelledExample.value is not valid date format.")),
+      dateStarts=parseDate(dateStartsExample.value).getOrElse(sys.error("dateStartsExample.value is not valid date format.")),
+      dateExpires=parseDate(dateExpiresExample.value).getOrElse(sys.error("dateExpiresExample.value is not valid date format.")),
       active=true))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -5672,8 +5649,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-06-26T12:59:44Z
-//---------------- dynamic end ---------------------please don't modify this line         
+// ---------- created on 2020-06-30T20:22:54Z
+//---------------- dynamic end ---------------------please don't modify this line           
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 
