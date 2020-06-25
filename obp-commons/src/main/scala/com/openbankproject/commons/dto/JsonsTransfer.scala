@@ -53,7 +53,7 @@ case class OutBoundGetChallengeThreshold(outboundAdapterCallContext: OutboundAda
                                          transactionRequestType: String,
                                          currency: String,
                                          userId: String,
-                                         userName: String) extends TopicTrait
+                                         username: String) extends TopicTrait
 case class InBoundGetChallengeThreshold(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AmountOfMoney) extends InBoundTrait[AmountOfMoney]
 
 
@@ -62,7 +62,7 @@ case class OutBoundGetChargeLevel(outboundAdapterCallContext: OutboundAdapterCal
                                   accountId: AccountId,
                                   viewId: ViewId,
                                   userId: String,
-                                  userName: String,
+                                  username: String,
                                   transactionRequestType: String,
                                   currency: String) extends TopicTrait
 case class InBoundGetChargeLevel(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AmountOfMoney) extends InBoundTrait[AmountOfMoney]

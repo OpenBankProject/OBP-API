@@ -123,7 +123,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       transactionRequestType=transactionRequestTypeExample.value,
       currency=currencyExample.value,
       userId=userIdExample.value,
-      userName=userNameExample.value)
+      username=userNameExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetChallengeThreshold(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -154,7 +154,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountId=AccountId(accountIdExample.value),
       viewId=ViewId(viewIdExample.value),
       userId=userIdExample.value,
-      userName=userNameExample.value,
+      username=userNameExample.value,
       transactionRequestType=transactionRequestTypeExample.value,
       currency=currencyExample.value)
     ),
