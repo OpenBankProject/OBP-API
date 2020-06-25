@@ -64,31 +64,36 @@ class StoredProcedureConnector_vDec2019Test extends ServerSetupWithTestData with
 
   feature("Test all stored_procedure methods") {
     if (PropsConnectorVersion == "stored_procedure_vDec2019") {
-      scenario("test `checkBankAccountExists` method, there no need Adapter message for this method!", StoredProcedureConnector_vDec2019Test) {
-        val checkBankAccountExists = StoredProcedureConnector_vDec2019.checkBankAccountExists(testBankId1,testAccountId1,callContext)
-        getValueFromFuture(checkBankAccountExists)._1.isDefined equals (true)
-      }
+//      scenario("test `checkBankAccountExists` method, there no need Adapter message for this method!", StoredProcedureConnector_vDec2019Test) {
+//        val checkBankAccountExists = StoredProcedureConnector_vDec2019.checkBankAccountExists(testBankId1,testAccountId1,callContext)
+//        getValueFromFuture(checkBankAccountExists)._1.isDefined equals (true)
+//      }
+//
+//      scenario("test `getBankAccounts` method, there no need Adapter message for this method!", StoredProcedureConnector_vDec2019Test) {
+//        val checkBankAccountExists = StoredProcedureConnector_vDec2019.checkBankAccountExists(testBankId1,testAccountId1,callContext)
+//        getValueFromFuture(checkBankAccountExists)._1.isDefined equals (true)
+//      }
+//      scenario("test `getBank` method, there no need Adapter message for this method!", StoredProcedureConnector_vDec2019Test) {
+//        val transantionRequests210 = StoredProcedureConnector_vDec2019.getBank(testBankId1, callContext)
+//        getValueFromFuture(transantionRequests210).isDefined equals (true)
+//      }
+//
+//
+//      scenario("test `getBanks` method, there no need Adapter message for this method!", StoredProcedureConnector_vDec2019Test) {
+//        val transantionRequests210 = StoredProcedureConnector_vDec2019.getBanks(callContext)
+//        getValueFromFuture(transantionRequests210).isDefined equals (true)
+//      }
+//      
+//      scenario("test `getTransactionRequests210` method, there no need Adapter message for this method!", StoredProcedureConnector_vDec2019Test) {
+//        val transantionRequests210: Box[(List[TransactionRequest], Option[CallContext])] = StoredProcedureConnector_vDec2019.getTransactionRequests210(resourceUser1, null, callContext)
+//        transantionRequests210.isDefined equals(true)
+//      }
 
-      scenario("test `getBankAccounts` method, there no need Adapter message for this method!", StoredProcedureConnector_vDec2019Test) {
-        val checkBankAccountExists = StoredProcedureConnector_vDec2019.checkBankAccountExists(testBankId1,testAccountId1,callContext)
-        getValueFromFuture(checkBankAccountExists)._1.isDefined equals (true)
+      scenario("test `getTransactions` method, there no need Adapter message for this method!", StoredProcedureConnector_vDec2019Test) {
+        val transactions = StoredProcedureConnector_vDec2019.getTransactions(testBankId1, testAccountId1, callContext, Nil)
+        val trans = getValueFromFuture(transactions)._1.openOrThrowException("Should not be empty!")
+        trans.head.description.isDefined equals (true)
       }
-      scenario("test `getBank` method, there no need Adapter message for this method!", StoredProcedureConnector_vDec2019Test) {
-        val transantionRequests210 = StoredProcedureConnector_vDec2019.getBank(testBankId1, callContext)
-        getValueFromFuture(transantionRequests210).isDefined equals (true)
-      }
-
-
-      scenario("test `getBanks` method, there no need Adapter message for this method!", StoredProcedureConnector_vDec2019Test) {
-        val transantionRequests210 = StoredProcedureConnector_vDec2019.getBanks(callContext)
-        getValueFromFuture(transantionRequests210).isDefined equals (true)
-      }
-      
-      scenario("test `getTransactionRequests210` method, there no need Adapter message for this method!", StoredProcedureConnector_vDec2019Test) {
-        val transantionRequests210: Box[(List[TransactionRequest], Option[CallContext])] = StoredProcedureConnector_vDec2019.getTransactionRequests210(resourceUser1, null, callContext)
-        transantionRequests210.isDefined equals(true)
-      }
-
       
     } else {
       ignore("ignore test getObpConnectorLoopback, if it is mapped connector", StoredProcedureConnector_vDec2019Test) {}
