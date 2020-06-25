@@ -74,7 +74,7 @@ object MessageDocsSwaggerDefinitions
           customerId = customerIdExample.value,
           customerNumber = customerNumberExample.value,
           legalName = legalNameExample.value,
-          dateOfBirth =  new Date(),
+          dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
         )),
         userOwners = List(InternalBasicUser(
           userId = userIdExample.value,

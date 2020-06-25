@@ -190,6 +190,19 @@ object ExampleValue {
   lazy val transactionPostedDateExample = ConnectorField("2018-01-27", "The Posted date of a transaction in the format: yyyy-MM-dd")
   lazy val transactionCompletedDateExample = ConnectorField("2018-01-28", "The Completed date of a transaction in the format: yyyy-MM-dd")
 
+  lazy val dateExample = ConnectorField("2020-01-27", "The Date in the format: yyyy-MM-dd")
+  lazy val cancelledDateExample = ConnectorField("2020-01-27", "The Cancelled Date in the format: yyyy-MM-dd")
+  lazy val signedDateExample = ConnectorField("2020-01-27", "The Signed Date in the format: yyyy-MM-dd")
+  lazy val startDateExample = ConnectorField("2020-01-27", "The Start Date in the format: yyyy-MM-dd")
+  lazy val finishDateExample = ConnectorField("2020-01-27", "The Finish Date in the format: yyyy-MM-dd")
+  lazy val insertDateExample = ConnectorField("2020-01-27", "The Insert Date in the format: yyyy-MM-dd")
+  lazy val postedDateExample = ConnectorField("2020-01-27", "The Posted Date in the format: yyyy-MM-dd")
+  lazy val collectedDateExample = ConnectorField("2020-01-27", "The Collected Date in the format: yyyy-MM-dd")
+  lazy val requestedDateExample = ConnectorField("2020-01-27", "The Requested Date in the format: yyyy-MM-dd")
+  lazy val validFromDateExample = ConnectorField("2020-01-27", "The Valid From date in the format: yyyy-MM-dd")
+  lazy val issueDateExample = ConnectorField("2020-01-27", "The Issue date in the format: yyyy-MM-dd")
+  lazy val expiryDateExample = ConnectorField("2021-01-27", "The Expiry date in the format: yyyy-MM-dd")
+
   lazy val transactionRequestTypeExample = ConnectorField("SEPA", "The Transaction Request Type defines the request body that is required - and the logic / flow of the Transaction Request. Allowed values include SEPA, COUNTERPARTY and SANDBOX_TAN.")
   glossaryItems += makeGlossaryItem("Transaction Requests.Transaction Request Type", transactionRequestTypeExample)
 
