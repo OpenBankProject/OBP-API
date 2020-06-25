@@ -26,6 +26,7 @@ Berlin 13359, Germany
 import java.util.Date
 
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.getIbanAndBban
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, _}
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
@@ -83,20 +84,25 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-          OutBoundGetAdapterInfo(MessageDocsSwaggerDefinitions.outboundAdapterCallContext)
+      OutBoundGetAdapterInfo(MessageDocsSwaggerDefinitions.outboundAdapterCallContext.copy(
+        correlationIdExample.value,
+        None,
+        None,
+        None,
+        None)
+      )
     ),
     exampleInboundMessage = (
-     InBoundGetAdapterInfo(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= InboundAdapterInfoInternal(errorCode=inboundAdapterInfoInternalErrorCodeExample.value,
-      backendMessages=List( InboundStatusMessage(source=sourceExample.value,
-      status=inboundStatusMessageStatusExample.value,
-      errorCode=inboundStatusMessageErrorCodeExample.value,
-      text=inboundStatusMessageTextExample.value)),
-      name=inboundAdapterInfoInternalNameExample.value,
-      version=inboundAdapterInfoInternalVersionExample.value,
-      git_commit=inboundAdapterInfoInternalGit_commitExample.value,
-      date=inboundAdapterInfoInternalDateExample.value))
+     InBoundGetAdapterInfo(
+       inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext.copy(correlationIdExample.value, None, None),
+       status=Status("",null),
+       data= InboundAdapterInfoInternal(
+        errorCode=null,
+        backendMessages=null,
+        name=inboundAdapterInfoInternalNameExample.value,
+        version=inboundAdapterInfoInternalVersionExample.value,
+        git_commit=inboundAdapterInfoInternalGit_commitExample.value,
+        date=inboundAdapterInfoInternalDateExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -271,21 +277,27 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetBank(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      bankId=BankId(bankIdExample.value))
+     OutBoundGetBank(
+       OutboundAdapterCallContext(correlationIdExample.value, None, None, None, None),
+       bankId=BankId(bankIdExample.value))
     ),
     exampleInboundMessage = (
-     InBoundGetBank(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= BankCommons(bankId=BankId(bankIdExample.value),
-      shortName=bankShortNameExample.value,
-      fullName=bankFullNameExample.value,
-      logoUrl=bankLogoUrlExample.value,
-      websiteUrl=bankWebsiteUrlExample.value,
-      bankRoutingScheme=bankRoutingSchemeExample.value,
-      bankRoutingAddress=bankRoutingAddressExample.value,
-      swiftBic=bankSwiftBicExample.value,
-      nationalIdentifier=bankNationalIdentifierExample.value))
+     InBoundGetBank( 
+       InboundAdapterCallContext(
+        correlationIdExample.value,
+        None,
+        None),
+      status=Status("",null),
+      data= BankCommons(
+        bankId=BankId(bankIdExample.value),
+        shortName=bankShortNameExample.value,
+        fullName=bankFullNameExample.value,
+        logoUrl=bankLogoUrlExample.value,
+        websiteUrl=bankWebsiteUrlExample.value,
+        bankRoutingScheme=bankRoutingSchemeExample.value,
+        bankRoutingAddress=bankRoutingAddressExample.value,
+        swiftBic=null,
+        nationalIdentifier=null))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -304,21 +316,25 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     description = "Get Banks",
     outboundTopic = None,
     inboundTopic = None,
-    exampleOutboundMessage = (
-          OutBoundGetBanks(MessageDocsSwaggerDefinitions.outboundAdapterCallContext)
-    ),
+    exampleOutboundMessage = 
+      OutBoundGetBanks(OutboundAdapterCallContext(correlationIdExample.value, None, None, None, None)),
     exampleInboundMessage = (
-     InBoundGetBanks(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( BankCommons(bankId=BankId(bankIdExample.value),
-      shortName=bankShortNameExample.value,
-      fullName=bankFullNameExample.value,
-      logoUrl=bankLogoUrlExample.value,
-      websiteUrl=bankWebsiteUrlExample.value,
-      bankRoutingScheme=bankRoutingSchemeExample.value,
-      bankRoutingAddress=bankRoutingAddressExample.value,
-      swiftBic=bankSwiftBicExample.value,
-      nationalIdentifier=bankNationalIdentifierExample.value)))
+     InBoundGetBanks(
+       InboundAdapterCallContext(
+         correlationIdExample.value,
+         None,
+         None),
+      status=Status("",null),
+      data=List( BankCommons(
+        bankId=BankId(bankIdExample.value),
+        shortName=bankShortNameExample.value,
+        fullName=bankFullNameExample.value,
+        logoUrl=bankLogoUrlExample.value,
+        websiteUrl=bankWebsiteUrlExample.value,
+        bankRoutingScheme=bankRoutingSchemeExample.value,
+        bankRoutingAddress=bankRoutingAddressExample.value,
+        swiftBic=null,
+        nationalIdentifier=null)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -615,8 +631,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetBankAccounts(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      bankIdAccountIds=List( BankIdAccountId(bankId=BankId(bankIdExample.value),
+     OutBoundGetBankAccounts(
+       outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+       bankIdAccountIds=List( BankIdAccountId(bankId=BankId(bankIdExample.value),
       accountId=AccountId(accountIdExample.value))))
     ),
     exampleInboundMessage = (
@@ -635,8 +652,11 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       branchId=branchIdExample.value,
       accountRoutingScheme=accountRoutingSchemeExample.value,
       accountRoutingAddress=accountRoutingAddressExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
+      accountRoutings=List( 
+        AccountRouting(
+          scheme=accountRoutingSchemeExample.value,
+          address=accountRoutingAddressExample.value)
+      ),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
       accountHolder=bankAccountAccountHolderExample.value)))
