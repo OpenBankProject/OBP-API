@@ -313,6 +313,12 @@ case class AccountRouting(
   address: String
 )
 
+trait BankAccountRoutingTrait {
+  def bankId: BankId
+  def accountId: AccountId
+  def accountRouting: AccountRouting
+}
+
 case class CoreAccount(
   id: String,
   label: String,

@@ -789,8 +789,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     initialBalance: BigDecimal,
     accountHolderName: String,
     branchId: String,
-    accountRoutingScheme: String,
-    accountRoutingAddress: String
+    accountRoutings: List[AccountRouting]
   ): Box[BankAccount] = {
   
     for {

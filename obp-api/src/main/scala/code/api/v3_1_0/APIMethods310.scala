@@ -2458,17 +2458,16 @@ trait APIMethods310 {
                 for{
                   accountId <- Future{AccountId(UUID.randomUUID().toString)}
                   (_, callContext) <- NewStyle.function.createBankAccount(
-                                                                                 bankId, 
-                                                                                 accountId, 
-                                                                                 accountApplication.productCode.value,
-                                                                                 "", 
-                                                                                 "EUR",
-                                                                                 BigDecimal("0"), 
-                                                                                 u.name,
-                                                                                 "", 
-                                                                                 "", 
-                                                                                 "",
-                                                                                 callContext)
+                    bankId,
+                    accountId,
+                    accountApplication.productCode.value,
+                    "",
+                    "EUR",
+                    BigDecimal("0"),
+                    u.name,
+                    "",
+                    List.empty,
+                    callContext)
                 }yield {
                   BankAccountCreation.setAsOwner(bankId, accountId, u)
                 }
@@ -4817,8 +4816,7 @@ trait APIMethods310 {
               consentJson.`type`,
               consentJson.label,
               consentJson.branch_id,
-              consentJson.account_routing.scheme,
-              consentJson.account_routing.address,
+              consentJson.account_routings.map(r => AccountRouting(r.scheme, r.address)),
               callContext
             )
           } yield {
@@ -5468,8 +5466,7 @@ trait APIMethods310 {
               initialBalanceAsNumber,
               postedOrLoggedInUser.name,
               createAccountJson.branch_id,
-              createAccountJson.account_routing.scheme,
-              createAccountJson.account_routing.address,
+              createAccountJson.account_routings.map(r => AccountRouting(r.scheme, r.address)),
               callContext
             )
             (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, ProductCode(accountType), callContext)

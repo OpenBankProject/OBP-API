@@ -815,8 +815,7 @@ trait APIMethods220 {
               initialBalanceAsNumber,
               postedOrLoggedInUser.name,
               createAccountJson.branch_id,
-              createAccountJson.account_routing.scheme,
-              createAccountJson.account_routing.address,
+              List(AccountRouting(createAccountJson.account_routing.scheme, createAccountJson.account_routing.address)),
               callContext
             )
           } yield {

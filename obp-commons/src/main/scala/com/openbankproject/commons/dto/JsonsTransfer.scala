@@ -628,8 +628,7 @@ case class OutBoundUpdateBankAccount(outboundAdapterCallContext: OutboundAdapter
                               accountType: String,
                               accountLabel: String,
                               branchId: String,
-                              accountRoutingScheme: String,
-                              accountRoutingAddress: String
+                              accountRoutings: List[AccountRouting]
                             ) extends TopicTrait
 case class InBoundUpdateBankAccount(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BankAccountCommons) extends InBoundTrait[BankAccountCommons]
 
@@ -790,8 +789,7 @@ case class OutBoundCreateBankAccount(outboundAdapterCallContext: OutboundAdapter
                                      initialBalance: BigDecimal,
                                      accountHolderName: String,
                                      branchId: String,
-                                     accountRoutingScheme: String,
-                                     accountRoutingAddress: String) extends TopicTrait
+                                     accountRoutings: List[AccountRouting]) extends TopicTrait
 
 case class InBoundCreateBankAccount(inboundAdapterCallContext: InboundAdapterCallContext,
                                     status: Status,

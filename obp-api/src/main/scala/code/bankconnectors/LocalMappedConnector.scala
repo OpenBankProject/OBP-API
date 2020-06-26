@@ -1304,7 +1304,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       accountNumber, accountType,
       accountLabel, currency,
       0L, accountHolderName,
-      "", "", "" //added field in V220
+      "",
+      List.empty
     )
 
     Full((bank, account))
@@ -1316,10 +1317,43 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                   accountType: String,
                                   accountLabel: String,
                                   branchId: String,
-                                  accountRoutingScheme: String,
-                                  accountRoutingAddress: String,
+                                  accountRoutings: List[AccountRouting],
                                   callContext: Option[CallContext]
                                 ): OBPReturnType[Box[BankAccount]] = Future {
+
+    val oldAccountRoutings = BankAccountRouting.findAll(By(BankAccountRouting.BankId, bankId.value),
+      By(BankAccountRouting.AccountId, accountId.value))
+      .map(_.accountRouting)
+
+    // Add or update new routing schemes
+    accountRoutings.foreach(accountRouting =>
+      oldAccountRoutings.find(_.scheme == accountRouting.scheme) match {
+        case Some(_) =>
+          BankAccountRouting
+            .find(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountId, accountId.value),
+              By(BankAccountRouting.AccountRoutingScheme, accountRouting.scheme))
+            .map(_.AccountRoutingAddress(accountRouting.address).saveMe())
+        case None =>
+          BankAccountRouting.create
+            .BankId(bankId.value)
+            .AccountId(accountId.value)
+            .AccountRoutingScheme(accountRouting.scheme)
+            .AccountRoutingAddress(accountRouting.address)
+            .saveMe()
+      }
+    )
+
+    // Delete non-present routing schemes
+    oldAccountRoutings.foreach(accountRouting =>
+      accountRoutings.find(_.scheme == accountRouting.scheme)
+        .getOrElse(
+          BankAccountRouting
+            .find(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountId, accountId.value),
+              By(BankAccountRouting.AccountRoutingScheme, accountRouting.scheme))
+            .map(_.delete_!)
+        )
+    )
+
     (for {
       (account, callContext) <- LocalMappedConnector.getBankAccountCommon(bankId, accountId, callContext)
     } yield {
@@ -1327,8 +1361,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         .kind(accountType)
         .accountLabel(accountLabel)
         .mBranchId(branchId)
-        .mAccountRoutingScheme(accountRoutingScheme)
-        .mAccountRoutingAddress(accountRoutingAddress)
         .saveMe
     }, callContext)
   }
@@ -1392,8 +1424,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                initialBalance: BigDecimal,
                                accountHolderName: String,
                                branchId: String,
-                               accountRoutingScheme: String,
-                               accountRoutingAddress: String,
+                               accountRoutings: List[AccountRouting],
                                callContext: Option[CallContext]
                              ): OBPReturnType[Box[BankAccount]] = Future {
     val accountId = AccountId(APIUtil.generateUUID())
@@ -1420,8 +1451,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       initialBalance,
       accountHolderName,
       branchId: String, //added field in V220
-      accountRoutingScheme, //added field in V220
-      accountRoutingAddress //added field in V220
+      accountRoutings
     ), callContext)
   }
 
@@ -1435,8 +1465,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                   initialBalance: BigDecimal,
                                   accountHolderName: String,
                                   branchId: String,
-                                  accountRoutingScheme: String,
-                                  accountRoutingAddress: String,
+                                  accountRoutings: List[AccountRouting],
                                   callContext: Option[CallContext]
                                 ): OBPReturnType[Box[BankAccount]] = Future {
     (Connector.connector.vend.createBankAccountLegacy(bankId: BankId,
@@ -1447,8 +1476,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       initialBalance: BigDecimal,
       accountHolderName: String,
       branchId: String,
-      accountRoutingScheme: String,
-      accountRoutingAddress: String), callContext)
+      accountRoutings: List[AccountRouting]), callContext)
   }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
@@ -1462,8 +1490,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                          initialBalance: BigDecimal,
                                          accountHolderName: String,
                                          branchId: String,
-                                         accountRoutingScheme: String,
-                                         accountRoutingAddress: String
+                                         accountRoutings: List[AccountRouting]
                                        ): Box[BankAccount] = {
 
     for {
@@ -1481,8 +1508,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         balanceInSmallestCurrencyUnits,
         accountHolderName,
         branchId,
-        accountRoutingScheme,
-        accountRoutingAddress
+        accountRoutings
       )
     }
 
@@ -1499,14 +1525,21 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                           balanceInSmallestCurrencyUnits: Long,
                                           accountHolderName: String,
                                           branchId: String,
-                                          accountRoutingScheme: String,
-                                          accountRoutingAddress: String
+                                          accountRoutings: List[AccountRouting],
                                         ): BankAccount = {
     getBankAccountOld(bankId, accountId) match {
       case Full(a) =>
         logger.debug(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
         a
       case _ =>
+        accountRoutings.map(accountRouting =>
+          BankAccountRouting.create
+            .BankId(bankId.value)
+            .AccountId(accountId.value)
+            .AccountRoutingScheme(accountRouting.scheme)
+            .AccountRoutingAddress(accountRouting.address)
+            .saveMe()
+        )
         MappedBankAccount.create
           .bank(bankId.value)
           .theAccountId(accountId.value)
@@ -1517,8 +1550,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           .accountBalance(balanceInSmallestCurrencyUnits)
           .holder(accountHolderName)
           .mBranchId(branchId)
-          .mAccountRoutingScheme(accountRoutingScheme)
-          .mAccountRoutingAddress(accountRoutingAddress)
           .saveMe()
     }
   }
@@ -4070,8 +4101,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                         initialBalance: BigDecimal,
                                         accountHolderName: String,
                                         branchId: String,
-                                        accountRoutingScheme: String,
-                                        accountRoutingAddress: String
+                                        accountRoutings: List[AccountRouting]
                                       ): Box[BankAccount] = {
     val uniqueAccountNumber = {
       def exists(number: String) = Connector.connector.vend.accountExists(bankId, number).openOrThrowException(attemptedToOpenAnEmptyBox)
@@ -4097,8 +4127,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       initialBalance,
       accountHolderName,
       branchId: String, //added field in V220
-      accountRoutingScheme, //added field in V220
-      accountRoutingAddress //added field in V220
+      accountRoutings
     )
 
   }

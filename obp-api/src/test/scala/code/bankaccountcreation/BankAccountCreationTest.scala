@@ -139,7 +139,8 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
         bankId, accountId, defaultAccountNumber, 
         accountType, accountLabel,
         currency, initialBalance, accountHolderName,
-        "","", "" //added field in V220
+        "",
+        List.empty
       ) 
 
       Then("No account is created")
@@ -154,7 +155,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
 
       When("We try to create an account at that bank")
       Connector.connector.vend.createSandboxBankAccount(bankId, accountId, defaultAccountNumber, accountType, accountLabel, currency, initialBalance, accountHolderName,
-                                                        "","","" ) //added field in V220
+                                                        "", List.empty )
 
       Then("An account with the proper parameters should be created")
       val createdAccBox = Connector.connector.vend.getBankAccountOld(bankId, accountId)
@@ -176,7 +177,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
 
       When("We try to create an account at that bank")
       Connector.connector.vend.createBankAccountLegacy(bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName,
-                                                        "","", "")//added field in V220
+                                                        "", List.empty)
 
       Then("An account with the proper parameters should be created")
       val createdAccBox = Connector.connector.vend.getBankAccountOld(bankId, accountId)
