@@ -58,19 +58,19 @@ object MSsqlStoredProcedureBuilder {
       |GO
       |-- create procedure $processName
       |CREATE PROCEDURE $processName
-      |   @out_bound_json NVARCHAR(MAX),
-      |   @in_bound_json NVARCHAR(MAX) OUT
+      |   @outbound_json NVARCHAR(MAX),
+      |   @inbound_json NVARCHAR(MAX) OUT
       |   AS
       |	  SET nocount on
       |
       |-- replace the follow example to real logic
       |/*
-      |this is example of parameter @out_bound_json
+      |this is example of parameter @outbound_json
       |     N'${outBoundExample.replaceAll("(?m)^", "     ").trim()}'
       |*/
       |
       |-- return example value
-      |	SELECT @in_bound_json = (
+      |	SELECT @inbound_json = (
       |		SELECT
       |     N'${inBoundExample.replaceAll("(?m)^", "     ").trim()}'
       |	);
