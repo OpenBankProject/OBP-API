@@ -250,10 +250,10 @@ object ExampleValue {
   lazy val accountRoutingAddressExample = ConnectorField("DE91 1000 0000 0123 4567 89", "An identifier that conforms to account_routing_scheme / accountRoutingScheme")
   glossaryItems += makeGlossaryItem("Account.account_routing_address", accountRoutingAddressExample)
   
-  lazy val keyExample = ConnectorField(s"${customerNumberExample.value}", s"This key should be used with Adapter.value together. They are a pair.")
+  lazy val keyExample = ConnectorField(s"CustomerNumber", s"This key should be used with Adapter.value together. They are a pair.")
   glossaryItems += makeGlossaryItem("Adapter.key", keyExample)
   
-  lazy val valueExample = ConnectorField("FYIUYF6SUYFSD", s"This key should be used with Adapter.key together. They are a pair.")
+  lazy val valueExample = ConnectorField(s"${customerNumberExample.value}", s"This key should be used with Adapter.key together. They are a pair.")
   glossaryItems += makeGlossaryItem("Adapter.value", valueExample)
 
   lazy val bankCardNumberExample = ConnectorField("364435172576215", s"The number of the physical card")
