@@ -210,6 +210,7 @@ class Boot extends MdcLoggable {
       val driver =
         Props.mode match {
           case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development => APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
+          case Props.RunModes.Test => APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
           case _ => "org.h2.Driver"
         }
       val vendor =
@@ -218,6 +219,13 @@ class Boot extends MdcLoggable {
             new StandardDBVendor(driver,
               APIUtil.getPropsValue("db.url") openOr "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
               APIUtil.getPropsValue("db.user"), APIUtil.getPropsValue("db.password"))
+          case Props.RunModes.Test =>
+            new StandardDBVendor(
+              driver,
+              APIUtil.getPropsValue("db.url") openOr "jdbc:h2:mem:OBPTest;DB_CLOSE_DELAY=-1",
+              APIUtil.getPropsValue("db.user").orElse(Empty), 
+              APIUtil.getPropsValue("db.password").orElse(Empty)
+            )
           case _ =>
             new StandardDBVendor(
               driver,
