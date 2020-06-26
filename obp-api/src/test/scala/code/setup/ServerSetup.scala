@@ -59,12 +59,12 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   val exampleDate = DateWithSecondsExampleObject
   
   // @code.setup.TestConnectorSetup.createBanks we can know, the bankIds in test database.
-  val testBankId1 = BankId("testBank001")
-  val testBankId2 = BankId("testBank002")
+  val testBankId1 = BankId("testBank1")
+  val testBankId2 = BankId("testBank2")
   
  // @code.setup.TestConnectorSetup.createAccounts we can know, the accountIds in test database.
-  val testAccountId1 = AccountId("testAccount001")
-  val testAccountId0 = AccountId("testAccount000")
+  val testAccountId1 = AccountId("testAccount1")
+  val testAccountId0 = AccountId("testAccount0")
   
   val mockCustomerNumber1 = "93934903201"
   val mockCustomerNumber2 = "93934903202"
