@@ -3,6 +3,8 @@ package code.util
 import com.openbankproject.commons.model.BankId
 import net.liftweb.mapper.{BaseMappedField, BaseMetaMapper, DB}
 
+import scala.collection.immutable.List
+
 /**
  * Any Attribute type Mapped entity companion object extends this trait, will obtain query with parameter function: getParentIdByParams
  */
@@ -87,4 +89,24 @@ trait AttributeQueryTrait { self: BaseMetaMapper =>
       } yield parentId
     }
   }
+  
+  def getSqlParametersFilter(paramList: List[(String, List[String])]): String = {
+    paramList.map { kv =>
+      val (_, values) = kv
+      if (values.size == 1) {
+        s"($nameColumn = ? AND $valueColumn = ?)"
+      } else {
+        //For lift framework not support in query, here just express in operation: mname = ? and mvalue in (?, ?, ?)
+        val valueExp = values.map(_ => "?").mkString(", ")
+        s"( $nameColumn = ? AND $valueColumn in ($valueExp) )"
+      }
+    }.mkString(" OR ")
+  }
+  def getParameters(paramList: List[(String, List[String])]): List[String] = {
+    paramList.flatMap { kv =>
+      val (name, values) = kv
+      name :: values
+    }
+  }
+  
 }
