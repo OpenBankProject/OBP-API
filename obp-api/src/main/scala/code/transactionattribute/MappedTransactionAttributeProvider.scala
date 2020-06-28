@@ -39,7 +39,27 @@ object MappedTransactionAttributeProvider extends TransactionAttributeProvider {
 
   override def getTransactionIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]]  =
     Future {
-      Box !! {MappedTransactionAttribute.getParentIdByParams(bankId, params)}
+      Box !! {
+        if (params.isEmpty) {
+          MappedTransactionAttribute.findAll(By(MappedTransactionAttribute.mBankId, bankId.value)).map(_.transactionId.value)
+        } else {
+          val paramList = params.toList
+          val parameters: List[String] = MappedTransactionAttribute.getParameters(paramList)
+          val sqlParametersFilter = MappedTransactionAttribute.getSqlParametersFilter(paramList)
+          val transactionIdList = paramList.isEmpty match {
+            case true =>
+              MappedTransactionAttribute.findAll(
+                By(MappedTransactionAttribute.mBankId, bankId.value)
+              ).map(_.transactionId.value)
+            case false =>
+              MappedTransactionAttribute.findAll(
+                By(MappedTransactionAttribute.mBankId, bankId.value),
+                BySql(sqlParametersFilter, IHaveValidatedThisSQL("developer","2020-06-28"), parameters:_*)
+              ).map(_.transactionId.value)
+          }
+          transactionIdList
+        }
+      }
     }
   
   override def createOrUpdateTransactionAttribute(bankId: BankId, 
