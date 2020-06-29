@@ -18,7 +18,7 @@ import code.model._
 import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, TransactionId, ViewId}
 import net.liftweb.common.Full
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
@@ -814,7 +814,7 @@ of the "Read Transaction List" call within the _links subfield.
       "creditorAccount": {
         "iban": "DE67100100101306118605"
       },
-      "mandateId": "Mandate-2018-04-20-1234",
+      "mandateId": "Mandate-2018-04-20-1234-Identification of Mandates, e.g. a SEPA Mandate ID.",
       "transactionAmount": {
         "currency": "EUR",
         "amount": "-256.67"
@@ -832,32 +832,18 @@ of the "Read Transaction List" call within the _links subfield.
      )
 
      lazy val getTransactionDetails : OBPEndpoint = {
-       case "accounts" :: account_id:: "transactions" :: transactionid :: Nil JsonGet _ => {
+       case "accounts" :: accountId:: "transactions" :: transactionId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "description": "Example for transaction details",
-  "value": {
-    "transactionsDetails": {
-      "transactionId": "1234567",
-      "creditorName": "John Miles",
-      "creditorAccount": {
-        "iban": "DE67100100101306118605"
-      },
-      "mandateId": "Mandate-2018-04-20-1234",
-      "transactionAmount": {
-        "currency": "EUR",
-        "amount": "-256.67"
-      },
-      "bookingDate": "2017-10-25",
-      "valueDate": "2017-10-26",
-      "remittanceInformationUnstructured": "Example 1",
-      "bankTransactionCode": "PMNT-RCVD-ESDD"
-    }
-  }
-}"""), callContext)
+             (Full(user), callContext) <- authenticatedAccess(cc)
+             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
+             (account, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
+             view <- NewStyle.function.checkViewAccessAndReturnView(ViewId("owner"), BankIdAccountId(BankId(defaultBankId), AccountId(accountId)), Some(user), callContext)
+             (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(BankId(defaultBankId), AccountId(accountId), TransactionId(transactionId), view, Some(user), callContext) map {
+               unboxFullOrFail(_, callContext, GetTransactionsException)
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createTransactionJson(account, moderatedTransaction), callContext)
            }
          }
        }
