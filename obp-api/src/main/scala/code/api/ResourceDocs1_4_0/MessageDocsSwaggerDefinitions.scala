@@ -191,7 +191,7 @@ object MessageDocsSwaggerDefinitions
     isBeneficiary = isBeneficiaryExample.value.toBoolean // True if the originAccount can send money to the Counterparty
   )
   
-  val transactionCommons = TransactionCommons(
+  val transaction = Transaction(
     `uuid`= transactionIdExample.value,
     id = TransactionId(transactionIdExample.value),
     thisAccount = bankAccountCommons,

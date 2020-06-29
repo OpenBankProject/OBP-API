@@ -7,6 +7,7 @@ import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
 import com.openbankproject.commons.model.{CardAction, CardReplacementReason, InboundAdapterCallContext, OutboundAdapterCallContext, PinResetReason, Status}
 import com.openbankproject.commons.util.{EnumValue, ReflectUtils}
+import net.liftweb.util.StringHelpers
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
@@ -46,7 +47,7 @@ object CodeGenerateUtils {
     NameTypeExample(null, typeOf[OutboundAdapterCallContext], "MessageDocsSwaggerDefinitions.outboundAdapterCallContext"),
     NameTypeExample(null, typeOf[InboundAdapterCallContext], "MessageDocsSwaggerDefinitions.inboundAdapterCallContext"),
     NameTypeExample("status", typeOf[Status], "MessageDocsSwaggerDefinitions.inboundStatus"),
-    NameTypeExample("statusValue", typeOf[String], s""""${TransactionRequestStatus.values.mkString(" | ")}""""),
+    NameTypeExample("statusValue", typeOf[String], s""""${TransactionRequestStatus.COMPLETED}""""),
     NameTypeExample(null, typeOf[List[CustomerAndAttribute]],
       """ List(
         |         CustomerAndAttribute(
@@ -89,21 +90,24 @@ object CodeGenerateUtils {
 
     val uncapitalizedTypeName = StringUtils.uncapitalize(tp.typeSymbol.name.toString)
     // try to get example value from ExampleValue
-    val example = {
-      var result = parentFieldName.flatMap(it => fieldName.map(it + _.capitalize)).flatMap(getExampleValue)
+    val example: Option[String] = {
+      var result =  for {
+        pName <- parentFieldName
+        fName <- fieldName
+        example <- getExampleValue(s"$pName${fName.capitalize}")
+      } yield example
 
       if(result.isEmpty) {
-        val composedName = parentType.map(_.typeSymbol.name.toString)
-          .map(StringUtils.uncapitalize)
-          .map(_.replaceFirst("Commons$", ""))
-          .flatMap(it => fieldName.map(it + _.capitalize))
-        result = composedName.flatMap(getExampleValue)
+        result = for {
+          pType <- parentType
+          pName = StringUtils.uncapitalize(pType.typeSymbol.name.toString).replaceFirst("Commons$", "")
+          fName <- fieldName
+          example <- getExampleValue(s"$pName${fName.capitalize}", s"$pName${StringHelpers.camelify(fName)}")
+        } yield example
       }
       // special logic for InternalBasicUser kind naming, example: usenameExample
       if(result.isEmpty && parentType.filter(_.typeSymbol.name.toString.endsWith("User")).isDefined) {
-        val composedName1 = fieldName.map("user"+ _.capitalize)
-        val composedName2 = fieldName.map("user"+ _)
-        result = composedName1.flatMap(getExampleValue).orElse(composedName2.flatMap(getExampleValue))
+        result = fieldName.flatMap(it => getExampleValue(s"user${it.capitalize}", s"user$it"))
       }
       // scome class name start with Core, should ignore "Core"
       if(result.isEmpty && parentType.filter(_.typeSymbol.name.toString.startsWith("Core")).isDefined) {
@@ -111,7 +115,7 @@ object CodeGenerateUtils {
           .map(_.replaceFirst("^Core|Commons$", ""))
           .map(StringUtils.uncapitalize)
           .flatMap(it => fieldName.map(it + _.capitalize))
-        result = composedName.flatMap(getExampleValue)
+        result = composedName.flatMap(getExampleValue(_))
       }
       if(result.isEmpty) {
         result = fieldName.flatMap(getExampleValue(_))
@@ -119,9 +123,7 @@ object CodeGenerateUtils {
       if(result.isEmpty) { // emailAdress -> email
         result = fieldName.map(_.replaceFirst("Address$", "")).flatMap(getExampleValue(_))
       }
-      if(result.isEmpty) {
-        result = getExampleValue(uncapitalizedTypeName)
-      }
+
       //some example name is just type name: TransactionId(value: String) ---> transactionIdExample
       if(result.isEmpty && parentType.exists(_.typeSymbol.name.toString.endsWith("Id"))) {
         result = getExampleValue(parentType.map(_.typeSymbol.name.toString).get)
@@ -130,6 +132,17 @@ object CodeGenerateUtils {
       if(result.isEmpty && fieldName.exists(_.startsWith("other"))) {
         val removedOtherFieldName = fieldName.map(_.substring("other".size)).map(StringUtils.uncapitalize).get
         result = getExampleValue(removedOtherFieldName)
+      }
+      if(result.isEmpty && fieldName.isDefined && tp <:< typeOf[Date]) {
+        val Some(field) = fieldName
+        result = getExampleValue(s"${field}Date",s"date${field.capitalize}")
+      }
+      if(result.isEmpty && (tp =:= typeOf[BigDecimal] || tp =:= typeOf[BigInt])) {
+        val Some(field) = fieldName
+        result = getExampleValue(s"${field}Amount")
+      }
+      if(result.isEmpty) {
+        result = getExampleValue(uncapitalizedTypeName)
       }
       result
     }
@@ -180,7 +193,9 @@ object CodeGenerateUtils {
       val numberValue = example.getOrElse(""""123.321"""")
       s"""BigDecimal($numberValue)"""
     } else if (tp =:= ru.typeOf[Date]) {
-      example.map(date => s"""parseDate($date).getOrElse(sys.error("$date is not validate date format."))""").getOrElse("new Date()")
+      example.orElse(Some("dateExample.value"))
+        .map(date => s"""parseDate($date).getOrElse(sys.error("$date is not valid date format."))""")
+        .get
     } else if (tp =:= ru.typeOf[Boolean] || tp =:= ru.typeOf[java.lang.Boolean]) {
       example.map(it => s"$it.toBoolean").getOrElse("true")
     } else if(concreteObpType.isDefined && isConstructorSingleParam) {
@@ -234,10 +249,10 @@ object CodeGenerateUtils {
     }
   }
 
-  private def getExampleValue(name: String): Option[String] =
-    exampleNameToValue.lift(name).orElse {
-      exampleNameToValue.lift(name + "Amount")
-    }
+  private def getExampleValue(name: String, otherNames: String*): Option[String] =
+    (name +: otherNames).collectFirst {
+    case x if exampleNameToValue.contains(x) => exampleNameToValue(x)
+  }
 
   /**
     * extract ExampleValues, to map, key is removed Example val name, value is ConnectorField#value
