@@ -149,8 +149,10 @@ trait SimpleEnum extends JsonAble {
 trait SimpleEnumCollection[+T] {
   def nameToValue: Map[String, T]
 
-  def valueOf(value: String): T = nameToValue.get(value)
-      .getOrElse(throw new IllegalArgumentException ("Incorrect CardAction value: " + value))
+  def valueOf(value: String): T = nameToValue.collectFirst {
+    case (name, enumValue) if name.equalsIgnoreCase(value) => enumValue
+  }.getOrElse(throw new IllegalArgumentException ("Incorrect CardAction value: " + value))
+
 
   val availableValues = nameToValue.keys.toList
 }

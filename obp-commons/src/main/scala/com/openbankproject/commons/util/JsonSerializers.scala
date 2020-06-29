@@ -7,6 +7,7 @@ import com.openbankproject.commons.model.enums.{SimpleEnum, SimpleEnumCollection
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
 import net.liftweb.util.StringHelpers
+import org.apache.commons.lang3.StringUtils
 
 import scala.reflect.ManifestFactory
 import scala.reflect.runtime.{universe => ru}
@@ -58,12 +59,18 @@ object AbstractTypeDeserializer extends Serializer[AnyRef] {
 
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), AnyRef] = {
     case (TypeInfo(clazz, _), json) if Modifier.isAbstract(clazz.getModifiers) && ReflectUtils.isObpClass(clazz) =>
-      val commonClass = Class.forName(s"com.openbankproject.commons.model.${clazz.getSimpleName}Commons")
+      val commonClass = Class.forName(buildClassName(clazz.getSimpleName))
+
       implicit val manifest = ManifestFactory.classType[AnyRef](commonClass)
       json.extract[AnyRef](format, manifest)
   }
 
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = Functions.doNothing
+
+  private def buildClassName(name: String) = name match {
+    case x if x.endsWith("Trait") => s"com.openbankproject.commons.model.${StringUtils.substringBeforeLast(x, "Trait")}"
+    case x => s"com.openbankproject.commons.model.${x}Commons"
+  }
 }
 
 object SimpleEnumDeserializer extends Serializer[SimpleEnum] {
