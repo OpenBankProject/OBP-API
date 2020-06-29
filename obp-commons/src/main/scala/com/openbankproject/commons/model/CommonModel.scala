@@ -665,7 +665,7 @@ case class TransactionRequestBody (
                                     val description : String
                                   )
 
-class Transaction(
+case class Transaction(
                    //A universally unique id
                    val uuid: String,
                    //id is unique for transactions of @thisAccount
@@ -692,40 +692,6 @@ class Transaction(
 }
 
 case class UserCommons(userPrimaryKey : UserPrimaryKey, userId: String,idGivenByProvider: String, provider : String, emailAddress : String, name : String) extends User
-
-// because Transaction#thisAccount is trait, can't be deserialize, So here supply a case class to do deserialize
-case class TransactionCommons(
-                   //A universally unique id
-                   override val uuid: String,
-                   override val id : TransactionId,
-                   override val thisAccount : BankAccountCommons,
-                   override val otherAccount : Counterparty,
-                   override val transactionType : String,
-                   override val amount : BigDecimal,
-                   override val currency : String,
-                   override val description : Option[String],
-                   override val startDate : Date,
-                   override val finishDate : Date,
-                   override val balance :  BigDecimal
-                 )  extends Transaction(uuid, id, thisAccount, otherAccount, transactionType, amount, currency,description, startDate, finishDate, balance) with JsonAble {
-  // if constructor override val value pass to parent class constructor, lift json will not work to do serialize, so here manually do serialize.
-  override def toJValue(implicit format: Formats): json.JValue = {
-    val map = Map(
-      "uuid" -> uuid,
-      "id" -> id,
-      "thisAccount" -> thisAccount,
-      "otherAccount" -> otherAccount,
-      "transactionType" -> transactionType,
-      "amount" -> amount,
-      "currency" -> currency,
-      "description" -> description,
-      "startDate" -> startDate,
-      "finishDate" -> finishDate,
-      "balance" -> balance,
-    )
-    json.Extraction.decompose(map)
-  }
-}
 
 case class InternalBasicUser(
   userId:String,

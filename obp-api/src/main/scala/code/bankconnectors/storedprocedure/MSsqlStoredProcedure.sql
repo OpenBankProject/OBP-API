@@ -1,4 +1,4 @@
--- auto generated MS sql server procedures script, create on 2020-06-26T23:21:46Z
+-- auto generated MS sql server procedures script, create on 2020-06-29T16:54:14Z
 
 -- drop procedure obp_get_adapter_info
 DROP PROCEDURE IF EXISTS obp_get_adapter_info;
@@ -3240,6 +3240,10 @@ this is example of parameter @outbound_json
        },
        "data":[
          {
+           "uuid":"Transaction uuid string",
+           "id":{
+             "value":"2fg8a7e4-6d02-40e3-a129-0b2bf89de8ub"
+           },
            "thisAccount":{
              "accountId":{
                "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
@@ -3272,8 +3276,6 @@ this is example of parameter @outbound_json
              ],
              "accountHolder":"bankAccount accountHolder string"
            },
-           "description":"For the piano lesson in June 2018 - Invoice No: 68",
-           "uuid":"Transaction uuid string",
            "otherAccount":{
              "nationalIdentifier":"Counterparty nationalIdentifier string",
              "kind":"Counterparty kind string",
@@ -3293,14 +3295,12 @@ this is example of parameter @outbound_json
              "isBeneficiary":true
            },
            "transactionType":"DEBIT",
-           "balance":"50.89",
            "amount":"19.64",
-           "id":{
-             "value":"2fg8a7e4-6d02-40e3-a129-0b2bf89de8ub"
-           },
            "currency":"EUR",
+           "description":"For the piano lesson in June 2018 - Invoice No: 68",
+           "startDate":"2019-09-06T16:00:00Z",
            "finishDate":"2019-09-07T16:00:00Z",
-           "startDate":"2019-09-06T16:00:00Z"
+           "balance":"50.89"
          }
        ]
      }'
@@ -3610,6 +3610,10 @@ this is example of parameter @outbound_json
          ]
        },
        "data":{
+         "uuid":"Transaction uuid string",
+         "id":{
+           "value":"2fg8a7e4-6d02-40e3-a129-0b2bf89de8ub"
+         },
          "thisAccount":{
            "accountId":{
              "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
@@ -3642,8 +3646,6 @@ this is example of parameter @outbound_json
            ],
            "accountHolder":"bankAccount accountHolder string"
          },
-         "description":"For the piano lesson in June 2018 - Invoice No: 68",
-         "uuid":"Transaction uuid string",
          "otherAccount":{
            "nationalIdentifier":"Counterparty nationalIdentifier string",
            "kind":"Counterparty kind string",
@@ -3663,14 +3665,12 @@ this is example of parameter @outbound_json
            "isBeneficiary":true
          },
          "transactionType":"DEBIT",
-         "balance":"50.89",
          "amount":"19.64",
-         "id":{
-           "value":"2fg8a7e4-6d02-40e3-a129-0b2bf89de8ub"
-         },
          "currency":"EUR",
+         "description":"For the piano lesson in June 2018 - Invoice No: 68",
+         "startDate":"2019-09-06T16:00:00Z",
          "finishDate":"2019-09-07T16:00:00Z",
-         "startDate":"2019-09-06T16:00:00Z"
+         "balance":"50.89"
        }
      }'
 	);
@@ -3806,7 +3806,7 @@ this is example of parameter @outbound_json
            "string"
          ],
          "allows":[
-           {}
+           "DEBIT"
          ],
          "account":{
            "accountId":{
@@ -3842,12 +3842,12 @@ this is example of parameter @outbound_json
          },
          "replacement":{
            "requestedDate":"2020-01-26T16:00:00Z",
-           "reasonRequested":{}
+           "reasonRequested":"FIRST"
          },
          "pinResets":[
            {
              "requestedDate":"2020-01-26T16:00:00Z",
-             "reasonRequested":{}
+             "reasonRequested":"FORGOT"
            }
          ],
          "collected":{
@@ -4133,7 +4133,7 @@ this is example of parameter @outbound_json
              "string"
            ],
            "allows":[
-             {}
+             "DEBIT"
            ],
            "account":{
              "accountId":{
@@ -4169,12 +4169,12 @@ this is example of parameter @outbound_json
            },
            "replacement":{
              "requestedDate":"2020-01-26T16:00:00Z",
-             "reasonRequested":{}
+             "reasonRequested":"FIRST"
            },
            "pinResets":[
              {
                "requestedDate":"2020-01-26T16:00:00Z",
-               "reasonRequested":{}
+               "reasonRequested":"FORGOT"
              }
            ],
            "collected":{
@@ -4291,12 +4291,12 @@ this is example of parameter @outbound_json
        "bankId":"gh.29.uk",
        "replacement":{
          "requestedDate":"2020-01-26T16:00:00Z",
-         "reasonRequested":{}
+         "reasonRequested":"FIRST"
        },
        "pinResets":[
          {
            "requestedDate":"2020-01-26T16:00:00Z",
-           "reasonRequested":{}
+           "reasonRequested":"FORGOT"
          }
        ],
        "collected":{
@@ -4352,7 +4352,7 @@ this is example of parameter @outbound_json
            "string"
          ],
          "allows":[
-           {}
+           "DEBIT"
          ],
          "account":{
            "accountId":{
@@ -4388,12 +4388,12 @@ this is example of parameter @outbound_json
          },
          "replacement":{
            "requestedDate":"2020-01-26T16:00:00Z",
-           "reasonRequested":{}
+           "reasonRequested":"FIRST"
          },
          "pinResets":[
            {
              "requestedDate":"2020-01-26T16:00:00Z",
-             "reasonRequested":{}
+             "reasonRequested":"FORGOT"
            }
          ],
          "collected":{
@@ -4510,12 +4510,12 @@ this is example of parameter @outbound_json
        "bankId":"gh.29.uk",
        "replacement":{
          "requestedDate":"2020-01-26T16:00:00Z",
-         "reasonRequested":{}
+         "reasonRequested":"FIRST"
        },
        "pinResets":[
          {
            "requestedDate":"2020-01-26T16:00:00Z",
-           "reasonRequested":{}
+           "reasonRequested":"FORGOT"
          }
        ],
        "collected":{
@@ -4571,7 +4571,7 @@ this is example of parameter @outbound_json
            "string"
          ],
          "allows":[
-           {}
+           "DEBIT"
          ],
          "account":{
            "accountId":{
@@ -4607,12 +4607,12 @@ this is example of parameter @outbound_json
          },
          "replacement":{
            "requestedDate":"2020-01-26T16:00:00Z",
-           "reasonRequested":{}
+           "reasonRequested":"FIRST"
          },
          "pinResets":[
            {
              "requestedDate":"2020-01-26T16:00:00Z",
-             "reasonRequested":{}
+             "reasonRequested":"FORGOT"
            }
          ],
          "collected":{

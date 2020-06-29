@@ -73,7 +73,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-06-26T23:17:54Z
+// ---------- created on 2020-06-29T16:53:12Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -989,7 +989,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundGetTransactions(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( TransactionCommons(uuid=transactionUuidExample.value,
+      data=List( Transaction(uuid=transactionUuidExample.value,
       id=TransactionId(transactionIdExample.value),
       thisAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -1036,7 +1036,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetTransactions => OutBound, InBoundGetTransactions => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountID, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_transactions", req, callContext)
-        response.map(convertToTuple[List[TransactionCommons]](callContext))        
+        response.map(convertToTuple[List[Transaction]](callContext))        
   }
           
   messageDocs += getTransactionsCoreDoc
@@ -1122,7 +1122,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundGetTransaction(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= TransactionCommons(uuid=transactionUuidExample.value,
+      data= Transaction(uuid=transactionUuidExample.value,
       id=TransactionId(transactionIdExample.value),
       thisAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -1169,7 +1169,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{OutBoundGetTransaction => OutBound, InBoundGetTransaction => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountID, transactionId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_transaction", req, callContext)
-        response.map(convertToTuple[TransactionCommons](callContext))        
+        response.map(convertToTuple[Transaction](callContext))        
   }
           
   messageDocs += getPhysicalCardForBankDoc
@@ -5648,8 +5648,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-06-26T23:17:54Z
-//---------------- dynamic end ---------------------please don't modify this line         
+// ---------- created on 2020-06-29T16:53:12Z
+//---------------- dynamic end ---------------------please don't modify this line          
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

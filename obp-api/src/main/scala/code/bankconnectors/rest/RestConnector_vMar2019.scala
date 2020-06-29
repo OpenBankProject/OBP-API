@@ -2218,7 +2218,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       status=inboundStatusMessageStatusExample.value,
       errorCode=inboundStatusMessageErrorCodeExample.value,
       text=inboundStatusMessageTextExample.value))),
-      data=List( TransactionCommons(uuid=transactionUuidExample.value,
+      data=List( Transaction(uuid=transactionUuidExample.value,
       id=TransactionId(transactionIdExample.value),
       thisAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -2265,7 +2265,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         import com.openbankproject.commons.dto.{OutBoundGetTransactionsLegacy => OutBound, InBoundGetTransactionsLegacy => InBound}
         val url = getUrl(callContext, "getTransactionsLegacy")
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountID, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
-        val result: OBPReturnType[Box[List[TransactionCommons]]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
+        val result: OBPReturnType[Box[List[Transaction]]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
     
@@ -2320,7 +2320,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       status=inboundStatusMessageStatusExample.value,
       errorCode=inboundStatusMessageErrorCodeExample.value,
       text=inboundStatusMessageTextExample.value))),
-      data=List( TransactionCommons(uuid=transactionUuidExample.value,
+      data=List( Transaction(uuid=transactionUuidExample.value,
       id=TransactionId(transactionIdExample.value),
       thisAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -2367,7 +2367,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         import com.openbankproject.commons.dto.{OutBoundGetTransactions => OutBound, InBoundGetTransactions => InBound}
         val url = getUrl(callContext, "getTransactions")
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountID, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
-        val result: OBPReturnType[Box[List[TransactionCommons]]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
+        val result: OBPReturnType[Box[List[Transaction]]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
     
@@ -2519,7 +2519,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       status=inboundStatusMessageStatusExample.value,
       errorCode=inboundStatusMessageErrorCodeExample.value,
       text=inboundStatusMessageTextExample.value))),
-      data= TransactionCommons(uuid=transactionUuidExample.value,
+      data= Transaction(uuid=transactionUuidExample.value,
       id=TransactionId(transactionIdExample.value),
       thisAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -2566,7 +2566,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         import com.openbankproject.commons.dto.{OutBoundGetTransactionLegacy => OutBound, InBoundGetTransactionLegacy => InBound}
         val url = getUrl(callContext, "getTransactionLegacy")
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountID, transactionId)
-        val result: OBPReturnType[Box[TransactionCommons]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
+        val result: OBPReturnType[Box[Transaction]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
     
@@ -2618,7 +2618,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       status=inboundStatusMessageStatusExample.value,
       errorCode=inboundStatusMessageErrorCodeExample.value,
       text=inboundStatusMessageTextExample.value))),
-      data= TransactionCommons(uuid=transactionUuidExample.value,
+      data= Transaction(uuid=transactionUuidExample.value,
       id=TransactionId(transactionIdExample.value),
       thisAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -2665,7 +2665,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         import com.openbankproject.commons.dto.{OutBoundGetTransaction => OutBound, InBoundGetTransaction => InBound}
         val url = getUrl(callContext, "getTransaction")
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountID, transactionId)
-        val result: OBPReturnType[Box[TransactionCommons]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
+        val result: OBPReturnType[Box[Transaction]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
     

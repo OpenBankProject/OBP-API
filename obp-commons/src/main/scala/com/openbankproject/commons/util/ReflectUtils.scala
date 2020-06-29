@@ -23,6 +23,8 @@ object ReflectUtils {
 
   def isObpType(tp: Type): Boolean = tp != null && tp.typeSymbol.isClass && OBP_TYPE_REGEX.findFirstIn(tp.typeSymbol.fullName).isDefined
 
+  def isObpClass(clazz: Class[_]): Boolean = clazz != null && OBP_TYPE_REGEX.findFirstIn(clazz.getName).isDefined
+
   /**
    * get given instance FieldMirror, and operate it. this function is just for helper of getField and setField function
    * @param obj
