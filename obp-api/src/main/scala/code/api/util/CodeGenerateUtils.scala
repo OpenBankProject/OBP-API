@@ -194,7 +194,11 @@ object CodeGenerateUtils {
       s"""BigDecimal($numberValue)"""
     } else if (tp =:= ru.typeOf[Date]) {
       example.orElse(Some("dateExample.value"))
-        .map(date => s"""parseDate($date).getOrElse(sys.error("$date is not valid date format."))""")
+        .map(date => {
+            val exampleName = StringUtils.substringBeforeLast(date, ".value")
+            s"toDate($exampleName)"
+          }
+        )
         .get
     } else if (tp =:= ru.typeOf[Boolean] || tp =:= ru.typeOf[java.lang.Boolean]) {
       example.map(it => s"$it.toBoolean").getOrElse("true")
@@ -258,17 +262,10 @@ object CodeGenerateUtils {
     * extract ExampleValues, to map, key is removed Example val name, value is ConnectorField#value
     */
   private lazy val exampleNameToValue: Map[String, String] = {
-    ReflectUtils.getType(ExampleValue).decls
-      .withFilter(_.isMethod)
-      .withFilter(_.name.toString.endsWith("Example"))
-      .withFilter(_.asMethod.paramLists.isEmpty)
-      .withFilter(_.asMethod.returnType <:< typeOf[ConnectorField])
-      .map(_.asMethod)
-      .map { method =>
-        val name = method.name.toString
-        val removePostfixName = StringUtils.removeEnd(name, "Example")
-        (removePostfixName, s"$name.value")
-      }
-      .toMap
+    ExampleValue.exampleNameToValue.keys.map(exampleName => {
+      val removePostfixName = StringUtils.removeEnd(exampleName, "Example")
+      (removePostfixName, s"$exampleName.value")
+    }).toMap
+
   }
 }
