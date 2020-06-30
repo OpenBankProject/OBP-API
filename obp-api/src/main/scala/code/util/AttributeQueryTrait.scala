@@ -23,7 +23,9 @@ trait AttributeQueryTrait { self: BaseMetaMapper =>
 
 
   private lazy val tableName = self.dbTableName
+  // TODO Should we rename this column to attributeName
   private lazy val nameColumn = mName.dbColumnName
+  // TODO Should we rename this column to attributeValue
   private lazy val valueColumn = mValue.dbColumnName
   private lazy val parentIdColumn = mParentId.dbColumnName
   private lazy val bankIdColumn = mBankId.dbColumnName
