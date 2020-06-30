@@ -477,8 +477,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     details = SandboxAccountDetailsImport(
       `type` = "SEPA",
       description = "some description",
-      posted = "2012-03-07T00:00:00.001Z",
-      completed = "2012-04-07T00:00:00.001Z",
+      posted = "2012-03-07T00:00:00.077Z",
+      completed = "2012-04-07T00:00:00.077Z",
       new_balance = "1244.00",
       value = "-135.33"
     ))
@@ -489,8 +489,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     details = SandboxAccountDetailsImport(
       `type` = "SEPA",
       description = "this is a description",
-      posted = "2012-03-07T00:00:00.001Z",
-      completed = "2012-04-07T00:00:00.001Z",
+      posted = "2012-03-07T00:00:00.077Z",
+      completed = "2012-04-07T00:00:00.077Z",
       new_balance = "1244.00",
       value = "-135.33"
     ))
@@ -535,10 +535,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       details = SandboxAccountDetailsImport(
         `type` = "SEPA",
         description = "this is another description",
-        posted = "2012-03-07T00:00:00.001Z",
-        completed = "2012-04-07T00:00:00.001Z",
+        posted = "2012-03-07T00:00:00.077Z",
+        completed = "2012-04-07T00:00:00.077Z",
         new_balance = "1224.00",
-        value = "-135.38"
+        value = "-135.31"
       ))
 
     val blankCounterpartyNameTransaction  = SandboxTransactionImport(id = "blankCounterpartNameTransaction",
@@ -547,10 +547,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       details = SandboxAccountDetailsImport(
         `type` = "SEPA",
         description = "this is another description",
-        posted = "2012-03-07T00:00:00.001Z",
-        completed = "2012-04-07T00:00:00.001Z",
+        posted = "2012-03-07T00:00:00.077Z",
+        completed = "2012-04-07T00:00:00.077Z",
         new_balance = "1224.00",
-        value = "-135.38"
+        value = "-135.32"
       ))
 
     val blankCounterpartyAccountNumberTransaction  = SandboxTransactionImport(id = "blankCounterpartAccountNumberTransaction",
@@ -559,10 +559,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       details = SandboxAccountDetailsImport(
         `type` = "SEPA",
         description = "this is another description",
-        posted = "2012-03-07T00:00:00.001Z",
-        completed = "2012-04-07T00:00:00.001Z",
+        posted = "2012-03-07T00:00:00.077Z",
+        completed = "2012-04-07T00:00:00.077Z",
         new_balance = "1224.00",
-        value = "-135.38"
+        value = "-135.33"
       ))
 
     val banks = standardBanks
