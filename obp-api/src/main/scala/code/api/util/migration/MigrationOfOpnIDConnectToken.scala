@@ -6,6 +6,7 @@ import java.time.{ZoneId, ZonedDateTime}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.token.OpenIDConnectToken
+import net.liftweb.common.Full
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
 
@@ -24,7 +25,12 @@ object MigrationOfOpnIDConnectToken {
 
         val executedSql = 
           DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
-            () => "ALTER TABLE openidconnecttoken ALTER COLUMN accesstoken type text;"
+              APIUtil.getPropsValue("db.driver") match    {
+                case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                  () => "ALTER TABLE openidconnecttoken ALTER COLUMN accesstoken text;"
+                case _ =>
+                  () => "ALTER TABLE openidconnecttoken ALTER COLUMN accesstoken type text;"
+              }
           }
         
         val endDate = System.currentTimeMillis()
@@ -56,7 +62,12 @@ object MigrationOfOpnIDConnectToken {
 
         val executedSql = 
           DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
-            () => "ALTER TABLE openidconnecttoken ALTER COLUMN refreshtoken type text;"
+            APIUtil.getPropsValue("db.driver") match    {
+              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                () => "ALTER TABLE openidconnecttoken ALTER COLUMN refreshtoken text;"
+              case _ =>
+                () => "ALTER TABLE openidconnecttoken ALTER COLUMN refreshtoken type text;"
+            }
           }
         
         val endDate = System.currentTimeMillis()

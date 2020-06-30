@@ -6,6 +6,7 @@ import java.time.{ZoneId, ZonedDateTime}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.context.MappedUserAuthContext
+import net.liftweb.common.Full
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
 
@@ -24,7 +25,12 @@ object MigrationOfMappedUserAuthContext {
 
         val executedSql = 
           DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
-            () => "DROP INDEX IF EXISTS mappeduserauthcontext_muserid_mkey;"
+              APIUtil.getPropsValue("db.driver") match    {
+                case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                  () => "DROP INDEX IF EXISTS mappeduserauthcontext_muserid_mkey ON mappeduserauthcontext;"
+                case _ =>
+                  () => "DROP INDEX IF EXISTS mappeduserauthcontext_muserid_mkey;"
+              }
           }
         
         val endDate = System.currentTimeMillis()
