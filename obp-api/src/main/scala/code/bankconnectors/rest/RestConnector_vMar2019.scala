@@ -201,7 +201,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       transactionRequestType=transactionRequestTypeExample.value,
       currency=currencyExample.value,
       userId=userIdExample.value,
-      userName="string")
+      username="string")
     ),
     exampleInboundMessage = (
      InBoundGetChallengeThreshold(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
@@ -265,7 +265,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       accountId=AccountId(accountIdExample.value),
       viewId=ViewId(viewIdExample.value),
       userId=userIdExample.value,
-      userName="string",
+      username="string",
       transactionRequestType=transactionRequestTypeExample.value,
       currency=currencyExample.value)
     ),

@@ -13,6 +13,7 @@ import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
 import scala.util.Success
 import net.liftweb.json.JValue
+import org.apache.commons.lang3.reflect.FieldUtils
 
 object ReflectUtils {
   private[this] val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -186,6 +187,7 @@ object ReflectUtils {
       case v if !predicate(v) => v
       case _ => {
         val tp = this.getType(obj)
+        val clazz = obj.getClass
         val instanceMirror: ru.InstanceMirror = mirror.reflect(obj)
 
         val constructFieldNames: Seq[String] = ReflectUtils.getPrimaryConstructor(tp)
@@ -193,21 +195,37 @@ object ReflectUtils {
           .headOption
           .getOrElse(Nil)
           .map(_.name.toString.trim)
-        constructFieldNames.foreach(it => {
-          val fieldSymbol: ru.TermSymbol = getType(obj).member(ru.TermName(it)).asTerm.accessed.asTerm
-          val fieldMirror: ru.FieldMirror = instanceMirror.reflectField(fieldSymbol)
-          val fieldValue: Any = fieldMirror.get
-          recurseCallback(fieldValue)
+        val fieldNames = clazz.getFields.map(_.getName).toSet
+        constructFieldNames.foreach(fieldName => {
+          // if case class constructor args have 'override val', this class have no this field, need find field from parent class
+          if(fieldNames.contains(fieldName)) {
+            val fieldSymbol: ru.TermSymbol = tp.member(ru.TermName(fieldName)).asTerm.accessed.asTerm
+            val fieldMirror: ru.FieldMirror = instanceMirror.reflectField(fieldSymbol)
+            val fieldValue: Any = fieldMirror.get
+            recurseCallback(fieldValue)
 
-          //check whether field should modify, if PartialFunction check result is true, just modify it with new Value
-          val fieldName: String = it
-          val fieldType: Type = fieldSymbol.info
-          val ownerType: Type = fieldSymbol.owner.asType.toType
+            //check whether field should modify, if PartialFunction check result is true, just modify it with new Value
+            val fieldType: Type = fieldSymbol.info
+            val ownerType: Type = fieldSymbol.owner.asType.toType
 
-          if(fn.isDefinedAt(fieldName, fieldType, fieldValue, ownerType)) {
-            val newValue = fn(fieldName, fieldType, fieldValue, ownerType)
-            fieldMirror.set(newValue)
+            if(fn.isDefinedAt(fieldName, fieldType, fieldValue, ownerType)) {
+              val newValue = fn(fieldName, fieldType, fieldValue, ownerType)
+              fieldMirror.set(newValue)
+            }
+          } else {
+            val field = FieldUtils.getField(clazz, fieldName, true)
+            val fieldValue = field.get(obj)
+            recurseCallback(fieldValue)
+
+            val fieldType: Type = classToType(field.getType)
+            val ownerType: Type = classToType(field.getDeclaringClass)
+
+            if(fn.isDefinedAt(fieldName, fieldType, fieldValue, ownerType)) {
+              val newValue = fn(fieldName, fieldType, fieldValue, ownerType)
+              field.set(obj, newValue)
+            }
           }
+
         })
         obj
       }

@@ -123,6 +123,24 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     valueDate: Date,
     remittanceInformationUnstructured: String,
   )
+  case class SingleTransactionJsonV13(
+    description: String,
+    value: SingleTransactionValueJsonV13
+  )
+  case class SingleTransactionValueJsonV13(
+    transactionsDetails: transactionsDetailsJsonV13
+  )
+  case class transactionsDetailsJsonV13(
+    transactionId: String,
+    creditorName: String,
+    creditorAccount: CreditorAccountJson,
+    mandateId: String,
+    transactionAmount: AmountOfMoneyV13,
+    bookingDate: Date,
+    valueDate: Date,
+    remittanceInformationUnstructured: String,
+    bankTransactionCode: String,
+  )
   
   case class CardTransactionJsonV13(
     cardTransactionId: String,
@@ -419,6 +437,32 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         booked= transactions.map(transaction => createTransactionJSON(bankAccount, transaction, creditorAccount)),
         pending = transactionRequests.filter(_.status!="COMPLETED").map(transactionRequest => createTransactionFromRequestJSON(bankAccount, transactionRequest, creditorAccount)),
         _links = TransactionsV13TransactionsLinks(LinkHrefJson(s"/v1.3/accounts/$accountId"))
+      )
+    )
+  }
+
+  def createTransactionJson(bankAccount: BankAccount, transaction: ModeratedTransaction) : SingleTransactionJsonV13 = {
+    val (iban: String, bban: String) = getIbanAndBban(bankAccount)
+    val creditorAccount = CreditorAccountJson(
+      iban = iban,
+    )
+    SingleTransactionJsonV13(
+      description = transaction.description.getOrElse(""),
+      value=SingleTransactionValueJsonV13(
+        transactionsDetails = transactionsDetailsJsonV13(
+          transactionId = transaction.id.value,
+          creditorName = transaction.bankAccount.map(_.label).flatten.getOrElse(""),
+          creditorAccount,
+          mandateId =transaction.UUID,
+          transactionAmount=AmountOfMoneyV13(
+            transaction.currency.getOrElse(""),
+            transaction.amount.getOrElse("").toString,
+          ),
+          bookingDate = transaction.startDate.getOrElse(null),
+          valueDate = transaction.finishDate.getOrElse(null),
+          remittanceInformationUnstructured = transaction.description.getOrElse(""),
+          bankTransactionCode ="",
+        )
       )
     )
   }

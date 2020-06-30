@@ -351,7 +351,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       transactionRequestType=transactionRequestTypeExample.value,
       currency=currencyExample.value,
       userId=userIdExample.value,
-      userName="string")
+      username="string")
     ),
     exampleInboundMessage = (
      InBoundGetChallengeThreshold(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -382,7 +382,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       accountId=AccountId(accountIdExample.value),
       viewId=ViewId(viewIdExample.value),
       userId=userIdExample.value,
-      userName="string",
+      username="string",
       transactionRequestType=transactionRequestTypeExample.value,
       currency=currencyExample.value)
     ),
