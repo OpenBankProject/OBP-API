@@ -1,4 +1,4 @@
--- auto generated MS sql server procedures script, create on 2020-06-30T20:38:20Z
+-- auto generated MS sql server procedures script, create on 2020-06-30T21:05:30Z
 
 -- drop procedure obp_get_adapter_info
 DROP PROCEDURE IF EXISTS obp_get_adapter_info;
