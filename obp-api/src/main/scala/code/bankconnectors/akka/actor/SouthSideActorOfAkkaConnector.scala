@@ -10,7 +10,7 @@ import code.bankconnectors.LocalMappedConnector._
 import code.model.dataAccess.MappedBank
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto._
-import com.openbankproject.commons.model.{CreditLimit, _}
+import com.openbankproject.commons.model.{CreditLimit, Transaction, _}
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List
@@ -154,8 +154,8 @@ object Transformer {
   }
   
 
-  def toInternalTransaction(t: Transaction): TransactionCommons = {
-    TransactionCommons(
+  def toInternalTransaction(t: Transaction): Transaction = {
+    Transaction(
       uuid = t.uuid ,
       id  = t.id ,
       thisAccount = BankAccountCommons(

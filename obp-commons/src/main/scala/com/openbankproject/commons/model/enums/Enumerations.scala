@@ -2,10 +2,10 @@ package com.openbankproject.commons.model.enums
 
 import java.time.format.DateTimeFormatter
 
-import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
+import com.openbankproject.commons.util.{EnumValue, JsonAble, OBPEnumeration}
 import net.liftweb.common.Box
 import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.{JBool, JDouble, JInt, JValue}
+import net.liftweb.json.{Formats, JBool, JDouble, JInt, JValue}
 
 sealed trait AccountAttributeType extends EnumValue
 object AccountAttributeType extends OBPEnumeration[AccountAttributeType]{
@@ -136,3 +136,24 @@ object TransactionRequestStatus extends Enumeration {
   type TransactionRequestStatus = Value
   val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED = Value
 }
+
+
+//-------------------simple enum definition, just some sealed trait way, start-------------
+trait SimpleEnum extends JsonAble {
+  override def toJValue(implicit format: Formats): JValue = {
+    val simpleName = this.getClass.getSimpleName.replaceFirst("\\$$", "")
+    JString(simpleName)
+  }
+}
+
+trait SimpleEnumCollection[+T] {
+  def nameToValue: Map[String, T]
+
+  def valueOf(value: String): T = nameToValue.collectFirst {
+    case (name, enumValue) if name.equalsIgnoreCase(value) => enumValue
+  }.getOrElse(throw new IllegalArgumentException ("Incorrect CardAction value: " + value))
+
+
+  val availableValues = nameToValue.keys.toList
+}
+//-------------------simple enum definition, just some sealed trait way,   end-------------

@@ -5,7 +5,7 @@ import java.util.Date
 import akka.pattern.ask
 import code.actorsystem.ObpLookupSystem
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions
-import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.{bankAccountCommons, bankCommons, transactionCommons, _}
+import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.{bankAccountCommons, bankCommons, transaction, _}
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, parseDate}
 import code.api.util.ErrorMessages.{AdapterFunctionNotImplemented, AdapterUnknownError}
 import code.api.util.ExampleValue._
@@ -287,7 +287,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       InBoundGetTransactions(
         inboundAdapterCallContext,
         inboundStatus,
-        List(transactionCommons)
+        List(transaction)
       )
       ),
     adapterImplementation = Some(AdapterImplementation("Transactions", 10))
@@ -321,7 +321,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       InBoundGetTransaction(
         inboundAdapterCallContext,
         inboundStatus,
-        transactionCommons
+        transaction
       )
       ),
     adapterImplementation = Some(AdapterImplementation("Transactions", 11))

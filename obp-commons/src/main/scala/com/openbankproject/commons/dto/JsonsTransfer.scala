@@ -134,14 +134,14 @@ case class OutBoundGetTransactions(outboundAdapterCallContext: OutboundAdapterCa
                                    offset: Int,
                                    fromDate: String,
                                    toDate: String) extends TopicTrait
-case class InBoundGetTransactions(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionCommons]) extends InBoundTrait[List[TransactionCommons]]
+case class InBoundGetTransactions(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[Transaction]) extends InBoundTrait[List[Transaction]]
 
 
 case class OutBoundGetTransaction(outboundAdapterCallContext: OutboundAdapterCallContext,
                                   bankId: BankId,
                                   accountId: AccountId,
                                   transactionId: TransactionId) extends TopicTrait
-case class InBoundGetTransaction(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionCommons) extends InBoundTrait[TransactionCommons]
+case class InBoundGetTransaction(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Transaction) extends InBoundTrait[Transaction]
 
 case class OutBoundMakePaymentv210(outboundAdapterCallContext: OutboundAdapterCallContext,
                                    fromAccount: BankAccountCommons,
@@ -880,14 +880,14 @@ case class OutBoundGetTransactionsLegacy (outboundAdapterCallContext: OutboundAd
                                           offset: Int,
                                           fromDate: String,
                                           toDate: String) extends TopicTrait
-case class InBoundGetTransactionsLegacy (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionCommons]) extends InBoundTrait[List[TransactionCommons]]
+case class InBoundGetTransactionsLegacy (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[Transaction]) extends InBoundTrait[List[Transaction]]
 
 
 case class OutBoundGetTransactionLegacy (outboundAdapterCallContext: OutboundAdapterCallContext,
                                          bankId: BankId,
                                          accountID: AccountId,
                                          transactionId: TransactionId) extends TopicTrait
-case class InBoundGetTransactionLegacy (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionCommons) extends InBoundTrait[TransactionCommons]
+case class InBoundGetTransactionLegacy (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Transaction) extends InBoundTrait[Transaction]
 
 
 case class OutBoundCreatePhysicalCardLegacy (outboundAdapterCallContext: OutboundAdapterCallContext,
