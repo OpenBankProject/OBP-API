@@ -1,7 +1,7 @@
 package code.bankconnectors.storedprocedure
 
 import java.io.File
-import java.util.Date
+import java.util.{Date, TimeZone}
 
 import code.api.util.APIUtil.MessageDoc
 import code.bankconnectors.ConnectorBuilderUtil.{getClass, _}
@@ -34,6 +34,9 @@ object MSsqlStoredProcedureBuilder {
   }
 
   def main(args: Array[String]): Unit = {
+    // Boot.scala set default TimeZone, So here need also fix the TimeZone to make example Date is a fix value,
+    // not affect by local TimeZone.
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
     implicit val customFormats = formats + StatusSerializer
     val messageDocs: ArrayBuffer[MessageDoc] = StoredProcedureConnector_vDec2019.messageDocs
     def toProcedureName(processName: String) = StringHelpers.snakify(processName.replace("obp.", "obp_"))
