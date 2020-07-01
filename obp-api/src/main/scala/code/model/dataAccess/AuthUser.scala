@@ -732,13 +732,13 @@ import net.liftweb.util.Helpers._
             // assuming that user's email is always validated
             logger.debug("external user "+ sub + " does not exist locally, creating one")
             AuthUser.create
-              .firstName(sub)
+              .firstName(name.getOrElse(sub))
               .email(email.getOrElse(""))
               .username(sub)
               // No need to store password, so store dummy string instead
               .password(generateUUID())
               .provider(iss)
-              .validated(true)
+              .validated(emailVerified.getOrElse("false") == "true")
               .saveMe()
         }
         Full(user)
