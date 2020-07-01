@@ -1286,6 +1286,6 @@ case class InBoundCreateDirectDebit(inboundAdapterCallContext: InboundAdapterCal
 case class OutBoundDeleteCustomerAttribute(outboundAdapterCallContext: OutboundAdapterCallContext, customerAttributeId: String) extends TopicTrait
 case class InBoundDeleteCustomerAttribute(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Boolean) extends InBoundTrait[Boolean]
 
-case class OutBoundCheckExternalUserCredentials(outboundAdapterCallContext: OutboundAdapterCallContext, name: String, password: String) extends TopicTrait
+case class OutBoundCheckExternalUserCredentials(outboundAdapterCallContext: OutboundAdapterCallContext, username: String, password: String) extends TopicTrait
 case class InBoundCheckExternalUserCredentials(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: InboundExternalUser) extends InBoundTrait[InboundExternalUser]
 // --------------------- some special connector methods corresponding InBound and OutBound -- end --

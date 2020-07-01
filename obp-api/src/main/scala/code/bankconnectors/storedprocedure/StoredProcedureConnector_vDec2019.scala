@@ -74,7 +74,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-06-30T21:05:01Z
+// ---------- created on 2020-07-01T12:01:48Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -380,12 +380,12 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundGetUser(name=userNameExample.value,
-      password="string")
+      password=passwordExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetUser(status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= InboundUser(email=emailExample.value,
-      password="string",
+      password=passwordExample.value,
       displayName="string"))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -408,20 +408,20 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundCheckExternalUserCredentials(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      name="string",
-      password="string")
+      username=usernameExample.value,
+      password=passwordExample.value)
     ),
     exampleInboundMessage = (
      InBoundCheckExternalUserCredentials(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= InboundExternalUser(aud="string",
-      exp="string",
-      iat="string",
-      iss="string",
-      sub="string",
+      data= InboundExternalUser(aud=audExample.value,
+      exp=expExample.value,
+      iat=iatExample.value,
+      iss=issExample.value,
+      sub=subExample.value,
       azp=Some("string"),
       email=Some(emailExample.value),
-      emailVerified=Some("string"),
+      emailVerified=Some(emailVerifiedExample.value),
       name=Some(userNameExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -5649,7 +5649,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-06-30T21:05:01Z
+// ---------- created on 2020-07-01T12:01:48Z
 //---------------- dynamic end ---------------------please don't modify this line  
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
