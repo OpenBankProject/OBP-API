@@ -675,6 +675,7 @@ import net.liftweb.util.Helpers._
     * 3 if not existing, will create new AuthUser. 
     * @return Return the authUser
     */
+  @deprecated("we have @checkExternalUserViaConnector method ","01-07-2020")
   def getUserFromConnector(name: String, password: String):Box[AuthUser] = {
     Connector.connector.vend.getUser(name, password) match {
       case Full(InboundUser(extEmail, extPassword, extUsername)) => {
@@ -719,8 +720,8 @@ import net.liftweb.util.Helpers._
     * 3 if not existing, will create new AuthUser. 
     * @return Return the authUser
     */
-  def checkExternalUserViaConnector(name: String, password: String):Box[AuthUser] = {
-    Connector.connector.vend.checkExternalUserCredentials(name, password, None) match {
+  def checkExternalUserViaConnector(username: String, password: String):Box[AuthUser] = {
+    Connector.connector.vend.checkExternalUserCredentials(username, password, None) match {
       case Full(InboundExternalUser(aud, exp, iat, iss, sub, azp, email, emailVerified, name)) =>
         val user = findUserByUsernameLocally(sub) match { // Check if the external user is already created locally
           case Full(user) if user.validated_? => // Return existing user if found
@@ -875,6 +876,7 @@ def restoreSomeSessions(): Unit = {
                     case _ =>
                       LoginAttempt.incrementBadLoginAttempts(username.get)
                       Empty
+                      S.error(Helper.i18n("invalid.login.credentials"))
                 }
                 
               //If there is NO the username, throw the error message.  
@@ -927,18 +929,14 @@ def restoreSomeSessions(): Unit = {
     if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
        user <- getUserFromConnector(name, password)
-       //u <- user.user.foreign  // this will be issue when the resource user is in remote side
        u <- Users.users.vend.getUserByUserName(name)
-       v <- Full (updateUserAccountViews(u, None))
       } yield {
         user
       }
     } else {
       for {
         user <- checkExternalUserViaConnector(name, password)
-        //u <- user.user.foreign  // this will be issue when the resource user is in remote side
         u <- Users.users.vend.getUserByUserName(name)
-        v <- Full (updateUserAccountViews(u, None))
       } yield {
         user
       }
