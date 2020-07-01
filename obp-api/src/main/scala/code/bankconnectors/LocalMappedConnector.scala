@@ -1081,6 +1081,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def makePaymentv210(fromAccount: BankAccount,
                                toAccount: BankAccount,
+                               transactionRequestId: TransactionRequestId,
                                transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                amount: BigDecimal,
                                description: String,
@@ -1106,7 +1107,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (sentTransactionId, callContext)
     }
   }
-  
+
   override def makePaymentV400(transactionRequest: TransactionRequest,
                                reasons: Option[List[TransactionRequestReason]],
                                callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = Future {
@@ -3669,6 +3670,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
               toAccount,
+              transactionRequest.id,
               transactionRequestCommonBody,
               BigDecimal(transactionRequestCommonBody.value.amount),
               transactionRequestCommonBody.description,
@@ -3780,24 +3782,25 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       // If no challenge necessary, create Transaction immediately and put in data store and object to return
       (transactionRequest, callContext) <- status match {
         case TransactionRequestStatus.COMPLETED =>
-                for {
-                  (createdTransactionId, callContext) <- transactionRequestType match {
-                    case TransactionRequestType("SEPA") =>
-                      Connector.connector.vend.makePaymentV400(transactionRequest, reasons, callContext)map { i =>
-                        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForMakePayment ",400), i._2)
-                      }
-                    case _ =>
-                      NewStyle.function.makePaymentv210(
-                        fromAccount,
-                        toAccount,
-                        transactionRequestCommonBody,
-                        BigDecimal(transactionRequestCommonBody.value.amount),
-                        transactionRequestCommonBody.description,
-                        transactionRequestType,
-                        chargePolicy,
-                        callContext
-                      )
-                  }
+          for {
+            (createdTransactionId, callContext) <- transactionRequestType match {
+              case TransactionRequestType("SEPA") =>
+                Connector.connector.vend.makePaymentV400(transactionRequest, reasons, callContext)map { i =>
+                  (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForMakePayment ",400), i._2)
+                }
+              case _ =>
+                NewStyle.function.makePaymentv210(
+                  fromAccount,
+                  toAccount,
+                  transactionRequest.id,
+                  transactionRequestCommonBody,
+                  BigDecimal(transactionRequestCommonBody.value.amount),
+                  transactionRequestCommonBody.description,
+                  transactionRequestType,
+                  chargePolicy,
+                  callContext
+                )
+            }
             //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
             transactionRequest <- Future(transactionRequest.copy(challenge = null))
 
@@ -4049,6 +4052,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
               toAccount,
+              transactionRequest.id,
               transactionRequestCommonBody = sandboxBody,
               BigDecimal(sandboxBody.value.amount),
               sandboxBody.description,
@@ -4077,6 +4081,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
               toAccount,
+              transactionRequest.id,
               transactionRequestCommonBody = counterpartyBody,
               BigDecimal(counterpartyBody.value.amount),
               counterpartyBody.description,
@@ -4105,6 +4110,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
               toAccount,
+              transactionRequest.id,
               transactionRequestCommonBody = sepaBody,
               BigDecimal(sepaBody.value.amount),
               sepaBody.description,
@@ -4125,6 +4131,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           (transactionId, callContext) <- NewStyle.function.makePaymentv210(
             fromAccount,
             fromAccount,
+            transactionRequest.id,
             transactionRequestCommonBody = freeformBody,
             BigDecimal(freeformBody.value.amount),
             freeformBody.description,
@@ -4145,6 +4152,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
             fromAccount,
             toAccount,
+            transactionRequest.id,
             TransactionRequestCommonBodyJSONCommons(
               toSepaCreditTransfers.instructedAmount,
               ""
