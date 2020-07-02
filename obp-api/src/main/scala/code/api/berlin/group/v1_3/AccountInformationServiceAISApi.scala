@@ -286,16 +286,21 @@ The account-id is constant at least throughout the lifecycle of a given consent.
 """,
        json.parse(""""""),
        json.parse("""{
-  "balances" : "",
-  "account" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
-}"""),
+  "account":{
+    "iban":"DE91 1000 0000 0123 4567 89"
+  },
+  "balances":[{
+    "balanceAmount":{
+      "currency":"EUR",
+      "amount":"50.89"
+    },
+    "balanceType":"AC",
+    "lastChangeDateTime":"yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+    "lastCommittedTransaction":"String",
+    "referenceDate":"2018-03-08"
+  }]
+}
+"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
@@ -313,11 +318,8 @@ The account-id is constant at least throughout the lifecycle of a given consent.
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
               u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
             }
-            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
           } yield {
-            (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(bankAccount, transactionRequests), HttpCode.`200`(callContext))
+            (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(bankAccount), HttpCode.`200`(callContext))
            }
          }
        }
@@ -448,15 +450,19 @@ This account-id then can be retrieved by the
 """,
        json.parse(""""""),
        json.parse("""{
-  "balances" : "",
-  "cardAccount" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
+  "cardAccount":{
+    "iban":"DE91 1000 0000 0123 4567 89"
+  },
+  "balances":[{
+    "balanceAmount":{
+      "currency":"EUR",
+      "amount":"50.89"
+    },
+    "balanceType":"AC",
+    "lastChangeDateTime":"yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+    "lastCommittedTransaction":"String",
+    "referenceDate":"2018-03-08"
+  }]
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
@@ -476,11 +482,8 @@ This account-id then can be retrieved by the
              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
                u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
              }
-             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
-               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
-             } map { unboxFull(_) }
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(bankAccount, transactionRequests), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(bankAccount), HttpCode.`200`(callContext))
            }
        }
      }
