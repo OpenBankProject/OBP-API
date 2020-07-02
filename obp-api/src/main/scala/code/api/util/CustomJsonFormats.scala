@@ -199,14 +199,21 @@ object FieldIgnoreSerializer extends Serializer[AnyRef] {
       APIUtil.getPropsValue("inbound.ignore.fields", "").split("""\s*,\s*""")
     ).flatten.filterNot(StringUtils.isBlank).toList
 
+  // keep current process InBound or OutBound instance, avoid dead loop.
+  private val threadLocal = new java.lang.ThreadLocal[Any]
 
   override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = {
-    case x if isInOutBoundType(x) =>
-      val ignoreFieldNames: List[String] = getIgnores(ReflectUtils.getType(x)) ::: propsConfigIgnoreFields
-      val zson = json.Extraction.decompose(x)(CustomJsonFormats.formats)
-      ignoreFieldNames match {
-        case Nil => zson
-        case ignores => JsonUtils.deleteFields(zson, ignores)
+    case x if isInOutBoundType(x) && threadLocal.get() == null =>
+      threadLocal.set(x)
+      try{
+        val ignoreFieldNames: List[String] = getIgnores(ReflectUtils.getType(x)) ::: propsConfigIgnoreFields
+        val zson = json.Extraction.decompose(x)
+        ignoreFieldNames match {
+          case Nil => zson
+          case ignores => JsonUtils.deleteFields(zson, ignores)
+        }
+      } finally {
+        threadLocal.remove()
       }
   }
 
