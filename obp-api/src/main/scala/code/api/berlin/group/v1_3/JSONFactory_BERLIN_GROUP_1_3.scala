@@ -283,7 +283,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           iban = iBan,
           bban = bBan,
           currency = x.currency,
-          name = x.label,
+          name = x.name,
           bic = getBicFromBankId(x.bankId.value),
           cashAccountType = x.accountType,
           product = x.accountType,
@@ -305,7 +305,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       resourceId = bankAccount.accountId.value,
       iban = iBan,
       currency = bankAccount.currency,
-      name = bankAccount.label,
+      name = bankAccount.name,
       cashAccountType = bankAccount.accountType,
       product = bankAccount.accountType,
       _links = AccountDetailsLinksJsonV13(
