@@ -829,3 +829,7 @@ dynamic_endpoints_url_prefix=dynamic
 # You can also explicitly refresh the user using the refresh user endpoint.
 # refresh_user.interval=30
 # --------------------------------------------------------------------
+
+## Inbound and Outbound ignore field names
+inbound.ignore.fields=
+outbound.ignore.fields=outboundAdapterCallContext.generalContext,outboundAdapterCallContext.outboundAdapterAuthInfo.linkedCustomers,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.view,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.account,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.view,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.account,inboundAdapterCallContext.generalContext
