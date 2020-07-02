@@ -34,7 +34,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     balanceAmount:AmountOfMoneyV13 = AmountOfMoneyV13("EUR","123"),
     balanceType: String = "closingBooked",
     lastChangeDateTime: String = "2019-01-28T06:26:52.185Z",
-    referenceDate: String = "string",
+    referenceDate: String = "2020-07-02",
     lastCommittedTransaction: String = "string",
   )
   case class CoreAccountJsonV13(
@@ -266,17 +266,13 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       x =>
         val (iBan: String, bBan: String) = getIbanAndBban(x)
 
-        val transactionRequests: List[TransactionRequest] = Connector.connector.vend.getTransactionRequests210(user, x).map(_._1)getOrElse(Nil)
-        // get the latest end_date of `COMPLETED` transactionRequests
-        val latestCompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status == "COMPLETED").map(_.end_date).headOption.getOrElse(null)
-        //get the latest end_date of !`COMPLETED` transactionRequests
-        val latestUncompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status != "COMPLETED").map(_.end_date).headOption.getOrElse(null)
         val balance =
           CoreAccountBalancesJson(
             balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
             balanceType = APIUtil.stringOrNull(x.accountType),
-            lastChangeDateTime = if(latestCompletedEndDate == null) null else APIUtil.DateWithDayFormat.format(latestCompletedEndDate),
-            lastCommittedTransaction = if(latestUncompletedEndDate == null) null else latestUncompletedEndDate.toString
+            lastChangeDateTime=APIUtil.DateWithDayFormat.format(x.lastUpdate),
+            referenceDate =APIUtil.DateWithMsRollback.format(x.lastUpdate),
+            lastCommittedTransaction = "String"
           )
         CoreAccountJsonV13(
           resourceId = x.accountId.value,

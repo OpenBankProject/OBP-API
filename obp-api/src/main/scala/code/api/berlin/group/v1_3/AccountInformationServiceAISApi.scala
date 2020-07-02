@@ -213,46 +213,33 @@ of the PSU at this ASPSP.
 """,
        json.parse(""""""),
        json.parse("""{
-  "accounts" : [ {
-    "cashAccountType" : { },
-    "product" : "product",
-    "resourceId" : "resourceId",
-    "bban" : "BARC12345612345678",
-    "_links" : {
-      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "usage" : "PRIV",
-    "balances" : "",
-    "iban" : "FR7612345987650123456789014",
-    "linkedAccounts" : "linkedAccounts",
-    "name" : "name",
-    "currency" : "EUR",
-    "details" : "details",
-    "msisdn" : "+49 170 1234567",
-    "bic" : "AAAADEBBXXX",
-    "status" : { }
-  }, {
-    "cashAccountType" : { },
-    "product" : "product",
-    "resourceId" : "resourceId",
-    "bban" : "BARC12345612345678",
-    "_links" : {
-      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "usage" : "PRIV",
-    "balances" : "",
-    "iban" : "FR7612345987650123456789014",
-    "linkedAccounts" : "linkedAccounts",
-    "name" : "name",
-    "currency" : "EUR",
-    "details" : "details",
-    "msisdn" : "+49 170 1234567",
-    "bic" : "AAAADEBBXXX",
-    "status" : { }
-  } ]
-}"""),
+                    |  "accounts":[{
+                    |    "resourceId":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                    |    "iban":"DE91 1000 0000 0123 4567 89",
+                    |    "bban":" 1000 0000 0123 4567 89",
+                    |    "currency":"EUR",
+                    |    "name":"TOM",
+                    |    "product":"AC",
+                    |    "cashAccountType":"AC",
+                    |    "bic":"AAAADEBBXXX",
+                    |    "balances":{
+                    |      "balanceAmount":{
+                    |        "currency":"EUR",
+                    |        "amount":"50.89"
+                    |      },
+                    |      "balanceType":"AC",
+                    |      "lastChangeDateTime":"2020-07-02T10:23:57.81Z",
+                    |      "referenceDate":"2020-07-02",
+                    |      "lastCommittedTransaction":"entryReference of the last commited transaction to support the TPP in identifying whether all PSU transactions are already known."
+                    |    },
+                    |    "_links":{
+                    |      "balances":{
+                    |        "href":"/v1.3/accounts/8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0/balances"
+                    |      }
+                    |    }
+                    |  }]
+                    |}
+                    |""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
