@@ -29,7 +29,7 @@ package com.openbankproject.commons.model
 import java.util.Date
 
 import com.openbankproject.commons.model.enums._
-import com.openbankproject.commons.util.{JsonAble, ReflectUtils}
+import com.openbankproject.commons.util.{JsonAble, ReflectUtils, ignore}
 import net.liftweb.json
 import net.liftweb.json.{Formats, JInt, JString}
 import net.liftweb.json.JsonAST.{JObject, JValue}
@@ -248,7 +248,9 @@ case class BankCommons(
                         websiteUrl :String,
                         bankRoutingScheme :String,
                         bankRoutingAddress :String,
+                        @ignore
                         swiftBic :String,
+                        @ignore
                         nationalIdentifier :String) extends Bank {
   def this(bankId :BankId,
     shortName :String,
