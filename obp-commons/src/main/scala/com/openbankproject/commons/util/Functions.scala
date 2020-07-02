@@ -72,13 +72,19 @@ object Functions {
       private val cache = new java.util.concurrent.atomic.AtomicReference(Map[A, R]())
 
       def memoize(x: A, f: A => R): R = {
-        val c = cache.get
         def addToCache() = {
           val ret = f(x)
-          cache.set(c + (x -> ret))
+
+          // if after execute f, the x not cached or cached but value changed, update cached value
+          val c: Map[A, R] = cache.get
+          val cachedValue = c.get(x)
+          if(cachedValue.isEmpty || cachedValue.get != ret) {
+            cache.set(c + (x -> ret))
+          }
+
           ret
         }
-        c.getOrElse(x, addToCache)
+        cache.get.getOrElse(x, addToCache)
       }
     }
 
