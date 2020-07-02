@@ -635,13 +635,21 @@ case class SepaCreditTransfers( //This is from berlinGroup
 )
 
 case class TransactionRequestBodyAllTypes (
+                                            @ignore
                                             to_sandbox_tan: Option[TransactionRequestAccount],
+                                            @ignore   
                                             to_sepa: Option[TransactionRequestIban],
+                                            @ignore  
                                             to_counterparty: Option[TransactionRequestCounterpartyId],
+                                            @ignore  
                                             to_transfer_to_phone: Option[TransactionRequestTransferToPhone] = None, //TODO not stable
+                                            @ignore  
                                             to_transfer_to_atm: Option[TransactionRequestTransferToAtm]= None,//TODO not stable
+                                            @ignore  
                                             to_transfer_to_account: Option[TransactionRequestTransferToAccount]= None,//TODO not stable
+                                            @ignore  
                                             to_sepa_credit_transfers: Option[SepaCreditTransfers]= None,//TODO not stable, from berlin Group
+  
                                             value: AmountOfMoney,
                                             description: String
                                           )
@@ -667,17 +675,29 @@ case class TransactionRequest (
                                 val end_date: Date,
                                 val challenge: TransactionRequestChallenge,
                                 val charge: TransactionRequestCharge,
+                                @ignore  
                                 val charge_policy: String,
+                                @ignore  
                                 val counterparty_id :CounterpartyId,
+                                @ignore  
                                 val name :String,
+                                @ignore  
                                 val this_bank_id : BankId,
+                                @ignore  
                                 val this_account_id : AccountId,
+                                @ignore  
                                 val this_view_id :ViewId,
+                                @ignore  
                                 val other_account_routing_scheme : String,
+                                @ignore  
                                 val other_account_routing_address : String,
+                                @ignore  
                                 val other_bank_routing_scheme : String,
+                                @ignore  
                                 val other_bank_routing_address : String,
+                                @ignore  
                                 val is_beneficiary :Boolean,
+                                @ignore  
                                 val future_date :Option[String] = None
                               )
 case class TransactionRequestBody (
