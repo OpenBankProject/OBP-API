@@ -181,7 +181,8 @@ trait BankAccount{
   //def productCode : String // TODO Add this shorter code.
   def balance : BigDecimal
   def currency : String
-  def name : String // Is this used?
+  def name : String // Is this used? -->It is used for BerlinGroup V1.3, it has the name in account response. 
+                                        // `Name of the account given by the bank or the PSU in online-banking.`
   def label : String
   @deprecated("We should use accountRoutings instead")
   def iban : Option[String]
