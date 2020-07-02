@@ -119,16 +119,22 @@ case class BankAccountCommons(
                                balance :BigDecimal,
                                currency :String,
                                name :String,
+                               @ignore   
                                label :String,
+                               @ignore  
                                iban :Option[String],
                                number :String,
                                bankId :BankId,
                                lastUpdate :Date,
                                branchId :String,
+                               @ignore   
                                accountRoutingScheme :String,
+                               @ignore   
                                accountRoutingAddress :String,
                                accountRoutings :List[AccountRouting],
+                               @ignore   
                                accountRules :List[AccountRule],
+                               @ignore   
                                accountHolder :String) extends BankAccount
 
 object BankAccountCommons extends Converter[BankAccount, BankAccountCommons]
@@ -182,22 +188,35 @@ case class CustomerAddressCommons(
 
 object CustomerAddressCommons extends Converter[CustomerAddress, CustomerAddressCommons]
 
-
+//This class is only used for connector.getBankAccountsForUser method. Not the used for accounts relevant endpoints.
+//It will get the bankId, accountId and viewsToGenerate to create the OBP side data, such as views, accountHolder.
 case class InboundAccountCommons(
                                         bankId :String,
+                                        @ignore
                                         branchId :String,
                                         accountId :String,
+                                        @ignore
                                         accountNumber :String,
+                                        @ignore
                                         accountType :String,
+                                        @ignore
                                         balanceAmount :String,
+                                        @ignore
                                         balanceCurrency :String,
+                                        @ignore
                                         owners :List[String],
                                         viewsToGenerate :List[String],
+                                        @ignore
                                         bankRoutingScheme :String,
+                                        @ignore
                                         bankRoutingAddress :String,
+                                        @ignore
                                         branchRoutingScheme :String,
+                                        @ignore
                                         branchRoutingAddress :String,
+                                        @ignore
                                         accountRoutingScheme :String,
+                                        @ignore
                                         accountRoutingAddress :String) extends InboundAccount
 
 object InboundAccountCommons extends Converter[InboundAccount, InboundAccountCommons]
