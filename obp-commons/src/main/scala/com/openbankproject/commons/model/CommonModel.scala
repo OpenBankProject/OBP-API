@@ -708,10 +708,11 @@ case class TransactionRequestBody (
 
 case class Transaction(
                    //A universally unique id
+                   @ignore
                    val uuid: String,
                    //id is unique for transactions of @thisAccount
                    val id : TransactionId,
-                   val thisAccount : BankAccount,
+                   val thisAccount : BankAccountCommons,
                    val otherAccount : Counterparty,
                    //E.g. cash withdrawal, electronic payment, etc.
                    val transactionType : String,

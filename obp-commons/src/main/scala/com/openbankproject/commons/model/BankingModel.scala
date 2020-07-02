@@ -28,7 +28,7 @@ package com.openbankproject.commons.model
 
 import java.util.Date
 
-import com.openbankproject.commons.util.OBPRequired
+import com.openbankproject.commons.util.{OBPRequired, ignore}
 
 import scala.collection.immutable.List
 import scala.math.BigDecimal
@@ -234,18 +234,25 @@ as see from the perspective of the original party.
 case class Counterparty(
   
   @deprecated("older version, please first consider the V210, account scheme and address","05/05/2017")
+  @ignore
   val nationalIdentifier: String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
   val kind: String, // Type of bank account.
   
   // The following fields started from V210
+  @ignore
   val counterpartyId: String,
   val counterpartyName: String,
   val thisBankId: BankId, // i.e. the Account that sends/receives money to/from this Counterparty
   val thisAccountId: AccountId, // These 2 fields specify the account that uses this Counterparty
+  @ignore
   val otherBankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
+  @ignore
   val otherBankRoutingAddress: Option[String], // The (BIC) value e.g. 67895
+  @ignore
   val otherAccountRoutingScheme: String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
+  @ignore
   val otherAccountRoutingAddress: Option[String], // The (IBAN) value e.g. 2349870987820374
+  @ignore
   val otherAccountProvider: String, // hasBankId and hasAccountId would refer to an OBP account
   val isBeneficiary: Boolean // True if the originAccount can send money to the Counterparty
 )
