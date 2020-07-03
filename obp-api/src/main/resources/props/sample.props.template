@@ -829,3 +829,10 @@ dynamic_endpoints_url_prefix=dynamic
 # You can also explicitly refresh the user using the refresh user endpoint.
 # refresh_user.interval=30
 # --------------------------------------------------------------------
+
+# --- export one Connector as endpoint,the connector name should be fulfil these rule ------
+## (1) if: connector=star, the connector should match props value of 'starConnector_supported_types'
+## (2) else: connector name should be the same as props value of connector, e.g: connector=rest_vMar2019, then the connector should must also be rest_vMar2019
+## example:
+#connector.name.export.as.endpoint=stored_procedure_vDec2019
+# ------------------------------------------------------------------------------------------
