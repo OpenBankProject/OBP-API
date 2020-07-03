@@ -41,7 +41,7 @@ object ConnectorEndpoints extends RestHelper{
   }
 
   lazy val connectorGetMethod: OBPEndpoint = {
-    case "restConnector" :: methodName :: Nil JsonAny json -> req if(hashMethod(methodName, json))  => {
+    case "connector" :: methodName :: Nil JsonAny json -> req if(hashMethod(methodName, json))  => {
       cc => {
         val methodSymbol: ru.MethodSymbol = getMethod(methodName, json).get
         val outBoundType = Class.forName(s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}")
