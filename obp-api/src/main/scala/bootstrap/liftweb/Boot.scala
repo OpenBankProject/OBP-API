@@ -47,7 +47,7 @@ import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.atms.MappedAtm
-import code.bankconnectors.ConnectorEndpoints
+import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.bankconnectors.storedprocedure.StoredProceduresMockedData
 import code.branches.MappedBranch
 import code.cardattribute.MappedCardAttribute
@@ -600,8 +600,23 @@ class Boot extends MdcLoggable {
 
     Migration.database.executeScripts()
 
-    // whether export LocalMappedConnector methods as endpoints, it is just for develop
-    if (APIUtil.getPropsAsBoolValue("connector.export.LocalMappedConnector", false)){
+    // export one Connector's methods as endpoints, it is just for develop
+    APIUtil.getPropsValue("connector.name.export.as.endpoint").foreach { connectorName =>
+      // validate whether "connector.name.export.as.endpoint" have set a correct value
+      APIUtil.getPropsValue("connector") match {
+        case Full("star") =>
+          val starConnectorTypes = APIUtil.getPropsValue("starConnector_supported_types","mapped")
+            .trim
+            .split("""\s*,\s*""")
+
+          val allSupportedConnectors: List[String] = Connector.nameToConnector.keys.toList
+            .filter(it => starConnectorTypes.exists(it.startsWith(_)))
+
+          assert(allSupportedConnectors.contains(connectorName), s"connector.name.export.as.endpoint=$connectorName, this value should be one of ${allSupportedConnectors.mkString(",")}")
+        case Full(connector) =>
+          assert(connector == connectorName, s"When 'connector=$connector', this props must be: connector.name.export.as.endpoint=$connector, but current it is $connectorName")
+      }
+
       ConnectorEndpoints.registerConnectorEndpoints
     }
 
