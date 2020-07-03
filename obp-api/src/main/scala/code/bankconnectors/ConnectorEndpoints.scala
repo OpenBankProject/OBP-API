@@ -136,9 +136,12 @@ object ConnectorEndpoints extends RestHelper{
 
       paramValues
   }
-
+  private lazy val connector: Connector = {
+    val connectorName = APIUtil.getPropsValue("connector.name.export.as.endpoint", "mapped")
+    Connector.getConnectorInstance(connectorName)
+  }
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
-  private val mirrorObj: ru.InstanceMirror = mirror.reflect(LocalMappedConnector)
+  private val mirrorObj: ru.InstanceMirror = mirror.reflect(connector)
 
   // it is impossible to get the type of OBPQueryParam*, ru.typeOf[OBPQueryParam*] not work, it is Seq type indeed
   private val paramsType = ru.typeOf[Seq[OBPQueryParam]]
@@ -146,12 +149,11 @@ object ConnectorEndpoints extends RestHelper{
   // (methodName, paramNames, method, allParamNames, fn: paramName => isOption)
   lazy val allMethods: List[(String, List[String], ru.MethodSymbol, List[String], String => Boolean)] = {
      val mirror: ru.Mirror = ru.runtimeMirror(this.getClass.getClassLoader)
-     val objMirror = mirror.reflect(LocalMappedConnector)
 
      val isCallContextOrQueryParams = (tp: ru.Type) => {
        tp <:< ru.typeOf[Option[CallContext]] || tp <:< paramsType
      }
-     objMirror.symbol.toType.members
+    mirrorObj.symbol.toType.members
        .filter(_.isMethod)
        .map(it => {
          val allParams = it.asMethod.paramLists.headOption.getOrElse(Nil)
