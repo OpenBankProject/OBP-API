@@ -230,7 +230,7 @@ object ExampleValue {
   lazy val transactionRequestTypeExample = ConnectorField("SEPA", "The Transaction Request Type defines the request body that is required - and the logic / flow of the Transaction Request. Allowed values include SEPA, COUNTERPARTY and SANDBOX_TAN.")
   glossaryItems += makeGlossaryItem("Transaction Requests.Transaction Request Type", transactionRequestTypeExample)
 
-  lazy val transactionRequestIdExample = ConnectorField("8138a7e4-6d02-40e3-a129-0b2bf89de9f1", "The Transaction Request Id,")
+  lazy val transactionRequestIdExample = ConnectorField("8138a7e4-6d02-40e3-a129-0b2bf89de9f1", "The Transaction Request Id")
   glossaryItems += makeGlossaryItem("Transaction Requests.id", transactionRequestIdExample)
   
   lazy val transactionRequestCounterpartyIdExample = counterpartyIdExample
