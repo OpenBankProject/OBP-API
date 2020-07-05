@@ -183,8 +183,10 @@ trait BankAccount{
   def currency : String
   def name : String // Is this used? -->It is used for BerlinGroup V1.3, it has the name in account response. 
                                         // `Name of the account given by the bank or the PSU in online-banking.`
-  def label : String
+  @ignore
+  def label: String
   @deprecated("We should use accountRoutings instead")
+  @ignore 
   def iban : Option[String]
   def number : String
   def bankId : BankId
@@ -192,13 +194,16 @@ trait BankAccount{
   def lastUpdate : Date
   def branchId: String
   @deprecated("We should use accountRoutings instead")
+  @ignore 
   def accountRoutingScheme: String
   @deprecated("We should use accountRoutings instead")
+  @ignore 
   def accountRoutingAddress: String
   def accountRoutings: List[AccountRouting] // Introduced in v3.0.0
+  @ignore 
   def accountRules: List[AccountRule]
-
   @deprecated("Get the account holder(s) via owners")
+  @ignore 
   def accountHolder : String
 }
 
