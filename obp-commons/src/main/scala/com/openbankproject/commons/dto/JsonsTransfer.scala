@@ -31,7 +31,6 @@ import java.util.Date
 import com.openbankproject.commons.model.enums.{CardAttributeType, CustomerAttributeType, DynamicEntityOperation, StrongCustomerAuthentication, TransactionAttributeType, TransactionRequestStatus}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.{enums, _}
-import com.openbankproject.commons.util.ignore
 import net.liftweb.json.{JObject, JValue}
 
 import scala.collection.immutable.List
@@ -479,7 +478,7 @@ case class OutBoundCreateCounterparty(outboundAdapterCallContext: OutboundAdapte
 
 case class InBoundCreateCounterparty(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CounterpartyTraitCommons) extends InBoundTrait[CounterpartyTraitCommons]
 
-case class OutBoundGetTransactionRequests210(outboundAdapterCallContext: OutboundAdapterCallContext, @ignore initiator : User, fromAccount : BankAccountCommons) extends TopicTrait
+case class OutBoundGetTransactionRequests210(outboundAdapterCallContext: OutboundAdapterCallContext, initiator : User, fromAccount : BankAccount) extends TopicTrait
 
 case class InBoundGetTransactionRequests210(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionRequest]) extends InBoundTrait[List[TransactionRequest]]
 
@@ -509,8 +508,8 @@ case class InBoundGetCounterparties(inboundAdapterCallContext: InboundAdapterCal
 
 
 case class OutBoundMakeHistoricalPayment(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                         fromAccount: BankAccountCommons,
-                                         toAccount: BankAccountCommons,
+                                         fromAccount: BankAccount,
+                                         toAccount: BankAccount,
                                          posted: Date,
                                          completed: Date,
                                          amount: BigDecimal,
@@ -1001,22 +1000,22 @@ case class InBoundMakePayment(status: Status, data: TransactionId) extends InBou
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundMakePaymentv200(fromAccount: BankAccountCommons, toAccount: BankAccountCommons, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amount: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String) extends TopicTrait
+case class OutBoundMakePaymentv200(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amount: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String) extends TopicTrait
 case class InBoundMakePaymentv200(status: Status, data: TransactionId) extends InBoundTrait[TransactionId] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundMakePaymentImpl(fromAccount: BankAccountCommons, toAccount: BankAccountCommons, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String) extends TopicTrait
+case class OutBoundMakePaymentImpl(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String) extends TopicTrait
 case class InBoundMakePaymentImpl(status: Status, data: TransactionId) extends InBoundTrait[TransactionId] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundCreateTransactionRequest(initiator: User, fromAccount: BankAccountCommons, toAccount: BankAccountCommons, transactionRequestType: TransactionRequestType, body: TransactionRequestBody) extends TopicTrait
+case class OutBoundCreateTransactionRequest(initiator: User, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, body: TransactionRequestBody) extends TopicTrait
 case class InBoundCreateTransactionRequest(status: Status, data: TransactionRequest) extends InBoundTrait[TransactionRequest] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundCreateTransactionRequestv200(initiator: User, fromAccount: BankAccountCommons, toAccount: BankAccountCommons, transactionRequestType: TransactionRequestType, body: TransactionRequestBody) extends TopicTrait
+case class OutBoundCreateTransactionRequestv200(initiator: User, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, body: TransactionRequestBody) extends TopicTrait
 case class InBoundCreateTransactionRequestv200(status: Status, data: TransactionRequest) extends InBoundTrait[TransactionRequest] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
@@ -1033,15 +1032,15 @@ case class InBoundGetChargeValue(status: Status, data: String) extends InBoundTr
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundCreateTransactionRequestv400(outboundAdapterCallContext: OutboundAdapterCallContext, initiator: User, viewId: ViewId, fromAccount: BankAccountCommons, toAccount: BankAccountCommons, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA]) extends TopicTrait
+case class OutBoundCreateTransactionRequestv400(outboundAdapterCallContext: OutboundAdapterCallContext, initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA]) extends TopicTrait
 case class InBoundCreateTransactionRequestv400(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest) extends InBoundTrait[TransactionRequest]
 
-case class OutBoundCreateTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, fromAccount: BankAccountCommons, counterparty: BankAccountCommons, body: TransactionRequestBody, status: String, charge: TransactionRequestCharge) extends TopicTrait
+case class OutBoundCreateTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, fromAccount: BankAccount, counterparty: BankAccount, body: TransactionRequestBody, status: String, charge: TransactionRequestCharge) extends TopicTrait
 case class InBoundCreateTransactionRequestImpl(status: Status, data: TransactionRequest) extends InBoundTrait[TransactionRequest] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundCreateTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, fromAccount: BankAccountCommons, toAccount: BankAccountCommons, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String) extends TopicTrait
+case class OutBoundCreateTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String) extends TopicTrait
 case class InBoundCreateTransactionRequestImpl210(status: Status, data: TransactionRequest) extends InBoundTrait[TransactionRequest] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
@@ -1071,7 +1070,7 @@ case class InBoundSaveTransactionRequestStatusImpl(status: Status, data: Boolean
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundGetTransactionRequests(initiator: User, fromAccount: BankAccountCommons) extends TopicTrait
+case class OutBoundGetTransactionRequests(initiator: User, fromAccount: BankAccount) extends TopicTrait
 case class InBoundGetTransactionRequests(status: Status, data: List[TransactionRequest]) extends InBoundTrait[List[TransactionRequest]] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
@@ -1086,22 +1085,22 @@ case class InBoundGetTransactionRequestStatusesImpl(status: Status, data: Transa
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundGetTransactionRequestsImpl(fromAccount: BankAccountCommons) extends TopicTrait
+case class OutBoundGetTransactionRequestsImpl(fromAccount: BankAccount) extends TopicTrait
 case class InBoundGetTransactionRequestsImpl(status: Status, data: List[TransactionRequest]) extends InBoundTrait[List[TransactionRequest]] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundGetTransactionRequestsImpl210(fromAccount: BankAccountCommons) extends TopicTrait
+case class OutBoundGetTransactionRequestsImpl210(fromAccount: BankAccount) extends TopicTrait
 case class InBoundGetTransactionRequestsImpl210(status: Status, data: List[TransactionRequest]) extends InBoundTrait[List[TransactionRequest]] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundGetTransactionRequestTypes(initiator: User, fromAccount: BankAccountCommons) extends TopicTrait
+case class OutBoundGetTransactionRequestTypes(initiator: User, fromAccount: BankAccount) extends TopicTrait
 case class InBoundGetTransactionRequestTypes(status: Status, data: List[TransactionRequestType]) extends InBoundTrait[List[TransactionRequestType]] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundGetTransactionRequestTypesImpl(fromAccount: BankAccountCommons) extends TopicTrait
+case class OutBoundGetTransactionRequestTypesImpl(fromAccount: BankAccount) extends TopicTrait
 case class InBoundGetTransactionRequestTypesImpl(status: Status, data: List[TransactionRequestType]) extends InBoundTrait[List[TransactionRequestType]] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
@@ -1111,7 +1110,7 @@ case class InBoundCreateTransactionAfterChallenge(status: Status, data: Transact
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundCreateTransactionAfterChallengev200(fromAccount: BankAccountCommons, toAccount: BankAccountCommons, transactionRequest: TransactionRequest) extends TopicTrait
+case class OutBoundCreateTransactionAfterChallengev200(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest) extends TopicTrait
 case class InBoundCreateTransactionAfterChallengev200(status: Status, data: TransactionRequest) extends InBoundTrait[TransactionRequest] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
@@ -1121,9 +1120,9 @@ case class InBoundAddBankAccount(inboundAdapterCallContext: InboundAdapterCallCo
 
 case class BankAndBankAccount(bank: BankCommons, account: BankAccountCommons)
 case class OutBoundCreateBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String, accountType: String, accountLabel: String, currency: String, accountHolderName: String, branchId: String, accountRoutingScheme: String, accountRoutingAddress: String) extends TopicTrait
-case class InBoundCreateBankAndAccount(status: Status, value: BankAndBankAccount) extends InBoundTrait[(Bank, BankAccountCommons)] {
+case class InBoundCreateBankAndAccount(status: Status, value: BankAndBankAccount) extends InBoundTrait[(Bank, BankAccount)] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
-  override val data: (Bank, BankAccountCommons) = (value.bank, value.account)
+  override val data: (Bank, BankAccount) = (value.bank, value.account)
 }
 
 case class OutBoundCreateSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String, accountType: String, accountLabel: String, currency: String, initialBalance: BigDecimal, accountHolderName: String, branchId: String, accountRoutingScheme: String, accountRoutingAddress: String) extends TopicTrait
