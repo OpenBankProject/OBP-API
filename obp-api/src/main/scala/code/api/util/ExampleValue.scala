@@ -1,10 +1,12 @@
 package code.api.util
 
 
+import code.api.util.APIUtil.parseDate
 import net.liftweb.json.JsonDSL._
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
 import code.dynamicEntity.{DynamicEntityDefinition, DynamicEntityFooBar, DynamicEntityFullBarFields, DynamicEntityIntTypeExample, DynamicEntityStringTypeExample}
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
+import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json
 import net.liftweb.json.JObject
 
@@ -670,7 +672,25 @@ object ExampleValue {
   lazy val dynamicEndpointRequestBodyExample = json.parse(dynamicEndpointSwagger).asInstanceOf[JObject]
   lazy val dynamicEndpointResponseBodyExample = ("dynamic_endpoint_id", "dynamic-endpoint-id") ~ ("swagger_string", dynamicEndpointRequestBodyExample)
 
+  /**
+   * parse date example value to Date type
+   * @param exampleValue example value
+   * @return parsed Date type value
+   */
+  def toDate(exampleValue: ConnectorField) = {
+    exampleNameToValue.collectFirst {
+      case (name, example) if example == exampleValue => parseDate(example.value).getOrElse(sys.error(s"$name.value is not a valid date format."))
+    }.getOrElse(sys.error(s"$exampleValue is not an example value of code.api.util.ExampleValue"))
+  }
+
+
+
+  /**
+   * all ConnectorField type example name map value
+   */
+  lazy val exampleNameToValue: Map[String, ConnectorField] = ReflectUtils.getFieldsNameToValue[ConnectorField](this)
 }
+
 
 
 

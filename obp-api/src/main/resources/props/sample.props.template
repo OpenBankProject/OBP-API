@@ -833,3 +833,11 @@ dynamic_endpoints_url_prefix=dynamic
 ## Inbound and Outbound ignore field names
 inbound.ignore.fields=
 outbound.ignore.fields=outboundAdapterCallContext.generalContext,outboundAdapterCallContext.outboundAdapterAuthInfo.linkedCustomers,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.view,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.account,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.view,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.account,inboundAdapterCallContext.generalContext
+
+
+# --- export one Connector as endpoint,the connector name should be fulfil these rule ------
+## (1) if: connector=star, the connector should match props value of 'starConnector_supported_types'
+## (2) else: connector name should be the same as props value of connector, e.g: connector=rest_vMar2019, then the connector should must also be rest_vMar2019
+## example:
+#connector.name.export.as.endpoint=stored_procedure_vDec2019
+# ------------------------------------------------------------------------------------------
