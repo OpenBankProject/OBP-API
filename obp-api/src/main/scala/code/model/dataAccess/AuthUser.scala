@@ -738,7 +738,7 @@ import net.liftweb.util.Helpers._
               // No need to store password, so store dummy string instead
               .password(generateUUID())
               .provider(iss)
-              .validated(emailVerified.getOrElse("false").toLowerCase() == "true")
+              .validated(emailVerified.exists(_.equalsIgnoreCase("true")))
               .saveMe()
         }
         Full(user)

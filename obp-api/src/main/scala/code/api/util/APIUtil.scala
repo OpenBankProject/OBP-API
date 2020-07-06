@@ -2369,7 +2369,7 @@ Returns a string showed to the developer
       Future{(cc.user, Some(cc))}
     }
     else {
-      Future { (Empty, None) }
+      Future { (Empty, Some(cc)) }
     }
     
     
