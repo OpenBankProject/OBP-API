@@ -20,6 +20,7 @@ import io.swagger.v3.oas.models.parameters.RequestBody
 import io.swagger.v3.oas.models.responses.{ApiResponse, ApiResponses}
 import io.swagger.v3.oas.models.{OpenAPI, Operation, PathItem}
 import io.swagger.v3.parser.OpenAPIV3Parser
+import net.liftweb.common.{Box, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
@@ -44,25 +45,41 @@ object DynamicEndpointHelper extends RestHelper {
    */
   val urlPrefix = APIUtil.getPropsValue("dynamic_endpoints_url_prefix", "dynamic")
 
-  private lazy val dynamicEndpointInfos: CopyOnWriteArrayList[DynamicEndpointInfo] = {
+  private def dynamicEndpointInfos: List[DynamicEndpointInfo] = {
     val dynamicEndpoints: List[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.getAll()
     val infos = dynamicEndpoints.map(it => swaggerToResourceDocs(it.swaggerString, it.dynamicEndpointId.get))
-    new CopyOnWriteArrayList(infos.asJava)
+    infos
+  }
+
+  def allDynamicEndpointRoles: List[ApiRole] = {
+    for {
+      dynamicEndpoint <- DynamicEndpointProvider.connectorMethodProvider.vend.getAll()
+      info = swaggerToResourceDocs(dynamicEndpoint.swaggerString, dynamicEndpoint.dynamicEndpointId.get)
+      role <- getRoles(info)
+    } yield role
   }
 
   def getRoles(dynamicEndpointId: String): List[ApiRole] = {
-    val foundInfos: Option[DynamicEndpointInfo] = dynamicEndpointInfos.asScala
-      .find(_.id == dynamicEndpointId)
+    val foundInfos: Box[DynamicEndpointInfo] = DynamicEndpointProvider.connectorMethodProvider.vend.get(dynamicEndpointId)
+      .map(dynamicEndpoint => swaggerToResourceDocs(dynamicEndpoint.swaggerString, dynamicEndpoint.dynamicEndpointId.get))
 
-    val roles = foundInfos.toList
-      .flatMap(_.resourceDocs)
-      .map(_.roles)
-      .collect {
-        case Some(role :: _) => role
-      }
+
+    val roles: List[ApiRole] = foundInfos match {
+      case Full(x) => getRoles(x)
+      case _ => Nil
+    }
 
     roles
   }
+
+  def getRoles(dynamicEndpointInfo: DynamicEndpointInfo): List[ApiRole] =
+    for {
+      resourceDoc <- dynamicEndpointInfo.resourceDocs.toList
+      rolesOption = resourceDoc.roles
+      if rolesOption.isDefined
+      role <- rolesOption.get
+    } yield role
+
   /**
    * extract request body, no matter GET, POST, PUT or DELETE method
    */
@@ -89,13 +106,13 @@ object DynamicEndpointHelper extends RestHelper {
         val httpMethod = HttpMethod.valueOf(r.requestType.method)
         // url that match original swagger endpoint.
         val url = partPath.tail.mkString("/", "/", "")
-        val foundDynamicEndpoint: Optional[(DynamicEndpointInfo, ResourceDoc, String)] = dynamicEndpointInfos.stream()
-          .map[Option[(DynamicEndpointInfo, ResourceDoc, String)]](_.findDynamicEndpoint(httpMethod, url))
-          .filter(_.isDefined)
-          .findFirst()
-          .map(_.get)
+        val foundDynamicEndpoint: Option[(DynamicEndpointInfo, ResourceDoc, String)] = dynamicEndpointInfos
+          .map(_.findDynamicEndpoint(httpMethod, url))
+          .collectFirst {
+            case Some(x) => x
+          }
 
-        foundDynamicEndpoint.asScala
+        foundDynamicEndpoint
           .flatMap[(String, JValue, AkkaHttpMethod, Map[String, List[String]], Map[String, String], ApiRole)] { it =>
             val (dynamicEndpointInfo, doc, originalUrl) = it
 
@@ -118,28 +135,18 @@ object DynamicEndpointHelper extends RestHelper {
     }
   }
 
-  def addEndpoint(openAPI: OpenAPI, id: String): Boolean = {
-    val endpointInfo = swaggerToResourceDocs(openAPI, id)
-    dynamicEndpointInfos.add(endpointInfo)
-  }
-
-  def removeEndpoint(id: String): Boolean = {
-    dynamicEndpointInfos.asScala.find(_.id == id) match {
-      case Some(v) => dynamicEndpointInfos.remove(v)
-      case _ => false
-    }
-  }
 
   def findExistsEndpoints(openAPI: OpenAPI): List[(HttpMethod, String)] = {
      for {
       (path, pathItem) <- openAPI.getPaths.asScala.toList
       (method: HttpMethod, _) <- pathItem.readOperationsMap.asScala
-      if dynamicEndpointInfos.stream().anyMatch(_.existsEndpoint(method, path))
+      if dynamicEndpointInfos.exists(_.existsEndpoint(method, path))
     } yield (method, path)
 
   }
 
   private def swaggerToResourceDocs(content: String, id: String): DynamicEndpointInfo = {
+    // TODO content can be cached with `memoize` method way.
     val openAPI: OpenAPI = parseSwaggerContent(content)
     swaggerToResourceDocs(openAPI, id)
   }
@@ -284,13 +291,12 @@ object DynamicEndpointHelper extends RestHelper {
   }
 
   def doc: ArrayBuffer[ResourceDoc] = {
-    val docs = ArrayBuffer[ResourceDoc]()
-    dynamicEndpointInfos.forEach { info =>
-      info.resourceDocs.foreach { doc =>
-        docs += doc
-      }
-    }
-    docs
+    val docs = for {
+      info <- dynamicEndpointInfos
+      doc <- info.resourceDocs
+    } yield doc
+
+    ArrayBuffer[ResourceDoc](docs:_*)
   }
 
   private def buildSummary(openAPI: OpenAPI, method: HttpMethod, op: Operation, path: String): String = {

@@ -2903,7 +2903,6 @@ trait APIMethods400 {
               duplicatedUrl.isEmpty
             }
             (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(postedJson.swaggerString, cc.callContext)
-            _ = DynamicEndpointHelper.addEndpoint(openAPI, dynamicEndpoint.dynamicEndpointId.get)
           } yield {
             val swaggerJson = parse(dynamicEndpoint.swaggerString)
             val responseJson: JObject = ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
