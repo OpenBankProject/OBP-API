@@ -68,7 +68,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
     }
 
     val thisBank = Connector.connector.vend.getBankLegacy(t.bankId, None).map(_._1)
-    val thisAcc = Connector.connector.vend.getBankAccount(t.bankId, t.accountId)
+    val thisAcc = Connector.connector.vend.getBankAccountOld(t.bankId, t.accountId)
     val thisAccJson = JObject(List(JField("holder",
       JObject(List(
         JField("holder", JString(thisAcc.map(_.accountHolder).getOrElse(""))),

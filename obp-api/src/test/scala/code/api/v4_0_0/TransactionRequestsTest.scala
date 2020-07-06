@@ -16,7 +16,7 @@ import code.bankconnectors.Connector
 import code.fx.fx
 import code.model.BankAccountX
 import code.setup.{APIResponse, DefaultUsers}
-import code.transactionrequests.TransactionRequests.TransactionRequestStatus
+import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
@@ -1082,7 +1082,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
         helper.transactionRequestBodyCounterparty = helper.transactionRequestBodyCounterparty.copy(value=helper.bodyValue)
 
-        createAccountAttribute(
+        createAccountAttributeViaEndpoint(
           helper.bankId.value, 
           helper.accountId1.value, 
           "REQUIRED_CHALLENGE_ANSWERS", 
@@ -1090,11 +1090,12 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
           "INTEGER"
         )
 
-        val grantedView = grantUserAccessToViewV400(
+        val grantedView = grantUserAccessToViewViaEndpoint(
           helper.bankId.value,
           helper.accountId1.value,
           resourceUser2.userId,
-          user1
+          user1,
+          PostViewJsonV400(view_id = "owner", is_system = true)
         )
         
         Then("we call the 'V400 Create Transaction Request' endpoint")
@@ -1151,7 +1152,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     
     scenario("We will call the endpoint WITHOUT user credentials", ApiEndpoint1, VersionOfApi) {
 
-      val transactionRequestId = randomTransactionRequest(bankId, accountId, view, user1).id
+      val transactionRequestId = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1).id
       
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId / view / "transaction-requests" / transactionRequestId).GET
@@ -1163,7 +1164,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
     scenario("We will call the endpoint WITH user credentials", ApiEndpoint1, VersionOfApi) {
       
-      val transactionRequestId = randomTransactionRequest(bankId, accountId, view, user1).id
+      val transactionRequestId = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1).id
       
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId / view / "transaction-requests" / transactionRequestId).GET <@ (user1)

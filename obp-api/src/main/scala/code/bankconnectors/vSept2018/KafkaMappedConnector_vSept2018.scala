@@ -3078,7 +3078,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Mon May 13 22:38:20 CST 2019
+// ---------- created on Mon May 13 22:38:20 CST 2019
 
   messageDocs += MessageDoc(
     process = "obp.createBankAccount",
@@ -3864,29 +3864,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     
     
 //---------------- dynamic end ---------------------please don't modify this line
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-  //-----helper methods
-
-  private[this] def convertToTuple[T](callContext: Option[CallContext]) (inbound: Box[InBoundTrait[T]]): (Box[T], Option[CallContext]) = {
-    val boxedResult = inbound match {
-      case Full(in) if (in.status.hasNoError) => Full(in.data)
-      case Full(inbound) if (inbound.status.hasError) =>
-        Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
-      case failureOrEmpty: Failure => failureOrEmpty
-    }
-    (boxedResult, callContext)
-  }
-
 }
 
 

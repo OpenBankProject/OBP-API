@@ -209,7 +209,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
 
 
       And("The account should have its balance set to the 'new_balance' value of the most recently completed transaction")
-      val account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val account = Connector.connector.vend.getBankAccountOld(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
       account.balance.toString should equal(f.t2NewBalance) //t2 has a later completed date than t1
 
       And("The account should have accountLastUpdate set to the current time")
@@ -244,7 +244,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       tsAfter.foreach(checkTransactionOkay)
 
       And("The account should have its balance set to the 'new_balance' value of the most recently completed transaction")
-      val account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val account = Connector.connector.vend.getBankAccountOld(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
       account.balance.toString should equal(f.t1NewBalance)
 
       And("The account should have accountLastUpdate set to the current time")
@@ -267,7 +267,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       tsBefore.foreach(checkTransactionOkay)
 
       //remember lastUpdate time
-      var account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      var account = Connector.connector.vend.getBankAccountOld(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
       val oldTime = if(account.lastUpdate != null) account.lastUpdate.getTime else 0
 
       When("We try to add those transactions again")
@@ -283,7 +283,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       tsAfter.foreach(checkTransactionOkay)
 
       And("The account should have accountLastUpdate set to the current time (different from first insertion)")
-      account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      account = Connector.connector.vend.getBankAccountOld(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
       val dt = (account.lastUpdate.getTime - oldTime)
       dt > 0 should equal(true)
     }

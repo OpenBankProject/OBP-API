@@ -2,7 +2,7 @@ package code.api.util
 
 import java.util.Objects
 import java.util.regex.Pattern
-import code.transactionrequests.TransactionRequests.TransactionRequestStatus._
+import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 import code.api.Constant._
 
 object ErrorMessages {
@@ -32,9 +32,10 @@ object ErrorMessages {
 
   val ApiVersionNotSupported = "OBP-00008: The API version you called is not enabled on this server. Please contact your API administrator or use another version."
 
-  val FirehoseViewsNotAllowedOnThisInstance = "OBP-00009: Firehose views not allowed on this instance. Please set allow_firehose_views = true in props files. "
+  val AccountFirehoseNotAllowedOnThisInstance = "OBP-00009: Account firehose is not allowed on this instance. Please set allow_account_firehose = true in props files. "
   val MissingPropsValueAtThisInstance = "OBP-00010: Missing props value at this API instance - "
   val NoValidElasticsearchIndicesConfigured = "OBP-00011: No elasticsearch indices are allowed on this instance. Please set es.warehouse.allowed.indices = index1,index2 (or = ALL for all). "
+  val CustomerFirehoseNotAllowedOnThisInstance = "OBP-00012: Customer firehose is not allowed on this instance. Please set allow_customer_firehose = true in props files. "
 
   // WebUiProps Exceptions (OBP-08XXX)
   val InvalidWebUiProps = "OBP-08001: Incorrect format of name."
@@ -160,6 +161,7 @@ object ErrorMessages {
   val ElasticSearchDisabled  = "OBP-20056: Elasticsearch is disabled for this API instance."
   val UserNotFoundByUserId = "OBP-20057: User not found by userId."
   val ConsumerIsDisabled = "OBP-20058: Consumer is disabled."
+  val CouldNotGetUserLockStatus = "OBP-20059: Could not get the lock status of the user."
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
 
@@ -460,11 +462,16 @@ object ErrorMessages {
   val CreateMeetingInviteeException = "OBP-60012: Create Meeting Invitee Exception. "
   val AdapterUnknownError = "OBP-60013: Adapter Unknown Error. "
   val AdapterTimeOurError = "OBP-60014: Adapter Timeout Error. "
+  val AdapterFunctionNotImplemented = "OBP-60015: Adapter Function Not Implemented."
 
   // MethodRouting Exceptions (OBP-7XXXX)
   val InvalidBankIdRegex = "OBP-70001: Incorrect regex for bankIdPattern."
   val MethodRoutingNotFoundByMethodRoutingId = "OBP-70002: MethodRouting not found. Please specify a valid value for method_routing_id."
+  val MethodRoutingNameAlreadyUsed = "OBP-70003: Method Routing Name already used."
 
+  // Cascade Deletion Exceptions (OBP-8XXXX)
+  val CouldNotDeleteCascade = "OBP-80001: Could not delete cascade."
+  
   ///////////
 
   private val ObpErrorMsgPattern = Pattern.compile("OBP-\\d+:.+")

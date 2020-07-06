@@ -38,7 +38,7 @@ import code.api.util._
 import code.atms.{Atms, MappedAtm}
 import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.branches.Branches.Branch
-import code.fx.FXRate
+import com.openbankproject.commons.model.FXRate
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
@@ -52,7 +52,8 @@ import com.openbankproject.commons.model.Product
 import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
-import code.transactionrequests.{MappedTransactionRequestTypeCharge, TransactionRequestTypeCharge, TransactionRequestTypeChargeMock, TransactionRequests}
+import code.transactionrequests.{MappedTransactionRequestTypeCharge, TransactionRequestTypeChargeMock, TransactionRequests}
+import com.openbankproject.commons.model.TransactionRequestTypeCharge
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
@@ -915,7 +916,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     val viewsDeleted = Views.views.vend.removeAllViews(bankId, accountId)
 
     //delete account
-    val account = getBankAccount(bankId, accountId)
+    val account = getBankAccountOld(bankId, accountId)
 
     val accountDeleted = account match {
       case acc => true //acc.delete_! //TODO
@@ -954,7 +955,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
                                          accountType: String, accountLabel: String, currency: String,
                                          balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
-    getBankAccount(bankId, accountId) match {
+    getBankAccountOld(bankId, accountId) match {
       case Full(a) =>
         logger.debug(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
         a
@@ -1004,7 +1005,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getBankAccount(bankId, accountId)
+      acc <- getBankAccountOld(bankId, accountId)
       (bank, _)<- getBankLegacy(bankId, None)
     } yield {
       //acc.balance = newBalance
@@ -1116,7 +1117,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String) = {
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getBankAccount(bankId, accountId)
+      acc <- getBankAccountOld(bankId, accountId)
       (bank, _)<- getBankLegacy(bankId, None)
       d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountId.value), By(MappedBankAccountData.bankId, bank.bankId.value))
     } yield {
@@ -1183,7 +1184,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       //If it is empty, return the default value : "0.0000000" and set the BankAccount currency
       case _ =>
         for {
-          fromAccount <- getBankAccount(bankId, accountId)
+          fromAccount <- getBankAccountOld(bankId, accountId)
           fromAccountCurrency <- tryo{ fromAccount.currency }
         } yield {
           TransactionRequestTypeChargeMock(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!")
@@ -1228,7 +1229,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     for {
         counterpartyId <- tryo{r.counterpartyId}
         counterpartyName <- tryo{r.counterpartyName}
-        thisAccount <- getBankAccount(BankId(r.bankId), AccountId(r.accountId))
+        thisAccount <- getBankAccountOld(BankId(r.bankId), AccountId(r.accountId))
         //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
         dummyOtherBankAccount <- tryo{createCounterparty(counterpartyId, counterpartyName, thisAccount, None)}
         //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object

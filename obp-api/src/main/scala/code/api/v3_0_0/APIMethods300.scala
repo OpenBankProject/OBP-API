@@ -486,7 +486,7 @@ trait APIMethods300 {
       List(UserNotLoggedIn,UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
-      Some(List(canUseFirehoseAtAnyBank))
+      Some(List(canUseAccountFirehoseAtAnyBank))
     )
 
     lazy val getFirehoseAccountsAtOneBank : OBPEndpoint = {
@@ -495,11 +495,14 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
-               canUseFirehose(u)
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  ) {
+               canUseAccountFirehose(u)
             }
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            availableBankIdAccountIdList <- Future {Views.views.vend.getAllFirehoseAccounts(bank.bankId, u) }
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(BankId(""), AccountId("")), Some(u), callContext)
+            availableBankIdAccountIdList <- Future {
+              Views.views.vend.getAllFirehoseAccounts(bank.bankId).map(a => BankIdAccountId(a.bankId,a.accountId)) 
+            }
             params = req.params
             availableBankIdAccountIdList2 <- if(params.isEmpty) {
               Future.successful(availableBankIdAccountIdList)
@@ -511,14 +514,13 @@ trait APIMethods300 {
                   availableBankIdAccountIdList.filter(availableBankIdAccountId => accountIds.contains(availableBankIdAccountId.accountId.value))
                 }
             }
-            moderatedAccounts = for {
+            moderatedAccounts: List[ModeratedBankAccount] = for {
               //Here is a new for-loop to get the moderated accouts for the firehose user, according to the viewId.
               //1 each accountId-> find a proper bankAccount object.
               //2 each bankAccount object find the proper view.
               //3 use view and user to moderate the bankaccount object.
               bankIdAccountId <- availableBankIdAccountIdList2
-              bankAccount <- Connector.connector.vend.getBankAccount(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
-              view <- APIUtil.checkViewAccessAndReturnView(viewId, bankIdAccountId, Some(u))
+              bankAccount <- Connector.connector.vend.getBankAccountOld(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
               moderatedAccount <- bankAccount.moderatedBankAccount(view, bankIdAccountId, Full(u), callContext) //Error handling is in lower method
             } yield {
               moderatedAccount
@@ -561,10 +563,10 @@ trait APIMethods300 {
          |""".stripMargin,
       emptyObjectJson,
       transactionsJsonV300,
-      List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
+      List(UserNotLoggedIn, AccountFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagAccountFirehose, apiTagTransactionFirehose, apiTagFirehoseData, apiTagNewStyle),
-      Some(List(canUseFirehoseAtAnyBank)))
+      Some(List(canUseAccountFirehoseAtAnyBank)))
 
     lazy val getFirehoseTransactionsForBankAccount : OBPEndpoint = {
       //get private accounts for all banks
@@ -573,8 +575,8 @@ trait APIMethods300 {
           val res =
             for {
               (Full(u), callContext) <-  authenticatedAccess(cc)
-              _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
-               canUseFirehose(u)
+              _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  ) {
+               canUseAccountFirehose(u)
               }
               (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
               (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
@@ -985,7 +987,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser, callContext)
             user <- Users.users.vend.getUserByUserNameFuture(username) map {
-              x => unboxFullOrFail(x, callContext, UserNotFoundByUsername)
+              x => unboxFullOrFail(x, callContext, UserNotFoundByUsername, 404)
             }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, callContext)
           } yield {

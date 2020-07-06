@@ -5,7 +5,8 @@ import java.util.Date
 import code.api.util.APIUtil._
 import code.api.util.ExampleValue._
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{BankAccountCommons, CustomerCommons, InboundAdapterCallContext, InboundAdapterInfoInternal, InboundStatusMessage, _}
+import com.openbankproject.commons.model.enums.CustomerAttributeType
+import com.openbankproject.commons.model.{BankAccountCommons, CustomerAttributeCommons, CustomerCommons, InboundAdapterCallContext, InboundAdapterInfoInternal, InboundStatusMessage, _}
 import com.openbankproject.commons.util.ReflectUtils
 
 import scala.collection.immutable.{List, Nil}
@@ -105,6 +106,8 @@ object MessageDocsSwaggerDefinitions
 
   val inboundStatus = Status("Status errorCode", List(inboundStatusMessage))
 
+  val successStatus = Status("", List(inboundStatusMessage.copy(errorCode = "")))
+
   val inboundAdapterInfoInternal = InboundAdapterInfoInternal(
     errorCode ="",
     backendMessages = List(inboundStatusMessage),
@@ -113,7 +116,7 @@ object MessageDocsSwaggerDefinitions
     git_commit = "String",
     date = DateWithMsExampleString
   )
-  
+
   val bankCommons = BankCommons(
       bankId = BankId(bankIdExample.value),
       shortName = "The Royal Bank of Scotland",
@@ -162,6 +165,15 @@ object MessageDocsSwaggerDefinitions
     title =titleExample.value,
     branchId = branchIdExample.value,
     nameSuffix = nameSuffixExample.value
+  )
+
+  val customerAttribute = CustomerAttributeCommons(
+    bankId = BankId(customerCommons.bankId),
+    customerId = CustomerId(customerCommons.customerId),
+    customerAttributeId = "some_customer_attributeId_value",
+    attributeType = CustomerAttributeType.INTEGER,
+    name = "customer_attribute_field",
+    value = "example_value"
   )
   
   val counterparty = Counterparty(

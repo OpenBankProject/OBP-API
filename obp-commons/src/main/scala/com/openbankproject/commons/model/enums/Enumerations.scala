@@ -106,7 +106,6 @@ object DynamicEntityOperation extends OBPEnumeration[DynamicEntityOperation] {
   object CREATE extends Value
   object UPDATE extends Value
   object DELETE extends Value
-  object IS_EXISTS_DATA extends Value
 }
 
 sealed trait LanguageParam extends EnumValue
@@ -131,4 +130,9 @@ object AttributeCategory extends OBPEnumeration[AttributeCategory]{
   object Account extends Value
   object Transaction extends Value
   object Card extends Value
+}
+
+object TransactionRequestStatus extends Enumeration {
+  type TransactionRequestStatus = Value
+  val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED = Value
 }

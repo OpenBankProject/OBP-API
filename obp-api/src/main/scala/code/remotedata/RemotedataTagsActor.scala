@@ -41,6 +41,10 @@ class RemotedataTagsActor extends Actor with ObpActorHelper with MdcLoggable {
     case cc.bulkDeleteTags(bankId: BankId, accountId: AccountId) =>
       logger.debug(s"bulkDeleteTags($bankId, $accountId)")
       sender ! (mapper.bulkDeleteTags(bankId, accountId))
+      
+    case cc.bulkDeleteTagsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId) =>
+      logger.debug(s"bulkDeleteTagsOnTransaction($bankId, $accountId, $transactionId)")
+      sender ! (mapper.bulkDeleteTagsOnTransaction(bankId, accountId, transactionId))
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

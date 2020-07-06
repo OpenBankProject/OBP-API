@@ -4,7 +4,7 @@ import java.util.UUID.randomUUID
 
 import code.api.cache.Caching
 import code.api.util.{APIUtil, ErrorMessages}
-import code.api.util.APIUtil.saveConnectorMetric
+import code.api.util.APIUtil.{activeBrand, saveConnectorMetric}
 import code.util.MappedUUID
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
@@ -37,8 +37,14 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(webUiPropsTTL second) {
-          WebUiProps.find(By(WebUiProps.Name, nameOfProperty))
-            .map(_.value)
+        // If we have an active brand, construct a target property name to look for.
+        val brandSpecificPropertyName = activeBrand() match {
+          case Some(brand) => s"${nameOfProperty}_FOR_BRAND_${brand}"
+          case _ => nameOfProperty
+        }
+        
+        WebUiProps.find(By(WebUiProps.Name, brandSpecificPropertyName)).map(_.value)
+          .or(WebUiProps.find(By(WebUiProps.Name, nameOfProperty)).map(_.value))
             .openOr {
               APIUtil.getPropsValue(nameOfProperty, defaultValue)
             }

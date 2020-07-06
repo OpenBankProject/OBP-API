@@ -24,7 +24,7 @@ object MigrationOfMappedUserAuthContextUpdate {
 
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
-            () => "DROP INDEX mappeduserauthcontextupdate_muserid_mkey;"
+            () => "DROP INDEX IF EXISTS mappeduserauthcontextupdate_muserid_mkey;"
           }
 
         val endDate = System.currentTimeMillis()

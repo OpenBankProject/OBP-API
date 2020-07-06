@@ -403,6 +403,7 @@ oauth2_server_url =
 #webui_signup_form_submit_button_value=
 #webui_signup_form_title_text=Sign Up
 #webui_signup_body_password_repeat_text=Repeat 
+#allow_pre_filled_password=true
 #webui_agree_terms_html=<div id="signup-agree-terms" class="checkbox"><label><input type="checkbox" />I hereby agree to the <a href="$url" title="T &amp; C">Terms and Conditions</a></label></div>
 webui_agree_privacy_policy_url = https://openbankproject.com/privacy-policy
 webui_agree_privacy_policy_html_text =<div id="signup-agree-privacy-policy"><label>By submitting this information you consent to processing your data by TESOBE GmbH according to our <a href="$url" title="Privacy Policy">Privacy Policy</a>. TESOBE shall use this information to send you emails and provide customer support.</label></div>
@@ -515,12 +516,12 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # For a VERSION to be allowed it must be:
 
 # 1) Absent from here:
-#api_disabled_versions=[v3_0_0]
+#api_disabled_versions=[v3.0.0]
 
 # 2) Present here OR this entry must be empty.
-#api_enabled_versions=[v2_2_0,v3_0_0]
+#api_enabled_versions=[v2.2.0,v3.0.0]
 
-# Note we use "v" and "_" in the name to match the ApiVersions enumeration in ApiUtil.scala
+# Note we use "v" and "." in the name to match the ApiVersions enumeration in ApiUtil.scala
 
 # For an ENDPOINT to be allowed it must be:
 
@@ -581,8 +582,10 @@ autocomplete_at_login_form_enabled=false
 # control the create and access to public views.
 # allow_public_views=false
 
-# control access to firehose views.
-# allow_firehose_views=false
+# control access to account firehose.
+# allow_account_firehose=false
+# control access to customer firehose.
+# allow_customer_firehose=false
 
 # -- Gateway login --------------------------------------
 # Enable/Disable Gateway communication at all
@@ -812,3 +815,10 @@ dynamic_endpoints_url_prefix=dynamic
 # display_accept_cookies_question = false
 # More info at page https://wikis.ec.europa.eu/display/WEBGUIDE/04.+Cookies
 # --------------------------------------------------------------------------
+
+# --- Refresh User  ------
+# The time to refresh user internally. default is 30 minutes
+# Note: The user is also refreshed after every login.
+# You can also explicitly refresh the user using the refresh user endpoint.
+# refresh_user.interval=30
+# --------------------------------------------------------------------

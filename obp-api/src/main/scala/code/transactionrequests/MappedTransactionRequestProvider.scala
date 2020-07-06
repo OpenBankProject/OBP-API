@@ -7,6 +7,7 @@ import code.model._
 import code.transactionrequests.TransactionRequests.{TransactionRequestTypes, _}
 import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import net.liftweb.common.{Box, Failure, Full, Logger}
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
@@ -42,6 +43,12 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
     }
   }
 
+  override def bulkDeleteTransactionRequestsByTransactionId(transactionId: TransactionId): Boolean = {
+    MappedTransactionRequest.bulkDelete_!!(
+      By(MappedTransactionRequest.mTransactionIDs, transactionId.value)
+    )
+  }
+  
   override def bulkDeleteTransactionRequests(): Boolean = {
     MappedTransactionRequest.bulkDelete_!!()
   }

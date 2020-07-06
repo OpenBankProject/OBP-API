@@ -9,7 +9,7 @@ import code.api.util.ApiRole.rolesMappedToClasses
 import code.api.v3_1_0.ListResult
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.JsonFieldReName
-import com.openbankproject.commons.util.{EnumValue, Functions, JsonAbleSerializer, OBPEnumeration, ReflectUtils}
+import com.openbankproject.commons.util.{EnumValueSerializer, Functions, JsonAbleSerializer, ReflectUtils}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{TypeInfo, compactRender, _}
@@ -63,21 +63,6 @@ object BigDecimalSerializer extends Serializer[BigDecimal] {
 
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case x: BigDecimal => JString(x.toString())
-  }
-}
-
-object EnumValueSerializer extends Serializer[EnumValue] {
-  private val IntervalClass = classOf[EnumValue]
-
-  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), EnumValue] = {
-    case (TypeInfo(clazz, _), json) if(IntervalClass.isAssignableFrom(clazz)) => json match {
-      case JString(s) => OBPEnumeration.withName(clazz.asInstanceOf[Class[EnumValue]], s)
-      case x => throw new MappingException(s"Can't convert $x to $clazz")
-    }
-  }
-
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case x: EnumValue => JString(x.toString())
   }
 }
 

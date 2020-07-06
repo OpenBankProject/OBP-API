@@ -14,11 +14,6 @@ object TransactionRequests extends SimpleInjector {
     type PaymentServiceTypes = Value
     val payments, bulk_payments, periodic_payments = Value
   }
-
-  object TransactionRequestStatus extends Enumeration {
-    type TransactionRequestStatus = Value
-    val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED = Value
-  }
   
   object TransactionChallengeTypes extends Enumeration {
     type TransactionChallengeTypes = Value
@@ -91,6 +86,7 @@ trait TransactionRequestProvider {
   def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean]
   def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean]
   def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean]
+  def bulkDeleteTransactionRequestsByTransactionId(transactionId: TransactionId): Boolean
   def bulkDeleteTransactionRequests(): Boolean
 }
 
@@ -118,6 +114,7 @@ class RemotedataTransactionRequestsCaseClasses {
   case class saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId)
   case class saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge)
   case class saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String)
+  case class bulkDeleteTransactionRequestsByTransactionId(transactionId: TransactionId)
   case class bulkDeleteTransactionRequests()
 }
 

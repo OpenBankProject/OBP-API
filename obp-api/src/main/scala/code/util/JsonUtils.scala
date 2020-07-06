@@ -18,6 +18,12 @@ object JsonUtils {
   /* match string that end with '[]', e.g: hobby[] */
   private val RegexArray = """(.*?)\[\]$""".r
 
+  /* match expression that means: root is Array, get given index item,  e.g: [1] */
+  private val RegexRootIndex = """^\[(\d+)\]\s*$""".r
+
+  /* match expression that means: root is Array, get given index item's sub path,  e.g: [2].bankId.value or [2][0].value */
+  private val RegexRootIndexSubPath = """^\[(\d+)\]\s*(.*)$""".r
+
   /* match 'boolean: true' style string, to extract boolean value */
   private val RegexBoolean = """(?i)\s*'\s*boolean\s*:\s*(.*)'\s*""".r
   /* match 'double: 123.11' style string, to extract number value */
@@ -429,6 +435,13 @@ object JsonUtils {
   def getValueByPath(jValue: JValue, pathExpress: String): JValue = {
     pathExpress match {
       case str if str.trim == "$root" || str.trim.isEmpty => jValue // if path is "$root" or "", return whole original json
+
+      case RegexRootIndex(index) => getIndexValue(jValue, index.toInt) // expression e.g: [1]
+
+      case RegexRootIndexSubPath(index, subPath) => // expression e.g: [2].bankId.value or [3][0].value
+        val subExpression = if(subPath.startsWith(".")) subPath.substring(1) else subPath
+        getValueByPath(getIndexValue(jValue, index.toInt), subExpression)
+
       case RegexBoolean(b) => JBool(b.toBoolean)
       case RegexDouble(_, n) =>
         JDouble(n.toDouble)

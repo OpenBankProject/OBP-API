@@ -41,6 +41,10 @@ object RemotedataTags extends ObpActorInit with Tags {
   def bulkDeleteTags(bankId: BankId, accountId: AccountId): Boolean = getValueFromFuture(
     (actor ? cc.bulkDeleteTags(bankId, accountId)).mapTo[Boolean]
   )
+  
+  def bulkDeleteTagsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Boolean = getValueFromFuture(
+    (actor ? cc.bulkDeleteTagsOnTransaction(bankId, accountId, transactionId)).mapTo[Boolean]
+  )
 
 
 }

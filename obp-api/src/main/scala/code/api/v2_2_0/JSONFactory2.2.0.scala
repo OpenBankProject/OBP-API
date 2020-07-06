@@ -39,7 +39,7 @@ import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{JSONFactory210, LocationJsonV210, PostCounterpartyBespokeJson, ResourceUserJSON}
 import code.atms.Atms.Atm
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
-import code.fx.FXRate
+import com.openbankproject.commons.model.FXRate
 import code.metrics.ConnectorMetric
 import code.model.dataAccess.ResourceUser
 import code.model._

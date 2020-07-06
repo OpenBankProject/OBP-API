@@ -262,6 +262,9 @@ object ApiRole {
   case class CanGetConfig(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetConfig = CanGetConfig()
   
+  case class CanGetDatabaseInfo(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetDatabaseInfo = CanGetDatabaseInfo()
+  
   case class CanGetCallContext(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetCallContext = CanGetCallContext()
 
@@ -283,8 +286,11 @@ object ApiRole {
   case class CanGetEntitlementRequestsAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetEntitlementRequestsAtAnyBank = CanGetEntitlementRequestsAtAnyBank()
 
-  case class CanUseFirehoseAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canUseFirehoseAtAnyBank = CanUseFirehoseAtAnyBank()
+  case class CanUseAccountFirehoseAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUseAccountFirehoseAtAnyBank = CanUseAccountFirehoseAtAnyBank()
+  
+  case class CanUseCustomerFirehoseAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUseCustomerFirehoseAtAnyBank = CanUseCustomerFirehoseAtAnyBank()
 
   case class CanReadAggregateMetrics (requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadAggregateMetrics = CanReadAggregateMetrics()
@@ -303,6 +309,9 @@ object ApiRole {
 
   case class CanUnlockUser (requiresBankId: Boolean = false) extends ApiRole
   lazy val canUnlockUser = CanUnlockUser()
+  
+  case class CanLockUser (requiresBankId: Boolean = false) extends ApiRole
+  lazy val canLockUser = CanLockUser()
 
   case class CanReadUserLockedStatus(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadUserLockedStatus = CanReadUserLockedStatus()
@@ -547,6 +556,15 @@ object ApiRole {
 
   case class CanCreateCardAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCardAttributeDefinitionAtOneBank = CanCreateCardAttributeDefinitionAtOneBank()
+  
+  case class CanDeleteTransactionCascade(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteTransactionCascade = CanDeleteTransactionCascade()
+  
+  case class CanDeleteAccountCascade(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteAccountCascade = CanDeleteAccountCascade()
+  
+  case class CanDeleteProductCascade(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteProductCascade = CanDeleteProductCascade()
 
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 

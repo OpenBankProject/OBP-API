@@ -144,8 +144,8 @@ class CustomerTest extends V310ServerSetup {
       When("We make a request v3.1.0 with the Role " + canGetCustomer + " but with non existing CUSTOMER_ID")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID").GET <@(user1)
       val response310 = makeGetRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 404")
+      response310.code should equal(404)
       And("error should be " + CustomerNotFoundByCustomerId)
       response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
     }
@@ -178,8 +178,8 @@ class CustomerTest extends V310ServerSetup {
       When("We make a request v3.1.0 with the Role " + canGetCustomer + " but with non existing customer number")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "customer-number").POST <@(user1)
       val response310 = makePostRequest(request310, write(customerNumberJson))
-      Then("We should get a 400")
-      response310.code should equal(400)
+      Then("We should get a 404")
+      response310.code should equal(404)
       And("error should be " + CustomerNotFound)
       response310.body.extract[ErrorMessage].message should startWith (CustomerNotFound)
     }

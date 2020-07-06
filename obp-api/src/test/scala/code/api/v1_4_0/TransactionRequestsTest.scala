@@ -8,7 +8,8 @@ import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
 import code.setup.DefaultUsers
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
-import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestStatus}
+import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
+import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag

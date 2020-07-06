@@ -20,11 +20,12 @@ import code.bankconnectors.Connector
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
-import code.directdebit.DirectDebitTrait
+import com.openbankproject.commons.model.DirectDebitTrait
 import code.dynamicEntity.{DynamicEntityProvider, DynamicEntityT}
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
-import code.fx.{FXRate, MappedFXRate, fx}
+import code.fx.{MappedFXRate, fx}
+import com.openbankproject.commons.model.FXRate
 import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingProvider, MethodRoutingT}
 import code.model._
@@ -98,6 +99,12 @@ object NewStyle {
     def `201`(callContext: CallContext): Option[CallContext] = {
       Some(callContext.copy(httpCode = Some(201)))
     }
+    def `204`(callContext: CallContext): Option[CallContext] = {
+      Some(callContext.copy(httpCode = Some(204)))
+    }
+    def `404`(callContext: CallContext): Option[CallContext] = {
+      Some(callContext.copy(httpCode = Some(404)))
+    }
   }
 
 
@@ -147,13 +154,13 @@ object NewStyle {
 
     def getAtm(bankId : BankId, atmId : AtmId, callContext: Option[CallContext]): OBPReturnType[AtmT] = {
       Connector.connector.vend.getAtm(bankId, atmId, callContext) map {
-        x => fullBoxOrException(x ~> APIFailureNewStyle(AtmNotFoundByAtmId, 400, callContext.map(_.toLight)))
+        x => fullBoxOrException(x ~> APIFailureNewStyle(AtmNotFoundByAtmId, 404, callContext.map(_.toLight)))
       } map { unboxFull(_) }
     }
 
     def getBank(bankId : BankId, callContext: Option[CallContext]) : OBPReturnType[Bank] = {
       Connector.connector.vend.getBank(bankId, callContext) map {
-        unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId")
+        unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId", 404)
       }
     }
     def getBanks(callContext: Option[CallContext]) : OBPReturnType[List[Bank]] = {
@@ -194,7 +201,7 @@ object NewStyle {
     }
     def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[BankAccount] = {
       Connector.connector.vend.getBankAccount(bankId, accountId, callContext) map { i =>
-        (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 400 ), i._2)
+        (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 404 ), i._2)
       }
     }
     def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[List[BankAccount]] = {
@@ -211,18 +218,18 @@ object NewStyle {
 
     def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Connector.connector.vend.getBankAccountByIban(iban : String, callContext: Option[CallContext]) map { i =>
-        (unboxFullOrFail(i._1, callContext,s"${BankAccountNotFound.replaceAll("BANK_ID and ACCOUNT_ID. ", "IBAN.")} Current IBAN is $iban", 400 ), i._2)
+        (unboxFullOrFail(i._1, callContext,s"${BankAccountNotFound.replaceAll("BANK_ID and ACCOUNT_ID. ", "IBAN.")} Current IBAN is $iban", 404 ), i._2)
       }
     }
 
     def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId"), i._2)
+        (unboxFullOrFail(i._1, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 404), i._2)
       }
 
     def getTransaction(bankId: BankId, accountId : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None) : OBPReturnType[Transaction] = {
       Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext) map {
-        x => (unboxFullOrFail(x._1, callContext, TransactionNotFound, 400), x._2)
+        x => (unboxFullOrFail(x._1, callContext, TransactionNotFound, 404), x._2)
       }
     }
     
@@ -364,12 +371,12 @@ object NewStyle {
 
     def getConsumerByConsumerId(consumerId: String, callContext: Option[CallContext]): Future[Consumer] = {
       Consumers.consumers.vend.getConsumerByConsumerIdFuture(consumerId) map {
-        unboxFullOrFail(_, callContext, s"$ConsumerNotFoundByConsumerId Current ConsumerId is $consumerId")
+        unboxFullOrFail(_, callContext, s"$ConsumerNotFoundByConsumerId Current ConsumerId is $consumerId", 404)
       }
     }
     def checkConsumerByConsumerId(consumerId: String, callContext: Option[CallContext]): Future[Consumer] = {
       Consumers.consumers.vend.getConsumerByConsumerIdFuture(consumerId) map {
-        unboxFullOrFail(_, callContext, s"$ConsumerNotFoundByConsumerId Current ConsumerId is $consumerId")
+        unboxFullOrFail(_, callContext, s"$ConsumerNotFoundByConsumerId Current ConsumerId is $consumerId", 404)
       } map {
         c => c.isActive.get match {
           case true => c
@@ -386,7 +393,7 @@ object NewStyle {
 
     def getConsumerByPrimaryId(id: Long, callContext: Option[CallContext]): Future[Consumer] = {
       Consumers.consumers.vend.getConsumerByPrimaryIdFuture(id) map {
-        unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId)
+        unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 404)
       }
     }
     def getCustomers(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[List[Customer]] = {
@@ -401,7 +408,7 @@ object NewStyle {
     }
     def getCustomerByCustomerId(customerId : String, callContext: Option[CallContext]): OBPReturnType[Customer] = {
       Connector.connector.vend.getCustomerByCustomerId(customerId, callContext) map {
-        unboxFullOrFail(_, callContext, s"$CustomerNotFoundByCustomerId. Current CustomerId($customerId)")
+        unboxFullOrFail(_, callContext, s"$CustomerNotFoundByCustomerId. Current CustomerId($customerId)", 404)
       }
     }
     def checkCustomerNumberAvailable(bankId: BankId, customerNumber: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
@@ -411,7 +418,7 @@ object NewStyle {
     }
     def getCustomerByCustomerNumber(customerNumber : String, bankId : BankId, callContext: Option[CallContext]): OBPReturnType[Customer] = {
       Connector.connector.vend.getCustomerByCustomerNumber(customerNumber, bankId, callContext) map {
-        unboxFullOrFail(_, callContext, CustomerNotFound)
+        unboxFullOrFail(_, callContext, CustomerNotFound, 404)
       }
     }
 
@@ -640,7 +647,7 @@ object NewStyle {
 
     def findByUserId(userId: String, callContext: Option[CallContext]): OBPReturnType[User] = {
       Future { UserX.findByUserId(userId).map(user =>(user, callContext))} map {
-        unboxFullOrFail(_, callContext, s"$UserNotFoundById Current USER_ID($userId)")
+        unboxFullOrFail(_, callContext, s"$UserNotFoundById Current USER_ID($userId)", 404)
       }
     }
   
@@ -724,8 +731,8 @@ object NewStyle {
           i._1, 
           callContext, 
           s"$CounterpartyNotFoundByIban. Please check how do you create Counterparty, " +
-            s"set the proper IBan value to `other_account_secondary_routing_address`. Current Iban = $iban ", 
-          400),
+            s"set the proper IBan value to `other_account_secondary_routing_address`. Current Iban = $iban ",
+          404),
           i._2)
         
       }
@@ -1182,7 +1189,7 @@ object NewStyle {
     }
     def getProduct(bankId : BankId, productCode : ProductCode, callContext: Option[CallContext]) : OBPReturnType[Product] =
       Future {Connector.connector.vend.getProduct(bankId : BankId, productCode : ProductCode)} map {
-        i => (unboxFullOrFail(i, callContext, ProductNotFoundByProductCode + " {" + productCode.value + "}", 400), callContext)
+        i => (unboxFullOrFail(i, callContext, ProductNotFoundByProductCode + " {" + productCode.value + "}", 404), callContext)
       }
     
     def getProductCollection(collectionCode: String, 
@@ -1458,6 +1465,18 @@ object NewStyle {
         i => (unboxFullOrFail(i, callContext, s"$UserCustomerLinksNotFoundForUser Current customerId ($customerId)", 400), callContext)
       }
     }
+    def getOCreateUserCustomerLink(bankId: BankId, customerNumber: String, userId: String, callContext: Option[CallContext]) : OBPReturnType[UserCustomerLink] = {
+      Connector.connector.vend.getCustomerByCustomerNumber(customerNumber, bankId, callContext) map {
+        _ match {
+            case Full(tuple) => 
+              UserCustomerLink.userCustomerLink.vend.getOCreateUserCustomerLink(userId, tuple._1.customerId, new Date(), true)
+            case _ =>
+              Empty
+        }
+      } map {
+        i => (unboxFullOrFail(i, callContext, s"$CreateUserCustomerLinksError Current customerId ($customerNumber)", 400), callContext)
+      }
+    }
 
     def createCustomer(
                         bankId: BankId,
@@ -1677,6 +1696,13 @@ object NewStyle {
     def getMethodRoutingsByMethdName(methodName: Box[String]): Future[List[MethodRoutingT]] = Future {
       this.getMethodRoutings(methodName.toOption)
     }
+    def checkMethodRoutingAlreadyExists(methodName: String, callContext:Option[CallContext]): OBPReturnType[Boolean] = Future {
+      val exists = this.getMethodRoutings(Some(methodName)).isEmpty match {
+        case true => Full(true)
+        case false => Empty
+      }
+      (unboxFullOrFail(exists, callContext, s"$MethodRoutingNameAlreadyUsed"), callContext)
+    }
     def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) =
       Connector.connector.vend.getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, s"$CardAttributeNotFound Current CardAttributeId($cardAttributeId)"), i._2)
@@ -1886,12 +1912,6 @@ object NewStyle {
           return Helper.booleanToFuture(s"$InvalidJsonFormat entityId is required for $operation operation.")(entityId.isEmpty || StringUtils.isBlank(entityId.get))
             .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
         }
-        val id = entityId.get
-        val value = DynamicDataProvider.connectorMethodProvider.vend.get(entityName, id)
-        if (value.isEmpty) {
-          return Helper.booleanToFuture(s"$EntityNotFoundByEntityId please check: entityId = $id", 404)(false)
-            .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
-        }
       }
       val dynamicInstance: Option[JObject] = requestBody.map { it =>
         val entityIdName = s"${entityName}_Id".replaceAll("(?<=[a-z0-9])(?=[A-Z])|-", "_").toLowerCase
@@ -1987,6 +2007,12 @@ object NewStyle {
            .split(',').map(_.trim).toSet
          case conn => Set(conn)
        }
+    }
+
+    def getSupportedConnectorNames(): List[String] = {
+      Connector.nameToConnector.keys
+        .filter(it => supportedConnectorNames.exists(it.startsWith(_)))
+        .toList
     }
 
     def getConnectorByName(connectorName: String): Option[Connector] = {

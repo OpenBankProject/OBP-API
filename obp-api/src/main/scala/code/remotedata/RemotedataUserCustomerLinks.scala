@@ -18,9 +18,16 @@ object RemotedataUserCustomerLinks extends ObpActorInit with UserCustomerLinkPro
   def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean) : Box[UserCustomerLink] =  getValueFromFuture(
     (actor ? cc.createUserCustomerLink(userId, customerId, dateInserted, isActive)).mapTo[Box[UserCustomerLink]]
   )
+  
+  def getOCreateUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean) : Box[UserCustomerLink] =  getValueFromFuture(
+    (actor ? cc.getOCreateUserCustomerLink(userId, customerId, dateInserted, isActive)).mapTo[Box[UserCustomerLink]]
+  )
 
   def getUserCustomerLinkByCustomerId(customerId: String): Box[UserCustomerLink] = getValueFromFuture(
     (actor ? cc.getUserCustomerLinkByCustomerId(customerId)).mapTo[Box[UserCustomerLink]]
+  )
+  def getUserCustomerLinksByCustomerId(customerId: String): List[UserCustomerLink] = getValueFromFuture(
+    (actor ? cc.getUserCustomerLinksByCustomerId(customerId)).mapTo[List[UserCustomerLink]]
   )
 
   def getUserCustomerLinksByUserId(userId: String): List[UserCustomerLink] = getValueFromFuture(

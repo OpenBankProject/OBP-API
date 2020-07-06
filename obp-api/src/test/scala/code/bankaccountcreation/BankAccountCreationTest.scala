@@ -75,7 +75,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       newBank.nationalIdentifier should equal(bankNationalIdentifier)
 
       And("An account should now exist, with the correct parameters")
-      val foundAccountBox = Connector.connector.vend.getBankAccount(newBank.bankId, returnedAccount.accountId)
+      val foundAccountBox = Connector.connector.vend.getBankAccountOld(newBank.bankId, returnedAccount.accountId)
       foundAccountBox.isDefined should equal(true)
       val foundAccount = foundAccountBox.openOrThrowException(attemptedToOpenAnEmptyBox)
 
@@ -109,7 +109,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       allBanksAfter(0).nationalIdentifier should equal(existingBank.nationalIdentifier)
 
       And("An account should now exist, with the correct parameters")
-      val foundAccountBox = Connector.connector.vend.getBankAccount(existingBank.bankId, returnedAccount.accountId)
+      val foundAccountBox = Connector.connector.vend.getBankAccountOld(existingBank.bankId, returnedAccount.accountId)
       foundAccountBox.isDefined should equal(true)
       val foundAccount = foundAccountBox.openOrThrowException(attemptedToOpenAnEmptyBox)
 
@@ -143,7 +143,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       ) 
 
       Then("No account is created")
-      Connector.connector.vend.getBankAccount(bankId, accountId).isDefined should equal(false)
+      Connector.connector.vend.getBankAccountOld(bankId, accountId).isDefined should equal(false)
 
     }
 
@@ -157,7 +157,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
                                                         "","","" ) //added field in V220
 
       Then("An account with the proper parameters should be created")
-      val createdAccBox = Connector.connector.vend.getBankAccount(bankId, accountId)
+      val createdAccBox = Connector.connector.vend.getBankAccountOld(bankId, accountId)
       createdAccBox.isDefined should be(true)
       val createdAcc = createdAccBox.openOrThrowException(attemptedToOpenAnEmptyBox)
 
@@ -179,7 +179,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
                                                         "","", "")//added field in V220
 
       Then("An account with the proper parameters should be created")
-      val createdAccBox = Connector.connector.vend.getBankAccount(bankId, accountId)
+      val createdAccBox = Connector.connector.vend.getBankAccountOld(bankId, accountId)
       createdAccBox.isDefined should be(true)
       val createdAcc = createdAccBox.openOrThrowException(attemptedToOpenAnEmptyBox)
 

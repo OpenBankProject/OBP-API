@@ -92,7 +92,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Tue Sep 03 17:49:04 CEST 2019
+// ---------- created on Tue Sep 03 17:49:04 CEST 2019
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -9535,6 +9535,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       case response@HttpResponse(status, _, entity@_, _) => (status, entity)
     }.flatMap {
       case (status, entity) if status.isSuccess() => extractEntity[T](entity, inBoundMapping)
+      case (status, entity) if status.intValue == 404 => Future.successful(Empty)
       case (status, entity) => {
           val future: Future[Box[Box[T]]] = extractBody(entity) map { msg =>
             tryo {
@@ -9593,16 +9594,6 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
   //-----helper methods
-
-  private[this] def convertToTuple[T](callContext: Option[CallContext]) (inbound: Box[InBoundTrait[T]]): (Box[T], Option[CallContext]) = {
-    val boxedResult = inbound match {
-      case Full(in) if (in.status.hasNoError) => Full(in.data)
-      case Full(inbound) if (inbound.status.hasError) =>
-        Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
-      case failureOrEmpty: Failure => failureOrEmpty
-    }
-    (boxedResult, callContext)
-  }
 
   //TODO hongwei confirm the third valu: OutboundAdapterCallContext#adapterAuthInfo
   private[this] def buildCallContext(inboundAdapterCallContext: InboundAdapterCallContext, callContext: Option[CallContext]): Option[CallContext] =

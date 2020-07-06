@@ -14,6 +14,7 @@ import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue.{dynamicEndpointRequestBodyExample, dynamicEndpointResponseBodyExample, dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
+import code.api.util.migration.Migration
 import code.api.util.newstyle.AttributeDefinition._
 import code.api.util.newstyle.Consumer._
 import code.api.util.newstyle.UserCustomerLinkNewStyle
@@ -24,12 +25,14 @@ import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
+import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
 import code.api.v3_1_0.{CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310, ListResult}
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
 import code.bankconnectors.Connector
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.entitlement.Entitlement
+import code.loginattempts.LoginAttempt
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -38,7 +41,9 @@ import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.MappedTransactionRequestProvider
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
-import code.transactionrequests.TransactionRequests.{TransactionRequestStatus, TransactionRequestTypes}
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes
+import com.openbankproject.commons.model.enums.TransactionRequestStatus
+import code.userlocks.UserLocksProvider
 import code.users.Users
 import code.util.Helper.booleanToBox
 import code.util.{Helper, JsonUtils}
@@ -49,6 +54,7 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.ApiVersion
+import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCascade}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
@@ -81,6 +87,38 @@ trait APIMethods400 {
 
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(staticResourceDocs, apiRelations)
+
+
+    staticResourceDocs += ResourceDoc(
+      getMapperDatabaseInfo,
+      implementedInApiVersion,
+      nameOf(getMapperDatabaseInfo),
+      "GET",
+      "/database/info",
+      "Get Mapper Database Info",
+      s"""Get basic information about the Mapper Database.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      adapterInfoJsonV300,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(Core, notPSD2, OBWG),
+      List(apiTagApi, apiTagNewStyle),
+      Some(List(canGetDatabaseInfo)))
+
+
+    lazy val getMapperDatabaseInfo: OBPEndpoint = {
+      case "database" :: "info" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- authenticatedAccess(cc)
+          } yield {
+            (Migration.DbFunction.mapperDatabaseInfo(), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
 
     staticResourceDocs += ResourceDoc(
@@ -947,9 +985,10 @@ trait APIMethods400 {
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            (isExists, _) <- NewStyle.function.invokeDynamicConnector(IS_EXISTS_DATA, entity.entityName, None, None, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, cc.callContext)
+            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
-              isExists.isDefined && isExists.contains(JBool(false))
+              resultList.arr.isEmpty
             }
 
             jsonObject = json.asInstanceOf[JObject]
@@ -989,9 +1028,10 @@ trait APIMethods400 {
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            (isExists, _) <- NewStyle.function.invokeDynamicConnector(IS_EXISTS_DATA, entity.entityName, None, None, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, cc.callContext)
+            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
-              isExists.isDefined && isExists.contains(JBool(false))
+              resultList.arr.isEmpty
             }
             deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
           } yield {
@@ -1049,7 +1089,10 @@ trait APIMethods400 {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
-           entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
+          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
+            box.isDefined
+          }
+          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           (entity, HttpCode.`200`(Some(cc)))
         }
@@ -1068,6 +1111,10 @@ trait APIMethods400 {
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canUpdateRole(entityName), callContext)
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
+          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
+            box.isDefined
+          }
           (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), Some(cc))
           entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
@@ -1078,6 +1125,10 @@ trait APIMethods400 {
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canDeleteRole(entityName), callContext)
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
+          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
+            box.isDefined
+          }
           (box, _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), Some(cc))
           deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
         } yield {
@@ -1300,6 +1351,43 @@ trait APIMethods400 {
           }
         }
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      lockUser,
+      implementedInApiVersion,
+      nameOf(lockUser),
+      "POST",
+      "/users/USERNAME/locks",
+      "Lock the user",
+      s"""
+         |Lock a User.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      userLockStatusJson,
+      List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canLockUser)))
+
+    lazy val lockUser : OBPEndpoint = {
+      case "users" :: username ::  "locks" :: Nil JsonPost req => {
+        cc =>
+          for {
+            (Full(u), callContext) <-  authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canLockUser, callContext)
+            userLocks <- Future { UserLocksProvider.lockUser(username) } map {
+              unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)", 404)
+            }
+          } yield {
+            (JSONFactory400.createUserLockStatusJson(userLocks), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
 
     staticResourceDocs += ResourceDoc(
       getEntitlements,
@@ -1690,6 +1778,10 @@ trait APIMethods400 {
             }
             _ <- Helper.booleanToFuture(failMsg = ErrorMessages.InvalidConsumerCredentials) {
               cc.callContext.map(_.consumer.isDefined == true).isDefined
+            }
+
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat Min length of BANK_ID should be 5 characters.") {
+              bank.id.length > 5
             }
             (success, callContext) <- NewStyle.function.createOrUpdateBank(
               bank.id,
@@ -3717,7 +3809,7 @@ trait APIMethods400 {
       nameOf(getUserCustomerLinksByUserId),
       "GET",
       "/banks/BANK_ID/user_customer_links/users/USER_ID",
-      "Get User Customer Links",
+      "Get User Customer Links by User",
       s""" Get User Customer Links by USER_ID
          |
          |${authenticationRequiredMessage(true)}
@@ -3744,6 +3836,157 @@ trait APIMethods400 {
             )
           } yield {
             (JSONFactory200.createUserCustomerLinkJSONs(userCustomerLinks), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getUserCustomerLinksByCustomerId,
+      implementedInApiVersion,
+      nameOf(getUserCustomerLinksByCustomerId),
+      "GET",
+      "/banks/BANK_ID/user_customer_links/customers/CUSTOMER_ID",
+      "Get User Customer Links by Customer",
+      s""" Get User Customer Links by CUSTOMER_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      userCustomerLinksJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetUserCustomerLink)))
+
+    lazy val getUserCustomerLinksByCustomerId : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "user_customer_links" :: "customers" :: customerId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (userCustomerLinks, callContext) <- UserCustomerLinkNewStyle.getUserCustomerLinks(
+              customerId,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory200.createUserCustomerLinkJSONs(userCustomerLinks), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteTransactionCascade,
+      implementedInApiVersion,
+      nameOf(deleteTransactionCascade),
+      "DELETE",
+      "/management/cascading/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID",
+      "Delete Transaction Cascade",
+      s"""Delete a Transaction Cascade specified by TRANSACTION_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagTransaction, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteTransactionCascade)))
+
+    lazy val deleteTransactionCascade : OBPEndpoint = {
+      case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: 
+        "transactions" :: TransactionId(transactionId) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getTransaction(bankId, accountId, transactionId, cc.callContext)
+            _ <- Future(DeleteTransactionCascade.atomicDelete(bankId, accountId, transactionId))
+          } yield {
+            (Full(true), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      deleteAccountCascade,
+      implementedInApiVersion,
+      nameOf(deleteAccountCascade),
+      "DELETE",
+      "/management/cascading/banks/BANK_ID/accounts/ACCOUNT_ID",
+      "Delete Account Cascade",
+      s"""Delete an Account Cascade specified by ACCOUNT_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteAccountCascade)))
+
+    lazy val deleteAccountCascade : OBPEndpoint = {
+      case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            _ <- Future(DeleteAccountCascade.atomicDelete(bankId, accountId))
+          } yield {
+            (Full(true), HttpCode.`200`(cc))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      deleteProductCascade,
+      implementedInApiVersion,
+      nameOf(deleteProductCascade),
+      "DELETE",
+      "/management/cascading/banks/BANK_ID/products/PRODUCT_CODE",
+      "Delete Product Cascade",
+      s"""Delete a Product Cascade specified by PRODUCT_CODE.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteProductCascade)))
+
+    lazy val deleteProductCascade : OBPEndpoint = {
+      case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "products" :: ProductCode(code) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getProduct(bankId, code, Some(cc))
+            _ <- Future(DeleteProductCascade.atomicDelete(bankId, code))
+          } yield {
+            (Full(true), HttpCode.`200`(callContext))
           }
       }
     }

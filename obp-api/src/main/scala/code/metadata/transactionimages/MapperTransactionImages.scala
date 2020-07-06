@@ -45,6 +45,15 @@ object MapperTransactionImages extends TransactionImages {
     }
   }
 
+  override def bulkDeleteImagesOnTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId): Boolean = {
+    val commentsDeleted = MappedTransactionImage.bulkDelete_!!(
+      By(MappedTransactionImage.bank, bankId.value),
+      By(MappedTransactionImage.account, accountId.value),
+      By(MappedTransactionImage.transaction, transactionId.value)
+    )
+    commentsDeleted
+  }
+  
   override def bulkDeleteTransactionImage(bankId: BankId, accountId: AccountId): Boolean = {
     val commentsDeleted = MappedTransactionImage.bulkDelete_!!(
       By(MappedTransactionImage.bank, bankId.value),

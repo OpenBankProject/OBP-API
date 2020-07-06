@@ -58,6 +58,15 @@ object MapperWhereTags extends WhereTags {
     findMappedWhereTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId, ViewId(metadateViewId))
   }
 
+  override def bulkDeleteWhereTagsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Boolean = {
+    val whereTagsDeleted = MappedWhereTag.bulkDelete_!!(
+      By(MappedWhereTag.bank, bankId.value),
+      By(MappedWhereTag.account, accountId.value),
+      By(MappedWhereTag.transaction, transactionId.value)
+    )
+    whereTagsDeleted
+  }
+  
   override def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId): Boolean = {
     val whereTagsDeleted = MappedWhereTag.bulkDelete_!!(
       By(MappedWhereTag.bank, bankId.value),

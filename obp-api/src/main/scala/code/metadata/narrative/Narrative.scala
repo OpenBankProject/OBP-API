@@ -29,6 +29,8 @@ trait Narrative {
   //TODO: should return something that lets us know if it saved or failed
   def setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(narrative: String) : Boolean
 
+  def bulkDeleteNarrativeOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Boolean
+  
   def bulkDeleteNarratives(bankId: BankId, accountId: AccountId): Boolean
 
 }
@@ -36,6 +38,7 @@ trait Narrative {
 class RemoteNarrativesCaseClasses {
   case class getNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
   case class setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId, narrative: String)
+  case class bulkDeleteNarrativeOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
   case class bulkDeleteNarratives(bankId: BankId, accountId: AccountId)
 }
 

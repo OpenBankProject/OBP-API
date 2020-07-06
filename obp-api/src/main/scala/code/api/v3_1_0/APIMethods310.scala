@@ -33,6 +33,7 @@ import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.ratelimiting.RateLimitingDI
+import code.userlocks.{UserLocks, UserLocksProvider}
 import code.users.Users
 import code.util.Helper
 import code.views.Views
@@ -84,7 +85,7 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/checkbook/orders",
       "Get Checkbook orders",
-      s"""${mockedDataText(true)}Get all checkbook orders""",
+      s"""${mockedDataText(false)}Get all checkbook orders""",
       emptyObjectJson,
       checkbookOrdersJson,
       List(
@@ -124,7 +125,7 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/credit_cards/orders",
       "Get status of Credit Card order ",
-      s"""${mockedDataText(true)}Get status of Credit Card orders
+      s"""${mockedDataText(false)}Get status of Credit Card orders
         |Get all orders
         |""",
       emptyObjectJson,
@@ -469,10 +470,10 @@ trait APIMethods310 {
          |""".stripMargin,
       emptyObjectJson,
       customerJSONs,
-      List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
+      List(UserNotLoggedIn, CustomerFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagFirehoseData, apiTagNewStyle),
-      Some(List(canUseFirehoseAtAnyBank)))
+      Some(List(canUseCustomerFirehoseAtAnyBank)))
 
     lazy val getFirehoseCustomers : OBPEndpoint = {
       //get private accounts for all banks
@@ -481,8 +482,8 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
-              canUseFirehose(u)
+            _ <- Helper.booleanToFuture(failMsg = CustomerFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseCustomerFirehoseAtAnyBank  ) {
+              canUseCustomerFirehose(u)
             }
             allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
             httpParams <- NewStyle.function.createHttpParams(cc.url)
@@ -532,7 +533,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadUserLockedStatus, callContext)
-            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)") }
+            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)", 404) }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))
           }
@@ -569,7 +570,8 @@ trait APIMethods310 {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUnlockUser, callContext)
             _ <- Future { LoginAttempt.resetBadLoginAttempts(username) } 
-            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)") }
+            _ <- Future { UserLocksProvider.unlockUser(username) } 
+            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)", 404) }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))
           }
@@ -3869,7 +3871,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(answerUserAuthContextUpdateChallenge),
       "POST",
-      "/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge",
+      "/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge",
       "Answer Auth Context Update Challenge",
       s"""
          |Answer Auth Context Update Challenge.
@@ -3887,7 +3889,7 @@ trait APIMethods310 {
       apiTagUser :: apiTagNewStyle :: Nil)
 
     lazy val answerUserAuthContextUpdateChallenge : OBPEndpoint = {
-      case "users" :: "current" ::"auth-context-updates"  :: authContextUpdateId :: "challenge" :: Nil JsonPost json -> _  => {
+      case "banks" :: BankId(bankId) :: "users" :: "current" ::"auth-context-updates"  :: authContextUpdateId :: "challenge" :: Nil JsonPost json -> _  => {
         cc =>
           for {
             (_, callContext) <- authenticatedAccess(cc)
@@ -3906,6 +3908,18 @@ trait APIMethods310 {
                     userAuthContextUpdate.key, 
                     userAuthContextUpdate.value, 
                     callContext).map(x => (Some(x._1), x._2))
+                case _ =>
+                  Future((None, callContext))
+              }
+            (_, callContext) <-
+              userAuthContextUpdate.key match {
+                case "CUSTOMER_NUMBER" =>
+                  NewStyle.function.getOCreateUserCustomerLink(
+                    bankId,
+                    userAuthContextUpdate.value, // Customer number
+                    userAuthContextUpdate.userId, 
+                    callContext
+                  )
                 case _ =>
                   Future((None, callContext))
               }
@@ -4207,6 +4221,7 @@ trait APIMethods310 {
         .toList
     }
 
+    private val supportedConnectorNames = NewStyle.function.getSupportedConnectorNames().mkString("[", " | ", "]")
     resourceDocs += ResourceDoc(
       createMethodRouting,
       implementedInApiVersion,
@@ -4221,7 +4236,7 @@ trait APIMethods310 {
         |
         |Explaination of Fields:
         |
-        |* method_name is required String value
+        |* method_name is required String value, current supported value: $supportedConnectorNames
         |* connector_name is required String value
         |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
@@ -4300,6 +4315,7 @@ trait APIMethods310 {
                 Pattern.compile(postedData.bankIdPattern.get)
               }
             }
+            _ <- NewStyle.function.checkMethodRoutingAlreadyExists(methodName, callContext)
             Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(postedData)
           } yield {
             val commonsData: MethodRoutingCommons = methodRouting
@@ -4323,7 +4339,7 @@ trait APIMethods310 {
         |
         |Explaination of Fields:
         |
-        |* method_name is required String value
+        |* method_name is required String value, current supported value: $supportedConnectorNames
         |* connector_name is required String value
         |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex

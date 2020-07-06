@@ -24,6 +24,10 @@ class RemotedataWhereTagsActor extends Actor with ObpActorHelper with MdcLoggabl
     case cc.bulkDeleteWhereTags(bankId: BankId, accountId: AccountId) =>
       logger.debug(s"bulkDeleteWhereTags($bankId, $accountId)")
       sender ! (mapper.bulkDeleteWhereTags(bankId, accountId))
+      
+    case cc.bulkDeleteWhereTagsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId) =>
+      logger.debug(s"bulkDeleteWhereTagsOnTransaction($bankId, $accountId, $transactionId)")
+      sender ! (mapper.bulkDeleteWhereTagsOnTransaction(bankId, accountId, transactionId))
 
     case cc.deleteWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, viewId : ViewId) =>
       logger.debug(s"deleteWhereTag($bankId, $accountId, $transactionId, $viewId)")

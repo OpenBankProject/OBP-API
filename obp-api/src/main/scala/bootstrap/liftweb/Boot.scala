@@ -29,10 +29,10 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.{Locale, TimeZone}
 
-import org.apache.commons.io.FileUtils
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
+import code.UserRefreshes.MappedUserRefreshes
 import code.accountapplication.MappedAccountApplication
 import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
@@ -48,6 +48,7 @@ import code.api.util._
 import code.api.util.migration.Migration
 import code.atms.MappedAtm
 import code.bankconnectors.ConnectorEndpoints
+import code.bankconnectors.storedprocedure.StoredProceduresMockedData
 import code.branches.MappedBranch
 import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
@@ -105,6 +106,8 @@ import code.transaction_types.MappedTransactionType
 import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
+import code.userlocks.UserLocks
+import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
@@ -124,6 +127,7 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, Schedule, _}
+import org.apache.commons.io.FileUtils
 
 import scala.concurrent.ExecutionContext
 
@@ -241,6 +245,9 @@ class Boot extends MdcLoggable {
        }
      }
     }
+    
+    logger.info("Mapper database info: ")
+    logger.info(Migration.DbFunction.mapperDatabaseInfo())
 
     import java.security.SecureRandom
     val rand = new SecureRandom(SecureRandom.getSeed(20))
@@ -301,6 +308,10 @@ class Boot extends MdcLoggable {
       case "star" if (APIUtil.getPropsValue("starConnector_supported_types","").split(",").contains("akka"))  =>
         ObpActorSystem.startNorthSideAkkaConnectorActorSystem()
       case _ => // Do nothing
+    }
+
+    if (Props.devMode || Props.testMode) {
+      StoredProceduresMockedData.createOrDropMockedPostgresStoredProcedures()
     }
 
     // where to search snippets
@@ -465,7 +476,7 @@ class Boot extends MdcLoggable {
           Menu.i("Plain") / "plain",
           Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
           	submenus(Consumer.menus : _*),
-          Menu("Consumer Registration", "Get API Key") / "consumer-registration" >> AuthUser.loginFirst,
+          Menu("Consumer Registration", Helper.i18n("consumer.registration.nav.name")) / "consumer-registration" >> AuthUser.loginFirst,
           Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
 
           Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
@@ -593,7 +604,7 @@ class Boot extends MdcLoggable {
       val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).isDefined
       val accountant = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).isDefined
       // Only create Firehose view if they are enabled at instance.
-      val firehose = if (APIUtil.getPropsAsBoolValue("allow_firehose_views", false))
+      val accountFirehose = if (ApiPropsWithAlias.allowAccountFirehose)
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
       else Empty.isDefined
       
@@ -602,7 +613,7 @@ class Boot extends MdcLoggable {
            |System view ${SYSTEM_OWNER_VIEW_ID} exists/created at the instance: ${owner}
            |System view ${SYSTEM_AUDITOR_VIEW_ID} exists/created at the instance: ${auditor}
            |System view ${SYSTEM_ACCOUNTANT_VIEW_ID} exists/created at the instance: ${accountant}
-           |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${firehose}
+           |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${accountFirehose}
            |""".stripMargin
       logger.info(comment)
     }
@@ -686,7 +697,7 @@ class Boot extends MdcLoggable {
           .shortBankName("OBP")
           .national_identifier("OBP")
           .mBankRoutingScheme("OBP")
-          .mBankRoutingAddress("OBP_DEFAULT_BANK")
+          .mBankRoutingAddress("obp1")
           .logoURL("")
           .websiteURL("")
           .saveMe()
@@ -789,6 +800,7 @@ object ToSchemify {
     MappedPhysicalCard,
     PinReset,
     MappedBadLoginAttempt,
+    UserLocks,
     MappedFXRate,
     MappedCurrency,
     MappedTransactionRequestTypeCharge,
@@ -805,7 +817,8 @@ object ToSchemify {
     DynamicEndpoint,
     AccountIdMapping,
     DirectDebit,
-    StandingOrder
+    StandingOrder,
+    MappedUserRefreshes
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server

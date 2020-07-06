@@ -33,6 +33,7 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.{Date, UUID}
 
+import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
 import code.api.OAuthHandshake._
@@ -2036,7 +2037,7 @@ Returns a string showed to the developer
     1) Absent from Props api_disabled_versions
     2) Present here (api_enabled_versions=[v2_2_0,v3_0_0]) -OR- api_enabled_versions must be empty.
 
-    Note we use "v" and "_" in the name to match the ApiVersions enumeration in ApiUtil.scala
+    Note we use "v" and "." in the name to match the ApiVersions enumeration in ApiUtil.scala
    */
   def versionIsAllowed(version: ApiVersion) : Boolean = {
     def checkVersion: Boolean = {
@@ -2479,18 +2480,32 @@ Returns a string showed to the developer
   def unboxOptionFuture[T](option: Option[Future[T]]): Future[Box[T]] = unboxFuture(Box(option))
 
   def unboxOptionOBPReturnType[T](option: Option[OBPReturnType[T]]): Future[Box[T]] = unboxOBPReturnType(Box(option))
-  
+
+  /**
+   * This method will be executed only when user is defined and needToRefreshUser return true.
+   * Better also check the logic for needToRefreshUser method.
+   */
+  def refreshUserIfRequired(user: Box[User], callContext: Option[CallContext]) = {
+    if(!APIUtil.isSandboxMode && user.isDefined && UserRefreshes.UserRefreshes.vend.needToRefreshUser(user.head.userId))
+      user.map(AuthUser.updateUserAccountViewsFuture(_, callContext))
+    else
+       None
+  }
 
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
   def authenticatedAccess(cc: CallContext, emptyUserErrorMsg: String = UserNotLoggedIn): OBPReturnType[Box[User]] = {
-    anonymousAccess(cc) map {
-      x => (fullBoxOrException(
-        x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))),
+    anonymousAccess(cc) map{
+      x => (
+        fullBoxOrException(x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))),
         x._2
       )
+    } map {
+      x => 
+        refreshUserIfRequired(x._1,x._2)
+        x
     }
   }
 
@@ -2624,12 +2639,9 @@ Returns a string showed to the developer
     otherAccountRoutingAddress: String
   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName$otherAccountRoutingScheme$otherAccountRoutingAddress")
 
+  //TODO, now we have the star connector, it will break the isSandboxMode method logic. Need to double check how to use this method now. 
   val isSandboxMode: Boolean = (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
   
-  //If we use kafka connector, we need set up kafka server first. For some cases(eg: get Kafka MessageDoc), we do not need kafka.. 
-  val isStarConnectorButNoKafkaSupport: Boolean = 
-    (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("star") && (!(APIUtil.getPropsValue("starConnector_supported_types").openOrThrowException(attemptedToOpenAnEmptyBox).toString).contains("kafka"))
-
   /**
     * This function is implemented in order to support encrypted values in props file.
     * Please note that some value is considered as encrypted if has an encryption mark property in addition to regular props value in props file e.g
@@ -2752,9 +2764,13 @@ Returns a string showed to the developer
 
 
   val ALLOW_PUBLIC_VIEWS: Boolean = getPropsAsBoolValue("allow_public_views", false)
-  val ALLOW_FIREHOSE_VIEWS: Boolean = getPropsAsBoolValue("allow_firehose_views", false)
-  def canUseFirehose(user: User): Boolean = {
-    ALLOW_FIREHOSE_VIEWS && hasEntitlement("", user.userId, ApiRole.canUseFirehoseAtAnyBank)
+  val ALLOW_ACCOUNT_FIREHOSE: Boolean = ApiPropsWithAlias.allowAccountFirehose
+  val ALLOW_CUSTOMER_FIREHOSE: Boolean = ApiPropsWithAlias.allowCustomerFirehose
+  def canUseAccountFirehose(user: User): Boolean = {
+    ALLOW_ACCOUNT_FIREHOSE && hasEntitlement("", user.userId, ApiRole.canUseAccountFirehoseAtAnyBank)
+  }
+  def canUseCustomerFirehose(user: User): Boolean = {
+    ALLOW_CUSTOMER_FIREHOSE && hasEntitlement("", user.userId, ApiRole.canUseCustomerFirehoseAtAnyBank)
   }
   /**
     * This will accept all kinds of view and user.
@@ -2764,34 +2780,45 @@ Returns a string showed to the developer
     * @param user Option User, can be Empty(No Authentication), or Login user.
     *
     */
-  def hasAccess(view: View, bankIdAccountId: BankIdAccountId, user: Option[User]) : Boolean = {
+  def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: Option[User]) : Boolean = {
     if(isPublicView(view: View))// No need for the Login user and public access
       true
     else
       user match {
-        case Some(u) if hasFirehoseAccess(view,u)  => true//Login User and Firehose access
+        case Some(u) if hasAccountFirehoseAccess(view,u)  => true//Login User and Firehose access
         case Some(u) if u.hasAccountAccess(view, bankIdAccountId)=> true     // Login User and check view access
         case _ =>
           false
       }
   }
   /**
-   * All the get view and check view access must be in one method, can not be separated from now. Because we introduce system views. 
-   * 1st check: if `Custom View is existing` and `have the custom owner view access` ==>  return the customView.
-   * 2rd check: if `Custom view is not find or have no custom owner view access` and `find system owner view` and `have the system owner view access` ==> then return systemView. 
-   * all other cases ==>return no access to the `viewId`
-   * 
-   * Note: this user is Option, for the public views, there is no need for the user. 
+   * This function check does the user(anonymous or authenticated) have account access
+   * to the account specified by parameter bankIdAccountId over the view specified by parameter viewId
+   * Note: The public views means you can use anonymous access which implies that the user is an optional value
    */
-  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User]) = {
-    val customerViewImplBox = Views.views.vend.customView(viewId, bankIdAccountId)
-    customerViewImplBox match {
+  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User]): Box[View] = {
+    val customView = Views.views.vend.customView(viewId, bankIdAccountId)
+    customView match { // CHECK CUSTOM VIEWS
+      // 1st: View is Pubic and Public views are NOT allowed on this instance.
       case Full(v) if(v.isPublic && !ALLOW_PUBLIC_VIEWS) => Failure(PublicViewsNotAllowedOnThisInstance)
-      case Full(v) if(isPublicView(v)) => customerViewImplBox
-      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => customerViewImplBox
-      case _ => Views.views.vend.systemView(viewId) match  {
-        case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => Full(v)
-        case _ => Empty
+      // 2nd: View is Pubic and Public views are allowed on this instance.
+      case Full(v) if(isPublicView(v)) => customView 
+      // 3rd: The user has account access to this custom view
+      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => customView
+      // The user has NO account access via custom view
+      case _ => 
+        val systemView = Views.views.vend.systemView(viewId)
+        systemView match  { // CHECK SYSTEM VIEWS
+          // 1st: View is Pubic and Public views are NOT allowed on this instance.
+          case Full(v) if(v.isPublic && !ALLOW_PUBLIC_VIEWS) => Failure(PublicViewsNotAllowedOnThisInstance)
+          // 2nd: View is Pubic and Public views are allowed on this instance.
+          case Full(v) if(isPublicView(v)) => systemView
+          // 3rd: The user has account access to this system view
+          case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => systemView
+          // 4th: The user has firehose access to this system view
+          case Full(v) if (user.isDefined && hasAccountFirehoseAccess(v, user.get)) => systemView
+          // The user has NO account access at all
+          case _ => Empty
       }
     }
   }
@@ -2815,10 +2842,10 @@ Returns a string showed to the developer
     }
   }
   /**
-    * This view Firehose is true and set `allow_firehose_views = true` and the user has  `CanUseFirehoseAtAnyBank` role
+    * This view Firehose is true and set `allow_account_firehose = true` and the user has  `CanUseAccountFirehoseAtAnyBank` role
     */
-  def hasFirehoseAccess(view: View, user: User) : Boolean = {
-    if(view.isFirehose && canUseFirehose(user)) true
+  def hasAccountFirehoseAccess(view: View, user: User) : Boolean = {
+    if(view.isFirehose && canUseAccountFirehose(user)) true
     else false
   }
 
@@ -2839,7 +2866,7 @@ Returns a string showed to the developer
       APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET_Test")
     else {
       //Note: now if the bank_id is not existing, we will create it during `boot`.
-      APIUtil.getPropsValue("defaultBank.bank_id", "OBP_DEFAULT_BANK_ID")
+      APIUtil.getPropsValue("defaultBank.bank_id", "obp1")
     }
   //This method will read sample.props.template file, and get all the fields which start with the webui_
   //it will return the webui_ props paris: 
