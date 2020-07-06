@@ -10,23 +10,22 @@ import code.api.util._
 import code.model.MappedConsumersProvider
 import code.util.Helper.MdcLoggable
 import code.util.{MappedUUID, UUIDString}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.{Index, _}
 import net.liftweb.util.Helpers.tryo
-
-import scala.concurrent.duration._
-import scala.collection.immutable.List
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 import org.apache.commons.lang3.StringUtils
 
+import scala.collection.immutable.List
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 object MappedMetrics extends APIMetrics with MdcLoggable{
 
   val cachedAllMetrics = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getAllMetrics", "7").toInt
   val cachedAllAggregateMetrics = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getAllAggregateMetrics", "7").toInt
-  val cachedTopApis = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getTopApis", "7").toInt
+  val cachedTopApis = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getTopApis", "3600").toInt
   val cachedTopConsumers = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getTopConsumers", "7").toInt
 
   // If consumerId is Int, if consumerId is not Int, convert it to primary key.
@@ -61,6 +60,23 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       case None =>
     }
     metric.save
+  }
+
+  import scalikejdbc.{DB => scalikeDB, _}
+  val settings = ConnectionPoolSettings(
+    initialSize = 5,
+    maxSize = 20,
+    connectionTimeoutMillis = 3000L,
+    validationQuery = "select 1",
+    connectionPoolFactoryName = "commons-dbcp2"
+  )
+  private def getDbConnectionParameters() = {
+    val dbUrl = APIUtil.getPropsValue("db.url") openOr "jdbc:h2:mem:OBPTest;DB_CLOSE_DELAY=-1"
+    val username = dbUrl.split(";").filter(_.contains("user")).toList.headOption.map(_.split("=")(1))
+    val password = dbUrl.split(";").filter(_.contains("password")).toList.headOption.map(_.split("=")(1))
+    val dbUser = APIUtil.getPropsValue("db.user").orElse(username)
+    val dbPassword = APIUtil.getPropsValue("db.password").orElse(password)
+    (dbUrl, dbUser.getOrElse(""), dbPassword.getOrElse(""))
   }
 
 //  override def getAllGroupedByUserId(): Map[String, List[APIMetric]] = {
@@ -318,7 +334,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/t
   */                                                                                       
   var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)       
-  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedTopApis days){   
+  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedTopApis seconds){   
     Future{
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
@@ -343,73 +359,37 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsSet.size)
       val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
       val extedndedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
-
-      for{
-
-         dbQuery <- Full("SELECT count(*), mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " +
-                         "FROM mappedmetric " +
-                         "WHERE date_c >= ? "+
-                         "AND date_c <= ? "+
-                         "AND (? or consumerid = ?) "+
-                         "AND (? or userid = ?) "+
-                         "AND (? or implementedbypartialfunction = ? ) "+
-                         "AND (? or implementedinversion = ?) "+
-                         "AND (? or url= ?) "+
-                         "And (? or appname = ?) "+
-                         "AND (? or verb = ? ) "+
-                         "AND (? or userid = 'null' ) " +  // mapping `S.param("anon")` anon == null, (if null ignore) , anon == true (return where user_id is null.)
-                         "AND (? or userid != 'null' ) " +  // anon == false (return where user_id is not null.)
-                         s"AND (? or(url NOT LIKE ($excludeUrlPatternsQueries) "+
-                         s"AND (? or appname not in ($extendedExclueAppNameQueries)) " +
-                         s"AND (? or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) "+
-                         "GROUP BY mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " +
-                         "ORDER BY count(*) DESC")
-
-         resultSet <- tryo(DB.use(DefaultConnectionIdentifier)
-           {
-            conn =>
-                DB.prepareStatement(dbQuery, conn)
-                {
-                  stmt =>
-                    stmt.setTimestamp(1, new Timestamp(fromDate.get.getTime)) //These two fields will always have the value. If null, set the default value.
-                    stmt.setTimestamp(2, new Timestamp(toDate.get.getTime))
-                    stmt.setBoolean(3, if (consumerId.isEmpty) true else false)
-                    stmt.setString(4, consumerId.getOrElse(""))
-                    stmt.setBoolean(5, if (userId.isEmpty) true else false)
-                    stmt.setString(6, userId.getOrElse(""))
-                    stmt.setBoolean(7, if (implementedByPartialFunction.isEmpty) true else false)
-                    stmt.setString(8, implementedByPartialFunction.getOrElse(""))
-                    stmt.setBoolean(9, if (implementedInVersion.isEmpty) true else false)
-                    stmt.setString(10, implementedInVersion.getOrElse(""))
-                    stmt.setBoolean(11, if (url.isEmpty) true else false)
-                    stmt.setString(12, url.getOrElse(""))
-                    stmt.setBoolean(13, if (appName.isEmpty) true else false)
-                    stmt.setString(14,appName.getOrElse(""))
-                    stmt.setBoolean(15, if (verb.isEmpty) true else false)
-                    stmt.setString(16, verb.getOrElse(""))
-                    stmt.setBoolean(17, if (anon.isDefined && anon.equals(Some(true))) false else true) // anon == true (return where user_id is null.)
-                    stmt.setBoolean(18, if (anon.isDefined && anon.equals(Some(false))) false  else true) // anon == false (return where user_id is not null.)
-                    stmt.setBoolean(19, if (excludeUrlPatterns.isEmpty) true else false)
-                    extendPrepareStement(20, stmt, excludeUrlPatternsSet)
-                    stmt.setBoolean(20+excludeUrlPatternsSet.size, if (excludeAppNames.isEmpty) true else false)
-                    extendPrepareStement(21+excludeUrlPatternsSet.size, stmt, excludeAppNamesNumberSet)
-                    stmt.setBoolean(21+excludeUrlPatternsSet.size+excludeAppNamesNumberSet.size, if (excludeImplementedByPartialFunctions.isEmpty) true else false)
-                    extendPrepareStement(22+excludeUrlPatternsSet.size+excludeAppNamesNumberSet.size,stmt, excludeImplementedByPartialFunctionsNumberSet)
-                    DB.resultSetTo(stmt.executeQuery())
-
-                }
-           })?~! {logger.error(s"getTopApisBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopApisBox.DB.runQuery(dbQuery) read database issue. "}
-
-         topApis <- tryo(resultSet._2.map(
-           a =>
-             TopApi(
-               if (a(0) != null) a(0).toInt else 0,
-               if (a(1) != null) a(1).toString else "",
-               if (a(2) != null) a(2).toString else ""))) ?~! {logger.error(s"getTopApisBox.create TopApi class error. Here is the result from database $resultSet ");s"$UnknownError getTopApisBox.create TopApi class error. "}
-
-      } yield {
-        topApis
+      
+      val (dbUrl, user, password) = getDbConnectionParameters()
+      ConnectionPool.singleton(dbUrl, user, password, settings)
+      val result: List[TopApi] = scalikeDB readOnly { implicit session =>
+        def truOrFalse(condition: Boolean) = if (condition) sqls"1=1" else sqls"0=1"
+        def falseOrTrue(condition: Boolean) = if (condition) sqls"0=1" else sqls"1=1"
+        val sqlResult =
+          sql"""SELECT count(*), mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion 
+                FROM mappedmetric 
+                WHERE 
+                date_c >= ${new Timestamp(fromDate.get.getTime)} AND
+                date_c <= ${new Timestamp(toDate.get.getTime)}
+                AND (${truOrFalse(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("")}) 
+                AND (${truOrFalse(userId.isEmpty)} or userid = ${userId.getOrElse("")}) 
+                AND (${truOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("")}) 
+                AND (${truOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("")}) 
+                AND (${truOrFalse(url.isEmpty)} or url = ${url.getOrElse("")}) 
+                AND (${truOrFalse(appName.isEmpty)} or appname = ${appName.getOrElse("")}) 
+                AND (${truOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("")}) 
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null') 
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
+                AND (${truOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
+                AND (${truOrFalse(excludeAppNames.isEmpty) } or appname not in ($extendedExclueAppNameQueries)) 
+                AND (${truOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) 
+                GROUP BY mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion 
+                ORDER BY count(*) DESC
+                """.stripMargin
+          .map(rs => TopApi(rs.string(1).toInt, rs.string(2), rs.string(3))).list.apply()
+        sqlResult
       }
+      tryo(result)
     }}
   }}
 
