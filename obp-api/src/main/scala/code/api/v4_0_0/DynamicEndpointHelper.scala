@@ -3,9 +3,8 @@ package code.api.v4_0_0
 import java.io.File
 import java.nio.charset.Charset
 import java.util
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.regex.Pattern
-import java.util.{Date, Optional, UUID}
+import java.util.{Date, UUID}
 
 import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -14,6 +13,7 @@ import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
 import code.api.util.ErrorMessages.{UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ApiTag, CustomJsonFormats}
 import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.Functions.Memo
 import io.swagger.v3.oas.models.PathItem.HttpMethod
 import io.swagger.v3.oas.models.media._
 import io.swagger.v3.oas.models.parameters.RequestBody
@@ -145,11 +145,13 @@ object DynamicEndpointHelper extends RestHelper {
 
   }
 
-  private def swaggerToResourceDocs(content: String, id: String): DynamicEndpointInfo = {
-    // TODO content can be cached with `memoize` method way.
-    val openAPI: OpenAPI = parseSwaggerContent(content)
-    swaggerToResourceDocs(openAPI, id)
-  }
+  private val dynamicEndpointInfoMemo = new Memo[String, DynamicEndpointInfo]
+
+  private def swaggerToResourceDocs(content: String, id: String): DynamicEndpointInfo =
+    dynamicEndpointInfoMemo.memoize(content) {
+      val openAPI: OpenAPI = parseSwaggerContent(content)
+      swaggerToResourceDocs(openAPI, id)
+    }
 
   private def swaggerToResourceDocs(openAPI: OpenAPI, id: String): DynamicEndpointInfo = {
     val tags: List[ResourceDocTag] = List(ApiTag.apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle)
