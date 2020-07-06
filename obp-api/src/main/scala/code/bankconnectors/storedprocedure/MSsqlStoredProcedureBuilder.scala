@@ -1,19 +1,18 @@
 package code.bankconnectors.storedprocedure
 
 import java.io.File
-import java.util.Date
+import java.util.{Date, TimeZone}
 
+import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.successStatus
 import code.api.util.APIUtil.MessageDoc
-import code.bankconnectors.ConnectorBuilderUtil.{getClass, _}
+import code.api.util.CustomJsonFormats.formats
+import code.api.util.{APIUtil, FieldIgnoreSerializer}
+import code.bankconnectors.ConnectorBuilderUtil._
 import com.openbankproject.commons.model.Status
 import com.openbankproject.commons.util.Functions
 import net.liftweb.json
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.{Formats, JString, MappingException, Serializer, TypeInfo}
-import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.successStatus
-import code.api.util.APIUtil
-import code.api.util.CustomJsonFormats.formats
-import com.openbankproject.commons.model.Status
+import net.liftweb.json.{Formats, Serializer, TypeInfo}
 import net.liftweb.util.StringHelpers
 import org.apache.commons.io.FileUtils
 
@@ -34,7 +33,10 @@ object MSsqlStoredProcedureBuilder {
   }
 
   def main(args: Array[String]): Unit = {
-    implicit val customFormats = formats + StatusSerializer
+    // Boot.scala set default TimeZone, So here need also fix the TimeZone to make example Date is a fix value,
+    // not affect by local TimeZone.
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+    implicit val customFormats = formats + StatusSerializer + FieldIgnoreSerializer
     val messageDocs: ArrayBuffer[MessageDoc] = StoredProcedureConnector_vDec2019.messageDocs
     def toProcedureName(processName: String) = StringHelpers.snakify(processName.replace("obp.", "obp_"))
     def toJson(any: Any) = json.prettyRender(json.Extraction.decompose(any))

@@ -31,7 +31,7 @@ import java.util.Date
 import java.util.regex.Pattern
 
 import code.actorsystem.ObpActorConfig
-import code.api.util.{APIUtil, ApiPropsWithAlias, CustomJsonFormats}
+import code.api.util.{APIUtil, ApiPropsWithAlias, CustomJsonFormats, FieldIgnoreSerializer}
 import code.api.util.APIUtil.{MessageDoc, getPropsValue}
 import code.api.v1_2_1.BankRoutingJsonV121
 import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
@@ -368,7 +368,7 @@ case class CustomerViewJsonV220(
 
 
 
-object JSONFactory220 extends CustomJsonFormats {
+object JSONFactory220 {
   
   def stringOrNull(text : String) =
     if(text == null || text.isEmpty)
@@ -846,6 +846,8 @@ object JSONFactory220 extends CustomJsonFormats {
   def createMessageDocsJson(messageDocsList: List[MessageDoc]): MessageDocsJson = {
     MessageDocsJson(messageDocsList.map(createMessageDocJson))
   }
+
+  private implicit val formats = CustomJsonFormats.formats + FieldIgnoreSerializer
 
   def createMessageDocJson(md: MessageDoc): MessageDocJson = {
     val inBoundType = ReflectUtils.getType(md.exampleInboundMessage)

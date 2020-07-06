@@ -29,7 +29,7 @@ package com.openbankproject.commons.model
 import java.util.Date
 
 import com.openbankproject.commons.model.enums._
-import com.openbankproject.commons.util.{JsonAble, ReflectUtils}
+import com.openbankproject.commons.util.{JsonAble, ReflectUtils, ignore}
 import net.liftweb.json
 import net.liftweb.json.{Formats, JInt, JString}
 import net.liftweb.json.JsonAST.{JObject, JValue}
@@ -119,16 +119,22 @@ case class BankAccountCommons(
                                balance :BigDecimal,
                                currency :String,
                                name :String,
+                               @ignore   
                                label :String,
+                               @ignore  
                                iban :Option[String],
                                number :String,
                                bankId :BankId,
                                lastUpdate :Date,
                                branchId :String,
+                               @ignore   
                                accountRoutingScheme :String,
+                               @ignore   
                                accountRoutingAddress :String,
                                accountRoutings :List[AccountRouting],
+                               @ignore   
                                accountRules :List[AccountRule],
+                               @ignore   
                                accountHolder :String) extends BankAccount
 
 object BankAccountCommons extends Converter[BankAccount, BankAccountCommons]
@@ -182,22 +188,35 @@ case class CustomerAddressCommons(
 
 object CustomerAddressCommons extends Converter[CustomerAddress, CustomerAddressCommons]
 
-
+//This class is only used for connector.getBankAccountsForUser method. Not the used for accounts relevant endpoints.
+//It will get the bankId, accountId and viewsToGenerate to create the OBP side data, such as views, accountHolder.
 case class InboundAccountCommons(
                                         bankId :String,
+                                        @ignore
                                         branchId :String,
                                         accountId :String,
+                                        @ignore
                                         accountNumber :String,
+                                        @ignore
                                         accountType :String,
+                                        @ignore
                                         balanceAmount :String,
+                                        @ignore
                                         balanceCurrency :String,
+                                        @ignore
                                         owners :List[String],
                                         viewsToGenerate :List[String],
+                                        @ignore
                                         bankRoutingScheme :String,
+                                        @ignore
                                         bankRoutingAddress :String,
+                                        @ignore
                                         branchRoutingScheme :String,
+                                        @ignore
                                         branchRoutingAddress :String,
+                                        @ignore
                                         accountRoutingScheme :String,
+                                        @ignore
                                         accountRoutingAddress :String) extends InboundAccount
 
 object InboundAccountCommons extends Converter[InboundAccount, InboundAccountCommons]
@@ -248,7 +267,9 @@ case class BankCommons(
                         websiteUrl :String,
                         bankRoutingScheme :String,
                         bankRoutingAddress :String,
+                        @ignore
                         swiftBic :String,
+                        @ignore
                         nationalIdentifier :String) extends Bank {
   def this(bankId :BankId,
     shortName :String,
@@ -614,13 +635,21 @@ case class SepaCreditTransfers( //This is from berlinGroup
 )
 
 case class TransactionRequestBodyAllTypes (
+                                            @ignore
                                             to_sandbox_tan: Option[TransactionRequestAccount],
+                                            @ignore   
                                             to_sepa: Option[TransactionRequestIban],
+                                            @ignore  
                                             to_counterparty: Option[TransactionRequestCounterpartyId],
+                                            @ignore  
                                             to_transfer_to_phone: Option[TransactionRequestTransferToPhone] = None, //TODO not stable
+                                            @ignore  
                                             to_transfer_to_atm: Option[TransactionRequestTransferToAtm]= None,//TODO not stable
+                                            @ignore  
                                             to_transfer_to_account: Option[TransactionRequestTransferToAccount]= None,//TODO not stable
+                                            @ignore  
                                             to_sepa_credit_transfers: Option[SepaCreditTransfers]= None,//TODO not stable, from berlin Group
+  
                                             value: AmountOfMoney,
                                             description: String
                                           )
@@ -646,17 +675,29 @@ case class TransactionRequest (
                                 val end_date: Date,
                                 val challenge: TransactionRequestChallenge,
                                 val charge: TransactionRequestCharge,
+                                @ignore  
                                 val charge_policy: String,
+                                @ignore  
                                 val counterparty_id :CounterpartyId,
+                                @ignore  
                                 val name :String,
+                                @ignore  
                                 val this_bank_id : BankId,
+                                @ignore  
                                 val this_account_id : AccountId,
+                                @ignore  
                                 val this_view_id :ViewId,
+                                @ignore  
                                 val other_account_routing_scheme : String,
+                                @ignore  
                                 val other_account_routing_address : String,
+                                @ignore  
                                 val other_bank_routing_scheme : String,
+                                @ignore  
                                 val other_bank_routing_address : String,
+                                @ignore  
                                 val is_beneficiary :Boolean,
+                                @ignore  
                                 val future_date :Option[String] = None
                               )
 case class TransactionRequestBody (
@@ -667,6 +708,7 @@ case class TransactionRequestBody (
 
 case class Transaction(
                    //A universally unique id
+                   @ignore
                    val uuid: String,
                    //id is unique for transactions of @thisAccount
                    val id : TransactionId,

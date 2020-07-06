@@ -133,7 +133,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "createCustomerMessage",
       "POST",
       "/banks/BANK_ID/customer/CUSTOMER_ID/messages",
-      "Create Customer Message.",
+      "Create Customer Message",
       "Create a message for the customer specified by CUSTOMER_ID",
       // We use Extraction.decompose to convert to json
       addCustomerMessageJson,
@@ -454,7 +454,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "getTransactionRequests",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
-      "Get all Transaction Requests.",
+      "Get all Transaction Requests",
       "",
       emptyObjectJson,
       transactionRequest,
@@ -501,7 +501,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "createTransactionRequest",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
-      "Create Transaction Request.",
+      "Create Transaction Request",
       """Initiate a Payment via a Transaction Request.
         |
         |This is the preferred method to create a payment and supersedes makePayment in 1.2.1.
@@ -521,7 +521,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         BankNotFound,
         AccountNotFound,
         CounterpartyNotFound,
-        "Counterparty and holder accounts have differing currencies.",
+        "Counterparty and holder accounts have differing currencies",
         "Request currency and holder account currency can't be different.",
         "Amount not convertible to number",
         "account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}",
