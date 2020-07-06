@@ -28,6 +28,10 @@ package com.openbankproject.commons.model
 
 import java.util.Date
 
+import com.openbankproject.commons.model.enums.{SimpleEnum, SimpleEnumCollection}
+
+import scala.collection.immutable.ListMap
+
 /**
  * Represents a physical card (credit, debit, etc.)
  *
@@ -84,64 +88,59 @@ case class PhysicalCard  (
 ) extends PhysicalCardTrait
 
 
-sealed trait CardAction
+sealed trait CardAction extends SimpleEnum
 
-case object CardAction {
+case object CardAction extends SimpleEnumCollection[CardAction] {
   //TODO: are these good, or should they be changed (also, are there more actions to add?)
   case object CREDIT extends CardAction
   case object DEBIT extends CardAction
   case object CASH_WITHDRAWAL extends CardAction
 
-  def valueOf(value: String) = value match {
-    case "credit" => CREDIT
-    case "debit" => DEBIT
-    case "cash_withdrawal" => CASH_WITHDRAWAL
-    case _ => throw new IllegalArgumentException ("Incorrect CardAction value: " + value)
-  }
-  val availableValues = "credit" :: "debit" :: "cash_withdrawal" :: Nil
+  override def nameToValue: Map[String, CardAction] = ListMap(
+    "credit"-> CREDIT,
+    "debit" -> DEBIT,
+    "cash_withdrawal" -> CASH_WITHDRAWAL
+  )
 }
 
-
-
-sealed trait Network
+sealed trait Network extends SimpleEnum
 //TODO: what kind of networks are there?
+object Network extends SimpleEnumCollection[Network] {
+  override def nameToValue: Map[String, Network] = ListMap()
+}
 
 
 case class CardReplacementInfo(requestedDate : Date, reasonRequested: CardReplacementReason)
 
-sealed trait CardReplacementReason
+sealed trait CardReplacementReason extends SimpleEnum
 
-case object CardReplacementReason {
+case object CardReplacementReason  extends SimpleEnumCollection[CardReplacementReason] {
   case object LOST extends CardReplacementReason
   case object STOLEN extends CardReplacementReason
   case object RENEW extends CardReplacementReason
   case object FIRST extends CardReplacementReason
 
-  def valueOf(value: String) = value match {
-    case "LOST" => LOST
-    case "STOLEN" => STOLEN
-    case "RENEW" => RENEW
-    case "FIRST" => FIRST
-    case _ => throw new IllegalArgumentException ("Incorrect CardReplacementReason value: " + value)
-  }
-  val availableValues = "LOST" :: "STOLEN" :: "RENEW" :: "FIRST" :: Nil
+  override def nameToValue: Map[String, CardReplacementReason] = ListMap(
+     "LOST" -> LOST,
+     "STOLEN" -> STOLEN,
+     "RENEW" -> RENEW,
+     "FIRST" -> FIRST
+  )
 }
 
 
 case class PinResetInfo(requestedDate: Date, reasonRequested: PinResetReason)
 
-sealed trait PinResetReason
+sealed trait PinResetReason extends SimpleEnum
 
-case object PinResetReason {
+case object PinResetReason  extends SimpleEnumCollection[PinResetReason]{
   case object FORGOT extends PinResetReason
   case object GOOD_SECURITY_PRACTICE extends PinResetReason
 
-  def valueOf(value: String) = value match {
-    case "FORGOT" => FORGOT
-    case "GOOD_SECURITY_PRACTICE" => GOOD_SECURITY_PRACTICE
-    case _ => throw new IllegalArgumentException ("Incorrect PinResetReason value: " + value)
-  }
-  val availableValues = "FORGOT" :: "GOOD_SECURITY_PRACTICE" :: Nil
+  override def nameToValue: Map[String, PinResetReason] = ListMap(
+    "FORGOT" -> FORGOT,
+    "GOOD_SECURITY_PRACTICE" -> GOOD_SECURITY_PRACTICE
+  )
 }
 
 

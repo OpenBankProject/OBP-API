@@ -43,10 +43,10 @@ object APIMethods_ConfirmationOfFundsServicePIISApi extends RestHelper {
        "/funds-confirmations",
        "Confirmation of Funds Request",
        s"""  ${mockedDataText(false)}
-         Creates a confirmation of funds request at the ASPSP. Checks whether a specific amount is available at point
-         of time of the request on an account linked to a given tuple card issuer(TPP)/card number, or addressed by 
-         IBAN and TPP respectively. If the related extended services are used a conditional Consent-ID is contained 
-         in the header. This field is contained but commented out in this specification.     """,
+Creates a confirmation of funds request at the ASPSP. Checks whether a specific amount is available at point
+of time of the request on an account linked to a given tuple card issuer(TPP)/card number, or addressed by 
+IBAN and TPP respectively. If the related extended services are used a conditional Consent-ID is contained 
+in the header. This field is contained but commented out in this specification.     """,
        json.parse(
          """{
           "instructedAmount" : {

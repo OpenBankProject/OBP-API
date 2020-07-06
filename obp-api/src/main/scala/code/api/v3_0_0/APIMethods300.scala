@@ -65,7 +65,7 @@ trait APIMethods300 {
       nameOf(getViewsForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
-      "Get Views for Account.",
+      "Get Views for Account",
       s"""#Views
         |
         |
@@ -129,7 +129,7 @@ trait APIMethods300 {
       nameOf(createViewForBankAccount),
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
-      "Create View.",
+      "Create View",
       s"""Create a view on bank account
         |
         | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
@@ -190,7 +190,7 @@ trait APIMethods300 {
       nameOf(getPermissionForUserForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID",
-      "Get Account access for User.",
+      "Get Account access for User",
       s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a user identified by PROVIDER_ID at their provider PROVIDER has access to.
          |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER.
          |
@@ -226,7 +226,7 @@ trait APIMethods300 {
       nameOf(updateViewForBankAccount),
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
-      "Update View.",
+      "Update View",
       s"""Update an existing view on a bank account
         |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
@@ -1006,7 +1006,7 @@ trait APIMethods300 {
       "Get Adapter Info for a bank",
       s"""Get basic information about the Adapter listening on behalf of this bank.
         |
-        |${authenticationRequiredMessage(true)}
+        |${authenticationRequiredMessage(false)}
         |
       """.stripMargin,
       emptyObjectJson,
@@ -1642,7 +1642,7 @@ trait APIMethods300 {
       nameOf(privateAccountsAtOneBank),
       "GET",
       "/banks/BANK_ID/accounts/private",
-      "Get Accounts at Bank (Minimal).",
+      "Get Accounts at Bank (Minimal)",
       s"""Returns the minimal list of private accounts at BANK_ID that the user has access to.
          |For each account, the API returns the ID, routing addresses and the views available to the current user.
          |
@@ -1680,7 +1680,7 @@ trait APIMethods300 {
       nameOf(getPrivateAccountIdsbyBankId),
       "GET",
       "/banks/BANK_ID/accounts/account_ids/private",
-      "Get Accounts at Bank (IDs only).",
+      "Get Accounts at Bank (IDs only)",
       s"""Returns only the list of accounts ids at BANK_ID that the user has access to.
          |
          |Each account must have at least one private View.
@@ -1724,7 +1724,7 @@ trait APIMethods300 {
       nameOf(getOtherAccountsForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
-      "Get Other Accounts of one Account.",
+      "Get Other Accounts of one Account",
       s"""Returns data about all the other accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
          |${authenticationRequiredMessage(false)}
          |
@@ -1762,7 +1762,7 @@ trait APIMethods300 {
       nameOf(getOtherAccountByIdForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
-      "Get Other Account by Id.",
+      "Get Other Account by Id",
       s"""Returns data about the Other Account that has shared at least one transaction with ACCOUNT_ID at BANK_ID.
          |${authenticationRequiredMessage(false)}
          |
@@ -1800,7 +1800,7 @@ trait APIMethods300 {
       nameOf(addEntitlementRequest),
       "POST",
       "/entitlement-requests",
-      "Create Entitlement Request for current User.",
+      "Create Entitlement Request for current User",
       s"""Create Entitlement Request.
         |
         |Any logged in User can use this endpoint to request an Entitlement
@@ -1907,7 +1907,7 @@ trait APIMethods300 {
       nameOf(getEntitlementRequests),
       "GET",
       "/users/USER_ID/entitlement-requests",
-      "Get Entitlement Requests for a User.",
+      "Get Entitlement Requests for a User",
       s"""Get Entitlement Requests for a User.
         |
         |
@@ -1947,7 +1947,7 @@ trait APIMethods300 {
       nameOf(getEntitlementRequestsForCurrentUser),
       "GET",
       "/my/entitlement-requests",
-      "Get Entitlement Requests for the current User.",
+      "Get Entitlement Requests for the current User",
       s"""Get Entitlement Requests for the current User.
          |
         |
@@ -2024,7 +2024,7 @@ trait APIMethods300 {
       nameOf(getEntitlementsForCurrentUser),
       "GET",
       "/my/entitlements",
-      "Get Entitlements for the current User.",
+      "Get Entitlements for the current User",
       s"""Get Entitlements for the current User.
          |
         |
@@ -2209,7 +2209,7 @@ trait APIMethods300 {
       nameOf(addScope),
       "POST",
       "/consumers/CONSUMER_ID/scopes",
-      "Create Scope for a Consumer.",
+      "Create Scope for a Consumer",
       """Create Scope. Grant Role to Consumer.
         |
         |Scopes are used to grant System or Bank level roles to the Consumer (App). (For Account level privileges, see Views)

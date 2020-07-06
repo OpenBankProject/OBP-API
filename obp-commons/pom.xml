@@ -7,7 +7,7 @@
         <groupId>com.tesobe</groupId>
         <artifactId>obp-parent</artifactId>
         <relativePath>../pom.xml</relativePath>
-        <version>1.5.0</version>
+        <version>1.5.6</version>
     </parent>
     <artifactId>obp-commons</artifactId>
     <packaging>jar</packaging>
@@ -25,6 +25,10 @@
         <dependency>
             <groupId>net.liftweb</groupId>
             <artifactId>lift-common_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.liftweb</groupId>
+            <artifactId>lift-util_${scala.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.scala-lang</groupId>
@@ -49,7 +53,7 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>transmittable-thread-local</artifactId>
-            <version>2.11.2</version>
+            <version>2.11.5</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

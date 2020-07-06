@@ -25,14 +25,12 @@ import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
 import code.api.v3_1_0.{CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310, ListResult}
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
 import code.bankconnectors.Connector
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.entitlement.Entitlement
-import code.loginattempts.LoginAttempt
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -40,19 +38,17 @@ import code.model.{toUserExtended, _}
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.MappedTransactionRequestProvider
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
-import com.openbankproject.commons.model.enums.TransactionRequestStatus
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.userlocks.UserLocksProvider
 import code.users.Users
-import code.util.Helper.booleanToBox
 import code.util.{Helper, JsonUtils}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
-import com.openbankproject.commons.model.enums._
+import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.util.ApiVersion
 import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCascade}
 import net.liftweb.common.{Box, Failure, Full}
@@ -63,10 +59,9 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{compactRender, _}
 import net.liftweb.mapper.By
-import net.liftweb.util.Helpers.{now, tryo}
+import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
 import org.apache.commons.lang3.StringUtils
-import org.atteo.evo.inflector.English
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -417,7 +412,7 @@ trait APIMethods400 {
       "createTransactionRequestFreeForm",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/FREE_FORM/transaction-requests",
-      "Create Transaction Request (FREE_FORM).",
+      "Create Transaction Request (FREE_FORM)",
       s"""$transactionRequestGeneralText
          |
        """.stripMargin,
@@ -712,7 +707,7 @@ trait APIMethods400 {
       "answerTransactionRequestChallenge",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
-      "Answer Transaction Request Challenge.",
+      "Answer Transaction Request Challenge",
       """In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
         |
         |This endpoint totally depends on createTransactionRequest, it need get the following data from createTransactionRequest response body.
@@ -1071,7 +1066,7 @@ trait APIMethods400 {
 
     lazy val genericEndpoint: OBPEndpoint = {
       case EntityName(entityName) :: Nil JsonGet req => { cc =>
-        val listName = StringHelpers.snakify(English.plural(entityName))
+        val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
@@ -1466,7 +1461,7 @@ trait APIMethods400 {
       "addTagForViewOnAccount",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
-      "Create a tag on account.",
+      "Create a tag on account",
       s"""Posts a tag about an account ACCOUNT_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
          |${authenticationRequiredMessage(true)}
@@ -1512,7 +1507,7 @@ trait APIMethods400 {
       "deleteTagForViewOnAccount",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags/TAG_ID",
-      "Delete a tag on account.",
+      "Delete a tag on account",
       s"""Deletes the tag TAG_ID about the account ACCOUNT_ID made on [view](#1_2_1-getViewsForBankAccount).
         |
         |${authenticationRequiredMessage(true)}
@@ -1555,7 +1550,7 @@ trait APIMethods400 {
       "getTagsForViewOnAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
-      "Get tags on account.",
+      "Get tags on account",
       s"""Returns the account ACCOUNT_ID tags made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
          |${authenticationRequiredMessage(true)}
          |
@@ -2083,7 +2078,7 @@ trait APIMethods400 {
       "grantUserAccessToView",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access/grant",
-      "Grant User access to View.",
+      "Grant User access to View",
       s"""Grants the User identified by USER_ID access to the view identified by VIEW_ID.
          |
          |${authenticationRequiredMessage(true)} and the user needs to be account holder.
@@ -2137,7 +2132,7 @@ trait APIMethods400 {
       "revokeUserAccessToView",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access/revoke",
-      "Revoke User access to View.",
+      "Revoke User access to View",
       s"""Revoke the User identified by USER_ID access to the view identified by VIEW_ID.
          |
          |${authenticationRequiredMessage(true)} and the user needs to be account holder.
@@ -2706,7 +2701,7 @@ trait APIMethods400 {
       "getPrivateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get Accounts at Bank.",
+      "Get Accounts at Bank",
       s"""
          |Returns the list of accounts at BANK_ID that the user has access to.
          |For each account the API returns the account ID and the views available to the user..

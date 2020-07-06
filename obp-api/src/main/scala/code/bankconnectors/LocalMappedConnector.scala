@@ -93,8 +93,8 @@ import scala.concurrent._
 import scala.language.postfixOps
 import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
-
 import _root_.akka.http.scaladsl.model.HttpMethod
+import com.openbankproject.commons.dto.ProductCollectionItemsTree
 
 object LocalMappedConnector extends Connector with MdcLoggable {
 
@@ -1676,7 +1676,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       if (params.isEmpty) {
         MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value))
       } else {
-        val productIdList = MappedProductAttribute.getParentIdByParams(bankId, params)
+        val paramList = params.toList
+        val parameters: List[String] = MappedProductAttribute.getParameters(paramList)
+        val sqlParametersFilter = MappedProductAttribute.getSqlParametersFilter(paramList)
+        val productIdList = paramList.isEmpty match {
+          case true =>
+            MappedProductAttribute.findAll(
+              By(MappedProductAttribute.mBankId, bankId.value)
+            ).map(_.productCode.value)
+          case false =>
+            MappedProductAttribute.findAll(
+              By(MappedProductAttribute.mBankId, bankId.value),
+              BySql(sqlParametersFilter, IHaveValidatedThisSQL("developer","2020-06-28"), parameters:_*)
+            ).map(_.productCode.value)
+        }
         MappedProduct.findAll(ByList(MappedProduct.mCode, productIdList))
       }
     }
@@ -2935,9 +2948,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getProductCollectionItemsTree(collectionCode: String,
                                              bankId: String,
-                                             callContext: Option[CallContext]): OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] =
-    ProductCollectionItems.productCollectionItem.vend.getProductCollectionItemsTree(collectionCode, bankId) map {
-      (_, callContext)
+                                             callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItemsTree]]] =
+    ProductCollectionItems.productCollectionItem.vend.getProductCollectionItemsTree(collectionCode, bankId) map { it =>
+      val data: Box[List[ProductCollectionItemsTree]] = it.map(boxValue => boxValue.map(it => ProductCollectionItemsTree(it._1, it._2, it._3)))
+      (data, callContext)
     }
 
   override def createMeeting(

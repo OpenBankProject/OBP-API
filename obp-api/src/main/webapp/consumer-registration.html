@@ -33,48 +33,57 @@ Berlin 13359, Germany
 		<div id="register-consumer-input">
 			<div id="register-consumer-explanation">Please complete the information about your application below, so we can create your OAuth consumer key and secret.</div>
 
-			<div id="register-consumer-errors" class="alert alert-danger">
-				<div class="error">
-					<span class="errorContent"></span>
-				</div>
-			</div>
+<!--			<div id="register-consumer-errors" class="alert alert-danger">-->
+<!--				<div class="error">-->
+<!--					<span class="errorContent"></span>-->
+<!--				</div>-->
+<!--			</div>-->
 
 			<form method="post">
 				<div class="row">
 					<div class="col-xs-12 col-sm-6">
 						<div class="form-group">
-							<label for="appType">Application Type</label>
+							<label for="appType">Application type</label>
 							<select name="app-type" id="appType" class="form-control">
 								<option class="app-type-option"></option>
 							</select>
 						</div>
 						<div class="form-group">
-							<label for="appName">Application Name</label>
+							<label for="appName">Application name</label>
 							<input type="text" name="app-name" id="appName" class="form-control">
+							<div id = "consumer-registration-app-name-error-div" class="hide alert alert-danger">
+								<span data-lift="Msg?id=consumer-registration-app-name-error"/>
+							</div>
 						</div>
 						<div class="form-group">
-							<label for="appRedirectUrl">Redirect URL</label>
+							<label for="appRedirectUrl">Redirect URL (Optional)</label>
 							<input type="text" name="app-redirect-url" id="appRedirectUrl" class="form-control">
+							<div id = "consumer-registration-app-redirect-url-error-div" class="hide">
+								<span data-lift="Msg?id=consumer-registration-app-redirect-url-error"/>
+							</div>
 						</div>
-						<!--Note for the commented div : 719aa7fd 04/10/15 Stefan. Hongwei just reformatted the code -->
-						 <!--<div class="form-group">-->
-						<!--<label for="appUserAuthenticationUrl">Authentication URL</label>-->
-						<!--<input type="text" name="app-user-authentication-url" id="appUserAuthenticationUrl" class="form-control" >-->
-						<!--<img src="/media/images/moreInfo.png" title="The user will redirected to that URL during the authentication phase to authenticate. Leave it blank so that the user will see the default login page." alt="more info" class="more-info-icon"/>-->
-						<!--</div>-->
 						<div class="form-group">
-							<label for="appDev">Developer Email</label>
+							<label for="appDev">Developer email</label>
 							<input type="text" name="app-developer" id="appDev" class="form-control">
+							<div id = "consumer-registration-app-developer-error-div" class="hide alert alert-danger">
+								<span data-lift="Msg?id=consumer-registration-app-developer-error"/>
+							</div>
 						</div>
 					</div>
 					<div class="col-xs-12 col-sm-6">
 						<div class="form-group">
 							<label for="appDesc">Description of the application</label>
 							<textarea rows="4" name="app-description" id="appDesc" class="form-control"></textarea>
+							<div id = "consumer-registration-app-description-error-div" class="hide alert alert-danger">
+								<span data-lift="Msg?id=consumer-registration-app-description-error"/>
+							</div>
 						</div>
 					</div>
 				</div>
 				<input type="submit" value="Register consumer" class="btn btn-default" />
+				<div id = "register-consumer-errors-div" class="hide alert alert-danger">
+					<span data-lift="Msg?id=register-consumer-errors"/>
+				</div>
 			</form>
 		</div>
 

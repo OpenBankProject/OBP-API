@@ -5,7 +5,7 @@ import java.util.Date
 import akka.pattern.ask
 import code.actorsystem.ObpLookupSystem
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions
-import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.{bankAccountCommons, bankCommons, transactionCommons, _}
+import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.{bankAccountCommons, bankCommons, transaction, _}
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, parseDate}
 import code.api.util.ErrorMessages.{AdapterFunctionNotImplemented, AdapterUnknownError}
 import code.api.util.ExampleValue._
@@ -287,7 +287,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       InBoundGetTransactions(
         inboundAdapterCallContext,
         inboundStatus,
-        List(transactionCommons)
+        List(transaction)
       )
       ),
     adapterImplementation = Some(AdapterImplementation("Transactions", 10))
@@ -321,7 +321,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       InBoundGetTransaction(
         inboundAdapterCallContext,
         inboundStatus,
-        transactionCommons
+        transaction
       )
       ),
     adapterImplementation = Some(AdapterImplementation("Transactions", 11))
@@ -351,7 +351,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       transactionRequestType=transactionRequestTypeExample.value,
       currency=currencyExample.value,
       userId=userIdExample.value,
-      userName="string")
+      username="string")
     ),
     exampleInboundMessage = (
      InBoundGetChallengeThreshold(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -382,7 +382,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       accountId=AccountId(accountIdExample.value),
       viewId=ViewId(viewIdExample.value),
       userId=userIdExample.value,
-      userName="string",
+      username="string",
       transactionRequestType=transactionRequestTypeExample.value,
       currency=currencyExample.value)
     ),
@@ -4750,7 +4750,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[ProductCollectionItemCommons]](callContext))        
   }
-          
+
   messageDocs += getProductCollectionItemsTreeDoc
   def getProductCollectionItemsTreeDoc = MessageDoc(
     process = "obp.getProductCollectionItemsTree",
@@ -4766,33 +4766,35 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundGetProductCollectionItemsTree(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List(( ProductCollectionItemCommons(collectionCode="string",
-      memberProductCode="string"),  ProductCommons(bankId=BankId(bankIdExample.value),
-      code=ProductCode("string"),
-      parentProductCode=ProductCode("string"),
-      name="string",
-      category="string",
-      family="string",
-      superFamily="string",
-      moreInfoUrl="string",
-      details="string",
-      description="string",
-      meta=Meta( License(id="string",
-      name="string"))), List( ProductAttributeCommons(bankId=BankId(bankIdExample.value),
-      productCode=ProductCode("string"),
-      productAttributeId="string",
-      name="string",
-      attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
-      value=valueExample.value)))))
+      data=List(ProductCollectionItemsTree(productCollectionItem= ProductCollectionItemCommons(collectionCode="string",
+        memberProductCode="string"),
+        product= ProductCommons(bankId=BankId(bankIdExample.value),
+          code=ProductCode("string"),
+          parentProductCode=ProductCode("string"),
+          name="string",
+          category="string",
+          family="string",
+          superFamily="string",
+          moreInfoUrl="string",
+          details="string",
+          description="string",
+          meta=Meta( License(id="string",
+            name="string"))),
+        attributes=List( ProductAttributeCommons(bankId=BankId(bankIdExample.value),
+          productCode=ProductCode("string"),
+          productAttributeId="string",
+          name="string",
+          attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
+          value=valueExample.value)))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def getProductCollectionItemsTree(collectionCode: String, bankId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetProductCollectionItemsTree => OutBound, InBoundGetProductCollectionItemsTree => InBound}  
+  override def getProductCollectionItemsTree(collectionCode: String, bankId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItemsTree]]] = {
+        import com.openbankproject.commons.dto.{OutBoundGetProductCollectionItemsTree => OutBound, InBoundGetProductCollectionItemsTree => InBound}
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, collectionCode, bankId)
-        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
-        response.map(convertToTuple[List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])]](callContext))        
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _)
+        response.map(convertToTuple[List[ProductCollectionItemsTree]](callContext))
   }
           
   messageDocs += createMeetingDoc

@@ -1081,7 +1081,7 @@ trait APIMethods310 {
       "Get Adapter Info",
       s"""Get basic information about the Adapter.
          |
-        |${authenticationRequiredMessage(true)}
+        |${authenticationRequiredMessage(false)}
          |
       """.stripMargin,
       emptyObjectJson,
@@ -1110,7 +1110,7 @@ trait APIMethods310 {
       nameOf(getTransactionByIdForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction",
-      "Get Transaction by Id.",
+      "Get Transaction by Id",
       s"""Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
          |
          |${authenticationRequiredMessage(false)}
@@ -1214,7 +1214,7 @@ trait APIMethods310 {
       nameOf(createCustomer),
       "POST",
       "/banks/BANK_ID/customers",
-      "Create Customer.",
+      "Create Customer",
       s"""
          |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
          |Dates need to be in the format 2013-01-21T23:08:00Z
@@ -1990,7 +1990,7 @@ trait APIMethods310 {
       nameOf(refreshUser),
       "POST",
       "/users/USER_ID/refresh",
-      "Refresh User.",
+      "Refresh User",
       s""" The endpoint is used for updating the accounts, views, account holders for the user.
          | As to the Json body, you can leave it as Empty. 
          | This call will get data from backend, no need to prepare the json body in api side.
@@ -3975,7 +3975,7 @@ trait APIMethods310 {
       nameOf(createSystemView),
       "POST",
       "/system-views",
-      "Create System View.",
+      "Create System View",
       s"""Create a system view
         |
         | ${authenticationRequiredMessage(true)} and the user needs to have access to the $canCreateSystemView entitlement.
@@ -4032,7 +4032,7 @@ trait APIMethods310 {
       "DELETE",
       "/system-views/VIEW_ID",
       "Delete System View",
-      "Deletes the system view specified by VIEW_ID.",
+      "Deletes the system view specified by VIEW_ID",
       emptyObjectJson,
       emptyObjectJson,
       List(
@@ -4068,7 +4068,7 @@ trait APIMethods310 {
       nameOf(updateSystemView),
       "PUT",
       "/system-views/VIEW_ID",
-      "Update System View.",
+      "Update System View",
       s"""Update an existing view on a bank account
          |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
@@ -4784,7 +4784,7 @@ trait APIMethods310 {
       nameOf(updateAccount),
       "PUT",
       "/management/banks/BANK_ID/accounts/ACCOUNT_ID",
-      "Update Account.",
+      "Update Account",
       s"""Update the account. 
          |
          |${authenticationRequiredMessage(true)}

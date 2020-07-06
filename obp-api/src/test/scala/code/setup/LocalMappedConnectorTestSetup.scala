@@ -63,6 +63,8 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .accountCurrency(currency.toUpperCase)
       .accountBalance(900000000)
       .holder(randomString(4))
+      .accountLastUpdate(now)
+      .accountName(randomString(4))
       .accountNumber(randomString(4))
       .accountLabel(randomString(4))
       .mAccountRoutingScheme(randomString(4))  

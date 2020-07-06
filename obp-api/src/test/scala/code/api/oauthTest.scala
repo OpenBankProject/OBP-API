@@ -44,7 +44,7 @@ import net.liftweb.common.{Box, Failure}
 import net.liftweb.http.LiftRules
 import net.liftweb.util.Helpers._
 import org.scalatest._
-import org.scalatest.selenium._
+import org.scalatestplus.selenium._
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

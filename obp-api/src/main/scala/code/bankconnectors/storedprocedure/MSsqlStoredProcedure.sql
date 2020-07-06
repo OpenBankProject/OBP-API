@@ -1,97 +1,31 @@
--- auto generated MS sql server procedures script, create on 2020-06-19T17:25:32Z
+-- auto generated MS sql server procedures script, create on 2020-07-06T11:29:05Z
 
 -- drop procedure obp_get_adapter_info
 DROP PROCEDURE IF EXISTS obp_get_adapter_info;
 GO
 -- create procedure obp_get_adapter_info
 CREATE PROCEDURE obp_get_adapter_info
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        }
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -132,76 +66,17 @@ DROP PROCEDURE IF EXISTS obp_get_challenge_threshold;
 GO
 -- create procedure obp_get_challenge_threshold
 CREATE PROCEDURE obp_get_challenge_threshold
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":"gh.29.uk",
        "accountId":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
@@ -209,23 +84,16 @@ this is example of parameter @out_bound_json
        "transactionRequestType":"SEPA",
        "currency":"EUR",
        "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-       "userName":"string"
+       "username":"felixsmith"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -240,7 +108,7 @@ this is example of parameter @out_bound_json
        },
        "data":{
          "currency":"EUR",
-         "amount":"string"
+         "amount":"10.12"
        }
      }'
 	);
@@ -255,76 +123,17 @@ DROP PROCEDURE IF EXISTS obp_get_charge_level;
 GO
 -- create procedure obp_get_charge_level
 CREATE PROCEDURE obp_get_charge_level
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -336,25 +145,18 @@ this is example of parameter @out_bound_json
          "value":"owner"
        },
        "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-       "userName":"string",
+       "username":"felixsmith",
        "transactionRequestType":"SEPA",
        "currency":"EUR"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -369,7 +171,7 @@ this is example of parameter @out_bound_json
        },
        "data":{
          "currency":"EUR",
-         "amount":"string"
+         "amount":"10.12"
        }
      }'
 	);
@@ -384,76 +186,17 @@ DROP PROCEDURE IF EXISTS obp_create_challenge;
 GO
 -- create procedure obp_create_challenge
 CREATE PROCEDURE obp_create_challenge
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -465,24 +208,17 @@ this is example of parameter @out_bound_json
        "transactionRequestType":{
          "value":"SEPA"
        },
-       "transactionRequestId":"string",
+       "transactionRequestId":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1",
        "scaMethod":"SMS"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -509,76 +245,17 @@ DROP PROCEDURE IF EXISTS obp_create_challenges;
 GO
 -- create procedure obp_create_challenges
 CREATE PROCEDURE obp_create_challenges
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -592,24 +269,17 @@ this is example of parameter @out_bound_json
        "transactionRequestType":{
          "value":"SEPA"
        },
-       "transactionRequestId":"string",
+       "transactionRequestId":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1",
        "scaMethod":"SMS"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -638,76 +308,17 @@ DROP PROCEDURE IF EXISTS obp_validate_challenge_answer;
 GO
 -- create procedure obp_validate_challenge_answer
 CREATE PROCEDURE obp_validate_challenge_answer
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "challengeId":"string",
        "hashOfSuppliedAnswer":"string"
@@ -715,18 +326,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -753,76 +357,17 @@ DROP PROCEDURE IF EXISTS obp_get_bank;
 GO
 -- create procedure obp_get_bank
 CREATE PROCEDURE obp_get_bank
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -831,18 +376,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -864,9 +402,7 @@ this is example of parameter @out_bound_json
          "logoUrl":"bank logoUrl string",
          "websiteUrl":"bank websiteUrl string",
          "bankRoutingScheme":"BIC",
-         "bankRoutingAddress":"GENODEM1GLS",
-         "swiftBic":"bank swiftBic string",
-         "nationalIdentifier":"bank nationalIdentifier string"
+         "bankRoutingAddress":"GENODEM1GLS"
        }
      }'
 	);
@@ -881,93 +417,27 @@ DROP PROCEDURE IF EXISTS obp_get_banks;
 GO
 -- create procedure obp_get_banks
 CREATE PROCEDURE obp_get_banks
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        }
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -990,9 +460,7 @@ this is example of parameter @out_bound_json
            "logoUrl":"bank logoUrl string",
            "websiteUrl":"bank websiteUrl string",
            "bankRoutingScheme":"BIC",
-           "bankRoutingAddress":"GENODEM1GLS",
-           "swiftBic":"bank swiftBic string",
-           "nationalIdentifier":"bank nationalIdentifier string"
+           "bankRoutingAddress":"GENODEM1GLS"
          }
        ]
      }'
@@ -1008,94 +476,28 @@ DROP PROCEDURE IF EXISTS obp_get_bank_accounts_for_user;
 GO
 -- create procedure obp_get_bank_accounts_for_user
 CREATE PROCEDURE obp_get_bank_accounts_for_user
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "username":"felixsmith"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -1111,29 +513,12 @@ this is example of parameter @out_bound_json
        "data":[
          {
            "bankId":"gh.29.uk",
-           "branchId":"DERBY6",
            "accountId":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-           "accountNumber":"546387432",
-           "accountType":"AC",
-           "balanceAmount":"50.89",
-           "balanceCurrency":"EUR",
-           "owners":[
-             "InboundAccount",
-             "owners",
-             "list",
-             "string"
-           ],
            "viewsToGenerate":[
              "Owner",
              "Accountant",
              "Auditor"
-           ],
-           "bankRoutingScheme":"BIC",
-           "bankRoutingAddress":"GENODEM1GLS",
-           "branchRoutingScheme":"BRANCH-CODE",
-           "branchRoutingAddress":"DERBY6",
-           "accountRoutingScheme":"IBAN",
-           "accountRoutingAddress":"DE91 1000 0000 0123 4567 89"
+           ]
          }
        ]
      }'
@@ -1149,22 +534,22 @@ DROP PROCEDURE IF EXISTS obp_get_user;
 GO
 -- create procedure obp_get_user
 CREATE PROCEDURE obp_get_user
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "name":"felixsmith",
-       "password":"string"
+       "password":"password"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "status":{
@@ -1179,9 +564,68 @@ this is example of parameter @out_bound_json
          ]
        },
        "data":{
-         "email":"eveline@example.com",
-         "password":"string",
+         "email":"felixsmith@example.com",
+         "password":"password",
          "displayName":"string"
+       }
+     }'
+	);
+GO
+
+ 
+ 
+
+
+-- drop procedure obp_check_external_user_credentials
+DROP PROCEDURE IF EXISTS obp_check_external_user_credentials;
+GO
+-- create procedure obp_check_external_user_credentials
+CREATE PROCEDURE obp_check_external_user_credentials
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
+   AS
+	  SET nocount on
+
+-- replace the follow example to real logic
+/*
+this is example of parameter @outbound_json
+     N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
+       },
+       "username":"felixsmith",
+       "password":"password"
+     }'
+*/
+
+-- return example value
+	SELECT @inbound_json = (
+		SELECT
+     N'{
+       "inboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
+       },
+       "status":{
+         "errorCode":"",
+         "backendMessages":[
+           {
+             "source":"String",
+             "status":"String",
+             "errorCode":"",
+             "text":"String"
+           }
+         ]
+       },
+       "data":{
+         "aud":"String",
+         "exp":"String",
+         "iat":"String",
+         "iss":"String",
+         "sub":"felixsmith",
+         "azp":"string",
+         "email":"felixsmith@example.com",
+         "emailVerified":"String",
+         "name":"felixsmith"
        }
      }'
 	);
@@ -1196,14 +640,14 @@ DROP PROCEDURE IF EXISTS obp_get_bank_account_old;
 GO
 -- create procedure obp_get_bank_account_old
 CREATE PROCEDURE obp_get_bank_account_old
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "bankId":{
          "value":"gh.29.uk"
@@ -1215,7 +659,7 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "status":{
@@ -1237,29 +681,18 @@ this is example of parameter @out_bound_json
          "balance":"50.89",
          "currency":"EUR",
          "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
          "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
+         "lastUpdate":"2018-03-09T00:00:00Z",
          "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
          "accountRoutings":[
            {
              "scheme":"IBAN",
              "address":"DE91 1000 0000 0123 4567 89"
            }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         ]
        }
      }'
 	);
@@ -1274,76 +707,17 @@ DROP PROCEDURE IF EXISTS obp_get_bank_account;
 GO
 -- create procedure obp_get_bank_account
 CREATE PROCEDURE obp_get_bank_account
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -1355,18 +729,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -1387,29 +754,18 @@ this is example of parameter @out_bound_json
          "balance":"50.89",
          "currency":"EUR",
          "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
          "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
+         "lastUpdate":"2018-03-09T00:00:00Z",
          "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
          "accountRoutings":[
            {
              "scheme":"IBAN",
              "address":"DE91 1000 0000 0123 4567 89"
            }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         ]
        }
      }'
 	);
@@ -1424,94 +780,28 @@ DROP PROCEDURE IF EXISTS obp_get_bank_account_by_iban;
 GO
 -- create procedure obp_get_bank_account_by_iban
 CREATE PROCEDURE obp_get_bank_account_by_iban
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "iban":"DE91 1000 0000 0123 4567 89"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -1532,29 +822,18 @@ this is example of parameter @out_bound_json
          "balance":"50.89",
          "currency":"EUR",
          "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
          "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
+         "lastUpdate":"2018-03-09T00:00:00Z",
          "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
          "accountRoutings":[
            {
              "scheme":"IBAN",
              "address":"DE91 1000 0000 0123 4567 89"
            }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         ]
        }
      }'
 	);
@@ -1569,76 +848,17 @@ DROP PROCEDURE IF EXISTS obp_get_bank_account_by_routing;
 GO
 -- create procedure obp_get_bank_account_by_routing
 CREATE PROCEDURE obp_get_bank_account_by_routing
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "scheme":"string",
        "address":"string"
@@ -1646,18 +866,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -1678,29 +891,18 @@ this is example of parameter @out_bound_json
          "balance":"50.89",
          "currency":"EUR",
          "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
          "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
+         "lastUpdate":"2018-03-09T00:00:00Z",
          "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
          "accountRoutings":[
            {
              "scheme":"IBAN",
              "address":"DE91 1000 0000 0123 4567 89"
            }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         ]
        }
      }'
 	);
@@ -1715,76 +917,17 @@ DROP PROCEDURE IF EXISTS obp_get_bank_accounts;
 GO
 -- create procedure obp_get_bank_accounts
 CREATE PROCEDURE obp_get_bank_accounts
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankIdAccountIds":[
          {
@@ -1800,18 +943,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -1833,29 +969,18 @@ this is example of parameter @out_bound_json
            "balance":"50.89",
            "currency":"EUR",
            "name":"bankAccount name string",
-           "label":"My Account",
-           "iban":"DE91 1000 0000 0123 4567 89",
            "number":"bankAccount number string",
            "bankId":{
              "value":"gh.29.uk"
            },
-           "lastUpdate":"2018-03-08T23:00:00Z",
+           "lastUpdate":"2018-03-09T00:00:00Z",
            "branchId":"DERBY6",
-           "accountRoutingScheme":"IBAN",
-           "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
            "accountRoutings":[
              {
                "scheme":"IBAN",
                "address":"DE91 1000 0000 0123 4567 89"
              }
-           ],
-           "accountRules":[
-             {
-               "scheme":"AccountRule scheme string",
-               "value":"AccountRule value string"
-             }
-           ],
-           "accountHolder":"bankAccount accountHolder string"
+           ]
          }
        ]
      }'
@@ -1871,76 +996,17 @@ DROP PROCEDURE IF EXISTS obp_get_bank_accounts_balances;
 GO
 -- create procedure obp_get_bank_accounts_balances
 CREATE PROCEDURE obp_get_bank_accounts_balances
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankIdAccountIds":[
          {
@@ -1956,18 +1022,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -2000,9 +1059,9 @@ this is example of parameter @out_bound_json
          ],
          "overallBalance":{
            "currency":"EUR",
-           "amount":"string"
+           "amount":"10.12"
          },
-         "overallBalanceDate":"2020-06-19T15:25:32Z"
+         "overallBalanceDate":"2020-01-27T00:00:00Z"
        }
      }'
 	);
@@ -2017,76 +1076,17 @@ DROP PROCEDURE IF EXISTS obp_get_core_bank_accounts;
 GO
 -- create procedure obp_get_core_bank_accounts
 CREATE PROCEDURE obp_get_core_bank_accounts
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankIdAccountIds":[
          {
@@ -2102,18 +1102,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -2153,76 +1146,17 @@ DROP PROCEDURE IF EXISTS obp_get_bank_accounts_held;
 GO
 -- create procedure obp_get_bank_accounts_held
 CREATE PROCEDURE obp_get_bank_accounts_held
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankIdAccountIds":[
          {
@@ -2238,18 +1172,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -2288,76 +1215,17 @@ DROP PROCEDURE IF EXISTS obp_check_bank_account_exists;
 GO
 -- create procedure obp_check_bank_account_exists
 CREATE PROCEDURE obp_check_bank_account_exists
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -2369,18 +1237,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -2401,29 +1262,18 @@ this is example of parameter @out_bound_json
          "balance":"50.89",
          "currency":"EUR",
          "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
          "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
+         "lastUpdate":"2018-03-09T00:00:00Z",
          "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
          "accountRoutings":[
            {
              "scheme":"IBAN",
              "address":"DE91 1000 0000 0123 4567 89"
            }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         ]
        }
      }'
 	);
@@ -2438,76 +1288,17 @@ DROP PROCEDURE IF EXISTS obp_get_counterparty_trait;
 GO
 -- create procedure obp_get_counterparty_trait
 CREATE PROCEDURE obp_get_counterparty_trait
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -2520,18 +1311,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -2563,8 +1347,8 @@ this is example of parameter @out_bound_json
          "isBeneficiary":true,
          "bespoke":[
            {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
+             "key":"CustomerNumber",
+             "value":"5987953"
            }
          ]
        }
@@ -2581,76 +1365,17 @@ DROP PROCEDURE IF EXISTS obp_get_counterparty_by_counterparty_id;
 GO
 -- create procedure obp_get_counterparty_by_counterparty_id
 CREATE PROCEDURE obp_get_counterparty_by_counterparty_id
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "counterpartyId":{
          "value":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh"
@@ -2659,18 +1384,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -2702,8 +1420,8 @@ this is example of parameter @out_bound_json
          "isBeneficiary":true,
          "bespoke":[
            {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
+             "key":"CustomerNumber",
+             "value":"5987953"
            }
          ]
        }
@@ -2720,94 +1438,28 @@ DROP PROCEDURE IF EXISTS obp_get_counterparty_by_iban;
 GO
 -- create procedure obp_get_counterparty_by_iban
 CREATE PROCEDURE obp_get_counterparty_by_iban
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "iban":"DE91 1000 0000 0123 4567 89"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -2839,8 +1491,8 @@ this is example of parameter @out_bound_json
          "isBeneficiary":true,
          "bespoke":[
            {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
+             "key":"CustomerNumber",
+             "value":"5987953"
            }
          ]
        }
@@ -2857,76 +1509,17 @@ DROP PROCEDURE IF EXISTS obp_get_counterparties;
 GO
 -- create procedure obp_get_counterparties
 CREATE PROCEDURE obp_get_counterparties
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "thisBankId":{
          "value":"gh.29.uk"
@@ -2941,18 +1534,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -2985,8 +1571,8 @@ this is example of parameter @out_bound_json
            "isBeneficiary":true,
            "bespoke":[
              {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
+               "key":"CustomerNumber",
+               "value":"5987953"
              }
            ]
          }
@@ -3004,76 +1590,17 @@ DROP PROCEDURE IF EXISTS obp_get_transactions;
 GO
 -- create procedure obp_get_transactions
 CREATE PROCEDURE obp_get_transactions
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -3089,18 +1616,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -3114,7 +1634,50 @@ this is example of parameter @out_bound_json
          ]
        },
        "data":[
-         {}
+         {
+           "id":{
+             "value":"2fg8a7e4-6d02-40e3-a129-0b2bf89de8ub"
+           },
+           "thisAccount":{
+             "accountId":{
+               "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
+             },
+             "accountType":"AC",
+             "balance":"50.89",
+             "currency":"EUR",
+             "name":"bankAccount name string",
+             "number":"bankAccount number string",
+             "bankId":{
+               "value":"gh.29.uk"
+             },
+             "lastUpdate":"2018-03-09T00:00:00Z",
+             "branchId":"DERBY6",
+             "accountRoutings":[
+               {
+                 "scheme":"IBAN",
+                 "address":"DE91 1000 0000 0123 4567 89"
+               }
+             ]
+           },
+           "otherAccount":{
+             "kind":"Counterparty kind string",
+             "counterpartyName":"John Smith Ltd.",
+             "thisBankId":{
+               "value":"gh.29.uk"
+             },
+             "thisAccountId":{
+               "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
+             },
+             "isBeneficiary":true
+           },
+           "transactionType":"DEBIT",
+           "amount":"19.64",
+           "currency":"EUR",
+           "description":"For the piano lesson in June 2018 - Invoice No: 68",
+           "startDate":"2019-09-07T00:00:00Z",
+           "finishDate":"2019-09-08T00:00:00Z",
+           "balance":"50.89"
+         }
        ]
      }'
 	);
@@ -3129,76 +1692,17 @@ DROP PROCEDURE IF EXISTS obp_get_transactions_core;
 GO
 -- create procedure obp_get_transactions_core
 CREATE PROCEDURE obp_get_transactions_core
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -3214,18 +1718,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -3257,7 +1754,7 @@ this is example of parameter @out_bound_json
              "bankId":{
                "value":"gh.29.uk"
              },
-             "lastUpdate":"2018-03-08T23:00:00Z",
+             "lastUpdate":"2018-03-09T00:00:00Z",
              "branchId":"DERBY6",
              "accountRoutingScheme":"IBAN",
              "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
@@ -3293,11 +1790,11 @@ this is example of parameter @out_bound_json
              "isBeneficiary":true
            },
            "transactionType":"DEBIT",
-           "amount":"123.321",
+           "amount":"10.12",
            "currency":"EUR",
            "description":"string",
-           "startDate":"2020-06-19T15:25:32Z",
-           "finishDate":"2020-06-19T15:25:32Z",
+           "startDate":"2020-01-27T00:00:00Z",
+           "finishDate":"2020-01-27T00:00:00Z",
            "balance":"50.89"
          }
        ]
@@ -3314,76 +1811,17 @@ DROP PROCEDURE IF EXISTS obp_get_transaction;
 GO
 -- create procedure obp_get_transaction
 CREATE PROCEDURE obp_get_transaction
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -3398,18 +1836,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -3422,7 +1853,50 @@ this is example of parameter @out_bound_json
            }
          ]
        },
-       "data":{}
+       "data":{
+         "id":{
+           "value":"2fg8a7e4-6d02-40e3-a129-0b2bf89de8ub"
+         },
+         "thisAccount":{
+           "accountId":{
+             "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
+           },
+           "accountType":"AC",
+           "balance":"50.89",
+           "currency":"EUR",
+           "name":"bankAccount name string",
+           "number":"bankAccount number string",
+           "bankId":{
+             "value":"gh.29.uk"
+           },
+           "lastUpdate":"2018-03-09T00:00:00Z",
+           "branchId":"DERBY6",
+           "accountRoutings":[
+             {
+               "scheme":"IBAN",
+               "address":"DE91 1000 0000 0123 4567 89"
+             }
+           ]
+         },
+         "otherAccount":{
+           "kind":"Counterparty kind string",
+           "counterpartyName":"John Smith Ltd.",
+           "thisBankId":{
+             "value":"gh.29.uk"
+           },
+           "thisAccountId":{
+             "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
+           },
+           "isBeneficiary":true
+         },
+         "transactionType":"DEBIT",
+         "amount":"19.64",
+         "currency":"EUR",
+         "description":"For the piano lesson in June 2018 - Invoice No: 68",
+         "startDate":"2019-09-07T00:00:00Z",
+         "finishDate":"2019-09-08T00:00:00Z",
+         "balance":"50.89"
+       }
      }'
 	);
 GO
@@ -3436,76 +1910,17 @@ DROP PROCEDURE IF EXISTS obp_get_physical_card_for_bank;
 GO
 -- create procedure obp_get_physical_card_for_bank
 CREATE PROCEDURE obp_get_physical_card_for_bank
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -3515,18 +1930,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -3547,8 +1955,8 @@ this is example of parameter @out_bound_json
          "nameOnCard":"SusanSmith",
          "issueNumber":"1",
          "serialNumber":"1324234",
-         "validFrom":"2020-06-19T15:25:32Z",
-         "expires":"2020-06-19T15:25:32Z",
+         "validFrom":"2020-01-27T00:00:00Z",
+         "expires":"2021-01-27T00:00:00Z",
          "enabled":true,
          "cancelled":true,
          "onHotList":true,
@@ -3557,7 +1965,7 @@ this is example of parameter @out_bound_json
            "string"
          ],
          "allows":[
-           {}
+           "DEBIT"
          ],
          "account":{
            "accountId":{
@@ -3573,7 +1981,7 @@ this is example of parameter @out_bound_json
            "bankId":{
              "value":"gh.29.uk"
            },
-           "lastUpdate":"2018-03-08T23:00:00Z",
+           "lastUpdate":"2018-03-09T00:00:00Z",
            "branchId":"DERBY6",
            "accountRoutingScheme":"IBAN",
            "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
@@ -3592,20 +2000,20 @@ this is example of parameter @out_bound_json
            "accountHolder":"bankAccount accountHolder string"
          },
          "replacement":{
-           "requestedDate":"2020-06-19T15:25:32Z",
-           "reasonRequested":{}
+           "requestedDate":"2020-01-27T00:00:00Z",
+           "reasonRequested":"FIRST"
          },
          "pinResets":[
            {
-             "requestedDate":"2020-06-19T15:25:32Z",
-             "reasonRequested":{}
+             "requestedDate":"2020-01-27T00:00:00Z",
+             "reasonRequested":"FORGOT"
            }
          ],
          "collected":{
-           "date":"2020-06-19T15:25:32Z"
+           "date":"2020-01-27T00:00:00Z"
          },
          "posted":{
-           "date":"2020-06-19T15:25:32Z"
+           "date":"2020-01-27T00:00:00Z"
          },
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
        }
@@ -3622,76 +2030,17 @@ DROP PROCEDURE IF EXISTS obp_delete_physical_card_for_bank;
 GO
 -- create procedure obp_delete_physical_card_for_bank
 CREATE PROCEDURE obp_delete_physical_card_for_bank
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -3701,18 +2050,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -3739,76 +2081,17 @@ DROP PROCEDURE IF EXISTS obp_get_physical_cards_for_bank;
 GO
 -- create procedure obp_get_physical_cards_for_bank
 CREATE PROCEDURE obp_get_physical_cards_for_bank
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bank":{
          "bankId":{
@@ -3830,7 +2113,7 @@ this is example of parameter @out_bound_json
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
          "provider":"string",
-         "emailAddress":"eveline@example.com",
+         "emailAddress":"felixsmith@example.com",
          "name":"felixsmith"
        },
        "limit":100,
@@ -3841,18 +2124,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -3874,8 +2150,8 @@ this is example of parameter @out_bound_json
            "nameOnCard":"SusanSmith",
            "issueNumber":"1",
            "serialNumber":"1324234",
-           "validFrom":"2020-06-19T15:25:32Z",
-           "expires":"2020-06-19T15:25:32Z",
+           "validFrom":"2020-01-27T00:00:00Z",
+           "expires":"2021-01-27T00:00:00Z",
            "enabled":true,
            "cancelled":true,
            "onHotList":true,
@@ -3884,7 +2160,7 @@ this is example of parameter @out_bound_json
              "string"
            ],
            "allows":[
-             {}
+             "DEBIT"
            ],
            "account":{
              "accountId":{
@@ -3900,7 +2176,7 @@ this is example of parameter @out_bound_json
              "bankId":{
                "value":"gh.29.uk"
              },
-             "lastUpdate":"2018-03-08T23:00:00Z",
+             "lastUpdate":"2018-03-09T00:00:00Z",
              "branchId":"DERBY6",
              "accountRoutingScheme":"IBAN",
              "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
@@ -3919,20 +2195,20 @@ this is example of parameter @out_bound_json
              "accountHolder":"bankAccount accountHolder string"
            },
            "replacement":{
-             "requestedDate":"2020-06-19T15:25:32Z",
-             "reasonRequested":{}
+             "requestedDate":"2020-01-27T00:00:00Z",
+             "reasonRequested":"FIRST"
            },
            "pinResets":[
              {
-               "requestedDate":"2020-06-19T15:25:32Z",
-               "reasonRequested":{}
+               "requestedDate":"2020-01-27T00:00:00Z",
+               "reasonRequested":"FORGOT"
              }
            ],
            "collected":{
-             "date":"2020-06-19T15:25:32Z"
+             "date":"2020-01-27T00:00:00Z"
            },
            "posted":{
-             "date":"2020-06-19T15:25:32Z"
+             "date":"2020-01-27T00:00:00Z"
            },
            "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
          }
@@ -3950,84 +2226,25 @@ DROP PROCEDURE IF EXISTS obp_create_physical_card;
 GO
 -- create procedure obp_create_physical_card
 CREATE PROCEDURE obp_create_physical_card
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankCardNumber":"364435172576215",
        "nameOnCard":"SusanSmith",
        "cardType":"Credit",
        "issueNumber":"1",
        "serialNumber":"1324234",
-       "validFrom":"2020-06-19T15:25:32Z",
-       "expires":"2020-06-19T15:25:32Z",
+       "validFrom":"2020-01-27T00:00:00Z",
+       "expires":"2021-01-27T00:00:00Z",
        "enabled":true,
        "cancelled":true,
        "onHotList":true,
@@ -4041,38 +2258,31 @@ this is example of parameter @out_bound_json
        "accountId":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
        "bankId":"gh.29.uk",
        "replacement":{
-         "requestedDate":"2020-06-19T15:25:32Z",
-         "reasonRequested":{}
+         "requestedDate":"2020-01-27T00:00:00Z",
+         "reasonRequested":"FIRST"
        },
        "pinResets":[
          {
-           "requestedDate":"2020-06-19T15:25:32Z",
-           "reasonRequested":{}
+           "requestedDate":"2020-01-27T00:00:00Z",
+           "reasonRequested":"FORGOT"
          }
        ],
        "collected":{
-         "date":"2020-06-19T15:25:32Z"
+         "date":"2020-01-27T00:00:00Z"
        },
        "posted":{
-         "date":"2020-06-19T15:25:32Z"
+         "date":"2020-01-27T00:00:00Z"
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -4093,8 +2303,8 @@ this is example of parameter @out_bound_json
          "nameOnCard":"SusanSmith",
          "issueNumber":"1",
          "serialNumber":"1324234",
-         "validFrom":"2020-06-19T15:25:32Z",
-         "expires":"2020-06-19T15:25:32Z",
+         "validFrom":"2020-01-27T00:00:00Z",
+         "expires":"2021-01-27T00:00:00Z",
          "enabled":true,
          "cancelled":true,
          "onHotList":true,
@@ -4103,7 +2313,7 @@ this is example of parameter @out_bound_json
            "string"
          ],
          "allows":[
-           {}
+           "DEBIT"
          ],
          "account":{
            "accountId":{
@@ -4119,7 +2329,7 @@ this is example of parameter @out_bound_json
            "bankId":{
              "value":"gh.29.uk"
            },
-           "lastUpdate":"2018-03-08T23:00:00Z",
+           "lastUpdate":"2018-03-09T00:00:00Z",
            "branchId":"DERBY6",
            "accountRoutingScheme":"IBAN",
            "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
@@ -4138,20 +2348,20 @@ this is example of parameter @out_bound_json
            "accountHolder":"bankAccount accountHolder string"
          },
          "replacement":{
-           "requestedDate":"2020-06-19T15:25:32Z",
-           "reasonRequested":{}
+           "requestedDate":"2020-01-27T00:00:00Z",
+           "reasonRequested":"FIRST"
          },
          "pinResets":[
            {
-             "requestedDate":"2020-06-19T15:25:32Z",
-             "reasonRequested":{}
+             "requestedDate":"2020-01-27T00:00:00Z",
+             "reasonRequested":"FORGOT"
            }
          ],
          "collected":{
-           "date":"2020-06-19T15:25:32Z"
+           "date":"2020-01-27T00:00:00Z"
          },
          "posted":{
-           "date":"2020-06-19T15:25:32Z"
+           "date":"2020-01-27T00:00:00Z"
          },
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
        }
@@ -4168,76 +2378,17 @@ DROP PROCEDURE IF EXISTS obp_update_physical_card;
 GO
 -- create procedure obp_update_physical_card
 CREATE PROCEDURE obp_update_physical_card
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "cardId":"36f8a9e6-c2b1-407a-8bd0-421b7119307e ",
        "bankCardNumber":"364435172576215",
@@ -4245,8 +2396,8 @@ this is example of parameter @out_bound_json
        "cardType":"Credit",
        "issueNumber":"1",
        "serialNumber":"1324234",
-       "validFrom":"2020-06-19T15:25:32Z",
-       "expires":"2020-06-19T15:25:32Z",
+       "validFrom":"2020-01-27T00:00:00Z",
+       "expires":"2021-01-27T00:00:00Z",
        "enabled":true,
        "cancelled":true,
        "onHotList":true,
@@ -4260,38 +2411,31 @@ this is example of parameter @out_bound_json
        "accountId":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
        "bankId":"gh.29.uk",
        "replacement":{
-         "requestedDate":"2020-06-19T15:25:32Z",
-         "reasonRequested":{}
+         "requestedDate":"2020-01-27T00:00:00Z",
+         "reasonRequested":"FIRST"
        },
        "pinResets":[
          {
-           "requestedDate":"2020-06-19T15:25:32Z",
-           "reasonRequested":{}
+           "requestedDate":"2020-01-27T00:00:00Z",
+           "reasonRequested":"FORGOT"
          }
        ],
        "collected":{
-         "date":"2020-06-19T15:25:32Z"
+         "date":"2020-01-27T00:00:00Z"
        },
        "posted":{
-         "date":"2020-06-19T15:25:32Z"
+         "date":"2020-01-27T00:00:00Z"
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -4312,8 +2456,8 @@ this is example of parameter @out_bound_json
          "nameOnCard":"SusanSmith",
          "issueNumber":"1",
          "serialNumber":"1324234",
-         "validFrom":"2020-06-19T15:25:32Z",
-         "expires":"2020-06-19T15:25:32Z",
+         "validFrom":"2020-01-27T00:00:00Z",
+         "expires":"2021-01-27T00:00:00Z",
          "enabled":true,
          "cancelled":true,
          "onHotList":true,
@@ -4322,7 +2466,7 @@ this is example of parameter @out_bound_json
            "string"
          ],
          "allows":[
-           {}
+           "DEBIT"
          ],
          "account":{
            "accountId":{
@@ -4338,7 +2482,7 @@ this is example of parameter @out_bound_json
            "bankId":{
              "value":"gh.29.uk"
            },
-           "lastUpdate":"2018-03-08T23:00:00Z",
+           "lastUpdate":"2018-03-09T00:00:00Z",
            "branchId":"DERBY6",
            "accountRoutingScheme":"IBAN",
            "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
@@ -4357,20 +2501,20 @@ this is example of parameter @out_bound_json
            "accountHolder":"bankAccount accountHolder string"
          },
          "replacement":{
-           "requestedDate":"2020-06-19T15:25:32Z",
-           "reasonRequested":{}
+           "requestedDate":"2020-01-27T00:00:00Z",
+           "reasonRequested":"FIRST"
          },
          "pinResets":[
            {
-             "requestedDate":"2020-06-19T15:25:32Z",
-             "reasonRequested":{}
+             "requestedDate":"2020-01-27T00:00:00Z",
+             "reasonRequested":"FORGOT"
            }
          ],
          "collected":{
-           "date":"2020-06-19T15:25:32Z"
+           "date":"2020-01-27T00:00:00Z"
          },
          "posted":{
-           "date":"2020-06-19T15:25:32Z"
+           "date":"2020-01-27T00:00:00Z"
          },
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
        }
@@ -4387,108 +2531,25 @@ DROP PROCEDURE IF EXISTS obp_make_paymentv210;
 GO
 -- create procedure obp_make_paymentv210
 CREATE PROCEDURE obp_make_paymentv210
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "fromAccount":{
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-08T23:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         }
        },
        "toAccount":{
          "accountId":{
@@ -4498,38 +2559,27 @@ this is example of parameter @out_bound_json
          "balance":"50.89",
          "currency":"EUR",
          "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
          "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
+         "lastUpdate":"2018-03-09T00:00:00Z",
          "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
          "accountRoutings":[
            {
              "scheme":"IBAN",
              "address":"DE91 1000 0000 0123 4567 89"
            }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         ]
        },
        "transactionRequestCommonBody":{
          "value":{
            "currency":"EUR",
-           "amount":"string"
+           "amount":"10.12"
          },
          "description":"string"
        },
-       "amount":"123.321",
+       "amount":"10.12",
        "description":"string",
        "transactionRequestType":{
          "value":"SEPA"
@@ -4539,18 +2589,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -4579,76 +2622,17 @@ DROP PROCEDURE IF EXISTS obp_create_transaction_requestv210;
 GO
 -- create procedure obp_create_transaction_requestv210
 CREATE PROCEDURE obp_create_transaction_requestv210
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "initiator":{
          "userPrimaryKey":{
@@ -4657,7 +2641,7 @@ this is example of parameter @out_bound_json
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
          "provider":"string",
-         "emailAddress":"eveline@example.com",
+         "emailAddress":"felixsmith@example.com",
          "name":"felixsmith"
        },
        "viewId":{
@@ -4667,33 +2651,9 @@ this is example of parameter @out_bound_json
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-08T23:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         }
        },
        "toAccount":{
          "accountId":{
@@ -4703,29 +2663,18 @@ this is example of parameter @out_bound_json
          "balance":"50.89",
          "currency":"EUR",
          "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
          "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
+         "lastUpdate":"2018-03-09T00:00:00Z",
          "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
          "accountRoutings":[
            {
              "scheme":"IBAN",
              "address":"DE91 1000 0000 0123 4567 89"
            }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         ]
        },
        "transactionRequestType":{
          "value":"SEPA"
@@ -4733,7 +2682,7 @@ this is example of parameter @out_bound_json
        "transactionRequestCommonBody":{
          "value":{
            "currency":"EUR",
-           "amount":"string"
+           "amount":"10.12"
          },
          "description":"string"
        },
@@ -4745,18 +2694,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -4771,101 +2713,24 @@ this is example of parameter @out_bound_json
        },
        "data":{
          "id":{
-           "value":"string"
+           "value":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1"
          },
          "type":"SEPA",
          "from":{
-           "bank_id":"string",
-           "account_id":"string"
+           "bank_id":"gh.29.uk",
+           "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
          "body":{
-           "to_sandbox_tan":{
-             "bank_id":"string",
-             "account_id":"string"
-           },
-           "to_sepa":{
-             "iban":"string"
-           },
-           "to_counterparty":{
-             "counterparty_id":"string"
-           },
-           "to_transfer_to_phone":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "message":"string",
-             "from":{
-               "mobile_phone_number":"string",
-               "nickname":"string"
-             },
-             "to":{
-               "mobile_phone_number":"string"
-             }
-           },
-           "to_transfer_to_atm":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "message":"string",
-             "from":{
-               "mobile_phone_number":"string",
-               "nickname":"string"
-             },
-             "to":{
-               "legal_name":"string",
-               "date_of_birth":"string",
-               "mobile_phone_number":"string",
-               "kyc_document":{
-                 "type":"string",
-                 "number":"string"
-               }
-             }
-           },
-           "to_transfer_to_account":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "transfer_type":"string",
-             "future_date":"string",
-             "to":{
-               "name":"string",
-               "bank_code":"string",
-               "branch_number":"string",
-               "account":{
-                 "number":"546387432",
-                 "iban":"DE91 1000 0000 0123 4567 89"
-               }
-             }
-           },
-           "to_sepa_credit_transfers":{
-             "debtorAccount":{
-               "iban":"string"
-             },
-             "instructedAmount":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "creditorAccount":{
-               "iban":"string"
-             },
-             "creditorName":"string"
-           },
            "value":{
              "currency":"EUR",
-             "amount":"string"
+             "amount":"10.12"
            },
            "description":"string"
          },
          "transaction_ids":"string",
          "status":"string",
-         "start_date":"2020-06-19T15:25:32Z",
-         "end_date":"2020-06-19T15:25:32Z",
+         "start_date":"2019-09-07T00:00:00Z",
+         "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
            "id":"string",
            "allowed_attempts":123,
@@ -4875,29 +2740,9 @@ this is example of parameter @out_bound_json
            "summary":"string",
            "value":{
              "currency":"EUR",
-             "amount":"string"
+             "amount":"10.12"
            }
-         },
-         "charge_policy":"string",
-         "counterparty_id":{
-           "value":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh"
-         },
-         "name":"string",
-         "this_bank_id":{
-           "value":"gh.29.uk"
-         },
-         "this_account_id":{
-           "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
-         },
-         "this_view_id":{
-           "value":"owner"
-         },
-         "other_account_routing_scheme":"string",
-         "other_account_routing_address":"string",
-         "other_bank_routing_scheme":"string",
-         "other_bank_routing_address":"string",
-         "is_beneficiary":true,
-         "future_date":"string"
+         }
        }
      }'
 	);
@@ -4912,76 +2757,17 @@ DROP PROCEDURE IF EXISTS obp_create_transaction_requestv400;
 GO
 -- create procedure obp_create_transaction_requestv400
 CREATE PROCEDURE obp_create_transaction_requestv400
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "initiator":{
          "userPrimaryKey":{
@@ -4990,7 +2776,7 @@ this is example of parameter @out_bound_json
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
          "provider":"string",
-         "emailAddress":"eveline@example.com",
+         "emailAddress":"felixsmith@example.com",
          "name":"felixsmith"
        },
        "viewId":{
@@ -5000,26 +2786,13 @@ this is example of parameter @out_bound_json
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
          "label":"My Account",
          "iban":"DE91 1000 0000 0123 4567 89",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
-         "branchId":"DERBY6",
          "accountRoutingScheme":"IBAN",
          "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ],
          "accountRules":[
            {
              "scheme":"AccountRule scheme string",
@@ -5042,7 +2815,7 @@ this is example of parameter @out_bound_json
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
+         "lastUpdate":"2018-03-09T00:00:00Z",
          "branchId":"DERBY6",
          "accountRoutingScheme":"IBAN",
          "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
@@ -5066,7 +2839,7 @@ this is example of parameter @out_bound_json
        "transactionRequestCommonBody":{
          "value":{
            "currency":"EUR",
-           "amount":"string"
+           "amount":"10.12"
          },
          "description":"string"
        },
@@ -5078,18 +2851,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -5104,101 +2870,24 @@ this is example of parameter @out_bound_json
        },
        "data":{
          "id":{
-           "value":"string"
+           "value":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1"
          },
          "type":"SEPA",
          "from":{
-           "bank_id":"string",
-           "account_id":"string"
+           "bank_id":"gh.29.uk",
+           "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
          "body":{
-           "to_sandbox_tan":{
-             "bank_id":"string",
-             "account_id":"string"
-           },
-           "to_sepa":{
-             "iban":"string"
-           },
-           "to_counterparty":{
-             "counterparty_id":"string"
-           },
-           "to_transfer_to_phone":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "message":"string",
-             "from":{
-               "mobile_phone_number":"string",
-               "nickname":"string"
-             },
-             "to":{
-               "mobile_phone_number":"string"
-             }
-           },
-           "to_transfer_to_atm":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "message":"string",
-             "from":{
-               "mobile_phone_number":"string",
-               "nickname":"string"
-             },
-             "to":{
-               "legal_name":"string",
-               "date_of_birth":"string",
-               "mobile_phone_number":"string",
-               "kyc_document":{
-                 "type":"string",
-                 "number":"string"
-               }
-             }
-           },
-           "to_transfer_to_account":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "transfer_type":"string",
-             "future_date":"string",
-             "to":{
-               "name":"string",
-               "bank_code":"string",
-               "branch_number":"string",
-               "account":{
-                 "number":"546387432",
-                 "iban":"DE91 1000 0000 0123 4567 89"
-               }
-             }
-           },
-           "to_sepa_credit_transfers":{
-             "debtorAccount":{
-               "iban":"string"
-             },
-             "instructedAmount":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "creditorAccount":{
-               "iban":"string"
-             },
-             "creditorName":"string"
-           },
            "value":{
              "currency":"EUR",
-             "amount":"string"
+             "amount":"10.12"
            },
            "description":"string"
          },
          "transaction_ids":"string",
          "status":"string",
-         "start_date":"2020-06-19T15:25:32Z",
-         "end_date":"2020-06-19T15:25:32Z",
+         "start_date":"2019-09-07T00:00:00Z",
+         "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
            "id":"string",
            "allowed_attempts":123,
@@ -5208,29 +2897,9 @@ this is example of parameter @out_bound_json
            "summary":"string",
            "value":{
              "currency":"EUR",
-             "amount":"string"
+             "amount":"10.12"
            }
-         },
-         "charge_policy":"string",
-         "counterparty_id":{
-           "value":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh"
-         },
-         "name":"string",
-         "this_bank_id":{
-           "value":"gh.29.uk"
-         },
-         "this_account_id":{
-           "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
-         },
-         "this_view_id":{
-           "value":"owner"
-         },
-         "other_account_routing_scheme":"string",
-         "other_account_routing_address":"string",
-         "other_bank_routing_scheme":"string",
-         "other_bank_routing_address":"string",
-         "is_beneficiary":true,
-         "future_date":"string"
+         }
        }
      }'
 	);
@@ -5245,76 +2914,17 @@ DROP PROCEDURE IF EXISTS obp_get_transaction_requests210;
 GO
 -- create procedure obp_get_transaction_requests210
 CREATE PROCEDURE obp_get_transaction_requests210
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "initiator":{
          "userPrimaryKey":{
@@ -5323,33 +2933,20 @@ this is example of parameter @out_bound_json
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
          "provider":"string",
-         "emailAddress":"eveline@example.com",
+         "emailAddress":"felixsmith@example.com",
          "name":"felixsmith"
        },
        "fromAccount":{
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
          "label":"My Account",
          "iban":"DE91 1000 0000 0123 4567 89",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
-         "branchId":"DERBY6",
          "accountRoutingScheme":"IBAN",
          "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ],
          "accountRules":[
            {
              "scheme":"AccountRule scheme string",
@@ -5362,18 +2959,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -5389,101 +2979,24 @@ this is example of parameter @out_bound_json
        "data":[
          {
            "id":{
-             "value":"string"
+             "value":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1"
            },
            "type":"SEPA",
            "from":{
-             "bank_id":"string",
-             "account_id":"string"
+             "bank_id":"gh.29.uk",
+             "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
            },
            "body":{
-             "to_sandbox_tan":{
-               "bank_id":"string",
-               "account_id":"string"
-             },
-             "to_sepa":{
-               "iban":"string"
-             },
-             "to_counterparty":{
-               "counterparty_id":"string"
-             },
-             "to_transfer_to_phone":{
-               "value":{
-                 "currency":"EUR",
-                 "amount":"string"
-               },
-               "description":"string",
-               "message":"string",
-               "from":{
-                 "mobile_phone_number":"string",
-                 "nickname":"string"
-               },
-               "to":{
-                 "mobile_phone_number":"string"
-               }
-             },
-             "to_transfer_to_atm":{
-               "value":{
-                 "currency":"EUR",
-                 "amount":"string"
-               },
-               "description":"string",
-               "message":"string",
-               "from":{
-                 "mobile_phone_number":"string",
-                 "nickname":"string"
-               },
-               "to":{
-                 "legal_name":"string",
-                 "date_of_birth":"string",
-                 "mobile_phone_number":"string",
-                 "kyc_document":{
-                   "type":"string",
-                   "number":"string"
-                 }
-               }
-             },
-             "to_transfer_to_account":{
-               "value":{
-                 "currency":"EUR",
-                 "amount":"string"
-               },
-               "description":"string",
-               "transfer_type":"string",
-               "future_date":"string",
-               "to":{
-                 "name":"string",
-                 "bank_code":"string",
-                 "branch_number":"string",
-                 "account":{
-                   "number":"546387432",
-                   "iban":"DE91 1000 0000 0123 4567 89"
-                 }
-               }
-             },
-             "to_sepa_credit_transfers":{
-               "debtorAccount":{
-                 "iban":"string"
-               },
-               "instructedAmount":{
-                 "currency":"EUR",
-                 "amount":"string"
-               },
-               "creditorAccount":{
-                 "iban":"string"
-               },
-               "creditorName":"string"
-             },
              "value":{
                "currency":"EUR",
-               "amount":"string"
+               "amount":"10.12"
              },
              "description":"string"
            },
            "transaction_ids":"string",
            "status":"string",
-           "start_date":"2020-06-19T15:25:32Z",
-           "end_date":"2020-06-19T15:25:32Z",
+           "start_date":"2019-09-07T00:00:00Z",
+           "end_date":"2019-09-08T00:00:00Z",
            "challenge":{
              "id":"string",
              "allowed_attempts":123,
@@ -5493,29 +3006,9 @@ this is example of parameter @out_bound_json
              "summary":"string",
              "value":{
                "currency":"EUR",
-               "amount":"string"
+               "amount":"10.12"
              }
-           },
-           "charge_policy":"string",
-           "counterparty_id":{
-             "value":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh"
-           },
-           "name":"string",
-           "this_bank_id":{
-             "value":"gh.29.uk"
-           },
-           "this_account_id":{
-             "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
-           },
-           "this_view_id":{
-             "value":"owner"
-           },
-           "other_account_routing_scheme":"string",
-           "other_account_routing_address":"string",
-           "other_bank_routing_scheme":"string",
-           "other_bank_routing_address":"string",
-           "is_beneficiary":true,
-           "future_date":"string"
+           }
          }
        ]
      }'
@@ -5531,96 +3024,30 @@ DROP PROCEDURE IF EXISTS obp_get_transaction_request_impl;
 GO
 -- create procedure obp_get_transaction_request_impl
 CREATE PROCEDURE obp_get_transaction_request_impl
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "transactionRequestId":{
-         "value":"string"
+         "value":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1"
        }
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -5635,101 +3062,24 @@ this is example of parameter @out_bound_json
        },
        "data":{
          "id":{
-           "value":"string"
+           "value":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1"
          },
          "type":"SEPA",
          "from":{
-           "bank_id":"string",
-           "account_id":"string"
+           "bank_id":"gh.29.uk",
+           "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
          "body":{
-           "to_sandbox_tan":{
-             "bank_id":"string",
-             "account_id":"string"
-           },
-           "to_sepa":{
-             "iban":"string"
-           },
-           "to_counterparty":{
-             "counterparty_id":"string"
-           },
-           "to_transfer_to_phone":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "message":"string",
-             "from":{
-               "mobile_phone_number":"string",
-               "nickname":"string"
-             },
-             "to":{
-               "mobile_phone_number":"string"
-             }
-           },
-           "to_transfer_to_atm":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "message":"string",
-             "from":{
-               "mobile_phone_number":"string",
-               "nickname":"string"
-             },
-             "to":{
-               "legal_name":"string",
-               "date_of_birth":"string",
-               "mobile_phone_number":"string",
-               "kyc_document":{
-                 "type":"string",
-                 "number":"string"
-               }
-             }
-           },
-           "to_transfer_to_account":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "transfer_type":"string",
-             "future_date":"string",
-             "to":{
-               "name":"string",
-               "bank_code":"string",
-               "branch_number":"string",
-               "account":{
-                 "number":"546387432",
-                 "iban":"DE91 1000 0000 0123 4567 89"
-               }
-             }
-           },
-           "to_sepa_credit_transfers":{
-             "debtorAccount":{
-               "iban":"string"
-             },
-             "instructedAmount":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "creditorAccount":{
-               "iban":"string"
-             },
-             "creditorName":"string"
-           },
            "value":{
              "currency":"EUR",
-             "amount":"string"
+             "amount":"10.12"
            },
            "description":"string"
          },
          "transaction_ids":"string",
          "status":"string",
-         "start_date":"2020-06-19T15:25:32Z",
-         "end_date":"2020-06-19T15:25:32Z",
+         "start_date":"2019-09-07T00:00:00Z",
+         "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
            "id":"string",
            "allowed_attempts":123,
@@ -5739,29 +3089,9 @@ this is example of parameter @out_bound_json
            "summary":"string",
            "value":{
              "currency":"EUR",
-             "amount":"string"
+             "amount":"10.12"
            }
-         },
-         "charge_policy":"string",
-         "counterparty_id":{
-           "value":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh"
-         },
-         "name":"string",
-         "this_bank_id":{
-           "value":"gh.29.uk"
-         },
-         "this_account_id":{
-           "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
-         },
-         "this_view_id":{
-           "value":"owner"
-         },
-         "other_account_routing_scheme":"string",
-         "other_account_routing_address":"string",
-         "other_bank_routing_scheme":"string",
-         "other_bank_routing_address":"string",
-         "is_beneficiary":true,
-         "future_date":"string"
+         }
        }
      }'
 	);
@@ -5776,206 +3106,46 @@ DROP PROCEDURE IF EXISTS obp_create_transaction_after_challenge_v210;
 GO
 -- create procedure obp_create_transaction_after_challenge_v210
 CREATE PROCEDURE obp_create_transaction_after_challenge_v210
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "fromAccount":{
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-08T23:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         }
        },
        "transactionRequest":{
          "id":{
-           "value":"string"
+           "value":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1"
          },
          "type":"SEPA",
          "from":{
-           "bank_id":"string",
-           "account_id":"string"
+           "bank_id":"gh.29.uk",
+           "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
          "body":{
-           "to_sandbox_tan":{
-             "bank_id":"string",
-             "account_id":"string"
-           },
-           "to_sepa":{
-             "iban":"string"
-           },
-           "to_counterparty":{
-             "counterparty_id":"string"
-           },
-           "to_transfer_to_phone":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "message":"string",
-             "from":{
-               "mobile_phone_number":"string",
-               "nickname":"string"
-             },
-             "to":{
-               "mobile_phone_number":"string"
-             }
-           },
-           "to_transfer_to_atm":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "message":"string",
-             "from":{
-               "mobile_phone_number":"string",
-               "nickname":"string"
-             },
-             "to":{
-               "legal_name":"string",
-               "date_of_birth":"string",
-               "mobile_phone_number":"string",
-               "kyc_document":{
-                 "type":"string",
-                 "number":"string"
-               }
-             }
-           },
-           "to_transfer_to_account":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "transfer_type":"string",
-             "future_date":"string",
-             "to":{
-               "name":"string",
-               "bank_code":"string",
-               "branch_number":"string",
-               "account":{
-                 "number":"546387432",
-                 "iban":"DE91 1000 0000 0123 4567 89"
-               }
-             }
-           },
-           "to_sepa_credit_transfers":{
-             "debtorAccount":{
-               "iban":"string"
-             },
-             "instructedAmount":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "creditorAccount":{
-               "iban":"string"
-             },
-             "creditorName":"string"
-           },
            "value":{
              "currency":"EUR",
-             "amount":"string"
+             "amount":"10.12"
            },
            "description":"string"
          },
          "transaction_ids":"string",
          "status":"string",
-         "start_date":"2020-06-19T15:25:32Z",
-         "end_date":"2020-06-19T15:25:32Z",
+         "start_date":"2019-09-07T00:00:00Z",
+         "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
            "id":"string",
            "allowed_attempts":123,
@@ -5985,46 +3155,19 @@ this is example of parameter @out_bound_json
            "summary":"string",
            "value":{
              "currency":"EUR",
-             "amount":"string"
+             "amount":"10.12"
            }
-         },
-         "charge_policy":"string",
-         "counterparty_id":{
-           "value":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh"
-         },
-         "name":"string",
-         "this_bank_id":{
-           "value":"gh.29.uk"
-         },
-         "this_account_id":{
-           "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
-         },
-         "this_view_id":{
-           "value":"owner"
-         },
-         "other_account_routing_scheme":"string",
-         "other_account_routing_address":"string",
-         "other_bank_routing_scheme":"string",
-         "other_bank_routing_address":"string",
-         "is_beneficiary":true,
-         "future_date":"string"
+         }
        }
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -6039,101 +3182,24 @@ this is example of parameter @out_bound_json
        },
        "data":{
          "id":{
-           "value":"string"
+           "value":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1"
          },
          "type":"SEPA",
          "from":{
-           "bank_id":"string",
-           "account_id":"string"
+           "bank_id":"gh.29.uk",
+           "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
          "body":{
-           "to_sandbox_tan":{
-             "bank_id":"string",
-             "account_id":"string"
-           },
-           "to_sepa":{
-             "iban":"string"
-           },
-           "to_counterparty":{
-             "counterparty_id":"string"
-           },
-           "to_transfer_to_phone":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "message":"string",
-             "from":{
-               "mobile_phone_number":"string",
-               "nickname":"string"
-             },
-             "to":{
-               "mobile_phone_number":"string"
-             }
-           },
-           "to_transfer_to_atm":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "message":"string",
-             "from":{
-               "mobile_phone_number":"string",
-               "nickname":"string"
-             },
-             "to":{
-               "legal_name":"string",
-               "date_of_birth":"string",
-               "mobile_phone_number":"string",
-               "kyc_document":{
-                 "type":"string",
-                 "number":"string"
-               }
-             }
-           },
-           "to_transfer_to_account":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "transfer_type":"string",
-             "future_date":"string",
-             "to":{
-               "name":"string",
-               "bank_code":"string",
-               "branch_number":"string",
-               "account":{
-                 "number":"546387432",
-                 "iban":"DE91 1000 0000 0123 4567 89"
-               }
-             }
-           },
-           "to_sepa_credit_transfers":{
-             "debtorAccount":{
-               "iban":"string"
-             },
-             "instructedAmount":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "creditorAccount":{
-               "iban":"string"
-             },
-             "creditorName":"string"
-           },
            "value":{
              "currency":"EUR",
-             "amount":"string"
+             "amount":"10.12"
            },
            "description":"string"
          },
          "transaction_ids":"string",
          "status":"string",
-         "start_date":"2020-06-19T15:25:32Z",
-         "end_date":"2020-06-19T15:25:32Z",
+         "start_date":"2019-09-07T00:00:00Z",
+         "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
            "id":"string",
            "allowed_attempts":123,
@@ -6143,29 +3209,9 @@ this is example of parameter @out_bound_json
            "summary":"string",
            "value":{
              "currency":"EUR",
-             "amount":"string"
+             "amount":"10.12"
            }
-         },
-         "charge_policy":"string",
-         "counterparty_id":{
-           "value":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh"
-         },
-         "name":"string",
-         "this_bank_id":{
-           "value":"gh.29.uk"
-         },
-         "this_account_id":{
-           "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
-         },
-         "this_view_id":{
-           "value":"owner"
-         },
-         "other_account_routing_scheme":"string",
-         "other_account_routing_address":"string",
-         "other_bank_routing_scheme":"string",
-         "other_bank_routing_address":"string",
-         "is_beneficiary":true,
-         "future_date":"string"
+         }
        }
      }'
 	);
@@ -6180,76 +3226,17 @@ DROP PROCEDURE IF EXISTS obp_update_bank_account;
 GO
 -- create procedure obp_update_bank_account
 CREATE PROCEDURE obp_update_bank_account
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -6266,18 +3253,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -6298,29 +3278,18 @@ this is example of parameter @out_bound_json
          "balance":"50.89",
          "currency":"EUR",
          "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
          "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
+         "lastUpdate":"2018-03-09T00:00:00Z",
          "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
          "accountRoutings":[
            {
              "scheme":"IBAN",
              "address":"DE91 1000 0000 0123 4567 89"
            }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         ]
        }
      }'
 	);
@@ -6335,76 +3304,17 @@ DROP PROCEDURE IF EXISTS obp_create_bank_account;
 GO
 -- create procedure obp_create_bank_account
 CREATE PROCEDURE obp_create_bank_account
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -6424,18 +3334,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -6456,29 +3359,18 @@ this is example of parameter @out_bound_json
          "balance":"50.89",
          "currency":"EUR",
          "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
          "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
+         "lastUpdate":"2018-03-09T00:00:00Z",
          "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
          "accountRoutings":[
            {
              "scheme":"IBAN",
              "address":"DE91 1000 0000 0123 4567 89"
            }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         ]
        }
      }'
 	);
@@ -6493,14 +3385,14 @@ DROP PROCEDURE IF EXISTS obp_account_exists;
 GO
 -- create procedure obp_account_exists
 CREATE PROCEDURE obp_account_exists
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "bankId":{
          "value":"gh.29.uk"
@@ -6510,7 +3402,7 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "status":{
@@ -6538,76 +3430,17 @@ DROP PROCEDURE IF EXISTS obp_get_branch;
 GO
 -- create procedure obp_get_branch
 CREATE PROCEDURE obp_get_branch
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -6619,18 +3452,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -6664,7 +3490,7 @@ this is example of parameter @out_bound_json
          "location":{
            "latitude":123.123,
            "longitude":123.123,
-           "date":"2020-06-19T15:25:32Z",
+           "date":"2020-01-27T00:00:00Z",
            "user":{
              "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
              "provider":"string",
@@ -6781,76 +3607,17 @@ DROP PROCEDURE IF EXISTS obp_get_branches;
 GO
 -- create procedure obp_get_branches
 CREATE PROCEDURE obp_get_branches
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -6863,18 +3630,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -6909,7 +3669,7 @@ this is example of parameter @out_bound_json
            "location":{
              "latitude":123.123,
              "longitude":123.123,
-             "date":"2020-06-19T15:25:32Z",
+             "date":"2020-01-27T00:00:00Z",
              "user":{
                "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
                "provider":"string",
@@ -7027,76 +3787,17 @@ DROP PROCEDURE IF EXISTS obp_get_atm;
 GO
 -- create procedure obp_get_atm
 CREATE PROCEDURE obp_get_atm
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -7108,18 +3809,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -7153,7 +3847,7 @@ this is example of parameter @out_bound_json
          "location":{
            "latitude":123.123,
            "longitude":123.123,
-           "date":"2020-06-19T15:25:32Z",
+           "date":"2020-01-27T00:00:00Z",
            "user":{
              "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
              "provider":"string",
@@ -7198,76 +3892,17 @@ DROP PROCEDURE IF EXISTS obp_get_atms;
 GO
 -- create procedure obp_get_atms
 CREATE PROCEDURE obp_get_atms
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -7280,18 +3915,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -7326,7 +3954,7 @@ this is example of parameter @out_bound_json
            "location":{
              "latitude":123.123,
              "longitude":123.123,
-             "date":"2020-06-19T15:25:32Z",
+             "date":"2020-01-27T00:00:00Z",
              "user":{
                "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
                "provider":"string",
@@ -7372,76 +4000,17 @@ DROP PROCEDURE IF EXISTS obp_create_transaction_after_challengev300;
 GO
 -- create procedure obp_create_transaction_after_challengev300
 CREATE PROCEDURE obp_create_transaction_after_challengev300
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "initiator":{
          "userPrimaryKey":{
@@ -7450,43 +4019,19 @@ this is example of parameter @out_bound_json
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
          "provider":"string",
-         "emailAddress":"eveline@example.com",
+         "emailAddress":"felixsmith@example.com",
          "name":"felixsmith"
        },
        "fromAccount":{
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-08T23:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         }
        },
        "transReqId":{
-         "value":"string"
+         "value":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1"
        },
        "transactionRequestType":{
          "value":"SEPA"
@@ -7495,18 +4040,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -7521,101 +4059,24 @@ this is example of parameter @out_bound_json
        },
        "data":{
          "id":{
-           "value":"string"
+           "value":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1"
          },
          "type":"SEPA",
          "from":{
-           "bank_id":"string",
-           "account_id":"string"
+           "bank_id":"gh.29.uk",
+           "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
          "body":{
-           "to_sandbox_tan":{
-             "bank_id":"string",
-             "account_id":"string"
-           },
-           "to_sepa":{
-             "iban":"string"
-           },
-           "to_counterparty":{
-             "counterparty_id":"string"
-           },
-           "to_transfer_to_phone":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "message":"string",
-             "from":{
-               "mobile_phone_number":"string",
-               "nickname":"string"
-             },
-             "to":{
-               "mobile_phone_number":"string"
-             }
-           },
-           "to_transfer_to_atm":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "message":"string",
-             "from":{
-               "mobile_phone_number":"string",
-               "nickname":"string"
-             },
-             "to":{
-               "legal_name":"string",
-               "date_of_birth":"string",
-               "mobile_phone_number":"string",
-               "kyc_document":{
-                 "type":"string",
-                 "number":"string"
-               }
-             }
-           },
-           "to_transfer_to_account":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "transfer_type":"string",
-             "future_date":"string",
-             "to":{
-               "name":"string",
-               "bank_code":"string",
-               "branch_number":"string",
-               "account":{
-                 "number":"546387432",
-                 "iban":"DE91 1000 0000 0123 4567 89"
-               }
-             }
-           },
-           "to_sepa_credit_transfers":{
-             "debtorAccount":{
-               "iban":"string"
-             },
-             "instructedAmount":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "creditorAccount":{
-               "iban":"string"
-             },
-             "creditorName":"string"
-           },
            "value":{
              "currency":"EUR",
-             "amount":"string"
+             "amount":"10.12"
            },
            "description":"string"
          },
          "transaction_ids":"string",
          "status":"string",
-         "start_date":"2020-06-19T15:25:32Z",
-         "end_date":"2020-06-19T15:25:32Z",
+         "start_date":"2019-09-07T00:00:00Z",
+         "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
            "id":"string",
            "allowed_attempts":123,
@@ -7625,29 +4086,9 @@ this is example of parameter @out_bound_json
            "summary":"string",
            "value":{
              "currency":"EUR",
-             "amount":"string"
+             "amount":"10.12"
            }
-         },
-         "charge_policy":"string",
-         "counterparty_id":{
-           "value":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh"
-         },
-         "name":"string",
-         "this_bank_id":{
-           "value":"gh.29.uk"
-         },
-         "this_account_id":{
-           "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
-         },
-         "this_view_id":{
-           "value":"owner"
-         },
-         "other_account_routing_scheme":"string",
-         "other_account_routing_address":"string",
-         "other_bank_routing_scheme":"string",
-         "other_bank_routing_address":"string",
-         "is_beneficiary":true,
-         "future_date":"string"
+         }
        }
      }'
 	);
@@ -7662,76 +4103,17 @@ DROP PROCEDURE IF EXISTS obp_make_paymentv300;
 GO
 -- create procedure obp_make_paymentv300
 CREATE PROCEDURE obp_make_paymentv300
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "initiator":{
          "userPrimaryKey":{
@@ -7740,40 +4122,16 @@ this is example of parameter @out_bound_json
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
          "provider":"string",
-         "emailAddress":"eveline@example.com",
+         "emailAddress":"felixsmith@example.com",
          "name":"felixsmith"
        },
        "fromAccount":{
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-08T23:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         }
        },
        "toAccount":{
          "accountId":{
@@ -7783,29 +4141,18 @@ this is example of parameter @out_bound_json
          "balance":"50.89",
          "currency":"EUR",
          "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
          "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
+         "lastUpdate":"2018-03-09T00:00:00Z",
          "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
          "accountRoutings":[
            {
              "scheme":"IBAN",
              "address":"DE91 1000 0000 0123 4567 89"
            }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         ]
        },
        "toCounterparty":{
          "createdByUserId":"string",
@@ -7826,15 +4173,15 @@ this is example of parameter @out_bound_json
          "isBeneficiary":true,
          "bespoke":[
            {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
+             "key":"CustomerNumber",
+             "value":"5987953"
            }
          ]
        },
        "transactionRequestCommonBody":{
          "value":{
            "currency":"EUR",
-           "amount":"string"
+           "amount":"10.12"
          },
          "description":"string"
        },
@@ -7846,18 +4193,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -7886,76 +4226,17 @@ DROP PROCEDURE IF EXISTS obp_create_transaction_requestv300;
 GO
 -- create procedure obp_create_transaction_requestv300
 CREATE PROCEDURE obp_create_transaction_requestv300
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "initiator":{
          "userPrimaryKey":{
@@ -7964,7 +4245,7 @@ this is example of parameter @out_bound_json
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
          "provider":"string",
-         "emailAddress":"eveline@example.com",
+         "emailAddress":"felixsmith@example.com",
          "name":"felixsmith"
        },
        "viewId":{
@@ -7974,33 +4255,9 @@ this is example of parameter @out_bound_json
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-08T23:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         }
        },
        "toAccount":{
          "accountId":{
@@ -8010,29 +4267,18 @@ this is example of parameter @out_bound_json
          "balance":"50.89",
          "currency":"EUR",
          "name":"bankAccount name string",
-         "label":"My Account",
-         "iban":"DE91 1000 0000 0123 4567 89",
          "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
+         "lastUpdate":"2018-03-09T00:00:00Z",
          "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
          "accountRoutings":[
            {
              "scheme":"IBAN",
              "address":"DE91 1000 0000 0123 4567 89"
            }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         ]
        },
        "toCounterparty":{
          "createdByUserId":"string",
@@ -8053,8 +4299,8 @@ this is example of parameter @out_bound_json
          "isBeneficiary":true,
          "bespoke":[
            {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
+             "key":"CustomerNumber",
+             "value":"5987953"
            }
          ]
        },
@@ -8064,7 +4310,7 @@ this is example of parameter @out_bound_json
        "transactionRequestCommonBody":{
          "value":{
            "currency":"EUR",
-           "amount":"string"
+           "amount":"10.12"
          },
          "description":"string"
        },
@@ -8074,18 +4320,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -8100,101 +4339,24 @@ this is example of parameter @out_bound_json
        },
        "data":{
          "id":{
-           "value":"string"
+           "value":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1"
          },
          "type":"SEPA",
          "from":{
-           "bank_id":"string",
-           "account_id":"string"
+           "bank_id":"gh.29.uk",
+           "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
          "body":{
-           "to_sandbox_tan":{
-             "bank_id":"string",
-             "account_id":"string"
-           },
-           "to_sepa":{
-             "iban":"string"
-           },
-           "to_counterparty":{
-             "counterparty_id":"string"
-           },
-           "to_transfer_to_phone":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "message":"string",
-             "from":{
-               "mobile_phone_number":"string",
-               "nickname":"string"
-             },
-             "to":{
-               "mobile_phone_number":"string"
-             }
-           },
-           "to_transfer_to_atm":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "message":"string",
-             "from":{
-               "mobile_phone_number":"string",
-               "nickname":"string"
-             },
-             "to":{
-               "legal_name":"string",
-               "date_of_birth":"string",
-               "mobile_phone_number":"string",
-               "kyc_document":{
-                 "type":"string",
-                 "number":"string"
-               }
-             }
-           },
-           "to_transfer_to_account":{
-             "value":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "description":"string",
-             "transfer_type":"string",
-             "future_date":"string",
-             "to":{
-               "name":"string",
-               "bank_code":"string",
-               "branch_number":"string",
-               "account":{
-                 "number":"546387432",
-                 "iban":"DE91 1000 0000 0123 4567 89"
-               }
-             }
-           },
-           "to_sepa_credit_transfers":{
-             "debtorAccount":{
-               "iban":"string"
-             },
-             "instructedAmount":{
-               "currency":"EUR",
-               "amount":"string"
-             },
-             "creditorAccount":{
-               "iban":"string"
-             },
-             "creditorName":"string"
-           },
            "value":{
              "currency":"EUR",
-             "amount":"string"
+             "amount":"10.12"
            },
            "description":"string"
          },
          "transaction_ids":"string",
          "status":"string",
-         "start_date":"2020-06-19T15:25:32Z",
-         "end_date":"2020-06-19T15:25:32Z",
+         "start_date":"2019-09-07T00:00:00Z",
+         "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
            "id":"string",
            "allowed_attempts":123,
@@ -8204,29 +4366,9 @@ this is example of parameter @out_bound_json
            "summary":"string",
            "value":{
              "currency":"EUR",
-             "amount":"string"
+             "amount":"10.12"
            }
-         },
-         "charge_policy":"string",
-         "counterparty_id":{
-           "value":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh"
-         },
-         "name":"string",
-         "this_bank_id":{
-           "value":"gh.29.uk"
-         },
-         "this_account_id":{
-           "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
-         },
-         "this_view_id":{
-           "value":"owner"
-         },
-         "other_account_routing_scheme":"string",
-         "other_account_routing_address":"string",
-         "other_bank_routing_scheme":"string",
-         "other_bank_routing_address":"string",
-         "is_beneficiary":true,
-         "future_date":"string"
+         }
        }
      }'
 	);
@@ -8241,76 +4383,17 @@ DROP PROCEDURE IF EXISTS obp_create_counterparty;
 GO
 -- create procedure obp_create_counterparty
 CREATE PROCEDURE obp_create_counterparty
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "name":"string",
        "description":"string",
@@ -8329,26 +4412,19 @@ this is example of parameter @out_bound_json
        "isBeneficiary":true,
        "bespoke":[
          {
-           "key":"5987953",
-           "value":"FYIUYF6SUYFSD"
+           "key":"CustomerNumber",
+           "value":"5987953"
          }
        ]
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -8380,8 +4456,8 @@ this is example of parameter @out_bound_json
          "isBeneficiary":true,
          "bespoke":[
            {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
+             "key":"CustomerNumber",
+             "value":"5987953"
            }
          ]
        }
@@ -8398,76 +4474,17 @@ DROP PROCEDURE IF EXISTS obp_check_customer_number_available;
 GO
 -- create procedure obp_check_customer_number_available
 CREATE PROCEDURE obp_check_customer_number_available
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -8477,18 +4494,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -8515,98 +4525,39 @@ DROP PROCEDURE IF EXISTS obp_create_customer;
 GO
 -- create procedure obp_create_customer
 CREATE PROCEDURE obp_create_customer
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
        },
        "legalName":"Eveline Tripman",
        "mobileNumber":"+44 07972 444 876",
-       "email":"eveline@example.com",
+       "email":"felixsmith@example.com",
        "faceImage":{
-         "date":"2019-09-07T22:00:00Z",
+         "date":"2019-09-08T00:00:00Z",
          "url":"http://www.example.com/id-docs/123/image.png"
        },
-       "dateOfBirth":"2018-03-08T23:00:00Z",
+       "dateOfBirth":"2018-03-09T00:00:00Z",
        "relationshipStatus":"single",
        "dependents":1,
        "dobOfDependents":[
-         "2019-09-07T22:00:00Z",
-         "2019-01-02T23:00:00Z"
+         "2019-09-08T00:00:00Z",
+         "2019-01-03T00:00:00Z"
        ],
        "highestEducationAttained":"Master",
        "employmentStatus":"worker",
        "kycStatus":true,
-       "lastOkDate":"2019-09-11T22:00:00Z",
+       "lastOkDate":"2019-09-12T00:00:00Z",
        "creditRating":{
          "rating":"",
          "source":""
@@ -8622,18 +4573,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -8652,17 +4596,17 @@ this is example of parameter @out_bound_json
          "number":"5987953",
          "legalName":"Eveline Tripman",
          "mobileNumber":"+44 07972 444 876",
-         "email":"eveline@example.com",
+         "email":"felixsmith@example.com",
          "faceImage":{
-           "date":"2019-09-07T22:00:00Z",
+           "date":"2019-09-08T00:00:00Z",
            "url":"http://www.example.com/id-docs/123/image.png"
          },
-         "dateOfBirth":"2018-03-08T23:00:00Z",
+         "dateOfBirth":"2018-03-09T00:00:00Z",
          "relationshipStatus":"single",
          "dependents":1,
          "dobOfDependents":[
-           "2019-09-07T22:00:00Z",
-           "2019-01-02T23:00:00Z"
+           "2019-09-08T00:00:00Z",
+           "2019-01-03T00:00:00Z"
          ],
          "highestEducationAttained":"Master",
          "employmentStatus":"worker",
@@ -8675,7 +4619,7 @@ this is example of parameter @out_bound_json
            "amount":"1000.00"
          },
          "kycStatus":true,
-         "lastOkDate":"2019-09-07T22:00:00Z",
+         "lastOkDate":"2019-09-08T00:00:00Z",
          "title":"title of customer",
          "branchId":"DERBY6",
          "nameSuffix":"Sr"
@@ -8693,97 +4637,31 @@ DROP PROCEDURE IF EXISTS obp_update_customer_sca_data;
 GO
 -- create procedure obp_update_customer_sca_data
 CREATE PROCEDURE obp_update_customer_sca_data
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
        "mobileNumber":"+44 07972 444 876",
-       "email":"eveline@example.com",
+       "email":"felixsmith@example.com",
        "customerNumber":"5987953"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -8802,17 +4680,17 @@ this is example of parameter @out_bound_json
          "number":"5987953",
          "legalName":"Eveline Tripman",
          "mobileNumber":"+44 07972 444 876",
-         "email":"eveline@example.com",
+         "email":"felixsmith@example.com",
          "faceImage":{
-           "date":"2019-09-07T22:00:00Z",
+           "date":"2019-09-08T00:00:00Z",
            "url":"http://www.example.com/id-docs/123/image.png"
          },
-         "dateOfBirth":"2018-03-08T23:00:00Z",
+         "dateOfBirth":"2018-03-09T00:00:00Z",
          "relationshipStatus":"single",
          "dependents":1,
          "dobOfDependents":[
-           "2019-09-07T22:00:00Z",
-           "2019-01-02T23:00:00Z"
+           "2019-09-08T00:00:00Z",
+           "2019-01-03T00:00:00Z"
          ],
          "highestEducationAttained":"Master",
          "employmentStatus":"worker",
@@ -8825,7 +4703,7 @@ this is example of parameter @out_bound_json
            "amount":"1000.00"
          },
          "kycStatus":true,
-         "lastOkDate":"2019-09-07T22:00:00Z",
+         "lastOkDate":"2019-09-08T00:00:00Z",
          "title":"title of customer",
          "branchId":"DERBY6",
          "nameSuffix":"Sr"
@@ -8843,76 +4721,17 @@ DROP PROCEDURE IF EXISTS obp_update_customer_credit_data;
 GO
 -- create procedure obp_update_customer_credit_data
 CREATE PROCEDURE obp_update_customer_credit_data
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
        "creditRating":"string",
@@ -8925,18 +4744,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -8955,17 +4767,17 @@ this is example of parameter @out_bound_json
          "number":"5987953",
          "legalName":"Eveline Tripman",
          "mobileNumber":"+44 07972 444 876",
-         "email":"eveline@example.com",
+         "email":"felixsmith@example.com",
          "faceImage":{
-           "date":"2019-09-07T22:00:00Z",
+           "date":"2019-09-08T00:00:00Z",
            "url":"http://www.example.com/id-docs/123/image.png"
          },
-         "dateOfBirth":"2018-03-08T23:00:00Z",
+         "dateOfBirth":"2018-03-09T00:00:00Z",
          "relationshipStatus":"single",
          "dependents":1,
          "dobOfDependents":[
-           "2019-09-07T22:00:00Z",
-           "2019-01-02T23:00:00Z"
+           "2019-09-08T00:00:00Z",
+           "2019-01-03T00:00:00Z"
          ],
          "highestEducationAttained":"Master",
          "employmentStatus":"worker",
@@ -8978,7 +4790,7 @@ this is example of parameter @out_bound_json
            "amount":"1000.00"
          },
          "kycStatus":true,
-         "lastOkDate":"2019-09-07T22:00:00Z",
+         "lastOkDate":"2019-09-08T00:00:00Z",
          "title":"title of customer",
          "branchId":"DERBY6",
          "nameSuffix":"Sr"
@@ -8996,84 +4808,25 @@ DROP PROCEDURE IF EXISTS obp_update_customer_general_data;
 GO
 -- create procedure obp_update_customer_general_data
 CREATE PROCEDURE obp_update_customer_general_data
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
        "legalName":"Eveline Tripman",
        "faceImage":{
-         "date":"2020-06-19T15:25:32Z",
+         "date":"2020-01-27T00:00:00Z",
          "url":"http://www.example.com/id-docs/123/image.png"
        },
-       "dateOfBirth":"2018-03-08T23:00:00Z",
+       "dateOfBirth":"2018-03-09T00:00:00Z",
        "relationshipStatus":"single",
        "dependents":1,
        "highestEducationAttained":"Master",
@@ -9085,18 +4838,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -9115,17 +4861,17 @@ this is example of parameter @out_bound_json
          "number":"5987953",
          "legalName":"Eveline Tripman",
          "mobileNumber":"+44 07972 444 876",
-         "email":"eveline@example.com",
+         "email":"felixsmith@example.com",
          "faceImage":{
-           "date":"2019-09-07T22:00:00Z",
+           "date":"2019-09-08T00:00:00Z",
            "url":"http://www.example.com/id-docs/123/image.png"
          },
-         "dateOfBirth":"2018-03-08T23:00:00Z",
+         "dateOfBirth":"2018-03-09T00:00:00Z",
          "relationshipStatus":"single",
          "dependents":1,
          "dobOfDependents":[
-           "2019-09-07T22:00:00Z",
-           "2019-01-02T23:00:00Z"
+           "2019-09-08T00:00:00Z",
+           "2019-01-03T00:00:00Z"
          ],
          "highestEducationAttained":"Master",
          "employmentStatus":"worker",
@@ -9138,7 +4884,7 @@ this is example of parameter @out_bound_json
            "amount":"1000.00"
          },
          "kycStatus":true,
-         "lastOkDate":"2019-09-07T22:00:00Z",
+         "lastOkDate":"2019-09-08T00:00:00Z",
          "title":"title of customer",
          "branchId":"DERBY6",
          "nameSuffix":"Sr"
@@ -9156,94 +4902,28 @@ DROP PROCEDURE IF EXISTS obp_get_customers_by_user_id;
 GO
 -- create procedure obp_get_customers_by_user_id
 CREATE PROCEDURE obp_get_customers_by_user_id
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -9263,17 +4943,17 @@ this is example of parameter @out_bound_json
            "number":"5987953",
            "legalName":"Eveline Tripman",
            "mobileNumber":"+44 07972 444 876",
-           "email":"eveline@example.com",
+           "email":"felixsmith@example.com",
            "faceImage":{
-             "date":"2019-09-07T22:00:00Z",
+             "date":"2019-09-08T00:00:00Z",
              "url":"http://www.example.com/id-docs/123/image.png"
            },
-           "dateOfBirth":"2018-03-08T23:00:00Z",
+           "dateOfBirth":"2018-03-09T00:00:00Z",
            "relationshipStatus":"single",
            "dependents":1,
            "dobOfDependents":[
-             "2019-09-07T22:00:00Z",
-             "2019-01-02T23:00:00Z"
+             "2019-09-08T00:00:00Z",
+             "2019-01-03T00:00:00Z"
            ],
            "highestEducationAttained":"Master",
            "employmentStatus":"worker",
@@ -9286,7 +4966,7 @@ this is example of parameter @out_bound_json
              "amount":"1000.00"
            },
            "kycStatus":true,
-           "lastOkDate":"2019-09-07T22:00:00Z",
+           "lastOkDate":"2019-09-08T00:00:00Z",
            "title":"title of customer",
            "branchId":"DERBY6",
            "nameSuffix":"Sr"
@@ -9305,94 +4985,28 @@ DROP PROCEDURE IF EXISTS obp_get_customer_by_customer_id;
 GO
 -- create procedure obp_get_customer_by_customer_id
 CREATE PROCEDURE obp_get_customer_by_customer_id
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -9411,17 +5025,17 @@ this is example of parameter @out_bound_json
          "number":"5987953",
          "legalName":"Eveline Tripman",
          "mobileNumber":"+44 07972 444 876",
-         "email":"eveline@example.com",
+         "email":"felixsmith@example.com",
          "faceImage":{
-           "date":"2019-09-07T22:00:00Z",
+           "date":"2019-09-08T00:00:00Z",
            "url":"http://www.example.com/id-docs/123/image.png"
          },
-         "dateOfBirth":"2018-03-08T23:00:00Z",
+         "dateOfBirth":"2018-03-09T00:00:00Z",
          "relationshipStatus":"single",
          "dependents":1,
          "dobOfDependents":[
-           "2019-09-07T22:00:00Z",
-           "2019-01-02T23:00:00Z"
+           "2019-09-08T00:00:00Z",
+           "2019-01-03T00:00:00Z"
          ],
          "highestEducationAttained":"Master",
          "employmentStatus":"worker",
@@ -9434,7 +5048,7 @@ this is example of parameter @out_bound_json
            "amount":"1000.00"
          },
          "kycStatus":true,
-         "lastOkDate":"2019-09-07T22:00:00Z",
+         "lastOkDate":"2019-09-08T00:00:00Z",
          "title":"title of customer",
          "branchId":"DERBY6",
          "nameSuffix":"Sr"
@@ -9452,76 +5066,17 @@ DROP PROCEDURE IF EXISTS obp_get_customer_by_customer_number;
 GO
 -- create procedure obp_get_customer_by_customer_number
 CREATE PROCEDURE obp_get_customer_by_customer_number
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerNumber":"5987953",
        "bankId":{
@@ -9531,18 +5086,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -9561,17 +5109,17 @@ this is example of parameter @out_bound_json
          "number":"5987953",
          "legalName":"Eveline Tripman",
          "mobileNumber":"+44 07972 444 876",
-         "email":"eveline@example.com",
+         "email":"felixsmith@example.com",
          "faceImage":{
-           "date":"2019-09-07T22:00:00Z",
+           "date":"2019-09-08T00:00:00Z",
            "url":"http://www.example.com/id-docs/123/image.png"
          },
-         "dateOfBirth":"2018-03-08T23:00:00Z",
+         "dateOfBirth":"2018-03-09T00:00:00Z",
          "relationshipStatus":"single",
          "dependents":1,
          "dobOfDependents":[
-           "2019-09-07T22:00:00Z",
-           "2019-01-02T23:00:00Z"
+           "2019-09-08T00:00:00Z",
+           "2019-01-03T00:00:00Z"
          ],
          "highestEducationAttained":"Master",
          "employmentStatus":"worker",
@@ -9584,7 +5132,7 @@ this is example of parameter @out_bound_json
            "amount":"1000.00"
          },
          "kycStatus":true,
-         "lastOkDate":"2019-09-07T22:00:00Z",
+         "lastOkDate":"2019-09-08T00:00:00Z",
          "title":"title of customer",
          "branchId":"DERBY6",
          "nameSuffix":"Sr"
@@ -9602,94 +5150,28 @@ DROP PROCEDURE IF EXISTS obp_get_customer_address;
 GO
 -- create procedure obp_get_customer_address
 CREATE PROCEDURE obp_get_customer_address
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -9716,7 +5198,7 @@ this is example of parameter @out_bound_json
            "countryCode":"string",
            "status":"string",
            "tags":"string",
-           "insertDate":"2020-06-19T15:25:32Z"
+           "insertDate":"2020-01-27T00:00:00Z"
          }
        ]
      }'
@@ -9732,76 +5214,17 @@ DROP PROCEDURE IF EXISTS obp_create_customer_address;
 GO
 -- create procedure obp_create_customer_address
 CREATE PROCEDURE obp_create_customer_address
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
        "line1":"string",
@@ -9818,18 +5241,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -9855,7 +5271,7 @@ this is example of parameter @out_bound_json
          "countryCode":"string",
          "status":"string",
          "tags":"string",
-         "insertDate":"2020-06-19T15:25:32Z"
+         "insertDate":"2020-01-27T00:00:00Z"
        }
      }'
 	);
@@ -9870,76 +5286,17 @@ DROP PROCEDURE IF EXISTS obp_update_customer_address;
 GO
 -- create procedure obp_update_customer_address
 CREATE PROCEDURE obp_update_customer_address
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerAddressId":"string",
        "line1":"string",
@@ -9956,18 +5313,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -9993,7 +5343,7 @@ this is example of parameter @out_bound_json
          "countryCode":"string",
          "status":"string",
          "tags":"string",
-         "insertDate":"2020-06-19T15:25:32Z"
+         "insertDate":"2020-01-27T00:00:00Z"
        }
      }'
 	);
@@ -10008,94 +5358,28 @@ DROP PROCEDURE IF EXISTS obp_delete_customer_address;
 GO
 -- create procedure obp_delete_customer_address
 CREATE PROCEDURE obp_delete_customer_address
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerAddressId":"string"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -10122,76 +5406,17 @@ DROP PROCEDURE IF EXISTS obp_create_tax_residence;
 GO
 -- create procedure obp_create_tax_residence
 CREATE PROCEDURE obp_create_tax_residence
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
        "domain":"string",
@@ -10200,18 +5425,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -10243,94 +5461,28 @@ DROP PROCEDURE IF EXISTS obp_get_tax_residence;
 GO
 -- create procedure obp_get_tax_residence
 CREATE PROCEDURE obp_get_tax_residence
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -10364,94 +5516,28 @@ DROP PROCEDURE IF EXISTS obp_delete_tax_residence;
 GO
 -- create procedure obp_delete_tax_residence
 CREATE PROCEDURE obp_delete_tax_residence
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "taxResourceId":"string"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -10478,76 +5564,17 @@ DROP PROCEDURE IF EXISTS obp_get_customers;
 GO
 -- create procedure obp_get_customers
 CREATE PROCEDURE obp_get_customers
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -10560,18 +5587,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -10591,17 +5611,17 @@ this is example of parameter @out_bound_json
            "number":"5987953",
            "legalName":"Eveline Tripman",
            "mobileNumber":"+44 07972 444 876",
-           "email":"eveline@example.com",
+           "email":"felixsmith@example.com",
            "faceImage":{
-             "date":"2019-09-07T22:00:00Z",
+             "date":"2019-09-08T00:00:00Z",
              "url":"http://www.example.com/id-docs/123/image.png"
            },
-           "dateOfBirth":"2018-03-08T23:00:00Z",
+           "dateOfBirth":"2018-03-09T00:00:00Z",
            "relationshipStatus":"single",
            "dependents":1,
            "dobOfDependents":[
-             "2019-09-07T22:00:00Z",
-             "2019-01-02T23:00:00Z"
+             "2019-09-08T00:00:00Z",
+             "2019-01-03T00:00:00Z"
            ],
            "highestEducationAttained":"Master",
            "employmentStatus":"worker",
@@ -10614,7 +5634,7 @@ this is example of parameter @out_bound_json
              "amount":"1000.00"
            },
            "kycStatus":true,
-           "lastOkDate":"2019-09-07T22:00:00Z",
+           "lastOkDate":"2019-09-08T00:00:00Z",
            "title":"title of customer",
            "branchId":"DERBY6",
            "nameSuffix":"Sr"
@@ -10633,76 +5653,17 @@ DROP PROCEDURE IF EXISTS obp_get_customers_by_customer_phone_number;
 GO
 -- create procedure obp_get_customers_by_customer_phone_number
 CREATE PROCEDURE obp_get_customers_by_customer_phone_number
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -10712,18 +5673,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -10743,17 +5697,17 @@ this is example of parameter @out_bound_json
            "number":"5987953",
            "legalName":"Eveline Tripman",
            "mobileNumber":"+44 07972 444 876",
-           "email":"eveline@example.com",
+           "email":"felixsmith@example.com",
            "faceImage":{
-             "date":"2019-09-07T22:00:00Z",
+             "date":"2019-09-08T00:00:00Z",
              "url":"http://www.example.com/id-docs/123/image.png"
            },
-           "dateOfBirth":"2018-03-08T23:00:00Z",
+           "dateOfBirth":"2018-03-09T00:00:00Z",
            "relationshipStatus":"single",
            "dependents":1,
            "dobOfDependents":[
-             "2019-09-07T22:00:00Z",
-             "2019-01-02T23:00:00Z"
+             "2019-09-08T00:00:00Z",
+             "2019-01-03T00:00:00Z"
            ],
            "highestEducationAttained":"Master",
            "employmentStatus":"worker",
@@ -10766,7 +5720,7 @@ this is example of parameter @out_bound_json
              "amount":"1000.00"
            },
            "kycStatus":true,
-           "lastOkDate":"2019-09-07T22:00:00Z",
+           "lastOkDate":"2019-09-08T00:00:00Z",
            "title":"title of customer",
            "branchId":"DERBY6",
            "nameSuffix":"Sr"
@@ -10785,76 +5739,17 @@ DROP PROCEDURE IF EXISTS obp_get_checkbook_orders;
 GO
 -- create procedure obp_get_checkbook_orders
 CREATE PROCEDURE obp_get_checkbook_orders
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":"gh.29.uk",
        "accountId":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
@@ -10862,18 +5757,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -10888,8 +5776,8 @@ this is example of parameter @out_bound_json
        },
        "data":{
          "account":{
-           "bank_id":"string",
-           "account_id":"string",
+           "bank_id":"gh.29.uk",
+           "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
            "account_type":"string",
            "account_routings":[
              {
@@ -10931,76 +5819,17 @@ DROP PROCEDURE IF EXISTS obp_get_status_of_credit_card_order;
 GO
 -- create procedure obp_get_status_of_credit_card_order
 CREATE PROCEDURE obp_get_status_of_credit_card_order
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":"gh.29.uk",
        "accountId":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
@@ -11008,18 +5837,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -11052,96 +5874,30 @@ DROP PROCEDURE IF EXISTS obp_create_user_auth_context;
 GO
 -- create procedure obp_create_user_auth_context
 CREATE PROCEDURE obp_create_user_auth_context
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-       "key":"5987953",
-       "value":"FYIUYF6SUYFSD"
+       "key":"CustomerNumber",
+       "value":"5987953"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -11157,8 +5913,8 @@ this is example of parameter @out_bound_json
        "data":{
          "userAuthContextId":"string",
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-         "key":"5987953",
-         "value":"FYIUYF6SUYFSD"
+         "key":"CustomerNumber",
+         "value":"5987953"
        }
      }'
 	);
@@ -11173,96 +5929,30 @@ DROP PROCEDURE IF EXISTS obp_create_user_auth_context_update;
 GO
 -- create procedure obp_create_user_auth_context_update
 CREATE PROCEDURE obp_create_user_auth_context_update
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-       "key":"5987953",
-       "value":"FYIUYF6SUYFSD"
+       "key":"CustomerNumber",
+       "value":"5987953"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -11278,8 +5968,8 @@ this is example of parameter @out_bound_json
        "data":{
          "userAuthContextUpdateId":"string",
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-         "key":"5987953",
-         "value":"FYIUYF6SUYFSD",
+         "key":"CustomerNumber",
+         "value":"5987953",
          "challenge":"string",
          "status":"string"
        }
@@ -11296,94 +5986,28 @@ DROP PROCEDURE IF EXISTS obp_delete_user_auth_contexts;
 GO
 -- create procedure obp_delete_user_auth_contexts
 CREATE PROCEDURE obp_delete_user_auth_contexts
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -11410,94 +6034,28 @@ DROP PROCEDURE IF EXISTS obp_delete_user_auth_context_by_id;
 GO
 -- create procedure obp_delete_user_auth_context_by_id
 CREATE PROCEDURE obp_delete_user_auth_context_by_id
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "userAuthContextId":"string"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -11524,94 +6082,28 @@ DROP PROCEDURE IF EXISTS obp_get_user_auth_contexts;
 GO
 -- create procedure obp_get_user_auth_contexts
 CREATE PROCEDURE obp_get_user_auth_contexts
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -11628,8 +6120,8 @@ this is example of parameter @out_bound_json
          {
            "userAuthContextId":"string",
            "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "key":"5987953",
-           "value":"FYIUYF6SUYFSD"
+           "key":"CustomerNumber",
+           "value":"5987953"
          }
        ]
      }'
@@ -11645,76 +6137,17 @@ DROP PROCEDURE IF EXISTS obp_create_or_update_product_attribute;
 GO
 -- create procedure obp_create_or_update_product_attribute
 CREATE PROCEDURE obp_create_or_update_product_attribute
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -11725,23 +6158,16 @@ this is example of parameter @out_bound_json
        "productAttributeId":"string",
        "name":"string",
        "productAttributeType":"STRING",
-       "value":"FYIUYF6SUYFSD"
+       "value":"5987953"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -11764,7 +6190,7 @@ this is example of parameter @out_bound_json
          "productAttributeId":"string",
          "name":"string",
          "attributeType":"STRING",
-         "value":"FYIUYF6SUYFSD"
+         "value":"5987953"
        }
      }'
 	);
@@ -11779,94 +6205,28 @@ DROP PROCEDURE IF EXISTS obp_get_product_attribute_by_id;
 GO
 -- create procedure obp_get_product_attribute_by_id
 CREATE PROCEDURE obp_get_product_attribute_by_id
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "productAttributeId":"string"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -11889,7 +6249,7 @@ this is example of parameter @out_bound_json
          "productAttributeId":"string",
          "name":"string",
          "attributeType":"STRING",
-         "value":"FYIUYF6SUYFSD"
+         "value":"5987953"
        }
      }'
 	);
@@ -11904,76 +6264,17 @@ DROP PROCEDURE IF EXISTS obp_get_product_attributes_by_bank_and_code;
 GO
 -- create procedure obp_get_product_attributes_by_bank_and_code
 CREATE PROCEDURE obp_get_product_attributes_by_bank_and_code
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bank":{
          "value":"gh.29.uk"
@@ -11985,18 +6286,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -12020,7 +6314,7 @@ this is example of parameter @out_bound_json
            "productAttributeId":"string",
            "name":"string",
            "attributeType":"STRING",
-           "value":"FYIUYF6SUYFSD"
+           "value":"5987953"
          }
        ]
      }'
@@ -12036,94 +6330,28 @@ DROP PROCEDURE IF EXISTS obp_delete_product_attribute;
 GO
 -- create procedure obp_delete_product_attribute
 CREATE PROCEDURE obp_delete_product_attribute
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "productAttributeId":"string"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -12150,94 +6378,28 @@ DROP PROCEDURE IF EXISTS obp_get_account_attribute_by_id;
 GO
 -- create procedure obp_get_account_attribute_by_id
 CREATE PROCEDURE obp_get_account_attribute_by_id
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "accountAttributeId":"string"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -12263,7 +6425,7 @@ this is example of parameter @out_bound_json
          "accountAttributeId":"string",
          "name":"string",
          "attributeType":"STRING",
-         "value":"FYIUYF6SUYFSD"
+         "value":"5987953"
        }
      }'
 	);
@@ -12278,94 +6440,28 @@ DROP PROCEDURE IF EXISTS obp_get_transaction_attribute_by_id;
 GO
 -- create procedure obp_get_transaction_attribute_by_id
 CREATE PROCEDURE obp_get_transaction_attribute_by_id
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "transactionAttributeId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -12403,76 +6499,17 @@ DROP PROCEDURE IF EXISTS obp_create_or_update_account_attribute;
 GO
 -- create procedure obp_create_or_update_account_attribute
 CREATE PROCEDURE obp_create_or_update_account_attribute
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -12486,23 +6523,16 @@ this is example of parameter @out_bound_json
        "productAttributeId":"string",
        "name":"string",
        "accountAttributeType":"STRING",
-       "value":"FYIUYF6SUYFSD"
+       "value":"5987953"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -12528,7 +6558,7 @@ this is example of parameter @out_bound_json
          "accountAttributeId":"string",
          "name":"string",
          "attributeType":"STRING",
-         "value":"FYIUYF6SUYFSD"
+         "value":"5987953"
        }
      }'
 	);
@@ -12543,76 +6573,17 @@ DROP PROCEDURE IF EXISTS obp_create_or_update_customer_attribute;
 GO
 -- create procedure obp_create_or_update_customer_attribute
 CREATE PROCEDURE obp_create_or_update_customer_attribute
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -12623,23 +6594,16 @@ this is example of parameter @out_bound_json
        "customerAttributeId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
        "name":"string",
        "attributeType":"STRING",
-       "value":"FYIUYF6SUYFSD"
+       "value":"5987953"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -12677,76 +6641,17 @@ DROP PROCEDURE IF EXISTS obp_create_or_update_transaction_attribute;
 GO
 -- create procedure obp_create_or_update_transaction_attribute
 CREATE PROCEDURE obp_create_or_update_transaction_attribute
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -12757,23 +6662,16 @@ this is example of parameter @out_bound_json
        "transactionAttributeId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
        "name":"string",
        "attributeType":"STRING",
-       "value":"FYIUYF6SUYFSD"
+       "value":"5987953"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -12811,76 +6709,17 @@ DROP PROCEDURE IF EXISTS obp_create_account_attributes;
 GO
 -- create procedure obp_create_account_attributes
 CREATE PROCEDURE obp_create_account_attributes
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -12902,25 +6741,18 @@ this is example of parameter @out_bound_json
            "productAttributeId":"string",
            "name":"string",
            "attributeType":"STRING",
-           "value":"FYIUYF6SUYFSD"
+           "value":"5987953"
          }
        ]
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -12947,7 +6779,7 @@ this is example of parameter @out_bound_json
            "accountAttributeId":"string",
            "name":"string",
            "attributeType":"STRING",
-           "value":"FYIUYF6SUYFSD"
+           "value":"5987953"
          }
        ]
      }'
@@ -12963,76 +6795,17 @@ DROP PROCEDURE IF EXISTS obp_get_account_attributes_by_account;
 GO
 -- create procedure obp_get_account_attributes_by_account
 CREATE PROCEDURE obp_get_account_attributes_by_account
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -13044,18 +6817,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -13082,7 +6848,7 @@ this is example of parameter @out_bound_json
            "accountAttributeId":"string",
            "name":"string",
            "attributeType":"STRING",
-           "value":"FYIUYF6SUYFSD"
+           "value":"5987953"
          }
        ]
      }'
@@ -13098,76 +6864,17 @@ DROP PROCEDURE IF EXISTS obp_get_customer_attributes;
 GO
 -- create procedure obp_get_customer_attributes
 CREATE PROCEDURE obp_get_customer_attributes
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -13179,18 +6886,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -13230,76 +6930,17 @@ DROP PROCEDURE IF EXISTS obp_get_customer_ids_by_attribute_name_values;
 GO
 -- create procedure obp_get_customer_ids_by_attribute_name_values
 CREATE PROCEDURE obp_get_customer_ids_by_attribute_name_values
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -13314,18 +6955,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -13354,76 +6988,17 @@ DROP PROCEDURE IF EXISTS obp_get_customer_attributes_for_customers;
 GO
 -- create procedure obp_get_customer_attributes_for_customers
 CREATE PROCEDURE obp_get_customer_attributes_for_customers
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customers":[
          {
@@ -13432,17 +7007,17 @@ this is example of parameter @out_bound_json
            "number":"5987953",
            "legalName":"Eveline Tripman",
            "mobileNumber":"+44 07972 444 876",
-           "email":"eveline@example.com",
+           "email":"felixsmith@example.com",
            "faceImage":{
-             "date":"2019-09-07T22:00:00Z",
+             "date":"2019-09-08T00:00:00Z",
              "url":"http://www.example.com/id-docs/123/image.png"
            },
-           "dateOfBirth":"2018-03-08T23:00:00Z",
+           "dateOfBirth":"2018-03-09T00:00:00Z",
            "relationshipStatus":"single",
            "dependents":1,
            "dobOfDependents":[
-             "2019-09-07T22:00:00Z",
-             "2019-01-02T23:00:00Z"
+             "2019-09-08T00:00:00Z",
+             "2019-01-03T00:00:00Z"
            ],
            "highestEducationAttained":"Master",
            "employmentStatus":"worker",
@@ -13455,7 +7030,7 @@ this is example of parameter @out_bound_json
              "amount":"1000.00"
            },
            "kycStatus":true,
-           "lastOkDate":"2019-09-07T22:00:00Z",
+           "lastOkDate":"2019-09-08T00:00:00Z",
            "title":"title of customer",
            "branchId":"DERBY6",
            "nameSuffix":"Sr"
@@ -13465,18 +7040,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -13497,16 +7065,16 @@ this is example of parameter @out_bound_json
              "number":"546387432",
              "legalName":"Eveline Tripman",
              "mobileNumber":"+44 07972 444 876",
-             "email":"eveline@example.com",
+             "email":"felixsmith@example.com",
              "faceImage":{
-               "date":"2017-09-18T22:00:00Z",
+               "date":"2017-09-19T00:00:00Z",
                "url":"http://www.example.com/id-docs/123/image.png"
              },
-             "dateOfBirth":"2017-09-18T22:00:00Z",
+             "dateOfBirth":"2017-09-19T00:00:00Z",
              "relationshipStatus":"single",
              "dependents":1,
              "dobOfDependents":[
-               "2017-09-18T22:00:00Z"
+               "2017-09-19T00:00:00Z"
              ],
              "highestEducationAttained":"Master",
              "employmentStatus":"worker",
@@ -13519,7 +7087,7 @@ this is example of parameter @out_bound_json
                "amount":"50.89"
              },
              "kycStatus":true,
-             "lastOkDate":"2017-09-18T22:00:00Z",
+             "lastOkDate":"2017-09-19T00:00:00Z",
              "title":"Dr.",
              "branchId":"DERBY6",
              "nameSuffix":"Sr"
@@ -13553,76 +7121,17 @@ DROP PROCEDURE IF EXISTS obp_get_transaction_ids_by_attribute_name_values;
 GO
 -- create procedure obp_get_transaction_ids_by_attribute_name_values
 CREATE PROCEDURE obp_get_transaction_ids_by_attribute_name_values
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -13637,18 +7146,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -13677,76 +7179,17 @@ DROP PROCEDURE IF EXISTS obp_get_transaction_attributes;
 GO
 -- create procedure obp_get_transaction_attributes
 CREATE PROCEDURE obp_get_transaction_attributes
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -13758,18 +7201,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -13809,94 +7245,28 @@ DROP PROCEDURE IF EXISTS obp_get_customer_attribute_by_id;
 GO
 -- create procedure obp_get_customer_attribute_by_id
 CREATE PROCEDURE obp_get_customer_attribute_by_id
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerAttributeId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -13934,76 +7304,17 @@ DROP PROCEDURE IF EXISTS obp_create_or_update_card_attribute;
 GO
 -- create procedure obp_create_or_update_card_attribute
 CREATE PROCEDURE obp_create_or_update_card_attribute
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -14012,23 +7323,16 @@ this is example of parameter @out_bound_json
        "cardAttributeId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
        "name":"string",
        "cardAttributeType":"STRING",
-       "value":"FYIUYF6SUYFSD"
+       "value":"5987953"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -14064,94 +7368,28 @@ DROP PROCEDURE IF EXISTS obp_get_card_attribute_by_id;
 GO
 -- create procedure obp_get_card_attribute_by_id
 CREATE PROCEDURE obp_get_card_attribute_by_id
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "cardAttributeId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -14187,94 +7425,28 @@ DROP PROCEDURE IF EXISTS obp_get_card_attributes_from_provider;
 GO
 -- create procedure obp_get_card_attributes_from_provider
 CREATE PROCEDURE obp_get_card_attributes_from_provider
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "cardId":"36f8a9e6-c2b1-407a-8bd0-421b7119307e "
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -14312,76 +7484,17 @@ DROP PROCEDURE IF EXISTS obp_create_account_application;
 GO
 -- create procedure obp_create_account_application
 CREATE PROCEDURE obp_create_account_application
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "productCode":{
          "value":"string"
@@ -14392,18 +7505,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -14423,7 +7529,7 @@ this is example of parameter @out_bound_json
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "dateOfApplication":"2020-06-19T15:25:32Z",
+         "dateOfApplication":"2020-01-27T00:00:00Z",
          "status":"string"
        }
      }'
@@ -14439,93 +7545,27 @@ DROP PROCEDURE IF EXISTS obp_get_all_account_application;
 GO
 -- create procedure obp_get_all_account_application
 CREATE PROCEDURE obp_get_all_account_application
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        }
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -14546,7 +7586,7 @@ this is example of parameter @out_bound_json
            },
            "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
            "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-           "dateOfApplication":"2020-06-19T15:25:32Z",
+           "dateOfApplication":"2020-01-27T00:00:00Z",
            "status":"string"
          }
        ]
@@ -14563,94 +7603,28 @@ DROP PROCEDURE IF EXISTS obp_get_account_application_by_id;
 GO
 -- create procedure obp_get_account_application_by_id
 CREATE PROCEDURE obp_get_account_application_by_id
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "accountApplicationId":"string"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -14670,7 +7644,7 @@ this is example of parameter @out_bound_json
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "dateOfApplication":"2020-06-19T15:25:32Z",
+         "dateOfApplication":"2020-01-27T00:00:00Z",
          "status":"string"
        }
      }'
@@ -14686,76 +7660,17 @@ DROP PROCEDURE IF EXISTS obp_update_account_application_status;
 GO
 -- create procedure obp_update_account_application_status
 CREATE PROCEDURE obp_update_account_application_status
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "accountApplicationId":"string",
        "status":"string"
@@ -14763,18 +7678,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -14794,7 +7702,7 @@ this is example of parameter @out_bound_json
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "dateOfApplication":"2020-06-19T15:25:32Z",
+         "dateOfApplication":"2020-01-27T00:00:00Z",
          "status":"string"
        }
      }'
@@ -14810,76 +7718,17 @@ DROP PROCEDURE IF EXISTS obp_get_or_create_product_collection;
 GO
 -- create procedure obp_get_or_create_product_collection
 CREATE PROCEDURE obp_get_or_create_product_collection
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "collectionCode":"string",
        "productCodes":[
@@ -14889,18 +7738,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -14932,94 +7774,28 @@ DROP PROCEDURE IF EXISTS obp_get_product_collection;
 GO
 -- create procedure obp_get_product_collection
 CREATE PROCEDURE obp_get_product_collection
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "collectionCode":"string"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -15051,76 +7827,17 @@ DROP PROCEDURE IF EXISTS obp_get_or_create_product_collection_item;
 GO
 -- create procedure obp_get_or_create_product_collection_item
 CREATE PROCEDURE obp_get_or_create_product_collection_item
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "collectionCode":"string",
        "memberProductCodes":[
@@ -15130,18 +7847,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -15173,94 +7883,28 @@ DROP PROCEDURE IF EXISTS obp_get_product_collection_item;
 GO
 -- create procedure obp_get_product_collection_item
 CREATE PROCEDURE obp_get_product_collection_item
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "collectionCode":"string"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -15292,76 +7936,17 @@ DROP PROCEDURE IF EXISTS obp_get_product_collection_items_tree;
 GO
 -- create procedure obp_get_product_collection_items_tree
 CREATE PROCEDURE obp_get_product_collection_items_tree
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "collectionCode":"string",
        "bankId":"gh.29.uk"
@@ -15369,18 +7954,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -15395,11 +7973,11 @@ this is example of parameter @out_bound_json
        },
        "data":[
          {
-           "_1":{
+           "productCollectionItem":{
              "collectionCode":"string",
              "memberProductCode":"string"
            },
-           "_2":{
+           "product":{
              "bankId":{
                "value":"gh.29.uk"
              },
@@ -15423,7 +8001,7 @@ this is example of parameter @out_bound_json
                }
              }
            },
-           "_3":[
+           "attributes":[
              {
                "bankId":{
                  "value":"gh.29.uk"
@@ -15434,7 +8012,7 @@ this is example of parameter @out_bound_json
                "productAttributeId":"string",
                "name":"string",
                "attributeType":"STRING",
-               "value":"FYIUYF6SUYFSD"
+               "value":"5987953"
              }
            ]
          }
@@ -15452,76 +8030,17 @@ DROP PROCEDURE IF EXISTS obp_create_meeting;
 GO
 -- create procedure obp_create_meeting
 CREATE PROCEDURE obp_create_meeting
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -15533,7 +8052,7 @@ this is example of parameter @out_bound_json
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
          "provider":"string",
-         "emailAddress":"eveline@example.com",
+         "emailAddress":"felixsmith@example.com",
          "name":"felixsmith"
        },
        "customerUser":{
@@ -15543,26 +8062,26 @@ this is example of parameter @out_bound_json
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
          "provider":"string",
-         "emailAddress":"eveline@example.com",
+         "emailAddress":"felixsmith@example.com",
          "name":"felixsmith"
        },
        "providerId":"string",
        "purposeId":"string",
-       "when":"2020-06-19T15:25:32Z",
+       "when":"2020-01-27T00:00:00Z",
        "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
        "customerToken":"string",
        "staffToken":"string",
        "creator":{
          "name":"string",
          "phone":"string",
-         "email":"eveline@example.com"
+         "email":"felixsmith@example.com"
        },
        "invitees":[
          {
            "contactDetails":{
              "name":"string",
              "phone":"string",
-             "email":"eveline@example.com"
+             "email":"felixsmith@example.com"
            },
            "status":"string"
          }
@@ -15571,18 +8090,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -15609,18 +8121,18 @@ this is example of parameter @out_bound_json
            "customerToken":"string",
            "staffToken":"string"
          },
-         "when":"2020-06-19T15:25:32Z",
+         "when":"2020-01-27T00:00:00Z",
          "creator":{
            "name":"string",
            "phone":"string",
-           "email":"eveline@example.com"
+           "email":"felixsmith@example.com"
          },
          "invitees":[
            {
              "contactDetails":{
                "name":"string",
                "phone":"string",
-               "email":"eveline@example.com"
+               "email":"felixsmith@example.com"
              },
              "status":"string"
            }
@@ -15639,76 +8151,17 @@ DROP PROCEDURE IF EXISTS obp_get_meetings;
 GO
 -- create procedure obp_get_meetings
 CREATE PROCEDURE obp_get_meetings
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -15720,25 +8173,18 @@ this is example of parameter @out_bound_json
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
          "provider":"string",
-         "emailAddress":"eveline@example.com",
+         "emailAddress":"felixsmith@example.com",
          "name":"felixsmith"
        }
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -15766,18 +8212,18 @@ this is example of parameter @out_bound_json
              "customerToken":"string",
              "staffToken":"string"
            },
-           "when":"2020-06-19T15:25:32Z",
+           "when":"2020-01-27T00:00:00Z",
            "creator":{
              "name":"string",
              "phone":"string",
-             "email":"eveline@example.com"
+             "email":"felixsmith@example.com"
            },
            "invitees":[
              {
                "contactDetails":{
                  "name":"string",
                  "phone":"string",
-                 "email":"eveline@example.com"
+                 "email":"felixsmith@example.com"
                },
                "status":"string"
              }
@@ -15797,76 +8243,17 @@ DROP PROCEDURE IF EXISTS obp_get_meeting;
 GO
 -- create procedure obp_get_meeting
 CREATE PROCEDURE obp_get_meeting
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":{
          "value":"gh.29.uk"
@@ -15878,7 +8265,7 @@ this is example of parameter @out_bound_json
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
          "provider":"string",
-         "emailAddress":"eveline@example.com",
+         "emailAddress":"felixsmith@example.com",
          "name":"felixsmith"
        },
        "meetingId":"string"
@@ -15886,18 +8273,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -15924,18 +8304,18 @@ this is example of parameter @out_bound_json
            "customerToken":"string",
            "staffToken":"string"
          },
-         "when":"2020-06-19T15:25:32Z",
+         "when":"2020-01-27T00:00:00Z",
          "creator":{
            "name":"string",
            "phone":"string",
-           "email":"eveline@example.com"
+           "email":"felixsmith@example.com"
          },
          "invitees":[
            {
              "contactDetails":{
                "name":"string",
                "phone":"string",
-               "email":"eveline@example.com"
+               "email":"felixsmith@example.com"
              },
              "status":"string"
            }
@@ -15954,82 +8334,23 @@ DROP PROCEDURE IF EXISTS obp_create_or_update_kyc_check;
 GO
 -- create procedure obp_create_or_update_kyc_check
 CREATE PROCEDURE obp_create_or_update_kyc_check
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":"gh.29.uk",
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
        "id":"string",
        "customerNumber":"5987953",
-       "date":"2020-06-19T15:25:32Z",
+       "date":"2020-01-27T00:00:00Z",
        "how":"string",
        "staffUserId":"string",
        "mStaffName":"string",
@@ -16039,18 +8360,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -16068,7 +8382,7 @@ this is example of parameter @out_bound_json
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
          "idKycCheck":"string",
          "customerNumber":"5987953",
-         "date":"2020-06-19T15:25:32Z",
+         "date":"2020-01-27T00:00:00Z",
          "how":"string",
          "staffUserId":"string",
          "staffName":"string",
@@ -16088,76 +8402,17 @@ DROP PROCEDURE IF EXISTS obp_create_or_update_kyc_document;
 GO
 -- create procedure obp_create_or_update_kyc_document
 CREATE PROCEDURE obp_create_or_update_kyc_document
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":"gh.29.uk",
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
@@ -16165,25 +8420,18 @@ this is example of parameter @out_bound_json
        "customerNumber":"5987953",
        "type":"string",
        "number":"string",
-       "issueDate":"2020-06-19T15:25:32Z",
+       "issueDate":"2020-01-27T00:00:00Z",
        "issuePlace":"string",
-       "expiryDate":"2020-06-19T15:25:32Z"
+       "expiryDate":"2021-01-27T00:00:00Z"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -16203,9 +8451,9 @@ this is example of parameter @out_bound_json
          "customerNumber":"5987953",
          "type":"string",
          "number":"string",
-         "issueDate":"2020-06-19T15:25:32Z",
+         "issueDate":"2020-01-27T00:00:00Z",
          "issuePlace":"string",
-         "expiryDate":"2020-06-19T15:25:32Z"
+         "expiryDate":"2021-01-27T00:00:00Z"
        }
      }'
 	);
@@ -16220,76 +8468,17 @@ DROP PROCEDURE IF EXISTS obp_create_or_update_kyc_media;
 GO
 -- create procedure obp_create_or_update_kyc_media
 CREATE PROCEDURE obp_create_or_update_kyc_media
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":"gh.29.uk",
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
@@ -16297,25 +8486,18 @@ this is example of parameter @out_bound_json
        "customerNumber":"5987953",
        "type":"string",
        "url":"http://www.example.com/id-docs/123/image.png",
-       "date":"2020-06-19T15:25:32Z",
+       "date":"2020-01-27T00:00:00Z",
        "relatesToKycDocumentId":"string",
        "relatesToKycCheckId":"string"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -16335,7 +8517,7 @@ this is example of parameter @out_bound_json
          "customerNumber":"5987953",
          "type":"string",
          "url":"http://www.example.com/id-docs/123/image.png",
-         "date":"2020-06-19T15:25:32Z",
+         "date":"2020-01-27T00:00:00Z",
          "relatesToKycDocumentId":"string",
          "relatesToKycCheckId":"string"
        }
@@ -16352,98 +8534,32 @@ DROP PROCEDURE IF EXISTS obp_create_or_update_kyc_status;
 GO
 -- create procedure obp_create_or_update_kyc_status
 CREATE PROCEDURE obp_create_or_update_kyc_status
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":"gh.29.uk",
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
        "customerNumber":"5987953",
        "ok":true,
-       "date":"2020-06-19T15:25:32Z"
+       "date":"2020-01-27T00:00:00Z"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -16461,7 +8577,7 @@ this is example of parameter @out_bound_json
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
          "customerNumber":"5987953",
          "ok":true,
-         "date":"2020-06-19T15:25:32Z"
+         "date":"2020-01-27T00:00:00Z"
        }
      }'
 	);
@@ -16476,94 +8592,28 @@ DROP PROCEDURE IF EXISTS obp_get_kyc_checks;
 GO
 -- create procedure obp_get_kyc_checks
 CREATE PROCEDURE obp_get_kyc_checks
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -16582,7 +8632,7 @@ this is example of parameter @out_bound_json
            "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
            "idKycCheck":"string",
            "customerNumber":"5987953",
-           "date":"2020-06-19T15:25:32Z",
+           "date":"2020-01-27T00:00:00Z",
            "how":"string",
            "staffUserId":"string",
            "staffName":"string",
@@ -16603,94 +8653,28 @@ DROP PROCEDURE IF EXISTS obp_get_kyc_documents;
 GO
 -- create procedure obp_get_kyc_documents
 CREATE PROCEDURE obp_get_kyc_documents
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -16711,9 +8695,9 @@ this is example of parameter @out_bound_json
            "customerNumber":"5987953",
            "type":"string",
            "number":"string",
-           "issueDate":"2020-06-19T15:25:32Z",
+           "issueDate":"2020-01-27T00:00:00Z",
            "issuePlace":"string",
-           "expiryDate":"2020-06-19T15:25:32Z"
+           "expiryDate":"2021-01-27T00:00:00Z"
          }
        ]
      }'
@@ -16729,94 +8713,28 @@ DROP PROCEDURE IF EXISTS obp_get_kyc_medias;
 GO
 -- create procedure obp_get_kyc_medias
 CREATE PROCEDURE obp_get_kyc_medias
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -16837,7 +8755,7 @@ this is example of parameter @out_bound_json
            "customerNumber":"5987953",
            "type":"string",
            "url":"http://www.example.com/id-docs/123/image.png",
-           "date":"2020-06-19T15:25:32Z",
+           "date":"2020-01-27T00:00:00Z",
            "relatesToKycDocumentId":"string",
            "relatesToKycCheckId":"string"
          }
@@ -16855,94 +8773,28 @@ DROP PROCEDURE IF EXISTS obp_get_kyc_statuses;
 GO
 -- create procedure obp_get_kyc_statuses
 CREATE PROCEDURE obp_get_kyc_statuses
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -16961,7 +8813,7 @@ this is example of parameter @out_bound_json
            "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
            "customerNumber":"5987953",
            "ok":true,
-           "date":"2020-06-19T15:25:32Z"
+           "date":"2020-01-27T00:00:00Z"
          }
        ]
      }'
@@ -16977,76 +8829,17 @@ DROP PROCEDURE IF EXISTS obp_create_message;
 GO
 -- create procedure obp_create_message
 CREATE PROCEDURE obp_create_message
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "user":{
          "userPrimaryKey":{
@@ -17055,7 +8848,7 @@ this is example of parameter @out_bound_json
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
          "provider":"string",
-         "emailAddress":"eveline@example.com",
+         "emailAddress":"felixsmith@example.com",
          "name":"felixsmith"
        },
        "bankId":{
@@ -17068,18 +8861,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -17094,7 +8880,7 @@ this is example of parameter @out_bound_json
        },
        "data":{
          "messageId":"string",
-         "date":"2020-06-19T15:25:32Z",
+         "date":"2020-01-27T00:00:00Z",
          "message":"string",
          "fromDepartment":"string",
          "fromPerson":"string"
@@ -17112,101 +8898,29 @@ DROP PROCEDURE IF EXISTS obp_make_historical_payment;
 GO
 -- create procedure obp_make_historical_payment
 CREATE PROCEDURE obp_make_historical_payment
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "fromAccount":{
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
          "label":"My Account",
          "iban":"DE91 1000 0000 0123 4567 89",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
-         "branchId":"DERBY6",
          "accountRoutingScheme":"IBAN",
          "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ],
          "accountRules":[
            {
              "scheme":"AccountRule scheme string",
@@ -17229,7 +8943,7 @@ this is example of parameter @out_bound_json
          "bankId":{
            "value":"gh.29.uk"
          },
-         "lastUpdate":"2018-03-08T23:00:00Z",
+         "lastUpdate":"2018-03-09T00:00:00Z",
          "branchId":"DERBY6",
          "accountRoutingScheme":"IBAN",
          "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
@@ -17247,9 +8961,9 @@ this is example of parameter @out_bound_json
          ],
          "accountHolder":"bankAccount accountHolder string"
        },
-       "posted":"2020-06-19T15:25:32Z",
-       "completed":"2020-06-19T15:25:32Z",
-       "amount":"123.321",
+       "posted":"2020-01-27T00:00:00Z",
+       "completed":"2020-01-27T00:00:00Z",
+       "amount":"10.12",
        "description":"string",
        "transactionRequestType":"SEPA",
        "chargePolicy":"string"
@@ -17257,18 +8971,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -17297,101 +9004,35 @@ DROP PROCEDURE IF EXISTS obp_create_direct_debit;
 GO
 -- create procedure obp_create_direct_debit
 CREATE PROCEDURE obp_create_direct_debit
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "bankId":"gh.29.uk",
        "accountId":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
        "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
        "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-       "dateSigned":"2020-06-19T15:25:32Z",
-       "dateStarts":"2020-06-19T15:25:32Z",
-       "dateExpires":"2020-06-19T15:25:32Z"
+       "dateSigned":"2020-01-27T00:00:00Z",
+       "dateStarts":"2020-01-27T00:00:00Z",
+       "dateExpires":"2021-01-27T00:00:00Z"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -17411,10 +9052,10 @@ this is example of parameter @out_bound_json
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "dateSigned":"2020-06-19T15:25:32Z",
-         "dateCancelled":"2020-06-19T15:25:32Z",
-         "dateStarts":"2020-06-19T15:25:32Z",
-         "dateExpires":"2020-06-19T15:25:32Z",
+         "dateSigned":"2020-01-27T00:00:00Z",
+         "dateCancelled":"2020-01-27T00:00:00Z",
+         "dateStarts":"2020-01-27T00:00:00Z",
+         "dateExpires":"2021-01-27T00:00:00Z",
          "active":true
        }
      }'
@@ -17430,94 +9071,28 @@ DROP PROCEDURE IF EXISTS obp_delete_customer_attribute;
 GO
 -- create procedure obp_delete_customer_attribute
 CREATE PROCEDURE obp_delete_customer_attribute
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2020-06-19T15:25:32Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "customerAttributeId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
      }'
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",
@@ -17544,76 +9119,17 @@ DROP PROCEDURE IF EXISTS obp_dynamic_entity_process;
 GO
 -- create procedure obp_dynamic_entity_process
 CREATE PROCEDURE obp_dynamic_entity_process
-   @out_bound_json NVARCHAR(MAX),
-   @in_bound_json NVARCHAR(MAX) OUT
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
    AS
 	  SET nocount on
 
 -- replace the follow example to real logic
 /*
-this is example of parameter @out_bound_json
+this is example of parameter @outbound_json
      N'{
        "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ],
-         "outboundAdapterAuthInfo":{
-           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-           "username":"felixsmith",
-           "linkedCustomers":[
-             {
-               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-               "customerNumber":"5987953",
-               "legalName":"Eveline Tripman"
-             }
-           ],
-           "userAuthContext":[
-             {
-               "key":"5987953",
-               "value":"FYIUYF6SUYFSD"
-             }
-           ],
-           "authViews":[
-             {
-               "view":{
-                 "id":"owner",
-                 "name":"Owner",
-                 "description":"This view is for the owner for the account."
-               },
-               "account":{
-                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                 "accountRoutings":[
-                   {
-                     "scheme":"IBAN",
-                     "address":"DE91 1000 0000 0123 4567 89"
-                   }
-                 ],
-                 "customerOwners":[
-                   {
-                     "bankId":"gh.29.uk",
-                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-                     "customerNumber":"5987953",
-                     "legalName":"Eveline Tripman",
-                     "dateOfBirth":"2018-03-08T23:00:00Z"
-                   }
-                 ],
-                 "userOwners":[
-                   {
-                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-                     "emailAddress":"eveline@example.com",
-                     "name":"felixsmith"
-                   }
-                 ]
-               }
-             }
-           ]
-         }
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "operation":"UPDATE",
        "entityName":"FooBar",
@@ -17626,18 +9142,11 @@ this is example of parameter @out_bound_json
 */
 
 -- return example value
-	SELECT @in_bound_json = (
+	SELECT @inbound_json = (
 		SELECT
      N'{
        "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
-         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-         "generalContext":[
-           {
-             "key":"5987953",
-             "value":"FYIUYF6SUYFSD"
-           }
-         ]
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
        "status":{
          "errorCode":"",

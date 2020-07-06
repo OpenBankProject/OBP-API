@@ -51,7 +51,7 @@ sealed class RequiredFields
 object FieldNameApiVersions extends RequiredFields with JsonAble {
   val `data.bankId`: List[String] = List(ApiVersion.v2_2_0.toString, ApiVersion.v3_1_0.toString)
 
-  override def toJValue: JObject = "data.bankId" -> JArray(this.`data.bankId`.map(JString(_)))
+  override def toJValue(implicit format: Formats): JObject = "data.bankId" -> JArray(this.`data.bankId`.map(JString(_)))
 }
 
 /**
@@ -60,7 +60,7 @@ object FieldNameApiVersions extends RequiredFields with JsonAble {
  */
 case class RequiredInfo(requiredArgs: Seq[RequiredArgs]) extends RequiredFields with JsonAble {
 
-  override def toJValue: JObject = {
+  override def toJValue(implicit format: Formats): JObject = {
     val jFields = requiredArgs
         .toList
         .map(info => JField(
@@ -238,7 +238,9 @@ case class RequiredArgs(fieldPath:String, include: Array[ApiVersion],
     case RequiredArgs(path, inc, exc) => Objects.equals(fieldPath, path) && include.sameElements(inc) && exclude.sameElements(exc)
     case _ => false
   }
-  override val toJValue: JArray = (include, exclude) match {
+  override def toJValue(implicit format: Formats): JArray = toJson
+
+  private val toJson: JArray = (include, exclude) match {
     case (_, Array()) =>
       val includeList = include.toList.map(_.toString).map(JString(_))
       JArray(includeList)

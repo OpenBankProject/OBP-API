@@ -18,7 +18,7 @@ import code.model._
 import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, TransactionId, ViewId}
 import net.liftweb.common.Full
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
@@ -213,49 +213,37 @@ of the PSU at this ASPSP.
 """,
        json.parse(""""""),
        json.parse("""{
-  "accounts" : [ {
-    "cashAccountType" : { },
-    "product" : "product",
-    "resourceId" : "resourceId",
-    "bban" : "BARC12345612345678",
-    "_links" : {
-      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "usage" : "PRIV",
-    "balances" : "",
-    "iban" : "FR7612345987650123456789014",
-    "linkedAccounts" : "linkedAccounts",
-    "name" : "name",
-    "currency" : "EUR",
-    "details" : "details",
-    "msisdn" : "+49 170 1234567",
-    "bic" : "AAAADEBBXXX",
-    "status" : { }
-  }, {
-    "cashAccountType" : { },
-    "product" : "product",
-    "resourceId" : "resourceId",
-    "bban" : "BARC12345612345678",
-    "_links" : {
-      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "usage" : "PRIV",
-    "balances" : "",
-    "iban" : "FR7612345987650123456789014",
-    "linkedAccounts" : "linkedAccounts",
-    "name" : "name",
-    "currency" : "EUR",
-    "details" : "details",
-    "msisdn" : "+49 170 1234567",
-    "bic" : "AAAADEBBXXX",
-    "status" : { }
-  } ]
-}"""),
+                    |  "accounts":[{
+                    |    "resourceId":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                    |    "iban":"DE91 1000 0000 0123 4567 89",
+                    |    "bban":" 1000 0000 0123 4567 89",
+                    |    "currency":"EUR",
+                    |    "name":"TOM",
+                    |    "product":"AC",
+                    |    "cashAccountType":"AC",
+                    |    "bic":"AAAADEBBXXX",
+                    |    "balances":{
+                    |      "balanceAmount":{
+                    |        "currency":"EUR",
+                    |        "amount":"50.89"
+                    |      },
+                    |      "balanceType":"AC",
+                    |      "lastChangeDateTime":"2020-07-02T10:23:57.81Z",
+                    |      "referenceDate":"2020-07-02",
+                    |      "lastCommittedTransaction":"entryReference of the last commited transaction to support the TPP in identifying whether all PSU transactions are already known."
+                    |    },
+                    |    "_links":{
+                    |      "balances":{
+                    |        "href":"/v1.3/accounts/8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0/balances"
+                    |      }
+                    |    }
+                    |  }]
+                    |}
+                    |""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
+       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+       connectorMethods= Some(List("obp.getBank","obp.getBankAccounts"))
      )
 
      lazy val getAccountList : OBPEndpoint = {
@@ -298,16 +286,21 @@ The account-id is constant at least throughout the lifecycle of a given consent.
 """,
        json.parse(""""""),
        json.parse("""{
-  "balances" : "",
-  "account" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
-}"""),
+  "account":{
+    "iban":"DE91 1000 0000 0123 4567 89"
+  },
+  "balances":[{
+    "balanceAmount":{
+      "currency":"EUR",
+      "amount":"50.89"
+    },
+    "balanceType":"AC",
+    "lastChangeDateTime":"yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+    "lastCommittedTransaction":"String",
+    "referenceDate":"2018-03-08"
+  }]
+}
+"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
@@ -325,11 +318,8 @@ The account-id is constant at least throughout the lifecycle of a given consent.
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
               u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
             }
-            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
           } yield {
-            (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(bankAccount, transactionRequests), HttpCode.`200`(callContext))
+            (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(bankAccount), HttpCode.`200`(callContext))
            }
          }
        }
@@ -448,7 +438,7 @@ respectively the OAuth2 access token.
        "GET",
        "/card-accounts/ACCOUNT_ID/balances",
        "Read card account balances",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Reads balance data from a given card account addressed by 
 "account-id". 
 
@@ -460,41 +450,43 @@ This account-id then can be retrieved by the
 """,
        json.parse(""""""),
        json.parse("""{
-  "balances" : "",
-  "cardAccount" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
+  "cardAccount":{
+    "iban":"DE91 1000 0000 0123 4567 89"
+  },
+  "balances":[{
+    "balanceAmount":{
+      "currency":"EUR",
+      "amount":"50.89"
+    },
+    "balanceType":"AC",
+    "lastChangeDateTime":"yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+    "lastCommittedTransaction":"String",
+    "referenceDate":"2018-03-08"
+  }]
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil,
+       connectorMethods = Some(List("obp.getBank","obp.checkBankAccountExists" ,"obp.getTransactionRequests210"))
      )
 
      lazy val getCardAccountBalances : OBPEndpoint = {
-       case "card-accounts" :: account_id:: "balances" :: Nil JsonGet _ => {
+       case "card-accounts" :: accountId:: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "balances" : "",
-  "cardAccount" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
-}"""), callContext)
+             _ <- passesPsd2Aisp(callContext)
+             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
+             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
+             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
+             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
+               u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(bankAccount), HttpCode.`200`(callContext))
            }
-         }
        }
+     }
             
      resourceDocs += ResourceDoc(
        getCardAccountTransactionList,
@@ -595,7 +587,7 @@ Reads account data from a given card account addressed by "account-id".
                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
 
-             (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankId,bankAccount.accountId), callContext, params)} map {
+             (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(bankId,bankAccount.accountId), callContext, params) map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
 
@@ -718,7 +710,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
        nameOf(getConsentScaStatus),
        "GET",
        "/consents/CONSENTID/authorisations/AUTHORISATIONID",
-       "Read the SCA status of the consent authorisation.",
+       "Read the SCA status of the consent authorisation",
        s"""${mockedDataText(false)}
 This method returns the SCA status of a consent initiation's authorisation sub-resource.
 """,
@@ -795,56 +787,34 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        "/accounts/ACCOUNT_ID/transactions/TRANSACTIONID", 
        "Read Transaction Details",
        s"""${mockedDataText(true)}
-            Reads transaction details from a given transaction addressed by "transactionId" on a given account addressed 
-            by "account-id". This call is only available on transactions as reported in a JSON format. 
-            
-            **Remark:** Please note that the PATH might be already given in detail by the corresponding entry of the response 
-            of the "Read Transaction List" call within the _links subfield.
+Reads transaction details from a given transaction addressed by "transactionId" on a given account addressed 
+by "account-id". This call is only available on transactions as reported in a JSON format. 
+
+**Remark:** Please note that the PATH might be already given in detail by the corresponding entry of the response 
+of the "Read Transaction List" call within the _links subfield.
 
             """,
        json.parse(""""""),
        json.parse("""{
-  "debtorAccount" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  },
-  "creditorName" : "Creditor Name",
-  "_links" : {
-    "transactionDetails" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "remittanceInformationStructured" : "remittanceInformationStructured",
-  "ultimateCreditor" : "Ultimate Creditor",
-  "bankTransactionCode" : "PMNT-RCDT-ESCT",
-  "debtorName" : "Debtor Name",
-  "valueDate" : "2000-01-23",
-  "endToEndId" : "endToEndId",
-  "transactionId" : "transactionId",
-  "currencyExchange" : "",
-  "ultimateDebtor" : "Ultimate Debtor",
-  "creditorAccount" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  },
-  "mandateId" : "mandateId",
-  "purposeCode" : { },
-  "transactionAmount" : {
-    "amount" : "123",
-    "currency" : "EUR"
-  },
-  "proprietaryBankTransactionCode" : { },
-  "bookingDate" : { },
-  "remittanceInformationUnstructured" : "Ref Number Merchant",
-  "checkId" : "checkId",
-  "creditorId" : "creditorId",
-  "entryReference" : "entryReference"
+  "description": "Example for transaction details",
+  "value": {
+    "transactionsDetails": {
+      "transactionId": "1234567",
+      "creditorName": "John Miles",
+      "creditorAccount": {
+        "iban": "DE67100100101306118605"
+      },
+      "mandateId": "Mandate-2018-04-20-1234-Identification of Mandates, e.g. a SEPA Mandate ID.",
+      "transactionAmount": {
+        "currency": "EUR",
+        "amount": "-256.67"
+      },
+      "bookingDate": "2017-10-25",
+      "valueDate": "2017-10-26",
+      "remittanceInformationUnstructured": "Example 1",
+      "bankTransactionCode": "PMNT-RCVD-ESDD"
+    }
+  }
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
@@ -852,54 +822,18 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
      )
 
      lazy val getTransactionDetails : OBPEndpoint = {
-       case "accounts" :: account_id:: "transactions" :: transactionid :: Nil JsonGet _ => {
+       case "accounts" :: accountId:: "transactions" :: transactionId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "debtorAccount" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  },
-  "creditorName" : "Creditor Name",
-  "_links" : {
-    "transactionDetails" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "remittanceInformationStructured" : "remittanceInformationStructured",
-  "ultimateCreditor" : "Ultimate Creditor",
-  "bankTransactionCode" : "PMNT-RCDT-ESCT",
-  "debtorName" : "Debtor Name",
-  "valueDate" : "2000-01-23",
-  "endToEndId" : "endToEndId",
-  "transactionId" : "transactionId",
-  "currencyExchange" : "",
-  "ultimateDebtor" : "Ultimate Debtor",
-  "creditorAccount" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  },
-  "mandateId" : "mandateId",
-  "purposeCode" : { },
-  "transactionAmount" : {
-    "amount" : "123",
-    "currency" : "EUR"
-  },
-  "proprietaryBankTransactionCode" : { },
-  "bookingDate" : { },
-  "remittanceInformationUnstructured" : "Ref Number Merchant",
-  "checkId" : "checkId",
-  "creditorId" : "creditorId",
-  "entryReference" : "entryReference"
-}"""), callContext)
+             (Full(user), callContext) <- authenticatedAccess(cc)
+             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
+             (account, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
+             view <- NewStyle.function.checkViewAccessAndReturnView(ViewId("owner"), BankIdAccountId(BankId(defaultBankId), AccountId(accountId)), Some(user), callContext)
+             (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(BankId(defaultBankId), AccountId(accountId), TransactionId(transactionId), view, Some(user), callContext) map {
+               unboxFullOrFail(_, callContext, GetTransactionsException)
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createTransactionJson(account, moderatedTransaction), callContext)
            }
          }
        }
@@ -912,12 +846,10 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        "/accounts/ACCOUNT_ID/transactions",
        "Read transaction list of an account",
        s"""${mockedDataText(false)}
-            Read transaction reports or transaction lists of a given account ddressed by "account-id", 
-            depending on the steering parameter "bookingStatus" together with balances. 
-            For a given account, additional parameters are e.g. the attributes "dateFrom" and "dateTo". 
-            The ASPSP might add balance information, if transaction lists without balances are not supported.
-
-            """,
+Read transaction reports or transaction lists of a given account ddressed by "account-id",
+depending on the steering parameter "bookingStatus" together with balances.
+For a given account, additional parameters are e.g. the attributes "dateFrom" and "dateTo".
+The ASPSP might add balance information, if transaction lists without balances are not supported. """,
        json.parse(""""""),
        json.parse("""{
                       "account": {
@@ -1007,7 +939,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
 
-            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankId,bankAccount.accountId), callContext, params)} map {
+            (transactions, callContext) <-bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(bankId,bankAccount.accountId), callContext, params) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
 
@@ -1025,12 +957,12 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        "/accounts/ACCOUNT_ID",
        "Read Account Details",
        s"""${mockedDataText(false)}
-            Reads details about an account, with balances where required. 
-            It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system. 
-            The addressed details of this account depends then on the stored consent addressed by consentId, 
-            respectively the OAuth2 access token. **NOTE:** The account-id can represent a multicurrency account. 
-            In this case the currency code is set to "XXX". Give detailed information about the addressed account. 
-            Give detailed information about the addressed account together with balance information
+Reads details about an account, with balances where required. 
+It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system. 
+The addressed details of this account depends then on the stored consent addressed by consentId, 
+respectively the OAuth2 access token. **NOTE:** The account-id can represent a multicurrency account. 
+In this case the currency code is set to "XXX". Give detailed information about the addressed account. 
+Give detailed information about the addressed account together with balance information
 
             """,
        json.parse(""""""),
@@ -1056,7 +988,8 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil,
+       connectorMethods=Some(List("obp.checkBankAccountExists"))
      )
 
      lazy val readAccountDetails : OBPEndpoint = {
@@ -1080,13 +1013,12 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        "GET",
        "/card-accounts/ACCOUNT_ID",
        "Reads details about a card account",
-       s"""${mockedDataText(true)}
-            Reads details about a card account. 
-            It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system. 
-            The addressed details of this account depends then on the stored consent addressed by consentId, 
-            respectively the OAuth2 access token.
-
-            """,
+       s"""${mockedDataText(false)}
+Reads details about a card account. 
+It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system. 
+The addressed details of this account depends then on the stored consent addressed by consentId, 
+respectively the OAuth2 access token.
+""",
        json.parse(""""""),
        json.parse("""{
   "balances" : "",
@@ -1113,33 +1045,20 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
      )
 
      lazy val readCardAccount : OBPEndpoint = {
-       case "card-accounts" :: account_id :: Nil JsonGet _ => {
+       case "card-accounts" :: accountId :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "balances" : "",
-  "product" : "product",
-  "resourceId" : "resourceId",
-  "maskedPan" : "123456xxxxxx1234",
-  "_links" : {
-    "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "usage" : "PRIV",
-  "name" : "name",
-  "creditLimit" : {
-    "amount" : "123",
-    "currency" : "EUR"
-  },
-  "currency" : "EUR",
-  "details" : "details",
-  "status" : { }
-}"""), callContext)
+             _ <- passesPsd2Aisp(callContext)
+             _ <- Helper.booleanToFuture(failMsg = DefaultBankIdNotSet) {
+               defaultBankId != "DEFAULT_BANK_ID_NOT_SET"
+             }
+             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountDetailsJson(bankAccount, u), callContext)
            }
-         }
        }
+     }
 
      resourceDocs += ResourceDoc(
        startConsentAuthorisation,
@@ -1149,33 +1068,33 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        "/consents/CONSENTID/authorisations",
        "Start the authorisation process for a consent",
        s"""${mockedDataText(false)}
-            Create an authorisation sub-resource and start the authorisation process of a consent. 
-            The message might in addition transmit authentication and authorisation related data. 
-            his method is iterated n times for a n times SCA authorisation in a corporate context, 
-            each creating an own authorisation sub-endpoint for the corresponding PSU authorising the consent. 
-            The ASPSP might make the usage of this access method unnecessary, since the related authorisation
-             resource will be automatically created by the ASPSP after the submission of the consent data with the 
-             first POST consents call. The start authorisation process is a process which is needed for creating 
-             a new authorisation or cancellation sub-resource. 
-             
-             This applies in the following scenarios: * The ASPSP has indicated with an 'startAuthorisation' hyperlink 
-             in the preceding Payment Initiation Response that an explicit start of the authorisation process is needed by the TPP. 
-             The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded by using 
-             the extended forms. 
-             * 'startAuthorisationWithPsuIdentfication', 
-             * 'startAuthorisationWithPsuAuthentication' 
-             * 'startAuthorisationWithEncryptedPsuAuthentication' 
-             * 'startAuthorisationWithAuthentciationMethodSelection' 
-             * The related payment initiation cannot yet be executed since a multilevel SCA is mandated. 
-             * The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceding Payment Cancellation 
-             Response that an explicit start of the authorisation process is needed by the TPP. 
-             
-             The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded by 
-             using the extended forms as indicated above. 
-             * The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for executing the cancellation. 
-             * The signing basket needs to be authorised yet.
+Create an authorisation sub-resource and start the authorisation process of a consent. 
+The message might in addition transmit authentication and authorisation related data. 
+his method is iterated n times for a n times SCA authorisation in a corporate context, 
+each creating an own authorisation sub-endpoint for the corresponding PSU authorising the consent. 
+The ASPSP might make the usage of this access method unnecessary, since the related authorisation
+ resource will be automatically created by the ASPSP after the submission of the consent data with the 
+ first POST consents call. The start authorisation process is a process which is needed for creating 
+ a new authorisation or cancellation sub-resource. 
+ 
+ This applies in the following scenarios: * The ASPSP has indicated with an 'startAuthorisation' hyperlink 
+ in the preceding Payment Initiation Response that an explicit start of the authorisation process is needed by the TPP. 
+ The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded by using 
+ the extended forms. 
+ * 'startAuthorisationWithPsuIdentfication', 
+ * 'startAuthorisationWithPsuAuthentication' 
+ * 'startAuthorisationWithEncryptedPsuAuthentication' 
+ * 'startAuthorisationWithAuthentciationMethodSelection' 
+ * The related payment initiation cannot yet be executed since a multilevel SCA is mandated. 
+ * The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceding Payment Cancellation 
+ Response that an explicit start of the authorisation process is needed by the TPP. 
+ 
+ The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded by 
+ using the extended forms as indicated above. 
+ * The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for executing the cancellation. 
+ * The signing basket needs to be authorised yet.
 
-            """,
+""",
        json.parse(""""""),
        json.parse("""{
                        "scaStatus": "received",
@@ -1223,30 +1142,30 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        "/consents/CONSENTID/authorisations/AUTHORISATIONID",
        "Update PSU Data for consents",
        s"""${mockedDataText(false)}
-            This method update PSU data on the consents resource if needed. It may authorise a consent within the Embedded 
-            SCA Approach where needed. Independently from the SCA Approach it supports 
-            e.g. the selection of the authentication method and a non-SCA PSU authentication. 
-            This methods updates PSU data on the cancellation authorisation resource if needed. 
-            There are several possible Update PSU Data requests in the context of a consent request if needed, 
-            which depends on the SCA approach: * Redirect SCA Approach: A specific Update PSU Data Request is applicable 
-            for 
-            * the selection of authentication methods, before choosing the actual SCA approach. 
-            * Decoupled SCA Approach: A specific Update PSU Data Request is only applicable for 
-            * adding the PSU Identification, if not provided yet in the Payment Initiation Request or the Account Information Consent Request, 
-            or if no OAuth2 access token is used, or 
-            * the selection of authentication methods. 
-            * Embedded SCA Approach: The Update PSU Data Request might be used 
-            * to add credentials as a first factor authentication data of the PSU and 
-            * to select the authentication method and 
-            * transaction authorisation. 
-            The SCA Approach might depend on the chosen SCA method. For that reason, 
-            the following possible Update PSU Data request can apply to all SCA approaches: 
-            * Select an SCA method in case of several SCA methods are available for the customer. There are the following request types on this access path: 
-            * Update PSU Identification * Update PSU Authentication 
-            * Select PSU Autorization Method WARNING: This method need a reduced header, therefore many optional elements are not present. 
-            Maybe in a later version the access path will change. 
-            * Transaction Authorisation WARNING: This method need a reduced header, therefore many optional elements are not present. 
-            Maybe in a later version the access path will change.
+This method update PSU data on the consents resource if needed. It may authorise a consent within the Embedded 
+SCA Approach where needed. Independently from the SCA Approach it supports 
+e.g. the selection of the authentication method and a non-SCA PSU authentication. 
+This methods updates PSU data on the cancellation authorisation resource if needed. 
+There are several possible Update PSU Data requests in the context of a consent request if needed, 
+which depends on the SCA approach: * Redirect SCA Approach: A specific Update PSU Data Request is applicable 
+for 
+* the selection of authentication methods, before choosing the actual SCA approach. 
+* Decoupled SCA Approach: A specific Update PSU Data Request is only applicable for 
+* adding the PSU Identification, if not provided yet in the Payment Initiation Request or the Account Information Consent Request, 
+or if no OAuth2 access token is used, or 
+* the selection of authentication methods. 
+* Embedded SCA Approach: The Update PSU Data Request might be used 
+* to add credentials as a first factor authentication data of the PSU and 
+* to select the authentication method and 
+* transaction authorisation. 
+The SCA Approach might depend on the chosen SCA method. For that reason, 
+the following possible Update PSU Data request can apply to all SCA approaches: 
+* Select an SCA method in case of several SCA methods are available for the customer. There are the following request types on this access path: 
+* Update PSU Identification * Update PSU Authentication 
+* Select PSU Autorization Method WARNING: This method need a reduced header, therefore many optional elements are not present. 
+Maybe in a later version the access path will change. 
+* Transaction Authorisation WARNING: This method need a reduced header, therefore many optional elements are not present. 
+Maybe in a later version the access path will change.
 
             """,
        json.parse("""{

@@ -71,6 +71,7 @@ object Migration extends MdcLoggable {
       alterTableMappedUserAuthContext()
       alterTableMappedUserAuthContextUpdate()
       populateNameAndAppTypeFieldsAtConsumerTable()
+      populateAzpAndSubFieldsAtConsumerTable()
     }
     
     private def dummyScript(): Boolean = {
@@ -176,6 +177,12 @@ object Migration extends MdcLoggable {
       val name = nameOf(populateNameAndAppTypeFieldsAtConsumerTable)
       runOnce(name) {
         MigrationOfConsumer.populateNamAndAppType(name)
+      }
+    }
+    private def populateAzpAndSubFieldsAtConsumerTable(): Boolean = {
+      val name = nameOf(populateAzpAndSubFieldsAtConsumerTable)
+      runOnce(name) {
+        MigrationOfConsumer.populateAzpAndSub(name)
       }
     }
     private def alterTableMappedUserAuthContext(): Boolean = {

@@ -63,9 +63,17 @@ object MigrationOfMappedConsent {
 
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
-            () =>
-              """ALTER TABLE mappedconsent ALTER COLUMN mchallenge type varchar(50);
-                |""".stripMargin
+            APIUtil.getPropsValue("db.driver") match    {
+              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                () =>
+                  """ALTER TABLE mappedconsent ALTER COLUMN mchallenge varchar(50);
+                    |""".stripMargin
+              case _ =>
+                () =>
+                  """ALTER TABLE mappedconsent ALTER COLUMN mchallenge type varchar(50);
+                    |""".stripMargin
+            }
+            
           }
 
         val endDate = System.currentTimeMillis()

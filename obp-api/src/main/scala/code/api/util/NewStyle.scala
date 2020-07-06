@@ -36,6 +36,7 @@ import code.util.{Helper, JsonUtils}
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.dto.ProductCollectionItemsTree
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
@@ -1215,7 +1216,12 @@ object NewStyle {
                                       bankId: String,
                                       callContext: Option[CallContext]): OBPReturnType[List[(ProductCollectionItem, Product, List[ProductAttribute])]] = {
       Connector.connector.vend.getProductCollectionItemsTree(collectionCode, bankId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current collection code($collectionCode)", 400), i._2)
+        i => {
+          val data: Box[List[ProductCollectionItemsTree]] = i._1
+          val tupleData: Box[List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])]] =
+            data.map(boxValue=> boxValue.map(it => (it.productCollectionItem, it.product, it.attributes)))
+          (unboxFullOrFail(tupleData, callContext, s"$InvalidConnectorResponse  Current collection code($collectionCode)", 400), i._2)
+        }
       }
     }
       

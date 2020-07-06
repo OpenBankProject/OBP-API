@@ -457,7 +457,8 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   object key extends MappedString(this, 250)
   object secret extends MappedString(this, 250)
   object azp extends MappedString(this, 250) {
-    override def defaultValue = null
+    // because different databases treat unique indexes on NULL values differently.
+    override def defaultValue = APIUtil.generateUUID() 
   }
   object aud extends MappedString(this, 250) {
     override def defaultValue = null
@@ -466,7 +467,8 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     override def defaultValue = null
   }  
   object sub extends MappedString(this, 250) {
-    override def defaultValue = null
+    // because different databases treat unique indexes on NULL values differently.
+    override def defaultValue = APIUtil.generateUUID()
   }
   object isActive extends MappedBoolean(this){
     override def defaultValue = APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false)

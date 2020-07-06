@@ -218,7 +218,7 @@ trait APIMethods121 {
       "getPrivateAccountsAllBanks",
       "GET",
       "/accounts",
-      "Get accounts at all banks (Private, inc views).",
+      "Get accounts at all banks (Private, inc views)",
       s"""Returns the list of accounts at that the user has access to at all banks.
          |For each account the API returns the account ID and the available views.
          |
@@ -251,7 +251,7 @@ trait APIMethods121 {
       "privateAccountsAllBanks",
       "GET",
       "/accounts/private",
-      "Get private accounts at all banks (Authenticated access).",
+      "Get private accounts at all banks (Authenticated access)",
       """Returns the list of private accounts the user has access to at all banks.
         |For each account the API returns the ID and the available views.
         |
@@ -284,7 +284,7 @@ trait APIMethods121 {
       "publicAccountsAllBanks",
       "GET",
       "/accounts/public",
-      "Get public accounts at all banks (Anonymous access).",
+      "Get public accounts at all banks (Anonymous access)",
       """
         |Returns the list of private accounts the user has access to at all banks.
         |For each account the API returns the ID and the available views. 
@@ -317,7 +317,7 @@ trait APIMethods121 {
       "getPrivateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get accounts at bank (Private).",
+      "Get accounts at bank (Private)",
       s"""Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
         |
@@ -351,7 +351,7 @@ trait APIMethods121 {
       "privateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts/private",
-      "Get private accounts at one bank.",
+      "Get private accounts at one bank",
       s"""Returns the list of private accounts at BANK_ID that the user has access to.
         |For each account the API returns the ID and the available views.
         |
@@ -385,7 +385,7 @@ trait APIMethods121 {
       "publicAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts/public",
-      "Get public accounts at one bank (Anonymous access).",
+      "Get public accounts at one bank (Anonymous access)",
       """Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.
         |
         |Authentication via OAuth is not required.
@@ -418,7 +418,7 @@ trait APIMethods121 {
       "accountById",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
-      "Get account by id.",
+      "Get account by id",
       s"""Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
          |
          |* Number
@@ -465,7 +465,7 @@ trait APIMethods121 {
       "updateAccountLabel",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID",
-      "Update Account Label.",
+      "Update Account Label",
       s"""Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account'
          |
          |
@@ -501,7 +501,7 @@ trait APIMethods121 {
       "getViewsForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
-      "Get Views for Account.",
+      "Get Views for Account",
       s"""#Views
          |
          |
@@ -555,7 +555,7 @@ trait APIMethods121 {
       "createViewForBankAccount",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
-      "Create View.",
+      "Create View",
       s"""#Create a view on bank account
         |
         | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
@@ -615,7 +615,7 @@ trait APIMethods121 {
       "updateViewForBankAccount",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
-      "Update View.",
+      "Update View",
       s"""Update an existing view on a bank account
         |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
@@ -672,7 +672,7 @@ trait APIMethods121 {
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
       "Delete View",
-      "Deletes the view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID.",
+      "Deletes the view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID",
       emptyObjectJson,
       emptyObjectJson,
       List(
@@ -709,7 +709,7 @@ trait APIMethods121 {
       "getPermissionsForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions",
-      "Get access.",
+      "Get access",
       s"""Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
         |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
@@ -741,7 +741,7 @@ trait APIMethods121 {
       "getPermissionForUserForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID",
-      "Get access for specific user.",
+      "Get access for specific user",
       s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to.
         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
         |
@@ -780,7 +780,7 @@ trait APIMethods121 {
       "addPermissionForUserForBankAccountForMultipleViews",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID/views",
-      "Grant User access to a list of views.",
+      "Grant User access to a list of views",
       s"""Grants the user identified by PROVIDER_ID at their provider PROVIDER access to a list of views at BANK_ID for account ACCOUNT_ID.
         |
         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for PROVIDER_ID and PROVIDER.
@@ -823,7 +823,7 @@ trait APIMethods121 {
       "addPermissionForUserForBankAccountForOneView",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID/views/VIEW_ID",
-      "Grant User access to View.",
+      "Grant User access to View",
       s"""Grants the User identified by PROVIDER_ID at PROVIDER access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
           |
           |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for PROVIDER and PROVIDER_ID.
@@ -886,7 +886,7 @@ trait APIMethods121 {
       "removePermissionForUserForBankAccountForOneView",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID/views/VIEW_ID",
-      "Revoke access to one View.",
+      "Revoke access to one View",
       s"""Revokes access to a View on an Account for a certain User.
          |
          |$generalRevokeAccessToViewText
@@ -959,7 +959,7 @@ trait APIMethods121 {
       "getOtherAccountsForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
-      "Get Other Accounts of one Account.",
+      "Get Other Accounts of one Account",
       s"""Returns data about all the other accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view VIEW_ID is not public.""",
@@ -993,7 +993,7 @@ trait APIMethods121 {
       "getOtherAccountByIdForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
-      "Get Other Account by Id.",
+      "Get Other Account by Id",
       s"""Returns data about the Other Account that has shared at least one transaction with ACCOUNT_ID at BANK_ID.
          |${authenticationRequiredMessage(false)}
          |Authentication is required if the view is not public.""",
@@ -1024,7 +1024,7 @@ trait APIMethods121 {
       "getOtherAccountMetadata",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata",
-      "Get Other Account Metadata.",
+      "Get Other Account Metadata",
       """Get metadata of one other account.
         |Returns only the metadata about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
         |
@@ -1057,7 +1057,7 @@ trait APIMethods121 {
       "getCounterpartyPublicAlias",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
-      "Get public alias of other bank account.",
+      "Get public alias of other bank account",
       s"""Returns the public alias of the other account OTHER_ACCOUNT_ID.
         |${authenticationRequiredMessage(false)}
         |${authenticationRequiredMessage(true)} if the view is not public.""",
@@ -1095,7 +1095,7 @@ trait APIMethods121 {
       "addCounterpartyPublicAlias",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
-      "Add public alias to other bank account.",
+      "Add public alias to other bank account",
       s"""Creates the public alias for the other account OTHER_ACCOUNT_ID.
          |
          |${authenticationRequiredMessage(false)}
@@ -1144,7 +1144,7 @@ trait APIMethods121 {
       "updateCounterpartyPublicAlias",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
-      "Update public alias of other bank account.",
+      "Update public alias of other bank account",
       s"""Updates the public alias of the other account / counterparty OTHER_ACCOUNT_ID.
         |
         |${authenticationRequiredMessage(false)}
@@ -1397,7 +1397,7 @@ trait APIMethods121 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
       "Add Counterparty More Info",
-      "Add a description of the counter party from the perpestive of the account e.g. My dentist.",
+      "Add a description of the counter party from the perpestive of the account e.g. My dentist",
       moreInfoJSON,
       successMessage,
       List(
@@ -1439,7 +1439,7 @@ trait APIMethods121 {
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
       "Update Counterparty More Info",
-      "Update the more info description of the counter party from the perpestive of the account e.g. My dentist.",
+      "Update the more info description of the counter party from the perpestive of the account e.g. My dentist",
       moreInfoJSON,
       successMessage,
       List(
@@ -1479,7 +1479,7 @@ trait APIMethods121 {
       "deleteCounterpartyMoreInfo",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
-      "Delete more info of other bank account.",
+      "Delete more info of other bank account",
       "",
       emptyObjectJson,
       emptyObjectJson,
@@ -1517,7 +1517,7 @@ trait APIMethods121 {
       "addCounterpartyUrl",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
-      "Add url to other bank account.",
+      "Add url to other bank account",
       "A url which represents the counterparty (home page url etc.)",
       urlJSON,
       successMessage,
@@ -1559,7 +1559,7 @@ trait APIMethods121 {
       "updateCounterpartyUrl",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
-      "Update url of other bank account.",
+      "Update url of other bank account",
       "A url which represents the counterparty (home page url etc.)",
       urlJSON,
       successMessage,
@@ -1600,7 +1600,7 @@ trait APIMethods121 {
       "deleteCounterpartyUrl",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
-      "Delete url of other bank account.",
+      "Delete url of other bank account",
       "",
       emptyObjectJson,
       emptyObjectJson,
@@ -1638,7 +1638,7 @@ trait APIMethods121 {
       "addCounterpartyImageUrl",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
-      "Add image url to other bank account.",
+      "Add image url to other bank account",
       "Add a url that points to the logo of the counterparty",
       imageUrlJSON,
       successMessage,
@@ -1720,7 +1720,7 @@ trait APIMethods121 {
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Delete Counterparty Image URL",
-      "Delete image url of other bank account.",
+      "Delete image url of other bank account",
       emptyObjectJson,
       emptyObjectJson,
       List(UnknownError),
@@ -1752,7 +1752,7 @@ trait APIMethods121 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Add Open Corporates URL to Counterparty",
-      "Add open corporates url to other bank account.",
+      "Add open corporates url to other bank account",
       openCorporateUrlJSON,
       successMessage,
       List(
@@ -1792,7 +1792,7 @@ trait APIMethods121 {
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Update Open Corporates Url of Counterparty",
-      "Update open corporate url of other bank account.",
+      "Update open corporate url of other bank account",
       openCorporateUrlJSON,
       successMessage,
       List(
@@ -1833,7 +1833,7 @@ trait APIMethods121 {
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Delete Counterparty Open Corporates URL",
-      "Delete open corporate url of other bank account.",
+      "Delete open corporate url of other bank account",
       emptyObjectJson,
       emptyObjectJson,
       List(
@@ -1957,7 +1957,7 @@ trait APIMethods121 {
       "deleteCounterpartyCorporateLocation",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
-      "Delete Counterparty Corporate Location.",
+      "Delete Counterparty Corporate Location",
       "Delete corporate location of other bank account. Delete the geolocation of the counterparty's registered address",
       emptyObjectJson,
       emptyObjectJson,
@@ -1999,7 +1999,7 @@ trait APIMethods121 {
       "addCounterpartyPhysicalLocation",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
-      "Add physical location to other bank account.",
+      "Add physical location to other bank account",
       "Add geocoordinates of the counterparty's main location",
       physicalLocationJSON,
       successMessage,
@@ -2089,8 +2089,8 @@ trait APIMethods121 {
       "deleteCounterpartyPhysicalLocation",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
-      "Delete Counterparty Physical Location.",
-      "Delete physical location of other bank account.",
+      "Delete Counterparty Physical Location",
+      "Delete physical location of other bank account",
       emptyObjectJson,
       emptyObjectJson,
       List(
@@ -2203,7 +2203,7 @@ trait APIMethods121 {
       "getTransactionByIdForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction",
-      "Get Transaction by Id.",
+      "Get Transaction by Id",
       s"""Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
          |
          |${authenticationRequiredMessage(false)}
@@ -2238,7 +2238,7 @@ trait APIMethods121 {
       "getTransactionNarrative",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
-      "Get narrative.",
+      "Get narrative",
       """Returns the account owner description of the transaction [moderated](#1_2_1-getViewsForBankAccount) by the view.
          |
          |Authentication via OAuth is required if the view is not public.""",
@@ -2272,7 +2272,7 @@ trait APIMethods121 {
       "addTransactionNarrative",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
-      "Add narrative.",
+      "Add narrative",
       s"""Creates a description of the transaction TRANSACTION_ID.
          |
          |Note: Unlike other items of metadata, there is only one "narrative" per transaction accross all views.
@@ -2315,7 +2315,7 @@ trait APIMethods121 {
       "updateTransactionNarrative",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
-      "Update narrative.",
+      "Update narrative",
       """Updates the description of the transaction TRANSACTION_ID.
          |
          |Authentication via OAuth is required if the view is not public.""",
@@ -2352,7 +2352,7 @@ trait APIMethods121 {
       "deleteTransactionNarrative",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
-      "Delete narrative.",
+      "Delete narrative",
       """Deletes the description of the transaction TRANSACTION_ID.
          |
          |Authentication via OAuth is required if the view is not public.""",
@@ -2386,7 +2386,7 @@ trait APIMethods121 {
       "getCommentsForViewOnTransaction",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
-      "Get comments.",
+      "Get comments",
       """Returns the transaction TRANSACTION_ID comments made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
          |
          |Authentication via OAuth is required if the view is not public.""",
@@ -2421,7 +2421,7 @@ trait APIMethods121 {
       "addCommentForViewOnTransaction",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
-      "Add comment.",
+      "Add comment",
       """Posts a comment about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
          |${authenticationRequiredMessage(false)}
@@ -2463,7 +2463,7 @@ trait APIMethods121 {
       "deleteCommentForViewOnTransaction",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments/COMMENT_ID",
-      "Delete comment.",
+      "Delete comment",
       """Delete the comment COMMENT_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
          |
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.""",
@@ -2498,7 +2498,7 @@ trait APIMethods121 {
       "getTagsForViewOnTransaction",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
-      "Get tags.",
+      "Get tags",
       """Returns the transaction TRANSACTION_ID tags made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
          Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
@@ -2532,7 +2532,7 @@ trait APIMethods121 {
       "addTagForViewOnTransaction",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
-      "Add a tag.",
+      "Add a tag",
       s"""Posts a tag about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
          |${authenticationRequiredMessage(true)}
@@ -2575,7 +2575,7 @@ trait APIMethods121 {
       "deleteTagForViewOnTransaction",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags/TAG_ID",
-      "Delete a tag.",
+      "Delete a tag",
       """Deletes the tag TAG_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
         |Authentication via OAuth is required. The user must either have owner privileges for this account, 
         |or must be the user that posted the tag.
@@ -2609,7 +2609,7 @@ trait APIMethods121 {
       "getImagesForViewOnTransaction",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
-      "Get images.",
+      "Get images",
       """Returns the transaction TRANSACTION_ID images made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
          Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
@@ -2643,7 +2643,7 @@ trait APIMethods121 {
       "addImageForViewOnTransaction",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
-      "Add an image.",
+      "Add an image",
       s"""Posts an image about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
          |${authenticationRequiredMessage(true) }
@@ -2723,7 +2723,7 @@ trait APIMethods121 {
       "getWhereTagForViewOnTransaction",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
-      "Get where tag.",
+      "Get where tag",
       """Returns the "where" Geo tag added to the transaction TRANSACTION_ID made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
         |It represents the location where the transaction has been initiated.
         |
@@ -2758,7 +2758,7 @@ trait APIMethods121 {
       "addWhereTagForViewOnTransaction",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
-      "Add where tag.",
+      "Add where tag",
       s"""Creates a "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
          |
          |${authenticationRequiredMessage(true)}
@@ -2802,7 +2802,7 @@ trait APIMethods121 {
       "updateWhereTagForViewOnTransaction",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
-      "Update where tag.",
+      "Update where tag",
       s"""Updates the "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
          |
          |${authenticationRequiredMessage(true)}
@@ -2846,7 +2846,7 @@ trait APIMethods121 {
       "deleteWhereTagForViewOnTransaction",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
-      "Delete where tag.",
+      "Delete where tag",
       s"""Deletes the where tag of the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
          |
         |${authenticationRequiredMessage(true)}
@@ -2925,7 +2925,7 @@ trait APIMethods121 {
       "makePayment",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
-      "Make Payment.",
+      "Make Payment",
       """This is an experimental call, currently only implemented in the OBP sandbox instance up to version 1.3.0. It is very minimal
          |and was superseded by Transaction Requests in version 1.4.0.
          |

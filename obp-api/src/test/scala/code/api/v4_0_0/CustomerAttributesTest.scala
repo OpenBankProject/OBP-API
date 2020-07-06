@@ -323,15 +323,16 @@ class CustomerAttributesTest extends V400ServerSetup {
       val response4 = responseGetCustomersByAttributesWithParameter4.body.extract[ListResult[List[CustomerWithAttributesJsonV310]]]
       response4.results.head.customer_attributes.head.name should be(customerAttributeNameExample.value)
       response4.results.head.customer_attributes.head.value should be(customerAttributeValueExample.value)
+      response4.results.length should be(2)
 
 
       Then(s"We can the $ApiEndpoint5 with proper parameters")
-      val requestGetCustomersByAttributesWithParameter5 = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1) <<? (List(("Tax", "tax1231"), ("Hause", "1230")))
+      val requestGetCustomersByAttributesWithParameter5 = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1) <<? (List(("Tax", "123tax"), ("Hause", "1230")))
       val responseGetCustomersByAttributesWithParameter5 = makeGetRequest(requestGetCustomersByAttributesWithParameter5)
 
       responseGetCustomersByAttributesWithParameter5.code should be(200)
       val response5 = responseGetCustomersByAttributesWithParameter5.body.extract[ListResult[List[CustomerWithAttributesJsonV310]]]
-      response5.results.length should be(0)
+      response5.results.length should be(1)
     }
   }
   feature(s"test $ApiEndpoint6 version $VersionOfApi will enforce proper entitlements") {

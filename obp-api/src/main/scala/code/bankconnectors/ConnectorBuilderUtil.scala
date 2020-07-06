@@ -353,6 +353,7 @@ object ConnectorBuilderUtil {
     "deleteCustomerAttribute",
 
     "getBankAccountOld",    // old method, but v3.0.0 apis use a lot
+    "checkExternalUserCredentials"
   ).distinct
 
   /**
