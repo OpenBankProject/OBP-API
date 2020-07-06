@@ -26,7 +26,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   val cachedAllMetrics = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getAllMetrics", "7").toInt
   val cachedAllAggregateMetrics = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getAllAggregateMetrics", "7").toInt
   val cachedTopApis = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getTopApis", "3600").toInt
-  val cachedTopConsumers = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getTopConsumers", "7").toInt
+  val cachedTopConsumers = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getTopConsumers", "3600").toInt
 
   // If consumerId is Int, if consumerId is not Int, convert it to primary key.
   // Since version 3.1.0 we do not use a primary key externally. I.e. we use UUID instead of it as the value exposed to end users.
@@ -78,6 +78,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     val dbPassword = APIUtil.getPropsValue("db.password").orElse(password)
     (dbUrl, dbUser.getOrElse(""), dbPassword.getOrElse(""))
   }
+  private def truOrFalse(condition: Boolean) = if (condition) sqls"1=1" else sqls"0=1"
+  private def falseOrTrue(condition: Boolean) = if (condition) sqls"0=1" else sqls"1=1"
 
 //  override def getAllGroupedByUserId(): Map[String, List[APIMetric]] = {
 //    //TODO: do this all at the db level using an actual group by query
@@ -363,10 +365,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val (dbUrl, user, password) = getDbConnectionParameters()
       ConnectionPool.singleton(dbUrl, user, password, settings)
       val result: List[TopApi] = scalikeDB readOnly { implicit session =>
-        def truOrFalse(condition: Boolean) = if (condition) sqls"1=1" else sqls"0=1"
-        def falseOrTrue(condition: Boolean) = if (condition) sqls"0=1" else sqls"1=1"
+        val msSqlLimit = if (dbUrl.contains("sqlserver")) sqls"TOP 10" else sqls""
+        val limit = if (dbUrl.contains("sqlserver")) sqls"" else sqls"LIMIT 10"
         val sqlResult =
-          sql"""SELECT count(*), mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion 
+          sql"""SELECT ${msSqlLimit} count(*), mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion 
                 FROM mappedmetric 
                 WHERE 
                 date_c >= ${new Timestamp(fromDate.get.getTime)} AND
@@ -385,6 +387,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                 AND (${truOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) 
                 GROUP BY mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion 
                 ORDER BY count(*) DESC
+                ${limit}
                 """.stripMargin
           .map(rs => TopApi(rs.string(1).toInt, rs.string(2), rs.string(3))).list.apply()
         sqlResult
@@ -402,7 +405,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/t
   */                                                                                       
   var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)       
-  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedTopConsumers days){   
+  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedTopConsumers seconds){   
     Future {
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
@@ -429,78 +432,38 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
       val extedndedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
 
-      for {
-        dbQuery <- Full("SELECT count(*) as count, consumer.id as consumerprimaryid, mappedmetric.appname as appname, consumer.developeremail as email, consumer.consumerid as consumerid " +
-          "FROM mappedmetric, consumer " +
-          "WHERE mappedmetric.appname = consumer.name " +
-          "AND date_c >= ? " +
-          "AND date_c <= ? " +
-          "AND (? or mappedmetric.consumerid = ?) " +
-          "AND (? or mappedmetric.userid = ?) " +
-          "AND (? or mappedmetric.implementedbypartialfunction = ? ) " +
-          "AND (? or mappedmetric.implementedinversion = ?) " +
-          "AND (? or url= ?) " +
-          "And (? or appname = ?) " +
-          "AND (? or verb = ? ) " +
-          "AND (? or userid = 'null' ) " + // mapping `S.param("anon")` anon == null, (if null ignore) , anon == true (return where user_id is null.)
-          "AND (? or userid != 'null' ) " + // anon == false (return where user_id is not null.)
-          s"AND (? or (url NOT LIKE ($excludeUrlPatternsQueries) " +
-          s"AND (? or appname not in ($extendedExclueAppNameQueries)) " +
-          s"AND (? or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) " +
-          "GROUP BY appname, email, consumerprimaryid " +
-          "ORDER BY count DESC " +
-          "LIMIT ? ")
-
-       resultSet <- tryo(DB.use(DefaultConnectionIdentifier){
-          conn =>
-            DB.prepareStatement(dbQuery, conn) {
-              stmt =>
-                stmt.setTimestamp(1, new Timestamp(fromDate.get.getTime)) //These two fields will always have the value. If null, set the default value.
-                stmt.setTimestamp(2, new Timestamp(toDate.get.getTime))
-                stmt.setBoolean(3, if (consumerId.isEmpty) true else false)
-                stmt.setString(4, consumerId.getOrElse(""))
-                stmt.setBoolean(5, if (userId.isEmpty) true else false)
-                stmt.setString(6, userId.getOrElse(""))
-                stmt.setBoolean(7, if (implementedByPartialFunction.isEmpty) true else false)
-                stmt.setString(8, implementedByPartialFunction.getOrElse(""))
-                stmt.setBoolean(9, if (implementedInVersion.isEmpty) true else false)
-                stmt.setString(10, implementedInVersion.getOrElse(""))
-                stmt.setBoolean(11, if (url.isEmpty) true else false)
-                stmt.setString(12, url.getOrElse(""))
-                stmt.setBoolean(13, if (appName.isEmpty) true else false)
-                stmt.setString(14, appName.getOrElse(""))
-                stmt.setBoolean(15, if (verb.isEmpty) true else false)
-                stmt.setString(16, verb.getOrElse(""))
-                stmt.setBoolean(17, if (anon.isDefined && anon.equals(Some(true))) false else true) // anon == true (return where user_id is null.)
-                stmt.setBoolean(18, if (anon.isDefined && anon.equals(Some(false))) false else true) // anon == false (return where user_id is not null.)
-                stmt.setBoolean(19, if (excludeUrlPatterns.isEmpty) true else false)
-                extendPrepareStement(20, stmt, excludeUrlPatternsSet)
-                stmt.setBoolean(20 + excludeUrlPatternsSet.size, if (excludeAppNames.isEmpty) true else false)
-                extendPrepareStement(21 + excludeUrlPatternsSet.size, stmt, excludeAppNamesNumberSet)
-                stmt.setBoolean(21 + excludeUrlPatternsSet.size + excludeAppNamesNumberSet.size, if (excludeImplementedByPartialFunctions.isEmpty) true else false)
-                extendPrepareStement(22 + excludeUrlPatternsSet.size + excludeAppNamesNumberSet.size, stmt, excludeImplementedByPartialFunctionsNumberSet)
-                stmt.setInt(22 + excludeUrlPatternsSet.size + excludeAppNamesNumberSet.size + excludeImplementedByPartialFunctionsNumberSet.size, limit.get)
-                DB.resultSetTo(stmt.executeQuery())
-            }
-        }) ?~! {
-          logger.error(s"getTopConsumersBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopConsumersBox.DB.runQuery(dbQuery) read database issue. "
-        }
-
-        topConsumers <- tryo(resultSet._2.map(
-          a =>
-            TopConsumer(
-              count = if (a(0) != null) a(0).toInt else 0,
-              consumerId = if (a(4) != null) a(4).toString else "",
-              appName = if (a(2) != null) a(2).toString else "",
-              developerEmail = if (a(3) != null) a(3).toString else ""
-            ))) ?~! {
-          logger.error(s"getTopConsumersBox.create TopConsumer class error. Here is the result from database $resultSet ");
-          s"$UnknownError getTopConsumersBox.create TopApi class error. "
-        }
-
-      } yield {
-        topConsumers
+      val (dbUrl, user, password) = getDbConnectionParameters()
+      ConnectionPool.singleton(dbUrl, user, password, settings)
+      val msSqlLimit = if (dbUrl.contains("sqlserver")) sqls"TOP 10" else sqls""
+      val generalLimit = if (dbUrl.contains("sqlserver")) sqls"" else sqls"LIMIT 10"
+      val result: List[TopConsumer] = scalikeDB readOnly { implicit session =>
+        val sqlResult =
+          sql"""SELECT ${msSqlLimit} count(*) as count, consumer.id as consumerprimaryid, mappedmetric.appname as appname, 
+                consumer.developeremail as email, consumer.consumerid as consumerid  
+                FROM mappedmetric, consumer 
+                WHERE mappedmetric.appname = consumer.name  
+                AND date_c >= ${new Timestamp(fromDate.get.getTime)}
+                AND date_c <= ${new Timestamp(toDate.get.getTime)}
+                AND (${truOrFalse(consumerId.isEmpty)} or consumer.consumerid = ${consumerId.getOrElse("")}) 
+                AND (${truOrFalse(userId.isEmpty)} or userid = ${userId.getOrElse("")}) 
+                AND (${truOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("")}) 
+                AND (${truOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("")}) 
+                AND (${truOrFalse(url.isEmpty)} or url = ${url.getOrElse("")}) 
+                AND (${truOrFalse(appName.isEmpty)} or appname = ${appName.getOrElse("")}) 
+                AND (${truOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("")}) 
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null') 
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
+                AND (${truOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
+                AND (${truOrFalse(excludeAppNames.isEmpty) } or appname not in ($extendedExclueAppNameQueries)) 
+                AND (${truOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) 
+                GROUP BY appname,	consumer.developeremail, consumer.id,	consumer.consumerid
+                ORDER BY count DESC
+                ${generalLimit}
+                """.stripMargin
+            .map(rs => TopConsumer(rs.string(1).toInt, rs.string(5), rs.string(3), rs.string(4))).list.apply()
+        sqlResult
       }
+      tryo(result)
     }
   }}}
 
