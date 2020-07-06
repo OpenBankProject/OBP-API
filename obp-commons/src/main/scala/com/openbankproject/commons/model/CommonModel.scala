@@ -712,7 +712,7 @@ case class Transaction(
                    val uuid: String,
                    //id is unique for transactions of @thisAccount
                    val id : TransactionId,
-                   val thisAccount : BankAccountCommons,
+                   val thisAccount : BankAccount,
                    val otherAccount : Counterparty,
                    //E.g. cash withdrawal, electronic payment, etc.
                    val transactionType : String,
