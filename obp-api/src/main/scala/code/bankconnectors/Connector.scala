@@ -323,7 +323,7 @@ trait Connector extends MdcLoggable {
                              transactionRequestType: String,
                              currency: String,
                              userId: String,
-                             userName: String,
+                             username: String,
                              callContext: Option[CallContext]
                            ): OBPReturnType[Box[AmountOfMoney]] =
     LocalMappedConnector.getChallengeThreshold(
@@ -333,7 +333,7 @@ trait Connector extends MdcLoggable {
       transactionRequestType: String,
       currency: String,
       userId: String,
-      userName: String,
+      username: String,
       callContext: Option[CallContext]
     )
 
@@ -342,7 +342,7 @@ trait Connector extends MdcLoggable {
                      accountId: AccountId,
                      viewId: ViewId,
                      userId: String,
-                     userName: String,
+                     username: String,
                      transactionRequestType: String,
                      currency: String,
                      callContext:Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] =
@@ -351,7 +351,7 @@ trait Connector extends MdcLoggable {
       accountId: AccountId,
       viewId: ViewId,
       userId: String,
-      userName: String,
+      username: String,
       transactionRequestType: String,
       currency: String,
       callContext:Option[CallContext]
@@ -413,11 +413,11 @@ trait Connector extends MdcLoggable {
   
   /**
     * This method is for checking external User via connector
-    * @param name
+    * @param username
     * @param password
     * @return
     */
-  def checkExternalUserCredentials(name: String, password: String, callContext: Option[CallContext]): Box[InboundExternalUser] = Failure(setUnimplementedError)
+  def checkExternalUserCredentials(username: String, password: String, callContext: Option[CallContext]): Box[InboundExternalUser] = Failure(setUnimplementedError)
 
   /**
     * This is a helper method

@@ -176,7 +176,7 @@ object ConnectorEndpoints extends RestHelper{
     }
     .sortBy(_._2.size)
     .lastOption
-    .map(_._3)
+      .map(_._3)
   }
 
   def hashMethod(methodName: String, json: JValue): Boolean = getMethod(methodName, json).isDefined

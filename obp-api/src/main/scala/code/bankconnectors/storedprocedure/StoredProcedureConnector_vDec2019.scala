@@ -135,9 +135,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, username: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
         import com.openbankproject.commons.dto.{OutBoundGetChallengeThreshold => OutBound, InBoundGetChallengeThreshold => InBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, viewId, transactionRequestType, currency, userId, userName)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, viewId, transactionRequestType, currency, userId, username)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_challenge_threshold", req, callContext)
         response.map(convertToTuple[AmountOfMoney](callContext))        
   }
@@ -168,9 +168,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def getChargeLevel(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, userName: String, transactionRequestType: String, currency: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
+  override def getChargeLevel(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, username: String, transactionRequestType: String, currency: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
         import com.openbankproject.commons.dto.{OutBoundGetChargeLevel => OutBound, InBoundGetChargeLevel => InBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, viewId, userId, userName, transactionRequestType, currency)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, viewId, userId, username, transactionRequestType, currency)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_charge_level", req, callContext)
         response.map(convertToTuple[AmountOfMoney](callContext))        
   }
@@ -427,9 +427,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def checkExternalUserCredentials(name: String, password: String, callContext: Option[CallContext]): Box[InboundExternalUser] = {
+  override def checkExternalUserCredentials(username: String, password: String, callContext: Option[CallContext]): Box[InboundExternalUser] = {
         import com.openbankproject.commons.dto.{OutBoundCheckExternalUserCredentials => OutBound, InBoundCheckExternalUserCredentials => InBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, name, password)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, username, password)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_check_external_user_credentials", req, callContext)
         response.map(convertToTuple[InboundExternalUser](callContext))        
   }
