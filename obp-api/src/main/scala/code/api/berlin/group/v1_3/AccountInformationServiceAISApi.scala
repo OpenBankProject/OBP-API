@@ -710,7 +710,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
        nameOf(getConsentScaStatus),
        "GET",
        "/consents/CONSENTID/authorisations/AUTHORISATIONID",
-       "Read the SCA status of the consent authorisation.",
+       "Read the SCA status of the consent authorisation",
        s"""${mockedDataText(false)}
 This method returns the SCA status of a consent initiation's authorisation sub-resource.
 """,
