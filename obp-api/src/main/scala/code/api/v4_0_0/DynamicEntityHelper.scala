@@ -18,18 +18,20 @@ import scala.collection.mutable.ArrayBuffer
 
 object EntityName {
 
-  def unapply(entityName: String): Option[String] = MockerConnector.definitionsMap.keySet.find(entityName ==)
+  def unapply(entityName: String): Option[String] = DynamicEntityHelper.definitionsMap.keySet.find(entityName ==)
 
   def unapply(url: List[String]): Option[(String, String)] = url match {
-    case entityName :: id :: Nil => MockerConnector.definitionsMap.keySet.find(entityName ==).map((_, id))
+    case entityName :: id :: Nil => DynamicEntityHelper.definitionsMap.keySet.find(entityName ==).map((_, id))
     case _ => None
   }
 
 }
 
-object MockerConnector {
+object DynamicEntityHelper {
 
-  def definitionsMap = NewStyle.function.getDynamicEntities().map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName))).toMap
+  def definitionsMap: Map[String, DynamicEntityInfo] = NewStyle.function.getDynamicEntities().map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName))).toMap
+
+  def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities().flatMap(dEntity => DynamicEntityInfo.roleNames(dEntity.entityName))
 
   def doc: ArrayBuffer[ResourceDoc] = {
     val addPrefix = APIUtil.getPropsAsBoolValue("dynamic_entities_have_prefix", true)

@@ -230,8 +230,8 @@ object FieldIgnoreSerializer extends Serializer[AnyRef] {
     if(!ReflectUtils.isObpType(tp)) {
       return Nil
     }
-    memo.memoize(tp, it => {
-      val fields: List[universe.Symbol] = it.decls.filter(decl => decl.isTerm && (decl.asTerm.isVal || decl.asTerm.isVar)).toList
+    memo.memoize(tp){
+      val fields: List[universe.Symbol] = tp.decls.filter(decl => decl.isTerm && (decl.asTerm.isVal || decl.asTerm.isVar)).toList
       val (ignoreFields, notIgnoreFields) = fields.partition(_.annotations.exists(_.tree.tpe <:< typeOf[ignore]))
       val annotedFieldNames = ignoreFields.map(_.name.decodedName.toString.trim)
       val subAnnotedFieldNames = notIgnoreFields.flatMap(it => {
@@ -248,7 +248,7 @@ object FieldIgnoreSerializer extends Serializer[AnyRef] {
           .map(it =>  s"$fieldName.$it")
       })
       annotedFieldNames ++ subAnnotedFieldNames
-    })
+    }
   }
 }
 

@@ -187,7 +187,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]) = Future{
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, username: String, callContext: Option[CallContext]) = Future{
     // Create argument list
     val req = Map(
       "north" -> "getChallengeThreshold",
@@ -200,7 +200,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       "transactionRequestType" -> transactionRequestType,
       "currency" -> currency,
       "userId" -> userId,
-      "username" -> userName
+      "username" -> username
       )
     val r: Option[KafkaInboundChallengeLevel] = process(req).extractOpt[KafkaInboundChallengeLevel]
     // Return result
@@ -220,7 +220,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
                               accountId: AccountId,
                               viewId: ViewId,
                               userId: String,
-                              userName: String,
+                              username: String,
                               transactionRequestType: String,
                               currency: String,
                               callContext:Option[CallContext]) = Future{
@@ -236,7 +236,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
                    "transactionRequestType" -> transactionRequestType,
                    "currency" -> currency,
                    "userId" -> userId,
-                   "username" -> userName
+                   "username" -> username
                  )
     val r: Option[KafkaInboundChargeLevel] = process(req).extractOpt[KafkaInboundChargeLevel]
     // Return result
