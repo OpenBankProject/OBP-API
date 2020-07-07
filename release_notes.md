@@ -3,7 +3,7 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
-19/06/2020    ea819aab      Added props: refresh user.interval. default is 30 minutes.
+19/06/2020    ea819aab      Added props: refresh_user.interval. default is 30 minutes.
                             This props will set the interval for the internal refresh user process.
 29/04/2020    75925d8c      Added props: allow_pre_filled_password. in Sign Up page the default password form filed is ****
                             This props can set the filed to empty .
