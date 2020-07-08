@@ -331,7 +331,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 
       val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsSet.size)
       val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
-      val extedndedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
+      val extendedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
       
       val (dbUrl, user, password) = getDbConnectionParameters()
       ConnectionPool.singleton(dbUrl, user, password, settings)
@@ -355,12 +355,18 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                 AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
                 AND (${truOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
                 AND (${truOrFalse(excludeAppNames.isEmpty) } or appname not in ($extendedExclueAppNameQueries)) 
-                AND (${truOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) 
+                AND (${truOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($extendedExcludeImplementedByPartialFunctionsQueries)) 
                 GROUP BY mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion 
                 ORDER BY count(*) DESC
                 ${limit}
                 """.stripMargin
-          .map(rs => TopApi(rs.string(1).toInt, rs.string(2), rs.string(3))).list.apply()
+          .map(
+            rs => 
+              TopApi(
+                rs.string(1).toInt, 
+                rs.string(2), 
+                rs.string(3))
+          ).list.apply()
         sqlResult
       }
       tryo(result)
@@ -401,7 +407,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 
       val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsSet.size)
       val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
-      val extedndedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
+      val extendedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
 
       val (dbUrl, user, password) = getDbConnectionParameters()
       ConnectionPool.singleton(dbUrl, user, password, settings)
@@ -426,12 +432,19 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                 AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
                 AND (${truOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
                 AND (${truOrFalse(excludeAppNames.isEmpty) } or appname not in ($extendedExclueAppNameQueries)) 
-                AND (${truOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) 
+                AND (${truOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($extendedExcludeImplementedByPartialFunctionsQueries)) 
                 GROUP BY appname,	consumer.developeremail, consumer.id,	consumer.consumerid
                 ORDER BY count DESC
                 ${generalLimit}
                 """.stripMargin
-            .map(rs => TopConsumer(rs.string(1).toInt, rs.string(5), rs.string(3), rs.string(4))).list.apply()
+            .map(
+              rs => 
+                TopConsumer(
+                  rs.string(1).toInt, 
+                  rs.string(5), 
+                  rs.string(3), 
+                  rs.string(4))
+            ).list.apply()
         sqlResult
       }
       tryo(result)
