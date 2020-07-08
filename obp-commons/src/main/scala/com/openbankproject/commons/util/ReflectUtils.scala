@@ -631,8 +631,8 @@ object ReflectUtils {
       case it: Iterable[_] => it.map(toValueObject)
       case array: Array[_] => array.map(toValueObject)
       case v if getType(v).typeSymbol.asClass.isCaseClass => v
-      case other => {
-        val mirrorObj = mirror.reflect(other)
+      case obpObj if ReflectUtils.isObpObject(obpObj) => {
+        val mirrorObj = mirror.reflect(obpObj)
         mirrorObj.symbol.info.decls
           .filter(it => it.isMethod && it.isPublic && it.name.toString != "getSingleton")
           .filterNot(_.isConstructor)
@@ -650,6 +650,7 @@ object ReflectUtils {
           })
           .toMap
       }
+      case x => x
     }
   }
 
