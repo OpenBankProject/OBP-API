@@ -3259,8 +3259,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def getTransactions(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): OBPReturnType[Box[List[Transaction]]] = {
-    val result: Box[(List[Transaction], Option[CallContext])] = getTransactionsLegacy(bankId, accountID, callContext, queryParams)
+  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): OBPReturnType[Box[List[Transaction]]] = {
+    val result: Box[(List[Transaction], Option[CallContext])] = getTransactionsLegacy(bankId, accountId, callContext, queryParams)
     Future(result.map(_._1), result.map(_._2).getOrElse(callContext))
   }
 

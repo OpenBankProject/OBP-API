@@ -512,8 +512,8 @@ trait Connector extends MdcLoggable {
   //TODO, here is a problem for return value `List[Transaction]`, this is a normal class, not a trait. It is a big class,
   // it contains thisAccount(BankAccount object) and otherAccount(Counterparty object)
   def getTransactionsLegacy(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): Box[(List[Transaction], Option[CallContext])]= Failure(setUnimplementedError)
-  def getTransactions(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): OBPReturnType[Box[List[Transaction]]] = {
-    val result: Box[(List[Transaction], Option[CallContext])] = getTransactionsLegacy(bankId, accountID, callContext, queryParams)
+  def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): OBPReturnType[Box[List[Transaction]]] = {
+    val result: Box[(List[Transaction], Option[CallContext])] = getTransactionsLegacy(bankId, accountId, callContext, queryParams)
     Future(result.map(_._1), result.map(_._2).getOrElse(callContext))
   }
   def getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams:  List[OBPQueryParam] = Nil, callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionCore]]] = Future{(Failure(setUnimplementedError), callContext)}
