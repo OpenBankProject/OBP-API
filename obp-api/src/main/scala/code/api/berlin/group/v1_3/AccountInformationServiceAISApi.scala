@@ -213,46 +213,33 @@ of the PSU at this ASPSP.
 """,
        json.parse(""""""),
        json.parse("""{
-  "accounts" : [ {
-    "cashAccountType" : { },
-    "product" : "product",
-    "resourceId" : "resourceId",
-    "bban" : "BARC12345612345678",
-    "_links" : {
-      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "usage" : "PRIV",
-    "balances" : "",
-    "iban" : "FR7612345987650123456789014",
-    "linkedAccounts" : "linkedAccounts",
-    "name" : "name",
-    "currency" : "EUR",
-    "details" : "details",
-    "msisdn" : "+49 170 1234567",
-    "bic" : "AAAADEBBXXX",
-    "status" : { }
-  }, {
-    "cashAccountType" : { },
-    "product" : "product",
-    "resourceId" : "resourceId",
-    "bban" : "BARC12345612345678",
-    "_links" : {
-      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "usage" : "PRIV",
-    "balances" : "",
-    "iban" : "FR7612345987650123456789014",
-    "linkedAccounts" : "linkedAccounts",
-    "name" : "name",
-    "currency" : "EUR",
-    "details" : "details",
-    "msisdn" : "+49 170 1234567",
-    "bic" : "AAAADEBBXXX",
-    "status" : { }
-  } ]
-}"""),
+                    |  "accounts":[{
+                    |    "resourceId":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                    |    "iban":"DE91 1000 0000 0123 4567 89",
+                    |    "bban":" 1000 0000 0123 4567 89",
+                    |    "currency":"EUR",
+                    |    "name":"TOM",
+                    |    "product":"AC",
+                    |    "cashAccountType":"AC",
+                    |    "bic":"AAAADEBBXXX",
+                    |    "balances":{
+                    |      "balanceAmount":{
+                    |        "currency":"EUR",
+                    |        "amount":"50.89"
+                    |      },
+                    |      "balanceType":"AC",
+                    |      "lastChangeDateTime":"2020-07-02T10:23:57.81Z",
+                    |      "referenceDate":"2020-07-02",
+                    |      "lastCommittedTransaction":"entryReference of the last commited transaction to support the TPP in identifying whether all PSU transactions are already known."
+                    |    },
+                    |    "_links":{
+                    |      "balances":{
+                    |        "href":"/v1.3/accounts/8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0/balances"
+                    |      }
+                    |    }
+                    |  }]
+                    |}
+                    |""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
@@ -299,16 +286,21 @@ The account-id is constant at least throughout the lifecycle of a given consent.
 """,
        json.parse(""""""),
        json.parse("""{
-  "balances" : "",
-  "account" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
-}"""),
+  "account":{
+    "iban":"DE91 1000 0000 0123 4567 89"
+  },
+  "balances":[{
+    "balanceAmount":{
+      "currency":"EUR",
+      "amount":"50.89"
+    },
+    "balanceType":"AC",
+    "lastChangeDateTime":"yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+    "lastCommittedTransaction":"String",
+    "referenceDate":"2018-03-08"
+  }]
+}
+"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
@@ -326,11 +318,8 @@ The account-id is constant at least throughout the lifecycle of a given consent.
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
               u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
             }
-            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
           } yield {
-            (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(bankAccount, transactionRequests), HttpCode.`200`(callContext))
+            (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(bankAccount), HttpCode.`200`(callContext))
            }
          }
        }
@@ -461,15 +450,19 @@ This account-id then can be retrieved by the
 """,
        json.parse(""""""),
        json.parse("""{
-  "balances" : "",
-  "cardAccount" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
+  "cardAccount":{
+    "iban":"DE91 1000 0000 0123 4567 89"
+  },
+  "balances":[{
+    "balanceAmount":{
+      "currency":"EUR",
+      "amount":"50.89"
+    },
+    "balanceType":"AC",
+    "lastChangeDateTime":"yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+    "lastCommittedTransaction":"String",
+    "referenceDate":"2018-03-08"
+  }]
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
@@ -489,11 +482,8 @@ This account-id then can be retrieved by the
              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
                u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
              }
-             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
-               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
-             } map { unboxFull(_) }
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(bankAccount, transactionRequests), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(bankAccount), HttpCode.`200`(callContext))
            }
        }
      }
@@ -720,7 +710,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
        nameOf(getConsentScaStatus),
        "GET",
        "/consents/CONSENTID/authorisations/AUTHORISATIONID",
-       "Read the SCA status of the consent authorisation.",
+       "Read the SCA status of the consent authorisation",
        s"""${mockedDataText(false)}
 This method returns the SCA status of a consent initiation's authorisation sub-resource.
 """,

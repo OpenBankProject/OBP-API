@@ -2069,7 +2069,6 @@ object NewStyle {
 
           deleteEndpointResult: Box[Boolean] = if(deleteSuccess) {
             val roles = DynamicEndpointHelper.getRoles(dynamicEndpointId).map(_.toString())
-            DynamicEndpointHelper.removeEndpoint(dynamicEndpointId)
             val rolesDeleteResult: Box[Boolean] = Entitlement.entitlement.vend.deleteEntitlements(roles)
 
               Box !! (rolesDeleteResult == Full(true))

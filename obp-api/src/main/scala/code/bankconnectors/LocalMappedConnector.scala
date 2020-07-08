@@ -127,7 +127,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                      transactionRequestType: String,
                                      currency: String,
                                      userId: String,
-                                     userName: String,
+                                     username: String,
                                      callContext: Option[CallContext]): Future[(Box[AmountOfMoney], Option[CallContext])] = Future {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
     val threshold = BigDecimal(APIUtil.getPropsValue(propertyName, "1000"))
@@ -296,7 +296,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                               accountId: AccountId,
                               viewId: ViewId,
                               userId: String,
-                              userName: String,
+                              username: String,
                               transactionRequestType: String,
                               currency: String,
                               callContext: Option[CallContext]) = Future {

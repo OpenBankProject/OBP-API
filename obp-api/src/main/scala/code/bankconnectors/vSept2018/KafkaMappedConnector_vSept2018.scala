@@ -2314,20 +2314,20 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   )
   
   override def getChallengeThreshold(
-    bankId: String,
-    accountId: String,
-    viewId: String,
-    transactionRequestType: String,
-    currency: String,
-    userId: String,
-    userName: String,
-    callContext: Option[CallContext]
+                                      bankId: String,
+                                      accountId: String,
+                                      viewId: String,
+                                      transactionRequestType: String,
+                                      currency: String,
+                                      userId: String,
+                                      username: String,
+                                      callContext: Option[CallContext]
   ): OBPReturnType[Box[AmountOfMoney]] = saveConnectorMetric {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(atmTTL second){
         val authInfo = getAuthInfo(callContext).openOrThrowException(attemptedToOpenAnEmptyBox)
-        val req = OutboundGetChallengeThreshold(authInfo, bankId, accountId, viewId, transactionRequestType, currency, userId, userName)
+        val req = OutboundGetChallengeThreshold(authInfo, bankId, accountId, viewId, transactionRequestType, currency, userId, username)
         logger.debug(s"Kafka getChallengeThresholdFuture Req is: $req")
 
         processRequest[InboundGetChallengeThreshold](req) map { inbound =>

@@ -412,7 +412,7 @@ trait APIMethods400 {
       "createTransactionRequestFreeForm",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/FREE_FORM/transaction-requests",
-      "Create Transaction Request (FREE_FORM).",
+      "Create Transaction Request (FREE_FORM)",
       s"""$transactionRequestGeneralText
          |
        """.stripMargin,
@@ -707,7 +707,7 @@ trait APIMethods400 {
       "answerTransactionRequestChallenge",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
-      "Answer Transaction Request Challenge.",
+      "Answer Transaction Request Challenge",
       """In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
         |
         |This endpoint totally depends on createTransactionRequest, it need get the following data from createTransactionRequest response body.
@@ -1461,7 +1461,7 @@ trait APIMethods400 {
       "addTagForViewOnAccount",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
-      "Create a tag on account.",
+      "Create a tag on account",
       s"""Posts a tag about an account ACCOUNT_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
          |${authenticationRequiredMessage(true)}
@@ -1507,7 +1507,7 @@ trait APIMethods400 {
       "deleteTagForViewOnAccount",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags/TAG_ID",
-      "Delete a tag on account.",
+      "Delete a tag on account",
       s"""Deletes the tag TAG_ID about the account ACCOUNT_ID made on [view](#1_2_1-getViewsForBankAccount).
         |
         |${authenticationRequiredMessage(true)}
@@ -1550,7 +1550,7 @@ trait APIMethods400 {
       "getTagsForViewOnAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
-      "Get tags on account.",
+      "Get tags on account",
       s"""Returns the account ACCOUNT_ID tags made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
          |${authenticationRequiredMessage(true)}
          |
@@ -2078,7 +2078,7 @@ trait APIMethods400 {
       "grantUserAccessToView",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access/grant",
-      "Grant User access to View.",
+      "Grant User access to View",
       s"""Grants the User identified by USER_ID access to the view identified by VIEW_ID.
          |
          |${authenticationRequiredMessage(true)} and the user needs to be account holder.
@@ -2132,7 +2132,7 @@ trait APIMethods400 {
       "revokeUserAccessToView",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access/revoke",
-      "Revoke User access to View.",
+      "Revoke User access to View",
       s"""Revoke the User identified by USER_ID access to the view identified by VIEW_ID.
          |
          |${authenticationRequiredMessage(true)} and the user needs to be account holder.
@@ -2701,7 +2701,7 @@ trait APIMethods400 {
       "getPrivateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get Accounts at Bank.",
+      "Get Accounts at Bank",
       s"""
          |Returns the list of accounts at BANK_ID that the user has access to.
          |For each account the API returns the account ID and the views available to the user..
@@ -2903,7 +2903,6 @@ trait APIMethods400 {
               duplicatedUrl.isEmpty
             }
             (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(postedJson.swaggerString, cc.callContext)
-            _ = DynamicEndpointHelper.addEndpoint(openAPI, dynamicEndpoint.dynamicEndpointId.get)
           } yield {
             val swaggerJson = parse(dynamicEndpoint.swaggerString)
             val responseJson: JObject = ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)

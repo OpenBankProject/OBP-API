@@ -522,4 +522,36 @@ object JsonUtils {
       case _: JArray => typeOf[JArray]
     }
   }
+
+  /**
+   * delete a group of field, field can be nested.
+   * @param jValue
+   * @param fields
+   * @return a new JValue that not contains given fields.
+   */
+  def deleteFields(jValue: JValue, fields: List[String]) = fields match {
+    case Nil => jValue
+    case x => x.foldLeft(jValue)(deleteField)
+  }
+
+  /**
+   * delete one field, the field can be nested, e.g: "foo.bar.barzz"
+   * @param jValue
+   * @param fieldName
+   * @return a new JValue that not contains given field.
+   */
+  def deleteField(jValue:JValue, fieldName: String): JValue = jValue match {
+      case JNull | JNothing => jValue
+      case _: JObject =>
+        if(!fieldName.contains(".")) {
+          jValue.removeField(_.name == fieldName)
+        } else {
+          val Array(field, nestedField) = StringUtils.split(fieldName, ".", 2)
+          jValue.transformField {
+            case JField(name, value) if name == field => JField(name, deleteField(value, nestedField))
+          }
+        }
+      case JArray(arr) => JArray(arr.map(deleteField(_, fieldName)))
+    }
+
 }

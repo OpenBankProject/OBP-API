@@ -8,13 +8,20 @@ import code.api.cache.Caching
 import code.api.util.ApiRole.rolesMappedToClasses
 import code.api.v3_1_0.ListResult
 import code.util.Helper.MdcLoggable
+import code.util.JsonUtils
+import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util._
 import com.tesobe.CacheKeyFromArguments
+import net.liftweb.json
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{TypeInfo, _}
+import org.apache.commons.lang3.StringUtils
 
+import scala.collection.immutable.List
 import scala.concurrent.duration._
 import scala.reflect.ManifestFactory
+import scala.reflect.runtime.universe
+import scala.reflect.runtime.universe._
 
 trait CustomJsonFormats {
   implicit val formats: Formats = CustomJsonFormats.formats
@@ -184,5 +191,65 @@ object JNothingSerializer extends Serializer[Any] with MdcLoggable {
   }
 }
 
+object FieldIgnoreSerializer extends Serializer[AnyRef] {
+  private val memo = new Memo[universe.Type, List[String]]()
+  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, json.JValue), AnyRef] = Functions.doNothing
+  private lazy val propsConfigIgnoreFields = Array(
+      APIUtil.getPropsValue("outbound.ignore.fields", "").split("""\s*,\s*"""),
+      APIUtil.getPropsValue("inbound.ignore.fields", "").split("""\s*,\s*""")
+    ).flatten.filterNot(StringUtils.isBlank).toList
+
+  // keep current process InBound or OutBound instance, avoid dead loop.
+  private val threadLocal = new java.lang.ThreadLocal[Any]
+
+  override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = {
+    case x if isInOutBoundType(x) && threadLocal.get() == null =>
+      threadLocal.set(x)
+      try{
+        val ignoreFieldNames: List[String] = getIgnores(ReflectUtils.getType(x)) ::: propsConfigIgnoreFields
+        val zson = json.Extraction.decompose(x)
+        ignoreFieldNames match {
+          case Nil => zson
+          case ignores => JsonUtils.deleteFields(zson, ignores)
+        }
+      } finally {
+        threadLocal.remove()
+      }
+  }
+
+  private def isInOutBoundType(any: Any) = {
+    if(ReflectUtils.isObpObject(any)) {
+      val className = any.getClass.getSimpleName
+      className.startsWith("OutBound") || className.startsWith("InBound")
+    } else {
+      false
+    }
+  }
+
+  def getIgnores(tp: universe.Type): List[String] = {
+    if(!ReflectUtils.isObpType(tp)) {
+      return Nil
+    }
+    memo.memoize(tp){
+      val fields: List[universe.Symbol] = tp.decls.filter(decl => decl.isTerm && (decl.asTerm.isVal || decl.asTerm.isVar)).toList
+      val (ignoreFields, notIgnoreFields) = fields.partition(_.annotations.exists(_.tree.tpe <:< typeOf[ignore]))
+      val annotedFieldNames = ignoreFields.map(_.name.decodedName.toString.trim)
+      val subAnnotedFieldNames = notIgnoreFields.flatMap(it => {
+        val fieldName = it.name.decodedName.toString.trim
+        val fieldType: universe.Type = it.info match {
+          case x if x <:< typeOf[Iterable[_]] &&  !(x <:< typeOf[Map[_,_]]) =>
+            x.typeArgs.head
+          case x if x <:< typeOf[Array[_]] =>
+            x.typeArgs.head
+          case x => x
+        }
+
+        getIgnores(fieldType)
+          .map(it =>  s"$fieldName.$it")
+      })
+      annotedFieldNames ++ subAnnotedFieldNames
+    }
+  }
+}
 
 

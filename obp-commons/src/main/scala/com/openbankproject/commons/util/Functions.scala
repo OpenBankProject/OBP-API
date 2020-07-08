@@ -63,6 +63,30 @@ object Functions {
           coll.filterNot(it => it.isInstanceOf[Array[_]] || it.isInstanceOf[GenTraversableOnce[_]])
       }
 
+  /**
+   * momoize function, to avoid re calculate values
+   * @tparam A key
+   * @tparam R cached value
+   */
+  class Memo[A, R] {
+      private val cache = new java.util.concurrent.atomic.AtomicReference(Map[A, R]())
+
+      def memoize(x: A)(f: => R): R = {
+        def addToCache(): R = {
+          val ret = f
+
+          // if after execute f, the x not cached or cached but value changed, update cached value
+          val c: Map[A, R] = cache.get
+          val cachedValue = c.get(x)
+          if(cachedValue.isEmpty || cachedValue.get != ret) {
+            cache.set(c + (x -> ret))
+          }
+
+          ret
+        }
+        cache.get.getOrElse(x, addToCache)
+      }
+    }
 
       // implicit functions place in this object
       object Implicits {

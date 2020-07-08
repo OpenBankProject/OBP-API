@@ -74,7 +74,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-07-01T12:01:48Z
+// ---------- created on 2020-07-02T16:06:15Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -135,9 +135,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, username: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
         import com.openbankproject.commons.dto.{OutBoundGetChallengeThreshold => OutBound, InBoundGetChallengeThreshold => InBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, viewId, transactionRequestType, currency, userId, userName)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, viewId, transactionRequestType, currency, userId, username)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_challenge_threshold", req, callContext)
         response.map(convertToTuple[AmountOfMoney](callContext))        
   }
@@ -168,9 +168,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def getChargeLevel(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, userName: String, transactionRequestType: String, currency: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
+  override def getChargeLevel(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, username: String, transactionRequestType: String, currency: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
         import com.openbankproject.commons.dto.{OutBoundGetChargeLevel => OutBound, InBoundGetChargeLevel => InBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, viewId, userId, userName, transactionRequestType, currency)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, viewId, userId, username, transactionRequestType, currency)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_charge_level", req, callContext)
         response.map(convertToTuple[AmountOfMoney](callContext))        
   }
@@ -188,7 +188,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountId=AccountId(accountIdExample.value),
       userId=userIdExample.value,
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value),
-      transactionRequestId="string",
+      transactionRequestId=transactionRequestIdExample.value,
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS))
     ),
     exampleInboundMessage = (
@@ -219,7 +219,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountId=AccountId(accountIdExample.value),
       userIds=List(userIdExample.value),
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value),
-      transactionRequestId="string",
+      transactionRequestId=transactionRequestIdExample.value,
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS))
     ),
     exampleInboundMessage = (
@@ -427,9 +427,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def checkExternalUserCredentials(name: String, password: String, callContext: Option[CallContext]): Box[InboundExternalUser] = {
+  override def checkExternalUserCredentials(username: String, password: String, callContext: Option[CallContext]): Box[InboundExternalUser] = {
         import com.openbankproject.commons.dto.{OutBoundCheckExternalUserCredentials => OutBound, InBoundCheckExternalUserCredentials => InBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, name, password)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, username, password)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_check_external_user_credentials", req, callContext)
         response.map(convertToTuple[InboundExternalUser](callContext))        
   }
@@ -1654,14 +1654,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundCreateTransactionRequestv210(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= TransactionRequest(id=TransactionRequestId("string"),
+      data= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
       `type`=transactionRequestTypeExample.value,
-      from= TransactionRequestAccount(bank_id="string",
-      account_id="string"),
-      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id="string",
-      account_id="string")),
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban("string")),
-      to_counterparty=Some(TransactionRequestCounterpartyId("string")),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description="string",
@@ -1709,7 +1709,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       value= AmountOfMoney(currency=currencyExample.value,
       amount=amountExample.value)),
       charge_policy="string",
-      counterparty_id=CounterpartyId(counterpartyIdExample.value),
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
       name="string",
       this_bank_id=BankId(bankIdExample.value),
       this_account_id=AccountId(accountIdExample.value),
@@ -1795,14 +1795,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundCreateTransactionRequestv400(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= TransactionRequest(id=TransactionRequestId("string"),
+      data= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
       `type`=transactionRequestTypeExample.value,
-      from= TransactionRequestAccount(bank_id="string",
-      account_id="string"),
-      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id="string",
-      account_id="string")),
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban("string")),
-      to_counterparty=Some(TransactionRequestCounterpartyId("string")),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description="string",
@@ -1850,7 +1850,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       value= AmountOfMoney(currency=currencyExample.value,
       amount=amountExample.value)),
       charge_policy="string",
-      counterparty_id=CounterpartyId(counterpartyIdExample.value),
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
       name="string",
       this_bank_id=BankId(bankIdExample.value),
       this_account_id=AccountId(accountIdExample.value),
@@ -1909,14 +1909,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundGetTransactionRequests210(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( TransactionRequest(id=TransactionRequestId("string"),
+      data=List( TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
       `type`=transactionRequestTypeExample.value,
-      from= TransactionRequestAccount(bank_id="string",
-      account_id="string"),
-      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id="string",
-      account_id="string")),
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban("string")),
-      to_counterparty=Some(TransactionRequestCounterpartyId("string")),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description="string",
@@ -1964,7 +1964,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       value= AmountOfMoney(currency=currencyExample.value,
       amount=amountExample.value)),
       charge_policy="string",
-      counterparty_id=CounterpartyId(counterpartyIdExample.value),
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
       name="string",
       this_bank_id=BankId(bankIdExample.value),
       this_account_id=AccountId(accountIdExample.value),
@@ -1995,19 +1995,19 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundGetTransactionRequestImpl(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      transactionRequestId=TransactionRequestId("string"))
+      transactionRequestId=TransactionRequestId(transactionRequestIdExample.value))
     ),
     exampleInboundMessage = (
      InBoundGetTransactionRequestImpl(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= TransactionRequest(id=TransactionRequestId("string"),
+      data= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
       `type`=transactionRequestTypeExample.value,
-      from= TransactionRequestAccount(bank_id="string",
-      account_id="string"),
-      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id="string",
-      account_id="string")),
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban("string")),
-      to_counterparty=Some(TransactionRequestCounterpartyId("string")),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description="string",
@@ -2055,7 +2055,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       value= AmountOfMoney(currency=currencyExample.value,
       amount=amountExample.value)),
       charge_policy="string",
-      counterparty_id=CounterpartyId(counterpartyIdExample.value),
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
       name="string",
       this_bank_id=BankId(bankIdExample.value),
       this_account_id=AccountId(accountIdExample.value),
@@ -2104,14 +2104,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
       accountHolder=bankAccountAccountHolderExample.value),
-      transactionRequest= TransactionRequest(id=TransactionRequestId("string"),
+      transactionRequest= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
       `type`=transactionRequestTypeExample.value,
-      from= TransactionRequestAccount(bank_id="string",
-      account_id="string"),
-      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id="string",
-      account_id="string")),
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban("string")),
-      to_counterparty=Some(TransactionRequestCounterpartyId("string")),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description="string",
@@ -2159,7 +2159,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       value= AmountOfMoney(currency=currencyExample.value,
       amount=amountExample.value)),
       charge_policy="string",
-      counterparty_id=CounterpartyId(counterpartyIdExample.value),
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
       name="string",
       this_bank_id=BankId(bankIdExample.value),
       this_account_id=AccountId(accountIdExample.value),
@@ -2174,14 +2174,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundCreateTransactionAfterChallengeV210(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= TransactionRequest(id=TransactionRequestId("string"),
+      data= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
       `type`=transactionRequestTypeExample.value,
-      from= TransactionRequestAccount(bank_id="string",
-      account_id="string"),
-      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id="string",
-      account_id="string")),
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban("string")),
-      to_counterparty=Some(TransactionRequestCounterpartyId("string")),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description="string",
@@ -2229,7 +2229,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       value= AmountOfMoney(currency=currencyExample.value,
       amount=amountExample.value)),
       charge_policy="string",
-      counterparty_id=CounterpartyId(counterpartyIdExample.value),
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
       name="string",
       this_bank_id=BankId(bankIdExample.value),
       this_account_id=AccountId(accountIdExample.value),
@@ -2709,20 +2709,20 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
       accountHolder=bankAccountAccountHolderExample.value),
-      transReqId=TransactionRequestId("string"),
+      transReqId=TransactionRequestId(transactionRequestIdExample.value),
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value))
     ),
     exampleInboundMessage = (
      InBoundCreateTransactionAfterChallengev300(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= TransactionRequest(id=TransactionRequestId("string"),
+      data= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
       `type`=transactionRequestTypeExample.value,
-      from= TransactionRequestAccount(bank_id="string",
-      account_id="string"),
-      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id="string",
-      account_id="string")),
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban("string")),
-      to_counterparty=Some(TransactionRequestCounterpartyId("string")),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description="string",
@@ -2770,7 +2770,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       value= AmountOfMoney(currency=currencyExample.value,
       amount=amountExample.value)),
       charge_policy="string",
-      counterparty_id=CounterpartyId(counterpartyIdExample.value),
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
       name="string",
       this_bank_id=BankId(bankIdExample.value),
       this_account_id=AccountId(accountIdExample.value),
@@ -2962,14 +2962,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundCreateTransactionRequestv300(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= TransactionRequest(id=TransactionRequestId("string"),
+      data= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
       `type`=transactionRequestTypeExample.value,
-      from= TransactionRequestAccount(bank_id="string",
-      account_id="string"),
-      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id="string",
-      account_id="string")),
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban("string")),
-      to_counterparty=Some(TransactionRequestCounterpartyId("string")),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description="string",
@@ -3017,7 +3017,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       value= AmountOfMoney(currency=currencyExample.value,
       amount=amountExample.value)),
       charge_policy="string",
-      counterparty_id=CounterpartyId(counterpartyIdExample.value),
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
       name="string",
       this_bank_id=BankId(bankIdExample.value),
       this_account_id=AccountId(accountIdExample.value),
@@ -3862,8 +3862,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundGetCheckbookOrders(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= CheckbookOrdersJson(account= AccountV310Json(bank_id="string",
-      account_id="string",
+      data= CheckbookOrdersJson(account= AccountV310Json(bank_id=bank_idExample.value,
+      account_id=account_idExample.value,
       account_type="string",
       account_routings=List( AccountRoutingJsonV121(scheme="string",
       address="string")),
@@ -5649,8 +5649,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-07-01T12:01:48Z
-//---------------- dynamic end ---------------------please don't modify this line  
+// ---------- created on 2020-07-02T16:06:15Z
+//---------------- dynamic end ---------------------please don't modify this line        
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 
