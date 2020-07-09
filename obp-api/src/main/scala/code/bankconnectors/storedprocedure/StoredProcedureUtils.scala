@@ -51,7 +51,7 @@ object StoredProcedureUtils extends MdcLoggable{
 
   def callProcedure[T: Manifest](procedureName: String, outBound: TopicTrait): Box[T] = {
     val procedureParam: String = write(outBound) // convert OutBound to json string
-
+    logger.debug(s"${StoredProcedureConnector_vDec2019.toString} outBoundJson: $procedureName = $procedureParam" )
     val responseJson: String =
       scalikeDB autoCommit { implicit session =>
         val conn: Connection = session.connection
@@ -65,7 +65,7 @@ object StoredProcedureUtils extends MdcLoggable{
         callableStatement.executeUpdate()
         callableStatement.getString(2)
      }
-    logger.debug(s"${StoredProcedureConnector_vDec2019.toString} responseJson: $procedureName = $responseJson" )
+    logger.debug(s"${StoredProcedureConnector_vDec2019.toString} inBoundJson: $procedureName = $responseJson" )
     Connector.extractAdapterResponse[T](responseJson, Empty)
   }
 }
