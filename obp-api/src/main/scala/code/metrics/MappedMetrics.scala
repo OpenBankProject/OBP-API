@@ -1,7 +1,7 @@
 package code.metrics
 
 import java.sql.{PreparedStatement, Timestamp}
-import java.util.Date
+import java.util.{Calendar, Date}
 import java.util.UUID.randomUUID
 
 import code.api.cache.Caching
@@ -324,7 +324,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val duration = queryParams.collect { case OBPDuration(value) => value }.headOption
       val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
       val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
-
+      val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(10)
+      
       val excludeUrlPatternsSet= excludeUrlPatterns.getOrElse(List("")).toSet
       val excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
       val excludeImplementedByPartialFunctionsNumberSet = excludeImplementedByPartialFunctions.getOrElse(List("")).toSet
@@ -336,8 +337,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val (dbUrl, user, password) = getDbConnectionParameters()
       ConnectionPool.singleton(dbUrl, user, password, settings)
       val result: List[TopApi] = scalikeDB readOnly { implicit session =>
-        val msSqlLimit = if (dbUrl.contains("sqlserver")) sqls"TOP 10" else sqls""
-        val limit = if (dbUrl.contains("sqlserver")) sqls"" else sqls"LIMIT 10"
+        val msSqlLimit = if (dbUrl.contains("sqlserver")) sqls"TOP ($limit)" else sqls""
+        val otherDbLimit = if (dbUrl.contains("sqlserver")) sqls"" else sqls"LIMIT $limit"
         val sqlResult =
           sql"""SELECT ${msSqlLimit} count(*), mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion 
                 FROM mappedmetric 
@@ -358,7 +359,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                 AND (${truOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($extendedExcludeImplementedByPartialFunctionsQueries)) 
                 GROUP BY mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion 
                 ORDER BY count(*) DESC
-                ${limit}
+                ${otherDbLimit}
                 """.stripMargin
           .map(
             rs => 
@@ -411,8 +412,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 
       val (dbUrl, user, password) = getDbConnectionParameters()
       ConnectionPool.singleton(dbUrl, user, password, settings)
-      val msSqlLimit = if (dbUrl.contains("sqlserver")) sqls"TOP 10" else sqls""
-      val generalLimit = if (dbUrl.contains("sqlserver")) sqls"" else sqls"LIMIT 10"
+      val msSqlLimit = if (dbUrl.contains("sqlserver")) sqls"TOP ($limit)" else sqls""
+      val otherDbLimit = if (dbUrl.contains("sqlserver")) sqls"" else sqls"LIMIT $limit"
       val result: List[TopConsumer] = scalikeDB readOnly { implicit session =>
         val sqlResult =
           sql"""SELECT ${msSqlLimit} count(*) as count, consumer.id as consumerprimaryid, mappedmetric.appname as appname, 
@@ -435,7 +436,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                 AND (${truOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($extendedExcludeImplementedByPartialFunctionsQueries)) 
                 GROUP BY appname,	consumer.developeremail, consumer.id,	consumer.consumerid
                 ORDER BY count DESC
-                ${generalLimit}
+                ${otherDbLimit}
                 """.stripMargin
             .map(
               rs => 
