@@ -30,7 +30,7 @@ import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.getIbanAndBban
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, _}
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
-import code.api.util.{APIUtil, CallContext, OBPQueryParam}
+import code.api.util.{APIUtil, CallContext, HashUtil, OBPQueryParam}
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
@@ -247,7 +247,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     exampleOutboundMessage = (
      OutBoundValidateChallengeAnswer(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       challengeId="string",
-      hashOfSuppliedAnswer="string")
+      hashOfSuppliedAnswer=HashUtil.Sha256Hash("123"))
     ),
     exampleInboundMessage = (
      InBoundValidateChallengeAnswer(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
