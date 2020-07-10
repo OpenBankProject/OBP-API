@@ -424,6 +424,11 @@ case class CounterpartiesJson400(
                                    counterparties: List[CounterpartyJson400]
                                  )
 
+case class BankAccountRoutingJson(
+                                 bank_id: Option[String],
+                                 account_routing: AccountRoutingJsonV121
+                                 )
+
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {

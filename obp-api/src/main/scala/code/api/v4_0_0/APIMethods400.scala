@@ -1919,6 +1919,62 @@ trait APIMethods400 {
 
 
     staticResourceDocs += ResourceDoc(
+      getAccountByAccountRouting,
+      implementedInApiVersion,
+      nameOf(getAccountByAccountRouting),
+      "POST",
+      "/management/accounts/account-routing-query",
+      "Get Account by Account Routing",
+      """This endpoint returns the account (if it exists) linked with the provided scheme and address.
+        |
+        |The `bank_id` field is optional, but if it's not provided, we don't guarantee that the returned account is unique across all the banks.
+        |
+        |Example of account routing scheme: `IBAN`, "OBP", "AccountNumber", ...
+        |Example of account routing address: `DE17500105178275645584`, "321774cc-fccd-11ea-adc1-0242ac120002", "55897106215", ...
+        |
+        |""".stripMargin,
+      bankAccountRoutingJson,
+      moderatedAccountJSON400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount),
+    )
+    lazy val getAccountByAccountRouting : OBPEndpoint = {
+      case "management" :: "accounts" :: "account-routing-query" :: Nil JsonPost json -> _ => {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $accountRoutingJsonV121"
+          for {
+            postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[BankAccountRoutingJson]
+            }
+
+            (account, callContext) <- NewStyle.function.getBankAccountByRouting(postJson.bank_id.map(BankId(_)),
+              postJson.account_routing.scheme, postJson.account_routing.address, cc.callContext)
+
+            user @Full(u) = cc.user
+            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), cc.callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, cc.callContext)
+
+            (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
+              account.bankId,
+              account.accountId,
+              cc.callContext: Option[CallContext])
+          } yield {
+            val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(cc.user.openOrThrowException("Exception user"), BankIdAccountId(account.bankId, account.accountId))
+            val viewsAvailable = availableViews.map(JSONFactory.createViewJSON).sortBy(_.short_name)
+            val tags = Tags.tags.vend.getTagsOnAccount(account.bankId, account.accountId)(view.viewId)
+            (createBankAccountJSON(moderatedAccount, viewsAvailable, accountAttributes, tags), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
       getCustomersByCustomerPhoneNumber,
       implementedInApiVersion,
       nameOf(getCustomersByCustomerPhoneNumber),
