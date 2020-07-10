@@ -365,14 +365,14 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       
     val address = transaction.otherBankAccount.map(_.accountRoutingAddress).getOrElse(None).getOrElse("")
     val scheme: String = transaction.otherBankAccount.map(_.accountRoutingScheme).getOrElse(None).getOrElse("")
-    val (iban, bban, pan, maskedPan, currency) = extractAccountData(scheme, address)
+//    val (iban, bban, pan, maskedPan, currency) = extractAccountData(scheme, address)
     CardTransactionJsonV13(
       cardTransactionId = transaction.id.value,
       transactionAmount = AmountOfMoneyV13(APIUtil.stringOptionOrNull(transaction.currency), transaction.amount.get.toString()),
       transactionDate = transaction.finishDate.get,
       bookingDate = transaction.startDate.get,
       originalAmount = AmountOfMoneyV13(orignalCurrency, orignalBalnce),
-      maskedPan = maskedPan,
+      maskedPan = "",
       proprietaryBankTransactionCode = "",
       invoiced = true,
       transactionDetails = APIUtil.stringOptionOrNull(transaction.description)
