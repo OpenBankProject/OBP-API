@@ -1179,7 +1179,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           isFeatured: Boolean = false,
                           specialInstructions: Option[String] = None,
                           specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
-                          var connectorMethods: Option[List[String]] = None //TOD move to body as one field. because the value passed to constructor will be ignore,
+                          var connectorMethods: Option[List[String]] = None //TOD move to body as one field. because the value passed to constructor will be ignored.
                         ) {
     // this code block will be merged to constructor.
     {
