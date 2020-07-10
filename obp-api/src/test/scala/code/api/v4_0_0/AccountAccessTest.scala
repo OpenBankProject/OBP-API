@@ -4,13 +4,16 @@ import com.openbankproject.commons.model.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages.UserNotLoggedIn
 import code.api.v3_0_0.ViewJsonV300
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.AmountOfMoneyJsonV121
+import net.liftweb.common.Box
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
@@ -69,8 +72,14 @@ class AccountAccessTest extends V400ServerSetup {
 
   feature(s"test $ApiEndpoint1 and $ApiEndpoint2 version $VersionOfApi - Authorized access") {
     scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
-      
-      val account = createAnAccount(bankId, user1)
+
+      val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
+      val account = try {
+        createAnAccount(bankId, user1)
+      } finally {
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+
       val view = createViewForAnAccount(bankId, account.account_id)
       val postJson = PostAccountAccessJsonV400(resourceUser2.userId, PostViewJsonV400(view.id, view.is_system))
       When("We send the request")

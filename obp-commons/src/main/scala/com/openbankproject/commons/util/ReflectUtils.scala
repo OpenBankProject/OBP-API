@@ -26,6 +26,8 @@ object ReflectUtils {
 
   def isObpClass(clazz: Class[_]): Boolean = clazz != null && OBP_TYPE_REGEX.findFirstIn(clazz.getName).isDefined
 
+  def isObpClass(clazzName: String): Boolean = clazzName != null && OBP_TYPE_REGEX.findFirstIn(clazzName).isDefined
+
   /**
    * get given instance FieldMirror, and operate it. this function is just for helper of getField and setField function
    * @param obj
@@ -480,6 +482,8 @@ object ReflectUtils {
 
 
   def getType(obj: Any): ru.Type = mirror.reflect(obj).symbol.toType
+
+  def forType(className: String): ru.Type = mirror.staticClass(className).toType
 
   def getPrimaryConstructor(tp: ru.Type): MethodSymbol = tp.decl(ru.termNames.CONSTRUCTOR).alternatives.head.asMethod
 
