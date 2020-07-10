@@ -176,9 +176,12 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           isFeatured = getIsFeaturedApi(x.partialFunctionName),
           specialInstructions = getSpecialInstructions(x.partialFunctionName),
           requestUrl =  s"/${x.implementedInApiVersion.urlPrefix}/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}", // This is the "implemented" in url
-          specifiedUrl = Some(s"/${x.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${x.requestUrl}") // This is the "specified" in url when we call the resourceDoc api
+          specifiedUrl = Some(s"/${x.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${x.requestUrl}"), // This is the "specified" in url when we call the resourceDoc api
         )
-      } yield y
+      } yield {
+        y.connectorMethods = x.connectorMethods // scala language bug, var field can't be kept when do copy, it must reset itself manually.
+        y
+      }
 
 
       logger.debug(s"There are ${theResourceDocs.length} resource docs (including local) available to $requestedApiVersion")
