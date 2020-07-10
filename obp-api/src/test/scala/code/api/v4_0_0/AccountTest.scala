@@ -14,6 +14,7 @@ import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.common.Box
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
@@ -88,8 +89,14 @@ class AccountTest extends V400ServerSetup {
   feature(s"test $ApiEndpoint3 - Authorized access") {
     scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "banks" / testBankId.value / "accounts" ).POST <@(user1)
-      val response400 = makePostRequest(request400, write(addAccountJson))
+      val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
+      val response400 = try {
+        val request400 = (v4_0_0_Request / "banks" / testBankId.value / "accounts" ).POST <@(user1)
+        makePostRequest(request400, write(addAccountJson))
+      } finally {
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+
       Then("We should get a 201")
       response400.code should equal(201)
       val account = response400.body.extract[CreateAccountResponseJsonV310]
