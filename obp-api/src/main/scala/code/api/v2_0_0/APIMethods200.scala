@@ -893,7 +893,7 @@ trait APIMethods200 {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => {
 
         cc =>
-          // TODO return specific error if bankId == "BANK_ID" or accountID == "ACCOUNT_ID"
+          // TODO return specific error if bankId == "BANK_ID" or accountId == "ACCOUNT_ID"
           // Should be a generic guard we can use for all calls (also for userId etc.)
           for {
             u <- cc.user ?~  UserNotLoggedIn
