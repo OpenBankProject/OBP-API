@@ -1235,8 +1235,8 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagPerson, apiTagNewStyle),
-      Some(List(canCreateCustomer,canCreateCustomerAtAnyBank)),
-      connectorMethods = Some(List("obp.getBank","obp.createCustomer")))
+      Some(List(canCreateCustomer,canCreateCustomerAtAnyBank))
+    )
     lazy val createCustomer : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
         cc =>
@@ -4795,8 +4795,7 @@ trait APIMethods310 {
       List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagAccount),
-      Some(List(canUpdateAccount)), 
-      connectorMethods = Some(List("obp.getBank","obp.getBankAccount","obp.updateBankAccount"))
+      Some(List(canUpdateAccount))
     )
 
     lazy val updateAccount : OBPEndpoint = {
@@ -5944,8 +5943,7 @@ trait APIMethods310 {
       accountBalancesV310Json,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: apiTagPSD2AIS :: apiTagNewStyle :: Nil,
-      connectorMethods = Some(List("obp.getBank","obp.getBankAccountsBalances"))
+      apiTagAccount :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
     )
 
     lazy val getBankAccountsBalances : OBPEndpoint = {

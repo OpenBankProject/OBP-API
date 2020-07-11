@@ -92,7 +92,7 @@ import javassist.ClassPool
 import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.lang3.StringUtils
 
-import scala.collection.mutable
+import scala.collection.{immutable, mutable}
 import scala.concurrent.Future
 import scala.io.BufferedSource
 import scala.runtime.AbstractPartialFunction
@@ -1178,14 +1178,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           var roles: Option[List[ApiRole]] = None,
                           isFeatured: Boolean = false,
                           specialInstructions: Option[String] = None,
-                          specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
-                          var connectorMethods: Option[List[String]] = None //TOD move to body as one field. because the value passed to constructor will be ignored.
+                          specifiedUrl: Option[String] = None // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
                         ) {
     // this code block will be merged to constructor.
     {
-      // reset dependent connector methods
-      connectorMethods = endpointToConnectorMethod.get(partialFunction.getClass.getName).map(_.map("obp."+))
-
       val authenticationIsRequired = authenticationRequiredMessage(true)
       val authenticationIsOptional = authenticationRequiredMessage(false)
 
@@ -1216,6 +1212,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
              |"""
       }
     }
+    // set dependent connector methods
+    var connectorMethods: List[String] = endpointToConnectorMethod.getOrElse(partialFunction.getClass.getName, Nil).map("obp."+)
+
     private val rolesForCheck = roles match {
       case Some(list) => list
       case _ => Nil
@@ -1395,10 +1394,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           }
 
           this.connectorMethods = this.connectorMethods match {
-            case Some(x) if addedMethods.nonEmpty =>
-              val allMethods = (addedMethods ::: x).distinct
-              Some(allMethods)
-            case None if addedMethods.nonEmpty => Some(addedMethods.distinct)
+            case x if addedMethods.nonEmpty => (addedMethods ::: x).distinct
             case x => x
           }
         }

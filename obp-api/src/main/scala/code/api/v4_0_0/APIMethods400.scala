@@ -134,8 +134,7 @@ trait APIMethods400 {
       banksJSON,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil,
-      connectorMethods = Some(List("obp.getBanks"))
+      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
     )
 
     lazy val getBanks: OBPEndpoint = {
@@ -1615,8 +1614,7 @@ trait APIMethods400 {
       moderatedCoreAccountJsonV400,
       List($UserNotLoggedIn, $BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
-      apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: Nil,
-      connectorMethods = Some(List("obp.checkBankAccountExists","obp.getAccountAttributesByAccount"))
+      apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: Nil
     )
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
@@ -1671,8 +1669,7 @@ trait APIMethods400 {
         $UserNoPermissionAccessView,
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      apiTagAccount ::  apiTagNewStyle :: Nil,
-      connectorMethods = Some(List("obp.checkBankAccountExists","obp.getAccountAttributesByAccount"))
+      apiTagAccount ::  apiTagNewStyle :: Nil
     )
     lazy val getPrivateAccountByIdFull : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
@@ -1759,8 +1756,7 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank),
-      Some(List(canCreateBank)),
-      connectorMethods = Some(List("obp.createOrUpdateBank"))
+      Some(List(canCreateBank))
     )
 
     lazy val createBank: OBPEndpoint = {
@@ -2716,8 +2712,7 @@ trait APIMethods400 {
       basicAccountsJSON,
       List($UserNotLoggedIn, $BankNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getBank","obp.getBankAccount"))
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle)
     )
 
     lazy val getPrivateAccountsAtOneBank: OBPEndpoint = {

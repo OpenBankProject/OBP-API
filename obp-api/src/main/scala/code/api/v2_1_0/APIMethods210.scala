@@ -1474,8 +1474,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer),
-      connectorMethods = Some(List("obp.getBank","obp.getCustomersByUserId")))
+      List(apiTagCustomer)
+    )
 
     lazy val getCustomersForCurrentUserAtBank : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonGet _ => {
