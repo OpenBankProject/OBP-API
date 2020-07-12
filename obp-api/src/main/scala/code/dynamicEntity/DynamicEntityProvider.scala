@@ -60,34 +60,44 @@ trait DynamicEntityT {
       )
     }
 
-    val invalidPropertyMsg = (definition \ entityName \ "properties").asInstanceOf[JObject].obj
-      .map(it => {
-        val JField(propertyName, propertyDef: JObject) = it
-        val propertyTypeName = (propertyDef \ "type").asInstanceOf[JString].s
-        (propertyName, propertyTypeName)
-      })
-      .map(it => {
-        val (propertyName, propertyType) = it
-        val propertyValue = entityJson \ propertyName
-        val typeEnumOption = DynamicEntityFieldType.withNameOption(propertyType)
+    val invalidPropertyMsg: List[Future[String]] = for {
+      JField(propertyName, propertyDef: JObject) <- (definition \ entityName \ "properties").asInstanceOf[JObject].obj
+      propertyTypeName = (propertyDef \ "type").asInstanceOf[JString].s
+      propertyValue = entityJson \ propertyName
+      typeEnumOption = DynamicEntityFieldType.withNameOption(propertyTypeName)
+    } yield {
+      val minLength: JValue = propertyDef \ "minLength"
+      val maxLength: JValue = propertyDef \ "maxLength"
+      (propertyTypeName, typeEnumOption, propertyValue) match {
+        case (_, _, JNothing | JNull)                             => Future.successful("") // required properties already checked.
 
-        (propertyType, typeEnumOption, propertyValue) match {
-          case (_, _, JNothing | JNull)                             => Future.successful("") // required properties already checked.
+        case (_, Some(typeEnum), v) if !typeEnum.isJValueValid(v) =>
+          Future.successful(s"The value of '$propertyName' is wrong, ${typeEnum.wrongTypeMsg}")
 
-          case (_, Some(typeEnum), v) if !typeEnum.isJValueValid(v) =>
-            Future.successful(s"The value of '$propertyName' is wrong, ${typeEnum.wrongTypeMsg}")
+        case (t, None, v)  if t.startsWith("reference:") && !v.isInstanceOf[JString] =>
+          val errorMsg = s"The type of '$propertyName' is 'reference', value should be a string that represent reference entity's Id"
+          Future.successful(errorMsg)
 
-          case (t, None, v)  if t.startsWith("reference:") && !v.isInstanceOf[JString] =>
-             val errorMsg = s"The type of '$propertyName' is 'reference', value should be a string that represent reference entity's Id"
-            Future.successful(errorMsg)
+        case (t, None, v) if t.startsWith("reference:")           =>
+          val value = v.asInstanceOf[JString].s
+          ReferenceType.validateRefValue(t, propertyName, value, callContext)
 
-          case (t, None, v) if t.startsWith("reference:")           =>
-            val value = v.asInstanceOf[JString].s
-            ReferenceType.validateRefValue(t, propertyName, value, callContext)
+        case (_, Some(DynamicEntityFieldType.string), v)
+          if ! DynamicEntityFieldType.string.isLengthValid(v, minLength, maxLength) =>
+          var errorMsg = s"The $propertyName's value length is not correct"
+          if(minLength != JNothing) {
+            errorMsg += s", minLength: ${minLength.asInstanceOf[JInt].num}"
+          }
+          if(maxLength != JNothing) {
+            errorMsg += s", maxLength: ${maxLength.asInstanceOf[JInt].num}"
+          }
+          errorMsg += "."
+          Future.successful(errorMsg)
 
-          case _                                                    => Future.successful("")
-        }
-      })
+        case _                                                    => Future.successful("")
+      }
+    }
+
     Future.sequence(invalidPropertyMsg)
     .map(_.filter(_.nonEmpty))
     .collect {
@@ -346,6 +356,8 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
    *         "properties": {
    *             "name": {
    *                 "type": "string",
+   *                 "minLength": 3,
+   *                 "maxLength": 20,
    *                 "example": "James Brown",
    *                 "description":"description of **name** field, can be markdown text."
    *             },
@@ -424,6 +436,24 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       checkFormat(fieldType.isInstanceOf[JString] && fieldTypeName.nonEmpty, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'type' field should be exists and type is json string")
       checkFormat(allowedFieldType.contains(fieldTypeName), s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'type' field should be one of these string value: ${allowedFieldType.mkString(", ")}")
 
+      if(DynamicEntityFieldType.withName(fieldTypeName) == DynamicEntityFieldType.string) {
+        val minLength = value \ "minLength"
+        val maxLength = value \ "maxLength"
+        def toInt(jValue: JValue) = jValue.asInstanceOf[JInt].num.intValue()
+        if(minLength != JNothing) {
+          checkFormat(minLength.isInstanceOf[JInt], s"$DynamicEntityInstanceValidateFail The property of minLength's 'type' should be integer")
+          checkFormat(toInt(minLength) >= 0, s"$DynamicEntityInstanceValidateFail The property of minLength value should be non-negative integer, current value: ${toInt(minLength)}")
+        }
+        if(maxLength != JNothing) {
+          checkFormat(maxLength.isInstanceOf[JInt], s"$DynamicEntityInstanceValidateFail The property of maxLength's 'type' should be integer")
+          checkFormat(toInt(maxLength) >= 0, s"$DynamicEntityInstanceValidateFail The property of minLength value should be non-negative integer, current value: ${toInt(maxLength)}")
+        }
+        if(minLength != JNothing && maxLength != JNothing) {
+          checkFormat(toInt(minLength) < toInt(maxLength), s"$DynamicEntityInstanceValidateFail The property of minLength value should be less than maxLength, minLength: ${toInt(minLength)}, maxLength: ${toInt(maxLength)}")
+        }
+      }
+
+
       // example is exists
       val fieldExample = value \ "example"
       checkFormat(fieldExample != JNothing, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'example' field should be exists")
@@ -463,7 +493,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
 case class DynamicEntityFooBar(FooBar: DynamicEntityDefinition, dynamicEntityId: Option[String] = None)
 case class DynamicEntityDefinition(description: String, required: List[String],properties: DynamicEntityFullBarFields)
 case class DynamicEntityFullBarFields(name: DynamicEntityStringTypeExample, number: DynamicEntityIntTypeExample)
-case class DynamicEntityStringTypeExample(`type`: DynamicEntityFieldType, example: String, description: String)
+case class DynamicEntityStringTypeExample(`type`: DynamicEntityFieldType, minLength: Int, maxLength: Int, example: String, description: String)
 case class DynamicEntityIntTypeExample(`type`: DynamicEntityFieldType, example: Int, description: String)
 //-------------------example case class end
 
