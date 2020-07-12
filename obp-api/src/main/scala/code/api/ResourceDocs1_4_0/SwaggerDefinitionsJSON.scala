@@ -435,6 +435,10 @@ object SwaggerDefinitionsJSON {
     outboundAvroSchema = Some(defaultJValue),
     inboundAvroSchema = Some(defaultJValue),
     adapter_implementation = adapterImplementationJson,
+    dependent_endpoints = List(
+      EndpointInfo("getAccounts", ApiVersion.v3_0_0.fullyQualifiedVersion),
+      EndpointInfo("getBalances", ApiVersion.v2_0_0.fullyQualifiedVersion)
+    ),
     requiredFieldInfo = Some(FieldNameApiVersions)
   )
 

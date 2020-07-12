@@ -92,10 +92,9 @@ import javassist.ClassPool
 import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.lang3.StringUtils
 
-import scala.collection.{immutable, mutable}
+import scala.collection.mutable
 import scala.concurrent.Future
 import scala.io.BufferedSource
-import scala.runtime.AbstractPartialFunction
 import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable with CustomJsonFormats{
@@ -1213,7 +1212,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
     }
     // set dependent connector methods
-    var connectorMethods: List[String] = endpointToConnectorMethod.getOrElse(partialFunction.getClass.getName, Nil).map("obp."+)
+    var connectorMethods: List[String] = getDependentConnectorMethods(partialFunction)
+                                        .map("obp."+) // add prefix "obp.", as MessageDoc#process
+
+    // add connector method to endpoint info
+    addEndpointInfos(connectorMethods, partialFunctionName, implementedInApiVersion)
 
     private val rolesForCheck = roles match {
       case Some(list) => list
@@ -1370,34 +1373,34 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
       // reset connectorMethods
       {
-          val checkerClassNames = mutable.ListBuffer[String]()
-          if (isNeedCheckAuth) {
-            checkerClassNames += authenticatedAccessFun.getClass.getName
-          } else {
-            checkerClassNames += anonymousAccessFun.getClass.getName
-          }
-          if (isNeedCheckRoles) {
-            checkerClassNames += checkRolesFun.getClass.getName
-          }
-          if (isNeedCheckBank) {
-            checkerClassNames += checkBankFun.getClass.getName
-          }
-          if (isNeedCheckAccount) {
-            checkerClassNames += checkAccountFun.getClass.getName
-          }
-          if (isNeedCheckView) {
-            checkerClassNames += checkViewFun.getClass.getName
-          }
-          val addedMethods: List[String] = checkerClassNames.toList.map(endpointToConnectorMethod.get(_)) flatMap {
-            case Some(x) if x.nonEmpty => x.map("obp."+)
-            case _ => Nil
-          }
-
-          this.connectorMethods = this.connectorMethods match {
-            case x if addedMethods.nonEmpty => (addedMethods ::: x).distinct
-            case x => x
-          }
+        val checkerClassNames = mutable.ListBuffer[String]()
+        if (isNeedCheckAuth) {
+          checkerClassNames += authenticatedAccessFun.getClass.getName
+        } else {
+          checkerClassNames += anonymousAccessFun.getClass.getName
         }
+        if (isNeedCheckRoles) {
+          checkerClassNames += checkRolesFun.getClass.getName
+        }
+        if (isNeedCheckBank) {
+          checkerClassNames += checkBankFun.getClass.getName
+        }
+        if (isNeedCheckAccount) {
+          checkerClassNames += checkAccountFun.getClass.getName
+        }
+        if (isNeedCheckView) {
+          checkerClassNames += checkViewFun.getClass.getName
+        }
+        val addedMethods: List[String] = checkerClassNames.toList.flatMap(getDependentConnectorMethods(_)).map("obp." +)
+
+        // add connector method to endpoint info
+        addEndpointInfos(addedMethods, partialFunctionName, implementedInApiVersion)
+
+        this.connectorMethods = this.connectorMethods match {
+          case x if addedMethods.nonEmpty => (addedMethods ::: x).distinct
+          case x => x
+        }
+      }
 
       new OBPEndpoint {
         override def isDefinedAt(x: Req): Boolean = obpEndpoint.isDefinedAt(x)
@@ -3271,22 +3274,18 @@ Returns a string showed to the developer
     case x => NewStyle.function.checkViewAccessAndReturnView(x, _, _, _)
   }
 
+  // cache for method -> called obp methods:
+  // (className, methodName, signature) -> List[(className, methodName, signature)]
+  private val memo = new Memo[(String, String, String), List[(String, String, String)]]
+  private val cp = ClassPool.getDefault
+
   /**
-   * endpoint class name to dependent connector method name List
+   * get all dependent connector method names for an object
+   * @param endpoint can be OBPEndpoint or other PartialFunction
+   * @return a list of connector method name
    */
-  lazy val endpointToConnectorMethod: Map[String, List[String]] = {
-    val endpointType = scala.reflect.runtime.universe.typeOf[OBPEndpoint]
-    // scanned OBPEndpoint are sub type of scala.runtime.AbstractPartialFunction
-    val supperClassName = classOf[AbstractPartialFunction[_,_]].getName
-    val endpoints = findTypes(it => it.superClassName == supperClassName && ReflectUtils.forType(it.name) <:< endpointType)
-    val checkerClassNames = List(authenticatedAccessFun, anonymousAccessFun, checkRolesFun, checkBankFun, checkAccountFun, checkViewFun).map(_.getClass.getName)
+  def getDependentConnectorMethods(endpoint: PartialFunction[_, _]) = {
     val connectorTypeName = classOf[Connector].getName
-
-    // cache for method -> called obp methods:
-    // (className, methodName, signature) -> List[(className, methodName, signature)]
-    val memo = new Memo[(String, String, String), List[(String, String, String)]]
-    val cp = ClassPool.getDefault
-
     def getObpTrace(className: String, methodName: String, signature: String, exclude: List[(String, String, String)] = Nil): List[(String, String, String)] =
       memo.memoize((className, methodName, signature)) {
         val methods = ListBuffer[(String, String, String)]()
@@ -3308,15 +3307,33 @@ Returns a string showed to the developer
             getObpTrace(clazzName, mName, mSignature, list ::: exclude)
         }.flatten.distinct
       }
-    // pair list, pair is: class name -> connector method name list
-    val pairList: List[(String, String)] = for {
-      endpointClassName <- endpoints ::: checkerClassNames
-      method <- cp.get(endpointClassName).getDeclaredMethods
+
+    val endpointClassName = endpoint.getClass.getName
+    // list of connector method name
+    val connectorMethods: Array[String] = for {
+      method <- cp.get(endpoint.getClass.getName).getDeclaredMethods
       (clazzName, methodName, _) <- getObpTrace(endpointClassName, method.getName, method.getSignature)
       if clazzName == connectorTypeName && !methodName.contains("$default$")
-    } yield (endpointClassName, methodName)
+    } yield methodName
 
-    pairList.groupBy(_._1).mapValues(_.map(_._2).distinct)
+    connectorMethods.toList
   }
 
+  case class EndpointInfo(name: String, version: String)
+
+  /**
+   * key: connector method name, prefix with "obp."
+   * value: dependent endpoint information list.
+   * this is used by MessageDoc
+   */
+  val connectorToEndpoint = mutable.Map[String, List[EndpointInfo]]()
+
+  private def addEndpointInfos(connectorMethods: List[String], partialFunctionName: String, apiVersion: ScannedApiVersion) = {
+    val endpointInfo = EndpointInfo(partialFunctionName, apiVersion.fullyQualifiedVersion)
+    connectorMethods.foreach(method => {
+      val infos = connectorToEndpoint.getOrElse(method, Nil)
+      val newInfos: List[EndpointInfo] = infos ?+ endpointInfo
+      connectorToEndpoint.put(method, newInfos)
+    })
+  }
 }
