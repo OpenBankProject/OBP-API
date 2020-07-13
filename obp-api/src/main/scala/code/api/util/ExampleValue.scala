@@ -402,6 +402,8 @@ object ExampleValue {
     |       "properties": {
     |           "name": {
     |               "type": "string",
+    |               "maxLength": 20,
+    |               "minLength": 3,
     |               "example": "James Brown",
     |               "description":"description of **name** field, can be markdown text."
     |           },
@@ -420,7 +422,7 @@ object ExampleValue {
       "description of this entity, can be markdown text.",
       List("name"),
       DynamicEntityFullBarFields(
-        DynamicEntityStringTypeExample(DynamicEntityFieldType.string, "James Brown", "description of **name** field, can be markdown text."),
+        DynamicEntityStringTypeExample(DynamicEntityFieldType.string, 3, 20, "James Brown", "description of **name** field, can be markdown text."),
         DynamicEntityIntTypeExample(DynamicEntityFieldType.integer, 698761728, "description of **number** field, can be markdown text.")
       )
     )
