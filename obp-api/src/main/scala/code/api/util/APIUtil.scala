@@ -3323,7 +3323,7 @@ Returns a string showed to the developer
       if clazzName == connectorTypeName && !methodName.contains("$default$")
     } yield methodName
 
-    connectorMethods.toList
+    connectorMethods.toList.distinct
   }
 
   case class EndpointInfo(name: String, version: String)
