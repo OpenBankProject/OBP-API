@@ -242,8 +242,7 @@ of the PSU at this ASPSP.
                     |""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-       connectorMethods= Some(List("obp.getBank","obp.getBankAccounts"))
+       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getAccountList : OBPEndpoint = {
@@ -466,8 +465,7 @@ This account-id then can be retrieved by the
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil,
-       connectorMethods = Some(List("obp.getBank","obp.checkBankAccountExists" ,"obp.getTransactionRequests210"))
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val getCardAccountBalances : OBPEndpoint = {
@@ -988,8 +986,7 @@ Give detailed information about the addressed account together with balance info
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil,
-       connectorMethods=Some(List("obp.checkBankAccountExists"))
+       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val readAccountDetails : OBPEndpoint = {

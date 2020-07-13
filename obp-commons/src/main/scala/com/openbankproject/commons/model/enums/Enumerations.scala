@@ -4,7 +4,7 @@ import java.time.format.DateTimeFormatter
 
 import com.openbankproject.commons.util.{EnumValue, JsonAble, OBPEnumeration}
 import net.liftweb.common.Box
-import net.liftweb.json.JsonAST.JString
+import net.liftweb.json.JsonAST.{JNothing, JString}
 import net.liftweb.json.{Formats, JBool, JDouble, JInt, JValue}
 
 sealed trait AccountAttributeType extends EnumValue
@@ -73,10 +73,26 @@ sealed trait DynamicEntityFieldType extends EnumValue {
   def wrongTypeMsg = s"the value's type should be $this."
 }
 object DynamicEntityFieldType extends OBPEnumeration[DynamicEntityFieldType]{
- object string  extends Value{val jValueType = classOf[JString]}
- object number  extends Value{val jValueType = classOf[JDouble]}
- object integer extends Value{val jValueType = classOf[JInt]}
- object boolean extends Value{val jValueType = classOf[JBool]}
+  object number  extends Value{val jValueType = classOf[JDouble]}
+  object integer extends Value{val jValueType = classOf[JInt]}
+  object boolean extends Value{val jValueType = classOf[JBool]}
+  object string  extends Value{
+    val jValueType = classOf[JString]
+
+    def isLengthValid(jValue: JValue, minLength: JValue, maxLength: JValue) = {
+      if(minLength == JNothing && maxLength == JNothing) {
+        true
+      } else if(jValue == JNothing) {
+        true
+      } else {
+        val value = jValue.asInstanceOf[JString].s
+        val minLengthValue = if(minLength != JNothing) minLength.asInstanceOf[JInt].num.intValue() else 0
+        val maxLengthValue = if(minLength != JNothing) maxLength.asInstanceOf[JInt].num.intValue() else Int.MaxValue
+        minLengthValue <= value.size && value.size <= maxLengthValue
+      }
+
+    }
+  }
 
  object DATE_WITH_DAY extends Value {
    val jValueType = classOf[JString]
