@@ -88,7 +88,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, Functions, JsonAble, ReflectUtils, ScannedApiVersion}
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.Functions.Memo
-import javassist.ClassPool
+import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.lang3.StringUtils
 
@@ -3277,7 +3277,14 @@ Returns a string showed to the developer
   // cache for method -> called obp methods:
   // (className, methodName, signature) -> List[(className, methodName, signature)]
   private val memo = new Memo[(String, String, String), List[(String, String, String)]]
-  private val cp = ClassPool.getDefault
+
+  private val cp = {
+    val pool = ClassPool.getDefault
+    // avoid error when call with JDK 1.8:
+    // javassist.NotFoundException: code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1
+    pool.appendClassPath(new LoaderClassPath(Thread.currentThread.getContextClassLoader))
+    pool
+  }
 
   /**
    * get all dependent connector method names for an object
