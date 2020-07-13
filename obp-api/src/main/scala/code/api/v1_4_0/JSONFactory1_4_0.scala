@@ -375,7 +375,7 @@ object JSONFactory1_4_0 {
       is_featured = rd.isFeatured,
       special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(rd.specialInstructions.getOrElse("").stripMargin),
       specified_url = rd.specifiedUrl.getOrElse(""),
-      connector_methods = rd.connectorMethods.getOrElse(List(""))
+      connector_methods = rd.connectorMethods
       )
   }
 

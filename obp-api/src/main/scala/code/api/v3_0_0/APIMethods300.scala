@@ -434,8 +434,8 @@ trait APIMethods300 {
       coreAccountsJsonV300,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getCoreBankAccounts")))
+      List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagNewStyle)
+    )
 
 
     apiRelations += ApiRelation(corePrivateAccountsAllBanks, getCoreAccountById, "detail")
@@ -640,8 +640,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransaction, apiTagPSD2AIS, apiTagAccount, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getBank","obp.checkBankAccountExists", "obp.getTransactionsCore"))
+      List(apiTagTransaction, apiTagPSD2AIS, apiTagAccount, apiTagNewStyle)
     )
 
     lazy val getCoreTransactionsForBankAccount : OBPEndpoint = {
@@ -701,8 +700,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransaction, apiTagAccount, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getBank","obp.checkBankAccountExists", "obp.getTransactions"))
+      List(apiTagTransaction, apiTagAccount, apiTagNewStyle)
     )
 
     lazy val getTransactionsForBankAccount: OBPEndpoint = {
@@ -1575,8 +1573,8 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagUser, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getCustomersByUserId")))
+      List(apiTagCustomer, apiTagUser, apiTagNewStyle)
+    )
 
 
 
@@ -1655,8 +1653,7 @@ trait APIMethods300 {
       coreAccountsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount,apiTagPSD2AIS, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getBank","obp.getCoreBankAccounts"))
+      List(apiTagAccount,apiTagPSD2AIS, apiTagNewStyle)
     )
   
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
@@ -1696,8 +1693,7 @@ trait APIMethods300 {
       accountsIdsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getBank","obp.getCoreBankAccounts"))
+      List(apiTagAccount, apiTagPSD2AIS, apiTagNewStyle)
     )
   
     lazy val getPrivateAccountIdsbyBankId : OBPEndpoint = {
@@ -2097,8 +2093,7 @@ trait APIMethods300 {
       coreAccountsHeldJsonV300,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getBank","obp.getBankAccountsHeld","obp.getCoreBankAccounts"))
+      List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagNewStyle)
     )
   
     lazy val getAccountsHeld : OBPEndpoint = {
@@ -2409,8 +2404,7 @@ trait APIMethods300 {
       bankJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil,
-      connectorMethods = Some(List("obp.getBank"))
+      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
     )
 
     //The Json Body is totally the same as V121, just use new style endpoint.
