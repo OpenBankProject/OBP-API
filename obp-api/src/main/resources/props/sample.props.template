@@ -441,6 +441,8 @@ webui_agree_terms_url =
 # URL to load (alternative) get started content (this replaces the normal content in index.html
 #webui_get_started_content_url = http://127.0.0.1:8080/plain.html
 
+# URL to load (alternative) header content (this replaces the id ="table-header" content in default.html
+#webui_header_content_url = http://127.0.0.1:8080/plain.html
 
 
 # If we want to gather more information about an Application / Startup fill this url and text
