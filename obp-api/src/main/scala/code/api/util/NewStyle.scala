@@ -787,6 +787,12 @@ object NewStyle {
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400), i._2)
       }
     }
+
+    def notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[TransactionRequestStatus.Value] = {
+      Connector.connector.vend.notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$TransactionRequestStatusNotInitiated Can't notify TransactionRequestId(${transactionRequest.id}) ", 400), i._2)
+      }
+    }
     
     def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = 
     {
