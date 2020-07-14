@@ -61,7 +61,7 @@ import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
 import scala.reflect.runtime.universe.{MethodSymbol, typeOf}
 import _root_.akka.http.scaladsl.model.HttpMethod
-import com.openbankproject.commons.dto.{InBoundTrait, ProductCollectionItemsTree}
+import com.openbankproject.commons.dto.{CustomerAndAttribute, InBoundTrait, ProductCollectionItemsTree}
 
 /*
 So we can switch between different sources of resources e.g.
@@ -2090,7 +2090,7 @@ trait Connector extends MdcLoggable {
 
   def getCustomerAttributesForCustomers(
     customers: List[Customer],
-    callContext: Option[CallContext]): OBPReturnType[Box[List[(Customer, List[CustomerAttribute])]]] =
+    callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAndAttribute]]] =
     Future{(Failure(setUnimplementedError), callContext)}
 
   def getTransactionIdsByAttributeNameValues(

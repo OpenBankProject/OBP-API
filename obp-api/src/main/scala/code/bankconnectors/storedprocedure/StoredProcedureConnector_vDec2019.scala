@@ -4527,7 +4527,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundGetCustomerAttributesForCustomers(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      value= List(
+      data = List(
          CustomerAndAttribute(
              MessageDocsSwaggerDefinitions.customerCommons,
              List(MessageDocsSwaggerDefinitions.customerAttribute)
@@ -4538,11 +4538,11 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def getCustomerAttributesForCustomers(customers: List[Customer], callContext: Option[CallContext]): OBPReturnType[Box[List[(Customer, List[CustomerAttribute])]]] = {
+  override def getCustomerAttributesForCustomers(customers: List[Customer], callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAndAttribute]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetCustomerAttributesForCustomers => OutBound, InBoundGetCustomerAttributesForCustomers => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customers)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_customer_attributes_for_customers", req, callContext)
-        response.map(convertToTuple[List[(Customer, List[CustomerAttribute])]](callContext))        
+        response.map(convertToTuple[List[CustomerAndAttribute]](callContext))
   }
           
   messageDocs += getTransactionIdsByAttributeNameValuesDoc
