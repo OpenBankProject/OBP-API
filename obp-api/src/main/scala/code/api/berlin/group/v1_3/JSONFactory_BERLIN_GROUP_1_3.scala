@@ -55,6 +55,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   )
 
   case class CoreAccountsJsonV13(accounts: List[CoreAccountJsonV13])
+  case class CoreCardAccountsJsonV13(cardAccounts: List[CoreAccountJsonV13])
 
   case class AccountDetailsLinksJsonV13(
                                          balances: LinkHrefJson,
@@ -289,6 +290,35 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
      }
     )
   }
+
+  def createCardAccountListJson(bankAccounts: List[BankAccount], user: User): CoreCardAccountsJsonV13 = {
+    CoreCardAccountsJsonV13(bankAccounts.map {
+      x =>
+        val (iBan: String, bBan: String) = getIbanAndBban(x)
+
+        val balance =
+          CoreAccountBalancesJson(
+            balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
+            balanceType = APIUtil.stringOrNull(x.accountType),
+            lastChangeDateTime=APIUtil.DateWithDayFormat.format(x.lastUpdate),
+            referenceDate =APIUtil.DateWithMsRollback.format(x.lastUpdate),
+            lastCommittedTransaction = "String"
+          )
+        CoreAccountJsonV13(
+          resourceId = x.accountId.value,
+          iban = iBan,
+          bban = bBan,
+          currency = x.currency,
+          name = x.name,
+          bic = getBicFromBankId(x.bankId.value),
+          cashAccountType = x.accountType,
+          product = x.accountType,
+          balances = balance,
+          _links = CoreAccountLinksJsonV13(LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances"))
+        )
+    }
+    )
+  }
   
   def createCardAccountDetailsJson(bankAccount: BankAccount, user: User): CardAccountDetailsJsonV13 = {
     val accountDetailsJsonV13 = createAccountDetailsJson(bankAccount: BankAccount, user: User)
@@ -365,14 +395,14 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       
     val address = transaction.otherBankAccount.map(_.accountRoutingAddress).getOrElse(None).getOrElse("")
     val scheme: String = transaction.otherBankAccount.map(_.accountRoutingScheme).getOrElse(None).getOrElse("")
-    val (iban, bban, pan, maskedPan, currency) = extractAccountData(scheme, address)
+//    val (iban, bban, pan, maskedPan, currency) = extractAccountData(scheme, address)
     CardTransactionJsonV13(
       cardTransactionId = transaction.id.value,
       transactionAmount = AmountOfMoneyV13(APIUtil.stringOptionOrNull(transaction.currency), transaction.amount.get.toString()),
       transactionDate = transaction.finishDate.get,
       bookingDate = transaction.startDate.get,
       originalAmount = AmountOfMoneyV13(orignalCurrency, orignalBalnce),
-      maskedPan = maskedPan,
+      maskedPan = "",
       proprietaryBankTransactionCode = "",
       invoiced = true,
       transactionDetails = APIUtil.stringOptionOrNull(transaction.description)

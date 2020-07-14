@@ -3265,8 +3265,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId, callContext: Option[CallContext] = None): OBPReturnType[Box[Transaction]] = {
-    val result: Box[(Transaction, Option[CallContext])] = getTransactionLegacy(bankId, accountID, transactionId, callContext)
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext] = None): OBPReturnType[Box[Transaction]] = {
+    val result: Box[(Transaction, Option[CallContext])] = getTransactionLegacy(bankId, accountId, transactionId, callContext)
     Future(result.map(_._1), result.map(_._2).getOrElse(callContext))
   }
 
@@ -4182,5 +4182,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     CustomerAttributeX.customerAttributeProvider.vend.deleteCustomerAttribute(customerAttributeId)  map { ( _, callContext) }
   }
 
+  //NOTE: this method is not for mapped connector, we put it here for the star default implementation.
+  //    : we call that method only when we set external authentication and provider is not OBP-API
+  override def checkExternalUserCredentials(username: String, password: String, callContext: Option[CallContext]): Box[InboundExternalUser] = Failure("")
 
 }
