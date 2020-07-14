@@ -477,50 +477,6 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[BankAccountCommons](callContext))        
   }
           
-  messageDocs += getBankAccountDoc
-  def getBankAccountDoc = MessageDoc(
-    process = "obp.getBankAccount",
-    messageFormat = messageFormat,
-    description = "Get Bank Account",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundGetBankAccount(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      bankId=BankId(bankIdExample.value),
-      accountId=AccountId(accountIdExample.value))
-    ),
-    exampleInboundMessage = (
-     InBoundGetBankAccount(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= BankAccountCommons(accountId=AccountId(accountIdExample.value),
-      accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
-      currency=currencyExample.value,
-      name=bankAccountNameExample.value,
-      label=labelExample.value,
-      iban=Some(ibanExample.value),
-      number=bankAccountNumberExample.value,
-      bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not valid date format.")),
-      branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
-      value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetBankAccount => OutBound, InBoundGetBankAccount => InBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_account", req, callContext)
-        response.map(convertToTuple[BankAccountCommons](callContext))        
-  }
-          
   messageDocs += getBankAccountByIbanDoc
   def getBankAccountByIbanDoc = MessageDoc(
     process = "obp.getBankAccountByIban",

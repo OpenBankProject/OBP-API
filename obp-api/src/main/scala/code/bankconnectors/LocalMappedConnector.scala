@@ -526,11 +526,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getBankAccountCommon(bankId, accountId, callContext)
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
-    val accountAndCallcontext = getBankAccountLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext])
-    (accountAndCallcontext.map(_._1), accountAndCallcontext.map(_._2).getOrElse(callContext))
-  }
-
   override def getBankAccountByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
     (MappedBankAccount
       .find(By(MappedBankAccount.accountIban, iban))

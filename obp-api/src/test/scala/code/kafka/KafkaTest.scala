@@ -266,7 +266,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
       scenario(s"test getBankAccountFuture method",kafkaTest) {
         val inBound = Connector.connector.vend.messageDocs.filter(_.exampleInboundMessage.isInstanceOf[InboundGetAccountbyAccountID]).map(_.exampleInboundMessage).head.asInstanceOf[InboundGetAccountbyAccountID]
         dispathResponse(inBound)
-        val future = Connector.connector.vend.getBankAccount(BankId(""), AccountId(""), callContext)
+        val future = Connector.connector.vend.checkBankAccountExists(BankId(""), AccountId(""), callContext)
 
         val result = future.getContent
 

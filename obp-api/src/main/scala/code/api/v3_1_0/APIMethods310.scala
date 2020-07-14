@@ -5424,7 +5424,7 @@ trait APIMethods310 {
         cc =>{
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            (account, callContext) <- Connector.connector.vend.getBankAccount(bankId, accountId, callContext)
+            (account, callContext) <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext)
             _ <- Helper.booleanToFuture(AccountIdAlreadyExists){
               account.isEmpty
             }

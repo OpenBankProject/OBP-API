@@ -201,7 +201,7 @@ object NewStyle {
       }
     }
     def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[BankAccount] = {
-      Connector.connector.vend.getBankAccount(bankId, accountId, callContext) map { i =>
+      Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 404 ), i._2)
       }
     }
