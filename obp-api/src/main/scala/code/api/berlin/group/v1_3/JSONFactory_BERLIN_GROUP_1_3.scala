@@ -55,6 +55,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   )
 
   case class CoreAccountsJsonV13(accounts: List[CoreAccountJsonV13])
+  case class CoreCardAccountsJsonV13(cardAccounts: List[CoreAccountJsonV13])
 
   case class AccountDetailsLinksJsonV13(
                                          balances: LinkHrefJson,
@@ -287,6 +288,35 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           _links = CoreAccountLinksJsonV13(LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances")) 
         )
      }
+    )
+  }
+
+  def createCardAccountListJson(bankAccounts: List[BankAccount], user: User): CoreCardAccountsJsonV13 = {
+    CoreCardAccountsJsonV13(bankAccounts.map {
+      x =>
+        val (iBan: String, bBan: String) = getIbanAndBban(x)
+
+        val balance =
+          CoreAccountBalancesJson(
+            balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
+            balanceType = APIUtil.stringOrNull(x.accountType),
+            lastChangeDateTime=APIUtil.DateWithDayFormat.format(x.lastUpdate),
+            referenceDate =APIUtil.DateWithMsRollback.format(x.lastUpdate),
+            lastCommittedTransaction = "String"
+          )
+        CoreAccountJsonV13(
+          resourceId = x.accountId.value,
+          iban = iBan,
+          bban = bBan,
+          currency = x.currency,
+          name = x.name,
+          bic = getBicFromBankId(x.bankId.value),
+          cashAccountType = x.accountType,
+          product = x.accountType,
+          balances = balance,
+          _links = CoreAccountLinksJsonV13(LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances"))
+        )
+    }
     )
   }
   
