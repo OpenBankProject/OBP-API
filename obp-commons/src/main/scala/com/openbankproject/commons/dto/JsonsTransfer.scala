@@ -1265,11 +1265,9 @@ case class InBoundGetCustomerAttributes(inboundAdapterCallContext: InboundAdapte
 case class OutBoundGetCustomerIdsByAttributeNameValues(outboundAdapterCallContext: OutboundAdapterCallContext, bankId: BankId, nameValues: Map[String,List[String]]) extends TopicTrait
 case class InBoundGetCustomerIdsByAttributeNameValues(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[String]) extends InBoundTrait[List[String]]
 
-case class CustomerAndAttribute(customer: CustomerCommons, attributes: List[CustomerAttributeCommons])
+case class CustomerAndAttribute(customer: Customer, attributes: List[CustomerAttribute])
 case class OutBoundGetCustomerAttributesForCustomers(outboundAdapterCallContext: OutboundAdapterCallContext, customers: List[Customer]) extends TopicTrait
-case class InBoundGetCustomerAttributesForCustomers(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, value: List[CustomerAndAttribute]) extends InBoundTrait[List[(Customer, List[CustomerAttribute])]] {
-  override val data: List[(Customer, List[CustomerAttribute])] = value.map(it => (it.customer, it.attributes))
-}
+case class InBoundGetCustomerAttributesForCustomers(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CustomerAndAttribute]) extends InBoundTrait[List[CustomerAndAttribute]]
 
 case class OutBoundGetTransactionIdsByAttributeNameValues(outboundAdapterCallContext: OutboundAdapterCallContext, bankId: BankId, nameValues: Map[String,List[String]]) extends TopicTrait
 case class InBoundGetTransactionIdsByAttributeNameValues(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[String]) extends InBoundTrait[List[String]]

@@ -36,7 +36,7 @@ import code.util.{Helper, JsonUtils}
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.dto.ProductCollectionItemsTree
+import com.openbankproject.commons.dto.{CustomerAndAttribute, ProductCollectionItemsTree}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
@@ -1022,7 +1022,7 @@ object NewStyle {
     
     def getCustomerAttributesForCustomers(
       customers: List[Customer],
-      callContext: Option[CallContext]): OBPReturnType[List[(Customer, List[CustomerAttribute])]] = {
+      callContext: Option[CallContext]): OBPReturnType[List[CustomerAndAttribute]] = {
       Connector.connector.vend.getCustomerAttributesForCustomers(
         customers: List[Customer],
         callContext: Option[CallContext]

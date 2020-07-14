@@ -1,6 +1,7 @@
 package code.customerattribute
 
 import code.util.{AttributeQueryTrait, MappedUUID, UUIDString}
+import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.model.enums.CustomerAttributeType
 import com.openbankproject.commons.model.{BankId, Customer, CustomerAttribute, CustomerId}
 import net.liftweb.common.{Box, Empty, Full}
@@ -56,10 +57,10 @@ object MappedCustomerAttributeProvider extends CustomerAttributeProvider {
     }
   }
 
-  def getCustomerAttributesForCustomers(customers: List[Customer]): Future[Box[List[(Customer, List[CustomerAttribute])]]] = {
+  def getCustomerAttributesForCustomers(customers: List[Customer]): Future[Box[List[CustomerAndAttribute]]] = {
     Future {
       Box !! customers.map( customer =>
-        (
+        CustomerAndAttribute(
           customer,
           MappedCustomerAttribute.findAll(
             By(MappedCustomerAttribute.mBankId, customer.bankId),
