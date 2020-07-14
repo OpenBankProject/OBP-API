@@ -239,7 +239,6 @@ object Helper{
    /**
     * Used for version extraction from props string
     */
-  val matchKafkaVersion = "kafka_v([0-9a-zA-Z_]+)|^star$".r
   val matchAnyKafka = "^(kafka.*|star)$|^star$".r
   val matchAnyStoredProcedure = "^stored_procedure.*$|^star$".r
   
