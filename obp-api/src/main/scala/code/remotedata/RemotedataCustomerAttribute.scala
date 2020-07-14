@@ -3,6 +3,7 @@ package code.remotedata
 import akka.pattern.ask
 import code.customerattribute.{CustomerAttributeProvider, MappedCustomerAttribute, RemotedataCustomerAttributeCaseClasses}
 import code.actorsystem.ObpActorInit
+import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.CustomerAttributeType
 import net.liftweb.common.Box
@@ -25,8 +26,8 @@ object RemotedataCustomerAttribute extends ObpActorInit with CustomerAttributePr
   override def getCustomerIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]] =
     (actor ? cc.getCustomerIdsByAttributeNameValues(bankId, params)).mapTo[Box[List[String]]]
 
-  override def getCustomerAttributesForCustomers(customers: List[Customer]): Future[Box[List[(Customer, List[CustomerAttribute])]]] =
-    (actor ? cc.getCustomerAttributesForCustomers(customers: List[Customer])).mapTo[Box[List[(Customer, List[CustomerAttribute])]]]
+  override def getCustomerAttributesForCustomers(customers: List[Customer]): Future[Box[List[CustomerAndAttribute]]] =
+    (actor ? cc.getCustomerAttributesForCustomers(customers: List[Customer])).mapTo[Box[List[CustomerAndAttribute]]]
 
   override def getCustomerAttributeById(customerAttributeId: String): Future[Box[CustomerAttribute]] = 
     (actor ? cc.getCustomerAttributeById(customerAttributeId)).mapTo[Box[CustomerAttribute]]

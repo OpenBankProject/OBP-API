@@ -42,11 +42,11 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
       sender ! result   
     
     case OutBoundGetBanks(cc) =>
-      val result: Box[List[MappedBank]] = getBanksLegacy(None).map(r => r._1)
+      val result: Box[List[Bank]] = getBanksLegacy(None).map(r => r._1)
       sender ! InBoundGetBanks(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext),successInBoundStatus, result.map(l => l.map(Transformer.bank(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
     
     case OutBoundGetBank(cc, bankId) =>
-      val result: Box[MappedBank] = getBankLegacy(bankId, None).map(r => r._1)
+      val result: Box[Bank] = getBankLegacy(bankId, None).map(r => r._1)
       sender ! InBoundGetBank(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.map(Transformer.bank(_)).openOrThrowException(attemptedToOpenAnEmptyBox) )
       
     case OutBoundCheckBankAccountExists(cc, bankId, accountId) =>
@@ -84,7 +84,7 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
 
 
 object Transformer {
-  def bank(mb: MappedBank): BankCommons = 
+  def bank(mb: Bank): BankCommons =
     BankCommons(
       bankId=mb.bankId,
       shortName=mb.shortName,

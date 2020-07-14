@@ -61,7 +61,7 @@ import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
 import scala.reflect.runtime.universe.{MethodSymbol, typeOf}
 import _root_.akka.http.scaladsl.model.HttpMethod
-import com.openbankproject.commons.dto.{InBoundTrait, ProductCollectionItemsTree}
+import com.openbankproject.commons.dto.{CustomerAndAttribute, InBoundTrait, ProductCollectionItemsTree}
 
 /*
 So we can switch between different sources of resources e.g.
@@ -511,16 +511,16 @@ trait Connector extends MdcLoggable {
 
   //TODO, here is a problem for return value `List[Transaction]`, this is a normal class, not a trait. It is a big class,
   // it contains thisAccount(BankAccount object) and otherAccount(Counterparty object)
-  def getTransactionsLegacy(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): Box[(List[Transaction], Option[CallContext])]= Failure(setUnimplementedError)
+  def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): Box[(List[Transaction], Option[CallContext])]= Failure(setUnimplementedError)
   def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): OBPReturnType[Box[List[Transaction]]] = {
     val result: Box[(List[Transaction], Option[CallContext])] = getTransactionsLegacy(bankId, accountId, callContext, queryParams)
     Future(result.map(_._1), result.map(_._2).getOrElse(callContext))
   }
-  def getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams:  List[OBPQueryParam] = Nil, callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionCore]]] = Future{(Failure(setUnimplementedError), callContext)}
+  def getTransactionsCore(bankId: BankId, accountId: AccountId, queryParams:  List[OBPQueryParam] = Nil, callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionCore]]] = Future{(Failure(setUnimplementedError), callContext)}
 
-  def getTransactionLegacy(bankId: BankId, accountID : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): Box[(Transaction, Option[CallContext])] = Failure(setUnimplementedError)
-  def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): OBPReturnType[Box[Transaction]] = {
-    val result: Box[(Transaction, Option[CallContext])] = getTransactionLegacy(bankId, accountID, transactionId, callContext)
+  def getTransactionLegacy(bankId: BankId, accountId : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): Box[(Transaction, Option[CallContext])] = Failure(setUnimplementedError)
+  def getTransaction(bankId: BankId, accountId : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): OBPReturnType[Box[Transaction]] = {
+    val result: Box[(Transaction, Option[CallContext])] = getTransactionLegacy(bankId, accountId, transactionId, callContext)
     Future(result.map(_._1), result.map(_._2).getOrElse(callContext))
   }
 
@@ -2090,7 +2090,7 @@ trait Connector extends MdcLoggable {
 
   def getCustomerAttributesForCustomers(
     customers: List[Customer],
-    callContext: Option[CallContext]): OBPReturnType[Box[List[(Customer, List[CustomerAttribute])]]] =
+    callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAndAttribute]]] =
     Future{(Failure(setUnimplementedError), callContext)}
 
   def getTransactionIdsByAttributeNameValues(

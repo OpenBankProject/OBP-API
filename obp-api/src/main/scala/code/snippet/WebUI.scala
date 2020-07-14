@@ -339,6 +339,9 @@ class WebUI extends MdcLoggable{
     contentLoader("webui_about_vendor_content_url", "about-vendor")
   }
 
+  def headerContentLoader: NodeSeq = {
+    contentLoader("webui_header_content_url", "table-header")
+  }
 
 // This load content directly into the div that calls it.
   def getStartedDirectContentLoader: NodeSeq = {
