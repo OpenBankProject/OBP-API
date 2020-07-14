@@ -339,6 +339,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val result: List[TopApi] = scalikeDB readOnly { implicit session =>
         // MS SQL server has the specific syntax for limiting number of rows
         val msSqlLimit = if (dbUrl.contains("sqlserver")) sqls"TOP ($limit)" else sqls""
+        // TODO Make it work in case of Oracle database
         val otherDbLimit = if (dbUrl.contains("sqlserver")) sqls"" else sqls"LIMIT $limit"
         val sqlResult =
           sql"""SELECT ${msSqlLimit} count(*), mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion 
@@ -415,6 +416,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       ConnectionPool.singleton(dbUrl, user, password, settings)
       // MS SQL server has the specific syntax for limiting number of rows
       val msSqlLimit = if (dbUrl.contains("sqlserver")) sqls"TOP ($limit)" else sqls""
+      // TODO Make it work in case of Oracle database
       val otherDbLimit = if (dbUrl.contains("sqlserver")) sqls"" else sqls"LIMIT $limit"
       val result: List[TopConsumer] = scalikeDB readOnly { implicit session =>
         val sqlResult =
