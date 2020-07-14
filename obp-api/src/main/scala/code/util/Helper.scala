@@ -239,8 +239,8 @@ object Helper{
    /**
     * Used for version extraction from props string
     */
-  val matchAnyKafka = "^kafka.*$|^star$".r
-  val matchAnyStoredProcedure = "^stored_procedure.*$|^star$".r
+  val matchAnyKafka = "kafka.*|star".r
+  val matchAnyStoredProcedure = "stored_procedure.*|star".r
   
   /**
     * change the TimeZone to the current TimeZOne
