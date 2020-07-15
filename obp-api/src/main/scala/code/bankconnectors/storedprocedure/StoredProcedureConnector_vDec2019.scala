@@ -74,7 +74,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-07-14T16:11:11Z
+// ---------- created on 2020-07-15T09:43:14Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -246,8 +246,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundValidateChallengeAnswer(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      challengeId="string",
-      hashOfSuppliedAnswer=HashUtil.Sha256Hash("123"))
+      challengeId=challengeIdExample.value,
+      hashOfSuppliedAnswer=hashOfSuppliedAnswerExample.value)
     ),
     exampleInboundMessage = (
      InBoundValidateChallengeAnswer(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -1658,7 +1658,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       status="string",
       start_date=toDate(transactionRequestStartDateExample),
       end_date=toDate(transactionRequestEndDateExample),
-      challenge= TransactionRequestChallenge(id="string",
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
       allowed_attempts=123,
       challenge_type="string"),
       charge= TransactionRequestCharge(summary="string",
@@ -1799,7 +1799,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       status="string",
       start_date=toDate(transactionRequestStartDateExample),
       end_date=toDate(transactionRequestEndDateExample),
-      challenge= TransactionRequestChallenge(id="string",
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
       allowed_attempts=123,
       challenge_type="string"),
       charge= TransactionRequestCharge(summary="string",
@@ -1913,7 +1913,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       status="string",
       start_date=toDate(transactionRequestStartDateExample),
       end_date=toDate(transactionRequestEndDateExample),
-      challenge= TransactionRequestChallenge(id="string",
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
       allowed_attempts=123,
       challenge_type="string"),
       charge= TransactionRequestCharge(summary="string",
@@ -2004,7 +2004,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       status="string",
       start_date=toDate(transactionRequestStartDateExample),
       end_date=toDate(transactionRequestEndDateExample),
-      challenge= TransactionRequestChallenge(id="string",
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
       allowed_attempts=123,
       challenge_type="string"),
       charge= TransactionRequestCharge(summary="string",
@@ -2108,7 +2108,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       status="string",
       start_date=toDate(transactionRequestStartDateExample),
       end_date=toDate(transactionRequestEndDateExample),
-      challenge= TransactionRequestChallenge(id="string",
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
       allowed_attempts=123,
       challenge_type="string"),
       charge= TransactionRequestCharge(summary="string",
@@ -2178,7 +2178,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       status="string",
       start_date=toDate(transactionRequestStartDateExample),
       end_date=toDate(transactionRequestEndDateExample),
-      challenge= TransactionRequestChallenge(id="string",
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
       allowed_attempts=123,
       challenge_type="string"),
       charge= TransactionRequestCharge(summary="string",
@@ -2719,7 +2719,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       status="string",
       start_date=toDate(transactionRequestStartDateExample),
       end_date=toDate(transactionRequestEndDateExample),
-      challenge= TransactionRequestChallenge(id="string",
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
       allowed_attempts=123,
       challenge_type="string"),
       charge= TransactionRequestCharge(summary="string",
@@ -2966,7 +2966,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       status="string",
       start_date=toDate(transactionRequestStartDateExample),
       end_date=toDate(transactionRequestEndDateExample),
-      challenge= TransactionRequestChallenge(id="string",
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
       allowed_attempts=123,
       challenge_type="string"),
       charge= TransactionRequestCharge(summary="string",
@@ -5605,8 +5605,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-07-14T16:11:11Z
-//---------------- dynamic end ---------------------please don't modify this line            
+// ---------- created on 2020-07-15T09:43:14Z
+//---------------- dynamic end ---------------------please don't modify this line             
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

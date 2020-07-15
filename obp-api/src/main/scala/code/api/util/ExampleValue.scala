@@ -178,6 +178,13 @@ object ExampleValue {
   glossaryItems += makeGlossaryItem("Account.iban", ibanExample)
 
   lazy val transactionRequestIban = ibanExample
+
+  lazy val challengeIdExample = ConnectorField("123chaneid13-6d02-40e3-a129-0b2bf89de9f0", s"MUST uniquely identify the challenge globally.")
+  glossaryItems += makeGlossaryItem("ChallengeAnswer.challengeId", challengeIdExample)
+
+  lazy val hashOfSuppliedAnswerExample = ConnectorField(HashUtil.Sha256Hash("123"), s"Sha256 hash value of the ChallengeAnswer.challengeId")
+  glossaryItems += makeGlossaryItem("ChallengeAnswer.hashOfSuppliedAnswer", hashOfSuppliedAnswerExample)
+  
   
   lazy val gitCommitExample = ConnectorField("59623811dd8a41f6ffe67be46954eee11913dc28", "Identifies the code running on the OBP-API (Connector) or Adapter.")
 
