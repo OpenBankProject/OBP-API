@@ -48,6 +48,7 @@ import code.metrics.AggregateMetrics
 import code.model.dataAccess.ResourceUser
 import code.scope.Scope
 import code.views.Views
+import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.model.{Customer, _}
 import net.liftweb.common.{Box, Full}
 
@@ -1239,10 +1240,10 @@ object JSONFactory300{
     CustomerJSONsV300(customers.map(createCustomerJson))
   }
 
-  def createCustomersWithAttributesJson(customersAndAttributesPairs : List[(Customer, List[CustomerAttribute])]) :CustomersWithAttributesJsonV300 = {
+  def createCustomersWithAttributesJson(customersAndAttributes : List[CustomerAndAttribute]) :CustomersWithAttributesJsonV300 = {
     CustomersWithAttributesJsonV300(
-      customersAndAttributesPairs.map(
-        customerAndAttributesPair => createCustomerWithAttributesJson(customerAndAttributesPair._1,customerAndAttributesPair._2)
+      customersAndAttributes.map(
+        customerAndAttributesPair => createCustomerWithAttributesJson(customerAndAttributesPair.customer,customerAndAttributesPair.attributes)
       )
     )
   }

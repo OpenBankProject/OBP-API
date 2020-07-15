@@ -4281,7 +4281,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundGetCustomerAttributesForCustomers(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      value= List(
+      data = List(
          CustomerAndAttribute(
              MessageDocsSwaggerDefinitions.customerCommons,
              List(MessageDocsSwaggerDefinitions.customerAttribute)
@@ -4292,11 +4292,11 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def getCustomerAttributesForCustomers(customers: List[Customer], callContext: Option[CallContext]): OBPReturnType[Box[List[(Customer, List[CustomerAttribute])]]] = {
+  override def getCustomerAttributesForCustomers(customers: List[Customer], callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAndAttribute]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetCustomerAttributesForCustomers => OutBound, InBoundGetCustomerAttributesForCustomers => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customers)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
-        response.map(convertToTuple[List[(Customer, List[CustomerAttribute])]](callContext))        
+        response.map(convertToTuple[List[CustomerAndAttribute]](callContext))
   }
           
   messageDocs += getTransactionIdsByAttributeNameValuesDoc

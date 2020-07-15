@@ -43,6 +43,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 import code.api.v2_0_0.AccountsHelper._
+import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonAST.JField
 
@@ -1594,10 +1595,10 @@ trait APIMethods300 {
             (customers,callContext) <- Connector.connector.vend.getCustomersByUserId(u.userId, callContext) map {
               connectorEmptyResponse(_, callContext)
             }
-            (customersAndAttributesPairs,callContext) <- NewStyle.function.getCustomerAttributesForCustomers(customers, callContext)
+            (customersAndAttributes: List[CustomerAndAttribute], callContext) <- NewStyle.function.getCustomerAttributesForCustomers(customers, callContext)
           } yield {
             // Create the JSON to return. We also return the callContext
-            (JSONFactory300.createCustomersWithAttributesJson(customersAndAttributesPairs), HttpCode.`200`(callContext))
+            (JSONFactory300.createCustomersWithAttributesJson(customersAndAttributes), HttpCode.`200`(callContext))
           }
         }
       }

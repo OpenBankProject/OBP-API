@@ -1,6 +1,7 @@
 package code.api.v2_1_0
 
 import java.util.UUID
+
 import code.api.Constant._
 import code.api.ChargePolicy
 import com.openbankproject.commons.model.ErrorMessage
@@ -20,6 +21,8 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import com.openbankproject.commons.model.{AccountId, BankAccount, TransactionRequestId}
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
+
+import scala.collection.immutable.List
 
 class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
@@ -168,7 +171,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       var getTransReqRequest = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
         CUSTOM_OWNER_VIEW_ID / "transaction-requests").GET <@ (user1)
 
-      def makeGetTransReqRequest = makeGetRequest(getTransReqRequest)
+      def makeGetTransReqRequest = makeGetRequest(getTransReqRequest, List(("from_date", APIUtil.DateWithMsForFilteringFromDateString),("to_date", APIUtil.DateWithMsForFilteringEenDateString)))
 
       def checkAllGetTransReqResBodyField(getTransactionRequestResponse: APIResponse, withChellenge: Boolean): Unit = {
         Then("we should get a 200 created code")
@@ -204,7 +207,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         */
       var getTransactionRequest = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value / CUSTOM_OWNER_VIEW_ID / "transactions").GET <@ (user1)
 
-      def makeGetTransRequest = makeGetRequest(getTransactionRequest)
+      def makeGetTransRequest = makeGetRequest(getTransactionRequest, List(("from_date", APIUtil.DateWithMsForFilteringFromDateString),("to_date", APIUtil.DateWithMsForFilteringEenDateString)))
 
       def checkAllGetTransResBodyField(getTransactionResponse: APIResponse, withChellenge: Boolean): Unit = {
         Then("we should get a 200 created code")
