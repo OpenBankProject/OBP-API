@@ -1,4 +1,4 @@
--- auto generated MS sql server procedures script, create on 2020-07-14T08:19:17Z
+-- auto generated MS sql server procedures script, create on 2020-07-15T07:46:15Z
 
 -- drop procedure obp_get_adapter_info
 DROP PROCEDURE IF EXISTS obp_get_adapter_info;
@@ -320,7 +320,7 @@ this is example of parameter @outbound_json
        "outboundAdapterCallContext":{
          "correlationId":"1flssoftxq0cr1nssr68u0mioj"
        },
-       "challengeId":"string",
+       "challengeId":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
        "hashOfSuppliedAnswer":"a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
      }'
 */
@@ -662,79 +662,6 @@ this is example of parameter @outbound_json
 	SELECT @inbound_json = (
 		SELECT
      N'{
-       "status":{
-         "errorCode":"",
-         "backendMessages":[
-           {
-             "source":"String",
-             "status":"String",
-             "errorCode":"",
-             "text":"String"
-           }
-         ]
-       },
-       "data":{
-         "accountId":{
-           "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
-         },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
-         "number":"bankAccount number string",
-         "bankId":{
-           "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-09T00:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ]
-       }
-     }'
-	);
-GO
-
- 
- 
-
-
--- drop procedure obp_get_bank_account
-DROP PROCEDURE IF EXISTS obp_get_bank_account;
-GO
--- create procedure obp_get_bank_account
-CREATE PROCEDURE obp_get_bank_account
-   @outbound_json NVARCHAR(MAX),
-   @inbound_json NVARCHAR(MAX) OUT
-   AS
-	  SET nocount on
-
--- replace the follow example to real logic
-/*
-this is example of parameter @outbound_json
-     N'{
-       "outboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
-       },
-       "bankId":{
-         "value":"gh.29.uk"
-       },
-       "accountId":{
-         "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
-       }
-     }'
-*/
-
--- return example value
-	SELECT @inbound_json = (
-		SELECT
-     N'{
-       "inboundAdapterCallContext":{
-         "correlationId":"1flssoftxq0cr1nssr68u0mioj"
-       },
        "status":{
          "errorCode":"",
          "backendMessages":[
@@ -1672,6 +1599,7 @@ this is example of parameter @outbound_json
            },
            "otherAccount":{
              "kind":"Counterparty kind string",
+             "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
              "counterpartyName":"John Smith Ltd.",
              "thisBankId":{
                "value":"gh.29.uk"
@@ -1718,7 +1646,7 @@ this is example of parameter @outbound_json
        "bankId":{
          "value":"gh.29.uk"
        },
-       "accountID":{
+       "accountId":{
          "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
        },
        "limit":100,
@@ -1902,6 +1830,7 @@ this is example of parameter @outbound_json
          },
          "otherAccount":{
            "kind":"Counterparty kind string",
+           "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
            "counterpartyName":"John Smith Ltd.",
            "thisBankId":{
              "value":"gh.29.uk"
@@ -2569,22 +2498,9 @@ this is example of parameter @outbound_json
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-09T00:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ]
+         }
        },
        "toAccount":{
          "accountId":{
@@ -2686,22 +2602,9 @@ this is example of parameter @outbound_json
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-09T00:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ]
+         }
        },
        "toAccount":{
          "accountId":{
@@ -2780,7 +2683,7 @@ this is example of parameter @outbound_json
          "start_date":"2019-09-07T00:00:00Z",
          "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
-           "id":"string",
+           "id":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
            "allowed_attempts":123,
            "challenge_type":"string"
          },
@@ -2834,33 +2737,11 @@ this is example of parameter @outbound_json
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
          "label":"My Account",
          "iban":"DE91 1000 0000 0123 4567 89",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-09T00:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         }
        },
        "toAccount":{
          "accountId":{
@@ -2950,7 +2831,7 @@ this is example of parameter @outbound_json
          "start_date":"2019-09-07T00:00:00Z",
          "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
-           "id":"string",
+           "id":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
            "allowed_attempts":123,
            "challenge_type":"string"
          },
@@ -3001,33 +2882,11 @@ this is example of parameter @outbound_json
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
          "label":"My Account",
          "iban":"DE91 1000 0000 0123 4567 89",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-09T00:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         }
        }
      }'
 */
@@ -3072,7 +2931,7 @@ this is example of parameter @outbound_json
            "start_date":"2019-09-07T00:00:00Z",
            "end_date":"2019-09-08T00:00:00Z",
            "challenge":{
-             "id":"string",
+             "id":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
              "allowed_attempts":123,
              "challenge_type":"string"
            },
@@ -3155,7 +3014,7 @@ this is example of parameter @outbound_json
          "start_date":"2019-09-07T00:00:00Z",
          "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
-           "id":"string",
+           "id":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
            "allowed_attempts":123,
            "challenge_type":"string"
          },
@@ -3196,22 +3055,9 @@ this is example of parameter @outbound_json
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-09T00:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ]
+         }
        },
        "transactionRequest":{
          "id":{
@@ -3234,7 +3080,7 @@ this is example of parameter @outbound_json
          "start_date":"2019-09-07T00:00:00Z",
          "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
-           "id":"string",
+           "id":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
            "allowed_attempts":123,
            "challenge_type":"string"
          },
@@ -3288,7 +3134,7 @@ this is example of parameter @outbound_json
          "start_date":"2019-09-07T00:00:00Z",
          "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
-           "id":"string",
+           "id":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
            "allowed_attempts":123,
            "challenge_type":"string"
          },
@@ -4113,22 +3959,9 @@ this is example of parameter @outbound_json
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-09T00:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ]
+         }
        },
        "transReqId":{
          "value":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1"
@@ -4178,7 +4011,7 @@ this is example of parameter @outbound_json
          "start_date":"2019-09-07T00:00:00Z",
          "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
-           "id":"string",
+           "id":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
            "allowed_attempts":123,
            "challenge_type":"string"
          },
@@ -4229,22 +4062,9 @@ this is example of parameter @outbound_json
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-09T00:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ]
+         }
        },
        "toAccount":{
          "accountId":{
@@ -4368,22 +4188,9 @@ this is example of parameter @outbound_json
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-09T00:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ]
+         }
        },
        "toAccount":{
          "accountId":{
@@ -4484,7 +4291,7 @@ this is example of parameter @outbound_json
          "start_date":"2019-09-07T00:00:00Z",
          "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
-           "id":"string",
+           "id":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
            "allowed_attempts":123,
            "challenge_type":"string"
          },
@@ -9040,33 +8847,11 @@ this is example of parameter @outbound_json
          "accountId":{
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
-         "accountType":"AC",
-         "balance":"50.89",
-         "currency":"EUR",
-         "name":"bankAccount name string",
          "label":"My Account",
          "iban":"DE91 1000 0000 0123 4567 89",
-         "number":"bankAccount number string",
          "bankId":{
            "value":"gh.29.uk"
-         },
-         "lastUpdate":"2018-03-09T00:00:00Z",
-         "branchId":"DERBY6",
-         "accountRoutingScheme":"IBAN",
-         "accountRoutingAddress":"DE91 1000 0000 0123 4567 89",
-         "accountRoutings":[
-           {
-             "scheme":"IBAN",
-             "address":"DE91 1000 0000 0123 4567 89"
-           }
-         ],
-         "accountRules":[
-           {
-             "scheme":"AccountRule scheme string",
-             "value":"AccountRule value string"
-           }
-         ],
-         "accountHolder":"bankAccount accountHolder string"
+         }
        },
        "toAccount":{
          "accountId":{
