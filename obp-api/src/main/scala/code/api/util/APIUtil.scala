@@ -1385,25 +1385,25 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
       // reset connectorMethods
       {
-        val checkerClassNames = mutable.ListBuffer[String]()
+        val checkerFunctions = mutable.ListBuffer[PartialFunction[_, _]]()
         if (isNeedCheckAuth) {
-          checkerClassNames += authenticatedAccessFun.getClass.getName
+          checkerFunctions += authenticatedAccessFun
         } else {
-          checkerClassNames += anonymousAccessFun.getClass.getName
+          checkerFunctions += anonymousAccessFun
         }
         if (isNeedCheckRoles) {
-          checkerClassNames += checkRolesFun.getClass.getName
+          checkerFunctions += checkRolesFun
         }
         if (isNeedCheckBank) {
-          checkerClassNames += checkBankFun.getClass.getName
+          checkerFunctions += checkBankFun
         }
         if (isNeedCheckAccount) {
-          checkerClassNames += checkAccountFun.getClass.getName
+          checkerFunctions += checkAccountFun
         }
         if (isNeedCheckView) {
-          checkerClassNames += checkViewFun.getClass.getName
+          checkerFunctions += checkViewFun
         }
-        val addedMethods: List[String] = checkerClassNames.toList.flatMap(getDependentConnectorMethods(_)).map("obp." +)
+        val addedMethods: List[String] = checkerFunctions.toList.flatMap(getDependentConnectorMethods(_)).map("obp." +)
 
         // add connector method to endpoint info
         addEndpointInfos(addedMethods, partialFunctionName, implementedInApiVersion)
