@@ -3217,7 +3217,7 @@ Returns a string showed to the developer
       case Full(sca) if sca == StrongCustomerAuthentication.DUMMY.toString() => Full(StrongCustomerAuthentication.DUMMY)
       case Full(sca) if sca == StrongCustomerAuthentication.SMS.toString() => Full(StrongCustomerAuthentication.SMS)
       case Full(sca) if sca == StrongCustomerAuthentication.EMAIL.toString() => Full(StrongCustomerAuthentication.EMAIL)
-      case _ => Full(StrongCustomerAuthentication.UNDEFINED)
+      case _ => Full(StrongCustomerAuthentication.SMS)
     }
   }
 
