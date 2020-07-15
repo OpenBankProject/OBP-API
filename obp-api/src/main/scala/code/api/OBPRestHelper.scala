@@ -474,26 +474,33 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     result
   }
 
-  protected def findResourceDoc(pf: OBPEndpoint, allResourceDocs: ArrayBuffer[ResourceDoc]): Option[ResourceDoc] = {
-    allResourceDocs.find(_.partialFunction == pf)
-  }
-
   protected def registerRoutes(routes: List[OBPEndpoint],
                                allResourceDocs: ArrayBuffer[ResourceDoc],
                                apiPrefix:OBPEndpoint => OBPEndpoint,
                                autoValidateAll: Boolean = false): Unit = {
-    routes.foreach(route => {
-      val maybeResourceDoc = findResourceDoc(route, allResourceDocs)
-      val isAutoValidate = maybeResourceDoc.map { doc =>
-        doc.isValidateEnabled || (autoValidateAll && !doc.isValidateDisabled && doc.implementedInApiVersion == version)
-      }.getOrElse(false)
 
-      // if rd contains ResourceDoc, when autoValidateAll or doc isAutoValidate, just wrapped to auth check endpoint
-      val authCheckRoute: OBPEndpoint = (maybeResourceDoc, isAutoValidate) match {
-        case (Some(doc), true) => doc.wrappedWithAuthCheck(route)
-        case _ => route
+    def isAutoValidate(doc: ResourceDoc): Boolean =
+      doc.isValidateEnabled || (autoValidateAll && !doc.isValidateDisabled && doc.implementedInApiVersion == version)
+
+    for(route <- routes) {
+      // one endpoint can have multiple ResourceDocs, so here use filter instead of find, e.g APIMethods400.Implementations400.createTransactionRequest
+      val resourceDocs = allResourceDocs.filter(_.partialFunction == route)
+
+      if(resourceDocs.isEmpty) {
+        oauthServe(apiPrefix(route), None)
+      } else {
+        val (autoValidateDocs, other) = resourceDocs.partition(isAutoValidate)
+        // autoValidateAll or doc isAutoValidate, just wrapped to auth check endpoint
+        autoValidateDocs.foreach { doc =>
+          val wrappedEndpoint = doc.wrappedWithAuthCheck(route)
+          oauthServe(apiPrefix(wrappedEndpoint), Some(doc))
+        }
+        //just register once for those not auto validate endpoints .
+        if (other.nonEmpty) {
+          oauthServe(apiPrefix(route), other.headOption)
+        }
       }
-      oauthServe(apiPrefix(authCheckRoute), maybeResourceDoc)
-    })
+    }
+
   }
 }
