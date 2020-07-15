@@ -31,7 +31,7 @@ import java.io.InputStream
 import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
-import java.util.{Date, UUID}
+import java.util.{Calendar, Date, UUID}
 
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
@@ -129,9 +129,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val DateWithSecondsExampleObject = DateWithDayFormat.parse(DateWithSecondsExampleString)
   val DateWithMsExampleObject = DateWithDayFormat.parse(DateWithMsExampleString)
   val DateWithMsRollbackExampleObject = DateWithDayFormat.parse(DateWithMsRollbackExampleString)
-  
-  val DefaultFromDate = DateWithMsFormat.parse(DateWithMsForFilteringFromDateString)
-  val DefaultToDate = DateWithMsFormat.parse(DateWithMsForFilteringEenDateString)
+
+  private def oneYearAgo(toDate: Date): Date = {
+    val oneYearAgo = Calendar.getInstance
+    oneYearAgo.setTime(toDate)
+    oneYearAgo.add(Calendar.YEAR, -1)
+    oneYearAgo.getTime()
+  }
+  val DefaultToDate = new Date()
+  val DefaultFromDate = oneYearAgo(DefaultToDate)
+
+  def formatDate(date : Date) : String = {
+    CustomJsonFormats.losslessFormats.dateFormat.format(date)
+  }
+  val DefaultToDateString = formatDate(DefaultToDate)
+  val DefaultFromDateString = formatDate(DefaultFromDate)
 
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   val headers = ("Access-Control-Allow-Origin","*") :: Nil
