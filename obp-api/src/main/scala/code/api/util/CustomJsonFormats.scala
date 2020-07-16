@@ -12,9 +12,11 @@ import code.util.JsonUtils
 import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util._
 import com.tesobe.CacheKeyFromArguments
+import net.liftweb.common.Box
 import net.liftweb.json
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{TypeInfo, _}
+import net.liftweb.mapper.Mapper
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
@@ -29,11 +31,11 @@ trait CustomJsonFormats {
 
 object CustomJsonFormats {
 
-  val formats: Formats = JsonSerializers.commonFormats + ListResultSerializer
+  val formats: Formats = JsonSerializers.commonFormats + ListResultSerializer + MapperSerializer
 
-  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + ListResultSerializer ++ JsonSerializers.serializers
+  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + ListResultSerializer ++ JsonSerializers.serializers + MapperSerializer
 
-  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) + ListResultSerializer ++ JsonSerializers.serializers
+  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) + ListResultSerializer ++ JsonSerializers.serializers + MapperSerializer
 
   implicit val nullTolerateFormats = formats + JNothingSerializer
 
@@ -41,14 +43,14 @@ object CustomJsonFormats {
     val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
 
     override val typeHints = ShortTypeHints(rolesMappedToClasses)
-  } + ListResultSerializer ++ JsonSerializers.serializers
+  } + ListResultSerializer ++ JsonSerializers.serializers + MapperSerializer
 }
 
 object ListResultSerializer extends Serializer[ListResult[_]] {
   private val clazz = classOf[ListResult[_]]
 
   def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), ListResult[_]] = {
-    case (TypeInfo(entityType, Some(parameterizedType)), json) if(clazz.isAssignableFrom(entityType))=> json match {
+    case (TypeInfo(entityType, Some(parameterizedType)), json) if clazz.isAssignableFrom(entityType) => json match {
       case JObject(singleField::Nil) => {
         val resultsItemType = parameterizedType.getActualTypeArguments.apply(1)
         assume(resultsItemType != classOf[Object], "when do deserialize to type ListResult, should supply exactly type parameter, should not give wildcard like this: jValue.extract[ListResult[List[_]]]")
@@ -76,51 +78,46 @@ object ListResultSerializer extends Serializer[ListResult[_]] {
  * make tolerate for missing required constructor parameters
  */
 object JNothingSerializer extends Serializer[Any] with MdcLoggable {
+
   // This field is just a tag to declare all the missing fields are added, to avoid check missing field repeatedly
   val addedMissingFields = "addedMissingFieldsThisFieldIsJustBeTag"
 
+  private def addMissingFields(jObject: JObject, missingFieldNames: List[String]): JObject = {
+    val JObject(obj) = jObject
+    val newFields: List[JField] = obj ::: (addedMissingFields :: missingFieldNames).map(JField(_, JNull))
+    JObject(newFields)
+  }
+
+  private def isNoMissingFields(jValue: JValue): Boolean = (jValue \ addedMissingFields) != JNothing
+
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), Any] = {
-    case JNothingSerializer(typeInfo, jValue: JObject, missingFieldNames) if missingFieldNames.nonEmpty  => {
-      val newFields: List[JField] = jValue.obj ::: (addedMissingFields :: missingFieldNames).map(JField(_, JNull))
-      val newJValue =  JObject(newFields)
-      Extraction.extract(newJValue,typeInfo)
+    case JNothingSerializer(typeInfo, jValue: JObject, missingFieldNames) => {
+      val newJValue =  addMissingFields(jValue, missingFieldNames)
+      Extraction.extract(newJValue, typeInfo)
     }
   }
 
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case null => JNull
-  }
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = Functions.doNothing
+
 
   private[this] def unapply(arg: (TypeInfo, JValue))(implicit formats: Formats): Option[(TypeInfo, JValue, List[String])] =  {
     val (TypeInfo(clazz, _), jValue) = arg
-    if (!jValue.isInstanceOf[JObject]) {
-      None
-    } else if(jValue \ addedMissingFields != JNothing) {
-      None
-    } else if (clazz == classOf[Option[_]] || clazz == classOf[List[_]] || clazz == classOf[Set[_]] || clazz.isArray) {
-      None
-    } else if (clazz == classOf[Map[_, _]]) {
-      None
-    } else if (tuple_?(clazz) && formats.tuplesAsArrays) {
+    if (! ReflectUtils.isObpClass(clazz) || jValue == JNothing || jValue == JNull || isNoMissingFields(jValue)) {
       None
     } else {
-      val jsonFieldNames: Set[String] = jValue.asInstanceOf[JObject].obj.map(_.name).toSet
-      val missingFields: Option[List[String]] = missingFieldNames(clazz, jsonFieldNames)
+      val jsonFieldNames: Set[String] = jValue.asInstanceOf[JObject].obj.toSet[JField].collect {
+        case JField(name, v) if v != JNothing => name
+      }
 
-      missingFields.map(it => (arg._1, arg._2, it))
+      val missingFields: List[String] = missingFieldNames(clazz, jsonFieldNames)
+      missingFields match {
+        case Nil => None
+        case x => Some((arg._1, arg._2, x))
+      }
     }
   }
 
-  private[this] val TUPLE_PATTERN = Pattern.compile("scala.Tuple([1-9]|1\\d|2[0-2])")
-
-  private[this] def tuple_?(t: Type) = t match {
-    case clazz: Class[_] =>
-      TUPLE_PATTERN.matcher(clazz.getName()).matches()
-    case _ =>
-      false
-  }
-
-  private[this] def missingFieldNames(clazz: Class[_], jsonFieldNames: Set[String]): Option[List[String]] = {
+  private[this] def missingFieldNames(clazz: Class[_], jsonFieldNames: Set[String]): List[String] = {
     // cache 2 hours, the cache time can be very long, because the result will never be changed
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
@@ -128,11 +125,11 @@ object JNothingSerializer extends Serializer[Any] with MdcLoggable {
 
         val constructors: Array[Constructor[_]] = clazz.getDeclaredConstructors()
         bestMatching(constructors, jsonFieldNames) match {
-          case None => None
-          case Some(array: Array[Arg]) => {
-            val missingFields: Array[String] = array.map(_.path).filterNot(jsonFieldNames.contains(_))
-            if(missingFields.isEmpty) None else Some(missingFields.toList)
-          }
+          case None => Nil
+          case Some(array: Array[Arg]) =>
+            array.toList collect {
+              case arg if arg.required && !jsonFieldNames.contains(arg.path) => arg.path
+            }
         }
 
       }
@@ -156,11 +153,9 @@ object JNothingSerializer extends Serializer[Any] with MdcLoggable {
 
     val maybeObject: Option[Array[Arg]] = if (constructors.isEmpty) {
       None
-    }
-    else if(constructors.size == 1) {
+    } else if(constructors.size == 1) {
       constructors.headOption.map(_.getParameters.map(Arg(_)))
-    }
-    else {
+    } else {
       val choices: Array[Array[Arg]] = constructors.map(_.getParameters())
         .map(_.map(Arg(_)))
 
@@ -187,7 +182,14 @@ object JNothingSerializer extends Serializer[Any] with MdcLoggable {
       )
     }
     val path = parameter.getName()
-    val optional = classOf[Option[_]].isAssignableFrom(parameter.getType())
+
+    val optional = {
+      val optionClass: Class[Option[_]] = classOf[Option[_]]
+      val boxClass: Class[Box[_]] = classOf[Box[_]]
+      val paramType = parameter.getType()
+      optionClass.isAssignableFrom(paramType) || boxClass.isAssignableFrom(paramType)
+    }
+    val required = !optional
   }
 }
 
@@ -206,15 +208,21 @@ object FieldIgnoreSerializer extends Serializer[AnyRef] {
     case x if isInOutBoundType(x) && threadLocal.get() == null =>
       threadLocal.set(x)
       try{
-        val ignoreFieldNames: List[String] = getIgnores(ReflectUtils.getType(x)) ::: propsConfigIgnoreFields
-        val zson = json.Extraction.decompose(x)
-        ignoreFieldNames match {
-          case Nil => zson
-          case ignores => JsonUtils.deleteFields(zson, ignores)
-        }
+        toIgnoreFieldJson(x)
       } finally {
         threadLocal.remove()
       }
+  }
+
+  def toIgnoreFieldJson(x: Any)(implicit formats: Formats): JValue = toIgnoreFieldJson(x, ReflectUtils.getType(x))
+
+  def toIgnoreFieldJson(x: Any, tp: universe.Type, ignoreFunc: List[String] => List[String] = Functions.unary)(implicit formats: Formats): JValue = {
+    val ignoreFieldNames: List[String] = getIgnores(tp) ::: propsConfigIgnoreFields
+    val zson = json.Extraction.decompose(x)
+    ignoreFieldNames match {
+      case Nil => zson
+      case ignores => JsonUtils.deleteFields(zson, ignoreFunc(ignores))
+    }
   }
 
   private def isInOutBoundType(any: Any) = {
@@ -252,4 +260,34 @@ object FieldIgnoreSerializer extends Serializer[AnyRef] {
   }
 }
 
+/**
+ * serialize DB Mapped object to JValue
+ */
+object MapperSerializer extends Serializer[Mapper[_]] {
+  /**
+   * `call by name` method names those defined in Mapper trait.
+   */
+  val mapperMethods: Set[String] = typeOf[Mapper[_]].decls.filter(it => it.isMethod && it.asMethod.paramLists.isEmpty).map(_.name.decodedName.toString).toSet
 
+  private val memo = new Memo[universe.Type, Iterable[universe.MethodSymbol]]
+
+  override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = {
+    case x: Mapper[_] =>
+      val tp: universe.Type = ReflectUtils.getType(x)
+      val instanceMirror: InstanceMirror = ReflectUtils.getInstanceMirror(x)
+      val callByNameMethods = memo.memoize(tp) {
+        tp.decls.filter(it => it.isMethod && it.overrides.nonEmpty && it.asMethod.paramLists.isEmpty && !mapperMethods.contains(it.name.decodedName.toString))
+          .map(_.asMethod)
+      }
+      // mapper object to Map[String, _]
+      val map: Map[String, Any] = callByNameMethods.map(method => {
+        val methodName = method.name.decodedName.toString
+        val value = instanceMirror.reflectMethod(method).apply()
+        methodName -> value
+      }).toMap
+      json.Extraction.decompose(map)
+  }
+
+
+  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, json.JValue), Mapper[_]] = Functions.doNothing
+}

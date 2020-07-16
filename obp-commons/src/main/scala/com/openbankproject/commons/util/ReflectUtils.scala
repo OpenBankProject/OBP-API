@@ -62,6 +62,8 @@ object ReflectUtils {
     result
   }
 
+  def getInstanceMirror(any: Any): ru.InstanceMirror = mirror.reflect(any)
+
   def getFieldValues(obj: AnyRef)(predicate: TermSymbol => Boolean = _=>true): Map[String, Any] = {
     val instanceMirror = mirror.reflect(obj)
     val tp: ru.Type = instanceMirror.symbol.info
