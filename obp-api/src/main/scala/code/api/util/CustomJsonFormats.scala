@@ -194,6 +194,7 @@ object JNothingSerializer extends Serializer[Any] with MdcLoggable {
 }
 
 object FieldIgnoreSerializer extends Serializer[AnyRef] {
+  private val typedIgnoreRegx = "(.+?):(.+)".r
   private val memo = new Memo[universe.Type, List[String]]()
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, json.JValue), AnyRef] = Functions.doNothing
   private lazy val propsConfigIgnoreFields = Array(
@@ -214,11 +215,17 @@ object FieldIgnoreSerializer extends Serializer[AnyRef] {
       }
   }
 
-  def toIgnoreFieldJson(x: Any)(implicit formats: Formats): JValue = toIgnoreFieldJson(x, ReflectUtils.getType(x))
+  def toIgnoreFieldJson(any: Any)(implicit formats: Formats): JValue = toIgnoreFieldJson(any, ReflectUtils.getType(any))
 
-  def toIgnoreFieldJson(x: Any, tp: universe.Type, ignoreFunc: List[String] => List[String] = Functions.unary)(implicit formats: Formats): JValue = {
-    val ignoreFieldNames: List[String] = getIgnores(tp) ::: propsConfigIgnoreFields
-    val zson = json.Extraction.decompose(x)
+  def toIgnoreFieldJson(any: Any, tp: universe.Type, ignoreFunc: List[String] => List[String] = Functions.unary)(implicit formats: Formats): JValue = {
+    val TYPE_NAME = tp.typeSymbol.name.decodedName.toString
+    // if props value like this InBoundGetBanks:data.logoUrl, the type name must match current process object type.
+    val filterPropsIgnoreFields = propsConfigIgnoreFields collect {
+      case typedIgnoreRegx(TYPE_NAME, ignorePath) => ignorePath
+      case x => x
+    }
+    val ignoreFieldNames: List[String] = getIgnores(tp) ::: filterPropsIgnoreFields
+    val zson = json.Extraction.decompose(any)
     ignoreFieldNames match {
       case Nil => zson
       case ignores => JsonUtils.deleteFields(zson, ignoreFunc(ignores))
