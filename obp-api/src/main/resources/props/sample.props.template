@@ -766,6 +766,7 @@ database_messages_scheduler_interval=3600
 # FREE_FORM_OTP_INSTRUCTION_TRANSPORT=dummy
 # COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=dummy
 # Possible values: dummy,email,sms
+# In case isn't defined default value is "sms"
 # -----------------------------------------------------------------------
 
 # Convert the Bank's plain text reference(s) to OBP UUIDs and visa versa. Note: this is currently only for the Rest Connector.
