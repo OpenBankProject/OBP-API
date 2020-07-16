@@ -487,6 +487,18 @@ object ReflectUtils {
 
   def forType(className: String): ru.Type = mirror.staticClass(className).toType
 
+  def forTypeOption(className: String): Option[ru.Type] = try {
+      Some(mirror.staticClass(className).toType)
+    } catch {
+      case _: ScalaReflectionException => None
+    }
+
+  def forClassOption(className: String): Option[Class[_]] = try {
+      Some(Class.forName(className, false, getClass().getClassLoader))
+    } catch {
+      case _: ClassNotFoundException => None
+    }
+
   def getPrimaryConstructor(tp: ru.Type): MethodSymbol = tp.decl(ru.termNames.CONSTRUCTOR).alternatives.head.asMethod
 
   def getPrimaryConstructor(obj: Any): MethodSymbol = this.getPrimaryConstructor(this.getType(obj))
