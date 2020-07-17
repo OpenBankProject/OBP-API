@@ -3576,7 +3576,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               scaMethod,
               callContext
             ) map { i =>
-              (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
+              (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
             }
 
             newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
@@ -3677,6 +3677,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             (transactionRequest, callContext)
           }
         case TransactionRequestStatus.INITIATED =>
+          // return the lists of users, who need to be answered the challenges
           def getUsersForChallenges(bankId: BankId,
                                     accountId: AccountId) = {
             Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None) map {
@@ -3700,7 +3701,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           for {
             //if challenge necessary, create a new one
             users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId)
-            (challengeIds, callContext) <- createChallenges(
+            //now we support multiple challenges. We can support multiple people to answer the challenges.
+            //So here we return the challengeIds. 
+            (challengeIds, callContext) <- Connector.connector.vend.createChallenges(
               fromAccount.bankId,
               fromAccount.accountId,
               users.toList.flatten.map(_.userId),
@@ -3709,9 +3712,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               scaMethod,
               callContext
             ) map { i =>
-              (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
+              (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
             }
-
+            //TODO, this challengeIds are only for mapped connector now. we only return the first challengeId in the request yet.
             newChallenge = TransactionRequestChallenge(challengeIds.headOption.getOrElse(""), allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
             _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
             transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
