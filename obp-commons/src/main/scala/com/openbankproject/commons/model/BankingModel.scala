@@ -244,7 +244,6 @@ case class Counterparty(
   val kind: String, // Type of bank account.
   
   // The following fields started from V210
-  @ignore
   val counterpartyId: String,
   val counterpartyName: String,
   val thisBankId: BankId, // i.e. the Account that sends/receives money to/from this Counterparty

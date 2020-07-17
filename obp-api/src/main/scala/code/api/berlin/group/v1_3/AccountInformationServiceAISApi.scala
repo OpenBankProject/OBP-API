@@ -41,7 +41,7 @@ object APIMethods_AccountInformationServiceAISApi extends RestHelper {
       deleteConsent ::
       getAccountList ::
       getBalances ::
-      getCardAccount ::
+      getCardAccounts ::
       getCardAccountBalances ::
       getCardAccountTransactionList ::
       getConsentAuthorisation ::
@@ -242,8 +242,7 @@ of the PSU at this ASPSP.
                     |""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-       connectorMethods= Some(List("obp.getBank","obp.getBankAccounts"))
+       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getAccountList : OBPEndpoint = {
@@ -325,9 +324,9 @@ The account-id is constant at least throughout the lifecycle of a given consent.
        }
             
      resourceDocs += ResourceDoc(
-       getCardAccount,
+       getCardAccounts,
        apiVersion,
-       nameOf(getCardAccount),
+       nameOf(getCardAccounts),
        "GET",
        "/card-accounts",
        "Reads a list of card accounts",
@@ -339,97 +338,71 @@ respectively the OAuth2 access token.
 """,
        json.parse(""""""),
        json.parse("""{
-  "cardAccounts" : [ {
-    "balances" : "",
-    "product" : "product",
-    "resourceId" : "resourceId",
-    "maskedPan" : "123456xxxxxx1234",
-    "_links" : {
-      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "usage" : "PRIV",
-    "name" : "name",
-    "creditLimit" : {
-      "amount" : "123",
-      "currency" : "EUR"
-    },
-    "currency" : "EUR",
-    "details" : "details",
-    "status" : { }
-  }, {
-    "balances" : "",
-    "product" : "product",
-    "resourceId" : "resourceId",
-    "maskedPan" : "123456xxxxxx1234",
-    "_links" : {
-      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "usage" : "PRIV",
-    "name" : "name",
-    "creditLimit" : {
-      "amount" : "123",
-      "currency" : "EUR"
-    },
-    "currency" : "EUR",
-    "details" : "details",
-    "status" : { }
-  } ]
+  "cardAccounts": [
+    {
+      "resourceId": "3d9a81b3-a47d-4130-8765-a9c0ff861b99",
+      "maskedPan": "525412******3241",
+      "currency": "EUR",
+      "name": "Main",
+      "product": "Basic Credit",
+      "status": "enabled",
+      "creditLimit": {
+        "currency": "EUR",
+        "amount": 15000
+      },
+      "balances": [
+        {
+          "balanceType": "interimBooked",
+          "balanceAmount": {
+            "currency": "EUR",
+            "amount": 14355.78
+          }
+        },
+        {
+          "balanceType": "nonBilled",
+          "balanceAmount": {
+            "currency": "EUR",
+            "amount": 4175.86
+          }
+        }
+      ],
+      "_links": {
+        "transactions": {
+          "href": "/v1/card-accounts/3d9a81b3-a47d-4130-8765-a9c0ff861b99/transactions"
+        }
+      }
+    }
+  ]
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
-     lazy val getCardAccount : OBPEndpoint = {
+     lazy val getCardAccounts : OBPEndpoint = {
        case "card-accounts" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "cardAccounts" : [ {
-    "balances" : "",
-    "product" : "product",
-    "resourceId" : "resourceId",
-    "maskedPan" : "123456xxxxxx1234",
-    "_links" : {
-      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "usage" : "PRIV",
-    "name" : "name",
-    "creditLimit" : {
-      "amount" : "123",
-      "currency" : "EUR"
-    },
-    "currency" : "EUR",
-    "details" : "details",
-    "status" : { }
-  }, {
-    "balances" : "",
-    "product" : "product",
-    "resourceId" : "resourceId",
-    "maskedPan" : "123456xxxxxx1234",
-    "_links" : {
-      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "usage" : "PRIV",
-    "name" : "name",
-    "creditLimit" : {
-      "amount" : "123",
-      "currency" : "EUR"
-    },
-    "currency" : "EUR",
-    "details" : "details",
-    "status" : { }
-  } ]
-}"""), callContext)
+             _ <- passesPsd2Aisp(callContext)
+             _ <- Helper.booleanToFuture(failMsg = DefaultBankIdNotSet) {
+               defaultBankId != "DEFAULT_BANK_ID_NOT_SET"
+             }
+
+             bankId = BankId(defaultBankId)
+
+             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+
+             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
+
+             (accounts, callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
+
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountListJson(accounts, u), callContext)
            }
-         }
        }
+     }
+       
             
      resourceDocs += ResourceDoc(
        getCardAccountBalances,
@@ -466,8 +439,7 @@ This account-id then can be retrieved by the
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil,
-       connectorMethods = Some(List("obp.getBank","obp.checkBankAccountExists" ,"obp.getTransactionRequests210"))
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val getCardAccountBalances : OBPEndpoint = {
@@ -988,8 +960,7 @@ Give detailed information about the addressed account together with balance info
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil,
-       connectorMethods=Some(List("obp.checkBankAccountExists"))
+       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val readAccountDetails : OBPEndpoint = {

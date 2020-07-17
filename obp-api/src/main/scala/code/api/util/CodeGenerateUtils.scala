@@ -48,6 +48,7 @@ object CodeGenerateUtils {
     NameTypeExample(null, typeOf[InboundAdapterCallContext], "MessageDocsSwaggerDefinitions.inboundAdapterCallContext"),
     NameTypeExample("status", typeOf[Status], "MessageDocsSwaggerDefinitions.inboundStatus"),
     NameTypeExample("statusValue", typeOf[String], s""""${TransactionRequestStatus.COMPLETED}""""),
+    NameTypeExample("hashOfSuppliedAnswer", typeOf[String], s"""HashUtil.Sha256Hash("123")"""),
     NameTypeExample(null, typeOf[List[CustomerAndAttribute]],
       """ List(
         |         CustomerAndAttribute(
@@ -255,6 +256,7 @@ object CodeGenerateUtils {
 
   private def getExampleValue(name: String, otherNames: String*): Option[String] =
     (name +: otherNames).collectFirst {
+    case x if exampleNameToValue.contains(x + "Example") => exampleNameToValue(x + "Example")
     case x if exampleNameToValue.contains(x) => exampleNameToValue(x)
   }
 
@@ -263,8 +265,7 @@ object CodeGenerateUtils {
     */
   private lazy val exampleNameToValue: Map[String, String] = {
     ExampleValue.exampleNameToValue.keys.map(exampleName => {
-      val removePostfixName = StringUtils.removeEnd(exampleName, "Example")
-      (removePostfixName, s"$exampleName.value")
+      (exampleName, s"$exampleName.value")
     }).toMap
 
   }

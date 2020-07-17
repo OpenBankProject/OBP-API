@@ -31,7 +31,7 @@ import java.io.InputStream
 import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
-import java.util.{Date, UUID}
+import java.util.{Calendar, Date, UUID}
 
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
@@ -57,10 +57,12 @@ import code.ratelimiting.{RateLimiting, RateLimitingDI}
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
+import code.util.ClassScanUtils.findTypes
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import code.views.Views
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+import com.alibaba.ttl.internal.javassist.CannotCompileException
 import com.github.dwickern.macros.NameOf.{nameOf, nameOfType}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
@@ -81,12 +83,16 @@ import net.liftweb.util.{Helpers, LiftFlowOfControlException, Props, StringHelpe
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{List, Nil}
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, Functions, JsonAble, ReflectUtils, ScannedApiVersion}
 import com.openbankproject.commons.util.Functions.Implicits._
+import com.openbankproject.commons.util.Functions.Memo
+import javassist.{ClassPool, LoaderClassPath}
+import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.lang3.StringUtils
 
+import scala.collection.mutable
 import scala.concurrent.Future
 import scala.io.BufferedSource
 import scala.xml.{Elem, XML}
@@ -123,9 +129,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val DateWithSecondsExampleObject = DateWithDayFormat.parse(DateWithSecondsExampleString)
   val DateWithMsExampleObject = DateWithDayFormat.parse(DateWithMsExampleString)
   val DateWithMsRollbackExampleObject = DateWithDayFormat.parse(DateWithMsRollbackExampleString)
-  
-  val DefaultFromDate = DateWithMsFormat.parse(DateWithMsForFilteringFromDateString)
-  val DefaultToDate = DateWithMsFormat.parse(DateWithMsForFilteringEenDateString)
+
+  private def oneYearAgo(toDate: Date): Date = {
+    val oneYearAgo = Calendar.getInstance
+    oneYearAgo.setTime(toDate)
+    oneYearAgo.add(Calendar.YEAR, -1)
+    oneYearAgo.getTime()
+  }
+  val DefaultToDate = new Date()
+  val DefaultFromDate = oneYearAgo(DefaultToDate)
+
+  def formatDate(date : Date) : String = {
+    CustomJsonFormats.losslessFormats.dateFormat.format(date)
+  }
+  val DefaultToDateString = formatDate(DefaultToDate)
+  val DefaultFromDateString = formatDate(DefaultFromDate)
 
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   val headers = ("Access-Control-Allow-Origin","*") :: Nil
@@ -1171,8 +1189,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           var roles: Option[List[ApiRole]] = None,
                           isFeatured: Boolean = false,
                           specialInstructions: Option[String] = None,
-                          specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
-                          connectorMethods: Option[List[String]] = None
+                          specifiedUrl: Option[String] = None // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
                         ) {
     // this code block will be merged to constructor.
     {
@@ -1206,6 +1223,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
              |"""
       }
     }
+    // set dependent connector methods
+    var connectorMethods: List[String] = getDependentConnectorMethods(partialFunction)
+                                        .map("obp."+) // add prefix "obp.", as MessageDoc#process
+
+    // add connector method to endpoint info
+    addEndpointInfos(connectorMethods, partialFunctionName, implementedInApiVersion)
+
     private val rolesForCheck = roles match {
       case Some(list) => list
       case _ => Nil
@@ -1265,6 +1289,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       this
     }
 
+    private val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
+
+    private val requestUrlBankId = requestUrlPartPath.indexOf("BANK_ID")
+    private val requestUrlAccountId = requestUrlPartPath.indexOf("ACCOUNT_ID")
+    private val requestUrlViewId = requestUrlPartPath.indexOf("VIEW_ID")
+
+    private val isNeedCheckAuth = errorResponseBodies.contains($UserNotLoggedIn)
+    private val isNeedCheckRoles = _autoValidateRoles && rolesForCheck.nonEmpty
+    private val isNeedCheckBank = errorResponseBodies.contains($BankNotFound) && requestUrlBankId != -1
+    private val isNeedCheckAccount = errorResponseBodies.contains($BankAccountNotFound) &&
+      requestUrlBankId != -1 && requestUrlAccountId != -1
+    private val isNeedCheckView = errorResponseBodies.contains($UserNoPermissionAccessView) &&
+      requestUrlBankId != -1 && requestUrlAccountId != -1 && requestUrlViewId != -1
+
     /**
      * According errorResponseBodies whether contains UserNotLoggedIn and UserHasMissingRoles do validation.
      * So can avoid duplicate code in endpoint body for expression do check.
@@ -1279,12 +1317,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
      * @return wrapped endpoint
      */
     def wrappedWithAuthCheck(obpEndpoint: OBPEndpoint): OBPEndpoint = {
-
-      val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
-
-      val requestUrlBankId = requestUrlPartPath.indexOf("BANK_ID")
-      val requestUrlAccountId = requestUrlPartPath.indexOf("ACCOUNT_ID")
-      val requestUrlViewId = requestUrlPartPath.indexOf("VIEW_ID")
 
       def getIds(url: List[String]): (Option[BankId], Option[AccountId], Option[ViewId]) = {
         val apiPrefixLength = url.size - requestUrlPartPath.size
@@ -1309,31 +1341,33 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         (bankId, accountId, viewId)
       }
 
-      def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] =
-        if (errorResponseBodies.contains($UserNotLoggedIn)) authenticatedAccess(cc) else anonymousAccess(cc)
+      def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
+        if (isNeedCheckAuth) authenticatedAccessFun(cc) else anonymousAccessFun(cc)
+      }
 
-      def checkRoles(bankId: Option[BankId], user: Box[User]):Future[Box[Unit]] =
-        if(_autoValidateRoles && rolesForCheck.nonEmpty) {
-            val bankIdStr = bankId.map(_.value).getOrElse("")
-            val userIdStr = user.map(_.userId).openOr("")
-            NewStyle.function.hasAtLeastOneEntitlement(bankIdStr, userIdStr, rolesForCheck)
-          } else {
-              Future.successful(Full(Unit))
-            }
+      def checkRoles(bankId: Option[BankId], user: Box[User]):Future[Box[Unit]] = {
+        if (isNeedCheckRoles) {
+          val bankIdStr = bankId.map(_.value).getOrElse("")
+          val userIdStr = user.map(_.userId).openOr("")
+          checkRolesFun(bankIdStr)(userIdStr, rolesForCheck)
+        } else {
+          Future.successful(Full(Unit))
+        }
+      }
 
       def checkBank(bankId: Option[BankId], callContext: Option[CallContext]): Future[(Bank, Option[CallContext])] = {
-        val needCheckBank = errorResponseBodies.contains($BankNotFound)
-        (needCheckBank, bankId) match {
-          case (true, Some(bId)) => NewStyle.function.getBank(bId, callContext)
-          case _ => Future.successful(null.asInstanceOf[Bank] -> callContext)
+        if (isNeedCheckBank && bankId.isDefined) {
+          checkBankFun(bankId.get)(callContext)
+        } else {
+          Future.successful(null.asInstanceOf[Bank] -> callContext)
         }
       }
 
       def checkAccount(bankId: Option[BankId], accountId: Option[AccountId], callContext: Option[CallContext]): Future[(BankAccount, Option[CallContext])] = {
-        val needCheckAccount = errorResponseBodies.contains($BankAccountNotFound)
-        (needCheckAccount,bankId, accountId) match {
-          case (true, Some(bId), Some(aId)) => NewStyle.function.getBankAccount(bId, aId, callContext)
-          case _ => Future.successful(null.asInstanceOf[BankAccount] -> callContext)
+        if(isNeedCheckAccount && bankId.isDefined && accountId.isDefined) {
+          checkAccountFun(bankId.get)(accountId.get, callContext)
+        } else {
+          Future.successful(null.asInstanceOf[BankAccount] -> callContext)
         }
       }
 
@@ -1342,13 +1376,41 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                     accountId: Option[AccountId],
                     boxUser: Box[User],
                     callContext: Option[CallContext]): Future[View] = {
-        val needCheckView = errorResponseBodies.contains($UserNoPermissionAccessView)
+        if(isNeedCheckView && bankId.isDefined && accountId.isDefined && viewId.isDefined) {
+          val bankIdAccountId = BankIdAccountId(bankId.get, accountId.get)
+          checkViewFun(viewId.get)(bankIdAccountId, boxUser, callContext)
+        } else {
+          Future.successful(null.asInstanceOf[View])
+        }
+      }
+      // reset connectorMethods
+      {
+        val checkerFunctions = mutable.ListBuffer[PartialFunction[_, _]]()
+        if (isNeedCheckAuth) {
+          checkerFunctions += authenticatedAccessFun
+        } else {
+          checkerFunctions += anonymousAccessFun
+        }
+        if (isNeedCheckRoles) {
+          checkerFunctions += checkRolesFun
+        }
+        if (isNeedCheckBank) {
+          checkerFunctions += checkBankFun
+        }
+        if (isNeedCheckAccount) {
+          checkerFunctions += checkAccountFun
+        }
+        if (isNeedCheckView) {
+          checkerFunctions += checkViewFun
+        }
+        val addedMethods: List[String] = checkerFunctions.toList.flatMap(getDependentConnectorMethods(_)).map("obp." +)
 
-        (needCheckView, bankId, accountId, viewId) match {
-          case (true, Some(bId), Some(aId), Some(vId)) =>
-            val bankIdAccountId = BankIdAccountId(bId, aId)
-            NewStyle.function.checkViewAccessAndReturnView(vId, bankIdAccountId, boxUser, callContext)
-          case _ => Future.successful(null.asInstanceOf[View])
+        // add connector method to endpoint info
+        addEndpointInfos(addedMethods, partialFunctionName, implementedInApiVersion)
+
+        this.connectorMethods = this.connectorMethods match {
+          case x if addedMethods.nonEmpty => (addedMethods ::: x).distinct
+          case x => x
         }
       }
 
@@ -3155,7 +3217,7 @@ Returns a string showed to the developer
       case Full(sca) if sca == StrongCustomerAuthentication.DUMMY.toString() => Full(StrongCustomerAuthentication.DUMMY)
       case Full(sca) if sca == StrongCustomerAuthentication.SMS.toString() => Full(StrongCustomerAuthentication.SMS)
       case Full(sca) if sca == StrongCustomerAuthentication.EMAIL.toString() => Full(StrongCustomerAuthentication.EMAIL)
-      case _ => Full(StrongCustomerAuthentication.UNDEFINED)
+      case _ => Full(StrongCustomerAuthentication.SMS)
     }
   }
 
@@ -3204,4 +3266,93 @@ Returns a string showed to the developer
 
   lazy val loginButtonText = getWebUiPropsValue("webui_login_button_text", S.?("log.in"))
 
+  // the follow PartialFunction just delegate one method, in this way will be compiled to a class, in order to trace call whitch connector methods
+  private val authenticatedAccessFun: PartialFunction[CallContext, OBPReturnType[Box[User]]] = {
+    case x => authenticatedAccess(x)
+  }
+  private val anonymousAccessFun: PartialFunction[CallContext, OBPReturnType[Box[User]]] = {
+    case x => anonymousAccess(x)
+  }
+  private val checkRolesFun: PartialFunction[String, (String, List[ApiRole]) => Future[Box[Unit]]] = {
+    case x => NewStyle.function.hasAtLeastOneEntitlement(x, _, _)
+  }
+  private val checkBankFun: PartialFunction[BankId, Option[CallContext] => OBPReturnType[Bank]] = {
+    case x => NewStyle.function.getBank(x, _)
+  }
+  private val checkAccountFun: PartialFunction[BankId, (AccountId, Option[CallContext]) => OBPReturnType[BankAccount]] = {
+    case x => NewStyle.function.getBankAccount(x, _, _)
+  }
+  private val checkViewFun: PartialFunction[ViewId, (BankIdAccountId, Option[User], Option[CallContext]) => Future[View]] = {
+    case x => NewStyle.function.checkViewAccessAndReturnView(x, _, _, _)
+  }
+
+  // cache for method -> called obp methods:
+  // (className, methodName, signature) -> List[(className, methodName, signature)]
+  private val memo = new Memo[(String, String, String), List[(String, String, String)]]
+
+  private val cp = {
+    val pool = ClassPool.getDefault
+    // avoid error when call with JDK 1.8:
+    // javassist.NotFoundException: code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1
+    pool.appendClassPath(new LoaderClassPath(Thread.currentThread.getContextClassLoader))
+    pool
+  }
+
+  /**
+   * get all dependent connector method names for an object
+   * @param endpoint can be OBPEndpoint or other PartialFunction
+   * @return a list of connector method name
+   */
+  def getDependentConnectorMethods(endpoint: PartialFunction[_, _]) = {
+    val connectorTypeName = classOf[Connector].getName
+    def getObpTrace(className: String, methodName: String, signature: String, exclude: List[(String, String, String)] = Nil): List[(String, String, String)] =
+      memo.memoize((className, methodName, signature)) {
+        val methods = ListBuffer[(String, String, String)]()
+        val method = cp.get(className).getMethod(methodName, signature)
+        method.instrument(new ExprEditor() {
+          @throws[CannotCompileException]
+          override def edit(m: MethodCall): Unit = {
+            val tuple = (m.getClassName, m.getMethodName, m.getSignature)
+            if (ReflectUtils.isObpClass(m.getClassName)) {
+              methods += tuple
+            }
+          }
+        })
+
+        val list = methods.distinct.toList.filterNot(exclude.contains)
+        list.collect {
+          case x@(clazzName, _, _) if clazzName == connectorTypeName => x :: Nil
+          case (clazzName, mName, mSignature) =>
+            getObpTrace(clazzName, mName, mSignature, list ::: exclude)
+        }.flatten.distinct
+      }
+
+    val endpointClassName = endpoint.getClass.getName
+    // list of connector method name
+    val connectorMethods: Array[String] = for {
+      method <- cp.get(endpoint.getClass.getName).getDeclaredMethods
+      (clazzName, methodName, _) <- getObpTrace(endpointClassName, method.getName, method.getSignature)
+      if clazzName == connectorTypeName && !methodName.contains("$default$")
+    } yield methodName
+
+    connectorMethods.toList.distinct
+  }
+
+  case class EndpointInfo(name: String, version: String)
+
+  /**
+   * key: connector method name, prefix with "obp."
+   * value: dependent endpoint information list.
+   * this is used by MessageDoc
+   */
+  val connectorToEndpoint = mutable.Map[String, List[EndpointInfo]]()
+
+  private def addEndpointInfos(connectorMethods: List[String], partialFunctionName: String, apiVersion: ScannedApiVersion) = {
+    val endpointInfo = EndpointInfo(partialFunctionName, apiVersion.fullyQualifiedVersion)
+    connectorMethods.foreach(method => {
+      val infos = connectorToEndpoint.getOrElse(method, Nil)
+      val newInfos: List[EndpointInfo] = infos ?+ endpointInfo
+      connectorToEndpoint.put(method, newInfos)
+    })
+  }
 }

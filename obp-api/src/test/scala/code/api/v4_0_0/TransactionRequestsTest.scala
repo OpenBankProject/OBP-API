@@ -24,6 +24,8 @@ import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
+import scala.collection.immutable.List
+
 class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
   /**
@@ -182,7 +184,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
       var getTransReqRequest = (v4_0_0_Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
         CUSTOM_OWNER_VIEW_ID / "transaction-requests").GET <@ (user1)
 
-      def makeGetTransReqRequest = makeGetRequest(getTransReqRequest)
+      def makeGetTransReqRequest = makeGetRequest(getTransReqRequest, List(("from_date", APIUtil.DateWithMsForFilteringFromDateString),("to_date", APIUtil.DateWithMsForFilteringEenDateString)))
 
       def checkAllGetTransReqResBodyField(getTransactionRequestResponse: APIResponse, withChellenge: Boolean): Unit = {
         Then("we should get a 200 created code")
@@ -218,7 +220,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         */
       var getTransactionRequest = (v4_0_0_Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value / CUSTOM_OWNER_VIEW_ID / "transactions").GET <@ (user1)
 
-      def makeGetTransRequest = makeGetRequest(getTransactionRequest)
+      def makeGetTransRequest = makeGetRequest(getTransactionRequest, List(("from_date", APIUtil.DateWithMsForFilteringFromDateString),("to_date", APIUtil.DateWithMsForFilteringEenDateString)))
 
       def checkAllGetTransResBodyField(getTransactionResponse: APIResponse, withChellenge: Boolean): Unit = {
         Then("we should get a 200 created code")

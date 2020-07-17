@@ -392,7 +392,7 @@ trait APIMethods220 {
         |
         | Note: API Explorer provides a Message Docs page where these messages are displayed.
         | 
-        | `CONNECTOR`:kafka_vMar2017 , kafka_vJune2017, kafka_vSept2018 ... 
+        | `CONNECTOR`:kafka_vMar2017 , kafka_vJune2017, kafka_vSept2018, stored_procedure_vDec2019 ...
       """.stripMargin,
       emptyObjectJson,
       messageDocsJson,

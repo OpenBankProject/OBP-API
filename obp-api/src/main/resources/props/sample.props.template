@@ -441,6 +441,8 @@ webui_agree_terms_url =
 # URL to load (alternative) get started content (this replaces the normal content in index.html
 #webui_get_started_content_url = http://127.0.0.1:8080/plain.html
 
+# URL to load (alternative) header content (this replaces the id ="table-header" content in default.html
+#webui_header_content_url = http://127.0.0.1:8080/plain.html
 
 
 # If we want to gather more information about an Application / Startup fill this url and text
@@ -764,6 +766,7 @@ database_messages_scheduler_interval=3600
 # FREE_FORM_OTP_INSTRUCTION_TRANSPORT=dummy
 # COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=dummy
 # Possible values: dummy,email,sms
+# In case isn't defined default value is "sms"
 # -----------------------------------------------------------------------
 
 # Convert the Bank's plain text reference(s) to OBP UUIDs and visa versa. Note: this is currently only for the Rest Connector.

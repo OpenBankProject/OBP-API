@@ -51,9 +51,7 @@ getAllowedEndpoints(endpointsOf3_0_0, Implementations3_0_0.resourceDocs)
 
 4) Once we have a final list of routes we serve them:
 
-  routes.foreach(route => {
-    oauthServe(apiPrefix{route}, findResourceDoc(route))
-  })
+  `registerRoutes(routes, allResourceDocs, apiPrefix, autoValidateAll = true)`
 
 
 

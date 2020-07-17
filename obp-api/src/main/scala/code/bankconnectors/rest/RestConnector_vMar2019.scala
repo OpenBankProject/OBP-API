@@ -219,10 +219,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /getChallengeThreshold
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, username: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
         import com.openbankproject.commons.dto.{OutBoundGetChallengeThreshold => OutBound, InBoundGetChallengeThreshold => InBound}
         val url = getUrl(callContext, "getChallengeThreshold")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, viewId, transactionRequestType, currency, userId, userName)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, viewId, transactionRequestType, currency, userId, username)
         val result: OBPReturnType[Box[AmountOfMoney]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -285,10 +285,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /getChargeLevel
-  override def getChargeLevel(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, userName: String, transactionRequestType: String, currency: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
+  override def getChargeLevel(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, username: String, transactionRequestType: String, currency: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
         import com.openbankproject.commons.dto.{OutBoundGetChargeLevel => OutBound, InBoundGetChargeLevel => InBound}
         val url = getUrl(callContext, "getChargeLevel")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, viewId, userId, userName, transactionRequestType, currency)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, viewId, userId, username, transactionRequestType, currency)
         val result: OBPReturnType[Box[AmountOfMoney]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -2202,7 +2202,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       emailAddress=emailExample.value,
       name=usernameExample.value))))))))),
       bankId=BankId(bankIdExample.value),
-      accountID=AccountId(accountIdExample.value),
+      accountId=AccountId(accountIdExample.value),
       limit=limitExample.value.toInt,
       offset=offsetExample.value.toInt,
       fromDate="string",
@@ -2261,10 +2261,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /getTransactionsLegacy
-  override def getTransactionsLegacy(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Box[(List[Transaction], Option[CallContext])] = {
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Box[(List[Transaction], Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetTransactionsLegacy => OutBound, InBoundGetTransactionsLegacy => InBound}
         val url = getUrl(callContext, "getTransactionsLegacy")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountID, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val result: OBPReturnType[Box[List[Transaction]]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -2363,10 +2363,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /getTransactions
-  override def getTransactions(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): OBPReturnType[Box[List[Transaction]]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): OBPReturnType[Box[List[Transaction]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetTransactions => OutBound, InBoundGetTransactions => InBound}
         val url = getUrl(callContext, "getTransactions")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountID, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val result: OBPReturnType[Box[List[Transaction]]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -2406,7 +2406,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       emailAddress=emailExample.value,
       name=usernameExample.value))))))))),
       bankId=BankId(bankIdExample.value),
-      accountID=AccountId(accountIdExample.value),
+      accountId=AccountId(accountIdExample.value),
       limit=limitExample.value.toInt,
       offset=offsetExample.value.toInt,
       fromDate="string",
@@ -2463,10 +2463,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /getTransactionsCore
-  override def getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionCore]]] = {
+  override def getTransactionsCore(bankId: BankId, accountId: AccountId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionCore]]] = {
         import com.openbankproject.commons.dto.{OutBoundGetTransactionsCore => OutBound, InBoundGetTransactionsCore => InBound}
         val url = getUrl(callContext, "getTransactionsCore")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountID, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val result: OBPReturnType[Box[List[TransactionCore]]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -2506,7 +2506,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       emailAddress=emailExample.value,
       name=usernameExample.value))))))))),
       bankId=BankId(bankIdExample.value),
-      accountID=AccountId(accountIdExample.value),
+      accountId=AccountId(accountIdExample.value),
       transactionId=TransactionId(transactionIdExample.value))
     ),
     exampleInboundMessage = (
@@ -2562,10 +2562,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /getTransactionLegacy
-  override def getTransactionLegacy(bankId: BankId, accountID: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): Box[(Transaction, Option[CallContext])] = {
+  override def getTransactionLegacy(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): Box[(Transaction, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetTransactionLegacy => OutBound, InBoundGetTransactionLegacy => InBound}
         val url = getUrl(callContext, "getTransactionLegacy")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountID, transactionId)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, transactionId)
         val result: OBPReturnType[Box[Transaction]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -2661,10 +2661,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /getTransaction
-  override def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = {
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = {
         import com.openbankproject.commons.dto.{OutBoundGetTransaction => OutBound, InBoundGetTransaction => InBound}
         val url = getUrl(callContext, "getTransaction")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountID, transactionId)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, transactionId)
         val result: OBPReturnType[Box[Transaction]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }

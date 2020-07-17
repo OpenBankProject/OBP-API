@@ -5,29 +5,30 @@ import java.util.Date
 import java.util.UUID.randomUUID
 
 import code.api.cache.Caching
-import code.api.util.ErrorMessages._
 import code.api.util._
 import code.model.MappedConsumersProvider
 import code.util.Helper.MdcLoggable
 import code.util.{MappedUUID, UUIDString}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.Box
 import net.liftweb.mapper.{Index, _}
 import net.liftweb.util.Helpers.tryo
-
-import scala.concurrent.duration._
-import scala.collection.immutable.List
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 import org.apache.commons.lang3.StringUtils
+import scalikejdbc.{ConnectionPool, ConnectionPoolSettings, MultipleConnectionPoolContext}
+import scalikejdbc.DB.CPContext
+import scalikejdbc.{DB => scalikeDB, _}
 
+import scala.collection.immutable.List
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 object MappedMetrics extends APIMetrics with MdcLoggable{
 
   val cachedAllMetrics = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getAllMetrics", "7").toInt
   val cachedAllAggregateMetrics = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getAllAggregateMetrics", "7").toInt
-  val cachedTopApis = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getTopApis", "7").toInt
-  val cachedTopConsumers = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getTopConsumers", "7").toInt
+  val cachedTopApis = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getTopApis", "3600").toInt
+  val cachedTopConsumers = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getTopConsumers", "3600").toInt
 
   // If consumerId is Int, if consumerId is not Int, convert it to primary key.
   // Since version 3.1.0 we do not use a primary key externally. I.e. we use UUID instead of it as the value exposed to end users.
@@ -62,6 +63,18 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     }
     metric.save
   }
+
+  private lazy val getDbConnectionParameters: (String, String, String) = {
+    val dbUrl = APIUtil.getPropsValue("db.url") openOr "jdbc:h2:mem:OBPTest;DB_CLOSE_DELAY=-1"
+    val username = dbUrl.split(";").filter(_.contains("user")).toList.headOption.map(_.split("=")(1))
+    val password = dbUrl.split(";").filter(_.contains("password")).toList.headOption.map(_.split("=")(1))
+    val dbUser = APIUtil.getPropsValue("db.user").orElse(username)
+    val dbPassword = APIUtil.getPropsValue("db.password").orElse(password)
+    (dbUrl, dbUser.getOrElse(""), dbPassword.getOrElse(""))
+  }
+
+  private def trueOrFalse(condition: Boolean) = if (condition) sqls"1=1" else sqls"0=1"
+  private def falseOrTrue(condition: Boolean) = if (condition) sqls"0=1" else sqls"1=1"
 
 //  override def getAllGroupedByUserId(): Map[String, List[APIMetric]] = {
 //    //TODO: do this all at the db level using an actual group by query
@@ -201,6 +214,23 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     }
   }
 
+  /**
+   * this connection pool context corresponding db.url in default.props
+   */
+  implicit lazy val context: CPContext = {
+    val settings = ConnectionPoolSettings(
+      initialSize = 5,
+      maxSize = 20,
+      connectionTimeoutMillis = 3000L,
+      validationQuery = "select 1",
+      connectionPoolFactoryName = "commons-dbcp2"
+    )
+   val (dbUrl, user, password) = getDbConnectionParameters
+    val dbName = "DB_NAME" // corresponding props db.url DB
+    ConnectionPool.add(dbName, dbUrl, user, password, settings)
+    val connectionPool = ConnectionPool.get(dbName)
+    MultipleConnectionPoolContext(ConnectionPool.DEFAULT_NAME -> connectionPool)
+ }
 
   // TODO Cache this as long as fromDate and toDate are in the past (before now)
   def getAllAggregateMetricsBox(queryParams: List[OBPQueryParam]): Box[List[AggregateMetrics]] = {
@@ -233,71 +263,40 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val excludeImplementedByPartialFunctionsNumberSet = excludeImplementedByPartialFunctions.getOrElse(List("")).toSet
 
       val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsSet.size)
-      val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
-      val extedndedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
+      val extendedExcludeAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
+      val extendedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
 
-      val dbQuery =
-        "SELECT count(*), avg(duration), min(duration), max(duration) "+
-        "FROM mappedmetric "+
-        "WHERE date_c >= ? "+
-        "AND date_c <= ? "+
-        "AND (? or consumerid = ?) "+
-        "AND (? or userid = ?) "+
-        "AND (? or implementedbypartialfunction = ? ) "+
-        "AND (? or implementedinversion = ?) "+
-        "AND (? or url= ?) "+
-        "And (? or appname = ?) "+
-        "AND (? or verb = ? ) "+
-        "AND (? or userid = 'null' ) " +  // mapping `S.param("anon")` anon == null, (if null ignore) , anon == true (return where user_id is null.)
-        "AND (? or userid != 'null' ) " +  // anon == false (return where user_id is not null.)
-        s"AND (? or (url NOT LIKE ($excludeUrlPatternsQueries) " +
-        s"AND (? or appname not in ($extendedExclueAppNameQueries)) " +
-        s"AND (? or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) "
-
-      logger.debug(s"getAllAggregateMetrics.dbQuery = $dbQuery")
-
-      val (_, List(count :: avg :: min :: max :: _)) = DB.use(DefaultConnectionIdentifier)
-      {
-        conn =>
-            DB.prepareStatement(dbQuery, conn)
-            {
-              stmt =>
-                stmt.setTimestamp(1, new Timestamp(fromDate.get.getTime)) //These two fields will always have the value. If null, set the default value.
-                stmt.setTimestamp(2, new Timestamp(toDate.get.getTime))
-                stmt.setBoolean(3, if (consumerId.isEmpty) true else false)
-                stmt.setString(4,   consumerId.getOrElse(""))
-                stmt.setBoolean(5, if (userId.isEmpty) true else false)
-                stmt.setString(6, userId.getOrElse(""))
-                stmt.setBoolean(7, if (implementedByPartialFunction.isEmpty) true else false)
-                stmt.setString(8, implementedByPartialFunction.getOrElse(""))
-                stmt.setBoolean(9, if (implementedInVersion.isEmpty) true else false)
-                stmt.setString(10, implementedInVersion.getOrElse(""))
-                stmt.setBoolean(11, if (url.isEmpty) true else false)
-                stmt.setString(12, url.getOrElse(""))
-                stmt.setBoolean(13, if (appName.isEmpty) true else false)
-                stmt.setString(14,appName.getOrElse(""))
-                stmt.setBoolean(15, if (verb.isEmpty) true else false)
-                stmt.setString(16, verb.getOrElse(""))
-                stmt.setBoolean(17, if (anon.isDefined && anon.equals(Some(true))) false else true) // anon == true (return where user_id is null.)
-                stmt.setBoolean(18, if (anon.isDefined && anon.equals(Some(false))) false  else true) // anon == false (return where user_id is not null.)
-                stmt.setBoolean(19, if (excludeUrlPatterns.isEmpty) true else false)
-                extendPrepareStement(20, stmt, excludeUrlPatternsSet)
-                stmt.setBoolean(20+excludeUrlPatternsSet.size, if (excludeAppNames.isEmpty) true else false)
-                extendPrepareStement(21+excludeUrlPatternsSet.size, stmt, excludeAppNamesNumberSet)
-                stmt.setBoolean(21+excludeUrlPatternsSet.size+excludeAppNamesNumberSet.size, if (excludeImplementedByPartialFunctions.isEmpty) true else false)
-                extendPrepareStement(22+excludeUrlPatternsSet.size+excludeAppNamesNumberSet.size,stmt, excludeImplementedByPartialFunctionsNumberSet)
-                DB.resultSetTo(stmt.executeQuery())
-            }
+      val result = scalikeDB readOnly { implicit session =>
+        val sqlResult =
+          sql"""SELECT count(*), avg(duration), min(duration), max(duration)  
+                FROM mappedmetric
+                WHERE date_c >= ${new Timestamp(fromDate.get.getTime)} 
+                AND date_c <= ${new Timestamp(toDate.get.getTime)}
+                AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("")})
+                AND (${trueOrFalse(userId.isEmpty)} or userid = ${userId.getOrElse("")})
+                AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("")})
+                AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("")})
+                AND (${trueOrFalse(url.isEmpty)} or url = ${url.getOrElse("")})
+                AND (${trueOrFalse(appName.isEmpty)} or appname = ${appName.getOrElse("")})
+                AND (${trueOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("")})
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null') 
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
+                AND (${trueOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
+                AND (${trueOrFalse(excludeAppNames.isEmpty) } or appname not in ($extendedExcludeAppNameQueries))
+                AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($extendedExcludeImplementedByPartialFunctionsQueries))
+                """.stripMargin
+            .map(
+              rs => // Map result to case class
+                AggregateMetrics(
+                  rs.stringOpt(1).map(_.toInt).getOrElse(0), 
+                  rs.stringOpt(2).map(avg => "%.2f".format(avg.toDouble).toDouble).getOrElse(0), 
+                  rs.stringOpt(3).map(_.toDouble).getOrElse(0), 
+                  rs.stringOpt(4).map(_.toDouble).getOrElse(0)
+                )
+            ).list().apply()
+        sqlResult
       }
-
-
-      val totalCount = if (count != null ) count.toInt else 0
-      val avgResponseTime = if (avg != null ) "%.2f".format(avg.toDouble).toDouble else 0
-      val minResponseTime = if (min != null ) min.toDouble else 0
-      val maxResponseTime = if (max != null ) max.toDouble else 0
-
-      //TODO, here just use Full(), can do more error handling for this method
-      Full(List(AggregateMetrics(totalCount, avgResponseTime, minResponseTime, maxResponseTime)))
+      tryo(result)
     }}
   }
   
@@ -318,7 +317,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/t
   */                                                                                       
   var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)       
-  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedTopApis days){   
+  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedTopApis seconds){   
     Future{
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
@@ -335,81 +334,55 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val duration = queryParams.collect { case OBPDuration(value) => value }.headOption
       val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
       val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
-
+      val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(10)
+      
       val excludeUrlPatternsSet= excludeUrlPatterns.getOrElse(List("")).toSet
       val excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
       val excludeImplementedByPartialFunctionsNumberSet = excludeImplementedByPartialFunctions.getOrElse(List("")).toSet
 
       val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsSet.size)
       val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
-      val extedndedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
+      val extendedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
+      
+      val (dbUrl, _, _) = getDbConnectionParameters
 
-      for{
-
-         dbQuery <- Full("SELECT count(*), mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " +
-                         "FROM mappedmetric " +
-                         "WHERE date_c >= ? "+
-                         "AND date_c <= ? "+
-                         "AND (? or consumerid = ?) "+
-                         "AND (? or userid = ?) "+
-                         "AND (? or implementedbypartialfunction = ? ) "+
-                         "AND (? or implementedinversion = ?) "+
-                         "AND (? or url= ?) "+
-                         "And (? or appname = ?) "+
-                         "AND (? or verb = ? ) "+
-                         "AND (? or userid = 'null' ) " +  // mapping `S.param("anon")` anon == null, (if null ignore) , anon == true (return where user_id is null.)
-                         "AND (? or userid != 'null' ) " +  // anon == false (return where user_id is not null.)
-                         s"AND (? or(url NOT LIKE ($excludeUrlPatternsQueries) "+
-                         s"AND (? or appname not in ($extendedExclueAppNameQueries)) " +
-                         s"AND (? or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) "+
-                         "GROUP BY mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " +
-                         "ORDER BY count(*) DESC")
-
-         resultSet <- tryo(DB.use(DefaultConnectionIdentifier)
-           {
-            conn =>
-                DB.prepareStatement(dbQuery, conn)
-                {
-                  stmt =>
-                    stmt.setTimestamp(1, new Timestamp(fromDate.get.getTime)) //These two fields will always have the value. If null, set the default value.
-                    stmt.setTimestamp(2, new Timestamp(toDate.get.getTime))
-                    stmt.setBoolean(3, if (consumerId.isEmpty) true else false)
-                    stmt.setString(4, consumerId.getOrElse(""))
-                    stmt.setBoolean(5, if (userId.isEmpty) true else false)
-                    stmt.setString(6, userId.getOrElse(""))
-                    stmt.setBoolean(7, if (implementedByPartialFunction.isEmpty) true else false)
-                    stmt.setString(8, implementedByPartialFunction.getOrElse(""))
-                    stmt.setBoolean(9, if (implementedInVersion.isEmpty) true else false)
-                    stmt.setString(10, implementedInVersion.getOrElse(""))
-                    stmt.setBoolean(11, if (url.isEmpty) true else false)
-                    stmt.setString(12, url.getOrElse(""))
-                    stmt.setBoolean(13, if (appName.isEmpty) true else false)
-                    stmt.setString(14,appName.getOrElse(""))
-                    stmt.setBoolean(15, if (verb.isEmpty) true else false)
-                    stmt.setString(16, verb.getOrElse(""))
-                    stmt.setBoolean(17, if (anon.isDefined && anon.equals(Some(true))) false else true) // anon == true (return where user_id is null.)
-                    stmt.setBoolean(18, if (anon.isDefined && anon.equals(Some(false))) false  else true) // anon == false (return where user_id is not null.)
-                    stmt.setBoolean(19, if (excludeUrlPatterns.isEmpty) true else false)
-                    extendPrepareStement(20, stmt, excludeUrlPatternsSet)
-                    stmt.setBoolean(20+excludeUrlPatternsSet.size, if (excludeAppNames.isEmpty) true else false)
-                    extendPrepareStement(21+excludeUrlPatternsSet.size, stmt, excludeAppNamesNumberSet)
-                    stmt.setBoolean(21+excludeUrlPatternsSet.size+excludeAppNamesNumberSet.size, if (excludeImplementedByPartialFunctions.isEmpty) true else false)
-                    extendPrepareStement(22+excludeUrlPatternsSet.size+excludeAppNamesNumberSet.size,stmt, excludeImplementedByPartialFunctionsNumberSet)
-                    DB.resultSetTo(stmt.executeQuery())
-
-                }
-           })?~! {logger.error(s"getTopApisBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopApisBox.DB.runQuery(dbQuery) read database issue. "}
-
-         topApis <- tryo(resultSet._2.map(
-           a =>
-             TopApi(
-               if (a(0) != null) a(0).toInt else 0,
-               if (a(1) != null) a(1).toString else "",
-               if (a(2) != null) a(2).toString else ""))) ?~! {logger.error(s"getTopApisBox.create TopApi class error. Here is the result from database $resultSet ");s"$UnknownError getTopApisBox.create TopApi class error. "}
-
-      } yield {
-        topApis
+      val result: List[TopApi] = scalikeDB readOnly { implicit session =>
+        // MS SQL server has the specific syntax for limiting number of rows
+        val msSqlLimit = if (dbUrl.contains("sqlserver")) sqls"TOP ($limit)" else sqls""
+        // TODO Make it work in case of Oracle database
+        val otherDbLimit = if (dbUrl.contains("sqlserver")) sqls"" else sqls"LIMIT $limit"
+        val sqlResult =
+          sql"""SELECT ${msSqlLimit} count(*), mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion 
+                FROM mappedmetric 
+                WHERE 
+                date_c >= ${new Timestamp(fromDate.get.getTime)} AND
+                date_c <= ${new Timestamp(toDate.get.getTime)}
+                AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("")})
+                AND (${trueOrFalse(userId.isEmpty)} or userid = ${userId.getOrElse("")})
+                AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("")})
+                AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("")})
+                AND (${trueOrFalse(url.isEmpty)} or url = ${url.getOrElse("")})
+                AND (${trueOrFalse(appName.isEmpty)} or appname = ${appName.getOrElse("")})
+                AND (${trueOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("")})
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null') 
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
+                AND (${trueOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
+                AND (${trueOrFalse(excludeAppNames.isEmpty) } or appname not in ($extendedExclueAppNameQueries))
+                AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($extendedExcludeImplementedByPartialFunctionsQueries))
+                GROUP BY mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion 
+                ORDER BY count(*) DESC
+                ${otherDbLimit}
+                """.stripMargin
+          .map(
+            rs => // Map result to case class
+              TopApi(
+                rs.string(1).toInt, 
+                rs.string(2), 
+                rs.string(3))
+          ).list.apply()
+        sqlResult
       }
+      tryo(result)
     }}
   }}
 
@@ -422,7 +395,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/t
   */                                                                                       
   var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)       
-  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedTopConsumers days){   
+  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedTopConsumers seconds){   
     Future {
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
@@ -447,80 +420,50 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 
       val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsSet.size)
       val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
-      val extedndedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
+      val extendedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
 
-      for {
-        dbQuery <- Full("SELECT count(*) as count, consumer.id as consumerprimaryid, mappedmetric.appname as appname, consumer.developeremail as email, consumer.consumerid as consumerid " +
-          "FROM mappedmetric, consumer " +
-          "WHERE mappedmetric.appname = consumer.name " +
-          "AND date_c >= ? " +
-          "AND date_c <= ? " +
-          "AND (? or mappedmetric.consumerid = ?) " +
-          "AND (? or mappedmetric.userid = ?) " +
-          "AND (? or mappedmetric.implementedbypartialfunction = ? ) " +
-          "AND (? or mappedmetric.implementedinversion = ?) " +
-          "AND (? or url= ?) " +
-          "And (? or appname = ?) " +
-          "AND (? or verb = ? ) " +
-          "AND (? or userid = 'null' ) " + // mapping `S.param("anon")` anon == null, (if null ignore) , anon == true (return where user_id is null.)
-          "AND (? or userid != 'null' ) " + // anon == false (return where user_id is not null.)
-          s"AND (? or (url NOT LIKE ($excludeUrlPatternsQueries) " +
-          s"AND (? or appname not in ($extendedExclueAppNameQueries)) " +
-          s"AND (? or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) " +
-          "GROUP BY appname, email, consumerprimaryid " +
-          "ORDER BY count DESC " +
-          "LIMIT ? ")
+      val (dbUrl, _, _) = getDbConnectionParameters
 
-       resultSet <- tryo(DB.use(DefaultConnectionIdentifier){
-          conn =>
-            DB.prepareStatement(dbQuery, conn) {
-              stmt =>
-                stmt.setTimestamp(1, new Timestamp(fromDate.get.getTime)) //These two fields will always have the value. If null, set the default value.
-                stmt.setTimestamp(2, new Timestamp(toDate.get.getTime))
-                stmt.setBoolean(3, if (consumerId.isEmpty) true else false)
-                stmt.setString(4, consumerId.getOrElse(""))
-                stmt.setBoolean(5, if (userId.isEmpty) true else false)
-                stmt.setString(6, userId.getOrElse(""))
-                stmt.setBoolean(7, if (implementedByPartialFunction.isEmpty) true else false)
-                stmt.setString(8, implementedByPartialFunction.getOrElse(""))
-                stmt.setBoolean(9, if (implementedInVersion.isEmpty) true else false)
-                stmt.setString(10, implementedInVersion.getOrElse(""))
-                stmt.setBoolean(11, if (url.isEmpty) true else false)
-                stmt.setString(12, url.getOrElse(""))
-                stmt.setBoolean(13, if (appName.isEmpty) true else false)
-                stmt.setString(14, appName.getOrElse(""))
-                stmt.setBoolean(15, if (verb.isEmpty) true else false)
-                stmt.setString(16, verb.getOrElse(""))
-                stmt.setBoolean(17, if (anon.isDefined && anon.equals(Some(true))) false else true) // anon == true (return where user_id is null.)
-                stmt.setBoolean(18, if (anon.isDefined && anon.equals(Some(false))) false else true) // anon == false (return where user_id is not null.)
-                stmt.setBoolean(19, if (excludeUrlPatterns.isEmpty) true else false)
-                extendPrepareStement(20, stmt, excludeUrlPatternsSet)
-                stmt.setBoolean(20 + excludeUrlPatternsSet.size, if (excludeAppNames.isEmpty) true else false)
-                extendPrepareStement(21 + excludeUrlPatternsSet.size, stmt, excludeAppNamesNumberSet)
-                stmt.setBoolean(21 + excludeUrlPatternsSet.size + excludeAppNamesNumberSet.size, if (excludeImplementedByPartialFunctions.isEmpty) true else false)
-                extendPrepareStement(22 + excludeUrlPatternsSet.size + excludeAppNamesNumberSet.size, stmt, excludeImplementedByPartialFunctionsNumberSet)
-                stmt.setInt(22 + excludeUrlPatternsSet.size + excludeAppNamesNumberSet.size + excludeImplementedByPartialFunctionsNumberSet.size, limit.get)
-                DB.resultSetTo(stmt.executeQuery())
-            }
-        }) ?~! {
-          logger.error(s"getTopConsumersBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopConsumersBox.DB.runQuery(dbQuery) read database issue. "
-        }
+      // MS SQL server has the specific syntax for limiting number of rows
+      val msSqlLimit = if (dbUrl.contains("sqlserver")) sqls"TOP ($limit)" else sqls""
+      // TODO Make it work in case of Oracle database
+      val otherDbLimit = if (dbUrl.contains("sqlserver")) sqls"" else sqls"LIMIT $limit"
 
-        topConsumers <- tryo(resultSet._2.map(
-          a =>
-            TopConsumer(
-              count = if (a(0) != null) a(0).toInt else 0,
-              consumerId = if (a(4) != null) a(4).toString else "",
-              appName = if (a(2) != null) a(2).toString else "",
-              developerEmail = if (a(3) != null) a(3).toString else ""
-            ))) ?~! {
-          logger.error(s"getTopConsumersBox.create TopConsumer class error. Here is the result from database $resultSet ");
-          s"$UnknownError getTopConsumersBox.create TopApi class error. "
-        }
-
-      } yield {
-        topConsumers
+      val result: List[TopConsumer] = scalikeDB readOnly { implicit session =>
+        val sqlResult =
+          sql"""SELECT ${msSqlLimit} count(*) as count, consumer.id as consumerprimaryid, mappedmetric.appname as appname, 
+                consumer.developeremail as email, consumer.consumerid as consumerid  
+                FROM mappedmetric, consumer 
+                WHERE mappedmetric.appname = consumer.name  
+                AND date_c >= ${new Timestamp(fromDate.get.getTime)}
+                AND date_c <= ${new Timestamp(toDate.get.getTime)}
+                AND (${trueOrFalse(consumerId.isEmpty)} or consumer.consumerid = ${consumerId.getOrElse("")})
+                AND (${trueOrFalse(userId.isEmpty)} or userid = ${userId.getOrElse("")})
+                AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("")})
+                AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("")})
+                AND (${trueOrFalse(url.isEmpty)} or url = ${url.getOrElse("")})
+                AND (${trueOrFalse(appName.isEmpty)} or appname = ${appName.getOrElse("")})
+                AND (${trueOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("")})
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null') 
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
+                AND (${trueOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
+                AND (${trueOrFalse(excludeAppNames.isEmpty) } or appname not in ($extendedExclueAppNameQueries))
+                AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($extendedExcludeImplementedByPartialFunctionsQueries))
+                GROUP BY appname,	consumer.developeremail, consumer.id,	consumer.consumerid
+                ORDER BY count DESC
+                ${otherDbLimit}
+                """.stripMargin
+            .map(
+              rs => 
+                TopConsumer(
+                  rs.string(1).toInt, 
+                  rs.string(5), 
+                  rs.string(3), 
+                  rs.string(4))
+            ).list.apply()
+        sqlResult
       }
+      tryo(result)
     }
   }}}
 

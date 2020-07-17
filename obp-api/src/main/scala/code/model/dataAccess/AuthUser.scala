@@ -317,6 +317,7 @@ import net.liftweb.util.Helpers._
   val usernameLockedStateCode = Long.MaxValue
 
   val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
+  val starConnectorSupportedTypes = APIUtil.getPropsValue("starConnector_supported_types","")
 
   override def emailFrom = APIUtil.getPropsValue("mail.users.userinfo.sender.address", "sender-not-set")
 
@@ -617,8 +618,11 @@ import net.liftweb.util.Helpers._
 
       case Full(user) if (user.getProvider() != APIUtil.getPropsValue("hostname","")) =>
           connector match {
-            case Helper.matchAnyKafka() if ( APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) &&
-              ! LoginAttempt.userIsLocked(username) ) =>
+            case Helper.matchAnyKafka() if (
+              (starConnectorSupportedTypes contains("kafka")) 
+                && APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) 
+                && ! LoginAttempt.userIsLocked(username) 
+              ) =>
                 val userId = for { kafkaUser <- getUserFromConnector(username, password)
                   kafkaUserId <- tryo{kafkaUser.user} } yield {
                     LoginAttempt.resetBadLoginAttempts(username)
@@ -630,8 +634,11 @@ import net.liftweb.util.Helpers._
                     LoginAttempt.incrementBadLoginAttempts(username)
                     Empty
 		}
-            case "obpjvm" if ( APIUtil.getPropsAsBoolValue("obpjvm.user.authentication", false) &&
-              ! LoginAttempt.userIsLocked(username) ) =>
+            case "obpjvm" if (
+              (starConnectorSupportedTypes contains("obpjvm")) 
+                && APIUtil.getPropsAsBoolValue("obpjvm.user.authentication", false) 
+                && ! LoginAttempt.userIsLocked(username) 
+              ) =>
                 val userId = for { obpjvmUser <- getUserFromConnector(username, password)
                   obpjvmUserId <- tryo{obpjvmUser.user} } yield {
                     LoginAttempt.resetBadLoginAttempts(username)
@@ -643,7 +650,11 @@ import net.liftweb.util.Helpers._
                     LoginAttempt.incrementBadLoginAttempts(username)
                     Empty
               }
-            case Helper.matchAnyStoredProcedure() if !LoginAttempt.userIsLocked(username) =>
+            case Helper.matchAnyStoredProcedure() if (
+              (starConnectorSupportedTypes contains("stored_procedure"))
+                && APIUtil.getPropsAsBoolValue("connector.user.authentication", false) 
+                && !LoginAttempt.userIsLocked(username)
+              ) =>
                 val userId = 
                   for { 
                     authUser <- checkExternalUserViaConnector(username, password)
