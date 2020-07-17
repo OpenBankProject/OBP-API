@@ -101,7 +101,7 @@ object CodeGenerateUtils {
       if(result.isEmpty) {
         result = for {
           pType <- parentType
-          pName = StringUtils.uncapitalize(pType.typeSymbol.name.toString).replaceFirst("Commons$", "")
+          pName = StringUtils.uncapitalize(pType.typeSymbol.name.toString).replaceFirst("(Commons|Trait|T)$", "")
           fName <- fieldName
           example <- getExampleValue(s"$pName${fName.capitalize}", s"$pName${StringHelpers.camelify(fName)}")
         } yield example
@@ -110,7 +110,7 @@ object CodeGenerateUtils {
       if(result.isEmpty && parentType.filter(_.typeSymbol.name.toString.endsWith("User")).isDefined) {
         result = fieldName.flatMap(it => getExampleValue(s"user${it.capitalize}", s"user$it"))
       }
-      // scome class name start with Core, should ignore "Core"
+      // some class name start with Core, should ignore "Core"
       if(result.isEmpty && parentType.filter(_.typeSymbol.name.toString.startsWith("Core")).isDefined) {
         val composedName = parentType.map(_.typeSymbol.name.toString)
           .map(_.replaceFirst("^Core|Commons$", ""))

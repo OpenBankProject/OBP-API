@@ -504,7 +504,7 @@ object ReflectUtils {
 
   private object ClassExtractor {
     // extract concrete class by class name
-    def unapply(className: String): Option[Class[_]] = forClassOption(className).filter(clazz => Modifier.isAbstract(clazz.getModifiers))
+    def unapply(className: String): Option[Class[_]] = forClassOption(className).filterNot(clazz => Modifier.isAbstract(clazz.getModifiers))
   }
 
   /**
@@ -518,30 +518,27 @@ object ReflectUtils {
     } else {
       val className = clazz.getSimpleName
       val fullClassName = clazz.getName
-      val deletedSuffixName = className match {
-        case x if x.endsWith("Trait") => StringUtils.substringBeforeLast(className, "Trait")
-        case x if x.endsWith("T") => StringUtils.substringBeforeLast(className, "T")
-        case x => x
-      }
-      val maybeImplementedClassNames = mutable.ListBuffer[String]()
+
+      val maybeImplementedClassNames = mutable.ListBuffer[String](s"com.openbankproject.commons.model.${className}Commons", s"${fullClassName}Commons")
 
       if(className.endsWith("Trait")) {
-        val deleteSuffixFullName = StringUtils.substringBeforeLast(fullClassName, "Trait")
-        maybeImplementedClassNames += deleteSuffixFullName
-        maybeImplementedClassNames += s"${deleteSuffixFullName}Commons"
         val deletedSuffixName = StringUtils.substringBeforeLast(className, "Trait")
         maybeImplementedClassNames += s"com.openbankproject.commons.model.$deletedSuffixName"
         maybeImplementedClassNames += s"com.openbankproject.commons.model.${deletedSuffixName}Commons"
-      }
-      if(className.endsWith("T")) {
-        val deleteSuffixFullName = StringUtils.substringBeforeLast(fullClassName, "T")
+
+        val deleteSuffixFullName = StringUtils.substringBeforeLast(fullClassName, "Trait")
         maybeImplementedClassNames += deleteSuffixFullName
         maybeImplementedClassNames += s"${deleteSuffixFullName}Commons"
+      }
+      if(className.endsWith("T")) {
         val deletedSuffixName = StringUtils.substringBeforeLast(className, "T")
         maybeImplementedClassNames += s"com.openbankproject.commons.model.$deletedSuffixName"
         maybeImplementedClassNames += s"com.openbankproject.commons.model.${deletedSuffixName}Commons"
+
+        val deleteSuffixFullName = StringUtils.substringBeforeLast(fullClassName, "T")
+        maybeImplementedClassNames += deleteSuffixFullName
+        maybeImplementedClassNames += s"${deleteSuffixFullName}Commons"
       }
-      maybeImplementedClassNames += s"com.openbankproject.commons.model.${className}Commons"
 
       maybeImplementedClassNames collectFirst {
         case ClassExtractor(x) => x
