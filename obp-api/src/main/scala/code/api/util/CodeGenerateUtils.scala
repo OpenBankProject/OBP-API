@@ -151,17 +151,15 @@ object CodeGenerateUtils {
     val typeName = tp.typeSymbol.name.toString
     val fullTypeName = tp.typeSymbol.fullName
     val isObpType = fullTypeName.matches("""com\.openbankproject\.commons\..+|code\..+""")
-    val isTraitType = tp.typeSymbol.asClass.isTrait
+    val isAbstractType = tp.typeSymbol.asClass.isAbstract
 
     // if type is OBP project defined, get the concrete type, or get None
-    val concreteObpType = (isObpType, isTraitType) match {
+    val concreteObpType: Option[ru.Type] = (isObpType, isAbstractType) match {
       case (false, _) => None
       case (true, false) => Some(tp)
-      case (_, true) if(typeName.endsWith("Trait") && ReflectUtils.isTypeExists(fullTypeName.replaceFirst("Trait$", ""))) =>
-        Some(ReflectUtils.getTypeByName(fullTypeName.replaceFirst("Trait$", "")))
-      case (true, true) if(ReflectUtils.isTypeExists(s"com.openbankproject.commons.model.${typeName}Commons")) =>
-        Some(ReflectUtils.getTypeByName(s"com.openbankproject.commons.model.${typeName}Commons"))
-      case _ => Some(ReflectUtils.getTypeByName(s"${fullTypeName}Commons"))
+      case _ =>
+        ReflectUtils.findImplementedClass(fullTypeName)
+        .map(ReflectUtils.classToType(_))
     }
 
     // if type is OBP project defined, and constructor have single parameter, return true

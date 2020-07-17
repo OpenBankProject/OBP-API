@@ -45,7 +45,7 @@ object Atms extends SimpleInjector {
     locatedAt : Option[String],
     moreInfo : Option[String],
     hasDepositCapability : Option[Boolean]
-  )
+  ) extends AtmT
 
   val atmsProvider = new Inject(buildOne _) {}
 

@@ -59,7 +59,7 @@ object AbstractTypeDeserializer extends Serializer[AnyRef] {
 
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), AnyRef] = {
     case (TypeInfo(clazz, _), json) if Modifier.isAbstract(clazz.getModifiers) && ReflectUtils.isObpClass(clazz) =>
-      val commonClass = Class.forName(buildClassName(clazz.getSimpleName))
+      val Some(commonClass) = ReflectUtils.findImplementedClass(clazz)
 
       implicit val manifest = ManifestFactory.classType[AnyRef](commonClass)
       json.extract[AnyRef](format, manifest)
@@ -67,10 +67,6 @@ object AbstractTypeDeserializer extends Serializer[AnyRef] {
 
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = Functions.doNothing
 
-  private def buildClassName(name: String) = name match {
-    case x if x.endsWith("Trait") => s"com.openbankproject.commons.model.${StringUtils.substringBeforeLast(x, "Trait")}"
-    case x => s"com.openbankproject.commons.model.${x}Commons"
-  }
 }
 
 object SimpleEnumDeserializer extends Serializer[SimpleEnum] {

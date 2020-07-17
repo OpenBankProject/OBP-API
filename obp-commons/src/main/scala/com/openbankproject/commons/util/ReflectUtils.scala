@@ -1,6 +1,6 @@
 package com.openbankproject.commons.util
 
-import java.lang.reflect.Field
+import java.lang.reflect.{Field, Modifier}
 
 import net.liftweb.common.{Box, Empty, Failure, Full}
 
@@ -13,7 +13,10 @@ import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
 import scala.util.Success
 import net.liftweb.json.JValue
+import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.reflect.FieldUtils
+
+import scala.collection.mutable
 
 object ReflectUtils {
   private[this] val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -498,6 +501,67 @@ object ReflectUtils {
     } catch {
       case _: ClassNotFoundException => None
     }
+
+  private object ClassExtractor {
+    // extract concrete class by class name
+    def unapply(className: String): Option[Class[_]] = forClassOption(className).filter(clazz => Modifier.isAbstract(clazz.getModifiers))
+  }
+
+  /**
+   * find one implement class in the package com.openbankproject.commons.model
+   * @param clazz an abstract class
+   * @return
+   */
+  def findImplementedClass(clazz: Class[_]): Option[Class[_]] = {
+    if(clazz == null || !Modifier.isAbstract(clazz.getModifiers)) {
+      None
+    } else {
+      val className = clazz.getSimpleName
+      val fullClassName = clazz.getName
+      val deletedSuffixName = className match {
+        case x if x.endsWith("Trait") => StringUtils.substringBeforeLast(className, "Trait")
+        case x if x.endsWith("T") => StringUtils.substringBeforeLast(className, "T")
+        case x => x
+      }
+      val maybeImplementedClassNames = mutable.ListBuffer[String]()
+
+      if(className.endsWith("Trait")) {
+        val deleteSuffixFullName = StringUtils.substringBeforeLast(fullClassName, "Trait")
+        maybeImplementedClassNames += deleteSuffixFullName
+        maybeImplementedClassNames += s"${deleteSuffixFullName}Commons"
+        val deletedSuffixName = StringUtils.substringBeforeLast(className, "Trait")
+        maybeImplementedClassNames += s"com.openbankproject.commons.model.$deletedSuffixName"
+        maybeImplementedClassNames += s"com.openbankproject.commons.model.${deletedSuffixName}Commons"
+      }
+      if(className.endsWith("T")) {
+        val deleteSuffixFullName = StringUtils.substringBeforeLast(fullClassName, "T")
+        maybeImplementedClassNames += deleteSuffixFullName
+        maybeImplementedClassNames += s"${deleteSuffixFullName}Commons"
+        val deletedSuffixName = StringUtils.substringBeforeLast(className, "T")
+        maybeImplementedClassNames += s"com.openbankproject.commons.model.$deletedSuffixName"
+        maybeImplementedClassNames += s"com.openbankproject.commons.model.${deletedSuffixName}Commons"
+      }
+      maybeImplementedClassNames += s"com.openbankproject.commons.model.${className}Commons"
+
+      maybeImplementedClassNames collectFirst {
+        case ClassExtractor(x) => x
+      }
+
+    }
+  }
+  /**
+   * find one implement class in the package com.openbankproject.commons.model
+   * @param className an abstract class
+   * @return
+   */
+  def findImplementedClass(className: String): Option[Class[_]] = {
+    if(StringUtils.isBlank(className)) {
+      None
+    } else {
+      val clazz = forClassOption(className)
+      clazz.flatMap(findImplementedClass(_))
+    }
+  }
 
   def getPrimaryConstructor(tp: ru.Type): MethodSymbol = tp.decl(ru.termNames.CONSTRUCTOR).alternatives.head.asMethod
 
