@@ -1,17 +1,13 @@
 package code.api.util
 
-import java.lang.reflect.{Constructor, Parameter, Type}
-import java.util.UUID.randomUUID
-import java.util.regex.Pattern
+import java.lang.reflect.{Constructor, Parameter}
 
-import code.api.cache.Caching
 import code.api.util.ApiRole.rolesMappedToClasses
 import code.api.v3_1_0.ListResult
 import code.util.Helper.MdcLoggable
-import code.util.JsonUtils
+import com.openbankproject.commons.util.JsonUtils
 import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util._
-import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.Box
 import net.liftweb.json
 import net.liftweb.json.JsonAST.JValue
@@ -20,7 +16,6 @@ import net.liftweb.mapper.Mapper
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
-import scala.concurrent.duration._
 import scala.reflect.ManifestFactory
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe._
@@ -82,17 +77,31 @@ object JNothingSerializer extends Serializer[Any] with MdcLoggable {
   // This field is just a tag to declare all the missing fields are added, to avoid check missing field repeatedly
   val addedMissingFields = "addedMissingFieldsThisFieldIsJustBeTag"
 
-  private def addMissingFields(jObject: JObject, missingFieldNames: List[String]): JObject = {
+  val defaultValue: Map[Class[_ ], JValue] = Map(
+    classOf[Boolean] -> JBool(null.asInstanceOf[Boolean]),
+    classOf[Byte] -> JInt(null.asInstanceOf[Byte].intValue()),
+    classOf[Short] -> JInt(null.asInstanceOf[Short].intValue()),
+    classOf[Int] -> JInt(null.asInstanceOf[Int]),
+    classOf[Long] -> JInt(null.asInstanceOf[Long].intValue()),
+    classOf[Float] -> JDouble(null.asInstanceOf[Float]),
+    classOf[Double] -> JDouble(null.asInstanceOf[Double])
+  )
+
+  private def addMissingFields(jObject: JObject, missingFieldNames: Map[String, Class[_]]): JObject = {
     val JObject(obj) = jObject
-    val newFields: List[JField] = obj ::: (addedMissingFields :: missingFieldNames).map(JField(_, JNull))
+    val missingJFields = missingFieldNames.toList collect {
+      case (name, clazz) if defaultValue.contains(clazz) => JField(name, defaultValue(clazz))
+      case (name, _)  => JField(name, JNull)
+    }
+    val newFields: List[JField] = JField(addedMissingFields, JNull) :: obj ::: missingJFields
     JObject(newFields)
   }
 
   private def isNoMissingFields(jValue: JValue): Boolean = (jValue \ addedMissingFields) != JNothing
 
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), Any] = {
-    case JNothingSerializer(typeInfo, jValue: JObject, missingFieldNames) => {
-      val newJValue =  addMissingFields(jValue, missingFieldNames)
+    case JNothingSerializer(typeInfo, jValue: JObject, missingFields) => {
+      val newJValue =  addMissingFields(jValue, missingFields)
       Extraction.extract(newJValue, typeInfo)
     }
   }
@@ -100,41 +109,37 @@ object JNothingSerializer extends Serializer[Any] with MdcLoggable {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = Functions.doNothing
 
 
-  private[this] def unapply(arg: (TypeInfo, JValue))(implicit formats: Formats): Option[(TypeInfo, JValue, List[String])] =  {
+  private[this] def unapply(arg: (TypeInfo, JValue))(implicit formats: Formats): Option[(TypeInfo, JValue, Map[String, Class[_]])] =  {
     val (TypeInfo(clazz, _), jValue) = arg
-    if (! ReflectUtils.isObpClass(clazz) || jValue == JNothing || jValue == JNull || isNoMissingFields(jValue)) {
+    if (! ReflectUtils.isObpClass(clazz) || !jValue.isInstanceOf[JObject] || jValue == JNothing || jValue == JNull || isNoMissingFields(jValue)) {
       None
     } else {
       val jsonFieldNames: Set[String] = jValue.asInstanceOf[JObject].obj.toSet[JField].collect {
         case JField(name, v) if v != JNothing => name
       }
 
-      val missingFields: List[String] = missingFieldNames(clazz, jsonFieldNames)
+      val missingFields:Map[String, Class[_]] = getMissingFields(clazz, jsonFieldNames)
       missingFields match {
-        case Nil => None
+        case x if x.isEmpty  => None
         case x => Some((arg._1, arg._2, x))
       }
     }
   }
 
-  private[this] def missingFieldNames(clazz: Class[_], jsonFieldNames: Set[String]): List[String] = {
-    // cache 2 hours, the cache time can be very long, because the result will never be changed
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (2 hours) {
+  private val memo = new Memo[(Class[_], Set[String]), Map[String, Class[_]]]
 
-        val constructors: Array[Constructor[_]] = clazz.getDeclaredConstructors()
-        bestMatching(constructors, jsonFieldNames) match {
-          case None => Nil
-          case Some(array: Array[Arg]) =>
-            array.toList collect {
-              case arg if arg.required && !jsonFieldNames.contains(arg.path) => arg.path
-            }
-        }
-
+  private[this] def getMissingFields(clazz: Class[_], jsonFieldNames: Set[String]): Map[String, Class[_]] =
+    memo.memoize(clazz -> jsonFieldNames) {
+      val constructors: Array[Constructor[_]] = clazz.getDeclaredConstructors()
+      bestMatching(constructors, jsonFieldNames) match {
+        case None => Map.empty
+        case Some(array: Array[Arg]) =>
+          val missingNameToClass = array collect {
+            case arg if arg.required && !jsonFieldNames.contains(arg.path) => (arg.path, arg.paramType)
+          }
+          missingNameToClass.toMap
       }
     }
-  }
 
   /**
    * absolutely simulate net.liftweb.json.Meta.Constructor#bestMatching,
@@ -181,15 +186,15 @@ object JNothingSerializer extends Serializer[Any] with MdcLoggable {
            |""".stripMargin
       )
     }
-    val path = parameter.getName()
+    val path: String = parameter.getName()
+    val paramType: Class[_] = parameter.getType
 
-    val optional = {
+    val optional: Boolean = {
       val optionClass: Class[Option[_]] = classOf[Option[_]]
       val boxClass: Class[Box[_]] = classOf[Box[_]]
-      val paramType = parameter.getType()
       optionClass.isAssignableFrom(paramType) || boxClass.isAssignableFrom(paramType)
     }
-    val required = !optional
+    val required: Boolean = !optional
   }
 }
 

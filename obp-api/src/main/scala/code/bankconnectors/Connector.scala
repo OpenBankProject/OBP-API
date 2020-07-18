@@ -37,7 +37,7 @@ import code.transactionrequests.TransactionRequests
 import com.openbankproject.commons.model.TransactionRequestTypeCharge
 import code.users.Users
 import code.util.Helper._
-import code.util.JsonUtils
+import com.openbankproject.commons.util.JsonUtils
 import code.views.Views
 import com.openbankproject.commons.model.enums.{AccountAttributeType, AttributeCategory, AttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType, TransactionRequestStatus}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}

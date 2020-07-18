@@ -4,10 +4,11 @@ import java.lang.reflect.Modifier
 
 import com.openbankproject.commons.model.JsonFieldReName
 import com.openbankproject.commons.model.enums.{SimpleEnum, SimpleEnumCollection}
+import com.openbankproject.commons.util.Functions.Implicits._
 import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.util.StringHelpers
-import org.apache.commons.lang3.StringUtils
 
 import scala.reflect.ManifestFactory
 import scala.reflect.runtime.{universe => ru}
@@ -41,7 +42,9 @@ object EnumValueSerializer extends Serializer[EnumValue] {
 
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), EnumValue] = {
     case (TypeInfo(clazz, _), json) if(IntervalClass.isAssignableFrom(clazz)) => json match {
-      case JString(s) => OBPEnumeration.withName(clazz.asInstanceOf[Class[EnumValue]], s)
+      case JString(s) =>
+        OBPEnumeration.withName(clazz.asInstanceOf[Class[EnumValue]], s)
+      case JNull | JNothing => null
       case x => throw new MappingException(s"Can't convert $x to $clazz")
     }
   }
@@ -115,38 +118,49 @@ object StringDeserializer extends Serializer[String] {
  */
 object FiledRenameSerializer extends Serializer[JsonFieldReName] {
   private val clazz = classOf[JsonFieldReName]
+  // This field is just a tag to declare current JSON already set field name to camelize, to avoid check field repeatedly
+  val resetCamelizeFieldNames = "resetCamelizeFieldNamesIsJustBeTag"
 
   def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), JsonFieldReName] = {
-    case (typeInfo @ TypeInfo(entityType, _), json) if(isNeedRenameFieldNames(entityType, json))=> json match {
+    case (typeInfo @ TypeInfo(entityType, _), json) if isNeedRenameFieldNames(entityType, json) => json match {
       case JObject(fieldList) => {
-        val renamedJObject = json.transformField {
-          case JField(name, value) => JField(StringHelpers.camelifyMethod(name), value)
+        // add camelize name fields, if exists camelize name field and value is JNull, replace it, e.g:
+        // {"full_name": "hello", "fullName": null, "age": 123} -> {"full_name": "hello", "fullName": "hello", "age": 123}
+        val renamedJObject = {
+          val camelizeFields: List[JField] = for {
+            JField(name, value) <- fieldList
+            camelizeName = StringHelpers.camelifyMethod(name)
+            if name != camelizeName
+          } yield JField(camelizeName, value)
+
+          // combine camelize fields and origin fields, and remove duplicated name fields from origin fields.
+          val newFields = (JField(resetCamelizeFieldNames, JNull) :: camelizeFields ::: fieldList).distinctBy(_.name)
+          JObject(newFields)
         }
 
-        val optionalFields = getAnnotedFields(entityType, ru.typeOf[optional])
+        val optionalFields: Map[String, JValue] = getAnnotedFields(entityType, ru.typeOf[optional])
           .map{
             case (name, tp) if(tp <:< ru.typeOf[Long] || tp <:< ru.typeOf[Int] || tp <:< ru.typeOf[Short] || tp <:< ru.typeOf[Byte] || tp <:< ru.typeOf[Int]) => (name, JInt(0))
             case (name, tp) if(tp <:< ru.typeOf[Double] || tp <:< ru.typeOf[Float]) => (name, JDouble(0))
             case (name, tp) if(tp <:< ru.typeOf[Boolean]) => (name, JBool(false))
-            case (name, tp) => (name, JNull)
+            case (name, _) => (name, JNull)
           }
 
         val addedNullValues: JValue = if(optionalFields.isEmpty) {
           renamedJObject
         } else {
           val children = renamedJObject.asInstanceOf[JObject].obj
-          val childrenNames = children.map(_.name)
           val nullFields = optionalFields.filter(pair => !children.contains(pair._1)).map(pair => JField(pair._1, pair._2)).toList
-          val jObject: JValue = JObject(children ++: nullFields)
-          jObject
+          JObject(children ++: nullFields)
         }
 
         val idFieldToIdValueName: Map[String, String] = getSomeIdFieldInfo(entityType)
-        val processedIdJObject = if(idFieldToIdValueName.isEmpty){
+        val processedIdJObject = if(idFieldToIdValueName.isEmpty) {
           addedNullValues
         } else {
           addedNullValues.mapField {
-            case JField(name, jValue) if idFieldToIdValueName.contains(name) => JField(name, JObject(JField(idFieldToIdValueName(name), jValue)))
+            case JField(name, jValue: JString) if idFieldToIdValueName.contains(name) =>
+              JField(name, idFieldToIdValueName(name) -> jValue)
             case jField => jField
           }
         }
@@ -179,9 +193,13 @@ object FiledRenameSerializer extends Serializer[JsonFieldReName] {
   private[this] def isNeedRenameFieldNames(entityType: Class[_], jValue: JValue): Boolean = {
     val isJsonFieldRename = clazz.isAssignableFrom(entityType)
 
-    isJsonFieldRename  &&
-      jValue.isInstanceOf[JObject] &&
-      jValue.asInstanceOf[JObject].obj.exists(jField => StringHelpers.camelifyMethod(jField.name) != jField.name)
+    if(isJsonFieldRename && jValue.isInstanceOf[JObject] && (jValue \ resetCamelizeFieldNames) == JNothing) {
+      val JObject(obj) = jValue
+      val fieldNames = obj.map(_.name)
+      fieldNames.map(StringHelpers.camelifyMethod(_)).exists(fieldName => !fieldNames.contains(fieldName))
+    } else {
+      false
+    }
   }
 
   // check given object is some Id, only type name ends with "Id" and have a single param constructor

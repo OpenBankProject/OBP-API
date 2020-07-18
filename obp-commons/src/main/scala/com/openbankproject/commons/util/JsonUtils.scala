@@ -1,13 +1,13 @@
-package code.util
+package com.openbankproject.commons.util
 
 import java.util.Objects
 
 import net.liftweb.json
-import net.liftweb.json.{Diff, JNothing, JNull}
-import net.liftweb.json.JsonAST.{JArray, JBool, JDouble, JField, JInt, JObject, JString, JValue}
-import org.apache.commons.lang3.StringUtils
+import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonParser.ParseException
+import net.liftweb.json.{Diff, JNothing, JNull}
+import org.apache.commons.lang3.StringUtils
 
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe.typeOf
@@ -558,6 +558,7 @@ object JsonUtils {
    * recursive delete fields of JValue.
    * what different between this function with net.liftweb.json.JsonAST.JValue#removeField:
    * this function delete fields, removeField function set field's value to JNothing, this cause error when do deserialization
+ *
    * @param jValue to delete fields json
    * @param p checker of whether delete given field.
    * @return deleted some fields json

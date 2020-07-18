@@ -552,8 +552,8 @@ case class CardObjectJson(
                          )
 
 case class TransactionRequestAccount (
-                                       val bank_id: String,
-                                       val account_id : String
+                                       bank_id: String,
+                                       account_id : String
                                      )
 
 //For SEPA, it need the iban to find the toCounterpaty--> toBankAccount
@@ -655,50 +655,50 @@ case class TransactionRequestBodyAllTypes (
                                           )
 
 case class TransactionRequestCharge(
-                                     val summary: String,
-                                     val value : AmountOfMoney
+                                     summary: String,
+                                     value : AmountOfMoney
                                    )
 
 case class TransactionRequestChallenge (
-                                         val id: String,
-                                         val allowed_attempts : Int,
-                                         val challenge_type: String
+                                         id: String,
+                                         allowed_attempts : Int,
+                                         challenge_type: String
                                        )
 case class TransactionRequest (
-                                val id: TransactionRequestId,
-                                val `type` : String,
-                                val from: TransactionRequestAccount,
-                                val body: TransactionRequestBodyAllTypes,
-                                val transaction_ids: String,
-                                val status: String,
-                                val start_date: Date,
-                                val end_date: Date,
-                                val challenge: TransactionRequestChallenge,
-                                val charge: TransactionRequestCharge,
+                                id: TransactionRequestId,
+                                `type` : String,
+                                from: TransactionRequestAccount,
+                                body: TransactionRequestBodyAllTypes,
+                                transaction_ids: String,
+                                status: String,
+                                start_date: Date,
+                                end_date: Date,
+                                challenge: TransactionRequestChallenge,
+                                charge: TransactionRequestCharge,
                                 @ignore  
-                                val charge_policy: String,
+                                charge_policy: String,
                                 @ignore  
-                                val counterparty_id :CounterpartyId,
+                                counterparty_id :CounterpartyId,
                                 @ignore  
-                                val name :String,
+                                name :String,
                                 @ignore  
-                                val this_bank_id : BankId,
+                                this_bank_id : BankId,
                                 @ignore  
-                                val this_account_id : AccountId,
+                                this_account_id : AccountId,
                                 @ignore  
-                                val this_view_id :ViewId,
+                                this_view_id :ViewId,
                                 @ignore  
-                                val other_account_routing_scheme : String,
+                                other_account_routing_scheme : String,
                                 @ignore  
-                                val other_account_routing_address : String,
+                                other_account_routing_address : String,
                                 @ignore  
-                                val other_bank_routing_scheme : String,
+                                other_bank_routing_scheme : String,
                                 @ignore  
-                                val other_bank_routing_address : String,
+                                other_bank_routing_address : String,
+                                @ignore
+                                is_beneficiary :Boolean,
                                 @ignore  
-                                val is_beneficiary :Boolean,
-                                @ignore  
-                                val future_date :Option[String] = None
+                                future_date :Option[String] = None
                               )
 case class TransactionRequestBody (
                                     val to: TransactionRequestAccount,
@@ -709,24 +709,24 @@ case class TransactionRequestBody (
 case class Transaction(
                    //A universally unique id
                    @ignore
-                   val uuid: String,
+                   uuid: String,
                    //id is unique for transactions of @thisAccount
-                   val id : TransactionId,
-                   val thisAccount : BankAccount,
-                   val otherAccount : Counterparty,
+                   id : TransactionId,
+                   thisAccount : BankAccount,
+                   otherAccount : Counterparty,
                    //E.g. cash withdrawal, electronic payment, etc.
-                   val transactionType : String,
-                   val amount : BigDecimal,
+                   transactionType : String,
+                   amount : BigDecimal,
                    //ISO 4217, e.g. EUR, GBP, USD, etc.
-                   val currency : String,
+                   currency : String,
                    // Bank provided label
-                   val description : Option[String],
+                   description : Option[String],
                    // The date the transaction was initiated
-                   val startDate : Date,
+                   startDate : Date,
                    // The date when the money finished changing hands
-                   val finishDate : Date,
+                   finishDate : Date,
                    //the new balance for the bank account
-                   val balance :  BigDecimal
+                   balance :  BigDecimal
                  ) {
 
   val bankId = thisAccount.bankId

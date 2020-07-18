@@ -42,7 +42,8 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.userlocks.UserLocksProvider
 import code.users.Users
-import code.util.{Helper, JsonUtils}
+import code.util.Helper
+import com.openbankproject.commons.util.JsonUtils
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global

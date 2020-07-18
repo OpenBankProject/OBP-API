@@ -21,7 +21,7 @@ import net.liftweb.util.StringHelpers
 import scala.collection.mutable.ListBuffer
 import code.api.v3_1_0.ListResult
 import code.util.Helper.MdcLoggable
-import code.util.JsonUtils
+import com.openbankproject.commons.util.JsonUtils
 import net.liftweb.common.{EmptyBox, Full}
 import net.liftweb.json
 
