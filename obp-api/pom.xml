@@ -40,7 +40,6 @@
     <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-mapper_${scala.version}</artifactId>
-      <version>${lift.version}</version>
     </dependency>
     <dependency>
       <groupId>net.databinder.dispatch</groupId>

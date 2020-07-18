@@ -92,6 +92,11 @@
         <version>${lift.version}</version>
       </dependency>
       <dependency>
+        <groupId>net.liftweb</groupId>
+        <artifactId>lift-mapper_${scala.version}</artifactId>
+        <version>${lift.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-collections4</artifactId>
         <version>4.4</version>
