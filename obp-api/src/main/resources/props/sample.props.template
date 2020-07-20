@@ -16,6 +16,9 @@ connector=mapped
 #connector=stored_procedure_vDec2019
 #connector=obpjvm
 #connector=star
+## proxy connector get data from LocalMappedConnector, and set the follow corresponding fields to be null: @ignore, inbound.ignore.fields props, outbound.ignore.fields props
+## the proxy connector only for test purpose
+#connector=proxy
 #connector=...
 
 ## if connector = star, then need to set which connectors will be used. For now, obp support rest, akka, kafka. If you set kafka, then you need to start the kafka server.
@@ -833,10 +836,16 @@ dynamic_endpoints_url_prefix=dynamic
 # refresh_user.interval=30
 # --------------------------------------------------------------------
 
-## Inbound and Outbound ignore field names
-inbound.ignore.fields=
-outbound.ignore.fields=outboundAdapterCallContext.generalContext,outboundAdapterCallContext.outboundAdapterAuthInfo.linkedCustomers,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.view,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.account,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.view,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.account,inboundAdapterCallContext.generalContext
+## Inbound and Outbound ignore field names, case class name can be prefix.
+inbound.ignore.fields=\
+inboundAdapterCallContext.generalContext,\
+inboundAdapterCallContext.sessionId,\
+InBoundGetBanks:data.logoUrl
 
+outbound.ignore.fields= \
+outboundAdapterCallContext.sessionId, \
+outboundAdapterCallContext.consumerId, \
+outboundAdapterCallContext.generalContext
 
 # --- export one Connector as endpoint,the connector name should be fulfil these rule ------
 ## (1) if: connector=star, the connector should match props value of 'starConnector_supported_types'
