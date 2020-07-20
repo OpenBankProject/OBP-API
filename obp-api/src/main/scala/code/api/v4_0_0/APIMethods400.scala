@@ -798,13 +798,13 @@ trait APIMethods400 {
               existingTransactionRequestType.equals(transactionRequestType.value)
             }
 
-//            // Check the challengeId is valid for this existingTransactionRequest
-//            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
-//              existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
+            // Check the challengeId is valid for this existingTransactionRequest
+            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
+              existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
 //              MappedExpectedChallengeAnswer
 //                .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
 //                .exists(_.challengeId == challengeAnswerJson.id)
-//            }
+            }
 
             //Check the allowed attempts, Note: not supported yet, the default value is 3
             _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}") {
