@@ -814,8 +814,21 @@ trait APIMethods400 {
 
             // Check the challengeId is valid for this existingTransactionRequest
             _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
-              existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
+              if (APIUtil.isDataFromOBPSide(Some("validateChallengeAnswer"))) {
+                MappedExpectedChallengeAnswer
+                  .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
+                  .exists(_.challengeId == challengeAnswerJson.id)
+              }else{
+                existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
+              }
             }
+
+            (challengeAnswerIsValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
+
+            _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ") {
+              challengeAnswerIsValidated
+            }
+
             
             //TODO, this is a temporary solution, we only checked single challenge Id for remote connectors. here is only for the localMapped Connector logic
             _ <- if (APIUtil.isDataFromOBPSide(Some("validateChallengeAnswer"))){
@@ -839,20 +852,13 @@ trait APIMethods400 {
             Future{true}
           } 
             
-            
-            (challengeAnswerIsValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
-
-            _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ") {
-              challengeAnswerIsValidated
-            }
-
-            // All Good, proceed with the Transaction creation...
-            (transactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
-              case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT =>
-                NewStyle.function.createTransactionAfterChallengeV300(u, fromAccount, transReqId, transactionRequestType, callContext)
-              case _ =>
-                NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
-            }
+          // All Good, proceed with the Transaction creation...
+          (transactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+            case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT =>
+              NewStyle.function.createTransactionAfterChallengeV300(u, fromAccount, transReqId, transactionRequestType, callContext)
+            case _ =>
+              NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
+          }
           } yield {
 
             (JSONFactory210.createTransactionRequestWithChargeJSON(transactionRequest), HttpCode.`202`(callContext))
