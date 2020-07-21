@@ -2710,7 +2710,14 @@ Returns a string showed to the developer
     if ((APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")) {
       true
     } //if the connector == star, then we need to check if there is methodName  in the OBP methodrouting table. if it is empty, then the data must come from obp database.
-    else if (MethodRoutingProvider.connectorMethodProvider.vend.getMethodRoutings(methodName, isBankIdExactMatch, bankIdPattern).isEmpty) {
+    else if (
+      (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("star") &&
+        MethodRoutingProvider.connectorMethodProvider.vend.getMethodRoutings(methodName, isBankIdExactMatch, bankIdPattern).isEmpty) {
+      true
+    }//if the connector == star, then we need to check if there is methodName  in the OBP methodrouting table. if it is not empty, then we need to make sure no mapped connectorMethod there at all.
+    else if (
+      (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("star") &&
+        MethodRoutingProvider.connectorMethodProvider.vend.getMethodRoutings(methodName, isBankIdExactMatch, bankIdPattern).map(_.connectorName.equals("mapped")).contains(true)) {
       true
     } else {
       false
