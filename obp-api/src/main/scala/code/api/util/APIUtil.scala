@@ -50,6 +50,7 @@ import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.customer.CustomerX
 import code.entitlement.Entitlement
+import code.methodrouting.MethodRoutingProvider
 import code.metrics._
 import code.model._
 import code.model.dataAccess.AuthUser
@@ -2703,6 +2704,19 @@ Returns a string showed to the developer
 
   //TODO, now we have the star connector, it will break the isSandboxMode method logic. Need to double check how to use this method now. 
   val isSandboxMode: Boolean = (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
+  
+  def isDataFromOBPSide (methodName: Option[String], isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): Boolean = {
+    //if the connector == mapped, then the data is always over obp database
+    if ((APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")) {
+      true
+    } //if the connector == star, then we need to check if there is methodName  in the OBP methodrouting table. if it is empty, then the data must come from obp database.
+    else if (MethodRoutingProvider.connectorMethodProvider.vend.getMethodRoutings(methodName, isBankIdExactMatch, bankIdPattern).isEmpty) {
+      true
+    } else {
+      false
+    }
+  }
+
   
   /**
     * This function is implemented in order to support encrypted values in props file.

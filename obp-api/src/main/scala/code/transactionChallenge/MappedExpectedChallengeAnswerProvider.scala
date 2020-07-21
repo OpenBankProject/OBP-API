@@ -28,7 +28,7 @@ object MappedExpectedChallengeAnswerProvider extends ExpectedChallengeAnswerProv
   override def getExpectedChallengeAnswer(challengeId: String): Box[MappedExpectedChallengeAnswer] =
       MappedExpectedChallengeAnswer.find(By(MappedExpectedChallengeAnswer.mChallengeId,challengeId))
   
-  override def validateChallengeAnswerInOBPSide(
+  override def validateChallengeAnswer(
     challengeId: String,
     challengeAnswer: String,
     userId: Option[String]

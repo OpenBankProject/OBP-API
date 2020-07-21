@@ -652,16 +652,10 @@ trait APIMethods210 {
                 existingTransactionRequest.challenge.challenge_type == TransactionChallengeTypes.OTP_VIA_API.toString
               }
             
-              challengeAnswerOBP <- NewStyle.function.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
-              
-              _ <- Helper.booleanToFuture(s"$InvalidChallengeAnswer") {
-                challengeAnswerOBP == true
-              }
-              
-              (challengeAnswerKafka, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
+              (isChallengeAnswerValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
               
               _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ") {
-                (challengeAnswerKafka == true)
+                (isChallengeAnswerValidated == true)
               }
 
               // All Good, proceed with the Transaction creation...

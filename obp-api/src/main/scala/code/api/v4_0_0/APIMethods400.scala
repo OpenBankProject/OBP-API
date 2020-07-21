@@ -797,15 +797,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType', but current value (${transactionRequestType.value}) ") {
               existingTransactionRequestType.equals(transactionRequestType.value)
             }
-
-            // Check the challengeId is valid for this existingTransactionRequest
-            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
-              existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
-//              MappedExpectedChallengeAnswer
-//                .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
-//                .exists(_.challengeId == challengeAnswerJson.id)
-            }
-
+            
             //Check the allowed attempts, Note: not supported yet, the default value is 3
             _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}") {
               existingTransactionRequest.challenge.allowed_attempts > 0
@@ -819,28 +811,39 @@ trait APIMethods400 {
               ).exists(_ == existingTransactionRequest.challenge.challenge_type)
             }
 
-//            challengeAnswerOBP <- NewStyle.function.validateChallengeAnswerInOBPSide400(challengeAnswerJson.id, challengeAnswerJson.answer, u.userId, callContext)
-//
-//            _ <- Helper.booleanToFuture(s"$InvalidChallengeAnswer") {
-//              challengeAnswerOBP
-//            }
-//            accountAttributes <- Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None)
-//            _ <- Helper.booleanToFuture(s"$NextChallengePending") {
-//              val quorum = accountAttributes._1.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
-//              MappedExpectedChallengeAnswer
-//                .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
-//                .count(_.successful == true) match {
-//                  case number if number >= quorum => true
-//                  case _ =>
-//                    MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
-//                    false
-//                }
-//            }
 
-            (challengeAnswerKafka, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
+            // Check the challengeId is valid for this existingTransactionRequest
+            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
+              existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
+            }
+            
+            //TODO, this is a temporary solution, we only checked single challenge Id for remote connectors. here is only for the localMapped Connector logic
+            _ <- if (APIUtil.isDataFromOBPSide(Some("validateChallengeAnswer"))){
+              for{
+                accountAttributes <- Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None)
+                _ <- Helper.booleanToFuture(s"$NextChallengePending") {
+                  val quorum = accountAttributes._1.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
+                  MappedExpectedChallengeAnswer
+                    .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
+                    .count(_.successful == true) match {
+                    case number if number >= quorum => true
+                    case _ =>
+                      MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
+                      false
+                  }
+                }
+              } yield {
+                true
+              }
+            } else{
+            Future{true}
+          } 
+            
+            
+            (challengeAnswerIsValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
 
             _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ") {
-              challengeAnswerKafka
+              challengeAnswerIsValidated
             }
 
             // All Good, proceed with the Transaction creation...

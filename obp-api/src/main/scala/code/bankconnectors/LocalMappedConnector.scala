@@ -14,7 +14,7 @@ import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionDI}
 import code.api.cache.Caching
 import code.api.util.APIUtil.{DateWithMsFormat, OBPReturnType, generateUUID, hasEntitlement, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
-import code.api.util.ErrorMessages._
+import code.api.util.ErrorMessages.{attemptedToOpenAnEmptyBox, _}
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
@@ -155,7 +155,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * 4. Save both the salt and the hash in the user's database record.
     * 5. Send the challenge over an separate communication channel.
     */
-  // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
   override def createChallenge(bankId: BankId,
                                accountId: AccountId,
                                userId: String,
@@ -180,7 +179,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * 4. Save both the salt and the hash in the user's database record.
     * 5. Send the challenge over an separate communication channel.
     */
-  // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
   override def createChallenges(bankId: BankId,
                                 accountId: AccountId,
                                 userIds: List[String],
@@ -270,23 +268,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
-  /**
-    * To Validate A Challenge Answer
-    * 1. Retrieve the user's salt and hash from the database.
-    * 2. Prepend the salt to the given password and hash it using the same hash function.
-    * 3. Compare the hash of the given answer with the hash from the database. If they match, the answer is correct. Otherwise, the answer is incorrect.
-    */
-  // TODO Extend database model in order to get users salt and hash it
-  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future {
-    val answer = for {
-      nonEmpty <- booleanToBox(hashOfSuppliedAnswer.nonEmpty) ?~ "Need a non-empty answer"
-      answerToNumber <- tryo(BigInt(hashOfSuppliedAnswer)) ?~! "Need a numeric TAN"
-      positive <- booleanToBox(answerToNumber > 0) ?~ "Need a positive TAN"
-    } yield true
 
-    (answer, callContext)
-  }
-
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = 
+    Future { 
+      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+      (ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswer(challengeId, hashOfSuppliedAnswer, userId), callContext)
+    } 
+  
+  
   override def getChargeLevel(bankId: BankId,
                               accountId: AccountId,
                               viewId: ViewId,
@@ -3703,6 +3692,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId)
             //now we support multiple challenges. We can support multiple people to answer the challenges.
             //So here we return the challengeIds. 
+            // how to decide where to create challenges
+            // in OBP side:
+            //   1st: connector == mapped
+            //   2rd: connector == star && no records in `methodrouting` table.
+            
             (challengeIds, callContext) <- Connector.connector.vend.createChallenges(
               fromAccount.bankId,
               fromAccount.accountId,
