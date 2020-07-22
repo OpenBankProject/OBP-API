@@ -2,18 +2,20 @@ package code.bankconnectors
 
 import java.lang.reflect.Method
 
-import code.api.util.{CallContext, FieldIgnoreSerializer}
+import code.api.util.{CallContext, CustomJsonFormats, FieldIgnoreSerializer}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.dto.InBoundTrait
+import com.openbankproject.commons.dto.{InBoundTrait, OutInBoundTransfer}
+import com.openbankproject.commons.model.TopicTrait
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.common.Full
+import net.liftweb.json
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{Formats, JValue}
+import net.liftweb.json.{Formats, JObject, JValue}
 import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
 import org.apache.commons.lang3.StringUtils
 
 import scala.concurrent.Future
-import scala.reflect.ManifestFactory
+import scala.reflect.{ClassManifestFactory, ManifestFactory}
 
 object ConnectorUtils {
 
@@ -61,4 +63,53 @@ object ConnectorUtils {
     jObj.extract[InBoundTrait[Any]](formats, mainFest).data
   }
 
+
+  lazy val outInboundTransferLocalMapped: OutInBoundTransfer = new OutInBoundTransfer{
+    private val ConnectorMethodRegex = "(?i)OutBound(.)(.+)".r
+    private val connector:Connector = LocalMappedConnector
+    // the arg name that corresponding connector's arg name: callContext: Option[CallContext]
+    private val CALL_CONTEXT = "outboundAdapterCallContext"
+    private implicit val formats = CustomJsonFormats.nullTolerateFormats
+
+    override def transfer(outbound: TopicTrait): Future[InBoundTrait[_]] = {
+      val connectorMethod: String = outbound.getClass.getSimpleName match {
+        case ConnectorMethodRegex(x, y) => s"${x.toLowerCase()}$y"
+        case x => x
+      }
+      implicit val inboundMainFest = ManifestFactory.classType[InBoundTrait[_]](Class.forName(s"com.openbankproject.commons.dto.OutBound${connectorMethod.capitalize}"))
+
+      connector.implementedMethods.get(connectorMethod) match {
+        case None => Future.failed(new IllegalArgumentException(s"Outbound instance $outbound have no correponding method in the ${connector.getClass.getSimpleName}"))
+        case Some(method) =>
+          val (callContext, otherParams) = outbound.nameToValue.partition(_._1 == CALL_CONTEXT)
+          val argList = otherParams.map(_._2) :: callContext.map(_._2)
+
+          val connectorResult = ReflectUtils.invokeMethod(connector, method, argList: _*)
+          val futureResult: Future[_] = transferConnectorResult(connectorResult)
+          futureResult.asInstanceOf[Future[InBoundTrait[_]]]
+      }
+    }
+
+    private def transferConnectorResult(any: Any)(implicit inboundMainFest: Manifest[Any]): Future[_] = any match {
+      case x: Future[_] => x.map { it =>
+        val dataJson = json.Extraction.decompose(getData(it))
+        val inboundJson: JObject = "data" -> dataJson
+        inboundJson.extract[Any](formats, inboundMainFest)
+      }
+      case x =>
+        Future{
+          val dataJson = json.Extraction.decompose(getData(x))
+          val inboundJson: JObject = "data" -> dataJson
+          inboundJson.extract[Any](formats, inboundMainFest)
+        }
+    }
+    // connector methods return different type value, this method just extract value for InboundXX#data
+    private def getData(any: Any): Any = any match {
+      case (Full(v), _: Option[CallContext]) => v
+      case (v, _: Option[CallContext]) => v
+      case Full((v, _: Option[CallContext])) => v
+      case Full(v) => v
+      case v => v
+    }
+  }
 }
