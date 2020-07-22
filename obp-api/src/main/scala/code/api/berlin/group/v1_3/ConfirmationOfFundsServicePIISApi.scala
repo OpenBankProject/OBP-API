@@ -93,8 +93,11 @@ in the header. This field is contained but commented out in this specification. 
 
 
              //From change from requestAccount Currency to currentBankAccount Currency
-             rate <- NewStyle.function.tryons(s"$InvalidCurrency The requested currency conversion (${requestAccountCurrency} to ${currentAccountCurrency}) is not supported.", 400, callContext) {
-               Some(fx.exchangeRate(requestAccountCurrency, currentAccountCurrency).get)}
+             rate = fx.exchangeRate(requestAccountCurrency, currentAccountCurrency)
+
+             _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${requestAccountCurrency} to ${currentAccountCurrency}) is not supported.") {
+               rate.isDefined
+             }
 
              requestChangedCurrencyAmount = fx.convert(requestAccountAmount, rate)
 

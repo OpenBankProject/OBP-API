@@ -1007,9 +1007,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                transactionRequestType: TransactionRequestType,
                                chargePolicy: String): Box[TransactionId] = {
     for {
-      rate <- tryo {
-        Some(fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value)).get)
-      } ?~! s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported."
+      //def exchangeRate --> do not return any exception, but it may return NONO there.   
+      rate <- Full (fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value)))
+      _ <- booleanToBox(rate.isDefined) ?~! s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported."
+      
       fromTransAmt = -amount //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, rate)
       sentTransactionId <- saveTransaction(fromAccount, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
@@ -1028,8 +1029,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                chargePolicy: String,
                                callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
     for {
-      rate <- NewStyle.function.tryons(s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported.", 400, callContext) {
-        Some(fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value)).get)
+      
+      //def exchangeRate --> do not return any exception, but it may return NONO there.
+      rate <- Future (fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value)))
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported." ){
+        rate.isDefined
       }
       fromTransAmt = -amount //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, rate)
@@ -1055,9 +1059,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                       chargePolicy: String,
                                       callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
     for {
-      rate <- NewStyle.function.tryons(s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported.", 400, callContext) {
-        Some(fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value)).get)
-      }
+      //def exchangeRate --> do not return any exception, but it may return NONO there.
+      rate <- Future (fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value)))
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported."){rate.isDefined}
+      
       fromTransAmt = -amount //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, rate)
       (sentTransactionId, callContext) <- saveHistoricalTransaction(

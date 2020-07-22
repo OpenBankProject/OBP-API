@@ -423,9 +423,11 @@ Check the transaction status of a payment initiation.""",
 
 
              //From change from requestAccount Currency to currentBankAccount Currency
-             rate <- NewStyle.function.tryons(s"$InvalidCurrency The requested currency conversion (${transactionRequestCurrency} to ${fromAccountCurrency}) is not supported.", 400, callContext) {
-               Some(fx.exchangeRate(transactionRequestCurrency, fromAccountCurrency).get)}
-
+             rate = fx.exchangeRate(transactionRequestCurrency, fromAccountCurrency)
+             _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${transactionRequestCurrency} to ${fromAccountCurrency}) is not supported.") {
+               rate.isDefined
+             }
+             
              requestChangedCurrencyAmount = fx.convert(transactionRequestAmount, rate)
 
              fundsAvailable = (fromAccountBalance >= requestChangedCurrencyAmount)
