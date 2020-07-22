@@ -79,7 +79,7 @@ object ConnectorUtils {
       implicit val inboundMainFest = ManifestFactory.classType[InBoundTrait[_]](Class.forName(s"com.openbankproject.commons.dto.OutBound${connectorMethod.capitalize}"))
 
       connector.implementedMethods.get(connectorMethod) match {
-        case None => Future.failed(new IllegalArgumentException(s"Outbound instance $outbound have no correponding method in the ${connector.getClass.getSimpleName}"))
+        case None => Future.failed(new IllegalArgumentException(s"Outbound instance $outbound have no corresponding method in the ${connector.getClass.getSimpleName}"))
         case Some(method) =>
           val (callContext, otherParams) = outbound.nameToValue.partition(_._1 == CALL_CONTEXT)
           val argList = otherParams.map(_._2) :: callContext.map(_._2)
