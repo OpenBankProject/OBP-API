@@ -2705,20 +2705,14 @@ Returns a string showed to the developer
   //TODO, now we have the star connector, it will break the isSandboxMode method logic. Need to double check how to use this method now. 
   val isSandboxMode: Boolean = (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
   
-  def isDataFromOBPSide (methodName: Option[String], isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): Boolean = {
+  def isDataFromOBPSide (methodName: String, argNameToValue: Array[(String, AnyRef)] = Array.empty): Boolean = {
+    val connectorNameInProps = APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox)
     //if the connector == mapped, then the data is always over obp database
-    if ((APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")) {
-      true
-    } //if the connector == star, then we need to check if there is methodName  in the OBP methodrouting table. if it is empty, then the data must come from obp database.
-    else if (
-      (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("star") &&
-        MethodRoutingProvider.connectorMethodProvider.vend.getMethodRoutings(methodName, isBankIdExactMatch, bankIdPattern).isEmpty) {
-      true
-    }//if the connector == star, then we need to check if there is methodName  in the OBP methodrouting table. if it is not empty, then we need to make sure no mapped connectorMethod there at all.
-    else if (
-      (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("star") &&
-        MethodRoutingProvider.connectorMethodProvider.vend.getMethodRoutings(methodName, isBankIdExactMatch, bankIdPattern).map(_.connectorName.equals("mapped")).contains(true)) {
-      true
+    if(connectorNameInProps == "mapped") {
+        true
+    } else if(connectorNameInProps == "star") {
+      val (_, connectorName) = code.bankconnectors.getConnectorNameAndMethodRouting(methodName, argNameToValue)
+      connectorName == "mapped"
     } else {
       false
     }

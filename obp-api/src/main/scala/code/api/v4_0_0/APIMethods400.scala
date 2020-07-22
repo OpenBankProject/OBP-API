@@ -814,7 +814,7 @@ trait APIMethods400 {
 
             // Check the challengeId is valid for this existingTransactionRequest
             _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
-              if (APIUtil.isDataFromOBPSide(Some("validateChallengeAnswer"))) {
+              if (APIUtil.isDataFromOBPSide("validateChallengeAnswer")) {
                 MappedExpectedChallengeAnswer
                   .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
                   .exists(_.challengeId == challengeAnswerJson.id)
@@ -831,7 +831,7 @@ trait APIMethods400 {
 
             
             //TODO, this is a temporary solution, we only checked single challenge Id for remote connectors. here is only for the localMapped Connector logic
-            _ <- if (APIUtil.isDataFromOBPSide(Some("validateChallengeAnswer"))){
+            _ <- if (APIUtil.isDataFromOBPSide("validateChallengeAnswer")){
               for{
                 accountAttributes <- Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None)
                 _ <- Helper.booleanToFuture(s"$NextChallengePending") {
