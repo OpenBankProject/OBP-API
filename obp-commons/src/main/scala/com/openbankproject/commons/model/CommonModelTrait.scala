@@ -30,8 +30,10 @@ package com.openbankproject.commons.model
 import java.util.Date
 
 import com.openbankproject.commons.model.enums._
+import com.openbankproject.commons.util.ReflectUtils
 
 import scala.collection.immutable.List
+import scala.reflect.runtime.universe
 
 /**
   * a mark trait, any type that extends this trait will rename field from Camel-Case to snakify naming
@@ -307,7 +309,26 @@ trait RoutingT {
 // @see 'case request: TopicTrait' in  code/bankconnectors/kafkaStreamsHelper.scala
 // This is for Kafka topics for both North and South sides.
 // In OBP-API, these topics will be created automatically.
-trait TopicTrait
+trait TopicTrait {
+
+  // return constructor parameter value list, the order is just the same as constructor
+  lazy val nameToValue: List[(String, Any)] = {
+    val tp = ReflectUtils.getType(this)
+    val instanceMirror = ReflectUtils.getInstanceMirror(this)
+    tp.decls.collectFirst {
+      case x if x.isConstructor =>
+        val constructorArgs: List[universe.Symbol] = x.asMethod.paramLists.head
+        val nameToMethodSymbol: Map[universe.Name, universe.MethodSymbol] = tp.decls.filter(it => it.isMethod && it.asMethod.paramLists.isEmpty)
+          .map(it => it.name -> it.asMethod).toMap
+        val argList: List[(String, Any)] = constructorArgs.map { arg =>
+          val method = nameToMethodSymbol(arg.name)
+          val argValue = instanceMirror.reflectMethod(method).apply()
+          arg.name.decodedName.toString -> argValue
+        }
+        argList
+    }.get
+  }
+}
 
 //high level of four different kinds of transaction request types: FREE_FROM, SANDBOXTAN, COUNTERPATY and SEPA.
 //They share the same AmountOfMoney and description fields

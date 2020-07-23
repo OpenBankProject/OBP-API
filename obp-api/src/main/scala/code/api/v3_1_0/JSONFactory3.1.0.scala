@@ -719,29 +719,6 @@ case class ModeratedAccountJSON(
                                  account_attributes: List[AccountAttributeResponseJson]
                                )
 
-/**
-  * this case class is a generic list items container for serialized to json string
-  * it will serialize to key value way as follow:
-  * ListResult("someName", List("value"))
-  * --> {"somename": ["value"]}
-  *
-  * note: the type can be defined as:
-  * > case class ListResult[T](name: String, results: List[T])
-  * because lift json not support type parameter is another field type parameter when do deserialize
-  *
-  * when do deserialize to type ListResult, should supply exactly type parameter, should not give wildcard like this:
-  * > jValue.extract[ListResult[List[_]]]
-  *
-  * @param name convert to json single field name
-  * @param results convert json single field value
-  * @tparam T List type
-  */
-case class ListResult[+T <: List[_] : TypeTag](name: String, results: T) {
-
-  def itemType: Type = implicitly[TypeTag[T]].tpe
-
-}
-
 case class HistoricalTransactionAccountJsonV310(
   bank_id: Option[String],
   account_id : Option[String],

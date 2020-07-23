@@ -8,7 +8,7 @@
     <groupId>com.tesobe</groupId>
     <artifactId>obp-parent</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>1.6.0</version>
+    <version>1.6.1</version>
   </parent>
   <artifactId>obp-api</artifactId>
   <packaging>war</packaging>
@@ -40,7 +40,6 @@
     <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-mapper_${scala.version}</artifactId>
-      <version>${lift.version}</version>
     </dependency>
     <dependency>
       <groupId>net.databinder.dispatch</groupId>

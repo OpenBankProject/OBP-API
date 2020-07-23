@@ -101,7 +101,7 @@ object CodeGenerateUtils {
       if(result.isEmpty) {
         result = for {
           pType <- parentType
-          pName = StringUtils.uncapitalize(pType.typeSymbol.name.toString).replaceFirst("Commons$", "")
+          pName = StringUtils.uncapitalize(pType.typeSymbol.name.toString).replaceFirst("(Commons|Trait|T)$", "")
           fName <- fieldName
           example <- getExampleValue(s"$pName${fName.capitalize}", s"$pName${StringHelpers.camelify(fName)}")
         } yield example
@@ -110,7 +110,7 @@ object CodeGenerateUtils {
       if(result.isEmpty && parentType.filter(_.typeSymbol.name.toString.endsWith("User")).isDefined) {
         result = fieldName.flatMap(it => getExampleValue(s"user${it.capitalize}", s"user$it"))
       }
-      // scome class name start with Core, should ignore "Core"
+      // some class name start with Core, should ignore "Core"
       if(result.isEmpty && parentType.filter(_.typeSymbol.name.toString.startsWith("Core")).isDefined) {
         val composedName = parentType.map(_.typeSymbol.name.toString)
           .map(_.replaceFirst("^Core|Commons$", ""))
@@ -151,17 +151,15 @@ object CodeGenerateUtils {
     val typeName = tp.typeSymbol.name.toString
     val fullTypeName = tp.typeSymbol.fullName
     val isObpType = fullTypeName.matches("""com\.openbankproject\.commons\..+|code\..+""")
-    val isTraitType = tp.typeSymbol.asClass.isTrait
+    val isAbstractType = tp.typeSymbol.asClass.isAbstract
 
     // if type is OBP project defined, get the concrete type, or get None
-    val concreteObpType = (isObpType, isTraitType) match {
+    val concreteObpType: Option[ru.Type] = (isObpType, isAbstractType) match {
       case (false, _) => None
       case (true, false) => Some(tp)
-      case (_, true) if(typeName.endsWith("Trait") && ReflectUtils.isTypeExists(fullTypeName.replaceFirst("Trait$", ""))) =>
-        Some(ReflectUtils.getTypeByName(fullTypeName.replaceFirst("Trait$", "")))
-      case (true, true) if(ReflectUtils.isTypeExists(s"com.openbankproject.commons.model.${typeName}Commons")) =>
-        Some(ReflectUtils.getTypeByName(s"com.openbankproject.commons.model.${typeName}Commons"))
-      case _ => Some(ReflectUtils.getTypeByName(s"${fullTypeName}Commons"))
+      case _ =>
+        ReflectUtils.findImplementedClass(fullTypeName)
+        .map(ReflectUtils.classToType(_))
     }
 
     // if type is OBP project defined, and constructor have single parameter, return true

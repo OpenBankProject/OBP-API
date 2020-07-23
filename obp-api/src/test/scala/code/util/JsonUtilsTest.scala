@@ -1,7 +1,7 @@
 package code.util
 
 import org.scalatest.{FlatSpec, Matchers, Tag}
-import JsonUtils.buildJson
+import com.openbankproject.commons.util.JsonUtils.buildJson
 import net.liftweb.json
 
 class JsonUtilsTest extends FlatSpec with Matchers {

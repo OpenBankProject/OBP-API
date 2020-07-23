@@ -37,7 +37,7 @@ import code.transactionrequests.TransactionRequests
 import com.openbankproject.commons.model.TransactionRequestTypeCharge
 import code.users.Users
 import code.util.Helper._
-import code.util.JsonUtils
+import com.openbankproject.commons.util.JsonUtils
 import code.views.Views
 import com.openbankproject.commons.model.enums.{AccountAttributeType, AttributeCategory, AttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType, TransactionRequestStatus}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
@@ -61,7 +61,7 @@ import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
 import scala.reflect.runtime.universe.{MethodSymbol, typeOf}
 import _root_.akka.http.scaladsl.model.HttpMethod
-import com.openbankproject.commons.dto.{CustomerAndAttribute, InBoundTrait, ProductCollectionItemsTree}
+import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, InBoundTrait, ProductCollectionItemsTree}
 
 /*
 So we can switch between different sources of resources e.g.
@@ -91,7 +91,9 @@ object Connector extends SimpleInjector {
     "kafka_vSept2018" -> lazyValue(KafkaMappedConnector_vSept2018),
     "kafka_vMay2019" -> lazyValue(KafkaMappedConnector_vMay2019),
     "rest_vMar2019" -> lazyValue(RestConnector_vMar2019),
-    "stored_procedure_vDec2019" -> lazyValue(StoredProcedureConnector_vDec2019)
+    "stored_procedure_vDec2019" -> lazyValue(StoredProcedureConnector_vDec2019),
+    // this proxy connector only for unit test, can set connector=proxy in test.default.props, but never set itin default.props
+    "proxy" -> lazyValue(ConnectorUtils.proxyConnector)
   )
 
   def getConnectorInstance(connectorVersion: String): Connector = {
@@ -1584,13 +1586,13 @@ trait Connector extends MdcLoggable {
   
   def updateAccount(bankId: BankId, accountId: AccountId, label: String): Box[Boolean] = Failure(setUnimplementedError)
 
-  def getProducts(bankId : BankId, params: Map[String, List[String]] = Map.empty) : Box[List[Product]] = Failure(setUnimplementedError)
+  def getProducts(bankId : BankId, params: List[GetProductsParam] = Nil) : Box[List[Product]] = Failure(setUnimplementedError)
 
   def getProduct(bankId : BankId, productCode : ProductCode) : Box[Product] = Failure(setUnimplementedError)
 
   //Note: this is a temporary way for compatibility
   //It is better to create the case class for all the connector methods
-  def createOrUpdateBranch(branch: Branch): Box[BranchT] = Failure(setUnimplementedError)
+  def createOrUpdateBranch(branch: BranchT): Box[BranchT] = Failure(setUnimplementedError)
 
   def createOrUpdateBank(
                           bankId: String,
@@ -1605,7 +1607,7 @@ trait Connector extends MdcLoggable {
                         ): Box[Bank] = Failure(setUnimplementedError)
 
 
-  def createOrUpdateAtm(atm: Atms.Atm): Box[AtmT] = Failure(setUnimplementedError)
+  def createOrUpdateAtm(atm: AtmT): Box[AtmT] = Failure(setUnimplementedError)
 
 
   def createOrUpdateProduct(
