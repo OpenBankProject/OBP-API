@@ -85,7 +85,7 @@ object ConnectorUtils {
           val nameToValue = outbound.nameToValue.toMap
           val argNameToType: List[(String, universe.Type)] = method.paramLists.head.map(it => it.name.decodedName.toString.trim -> it.info)
           val connectorMethodArgs: List[Any] = argNameToType collect {
-            case (_, tp) if tp <:< callContextType => None // TODO convert outboundAdapterCallContext to Option[CallContext]
+            case (_, tp) if tp <:< callContextType => None // For connector method parameter `callContext: Option[CallContext]`, just pass None
             case (_, tp) if tp <:< queryParamType =>
               val limit = nameToValue("limit").asInstanceOf[Int]
               val offset = nameToValue("offset").asInstanceOf[Int]
