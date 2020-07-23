@@ -502,7 +502,7 @@ object BankAccountX {
     *                          incoming: counterparty send money to obp account.
     * @return BankAccount
     */
-  def toBankAccount(counterparty: CounterpartyTrait, isOutgoingAccount: Boolean) : Box[BankAccount] = {
+  def getBankAccountFromCounterparty(counterparty: CounterpartyTrait, isOutgoingAccount: Boolean) : Box[BankAccount] = {
     if (
       (counterparty.otherBankRoutingScheme =="OBP" || counterparty.otherBankRoutingScheme =="OBP_BANK_ID" )
       && (counterparty.otherAccountRoutingScheme =="OBP" || counterparty.otherAccountRoutingScheme =="OBP_ACCOUNT_ID")

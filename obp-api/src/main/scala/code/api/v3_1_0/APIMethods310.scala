@@ -5656,7 +5656,7 @@ trait APIMethods310 {
             } else if (fromAccountPost.bank_id.isEmpty && fromAccountPost.account_id.isEmpty && fromAccountPost.counterparty_id.isDefined){
               for {
                  (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(fromAccountPost.counterparty_id.get), cc.callContext)
-                 fromAccount <- NewStyle.function.toBankAccount(fromCounterparty, false, callContext)
+                 fromAccount <- NewStyle.function.getBankAccountFromCounterparty(fromCounterparty, false, callContext)
               }yield{
                 (fromAccount, callContext)
               }
@@ -5676,7 +5676,7 @@ trait APIMethods310 {
             } else if (toAccountPost.bank_id.isEmpty && toAccountPost.account_id.isEmpty && toAccountPost.counterparty_id.isDefined){
               for {
                 (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toAccountPost.counterparty_id.get), cc.callContext)
-                toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
+                toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
               }yield{
                 (toAccount, callContext)
               }
