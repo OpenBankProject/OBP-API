@@ -58,10 +58,10 @@ import org.apache.commons.lang3.{StringUtils, Validate}
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.dto.GetProductsParam
 
 import scala.concurrent.Future
 import scala.util.Random
-import scala.reflect.runtime.universe.MethodSymbol
 
 trait APIMethods310 {
   self: RestHelper =>
@@ -2741,7 +2741,8 @@ trait APIMethods310 {
                 case true => anonymousAccess(cc)
               }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            products <- Future(Connector.connector.vend.getProducts(bankId, req.params)) map {
+            params = req.params.toList.map(kv => GetProductsParam(kv._1, kv._2))
+            products <- Future(Connector.connector.vend.getProducts(bankId, params)) map {
               unboxFullOrFail(_, callContext, ProductNotFoundByProductCode)
             }
           } yield {

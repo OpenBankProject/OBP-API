@@ -66,7 +66,7 @@ import com.google.common.cache.CacheBuilder
 import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.dto.{CustomerAndAttribute, ProductCollectionItemsTree}
+import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, ProductCollectionItemsTree}
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
@@ -1666,12 +1666,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Full(result.getOrElse(false))
   }
 
-  override def getProducts(bankId: BankId, params: Map[String, List[String]]): Box[List[Product]] = {
+  override def getProducts(bankId: BankId, params: List[GetProductsParam]): Box[List[Product]] = {
     Box !! {
       if (params.isEmpty) {
         MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value))
       } else {
-        val paramList = params.toList
+        val paramList: List[(String, List[String])] = params.map(it => it.name -> it.value)
         val parameters: List[String] = MappedProductAttribute.getParameters(paramList)
         val sqlParametersFilter = MappedProductAttribute.getSqlParametersFilter(paramList)
         val productIdList = paramList.isEmpty match {
@@ -1698,7 +1698,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def createOrUpdateBranch(branch: Branch): Box[BranchT] = {
+  override def createOrUpdateBranch(branch: BranchT): Box[BranchT] = {
 
     // TODO
     // Either this should accept a Branch case class i.e. extract the construction of a Branch out of here and move it to the API
@@ -1978,7 +1978,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
   // TODO This should accept a normal case class not "json" case class i.e. don't rely on REST json structures
-  override def createOrUpdateAtm(atm: Atm): Box[AtmT] = {
+  override def createOrUpdateAtm(atm: AtmT): Box[AtmT] = {
 
     val isAccessibleString = optionBooleanToString(atm.isAccessible)
     val hasDepositCapabilityString = optionBooleanToString(atm.hasDepositCapability)

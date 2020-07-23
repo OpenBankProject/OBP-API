@@ -3,7 +3,7 @@ package code.util
 import java.util.Date
 
 import com.openbankproject.commons.model.enums.{AccountAttributeType, ProductAttributeType}
-import com.openbankproject.commons.util.EnumValue
+import com.openbankproject.commons.util.{EnumValue, ReflectUtils}
 
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
@@ -26,11 +26,12 @@ object reflectionUtils {
     if (tp.typeSymbol.fullName.startsWith("com.openbankproject.commons.")) {
       val fields = tp.decls.find(it => it.isConstructor).toList.flatMap(_.asMethod.paramLists(0)).foldLeft("")((str, symbol) => {
         val TypeRef(pre: Type, sym: Symbol, args: List[Type]) = symbol.info
+        lazy val implementedType = ReflectUtils.findImplementedClass(sym.fullName).map(ReflectUtils.classToType(_))
         val value = if (pre <:< ru.typeOf[EnumValue]) {
           s"${pre.typeSymbol.fullName}.example"
-        } else if (args.isEmpty && sym.isClass && sym.asClass.isTrait) {
-          val commonClass = reflectionUtils.getTypeByName(s"com.openbankproject.commons.model.${sym.name}Commons")
-            createDocExample(commonClass)
+        } else if (args.isEmpty && sym.isClass && sym.asClass.isAbstract && implementedType.isDefined) {
+            val Some(commonType) = implementedType
+            createDocExample(commonType)
         } else if (args.isEmpty) {
           createDocExample(sym.asType.toType)
         } else {
