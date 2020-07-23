@@ -468,6 +468,9 @@ footer #copyright {
 #authorise #authorise-signup {
 	text-transform: uppercase;
 }
+#authorise #authorise-login {
+	text-transform: uppercase;
+}
 #authorise #authorise-recover-password {
 	font-size: 12px;
 	color: white;

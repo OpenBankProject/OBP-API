@@ -74,7 +74,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-07-14T16:11:11Z
+// ---------- created on 2020-07-22T12:18:29Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -2674,6 +2674,38 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_atms", req, callContext)
         response.map(convertToTuple[List[AtmTCommons]](callContext))        
+  }
+          
+  messageDocs += getCurrentFxRateDoc
+  def getCurrentFxRateDoc = MessageDoc(
+    process = "obp.getCurrentFxRate",
+    messageFormat = messageFormat,
+    description = "Get Current Fx Rate",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetCurrentFxRate(bankId=BankId(bankIdExample.value),
+      fromCurrencyCode="string",
+      toCurrencyCode="string")
+    ),
+    exampleInboundMessage = (
+     InBoundGetCurrentFxRate(status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= FXRateCommons(bankId=BankId(bankIdExample.value),
+      fromCurrencyCode="string",
+      toCurrencyCode="string",
+      conversionValue=123.123,
+      inverseConversionValue=123.123,
+      effectiveDate=toDate(dateExample)))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
+        import com.openbankproject.commons.dto.{OutBoundGetCurrentFxRate => OutBound, InBoundGetCurrentFxRate => InBound}  
+        val callContext: Option[CallContext] = None
+        val req = OutBound(bankId, fromCurrencyCode, toCurrencyCode)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_current_fx_rate", req, callContext)
+        response.map(convertToTuple[FXRateCommons](callContext))        
   }
           
   messageDocs += createTransactionAfterChallengev300Doc
@@ -5649,8 +5681,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-07-14T16:11:11Z
-//---------------- dynamic end ---------------------please don't modify this line            
+// ---------- created on 2020-07-22T12:18:29Z
+//---------------- dynamic end ---------------------please don't modify this line              
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 
