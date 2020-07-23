@@ -2,7 +2,7 @@ package code.bankconnectors
 
 import java.lang.reflect.Method
 
-import code.api.util.{CallContext, CustomJsonFormats, FieldIgnoreSerializer}
+import code.api.util.{CallContext, CustomJsonFormats, FieldIgnoreSerializer, OBPQueryParam}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.{InBoundTrait, OutInBoundTransfer}
 import com.openbankproject.commons.model.TopicTrait
@@ -15,7 +15,8 @@ import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
 import org.apache.commons.lang3.StringUtils
 
 import scala.concurrent.Future
-import scala.reflect.{ClassManifestFactory, ManifestFactory}
+import scala.reflect.runtime.universe
+import scala.reflect.ManifestFactory
 
 object ConnectorUtils {
 
@@ -67,8 +68,8 @@ object ConnectorUtils {
   lazy val outInboundTransferLocalMapped: OutInBoundTransfer = new OutInBoundTransfer{
     private val ConnectorMethodRegex = "(?i)OutBound(.)(.+)".r
     private val connector:Connector = LocalMappedConnector
-    // the arg name that corresponding connector's arg name: callContext: Option[CallContext]
-    private val CALL_CONTEXT = "outboundAdapterCallContext"
+    private val queryParamType = universe.typeOf[List[OBPQueryParam]]
+    private val callContextType = universe.typeOf[Option[CallContext]]
     private implicit val formats = CustomJsonFormats.nullTolerateFormats
 
     override def transfer(outbound: TopicTrait): Future[InBoundTrait[_]] = {
@@ -81,10 +82,21 @@ object ConnectorUtils {
       connector.implementedMethods.get(connectorMethod) match {
         case None => Future.failed(new IllegalArgumentException(s"Outbound instance $outbound have no corresponding method in the ${connector.getClass.getSimpleName}"))
         case Some(method) =>
-          val (callContext, otherParams) = outbound.nameToValue.partition(_._1 == CALL_CONTEXT)
-          val argList = otherParams.map(_._2) :: callContext.map(_._2)
+          val nameToValue = outbound.nameToValue.toMap
+          val argNameToType: List[(String, universe.Type)] = method.paramLists.head.map(it => it.name.decodedName.toString.trim -> it.info)
+          val connectorMethodArgs: List[Any] = argNameToType collect {
+            case (_, tp) if tp <:< callContextType => None // TODO convert outboundAdapterCallContext to Option[CallContext]
+            case (_, tp) if tp <:< queryParamType =>
+              val limit = nameToValue("limit").asInstanceOf[Int]
+              val offset = nameToValue("offset").asInstanceOf[Int]
+              val fromDate = nameToValue("fromDate").asInstanceOf[String]
+              val toDate = nameToValue("toDate").asInstanceOf[String]
+              val queryParams: List[OBPQueryParam] = OBPQueryParam.toOBPQueryParams(limit, offset, fromDate, toDate)
+              queryParams
+            case (name, _) => nameToValue(name)
+          }
 
-          val connectorResult = ReflectUtils.invokeMethod(connector, method, argList: _*)
+          val connectorResult = ReflectUtils.invokeMethod(connector, method, connectorMethodArgs: _*)
           val futureResult: Future[_] = transferConnectorResult(connectorResult)
           futureResult.asInstanceOf[Future[InBoundTrait[_]]]
       }
