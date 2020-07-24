@@ -714,6 +714,8 @@ featured_apis=elasticSearchWarehouseV300
 # akka_connector.loglevel=INFO/DEBUG etc.
 # In case isn't defined default value is "akka-connector-actor"
 # akka_connector.name_of_actor=SOME_ACTOR_NAME
+# akka connector timeout seconds, default is 3 seconds
+# akka_connector.timeout=10
 # --------------------------------------------------------------
 
 
