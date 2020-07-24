@@ -43,6 +43,8 @@ import scalacache.memoization._
 import scala.collection.JavaConversions._
 import scala.collection.immutable.{List, Seq}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.dto.GetProductsParam
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -1287,11 +1289,11 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     override def transactionRequestId: String = obpJvmInboundTransactionRequestStatus.transactionRequestId
     override def bulkTransactionsStatus: List[TransactionStatus] = obpJvmInboundTransactionRequestStatus.bulkTransactionsStatus
   }
-  override def getProducts(bankId: BankId, params: Map[String, List[String]]): Box[List[Product]] = Empty
+  override def getProducts(bankId: BankId, params: List[GetProductsParam]): Box[List[Product]] = Empty
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-  override  def createOrUpdateBranch(branch: Branch): Box[BranchT] = Empty
+  override  def createOrUpdateBranch(branch: BranchT): Box[BranchT] = Empty
   
   override def createOrUpdateBank(
     bankId: String,

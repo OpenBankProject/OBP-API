@@ -59,7 +59,7 @@ import code.api.util.APIUtil._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
-import code.util.JsonUtils
+import com.openbankproject.commons.util.JsonUtils
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json

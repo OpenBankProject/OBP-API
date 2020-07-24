@@ -32,7 +32,8 @@ import code.model._
 import code.standingorders.StandingOrderTrait
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.usercustomerlinks.UserCustomerLink
-import code.util.{Helper, JsonUtils}
+import code.util.Helper
+import com.openbankproject.commons.util.JsonUtils
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf

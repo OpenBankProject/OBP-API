@@ -1,6 +1,6 @@
 package com.openbankproject.commons.util
 
-import java.lang.reflect.Field
+import java.lang.reflect.{Field, Modifier}
 
 import net.liftweb.common.{Box, Empty, Failure, Full}
 
@@ -13,7 +13,10 @@ import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
 import scala.util.Success
 import net.liftweb.json.JValue
+import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.reflect.FieldUtils
+
+import scala.collection.mutable
 
 object ReflectUtils {
   private[this] val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -61,6 +64,8 @@ object ReflectUtils {
     fn(instanceMirror, field)
     result
   }
+
+  def getInstanceMirror(any: Any): ru.InstanceMirror = mirror.reflect(any)
 
   def getFieldValues(obj: AnyRef)(predicate: TermSymbol => Boolean = _=>true): Map[String, Any] = {
     val instanceMirror = mirror.reflect(obj)
@@ -484,6 +489,76 @@ object ReflectUtils {
   def getType(obj: Any): ru.Type = mirror.reflect(obj).symbol.toType
 
   def forType(className: String): ru.Type = mirror.staticClass(className).toType
+
+  def forTypeOption(className: String): Option[ru.Type] = try {
+      Some(mirror.staticClass(className).toType)
+    } catch {
+      case _: ScalaReflectionException => None
+    }
+
+  def forClassOption(className: String): Option[Class[_]] = try {
+      Some(Class.forName(className, false, getClass().getClassLoader))
+    } catch {
+      case _: ClassNotFoundException => None
+    }
+
+  private object ClassExtractor {
+    // extract concrete class by class name
+    def unapply(className: String): Option[Class[_]] = forClassOption(className).filterNot(clazz => Modifier.isAbstract(clazz.getModifiers))
+  }
+
+  /**
+   * find one implement class in the package com.openbankproject.commons.model
+   * @param clazz an abstract class
+   * @return
+   */
+  def findImplementedClass(clazz: Class[_]): Option[Class[_]] = {
+    if(clazz == null || !Modifier.isAbstract(clazz.getModifiers)) {
+      None
+    } else {
+      val className = clazz.getSimpleName
+      val fullClassName = clazz.getName
+
+      val maybeImplementedClassNames = mutable.ListBuffer[String](s"com.openbankproject.commons.model.${className}Commons", s"${fullClassName}Commons")
+
+      if(className.endsWith("Trait")) {
+        val deletedSuffixName = StringUtils.substringBeforeLast(className, "Trait")
+        maybeImplementedClassNames += s"com.openbankproject.commons.model.$deletedSuffixName"
+        maybeImplementedClassNames += s"com.openbankproject.commons.model.${deletedSuffixName}Commons"
+
+        val deleteSuffixFullName = StringUtils.substringBeforeLast(fullClassName, "Trait")
+        maybeImplementedClassNames += deleteSuffixFullName
+        maybeImplementedClassNames += s"${deleteSuffixFullName}Commons"
+      }
+      if(className.endsWith("T")) {
+        val deletedSuffixName = StringUtils.substringBeforeLast(className, "T")
+        maybeImplementedClassNames += s"com.openbankproject.commons.model.$deletedSuffixName"
+        maybeImplementedClassNames += s"com.openbankproject.commons.model.${deletedSuffixName}Commons"
+
+        val deleteSuffixFullName = StringUtils.substringBeforeLast(fullClassName, "T")
+        maybeImplementedClassNames += deleteSuffixFullName
+        maybeImplementedClassNames += s"${deleteSuffixFullName}Commons"
+      }
+
+      maybeImplementedClassNames collectFirst {
+        case ClassExtractor(x) => x
+      }
+
+    }
+  }
+  /**
+   * find one implement class in the package com.openbankproject.commons.model
+   * @param className an abstract class
+   * @return
+   */
+  def findImplementedClass(className: String): Option[Class[_]] = {
+    if(StringUtils.isBlank(className)) {
+      None
+    } else {
+      val clazz = forClassOption(className)
+      clazz.flatMap(findImplementedClass(_))
+    }
+  }
 
   def getPrimaryConstructor(tp: ru.Type): MethodSymbol = tp.decl(ru.termNames.CONSTRUCTOR).alternatives.head.asMethod
 
