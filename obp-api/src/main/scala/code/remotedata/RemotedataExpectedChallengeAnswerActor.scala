@@ -20,9 +20,9 @@ class RemotedataExpectedChallengeAnswerActor extends Actor with ObpActorHelper w
       logger.debug(s"getExpectedChallengeAnswer($challengeId)")
       sender ! (mapper.getExpectedChallengeAnswer(challengeId: String))
 
-    case cc.validateChallengeAnswerInOBPSide(challengeId: String, challengeAnswer: String, userId: Option[String])=>
-      logger.debug(s"validateChallengeAnswerInOBPSide($challengeId, $challengeAnswer, $userId)")
-      sender ! (mapper.validateChallengeAnswerInOBPSide(challengeId, challengeAnswer, userId))  
+    case cc.validateChallengeAnswer(challengeId: String, challengeAnswer: String, userId: Option[String])=>
+      logger.debug(s"validateChallengeAnswer($challengeId, $challengeAnswer, $userId)")
+      sender ! (mapper.validateChallengeAnswer(challengeId, challengeAnswer, userId))  
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

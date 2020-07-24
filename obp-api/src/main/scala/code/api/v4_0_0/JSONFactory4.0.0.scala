@@ -44,7 +44,7 @@ import com.openbankproject.commons.model.DirectDebitTrait
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccountCore}
 import code.standingorders.StandingOrderTrait
-import code.transactionChallenge.MappedExpectedChallengeAnswer
+import code.transactionChallenge.{ExpectedChallengeAnswer, MappedExpectedChallengeAnswer}
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
 import com.openbankproject.commons.model._
@@ -293,6 +293,12 @@ case class UserLockStatusJson(
                              )
 
 case class DatabaseInfoJson(product_name: String, product_version: String)
+
+case class ChallengeJson(
+  challenge_id: String,
+  transaction_request_id: String,
+  expected_user_id: String
+)
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
@@ -316,7 +322,7 @@ object JSONFactory400 {
     BanksJson400(l.map(createBankJSON400))
   }
 
-  def createTransactionRequestWithChargeJSON(tr : TransactionRequest, challenges: List[MappedExpectedChallengeAnswer]) : TransactionRequestWithChargeJSON400 = {
+  def createTransactionRequestWithChargeJSON(tr : TransactionRequest, challenges: List[ChallengeJson]) : TransactionRequestWithChargeJSON400 = {
     new TransactionRequestWithChargeJSON400(
       id = stringOrNull(tr.id.value),
       `type` = stringOrNull(tr.`type`),
@@ -361,7 +367,7 @@ object JSONFactory400 {
             case _ => ""
           }
           challenges.map(
-            e => ChallengeJsonV400(id = stringOrNull(e.challengeId), user_id = e.expectedUserId, allowed_attempts = tr.challenge.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), link = link)
+            e => ChallengeJsonV400(id = stringOrNull(e.challenge_id), user_id = e.expected_user_id, allowed_attempts = tr.challenge.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), link = link)
           )
         }
         // catch { case _ : Throwable => ChallengeJSON (id = "", allowed_attempts = 0, challenge_type = "")}

@@ -57,12 +57,12 @@ trait Counterparties {
                           bespoke: List[CounterpartyBespoke]
                         ): Box[CounterpartyTrait]
 
-  def checkCounterpartyAvailable(
-                                  name: String,
-                                  thisBankId: String,
-                                  thisAccountId: String,
-                                  thisViewId: String
-                                ): Boolean
+  def checkCounterpartyExists(
+                              name: String,
+                              thisBankId: String,
+                              thisAccountId: String,
+                              thisViewId: String
+                            ): Box[CounterpartyTrait]
 
   def addPublicAlias(counterpartyId: String, alias: String): Box[Boolean]
   def addPrivateAlias(counterpartyId: String, alias: String): Box[Boolean]
@@ -117,7 +117,7 @@ class RemotedataCounterpartiesCaseClasses {
     bespoke: List[CounterpartyBespoke]
   )
 
-  case class checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)
+  case class checkCounterpartyExists(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)
 
   case class addPublicAlias(counterpartyId: String, alias: String)
 

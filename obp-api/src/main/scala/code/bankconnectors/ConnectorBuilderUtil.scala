@@ -230,7 +230,6 @@ object ConnectorBuilderUtil {
     "getBanks",
     "getBankAccountsForUser",
     "getUser",
-    "getBankAccount",
     "getBankAccountsBalances",
     "getCoreBankAccounts",
     "getBankAccountsHeld",

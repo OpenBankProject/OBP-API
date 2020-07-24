@@ -202,7 +202,7 @@ object NewStyle {
       }
     }
     def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[BankAccount] = {
-      Connector.connector.vend.getBankAccount(bankId, accountId, callContext) map { i =>
+      Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 404 ), i._2)
       }
     }
@@ -719,9 +719,9 @@ object NewStyle {
           i._2)
       }
     }
-    def toBankAccount(counterparty: CounterpartyTrait, isOutgoingAccount: Boolean, callContext: Option[CallContext]) : Future[BankAccount] =
+    def getBankAccountFromCounterparty(counterparty: CounterpartyTrait, isOutgoingAccount: Boolean, callContext: Option[CallContext]) : Future[BankAccount] =
     {
-      Future{BankAccountX.toBankAccount(counterparty, isOutgoingAccount)} map {
+      Future{BankAccountX.getBankAccountFromCounterparty(counterparty, isOutgoingAccount)} map {
         unboxFullOrFail(_, callContext, s"$UnknownError ")
       }
     }
@@ -749,24 +749,9 @@ object NewStyle {
     }
     
 
-    def validateChallengeAnswerInOBPSide(challengeId: String, challengeAnswer: String, callContext: Option[CallContext]) : Future[Boolean] = 
-    {
-      //Note: this method is not over kafka yet, so use Future here.
-      Future{ ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswerInOBPSide(challengeId, challengeAnswer, None)} map {
-        unboxFullOrFail(_, callContext, s"$UnknownError ")
-      }
-    }
-    def validateChallengeAnswerInOBPSide400(challengeId: String, challengeAnswer: String, userId: String, callContext: Option[CallContext]) : Future[Boolean] = 
-    {
-      //Note: this method is not over kafka yet, so use Future here.
-      Future{ ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswerInOBPSide(challengeId, challengeAnswer, Some(userId))} map {
-        unboxFullOrFail(_, callContext, s"$UnknownError ")
-      }
-    }
-    
     def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = 
      Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) map { i =>
-       (unboxFullOrFail(i._1, callContext, s"$UnknownError "), i._2)
+       (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
       } 
     
     def createTransactionAfterChallengeV300(

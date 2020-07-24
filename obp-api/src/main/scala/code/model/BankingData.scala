@@ -33,6 +33,7 @@ import code.api.util.ErrorMessages._
 import code.api.util._
 import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.customer.CustomerX
+import code.model.dataAccess.MappedBankAccount
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
@@ -502,7 +503,7 @@ object BankAccountX {
     *                          incoming: counterparty send money to obp account.
     * @return BankAccount
     */
-  def toBankAccount(counterparty: CounterpartyTrait, isOutgoingAccount: Boolean) : Box[BankAccount] = {
+  def getBankAccountFromCounterparty(counterparty: CounterpartyTrait, isOutgoingAccount: Boolean) : Box[BankAccount] = {
     if (
       (counterparty.otherBankRoutingScheme =="OBP" || counterparty.otherBankRoutingScheme =="OBP_BANK_ID" )
       && (counterparty.otherAccountRoutingScheme =="OBP" || counterparty.otherAccountRoutingScheme =="OBP_ACCOUNT_ID")
@@ -531,11 +532,19 @@ object BankAccountX {
       val defaultBankId= BankId(APIUtil.defaultBankId)
       val incomingAccountId= AccountId(Constant.INCOMING_ACCOUNT_ID)
       val outgoingAccountId= AccountId(Constant.OUTGOING_ACCOUNT_ID)
-      if (isOutgoingAccount){
+      val bankAccount: Box[BankAccount] = if (isOutgoingAccount){
         LocalMappedConnector.getBankAccountOld(defaultBankId,outgoingAccountId)
       } else{
         LocalMappedConnector.getBankAccountOld(defaultBankId,incomingAccountId)
       }
+      Full(
+        bankAccount.openOrThrowException("").asInstanceOf[MappedBankAccount]
+        .holder(counterparty.name) //We mapped the counterpartName to otherAccount. please see @APIUtil.createImplicitCounterpartyId 
+        .accountIban(counterparty.otherAccountRoutingAddress)//now, we only have single pair AccountRouting, will put these to AccountRoutings later.
+        .mAccountRoutingScheme(counterparty.otherBankRoutingScheme)//This is for the swift bank code..
+        .mAccountRoutingScheme(counterparty.otherBankRoutingAddress)
+      )
+
     }
   }
 

@@ -174,34 +174,6 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   }
 
   messageDocs += MessageDoc(
-    process = "obp.getBankAccount",
-    messageFormat = messageFormat,
-    description = "Get a single Account as specified by the bankId and accountId.",
-    outboundTopic = Some(OutBoundGetBankAccount.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetBankAccount.getClass.getSimpleName.replace("$", "")),
-    exampleOutboundMessage = (
-      OutBoundGetBankAccount(
-        outboundAdapterCallContext,
-        BankId(bankIdExample.value),
-        AccountId(accountIdExample.value),
-      )
-      ),
-    exampleInboundMessage = (
-      InBoundGetBankAccount(
-        inboundAdapterCallContext,
-        inboundStatus,
-        bankAccountCommons
-      )
-      ),
-    adapterImplementation = Some(AdapterImplementation("Accounts", 7))
-  )
-  override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
-    val req = OutBoundGetBankAccount(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId)
-    val response = (southSideActor ? req).mapTo[InBoundGetBankAccount] recoverWith { recoverFunction }
-    response.map(a =>(Full(a.data), callContext))
-  }
-
-  messageDocs += MessageDoc(
     process = "obp.getCoreBankAccounts",
     messageFormat = messageFormat,
     description = "Get bank Accounts available to the User (without Metadata)",

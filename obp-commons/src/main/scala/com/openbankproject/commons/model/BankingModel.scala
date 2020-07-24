@@ -133,7 +133,7 @@ object AccountId {
   def unapply(id : String) = Some(AccountId(id))
 }
 
-case class BankId(val value : String) {
+case class BankId(value : String) {
   override def toString = value
 }
 

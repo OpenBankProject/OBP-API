@@ -443,6 +443,7 @@ object ErrorMessages {
   val InvalidConnectorResponseForGetStatusOfCreditCardOrderFuture = "OBP-50212: Connector did not return the set of status of credit card."
   val InvalidConnectorResponseForCreateTransactionAfterChallengev300 = "OBP-50213: The Connector did not return a valid response for payments."
   val InvalidConnectorResponseForMissingRequiredValues = "OBP-50214: Connector return the data, but the data has missing required values."
+  val InvalidConnectorResponseForCreateChallenge = "OBP-50215: Connector did not return the set of challenge we requested."
 
 
   // Adapter Exceptions (OBP-6XXXX)

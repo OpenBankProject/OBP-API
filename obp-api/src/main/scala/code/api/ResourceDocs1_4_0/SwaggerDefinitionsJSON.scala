@@ -16,11 +16,12 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, UserLockStatusJson, When}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, ChallengeJsonV400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, TransactionRequestWithChargeJSON400, UserLockStatusJson, When}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
 import code.sandbox.SandboxData
+import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model
@@ -3751,7 +3752,25 @@ object SwaggerDefinitionsJSON {
   val productAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
     attributes = List(productAttributeDefinitionResponseJsonV400)
   )
-  
+  val challengeJsonV400 = ChallengeJsonV400(
+    id = transactionIdExample.value,
+    user_id = userIdExample.value,
+    allowed_attempts =3,
+    challenge_type = TransactionChallengeTypes.OTP_VIA_API.toString,
+    link = "/obp/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge"
+  )
+  val transactionRequestWithChargeJSON400 = TransactionRequestWithChargeJSON400(
+    id = "4050046c-63b3-4868-8a22-14b4181d33a6",
+    `type` = SANDBOX_TAN.toString,
+    from = transactionRequestAccountJsonV140,
+    details = transactionRequestBodyAllTypes,
+    transaction_ids = List("902ba3bb-dedd-45e7-9319-2fd3f2cd98a1"),
+    status = "COMPLETED",
+    start_date = DateWithDayExampleObject,
+    end_date = DateWithDayExampleObject,
+    challenges = List(challengeJsonV400),
+    charge = transactionRequestChargeJsonV200
+  )
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()
