@@ -27,6 +27,19 @@
       <groupId>com.tesobe</groupId>
       <artifactId>obp-commons</artifactId>
     </dependency>
+    <!--embed akka adapter start-->
+    <dependency>
+      <groupId>com.github.OpenBankProject.OBP-Adapter-Akka-SpringBoot</groupId>
+      <artifactId>adapter-akka-commons</artifactId>
+      <version>develop-SNAPSHOT</version>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <!--embed akka adapter end-->
     <dependency>
       <groupId>com.github.everit-org.json-schema</groupId>
       <artifactId>org.everit.json.schema</artifactId>
