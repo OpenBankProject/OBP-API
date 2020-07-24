@@ -479,7 +479,7 @@ trait APIMethods210 {
                   }
                   toCounterpartyId = transactionRequestBodyCounterparty.to.counterparty_id
                   (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), callContext)
-                  toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext) 
+                  toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext) 
                   // Check we can send money to it. 
                   _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
                     toCounterparty.isBeneficiary == true
@@ -511,7 +511,7 @@ trait APIMethods210 {
                   }
                   toIban = transDetailsSEPAJson.to.iban
                   (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIban(toIban, callContext)
-                  toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
+                  toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
                   _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
                     toCounterparty.isBeneficiary == true
                   }
@@ -652,16 +652,10 @@ trait APIMethods210 {
                 existingTransactionRequest.challenge.challenge_type == TransactionChallengeTypes.OTP_VIA_API.toString
               }
             
-              challengeAnswerOBP <- NewStyle.function.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
-              
-              _ <- Helper.booleanToFuture(s"$InvalidChallengeAnswer") {
-                challengeAnswerOBP == true
-              }
-              
-              (challengeAnswerKafka, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
+              (isChallengeAnswerValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
               
               _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ") {
-                (challengeAnswerKafka == true)
+                (isChallengeAnswerValidated == true)
               }
 
               // All Good, proceed with the Transaction creation...

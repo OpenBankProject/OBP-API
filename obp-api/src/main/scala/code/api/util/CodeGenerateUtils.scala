@@ -48,7 +48,7 @@ object CodeGenerateUtils {
     NameTypeExample(null, typeOf[InboundAdapterCallContext], "MessageDocsSwaggerDefinitions.inboundAdapterCallContext"),
     NameTypeExample("status", typeOf[Status], "MessageDocsSwaggerDefinitions.inboundStatus"),
     NameTypeExample("statusValue", typeOf[String], s""""${TransactionRequestStatus.COMPLETED}""""),
-    NameTypeExample("hashOfSuppliedAnswer", typeOf[String], s"""HashUtil.Sha256Hash("123")"""),
+//    NameTypeExample("hashOfSuppliedAnswer", typeOf[String], s"""HashUtil.Sha256Hash("123")"""),
     NameTypeExample(null, typeOf[List[CustomerAndAttribute]],
       """ List(
         |         CustomerAndAttribute(

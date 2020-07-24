@@ -73,8 +73,8 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
                                   bespoke)).mapTo[Box[CounterpartyTrait]]
   )
 
-  override def checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String): Boolean = getValueFromFuture(
-    (actor ? cc.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)).mapTo[Boolean]
+  override def checkCounterpartyExists(name: String, thisBankId: String, thisAccountId: String, thisViewId: String): Box[CounterpartyTrait] = getValueFromFuture(
+    (actor ? cc.checkCounterpartyExists(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)).mapTo[Box[CounterpartyTrait]]
   )
 
   override def getCorporateLocation(counterpartyId: String): Box[GeoTag] = getValueFromFuture(

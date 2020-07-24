@@ -14,7 +14,7 @@ import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionDI}
 import code.api.cache.Caching
 import code.api.util.APIUtil.{DateWithMsFormat, OBPReturnType, generateUUID, hasEntitlement, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
-import code.api.util.ErrorMessages._
+import code.api.util.ErrorMessages.{attemptedToOpenAnEmptyBox, _}
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
@@ -155,7 +155,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * 4. Save both the salt and the hash in the user's database record.
     * 5. Send the challenge over an separate communication channel.
     */
-  // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
   override def createChallenge(bankId: BankId,
                                accountId: AccountId,
                                userId: String,
@@ -180,7 +179,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * 4. Save both the salt and the hash in the user's database record.
     * 5. Send the challenge over an separate communication channel.
     */
-  // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
   override def createChallenges(bankId: BankId,
                                 accountId: AccountId,
                                 userIds: List[String],
@@ -270,23 +268,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
-  /**
-    * To Validate A Challenge Answer
-    * 1. Retrieve the user's salt and hash from the database.
-    * 2. Prepend the salt to the given password and hash it using the same hash function.
-    * 3. Compare the hash of the given answer with the hash from the database. If they match, the answer is correct. Otherwise, the answer is incorrect.
-    */
-  // TODO Extend database model in order to get users salt and hash it
-  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future {
-    val answer = for {
-      nonEmpty <- booleanToBox(hashOfSuppliedAnswer.nonEmpty) ?~ "Need a non-empty answer"
-      answerToNumber <- tryo(BigInt(hashOfSuppliedAnswer)) ?~! "Need a numeric TAN"
-      positive <- booleanToBox(answerToNumber > 0) ?~ "Need a positive TAN"
-    } yield true
 
-    (answer, callContext)
-  }
-
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = 
+    Future { 
+      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+      (ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswer(challengeId, hashOfSuppliedAnswer, userId), callContext)
+    } 
+  
+  
   override def getChargeLevel(bankId: BankId,
                               accountId: AccountId,
                               viewId: ViewId,
@@ -519,11 +508,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getBankAccountLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
     getBankAccountCommon(bankId, accountId, callContext)
-  }
-
-  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
-    val accountAndCallcontext = getBankAccountLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext])
-    (accountAndCallcontext.map(_._1), accountAndCallcontext.map(_._2).getOrElse(callContext))
   }
 
   override def getBankAccountByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
@@ -1023,9 +1007,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                transactionRequestType: TransactionRequestType,
                                chargePolicy: String): Box[TransactionId] = {
     for {
-      rate <- tryo {
-        fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value))
-      } ?~! s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported."
+      //def exchangeRate --> do not return any exception, but it may return NONO there.   
+      rate <- Full (fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value)))
+      _ <- booleanToBox(rate.isDefined) ?~! s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported."
+      
       fromTransAmt = -amount //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, rate)
       sentTransactionId <- saveTransaction(fromAccount, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
@@ -1044,8 +1029,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                chargePolicy: String,
                                callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
     for {
-      rate <- NewStyle.function.tryons(s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported.", 400, callContext) {
-        fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value))
+      
+      //def exchangeRate --> do not return any exception, but it may return NONO there.
+      rate <- Future (fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value)))
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported." ){
+        rate.isDefined
       }
       fromTransAmt = -amount //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, rate)
@@ -1071,9 +1059,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                       chargePolicy: String,
                                       callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
     for {
-      rate <- NewStyle.function.tryons(s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported.", 400, callContext) {
-        fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value))
-      }
+      //def exchangeRate --> do not return any exception, but it may return NONO there.
+      rate <- Future (fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value)))
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported."){rate.isDefined}
+      
       fromTransAmt = -amount //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, rate)
       (sentTransactionId, callContext) <- saveHistoricalTransaction(
@@ -2361,6 +2350,22 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       bespoke = bespoke
     ).map(counterparty => (counterparty, callContext))
 
+  override def checkCounterpartyExists(
+    name: String,
+    thisBankId: String,
+    thisAccountId: String,
+    thisViewId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[CounterpartyTrait]] = Future{
+    (Counterparties.counterparties.vend.checkCounterpartyExists(
+      name: String,
+      thisBankId: String,
+      thisAccountId: String,
+      thisViewId: String),callContext)
+  }
+    
+  
+  
   override def checkCustomerNumberAvailable(
                                              bankId: BankId,
                                              customerNumber: String,
@@ -3581,7 +3586,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               scaMethod,
               callContext
             ) map { i =>
-              (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
+              (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
             }
 
             newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
@@ -3682,6 +3687,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             (transactionRequest, callContext)
           }
         case TransactionRequestStatus.INITIATED =>
+          // return the lists of users, who need to be answered the challenges
           def getUsersForChallenges(bankId: BankId,
                                     accountId: AccountId) = {
             Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None) map {
@@ -3705,7 +3711,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           for {
             //if challenge necessary, create a new one
             users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId)
-            (challengeIds, callContext) <- createChallenges(
+            //now we support multiple challenges. We can support multiple people to answer the challenges.
+            //So here we return the challengeIds. 
+            // how to decide where to create challenges
+            // in OBP side:
+            //   1st: connector == mapped
+            //   2rd: connector == star && no records in `methodrouting` table.
+            
+            (challengeIds, callContext) <- Connector.connector.vend.createChallenges(
               fromAccount.bankId,
               fromAccount.accountId,
               users.toList.flatten.map(_.userId),
@@ -3714,9 +3727,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               scaMethod,
               callContext
             ) map { i =>
-              (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
+              (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
             }
-
+            //TODO, this challengeIds are only for mapped connector now. we only return the first challengeId in the request yet.
             newChallenge = TransactionRequestChallenge(challengeIds.headOption.getOrElse(""), allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
             _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
             transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
@@ -3913,7 +3926,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             }
             counterpartyId = CounterpartyId(bodyToCounterparty.counterparty_id)
             (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext)
-            toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
+            toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
             counterpartyBody = TransactionRequestBodyCounterpartyJSON(
               to = CounterpartyIdJson(counterpartyId.value),
               value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
@@ -3941,7 +3954,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             }
             toCounterpartyIBan = bodyToCounterpartyIBan.iban
             (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIban(toCounterpartyIBan, callContext)
-            toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
+            toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
             sepaBody = TransactionRequestBodySEPAJSON(
               to = IbanJson(toCounterpartyIBan),
               value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),

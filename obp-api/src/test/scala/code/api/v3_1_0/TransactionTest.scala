@@ -217,8 +217,8 @@ class TransactionTest extends V310ServerSetup {
       val requestPost = (v3_1_0_Request / "banks" / bankId1 / "accounts" / bankAccountId1 / "owner" / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
-      Then("We should get a 200 and check all the fields")
-      responsePost.code should equal(200)
+      Then("We should get a 201 and check all the fields")
+      responsePost.code should equal(201)
 
       val counterpartyId = responsePost.body.extract[CounterpartyWithMetadataJson].counterparty_id
       
@@ -289,8 +289,8 @@ class TransactionTest extends V310ServerSetup {
       val requestPost = (v3_1_0_Request / "banks" / bankId2 / "accounts" / bankAccountId2 / "owner" / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
-      Then("We should get a 200 and check all the fields")
-      responsePost.code should equal(200)
+      Then("We should get a 201 and check all the fields")
+      responsePost.code should equal(201)
 
       val counterpartyId = responsePost.body.extract[CounterpartyWithMetadataJson].counterparty_id
 
@@ -361,8 +361,8 @@ class TransactionTest extends V310ServerSetup {
       val requestPostFrom = (v3_1_0_Request / "banks" / bankId1 / "accounts" / bankAccountId1 / "owner" / "counterparties" ).POST <@ (user1)
       val responsePostFrom = makePostRequest(requestPostFrom, write(counterpartyPostJsonFrom))
 
-      Then("We should get a 200 and check all the fields")
-      responsePostFrom.code should equal(200)
+      Then("We should get a 201 and check all the fields")
+      responsePostFrom.code should equal(201)
 
       val counterpartyIdFrom = responsePostFrom.body.extract[CounterpartyWithMetadataJson].counterparty_id
       
@@ -374,8 +374,8 @@ class TransactionTest extends V310ServerSetup {
       val requestPostTo = (v3_1_0_Request / "banks" / bankId2 / "accounts" / bankAccountId2 / "owner" / "counterparties" ).POST <@ (user1)
       val responsePostTo = makePostRequest(requestPostTo, write(counterpartyPostJsonTo))
 
-      Then("We should get a 200 and check all the fields")
-      responsePostTo.code should equal(200)
+      Then("We should get a 201 and check all the fields")
+      responsePostTo.code should equal(201)
 
       val counterpartyIdTo = responsePostTo.body.extract[CounterpartyWithMetadataJson].counterparty_id
 
@@ -432,8 +432,8 @@ class TransactionTest extends V310ServerSetup {
       val requestPost = (v3_1_0_Request / "banks" / bankId1 / "accounts" / bankAccountId1 / "owner" / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
-      Then("We should get a 200 and check all the fields")
-      responsePost.code should equal(200)
+      Then("We should get a 201 and check all the fields")
+      responsePost.code should equal(201)
 
       val counterpartyId = responsePost.body.extract[CounterpartyWithMetadataJson].counterparty_id
       val request310 = (v3_1_0_Request / "management" / "historical" / "transactions")<@(user1)
