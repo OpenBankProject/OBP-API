@@ -4105,17 +4105,18 @@ trait APIMethods400 {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (Full(u), _) <- authenticatedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
               json.extract[PostCounterpartyJSON]
             }
             _ <- Helper.booleanToFuture(s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}"){postJson.description.length <= 36}
 
 
-            //Note: The following checkCounterpartyAvailable is only obp standard now. It depends how to identify the counterparty. For this, we only use the BANK_ID+ACCOUNT_ID+COUNTERPARTY_NAME here.
+            (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(postJson.name, bankId.value, accountId.value, viewId.value, callContext)
+
             _ <- Helper.booleanToFuture(CounterpartyAlreadyExists.replace("value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME.",
               s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${bankId.value}) and ACCOUNT_ID(${accountId.value}) and VIEW_ID($viewId)")){
-              Counterparties.counterparties.vend.checkCounterpartyAvailable(postJson.name, bankId.value, accountId.value, viewId.value)
+              counterparty.isEmpty
             }
 
             //If other_account_routing_scheme=="OBP" or other_account_secondary_routing_address=="OBP" we will check if it is a real obp bank account.

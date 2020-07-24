@@ -1688,6 +1688,14 @@ trait Connector extends MdcLoggable {
                           bespoke: List[CounterpartyBespoke],
                           callContext: Option[CallContext] = None): Box[(CounterpartyTrait, Option[CallContext])] = Failure(setUnimplementedError)
 
+  def checkCounterpartyExists(
+    name: String,
+    thisBankId: String,
+    thisAccountId: String,
+    thisViewId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[CounterpartyTrait]]= Future{(Failure(setUnimplementedError), callContext)}
+
   def checkCustomerNumberAvailable(
     bankId: BankId,
     customerNumber: String, 

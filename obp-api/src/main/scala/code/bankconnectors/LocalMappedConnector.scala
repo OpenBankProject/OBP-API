@@ -2350,6 +2350,22 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       bespoke = bespoke
     ).map(counterparty => (counterparty, callContext))
 
+  override def checkCounterpartyExists(
+    name: String,
+    thisBankId: String,
+    thisAccountId: String,
+    thisViewId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[CounterpartyTrait]] = Future{
+    (Counterparties.counterparties.vend.checkCounterpartyExists(
+      name: String,
+      thisBankId: String,
+      thisAccountId: String,
+      thisViewId: String),callContext)
+  }
+    
+  
+  
   override def checkCustomerNumberAvailable(
                                              bankId: BankId,
                                              customerNumber: String,
