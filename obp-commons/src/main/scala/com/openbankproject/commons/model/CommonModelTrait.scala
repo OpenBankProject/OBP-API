@@ -442,6 +442,15 @@ trait TransactionRequestTypeCharge {
   def chargeSummary: String
 }
 
+trait TransactionRequestReasonsTrait {
+  def transactionRequestReasonId: String
+  def code: String
+  def documentNumber: String
+  def amount: String
+  def currency: String
+  def description: String
+}
+
 trait DirectDebitTrait {
   def directDebitId: String
   def bankId: String

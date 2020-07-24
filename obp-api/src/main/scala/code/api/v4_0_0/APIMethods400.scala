@@ -350,7 +350,7 @@ trait APIMethods400 {
          |$transactionRequestGeneralText
          |
        """.stripMargin,
-      transactionRequestBodySEPAJSON,
+      transactionRequestBodySEPAJsonV400,
       transactionRequestWithChargeJSON210,
       List(
         $UserNotLoggedIn,
