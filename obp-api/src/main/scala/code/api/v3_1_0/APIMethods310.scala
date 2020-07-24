@@ -4810,6 +4810,9 @@ trait APIMethods310 {
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[UpdateAccountRequestJsonV310]
             }
+            _ <- Helper.booleanToFuture(s"$UpdateBankAccountException Duplication detected in account routings, please specify only one value per routing scheme"){
+              consentJson.account_routings.map(_.scheme).distinct.size == consentJson.account_routings.size
+            }
             (bankAccount,callContext) <- NewStyle.function.updateBankAccount(
               bankId,
               accountId,
@@ -5457,6 +5460,9 @@ trait APIMethods310 {
             _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(createAccountJson.balance.currency)}
             currency = createAccountJson.balance.currency
             (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme", 400){
+              createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
+            }
             (bankAccount,callContext) <- NewStyle.function.createBankAccount(
               bankId,
               accountId,
