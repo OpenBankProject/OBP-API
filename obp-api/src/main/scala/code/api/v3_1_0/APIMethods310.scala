@@ -58,10 +58,10 @@ import org.apache.commons.lang3.{StringUtils, Validate}
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.dto.GetProductsParam
 
 import scala.concurrent.Future
 import scala.util.Random
-import scala.reflect.runtime.universe.MethodSymbol
 
 trait APIMethods310 {
   self: RestHelper =>
@@ -2741,7 +2741,8 @@ trait APIMethods310 {
                 case true => anonymousAccess(cc)
               }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            products <- Future(Connector.connector.vend.getProducts(bankId, req.params)) map {
+            params = req.params.toList.map(kv => GetProductsParam(kv._1, kv._2))
+            products <- Future(Connector.connector.vend.getProducts(bankId, params)) map {
               unboxFullOrFail(_, callContext, ProductNotFoundByProductCode)
             }
           } yield {
@@ -5424,7 +5425,7 @@ trait APIMethods310 {
         cc =>{
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            (account, callContext) <- Connector.connector.vend.getBankAccount(bankId, accountId, callContext)
+            (account, callContext) <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext)
             _ <- Helper.booleanToFuture(AccountIdAlreadyExists){
               account.isEmpty
             }
@@ -5656,7 +5657,7 @@ trait APIMethods310 {
             } else if (fromAccountPost.bank_id.isEmpty && fromAccountPost.account_id.isEmpty && fromAccountPost.counterparty_id.isDefined){
               for {
                  (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(fromAccountPost.counterparty_id.get), cc.callContext)
-                 fromAccount <- NewStyle.function.toBankAccount(fromCounterparty, false, callContext)
+                 fromAccount <- NewStyle.function.getBankAccountFromCounterparty(fromCounterparty, false, callContext)
               }yield{
                 (fromAccount, callContext)
               }
@@ -5676,7 +5677,7 @@ trait APIMethods310 {
             } else if (toAccountPost.bank_id.isEmpty && toAccountPost.account_id.isEmpty && toAccountPost.counterparty_id.isDefined){
               for {
                 (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toAccountPost.counterparty_id.get), cc.callContext)
-                toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
+                toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
               }yield{
                 (toAccount, callContext)
               }

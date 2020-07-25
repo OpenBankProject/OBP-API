@@ -59,7 +59,7 @@ import code.api.util.APIUtil._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
-import code.util.JsonUtils
+import com.openbankproject.commons.util.JsonUtils
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json
@@ -906,83 +906,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         result
   }
     
-  messageDocs += getBankAccountDoc
-  def getBankAccountDoc = MessageDoc(
-    process = "obp.getBankAccount",
-    messageFormat = messageFormat,
-    description = "Get Bank Account",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundGetBankAccount(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      consumerId=Some(consumerIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value))),
-      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
-      username=Some(usernameExample.value),
-      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value))),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value))),
-      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
-      name=viewNameExample.value,
-      description=viewDescriptionExample.value),
-      account= AccountBasic(id=accountIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
-      customerId=customerIdExample.value,
-      customerNumber=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
-      userOwners=List( InternalBasicUser(userId=userIdExample.value,
-      emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
-      bankId=BankId(bankIdExample.value),
-      accountId=AccountId(accountIdExample.value))
-    ),
-    exampleInboundMessage = (
-     InBoundGetBankAccount(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
-      sessionId=Some(sessionIdExample.value),
-      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
-      value=valueExample.value)))),
-      status= Status(errorCode=statusErrorCodeExample.value,
-      backendMessages=List( InboundStatusMessage(source=sourceExample.value,
-      status=inboundStatusMessageStatusExample.value,
-      errorCode=inboundStatusMessageErrorCodeExample.value,
-      text=inboundStatusMessageTextExample.value))),
-      data= BankAccountCommons(accountId=AccountId(accountIdExample.value),
-      accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
-      currency=currencyExample.value,
-      name=bankAccountNameExample.value,
-      label=labelExample.value,
-      iban=Some(ibanExample.value),
-      number=bankAccountNumberExample.value,
-      bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
-      branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
-      value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-  // url example: /getBankAccount
-  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetBankAccount => OutBound, InBoundGetBankAccount => InBound}
-        val url = getUrl(callContext, "getBankAccount")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId)
-        val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
-        result
-  }
-    
+
   messageDocs += getBankAccountByIbanDoc
   def getBankAccountByIbanDoc = MessageDoc(
     process = "obp.getBankAccountByIban",

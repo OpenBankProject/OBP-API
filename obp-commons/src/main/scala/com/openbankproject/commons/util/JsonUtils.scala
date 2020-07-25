@@ -1,13 +1,13 @@
-package code.util
+package com.openbankproject.commons.util
 
 import java.util.Objects
 
 import net.liftweb.json
-import net.liftweb.json.{Diff, JNothing, JNull}
-import net.liftweb.json.JsonAST.{JArray, JBool, JDouble, JField, JInt, JObject, JString, JValue}
-import org.apache.commons.lang3.StringUtils
+import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonParser.ParseException
+import net.liftweb.json.{Diff, JNothing, JNull}
+import org.apache.commons.lang3.StringUtils
 
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe.typeOf
@@ -544,7 +544,7 @@ object JsonUtils {
       case JNull | JNothing => jValue
       case _: JObject =>
         if(!fieldName.contains(".")) {
-          jValue.removeField(_.name == fieldName)
+          deleteField(jValue)(_.name == fieldName)
         } else {
           val Array(field, nestedField) = StringUtils.split(fieldName, ".", 2)
           jValue.transformField {
@@ -554,4 +554,42 @@ object JsonUtils {
       case JArray(arr) => JArray(arr.map(deleteField(_, fieldName)))
     }
 
+  /**
+   * recursive delete fields of JValue.
+   * what different between this function with net.liftweb.json.JsonAST.JValue#removeField:
+   * this function delete fields, removeField function set field's value to JNothing, this cause error when do deserialization
+ *
+   * @param jValue to delete fields json
+   * @param p checker of whether delete given field.
+   * @return deleted some fields json
+   */
+  def deleteFieldRec(jValue:JValue)(p: JField => Boolean): JValue = {
+    def rec(v: JValue): JValue = v match {
+      case JObject(l) => JObject(l.collect {
+        case field @JField(_, value) if !p(field) => field.copy(value = rec(value))
+      })
+      case JArray(l) => JArray(l.map(rec))
+      case x => x
+    }
+    rec(jValue)
+  }
+
+  /**
+   * delete fields of JValue.
+   * what different between this function with net.liftweb.json.JsonAST.JValue#removeField:
+   * this function not delete nested fields, removeField function recursive set field's value to JNothing, this cause error when do deserialization
+   * @param jValue to delete fields json
+   * @param p checker of whether delete given field.
+   * @return deleted some fields json
+   */
+  def deleteField(jValue:JValue)(p: JField => Boolean): JValue = {
+    def deleteFunc(v: JValue): JValue = v match {
+      case JObject(l) => JObject(l.collect {
+        case field if !p(field) => field
+      })
+      case JArray(l) => JArray(l.map(deleteFunc))
+      case x => x
+    }
+    deleteFunc(jValue)
+  }
 }

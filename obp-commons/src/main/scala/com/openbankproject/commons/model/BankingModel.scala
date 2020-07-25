@@ -92,7 +92,7 @@ object TransactionRequestType {
   def unapply(id : String) = Some(TransactionRequestType(id))
 }
 
-case class TransactionRequestType(val value : String) {
+case class TransactionRequestType(value : String) {
   override def toString = value
 }
 
@@ -133,7 +133,7 @@ object AccountId {
   def unapply(id : String) = Some(AccountId(id))
 }
 
-case class BankId(val value : String) {
+case class BankId(value : String) {
   override def toString = value
 }
 
@@ -289,13 +289,13 @@ case class TransactionCore(
 )
 
 case class AmountOfMoney (
-  val currency: String,
-  val amount: String
+  currency: String,
+  amount: String
 ) extends AmountOfMoneyTrait
 object AmountOfMoney extends Converter[AmountOfMoneyTrait, AmountOfMoney]
 
 case class Iban(
-  val iban: String
+  iban: String
 )
 
 case class AccountRule(

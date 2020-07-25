@@ -37,7 +37,7 @@ import code.transactionrequests.TransactionRequests
 import com.openbankproject.commons.model.TransactionRequestTypeCharge
 import code.users.Users
 import code.util.Helper._
-import code.util.JsonUtils
+import com.openbankproject.commons.util.JsonUtils
 import code.views.Views
 import com.openbankproject.commons.model.enums.{AccountAttributeType, AttributeCategory, AttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType, TransactionRequestStatus}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
@@ -61,7 +61,7 @@ import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
 import scala.reflect.runtime.universe.{MethodSymbol, typeOf}
 import _root_.akka.http.scaladsl.model.HttpMethod
-import com.openbankproject.commons.dto.{CustomerAndAttribute, InBoundTrait, ProductCollectionItemsTree}
+import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, InBoundTrait, ProductCollectionItemsTree}
 
 /*
 So we can switch between different sources of resources e.g.
@@ -91,7 +91,9 @@ object Connector extends SimpleInjector {
     "kafka_vSept2018" -> lazyValue(KafkaMappedConnector_vSept2018),
     "kafka_vMay2019" -> lazyValue(KafkaMappedConnector_vMay2019),
     "rest_vMar2019" -> lazyValue(RestConnector_vMar2019),
-    "stored_procedure_vDec2019" -> lazyValue(StoredProcedureConnector_vDec2019)
+    "stored_procedure_vDec2019" -> lazyValue(StoredProcedureConnector_vDec2019),
+    // this proxy connector only for unit test, can set connector=proxy in test.default.props, but never set itin default.props
+    "proxy" -> lazyValue(ConnectorUtils.proxyConnector)
   )
 
   def getConnectorInstance(connectorVersion: String): Connector = {
@@ -437,9 +439,6 @@ trait Connector extends MdcLoggable {
   //This one just added the callContext in parameters.
   def getBankAccountLegacy(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
 
-  //This one return the Future.
-  def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
-
   def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
   def getBankAccountByRouting(scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
 
@@ -519,10 +518,8 @@ trait Connector extends MdcLoggable {
   def getTransactionsCore(bankId: BankId, accountId: AccountId, queryParams:  List[OBPQueryParam] = Nil, callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionCore]]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getTransactionLegacy(bankId: BankId, accountId : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): Box[(Transaction, Option[CallContext])] = Failure(setUnimplementedError)
-  def getTransaction(bankId: BankId, accountId : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): OBPReturnType[Box[Transaction]] = {
-    val result: Box[(Transaction, Option[CallContext])] = getTransactionLegacy(bankId, accountId, transactionId, callContext)
-    Future(result.map(_._1), result.map(_._2).getOrElse(callContext))
-  }
+  
+  def getTransaction(bankId: BankId, accountId : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): OBPReturnType[Box[Transaction]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getPhysicalCards(user : User) : Box[List[PhysicalCard]] = Failure(setUnimplementedError)
 
@@ -929,7 +926,7 @@ trait Connector extends MdcLoggable {
               scaMethod,
               callContext
             ) map { i =>
-              (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
+              (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
             }
 
             newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
@@ -971,112 +968,7 @@ trait Connector extends MdcLoggable {
                                    chargePolicy: String,
                                    challengeType: Option[String],
                                    scaMethod: Option[SCA],
-                                   callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
-
-    for{
-      // Get the threshold for a challenge. i.e. over what value do we require an out of Band security challenge to be sent?
-      (challengeThreshold, callContext) <- Connector.connector.vend.getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext) map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold ", 400), i._2)
-      }
-      challengeThresholdAmount <- NewStyle.function.tryons(s"$InvalidConnectorResponseForGetChallengeThreshold. challengeThreshold amount ${challengeThreshold.amount} not convertible to number", 400, callContext) {
-        BigDecimal(challengeThreshold.amount)}
-      transactionRequestCommonBodyAmount <- NewStyle.function.tryons(s"$InvalidNumber Request Json value.amount ${transactionRequestCommonBody.value.amount} not convertible to number", 400, callContext) {
-        BigDecimal(transactionRequestCommonBody.value.amount)}
-      status <- getStatus(challengeThresholdAmount,transactionRequestCommonBodyAmount, transactionRequestType: TransactionRequestType)
-      (chargeLevel, callContext) <- Connector.connector.vend.getChargeLevel(BankId(fromAccount.bankId.value), AccountId(fromAccount.accountId.value), viewId, initiator.userId, initiator.name, transactionRequestType.value, fromAccount.currency, callContext) map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
-      }
-
-      chargeLevelAmount <- NewStyle.function.tryons( s"$InvalidNumber chargeLevel.amount: ${chargeLevel.amount} can not be transferred to decimal !", 400, callContext) {
-        BigDecimal(chargeLevel.amount)}
-      chargeValue <- getChargeValue(chargeLevelAmount,transactionRequestCommonBodyAmount)
-      charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue))
-      // Always create a new Transaction Request
-      transactionRequest <- Future{ createTransactionRequestImpl210(TransactionRequestId(generateUUID()), transactionRequestType, fromAccount, toAccount, transactionRequestCommonBody, detailsPlain, status.toString, charge, chargePolicy)} map {
-        unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestImpl210")
-      }
-
-      // If no challenge necessary, create Transaction immediately and put in data store and object to return
-      (transactionRequest, callConext) <- status match {
-        case TransactionRequestStatus.COMPLETED =>
-          for {
-            (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
-              fromAccount,
-              toAccount,
-              transactionRequestCommonBody,
-              BigDecimal(transactionRequestCommonBody.value.amount),
-              transactionRequestCommonBody.description,
-              transactionRequestType,
-              chargePolicy,
-              callContext
-            )
-            //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
-            transactionRequest <- Future(transactionRequest.copy(challenge = null))
-
-            //save transaction_id into database
-            _ <- Future {saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId)}
-            //update transaction_id filed for varibale 'transactionRequest'
-            transactionRequest <- Future(transactionRequest.copy(transaction_ids = createdTransactionId.value))
-
-          } yield {
-            logger.debug(s"createTransactionRequestv210.createdTransactionId return: $transactionRequest")
-            (transactionRequest, callContext)
-          }
-        case TransactionRequestStatus.INITIATED =>
-          def getUsersForChallenges(bankId: BankId,
-                                    accountId: AccountId): Future[Box[List[User]]] = {
-            Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None) map {
-              _._1.map {
-                x =>
-                  {
-                    if(x.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt > 1) {
-                      val usersForChallenge: List[Option[User]] = for (
-                        // List all users with grated access to views on this bank account
-                        // in form (user : User, views : List[View])
-                        permission <- Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
-                      ) yield {
-                        // Check the user has granted view with action canAddTransactionRequestToAnyAccount
-                        // in case it's true the a challenge will be sent to it
-                        permission.views.exists(_.canAddTransactionRequestToAnyAccount == true) match {
-                          case true => Some(permission.user)
-                          case _ => None
-                        }
-                      }
-                      Some(initiator) :: usersForChallenge
-                    } else List(Some(initiator))
-                  }.flatten.distinct
-              }
-            }
-          }
-
-          for {
-            //if challenge necessary, create a new one
-            users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId)
-            (challengeIds, callContext) <- createChallenges(
-              fromAccount.bankId,
-              fromAccount.accountId,
-              users.toList.flatten.map(_.userId),
-              transactionRequestType: TransactionRequestType,
-              transactionRequest.id.value,
-              scaMethod,
-              callContext
-            ) map { i =>
-              (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
-            }
-
-            newChallenge = TransactionRequestChallenge(challengeIds.headOption.getOrElse(""), allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
-            _ <- Future (saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
-            transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
-          } yield {
-            (transactionRequest, callContext)
-          }
-        case _ => Future (transactionRequest, callContext)
-      }
-    }yield{
-      logger.debug(transactionRequest)
-      (Full(transactionRequest), callContext)
-    }
-  }
+                                   callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = Future{(Failure(setUnimplementedError), callContext)}
 
   //place holder for various connector methods that overwrite methods like these, does the actual data access
   protected def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
@@ -1104,18 +996,7 @@ trait Connector extends MdcLoggable {
                                                 details: String,
                                                 status: String,
                                                 charge: TransactionRequestCharge,
-                                                chargePolicy: String): Box[TransactionRequest] =
-    LocalMappedConnector.createTransactionRequestImpl210(
-      transactionRequestId: TransactionRequestId,
-      transactionRequestType: TransactionRequestType,
-      fromAccount: BankAccount,
-      toAccount: BankAccount,
-      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-      details: String,
-      status: String,
-      charge: TransactionRequestCharge,
-      chargePolicy: String
-    )
+                                                chargePolicy: String): Box[TransactionRequest] = Failure(setUnimplementedError)
 
   def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
     //put connector agnostic logic here if necessary
@@ -1317,7 +1198,7 @@ trait Connector extends MdcLoggable {
             }
             counterpartyId = CounterpartyId(bodyToCounterparty.counterparty_id)
             (toCounterparty,callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext)
-            toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
+            toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
             counterpartyBody = TransactionRequestBodyCounterpartyJSON(
               to = CounterpartyIdJson(counterpartyId.value),
               value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
@@ -1345,7 +1226,7 @@ trait Connector extends MdcLoggable {
             }
             toCounterpartyIBan =bodyToCounterpartyIBan.iban
             (toCounterparty, callContext)<- NewStyle.function.getCounterpartyByIban(toCounterpartyIBan, callContext)
-            toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
+            toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
             sepaBody = TransactionRequestBodySEPAJSON(
               to = IbanJson(toCounterpartyIBan),
               value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
@@ -1586,13 +1467,13 @@ trait Connector extends MdcLoggable {
   
   def updateAccount(bankId: BankId, accountId: AccountId, label: String): Box[Boolean] = Failure(setUnimplementedError)
 
-  def getProducts(bankId : BankId, params: Map[String, List[String]] = Map.empty) : Box[List[Product]] = Failure(setUnimplementedError)
+  def getProducts(bankId : BankId, params: List[GetProductsParam] = Nil) : Box[List[Product]] = Failure(setUnimplementedError)
 
   def getProduct(bankId : BankId, productCode : ProductCode) : Box[Product] = Failure(setUnimplementedError)
 
   //Note: this is a temporary way for compatibility
   //It is better to create the case class for all the connector methods
-  def createOrUpdateBranch(branch: Branch): Box[BranchT] = Failure(setUnimplementedError)
+  def createOrUpdateBranch(branch: BranchT): Box[BranchT] = Failure(setUnimplementedError)
 
   def createOrUpdateBank(
                           bankId: String,
@@ -1607,7 +1488,7 @@ trait Connector extends MdcLoggable {
                         ): Box[Bank] = Failure(setUnimplementedError)
 
 
-  def createOrUpdateAtm(atm: Atms.Atm): Box[AtmT] = Failure(setUnimplementedError)
+  def createOrUpdateAtm(atm: AtmT): Box[AtmT] = Failure(setUnimplementedError)
 
 
   def createOrUpdateProduct(
@@ -1806,6 +1687,14 @@ trait Connector extends MdcLoggable {
                           isBeneficiary:Boolean,
                           bespoke: List[CounterpartyBespoke],
                           callContext: Option[CallContext] = None): Box[(CounterpartyTrait, Option[CallContext])] = Failure(setUnimplementedError)
+
+  def checkCounterpartyExists(
+    name: String,
+    thisBankId: String,
+    thisAccountId: String,
+    thisViewId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[CounterpartyTrait]]= Future{(Failure(setUnimplementedError), callContext)}
 
   def checkCustomerNumberAvailable(
     bankId: BankId,

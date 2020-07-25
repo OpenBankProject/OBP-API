@@ -4,6 +4,7 @@ import java.util.Date
 
 import code.api.util.APIUtil._
 import net.liftweb.common.Box
+import net.liftweb.http.provider.HTTPParam
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
@@ -51,17 +52,20 @@ object OBPQueryParam {
   val FROM_DATE = "fromDate"
   val TO_DATE = "toDate"
 
+  private val defaultFromDate = APIUtil.DateWithMsFormat.format(APIUtil.DefaultFromDate)
+  private val defaultToDate = APIUtil.DateWithMsFormat.format(APIUtil.DefaultToDate)
+
   def getLimit(queryParams: List[OBPQueryParam]) : Int = {
-     queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(100)
+     queryParams.collectFirst { case OBPLimit(value) => value }.getOrElse(100)
   }
   def getOffset(queryParams: List[OBPQueryParam]) : Int = {
-    queryParams.collect { case OBPOffset(value) => value }.headOption.getOrElse(0)
+    queryParams.collectFirst { case OBPOffset(value) => value }.getOrElse(0)
   }
   def getFromDate(queryParams: List[OBPQueryParam]) : String = {
-    queryParams.collect { case OBPFromDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
+    queryParams.collectFirst { case OBPFromDate(date) => APIUtil.DateWithMsFormat.format(date) }.getOrElse(defaultFromDate)
   }
   def getToDate(queryParams: List[OBPQueryParam]) : String = {
-    queryParams.collect { case OBPToDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
+    queryParams.collectFirst { case OBPToDate(date) => APIUtil.DateWithMsFormat.format(date) }.getOrElse(defaultToDate)
   }
 
   def toLimit(limit: Box[String]): Box[OBPLimit] = limit.filter(StringUtils.isNotBlank).map(_.toInt).map(OBPLimit(_))
@@ -71,4 +75,14 @@ object OBPQueryParam {
   def toFromDate(fromDate: Box[String]): Box[OBPFromDate] = fromDate.filter(StringUtils.isNotBlank).flatMap(APIUtil.parseDate(_)).map(OBPFromDate(_))
 
   def toToDate(toDate: Box[String]): Box[OBPToDate] = toDate.filter(StringUtils.isNotBlank).flatMap(APIUtil.parseDate(_)).map(OBPToDate(_))
+
+  def toOBPQueryParams(limit: Int, offset: Int, fromDate: String, toDate: String): List[OBPQueryParam] = {
+    val hTTPParams = List(
+      HTTPParam("limit", List(limit.toString)),
+      HTTPParam("offset", List(offset.toString)),
+      HTTPParam("from_date", List(fromDate)),
+      HTTPParam("to_date", List(toDate))
+    )
+    createQueriesByHttpParams(hTTPParams).getOrElse(Nil)
+  }
 }

@@ -542,40 +542,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       adapterImplementation = Some(AdapterImplementation("Accounts", 7))
   )
   override def getBankAccountLegacy(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]) = saveConnectorMetric {
-      getValueFromFuture(getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]))._1.map(bankAccount =>(bankAccount, callContext))
-  }("getBankAccount")
-
-  override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext])  = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(accountTTL second){
-
-        val req = OutboundGetAccountbyAccountID(
-          authInfo = getAuthInfo(callContext).openOrThrowException(NoCallContext),
-          bankId.value,
-          accountId.value
-        )
-        logger.debug(s"Kafka getBankAccountFuture says: req is: $req")
-        
-        processRequest[InboundGetAccountbyAccountID](req) map { inbound =>
-          val boxedResult = inbound match {
-            case Full(inboundData) if (inboundData.status.hasNoError) =>
-              Full(new BankAccountSept2018(inboundData.data.get))
-            case Full(inbound) if (inbound.status.hasError) =>
-              Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
-            case failureOrEmpty: Failure => failureOrEmpty
-          }
-          (boxedResult, callContext)
-        }
-
-      }
-    }
+      getValueFromFuture(checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]))._1.map(bankAccount =>(bankAccount, callContext))
   }("getBankAccount")
 
   messageDocs += MessageDoc(

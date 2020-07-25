@@ -4,7 +4,7 @@ import java.util.Date
 
 import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.{ApiRole, PegdownOptions}
-import code.api.v3_1_0.ListResult
+import com.openbankproject.commons.model.ListResult
 import code.crm.CrmEvent.CrmEvent
 import com.openbankproject.commons.model.TransactionRequestTypeCharge
 import com.openbankproject.commons.model.{Product, _}

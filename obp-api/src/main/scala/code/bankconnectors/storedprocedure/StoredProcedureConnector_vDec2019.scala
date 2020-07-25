@@ -74,7 +74,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-07-14T16:11:11Z
+// ---------- created on 2020-07-22T12:18:29Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -474,50 +474,6 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val callContext: Option[CallContext] = None
         val req = OutBound(bankId, accountId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_account_old", req, callContext)
-        response.map(convertToTuple[BankAccountCommons](callContext))        
-  }
-          
-  messageDocs += getBankAccountDoc
-  def getBankAccountDoc = MessageDoc(
-    process = "obp.getBankAccount",
-    messageFormat = messageFormat,
-    description = "Get Bank Account",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundGetBankAccount(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      bankId=BankId(bankIdExample.value),
-      accountId=AccountId(accountIdExample.value))
-    ),
-    exampleInboundMessage = (
-     InBoundGetBankAccount(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= BankAccountCommons(accountId=AccountId(accountIdExample.value),
-      accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
-      currency=currencyExample.value,
-      name=bankAccountNameExample.value,
-      label=labelExample.value,
-      iban=Some(ibanExample.value),
-      number=bankAccountNumberExample.value,
-      bankId=BankId(bankIdExample.value),
-      lastUpdate=toDate(bankAccountLastUpdateExample),
-      branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
-      value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetBankAccount => OutBound, InBoundGetBankAccount => InBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_account", req, callContext)
         response.map(convertToTuple[BankAccountCommons](callContext))        
   }
           
@@ -2676,6 +2632,38 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[List[AtmTCommons]](callContext))        
   }
           
+  messageDocs += getCurrentFxRateDoc
+  def getCurrentFxRateDoc = MessageDoc(
+    process = "obp.getCurrentFxRate",
+    messageFormat = messageFormat,
+    description = "Get Current Fx Rate",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetCurrentFxRate(bankId=BankId(bankIdExample.value),
+      fromCurrencyCode="string",
+      toCurrencyCode="string")
+    ),
+    exampleInboundMessage = (
+     InBoundGetCurrentFxRate(status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= FXRateCommons(bankId=BankId(bankIdExample.value),
+      fromCurrencyCode="string",
+      toCurrencyCode="string",
+      conversionValue=123.123,
+      inverseConversionValue=123.123,
+      effectiveDate=toDate(dateExample)))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
+        import com.openbankproject.commons.dto.{OutBoundGetCurrentFxRate => OutBound, InBoundGetCurrentFxRate => InBound}  
+        val callContext: Option[CallContext] = None
+        val req = OutBound(bankId, fromCurrencyCode, toCurrencyCode)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_current_fx_rate", req, callContext)
+        response.map(convertToTuple[FXRateCommons](callContext))        
+  }
+          
   messageDocs += createTransactionAfterChallengev300Doc
   def createTransactionAfterChallengev300Doc = MessageDoc(
     process = "obp.createTransactionAfterChallengev300",
@@ -2844,20 +2832,20 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       value=accountRuleValueExample.value)),
       accountHolder=bankAccountAccountHolderExample.value),
       toCounterparty= CounterpartyTraitCommons(createdByUserId="string",
-      name="string",
+      name=counterpartyNameExample.value,
       description="string",
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
       counterpartyId=counterpartyIdExample.value,
-      otherAccountRoutingScheme=accountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=accountRoutingAddressExample.value,
-      otherAccountSecondaryRoutingScheme="string",
-      otherAccountSecondaryRoutingAddress="string",
-      otherBankRoutingScheme=bankRoutingSchemeExample.value,
-      otherBankRoutingAddress=bankRoutingAddressExample.value,
-      otherBranchRoutingScheme=branchRoutingSchemeExample.value,
-      otherBranchRoutingAddress=branchRoutingAddressExample.value,
+      otherAccountRoutingScheme=counterpartyOtherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=counterpartyOtherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=counterpartyOtherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=counterpartyOtherAccountSecondaryRoutingAddressExample.value,
+      otherBankRoutingScheme=counterpartyOtherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=counterpartyOtherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=counterpartyOtherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=counterpartyOtherBranchRoutingAddressExample.value,
       isBeneficiary=isBeneficiaryExample.value.toBoolean,
       bespoke=List( CounterpartyBespoke(key=keyExample.value,
       value=valueExample.value))),
@@ -2935,20 +2923,20 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       value=accountRuleValueExample.value)),
       accountHolder=bankAccountAccountHolderExample.value),
       toCounterparty= CounterpartyTraitCommons(createdByUserId="string",
-      name="string",
+      name=counterpartyNameExample.value,
       description="string",
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
       counterpartyId=counterpartyIdExample.value,
-      otherAccountRoutingScheme=accountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=accountRoutingAddressExample.value,
-      otherAccountSecondaryRoutingScheme="string",
-      otherAccountSecondaryRoutingAddress="string",
-      otherBankRoutingScheme=bankRoutingSchemeExample.value,
-      otherBankRoutingAddress=bankRoutingAddressExample.value,
-      otherBranchRoutingScheme=branchRoutingSchemeExample.value,
-      otherBranchRoutingAddress=branchRoutingAddressExample.value,
+      otherAccountRoutingScheme=counterpartyOtherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=counterpartyOtherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=counterpartyOtherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=counterpartyOtherAccountSecondaryRoutingAddressExample.value,
+      otherBankRoutingScheme=counterpartyOtherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=counterpartyOtherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=counterpartyOtherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=counterpartyOtherBranchRoutingAddressExample.value,
       isBeneficiary=isBeneficiaryExample.value.toBoolean,
       bespoke=List( CounterpartyBespoke(key=keyExample.value,
       value=valueExample.value))),
@@ -3307,7 +3295,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
      OutBoundUpdateCustomerGeneralData(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       customerId=customerIdExample.value,
       legalName=Some(legalNameExample.value),
-      faceImage=Some( CustomerFaceImage(date=toDate(dateExample),
+      faceImage=Some( CustomerFaceImage(date=toDate(customerFaceImageDateExample),
       url=urlExample.value)),
       dateOfBirth=Some(toDate(dateOfBirthExample)),
       relationshipStatus=Some(relationshipStatusExample.value),
@@ -5649,8 +5637,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-07-14T16:11:11Z
-//---------------- dynamic end ---------------------please don't modify this line            
+// ---------- created on 2020-07-22T12:18:29Z
+//---------------- dynamic end ---------------------please don't modify this line              
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

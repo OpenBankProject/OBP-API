@@ -130,12 +130,12 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
                                    bespoke: List[CounterpartyBespoke]
                                  ): Box[CounterpartyTrait] = Empty
 
-  override def checkCounterpartyAvailable(
+  override def checkCounterpartyExists(
                                         name: String,
                                         thisBankId: String,
                                         thisAccountId: String,
                                         thisViewId: String
-                                      ): Boolean = false
+                                      ): Box[CounterpartyTrait] = Empty
 
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] = ???
 

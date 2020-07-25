@@ -186,25 +186,18 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
     
   }
 
- override def checkCounterpartyAvailable(
+ override def checkCounterpartyExists(
                                name: String,
                                thisBankId: String,
                                thisAccountId: String,
                                thisViewId: String
-                             ): Boolean = {
-   val counterparties = MappedCounterparty.findAll(
+                             ): Box[CounterpartyTrait] = {
+ MappedCounterparty.find(
      By(MappedCounterparty.mName, name),
      By(MappedCounterparty.mThisBankId, thisBankId),
      By(MappedCounterparty.mThisAccountId, thisAccountId),
      By(MappedCounterparty.mThisViewId, thisViewId)
    )
-
-   val available: Boolean = counterparties.size match {
-     case 0 => true
-     case _ => false
-   }
-
-   available
   }
 
 
