@@ -205,6 +205,11 @@ class WebUI extends MdcLoggable{
     "#sandbox-introduction-link [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_documentation_url",s"${getServerUrl}/introduction"))
   }
 
+  def technicalFaqsAnchor: CssSel = {
+    "#technical-faqs-anchor [href]" #> scala.xml.Unparsed(s"${getServerUrl}#technical-faqs")
+  }
+
+
   def apiDocumentation: CssSel = {
     val title = "Sandbox Introduction"
     val propsValue = getWebUiPropsValue("webui_sandbox_introduction", "")
@@ -334,6 +339,9 @@ class WebUI extends MdcLoggable{
     contentLoader("webui_about_vendor_content_url", "about-vendor")
   }
 
+  def headerContentLoader: NodeSeq = {
+    contentLoader("webui_header_content_url", "table-header")
+  }
 
 // This load content directly into the div that calls it.
   def getStartedDirectContentLoader: NodeSeq = {

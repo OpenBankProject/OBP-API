@@ -266,15 +266,15 @@ trait APIMethods310 {
         |
         |Should be able to filter on the following fields
         |
-        |eg: /management/metrics/top-apis?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&consumer_id=5
+        |eg: /management/metrics/top-apis?from_date=$DefaultFromDateString&to_date=$DefaultToDateString&consumer_id=5
         |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
         |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
         |&verb=GET&anon=false&app_name=MapperPostman
         |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |
-        |1 from_date (defaults to the day before the current date): eg:from_date=$DateWithMsExampleString
+        |1 from_date (defaults to the one year ago): eg:from_date=$DefaultFromDateString
         |
-        |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
+        |2 to_date (defaults to the current date) eg:to_date=$DefaultToDateString
         |
         |3 consumer_id  (if null ignore)
         |
@@ -353,16 +353,16 @@ trait APIMethods310 {
         |
         |Should be able to filter on the following fields
         |
-        |e.g.: /management/metrics/top-consumers?from_date=$DateWithMsExampleString&to_date=2017-05-22T01:02:03.000Z&consumer_id=5
+        |e.g.: /management/metrics/top-consumers?from_date=$DefaultFromDateString&to_date=$DefaultToDateString&consumer_id=5
         |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
         |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
         |&verb=GET&anon=false&app_name=MapperPostman
         |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |&limit=100
         |
-        |1 from_date (defaults to the day before the current date): eg:from_date=$DateWithMsExampleString
+        |1 from_date (defaults to the one year ago): eg:from_date=$DefaultFromDateString
         |
-        |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
+        |2 to_date (defaults to the current date) eg:to_date=$DefaultToDateString
         |
         |3 consumer_id  (if null ignore)
         |
@@ -1081,7 +1081,7 @@ trait APIMethods310 {
       "Get Adapter Info",
       s"""Get basic information about the Adapter.
          |
-        |${authenticationRequiredMessage(true)}
+        |${authenticationRequiredMessage(false)}
          |
       """.stripMargin,
       emptyObjectJson,
@@ -1110,7 +1110,7 @@ trait APIMethods310 {
       nameOf(getTransactionByIdForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction",
-      "Get Transaction by Id.",
+      "Get Transaction by Id",
       s"""Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
          |
          |${authenticationRequiredMessage(false)}
@@ -1214,7 +1214,7 @@ trait APIMethods310 {
       nameOf(createCustomer),
       "POST",
       "/banks/BANK_ID/customers",
-      "Create Customer.",
+      "Create Customer",
       s"""
          |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
          |Dates need to be in the format 2013-01-21T23:08:00Z
@@ -1235,8 +1235,8 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagPerson, apiTagNewStyle),
-      Some(List(canCreateCustomer,canCreateCustomerAtAnyBank)),
-      connectorMethods = Some(List("obp.getBank","obp.createCustomer")))
+      Some(List(canCreateCustomer,canCreateCustomerAtAnyBank))
+    )
     lazy val createCustomer : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
         cc =>
@@ -1990,7 +1990,7 @@ trait APIMethods310 {
       nameOf(refreshUser),
       "POST",
       "/users/USER_ID/refresh",
-      "Refresh User.",
+      "Refresh User",
       s""" The endpoint is used for updating the accounts, views, account holders for the user.
          | As to the Json body, you can leave it as Empty. 
          | This call will get data from backend, no need to prepare the json body in api side.
@@ -3975,7 +3975,7 @@ trait APIMethods310 {
       nameOf(createSystemView),
       "POST",
       "/system-views",
-      "Create System View.",
+      "Create System View",
       s"""Create a system view
         |
         | ${authenticationRequiredMessage(true)} and the user needs to have access to the $canCreateSystemView entitlement.
@@ -4032,7 +4032,7 @@ trait APIMethods310 {
       "DELETE",
       "/system-views/VIEW_ID",
       "Delete System View",
-      "Deletes the system view specified by VIEW_ID.",
+      "Deletes the system view specified by VIEW_ID",
       emptyObjectJson,
       emptyObjectJson,
       List(
@@ -4068,7 +4068,7 @@ trait APIMethods310 {
       nameOf(updateSystemView),
       "PUT",
       "/system-views/VIEW_ID",
-      "Update System View.",
+      "Update System View",
       s"""Update an existing view on a bank account
          |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
@@ -4784,7 +4784,7 @@ trait APIMethods310 {
       nameOf(updateAccount),
       "PUT",
       "/management/banks/BANK_ID/accounts/ACCOUNT_ID",
-      "Update Account.",
+      "Update Account",
       s"""Update the account. 
          |
          |${authenticationRequiredMessage(true)}
@@ -4795,8 +4795,7 @@ trait APIMethods310 {
       List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound),
       Catalogs(Core, notPSD2, notOBWG),
       List(apiTagAccount),
-      Some(List(canUpdateAccount)), 
-      connectorMethods = Some(List("obp.getBank","obp.getBankAccount","obp.updateBankAccount"))
+      Some(List(canUpdateAccount))
     )
 
     lazy val updateAccount : OBPEndpoint = {
@@ -5944,8 +5943,7 @@ trait APIMethods310 {
       accountBalancesV310Json,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: apiTagPSD2AIS :: apiTagNewStyle :: Nil,
-      connectorMethods = Some(List("obp.getBank","obp.getBankAccountsBalances"))
+      apiTagAccount :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
     )
 
     lazy val getBankAccountsBalances : OBPEndpoint = {

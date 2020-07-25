@@ -58,7 +58,7 @@ trait APIMethods220 {
       "getViewsForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
-      "Get Views for Account.",
+      "Get Views for Account",
       s"""#Views
         |
         |
@@ -118,7 +118,7 @@ trait APIMethods220 {
       "createViewForBankAccount",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
-      "Create View.",
+      "Create View",
       s"""#Create a view on bank account
         |
         | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
@@ -180,7 +180,7 @@ trait APIMethods220 {
       "updateViewForBankAccount",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
-      "Update View.",
+      "Update View",
       s"""Update an existing view on a bank account
         |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
@@ -292,7 +292,7 @@ trait APIMethods220 {
       "getExplictCounterpartiesForAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
-      "Get Counterparties (Explicit).",
+      "Get Counterparties (Explicit)",
       s"""Get the Counterparties (Explicit) for the account / view.
           |
           |${authenticationRequiredMessage(true)}
@@ -349,7 +349,7 @@ trait APIMethods220 {
       "getExplictCounterpartyById",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
-      "Get Counterparty by Counterparty Id.(Explicit).",
+      "Get Counterparty by Counterparty Id (Explicit)",
       s"""Information returned about the Counterparty specified by COUNTERPARTY_ID:
          |
          |${authenticationRequiredMessage(true)}
@@ -392,7 +392,7 @@ trait APIMethods220 {
         |
         | Note: API Explorer provides a Message Docs page where these messages are displayed.
         | 
-        | `CONNECTOR`:kafka_vMar2017 , kafka_vJune2017, kafka_vSept2018 ... 
+        | `CONNECTOR`:kafka_vMar2017 , kafka_vJune2017, kafka_vSept2018, stored_procedure_vDec2019 ...
       """.stripMargin,
       emptyObjectJson,
       messageDocsJson,

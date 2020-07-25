@@ -202,7 +202,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   }
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]) = Future{
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, username: String, callContext: Option[CallContext]) = Future{
     val parameters = new JHashMap
 
     parameters.put("accountId", accountId)

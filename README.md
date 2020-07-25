@@ -126,7 +126,7 @@ The current workaround is to move the project directory onto a different partiti
 
 ## Databases:
 
-The default database for testing etc is H2. PostgreSQL is used for the sandboxes (user accounts, metadata, transaction cache).
+The default database for testing etc is H2. PostgreSQL is used for the sandboxes (user accounts, metadata, transaction cache). List of databases fully tested is: PostgreSQL, MS SQL and H2. 
 
 ### Notes on using H2 web console in Dev and Test mode:
 

@@ -63,6 +63,8 @@ class DynamicEntityTest extends V400ServerSetup {
       |        "properties": {
       |            "name": {
       |                "type": "string",
+      |                "maxLength": 20,
+      |                "minLength": 3,
       |                "example": "James Brown",
       |                "description":"description of **name** field, can be markdown text."
       |            },

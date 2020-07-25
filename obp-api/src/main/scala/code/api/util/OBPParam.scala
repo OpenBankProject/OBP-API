@@ -68,7 +68,7 @@ object OBPQueryParam {
 
   def toOffset(offset: Box[String]): Box[OBPOffset] = offset.filter(StringUtils.isNotBlank).map(_.toInt).map(OBPOffset(_))
 
-  def toFromDate(fromDate: Box[String]): Box[OBPFromDate] = fromDate.filter(StringUtils.isNotBlank).map(DateWithMsFormat.parse).map(OBPFromDate(_))
+  def toFromDate(fromDate: Box[String]): Box[OBPFromDate] = fromDate.filter(StringUtils.isNotBlank).flatMap(APIUtil.parseDate(_)).map(OBPFromDate(_))
 
-  def toToDate(toDate: Box[String]): Box[OBPToDate] = toDate.filter(StringUtils.isNotBlank).map(DateWithMsFormat.parse).map(OBPToDate(_))
+  def toToDate(toDate: Box[String]): Box[OBPToDate] = toDate.filter(StringUtils.isNotBlank).flatMap(APIUtil.parseDate(_)).map(OBPToDate(_))
 }

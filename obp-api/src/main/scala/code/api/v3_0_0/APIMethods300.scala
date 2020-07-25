@@ -43,6 +43,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 import code.api.v2_0_0.AccountsHelper._
+import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonAST.JField
 
@@ -65,7 +66,7 @@ trait APIMethods300 {
       nameOf(getViewsForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
-      "Get Views for Account.",
+      "Get Views for Account",
       s"""#Views
         |
         |
@@ -129,7 +130,7 @@ trait APIMethods300 {
       nameOf(createViewForBankAccount),
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
-      "Create View.",
+      "Create View",
       s"""Create a view on bank account
         |
         | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
@@ -190,7 +191,7 @@ trait APIMethods300 {
       nameOf(getPermissionForUserForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID",
-      "Get Account access for User.",
+      "Get Account access for User",
       s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a user identified by PROVIDER_ID at their provider PROVIDER has access to.
          |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER.
          |
@@ -226,7 +227,7 @@ trait APIMethods300 {
       nameOf(updateViewForBankAccount),
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
-      "Update View.",
+      "Update View",
       s"""Update an existing view on a bank account
         |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
@@ -434,8 +435,8 @@ trait APIMethods300 {
       coreAccountsJsonV300,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getCoreBankAccounts")))
+      List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagNewStyle)
+    )
 
 
     apiRelations += ApiRelation(corePrivateAccountsAllBanks, getCoreAccountById, "detail")
@@ -640,8 +641,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransaction, apiTagPSD2AIS, apiTagAccount, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getBank","obp.checkBankAccountExists", "obp.getTransactionsCore"))
+      List(apiTagTransaction, apiTagPSD2AIS, apiTagAccount, apiTagNewStyle)
     )
 
     lazy val getCoreTransactionsForBankAccount : OBPEndpoint = {
@@ -701,8 +701,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransaction, apiTagAccount, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getBank","obp.checkBankAccountExists", "obp.getTransactions"))
+      List(apiTagTransaction, apiTagAccount, apiTagNewStyle)
     )
 
     lazy val getTransactionsForBankAccount: OBPEndpoint = {
@@ -1006,7 +1005,7 @@ trait APIMethods300 {
       "Get Adapter Info for a bank",
       s"""Get basic information about the Adapter listening on behalf of this bank.
         |
-        |${authenticationRequiredMessage(true)}
+        |${authenticationRequiredMessage(false)}
         |
       """.stripMargin,
       emptyObjectJson,
@@ -1575,8 +1574,8 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagUser, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getCustomersByUserId")))
+      List(apiTagCustomer, apiTagUser, apiTagNewStyle)
+    )
 
 
 
@@ -1596,10 +1595,10 @@ trait APIMethods300 {
             (customers,callContext) <- Connector.connector.vend.getCustomersByUserId(u.userId, callContext) map {
               connectorEmptyResponse(_, callContext)
             }
-            (customersAndAttributesPairs,callContext) <- NewStyle.function.getCustomerAttributesForCustomers(customers, callContext)
+            (customersAndAttributes: List[CustomerAndAttribute], callContext) <- NewStyle.function.getCustomerAttributesForCustomers(customers, callContext)
           } yield {
             // Create the JSON to return. We also return the callContext
-            (JSONFactory300.createCustomersWithAttributesJson(customersAndAttributesPairs), HttpCode.`200`(callContext))
+            (JSONFactory300.createCustomersWithAttributesJson(customersAndAttributes), HttpCode.`200`(callContext))
           }
         }
       }
@@ -1642,7 +1641,7 @@ trait APIMethods300 {
       nameOf(privateAccountsAtOneBank),
       "GET",
       "/banks/BANK_ID/accounts/private",
-      "Get Accounts at Bank (Minimal).",
+      "Get Accounts at Bank (Minimal)",
       s"""Returns the minimal list of private accounts at BANK_ID that the user has access to.
          |For each account, the API returns the ID, routing addresses and the views available to the current user.
          |
@@ -1655,8 +1654,7 @@ trait APIMethods300 {
       coreAccountsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount,apiTagPSD2AIS, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getBank","obp.getCoreBankAccounts"))
+      List(apiTagAccount,apiTagPSD2AIS, apiTagNewStyle)
     )
   
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
@@ -1680,7 +1678,7 @@ trait APIMethods300 {
       nameOf(getPrivateAccountIdsbyBankId),
       "GET",
       "/banks/BANK_ID/accounts/account_ids/private",
-      "Get Accounts at Bank (IDs only).",
+      "Get Accounts at Bank (IDs only)",
       s"""Returns only the list of accounts ids at BANK_ID that the user has access to.
          |
          |Each account must have at least one private View.
@@ -1696,8 +1694,7 @@ trait APIMethods300 {
       accountsIdsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getBank","obp.getCoreBankAccounts"))
+      List(apiTagAccount, apiTagPSD2AIS, apiTagNewStyle)
     )
   
     lazy val getPrivateAccountIdsbyBankId : OBPEndpoint = {
@@ -1724,7 +1721,7 @@ trait APIMethods300 {
       nameOf(getOtherAccountsForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
-      "Get Other Accounts of one Account.",
+      "Get Other Accounts of one Account",
       s"""Returns data about all the other accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
          |${authenticationRequiredMessage(false)}
          |
@@ -1762,7 +1759,7 @@ trait APIMethods300 {
       nameOf(getOtherAccountByIdForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
-      "Get Other Account by Id.",
+      "Get Other Account by Id",
       s"""Returns data about the Other Account that has shared at least one transaction with ACCOUNT_ID at BANK_ID.
          |${authenticationRequiredMessage(false)}
          |
@@ -1800,7 +1797,7 @@ trait APIMethods300 {
       nameOf(addEntitlementRequest),
       "POST",
       "/entitlement-requests",
-      "Create Entitlement Request for current User.",
+      "Create Entitlement Request for current User",
       s"""Create Entitlement Request.
         |
         |Any logged in User can use this endpoint to request an Entitlement
@@ -1907,7 +1904,7 @@ trait APIMethods300 {
       nameOf(getEntitlementRequests),
       "GET",
       "/users/USER_ID/entitlement-requests",
-      "Get Entitlement Requests for a User.",
+      "Get Entitlement Requests for a User",
       s"""Get Entitlement Requests for a User.
         |
         |
@@ -1947,7 +1944,7 @@ trait APIMethods300 {
       nameOf(getEntitlementRequestsForCurrentUser),
       "GET",
       "/my/entitlement-requests",
-      "Get Entitlement Requests for the current User.",
+      "Get Entitlement Requests for the current User",
       s"""Get Entitlement Requests for the current User.
          |
         |
@@ -2024,7 +2021,7 @@ trait APIMethods300 {
       nameOf(getEntitlementsForCurrentUser),
       "GET",
       "/my/entitlements",
-      "Get Entitlements for the current User.",
+      "Get Entitlements for the current User",
       s"""Get Entitlements for the current User.
          |
         |
@@ -2097,8 +2094,7 @@ trait APIMethods300 {
       coreAccountsHeldJsonV300,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getBank","obp.getBankAccountsHeld","obp.getCoreBankAccounts"))
+      List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagNewStyle)
     )
   
     lazy val getAccountsHeld : OBPEndpoint = {
@@ -2209,7 +2205,7 @@ trait APIMethods300 {
       nameOf(addScope),
       "POST",
       "/consumers/CONSUMER_ID/scopes",
-      "Create Scope for a Consumer.",
+      "Create Scope for a Consumer",
       """Create Scope. Grant Role to Consumer.
         |
         |Scopes are used to grant System or Bank level roles to the Consumer (App). (For Account level privileges, see Views)
@@ -2409,8 +2405,7 @@ trait APIMethods300 {
       bankJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil,
-      connectorMethods = Some(List("obp.getBank"))
+      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
     )
 
     //The Json Body is totally the same as V121, just use new style endpoint.

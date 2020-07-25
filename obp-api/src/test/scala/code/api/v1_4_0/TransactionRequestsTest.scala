@@ -17,6 +17,8 @@ import code.api.util.ErrorMessages._
 import code.model.BankAccountX
 import com.openbankproject.commons.model.{AccountId, BankAccount, TransactionRequestId}
 
+import scala.collection.immutable.List
+
 class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
 
   object TransactionRequest extends Tag("transactionRequests")
@@ -126,7 +128,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
         //check that we created a new transaction (since no challenge)
         request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           CUSTOM_OWNER_VIEW_ID / "transactions").GET <@(user1)
-        response = makeGetRequest(request)
+        response = makeGetRequest(request, List(("from_date", APIUtil.DateWithMsForFilteringFromDateString),("to_date", APIUtil.DateWithMsForFilteringEenDateString)))
 
         Then("we should get a 200 ok code")
         response.code should equal(200)

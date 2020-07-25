@@ -34,7 +34,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     balanceAmount:AmountOfMoneyV13 = AmountOfMoneyV13("EUR","123"),
     balanceType: String = "closingBooked",
     lastChangeDateTime: String = "2019-01-28T06:26:52.185Z",
-    referenceDate: String = "string",
+    referenceDate: String = "2020-07-02",
     lastCommittedTransaction: String = "string",
   )
   case class CoreAccountJsonV13(
@@ -55,6 +55,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   )
 
   case class CoreAccountsJsonV13(accounts: List[CoreAccountJsonV13])
+  case class CoreCardAccountsJsonV13(cardAccounts: List[CoreAccountJsonV13])
 
   case class AccountDetailsLinksJsonV13(
                                          balances: LinkHrefJson,
@@ -73,6 +74,8 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 
   case class AccountDetailsJsonV13(account: AccountJsonV13)
   
+  case class CardAccountDetailsJsonV13(cardAccount: AccountJsonV13)
+  
   case class AmountOfMoneyV13(
     currency : String,
     amount : String
@@ -80,9 +83,9 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   case class AccountBalance(
                              balanceAmount : AmountOfMoneyV13 = AmountOfMoneyV13("EUR","123"),
                              balanceType: String = "closingBooked",
-                             lastChangeDateTime: String = "string",
+                             lastChangeDateTime: String = "2020-07-02T10:23:57.814Z",
                              lastCommittedTransaction: String = "string",
-                             referenceDate: String = "string",
+                             referenceDate: String = "2020-07-02",
     
   )
   case class FromAccount(
@@ -95,6 +98,10 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
                                  account:FromAccount,
                                  `balances`: List[AccountBalance]
   )
+  case class CardAccountBalancesV13(
+                                 cardAccount:FromAccount,
+                                 `balances`: List[AccountBalance]
+                               )
   case class TransactionsLinksV13(
     account: String
   )
@@ -116,6 +123,24 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     bookingDate: Date,
     valueDate: Date,
     remittanceInformationUnstructured: String,
+  )
+  case class SingleTransactionJsonV13(
+    description: String,
+    value: SingleTransactionValueJsonV13
+  )
+  case class SingleTransactionValueJsonV13(
+    transactionsDetails: transactionsDetailsJsonV13
+  )
+  case class transactionsDetailsJsonV13(
+    transactionId: String,
+    creditorName: String,
+    creditorAccount: CreditorAccountJson,
+    mandateId: String,
+    transactionAmount: AmountOfMoneyV13,
+    bookingDate: Date,
+    valueDate: Date,
+    remittanceInformationUnstructured: String,
+    bankTransactionCode: String,
   )
   
   case class CardTransactionJsonV13(
@@ -242,24 +267,20 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       x =>
         val (iBan: String, bBan: String) = getIbanAndBban(x)
 
-        val transactionRequests: List[TransactionRequest] = Connector.connector.vend.getTransactionRequests210(user, x).map(_._1)getOrElse(Nil)
-        // get the latest end_date of `COMPLETED` transactionRequests
-        val latestCompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status == "COMPLETED").map(_.end_date).headOption.getOrElse(null)
-        //get the latest end_date of !`COMPLETED` transactionRequests
-        val latestUncompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status != "COMPLETED").map(_.end_date).headOption.getOrElse(null)
         val balance =
           CoreAccountBalancesJson(
             balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
             balanceType = APIUtil.stringOrNull(x.accountType),
-            lastChangeDateTime = if(latestCompletedEndDate == null) null else APIUtil.DateWithDayFormat.format(latestCompletedEndDate),
-            lastCommittedTransaction = if(latestUncompletedEndDate == null) null else latestUncompletedEndDate.toString
+            lastChangeDateTime=APIUtil.DateWithDayFormat.format(x.lastUpdate),
+            referenceDate =APIUtil.DateWithMsRollback.format(x.lastUpdate),
+            lastCommittedTransaction = "String"
           )
         CoreAccountJsonV13(
           resourceId = x.accountId.value,
           iban = iBan,
           bban = bBan,
           currency = x.currency,
-          name = x.label,
+          name = x.name,
           bic = getBicFromBankId(x.bankId.value),
           cashAccountType = x.accountType,
           product = x.accountType,
@@ -269,6 +290,40 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
      }
     )
   }
+
+  def createCardAccountListJson(bankAccounts: List[BankAccount], user: User): CoreCardAccountsJsonV13 = {
+    CoreCardAccountsJsonV13(bankAccounts.map {
+      x =>
+        val (iBan: String, bBan: String) = getIbanAndBban(x)
+
+        val balance =
+          CoreAccountBalancesJson(
+            balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
+            balanceType = APIUtil.stringOrNull(x.accountType),
+            lastChangeDateTime=APIUtil.DateWithDayFormat.format(x.lastUpdate),
+            referenceDate =APIUtil.DateWithMsRollback.format(x.lastUpdate),
+            lastCommittedTransaction = "String"
+          )
+        CoreAccountJsonV13(
+          resourceId = x.accountId.value,
+          iban = iBan,
+          bban = bBan,
+          currency = x.currency,
+          name = x.name,
+          bic = getBicFromBankId(x.bankId.value),
+          cashAccountType = x.accountType,
+          product = x.accountType,
+          balances = balance,
+          _links = CoreAccountLinksJsonV13(LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances"))
+        )
+    }
+    )
+  }
+  
+  def createCardAccountDetailsJson(bankAccount: BankAccount, user: User): CardAccountDetailsJsonV13 = {
+    val accountDetailsJsonV13 = createAccountDetailsJson(bankAccount: BankAccount, user: User)
+    CardAccountDetailsJsonV13(accountDetailsJsonV13.account)
+  }
   
   def createAccountDetailsJson(bankAccount: BankAccount, user: User): AccountDetailsJsonV13 = {
     val (iBan: String, bBan: String) = getIbanAndBban(bankAccount)
@@ -276,7 +331,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       resourceId = bankAccount.accountId.value,
       iban = iBan,
       currency = bankAccount.currency,
-      name = bankAccount.label,
+      name = bankAccount.name,
       cashAccountType = bankAccount.accountType,
       product = bankAccount.accountType,
       _links = AccountDetailsLinksJsonV13(
@@ -293,17 +348,12 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     (iBan, bBan)
   }
 
-  def createAccountBalanceJSON(bankAccount: BankAccount, transactionRequests: List[TransactionRequest]): AccountBalancesV13 = {
-    // get the latest end_date of `COMPLETED` transactionRequests
-    val latestCompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status == "COMPLETED").map(_.end_date).headOption.getOrElse(null)
-
-    //get the latest end_date of !`COMPLETED` transactionRequests
-    val latestUncompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status != "COMPLETED").map(_.end_date).headOption.getOrElse(null)
-
-    // get the SUM of the amount of all !`COMPLETED` transactionRequests
-    val sumOfAllUncompletedTransactionrequests = transactionRequests.filter(_.status != "COMPLETED").map(_.body.value.amount).map(BigDecimal(_)).sum
-    // sum of the unCompletedTransactions and the account.balance is the current expectd amount:
-    val sumOfAll = (bankAccount.balance+ sumOfAllUncompletedTransactionrequests).toString()
+  def createCardAccountBalanceJSON(bankAccount: BankAccount): CardAccountBalancesV13 = {
+    val accountBalancesV13 = createAccountBalanceJSON(bankAccount: BankAccount)
+    CardAccountBalancesV13(accountBalancesV13.account,accountBalancesV13.`balances`)
+  }
+  
+  def createAccountBalanceJSON(bankAccount: BankAccount): AccountBalancesV13 = {
 
     val (iban: String, bban: String) = getIbanAndBban(bankAccount)
 
@@ -317,8 +367,9 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           amount = bankAccount.balance.toString()
         ),
         balanceType = APIUtil.stringOrNull(bankAccount.accountType),
-        lastChangeDateTime = if(latestCompletedEndDate == null) null else APIUtil.DateWithDayFormat.format(latestCompletedEndDate),
-        lastCommittedTransaction = if(latestUncompletedEndDate == null) null else latestUncompletedEndDate.toString
+        lastChangeDateTime = APIUtil.DateWithMsRollback.format(bankAccount.lastUpdate),
+        referenceDate= APIUtil.DateWithDayFormat.format(bankAccount.lastUpdate),
+        lastCommittedTransaction = "String"
       ) :: Nil
     ) 
   }
@@ -344,14 +395,14 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       
     val address = transaction.otherBankAccount.map(_.accountRoutingAddress).getOrElse(None).getOrElse("")
     val scheme: String = transaction.otherBankAccount.map(_.accountRoutingScheme).getOrElse(None).getOrElse("")
-    val (iban, bban, pan, maskedPan, currency) = extractAccountData(scheme, address)
+//    val (iban, bban, pan, maskedPan, currency) = extractAccountData(scheme, address)
     CardTransactionJsonV13(
       cardTransactionId = transaction.id.value,
       transactionAmount = AmountOfMoneyV13(APIUtil.stringOptionOrNull(transaction.currency), transaction.amount.get.toString()),
       transactionDate = transaction.finishDate.get,
       bookingDate = transaction.startDate.get,
       originalAmount = AmountOfMoneyV13(orignalCurrency, orignalBalnce),
-      maskedPan = maskedPan,
+      maskedPan = "",
       proprietaryBankTransactionCode = "",
       invoiced = true,
       transactionDetails = APIUtil.stringOptionOrNull(transaction.description)
@@ -403,6 +454,32 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         booked= transactions.map(transaction => createTransactionJSON(bankAccount, transaction, creditorAccount)),
         pending = transactionRequests.filter(_.status!="COMPLETED").map(transactionRequest => createTransactionFromRequestJSON(bankAccount, transactionRequest, creditorAccount)),
         _links = TransactionsV13TransactionsLinks(LinkHrefJson(s"/v1.3/accounts/$accountId"))
+      )
+    )
+  }
+
+  def createTransactionJson(bankAccount: BankAccount, transaction: ModeratedTransaction) : SingleTransactionJsonV13 = {
+    val (iban: String, bban: String) = getIbanAndBban(bankAccount)
+    val creditorAccount = CreditorAccountJson(
+      iban = iban,
+    )
+    SingleTransactionJsonV13(
+      description = transaction.description.getOrElse(""),
+      value=SingleTransactionValueJsonV13(
+        transactionsDetails = transactionsDetailsJsonV13(
+          transactionId = transaction.id.value,
+          creditorName = transaction.bankAccount.map(_.label).flatten.getOrElse(""),
+          creditorAccount,
+          mandateId =transaction.UUID,
+          transactionAmount=AmountOfMoneyV13(
+            transaction.currency.getOrElse(""),
+            transaction.amount.getOrElse("").toString,
+          ),
+          bookingDate = transaction.startDate.getOrElse(null),
+          valueDate = transaction.finishDate.getOrElse(null),
+          remittanceInformationUnstructured = transaction.description.getOrElse(""),
+          bankTransactionCode ="",
+        )
       )
     )
   }

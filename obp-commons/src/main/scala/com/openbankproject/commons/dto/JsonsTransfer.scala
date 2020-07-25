@@ -53,7 +53,7 @@ case class OutBoundGetChallengeThreshold(outboundAdapterCallContext: OutboundAda
                                          transactionRequestType: String,
                                          currency: String,
                                          userId: String,
-                                         userName: String) extends TopicTrait
+                                         username: String) extends TopicTrait
 case class InBoundGetChallengeThreshold(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AmountOfMoney) extends InBoundTrait[AmountOfMoney]
 
 
@@ -62,7 +62,7 @@ case class OutBoundGetChargeLevel(outboundAdapterCallContext: OutboundAdapterCal
                                   accountId: AccountId,
                                   viewId: ViewId,
                                   userId: String,
-                                  userName: String,
+                                  username: String,
                                   transactionRequestType: String,
                                   currency: String) extends TopicTrait
 case class InBoundGetChargeLevel(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AmountOfMoney) extends InBoundTrait[AmountOfMoney]
@@ -134,14 +134,14 @@ case class OutBoundGetTransactions(outboundAdapterCallContext: OutboundAdapterCa
                                    offset: Int,
                                    fromDate: String,
                                    toDate: String) extends TopicTrait
-case class InBoundGetTransactions(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionCommons]) extends InBoundTrait[List[TransactionCommons]]
+case class InBoundGetTransactions(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[Transaction]) extends InBoundTrait[List[Transaction]]
 
 
 case class OutBoundGetTransaction(outboundAdapterCallContext: OutboundAdapterCallContext,
                                   bankId: BankId,
                                   accountId: AccountId,
                                   transactionId: TransactionId) extends TopicTrait
-case class InBoundGetTransaction(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionCommons) extends InBoundTrait[TransactionCommons]
+case class InBoundGetTransaction(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Transaction) extends InBoundTrait[Transaction]
 
 case class OutBoundMakePaymentv210(outboundAdapterCallContext: OutboundAdapterCallContext,
                                    fromAccount: BankAccountCommons,
@@ -417,7 +417,11 @@ case class InBoundGetProductCollectionItem(inboundAdapterCallContext: InboundAda
 case class OutBoundGetProductCollectionItemsTree(outboundAdapterCallContext: OutboundAdapterCallContext,
                                                  collectionCode: String,
                                                  bankId: String) extends TopicTrait
-case class InBoundGetProductCollectionItemsTree(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])])extends InBoundTrait[List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])]]
+
+case class ProductCollectionItemsTree(productCollectionItem: ProductCollectionItemCommons, product: ProductCommons, attributes: List[ProductAttributeCommons])
+
+case class InBoundGetProductCollectionItemsTree(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ProductCollectionItemsTree])
+  extends InBoundTrait[List[ProductCollectionItemsTree]]
 
 
 case class OutBoundCreateMeeting(outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -478,7 +482,7 @@ case class OutBoundGetTransactionRequests210(outboundAdapterCallContext: Outboun
 
 case class InBoundGetTransactionRequests210(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionRequest]) extends InBoundTrait[List[TransactionRequest]]
 
-case class OutBoundGetTransactionsCore(outboundAdapterCallContext: OutboundAdapterCallContext, bankId: BankId, accountID: AccountId, limit: Int, offset: Int, fromDate: String, toDate: String) extends TopicTrait
+case class OutBoundGetTransactionsCore(outboundAdapterCallContext: OutboundAdapterCallContext, bankId: BankId, accountId: AccountId, limit: Int, offset: Int, fromDate: String, toDate: String) extends TopicTrait
 case class InBoundGetTransactionsCore(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionCore]) extends InBoundTrait[List[TransactionCore]]
 
 //-------- return type are not Future--------------------------------------------------------------------------------------------------
@@ -871,19 +875,19 @@ case class InBoundGetCounterpartiesLegacy (inboundAdapterCallContext: InboundAda
 
 case class OutBoundGetTransactionsLegacy (outboundAdapterCallContext: OutboundAdapterCallContext,
                                           bankId: BankId,
-                                          accountID: AccountId,
+                                          accountId: AccountId,
                                           limit: Int,
                                           offset: Int,
                                           fromDate: String,
                                           toDate: String) extends TopicTrait
-case class InBoundGetTransactionsLegacy (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionCommons]) extends InBoundTrait[List[TransactionCommons]]
+case class InBoundGetTransactionsLegacy (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[Transaction]) extends InBoundTrait[List[Transaction]]
 
 
 case class OutBoundGetTransactionLegacy (outboundAdapterCallContext: OutboundAdapterCallContext,
                                          bankId: BankId,
-                                         accountID: AccountId,
+                                         accountId: AccountId,
                                          transactionId: TransactionId) extends TopicTrait
-case class InBoundGetTransactionLegacy (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionCommons) extends InBoundTrait[TransactionCommons]
+case class InBoundGetTransactionLegacy (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Transaction) extends InBoundTrait[Transaction]
 
 
 case class OutBoundCreatePhysicalCardLegacy (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -1261,11 +1265,9 @@ case class InBoundGetCustomerAttributes(inboundAdapterCallContext: InboundAdapte
 case class OutBoundGetCustomerIdsByAttributeNameValues(outboundAdapterCallContext: OutboundAdapterCallContext, bankId: BankId, nameValues: Map[String,List[String]]) extends TopicTrait
 case class InBoundGetCustomerIdsByAttributeNameValues(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[String]) extends InBoundTrait[List[String]]
 
-case class CustomerAndAttribute(customer: CustomerCommons, attributes: List[CustomerAttributeCommons])
+case class CustomerAndAttribute(customer: Customer, attributes: List[CustomerAttribute])
 case class OutBoundGetCustomerAttributesForCustomers(outboundAdapterCallContext: OutboundAdapterCallContext, customers: List[Customer]) extends TopicTrait
-case class InBoundGetCustomerAttributesForCustomers(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, value: List[CustomerAndAttribute]) extends InBoundTrait[List[(Customer, List[CustomerAttribute])]] {
-  override val data: List[(Customer, List[CustomerAttribute])] = value.map(it => (it.customer, it.attributes))
-}
+case class InBoundGetCustomerAttributesForCustomers(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CustomerAndAttribute]) extends InBoundTrait[List[CustomerAndAttribute]]
 
 case class OutBoundGetTransactionIdsByAttributeNameValues(outboundAdapterCallContext: OutboundAdapterCallContext, bankId: BankId, nameValues: Map[String,List[String]]) extends TopicTrait
 case class InBoundGetTransactionIdsByAttributeNameValues(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[String]) extends InBoundTrait[List[String]]
@@ -1281,4 +1283,7 @@ case class InBoundCreateDirectDebit(inboundAdapterCallContext: InboundAdapterCal
 
 case class OutBoundDeleteCustomerAttribute(outboundAdapterCallContext: OutboundAdapterCallContext, customerAttributeId: String) extends TopicTrait
 case class InBoundDeleteCustomerAttribute(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Boolean) extends InBoundTrait[Boolean]
+
+case class OutBoundCheckExternalUserCredentials(outboundAdapterCallContext: OutboundAdapterCallContext, username: String, password: String) extends TopicTrait
+case class InBoundCheckExternalUserCredentials(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: InboundExternalUser) extends InBoundTrait[InboundExternalUser]
 // --------------------- some special connector methods corresponding InBound and OutBound -- end --

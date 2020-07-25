@@ -132,7 +132,7 @@ trait APIMethods200 {
       "getPrivateAccountsAllBanks",
       "GET",
       "/accounts",
-      "Get all Accounts at all Banks.",
+      "Get all Accounts at all Banks",
       s"""Get all accounts at all banks the User has access to.
          |Returns the list of accounts at that the user has access to at all banks.
          |For each account the API returns the account ID and the available views.
@@ -211,7 +211,7 @@ trait APIMethods200 {
       "publicAccountsAllBanks",
       "GET",
       "/accounts/public",
-      "Get Public Accounts at all Banks.",
+      "Get Public Accounts at all Banks",
       s"""Get public accounts at all banks (Anonymous access).
         |Returns accounts that contain at least one public view (a view where is_public is true)
         |For each account the API returns the ID and the available views.
@@ -252,7 +252,7 @@ trait APIMethods200 {
       "getPrivateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get Accounts at Bank.",
+      "Get Accounts at Bank",
       s"""
         |Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the views available to the user..
@@ -264,8 +264,7 @@ trait APIMethods200 {
       basicAccountsJSON,
       List(BankNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle),
-      connectorMethods = Some(List("obp.getBank","obp.getBankAccount"))
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle)
     )
 
     def processAccounts(privateViewsUserCanAccessAtOneBank: List[View], availablePrivateAccounts: List[BankAccount]) = {
@@ -370,7 +369,7 @@ trait APIMethods200 {
       "privateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts/private",
-      "Get private accounts at one bank.",
+      "Get private accounts at one bank",
       s"""Returns the list of private accounts at BANK_ID that the user has access to.
         |For each account the API returns the ID and the available views.
         |
@@ -622,7 +621,7 @@ trait APIMethods200 {
       "addKycDocument",
       "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_documents/KYC_DOCUMENT_ID",
-      "Add KYC Document.",
+      "Add KYC Document",
       "Add a KYC document for the customer specified by CUSTOMER_ID. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
       postKycDocumentJSON,
       kycDocumentJSON,
@@ -674,8 +673,8 @@ trait APIMethods200 {
       "addKycMedia",
       "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_media/KYC_MEDIA_ID",
-      "Add KYC Media.",
-      "Add some KYC media for the customer specified by CUSTOMER_ID. KYC Media resources relate to KYC Documents and KYC Checks and contain media urls for scans of passports, utility bills etc.",
+      "Add KYC Media",
+      "Add some KYC media for the customer specified by CUSTOMER_ID. KYC Media resources relate to KYC Documents and KYC Checks and contain media urls for scans of passports, utility bills etc",
       postKycMediaJSON,
       kycMediaJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
@@ -725,7 +724,7 @@ trait APIMethods200 {
       "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_check/KYC_CHECK_ID",
       "Add KYC Check",
-      "Add a KYC check for the customer specified by CUSTOMER_ID. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status.",
+      "Add a KYC check for the customer specified by CUSTOMER_ID. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status",
       postKycCheckJSON,
       kycCheckJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
@@ -820,7 +819,7 @@ trait APIMethods200 {
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/social_media_handles",
       "Add Social Media Handle",
-      "Add a social media handle for the customer specified by CUSTOMER_ID.",
+      "Add a social media handle for the customer specified by CUSTOMER_ID",
       socialMediaJSON,
       successMessage,
       List(
@@ -893,7 +892,7 @@ trait APIMethods200 {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => {
 
         cc =>
-          // TODO return specific error if bankId == "BANK_ID" or accountID == "ACCOUNT_ID"
+          // TODO return specific error if bankId == "BANK_ID" or accountId == "ACCOUNT_ID"
           // Should be a generic guard we can use for all calls (also for userId etc.)
           for {
             u <- cc.user ?~  UserNotLoggedIn
@@ -1016,7 +1015,7 @@ trait APIMethods200 {
       "getPermissionsForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions",
-      "Get access.",
+      "Get access",
       s"""Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
         |
         |${authenticationRequiredMessage(true)}
@@ -1052,7 +1051,7 @@ trait APIMethods200 {
       "getPermissionForUserForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID",
-      "Get Account access for User.",
+      "Get Account access for User",
       s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a user identified by PROVIDER_ID at their provider PROVIDER has access to.
         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER.
         |
@@ -1239,7 +1238,7 @@ trait APIMethods200 {
       "createTransactionRequest",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
-      "Create Transaction Request.",
+      "Create Transaction Request",
       s"""Initiate a Payment via a Transaction Request.
         |
         |This is the preferred method to create a payment and supersedes makePayment in 1.2.1.
@@ -1349,7 +1348,7 @@ trait APIMethods200 {
       "answerTransactionRequestChallenge",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
-      "Answer Transaction Request Challenge.",
+      "Answer Transaction Request Challenge",
       """ 
         |In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
         |
@@ -1490,7 +1489,7 @@ trait APIMethods200 {
       "createUser",
       "POST",
       "/users",
-      "Create User.",
+      "Create User",
       s"""Creates OBP user.
         | No authorisation (currently) required.
         |
@@ -1732,7 +1731,7 @@ trait APIMethods200 {
       "createCustomer",
       "POST",
       "/banks/BANK_ID/customers",
-      "Create Customer.",
+      "Create Customer",
       s"""Add a customer linked to the user specified by user_id
         |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
         |This call may require additional permissions/role in the future.
@@ -1897,7 +1896,7 @@ trait APIMethods200 {
       "createUserCustomerLinks",
       "POST",
       "/banks/BANK_ID/user_customer_links",
-      "Create User Customer Link.",
+      "Create User Customer Link",
       s"""Link a User to a Customer
         |
         |${authenticationRequiredMessage(true)}
@@ -1958,7 +1957,7 @@ trait APIMethods200 {
       "addEntitlement",
       "POST",
       "/users/USER_ID/entitlements",
-      "Add Entitlement for a User.",
+      "Add Entitlement for a User",
       """Create Entitlement. Grant Role to User.
         |
         |Entitlements are used to grant System or Bank level roles to Users. (For Account level privileges, see Views)
@@ -2229,7 +2228,7 @@ trait APIMethods200 {
         "elasticSearchMetrics",
         "GET",
         "/search/metrics",
-        "Search API Metrics via Elasticsearch.",
+        "Search API Metrics via Elasticsearch",
         """
           |Search the API calls made to this API instance via Elastic Search.
           |

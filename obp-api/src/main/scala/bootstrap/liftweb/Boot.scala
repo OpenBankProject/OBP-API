@@ -47,7 +47,7 @@ import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.atms.MappedAtm
-import code.bankconnectors.ConnectorEndpoints
+import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.bankconnectors.storedprocedure.StoredProceduresMockedData
 import code.branches.MappedBranch
 import code.cardattribute.MappedCardAttribute
@@ -210,6 +210,7 @@ class Boot extends MdcLoggable {
       val driver =
         Props.mode match {
           case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development => APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
+          case Props.RunModes.Test => APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
           case _ => "org.h2.Driver"
         }
       val vendor =
@@ -218,6 +219,13 @@ class Boot extends MdcLoggable {
             new StandardDBVendor(driver,
               APIUtil.getPropsValue("db.url") openOr "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
               APIUtil.getPropsValue("db.user"), APIUtil.getPropsValue("db.password"))
+          case Props.RunModes.Test =>
+            new StandardDBVendor(
+              driver,
+              APIUtil.getPropsValue("db.url") openOr "jdbc:h2:mem:OBPTest;DB_CLOSE_DELAY=-1",
+              APIUtil.getPropsValue("db.user").orElse(Empty), 
+              APIUtil.getPropsValue("db.password").orElse(Empty)
+            )
           case _ =>
             new StandardDBVendor(
               driver,
@@ -246,8 +254,7 @@ class Boot extends MdcLoggable {
      }
     }
     
-    logger.info("Mapper database info: ")
-    logger.info(Migration.DbFunction.mapperDatabaseInfo())
+    logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo())
 
     import java.security.SecureRandom
     val rand = new SecureRandom(SecureRandom.getSeed(20))
@@ -593,8 +600,23 @@ class Boot extends MdcLoggable {
 
     Migration.database.executeScripts()
 
-    // whether export LocalMappedConnector methods as endpoints, it is just for develop
-    if (APIUtil.getPropsAsBoolValue("connector.export.LocalMappedConnector", false)){
+    // export one Connector's methods as endpoints, it is just for develop
+    APIUtil.getPropsValue("connector.name.export.as.endpoint").foreach { connectorName =>
+      // validate whether "connector.name.export.as.endpoint" have set a correct value
+      APIUtil.getPropsValue("connector") match {
+        case Full("star") =>
+          val starConnectorTypes = APIUtil.getPropsValue("starConnector_supported_types","mapped")
+            .trim
+            .split("""\s*,\s*""")
+
+          val allSupportedConnectors: List[String] = Connector.nameToConnector.keys.toList
+            .filter(it => starConnectorTypes.exists(it.startsWith(_)))
+
+          assert(allSupportedConnectors.contains(connectorName), s"connector.name.export.as.endpoint=$connectorName, this value should be one of ${allSupportedConnectors.mkString(",")}")
+        case Full(connector) =>
+          assert(connector == connectorName, s"When 'connector=$connector', this props must be: connector.name.export.as.endpoint=$connector, but current it is $connectorName")
+      }
+
       ConnectorEndpoints.registerConnectorEndpoints
     }
 

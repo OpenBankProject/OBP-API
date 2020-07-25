@@ -569,7 +569,7 @@ trait APIMethods210 {
       "answerTransactionRequestChallenge",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
-      "Answer Transaction Request Challenge.",
+      "Answer Transaction Request Challenge",
       """In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
         |
         |This endpoint totally depends on createTransactionRequest, it need get the following data from createTransactionRequest response body.
@@ -780,7 +780,7 @@ trait APIMethods210 {
       "getEntitlementsByBankAndUser",
       "GET",
       "/banks/BANK_ID/users/USER_ID/entitlements",
-      "Get Entitlements for User at Bank.",
+      "Get Entitlements for User at Bank",
       s"""
         |
         |Get Entitlements specified by BANK_ID and USER_ID
@@ -1339,7 +1339,7 @@ trait APIMethods210 {
       "createCustomer",
       "POST",
       "/banks/BANK_ID/customers",
-      "Create Customer.",
+      "Create Customer",
       s"""Add a customer linked to the user specified by user_id
           |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
           |Dates need to be in the format 2013-01-21T23:08:00Z
@@ -1474,8 +1474,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer),
-      connectorMethods = Some(List("obp.getBank","obp.getCustomersByUserId")))
+      List(apiTagCustomer)
+    )
 
     lazy val getCustomersForCurrentUserAtBank : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonGet _ => {

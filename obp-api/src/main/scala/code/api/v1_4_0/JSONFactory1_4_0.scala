@@ -357,7 +357,7 @@ object JSONFactory1_4_0 {
       operation_id = s"${rd.implementedInApiVersion.fullyQualifiedVersion}-${rd.partialFunctionName.toString}",
       request_verb = rd.requestVerb,
       request_url = rd.requestUrl,
-      summary = rd.summary,
+      summary = rd.summary.replaceFirst("""\.(\s*)$""", "$1"), // remove the ending dot in summary
       // Strip the margin character (|) and line breaks and convert from markdown to html
       description = PegdownOptions.convertPegdownToHtmlTweaked(rd.description.stripMargin), //.replaceAll("\n", ""),
       description_markdown =rd.description.stripMargin,
@@ -375,7 +375,7 @@ object JSONFactory1_4_0 {
       is_featured = rd.isFeatured,
       special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(rd.specialInstructions.getOrElse("").stripMargin),
       specified_url = rd.specifiedUrl.getOrElse(""),
-      connector_methods = rd.connectorMethods.getOrElse(List(""))
+      connector_methods = rd.connectorMethods
       )
   }
 

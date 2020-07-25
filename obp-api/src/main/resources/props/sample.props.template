@@ -99,6 +99,9 @@ resource_docs_requires_role=false
 ## Enable user authentication via obpjvm
 #obpjvm.user.authentication=true
 
+## Enable user authentication via the connector
+#connector.user.authentication=true
+
 ## Enable SSL for JWT, if set to true must set paths for the keystore locations
 jwt.use.ssl=false
 
@@ -153,8 +156,12 @@ db.url=jdbc:h2:./lift_proto.db;DB_CLOSE_ON_EXIT=FALSE
 #db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
 
 # If you want to use MySQL
-#db.url=jdbc:mysql://localhost:3306/OBP_DB1?user=obp_user_001&password=your-password-here&verifyServerCertificate=false&useSSL=true&serverTimezone=UTC&nullNamePatternMatchesAll=true
+#db.driver=com.mysql.cj.jdbc.Driver
+#db.url=jdbc:mysql://localhost:3306/dbname?user=your-username-here&password=your-password-here&verifyServerCertificate=false&useSSL=true&serverTimezone=UTC&nullNamePatternMatchesAll=true
 
+# If you want to use MS SQL
+#db.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver
+#db.url=jdbc:sqlserver://localhost:1433;databaseName=PSD2_OBP;user=OBPApi;password=********;
 
 ## Enable remote Akka actor for data split
 ## If set to true, must set hostname and port
@@ -434,6 +441,8 @@ webui_agree_terms_url =
 # URL to load (alternative) get started content (this replaces the normal content in index.html
 #webui_get_started_content_url = http://127.0.0.1:8080/plain.html
 
+# URL to load (alternative) header content (this replaces the id ="table-header" content in default.html
+#webui_header_content_url = http://127.0.0.1:8080/plain.html
 
 
 # If we want to gather more information about an Application / Startup fill this url and text
@@ -757,6 +766,7 @@ database_messages_scheduler_interval=3600
 # FREE_FORM_OTP_INSTRUCTION_TRANSPORT=dummy
 # COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=dummy
 # Possible values: dummy,email,sms
+# In case isn't defined default value is "sms"
 # -----------------------------------------------------------------------
 
 # Convert the Bank's plain text reference(s) to OBP UUIDs and visa versa. Note: this is currently only for the Rest Connector.
@@ -822,3 +832,15 @@ dynamic_endpoints_url_prefix=dynamic
 # You can also explicitly refresh the user using the refresh user endpoint.
 # refresh_user.interval=30
 # --------------------------------------------------------------------
+
+## Inbound and Outbound ignore field names
+inbound.ignore.fields=
+outbound.ignore.fields=outboundAdapterCallContext.generalContext,outboundAdapterCallContext.outboundAdapterAuthInfo.linkedCustomers,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.view,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.account,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.view,outboundAdapterCallContext.outboundAdapterAuthInfo.authViews.account,inboundAdapterCallContext.generalContext
+
+
+# --- export one Connector as endpoint,the connector name should be fulfil these rule ------
+## (1) if: connector=star, the connector should match props value of 'starConnector_supported_types'
+## (2) else: connector name should be the same as props value of connector, e.g: connector=rest_vMar2019, then the connector should must also be rest_vMar2019
+## example:
+#connector.name.export.as.endpoint=stored_procedure_vDec2019
+# ------------------------------------------------------------------------------------------

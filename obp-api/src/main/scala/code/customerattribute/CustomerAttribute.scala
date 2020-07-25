@@ -4,6 +4,7 @@ package code.customerattribute
 
 import code.api.util.APIUtil
 import code.remotedata.RemotedataCustomerAttribute
+import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.model.enums.CustomerAttributeType
 import com.openbankproject.commons.model.{BankId, Customer, CustomerAttribute, CustomerId}
 import net.liftweb.common.{Box, Logger}
@@ -44,7 +45,7 @@ trait CustomerAttributeProvider {
 
   def getCustomerIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]]
 
-  def getCustomerAttributesForCustomers(customers: List[Customer]): Future[Box[List[(Customer, List[CustomerAttribute])]]]
+  def getCustomerAttributesForCustomers(customers: List[Customer]): Future[Box[List[CustomerAndAttribute]]]
   
   def getCustomerAttributeById(customerAttributeId: String): Future[Box[CustomerAttribute]]
 

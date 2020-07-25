@@ -3,7 +3,9 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
-19/06/2020    ea819aab      Added props: refresh user.interval. default is 30 minutes.
+14/07/2020    376be727      Added full support for MS SQL as a mapper databas
+13/07/2020    d42dda90      Added props: webui_header_content_url. If we set the props, it will override the id ="table-header" content in default.html
+19/06/2020    ea819aab      Added props: refresh_user.interval. default is 30 minutes.
                             This props will set the interval for the internal refresh user process.
 29/04/2020    75925d8c      Added props: allow_pre_filled_password. in Sign Up page the default password form filed is ****
                             This props can set the filed to empty .

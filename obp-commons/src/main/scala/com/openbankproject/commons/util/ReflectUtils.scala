@@ -13,6 +13,7 @@ import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
 import scala.util.Success
 import net.liftweb.json.JValue
+import org.apache.commons.lang3.reflect.FieldUtils
 
 object ReflectUtils {
   private[this] val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -22,6 +23,10 @@ object ReflectUtils {
   def isObpObject(any: Any): Boolean = any != null && OBP_TYPE_REGEX.findFirstIn(any.getClass.getName).isDefined
 
   def isObpType(tp: Type): Boolean = tp != null && tp.typeSymbol.isClass && OBP_TYPE_REGEX.findFirstIn(tp.typeSymbol.fullName).isDefined
+
+  def isObpClass(clazz: Class[_]): Boolean = clazz != null && OBP_TYPE_REGEX.findFirstIn(clazz.getName).isDefined
+
+  def isObpClass(clazzName: String): Boolean = clazzName != null && OBP_TYPE_REGEX.findFirstIn(clazzName).isDefined
 
   /**
    * get given instance FieldMirror, and operate it. this function is just for helper of getField and setField function
@@ -184,6 +189,7 @@ object ReflectUtils {
       case v if !predicate(v) => v
       case _ => {
         val tp = this.getType(obj)
+        val clazz = obj.getClass
         val instanceMirror: ru.InstanceMirror = mirror.reflect(obj)
 
         val constructFieldNames: Seq[String] = ReflectUtils.getPrimaryConstructor(tp)
@@ -191,21 +197,37 @@ object ReflectUtils {
           .headOption
           .getOrElse(Nil)
           .map(_.name.toString.trim)
-        constructFieldNames.foreach(it => {
-          val fieldSymbol: ru.TermSymbol = getType(obj).member(ru.TermName(it)).asTerm.accessed.asTerm
-          val fieldMirror: ru.FieldMirror = instanceMirror.reflectField(fieldSymbol)
-          val fieldValue: Any = fieldMirror.get
-          recurseCallback(fieldValue)
+        val fieldNames = clazz.getFields.map(_.getName).toSet
+        constructFieldNames.foreach(fieldName => {
+          // if case class constructor args have 'override val', this class have no this field, need find field from parent class
+          if(fieldNames.contains(fieldName)) {
+            val fieldSymbol: ru.TermSymbol = tp.member(ru.TermName(fieldName)).asTerm.accessed.asTerm
+            val fieldMirror: ru.FieldMirror = instanceMirror.reflectField(fieldSymbol)
+            val fieldValue: Any = fieldMirror.get
+            recurseCallback(fieldValue)
 
-          //check whether field should modify, if PartialFunction check result is true, just modify it with new Value
-          val fieldName: String = it
-          val fieldType: Type = fieldSymbol.info
-          val ownerType: Type = fieldSymbol.owner.asType.toType
+            //check whether field should modify, if PartialFunction check result is true, just modify it with new Value
+            val fieldType: Type = fieldSymbol.info
+            val ownerType: Type = fieldSymbol.owner.asType.toType
 
-          if(fn.isDefinedAt(fieldName, fieldType, fieldValue, ownerType)) {
-            val newValue = fn(fieldName, fieldType, fieldValue, ownerType)
-            fieldMirror.set(newValue)
+            if(fn.isDefinedAt(fieldName, fieldType, fieldValue, ownerType)) {
+              val newValue = fn(fieldName, fieldType, fieldValue, ownerType)
+              fieldMirror.set(newValue)
+            }
+          } else {
+            val field = FieldUtils.getField(clazz, fieldName, true)
+            val fieldValue = field.get(obj)
+            recurseCallback(fieldValue)
+
+            val fieldType: Type = classToType(field.getType)
+            val ownerType: Type = classToType(field.getDeclaringClass)
+
+            if(fn.isDefinedAt(fieldName, fieldType, fieldValue, ownerType)) {
+              val newValue = fn(fieldName, fieldType, fieldValue, ownerType)
+              field.set(obj, newValue)
+            }
           }
+
         })
         obj
       }
@@ -461,6 +483,8 @@ object ReflectUtils {
 
   def getType(obj: Any): ru.Type = mirror.reflect(obj).symbol.toType
 
+  def forType(className: String): ru.Type = mirror.staticClass(className).toType
+
   def getPrimaryConstructor(tp: ru.Type): MethodSymbol = tp.decl(ru.termNames.CONSTRUCTOR).alternatives.head.asMethod
 
   def getPrimaryConstructor(obj: Any): MethodSymbol = this.getPrimaryConstructor(this.getType(obj))
@@ -611,8 +635,8 @@ object ReflectUtils {
       case it: Iterable[_] => it.map(toValueObject)
       case array: Array[_] => array.map(toValueObject)
       case v if getType(v).typeSymbol.asClass.isCaseClass => v
-      case other => {
-        val mirrorObj = mirror.reflect(other)
+      case obpObj if ReflectUtils.isObpObject(obpObj) => {
+        val mirrorObj = mirror.reflect(obpObj)
         mirrorObj.symbol.info.decls
           .filter(it => it.isMethod && it.isPublic && it.name.toString != "getSingleton")
           .filterNot(_.isConstructor)
@@ -630,6 +654,7 @@ object ReflectUtils {
           })
           .toMap
       }
+      case x => x
     }
   }
 

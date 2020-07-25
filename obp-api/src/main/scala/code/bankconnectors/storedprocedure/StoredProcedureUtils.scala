@@ -6,6 +6,7 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
 import code.bankconnectors.Connector
+import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.TopicTrait
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.json.Serialization.write
@@ -18,7 +19,7 @@ import scalikejdbc.{DB => scalikeDB, _}
  * The reason of extract this util: if not call stored procedure connector method, the db connection of
  * stored procedure will not be initialized.
  */
-object StoredProcedureUtils {
+object StoredProcedureUtils extends MdcLoggable{
 
   private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
 
@@ -50,7 +51,7 @@ object StoredProcedureUtils {
 
   def callProcedure[T: Manifest](procedureName: String, outBound: TopicTrait): Box[T] = {
     val procedureParam: String = write(outBound) // convert OutBound to json string
-
+    logger.debug(s"${StoredProcedureConnector_vDec2019.toString} outBoundJson: $procedureName = $procedureParam" )
     val responseJson: String =
       scalikeDB autoCommit { implicit session =>
         val conn: Connection = session.connection
@@ -60,10 +61,11 @@ object StoredProcedureUtils {
         callableStatement.setString(1, procedureParam)
 
         callableStatement.registerOutParameter(2, java.sql.Types.LONGVARCHAR)
-        callableStatement.setString(2, "")
+        //        callableStatement.setString(2, "") // MS sql server must comment this line, other DB need check.
         callableStatement.executeUpdate()
         callableStatement.getString(2)
      }
+    logger.debug(s"${StoredProcedureConnector_vDec2019.toString} inBoundJson: $procedureName = $responseJson" )
     Connector.extractAdapterResponse[T](responseJson, Empty)
   }
 }

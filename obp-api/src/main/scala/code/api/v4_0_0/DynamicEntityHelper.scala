@@ -1,19 +1,16 @@
 package code.api.v4_0_0
 
-import java.util.regex.Pattern
-
 import code.api.util.APIUtil.{Catalogs, EmptyBody, ResourceDoc, authenticationRequiredMessage, generateUUID, notCore, notOBWG, notPSD2}
+import code.api.util.ApiRole.getOrCreateDynamicApiRole
 import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ApiTag, NewStyle}
-import code.api.util.ApiRole.getOrCreateDynamicApiRole
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.util.StringHelpers
 import org.apache.commons.lang3.StringUtils
-import org.atteo.evo.inflector.English
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -21,18 +18,20 @@ import scala.collection.mutable.ArrayBuffer
 
 object EntityName {
 
-  def unapply(entityName: String): Option[String] = MockerConnector.definitionsMap.keySet.find(entityName ==)
+  def unapply(entityName: String): Option[String] = DynamicEntityHelper.definitionsMap.keySet.find(entityName ==)
 
   def unapply(url: List[String]): Option[(String, String)] = url match {
-    case entityName :: id :: Nil => MockerConnector.definitionsMap.keySet.find(entityName ==).map((_, id))
+    case entityName :: id :: Nil => DynamicEntityHelper.definitionsMap.keySet.find(entityName ==).map((_, id))
     case _ => None
   }
 
 }
 
-object MockerConnector {
+object DynamicEntityHelper {
 
-  def definitionsMap = NewStyle.function.getDynamicEntities().map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName))).toMap
+  def definitionsMap: Map[String, DynamicEntityInfo] = NewStyle.function.getDynamicEntities().map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName))).toMap
+
+  def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities().flatMap(dEntity => DynamicEntityInfo.roleNames(dEntity.entityName))
 
   def doc: ArrayBuffer[ResourceDoc] = {
     val addPrefix = APIUtil.getPropsAsBoolValue("dynamic_entities_have_prefix", true)
@@ -93,8 +92,7 @@ object MockerConnector {
     val entityName = dynamicEntityInfo.entityName
     // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
     val capitalizedNameParts = entityName.split("(?<=[a-z0-9])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
-    val singularName = capitalizedNameParts.mkString(" ")
-    val pluralName = English.plural(singularName)
+    val splitName = capitalizedNameParts.mkString(" ")
 
     val idNameInUrl = StringHelpers.snakify(dynamicEntityInfo.idName).toUpperCase()
     val listName = dynamicEntityInfo.listName
@@ -102,16 +100,16 @@ object MockerConnector {
     val endPoint = APIUtil.dynamicEndpointStub
     val implementedInApiVersion = ApiVersion.v4_0_0
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-    val apiTag: ResourceDocTag = fun(singularName, entityName)
+    val apiTag: ResourceDocTag = fun(splitName, entityName)
 
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"getAll$entityName",
+      s"get${entityName}List",
       "GET",
       s"/$entityName",
-      s"Get All $pluralName",
-      s"""Get All $pluralName.
+      s"Get $splitName List",
+      s"""Get $splitName List.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
@@ -141,8 +139,8 @@ object MockerConnector {
       s"getSingle$entityName",
       "GET",
       s"/$entityName/$idNameInUrl",
-      s"Get one $singularName",
-      s"""Get one $singularName by id.
+      s"Get $splitName by id",
+      s"""Get $splitName by id.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
@@ -169,8 +167,8 @@ object MockerConnector {
       s"create$entityName",
       "POST",
       s"/$entityName",
-      s"Create one $singularName",
-      s"""Create one $singularName.
+      s"Create new $splitName",
+      s"""Create new $splitName.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
@@ -199,8 +197,8 @@ object MockerConnector {
       s"update$entityName",
       "PUT",
       s"/$entityName/$idNameInUrl",
-      s"Update one $singularName",
-      s"""Update one $singularName.
+      s"Update exists $splitName",
+      s"""Update exists $splitName.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
@@ -229,8 +227,8 @@ object MockerConnector {
       s"delete$entityName",
       "DELETE",
       s"/$entityName/$idNameInUrl",
-      s"Delete one $singularName",
-      s"""Delete one $singularName
+      s"Delete $splitName by id",
+      s"""Delete $splitName by id
          |
          |${methodRoutingExample(entityName)}
          |
@@ -285,7 +283,7 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
 
   val idName = StringUtils.uncapitalize(entityName) + "Id"
 
-  val listName = StringHelpers.snakify(English.plural(entityName))
+  val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
 
   val jsonTypeMap: Map[String, Class[_]] = DynamicEntityFieldType.nameToValue.mapValues(_.jValueType)
 

@@ -74,7 +74,7 @@ object MessageDocsSwaggerDefinitions
           customerId = customerIdExample.value,
           customerNumber = customerNumberExample.value,
           legalName = legalNameExample.value,
-          dateOfBirth =  new Date(),
+          dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
         )),
         userOwners = List(InternalBasicUser(
           userId = userIdExample.value,
@@ -191,7 +191,7 @@ object MessageDocsSwaggerDefinitions
     isBeneficiary = isBeneficiaryExample.value.toBoolean // True if the originAccount can send money to the Counterparty
   )
   
-  val transactionCommons = TransactionCommons(
+  val transaction = Transaction(
     `uuid`= transactionIdExample.value,
     id = TransactionId(transactionIdExample.value),
     thisAccount = bankAccountCommons,

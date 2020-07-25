@@ -1,12 +1,14 @@
 package code.customerattribute
 
 import code.util.{AttributeQueryTrait, MappedUUID, UUIDString}
+import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.model.enums.CustomerAttributeType
 import com.openbankproject.commons.model.{BankId, Customer, CustomerAttribute, CustomerId}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
+import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -32,13 +34,33 @@ object MappedCustomerAttributeProvider extends CustomerAttributeProvider {
 
   override def getCustomerIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]] =
   Future {
-    Box !! {MappedCustomerAttribute.getParentIdByParams(bankId, params)}
+    Box !! {
+      if (params.isEmpty) {
+        MappedCustomerAttribute.findAll(By(MappedCustomerAttribute.mBankId, bankId.value)).map(_.customerId.value)
+      } else {
+        val paramList = params.toList
+        val parameters: List[String] = MappedCustomerAttribute.getParameters(paramList)
+        val sqlParametersFilter = MappedCustomerAttribute.getSqlParametersFilter(paramList)
+        val customerIdIdList = paramList.isEmpty match {
+          case true =>
+            MappedCustomerAttribute.findAll(
+              By(MappedCustomerAttribute.mBankId, bankId.value)
+            ).map(_.customerId.value)
+          case false =>
+            MappedCustomerAttribute.findAll(
+              By(MappedCustomerAttribute.mBankId, bankId.value),
+              BySql(sqlParametersFilter, IHaveValidatedThisSQL("developer","2020-06-28"), parameters:_*)
+            ).map(_.customerId.value)
+        }
+        customerIdIdList
+      }
+    }
   }
 
-  def getCustomerAttributesForCustomers(customers: List[Customer]): Future[Box[List[(Customer, List[CustomerAttribute])]]] = {
+  def getCustomerAttributesForCustomers(customers: List[Customer]): Future[Box[List[CustomerAndAttribute]]] = {
     Future {
       Box !! customers.map( customer =>
-        (
+        CustomerAndAttribute(
           customer,
           MappedCustomerAttribute.findAll(
             By(MappedCustomerAttribute.mBankId, customer.bankId),

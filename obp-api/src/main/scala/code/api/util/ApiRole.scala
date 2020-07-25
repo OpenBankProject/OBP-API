@@ -2,6 +2,7 @@ package code.api.util
 
 import java.util.concurrent.ConcurrentHashMap
 
+import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityHelper}
 import com.openbankproject.commons.util.ReflectUtils
 
 sealed trait ApiRole{
@@ -592,6 +593,10 @@ object ApiRole {
     roles.find(_.toString == value) match {
       case Some(x) => x // We find exactly one Role
       case _ if dynamicApiRoles.containsKey(value) => dynamicApiRoles.get(value)
+      case _ if DynamicEntityHelper.dynamicEntityRoles.contains(value) ||
+                DynamicEndpointHelper.allDynamicEndpointRoles.exists(_.toString() == value)
+                =>
+        getOrCreateDynamicApiRole(value)
       case _ => throw new IllegalArgumentException("Incorrect ApiRole value: " + value) // There is no Role
     }
   }

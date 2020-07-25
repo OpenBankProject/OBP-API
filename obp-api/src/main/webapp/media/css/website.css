@@ -573,8 +573,6 @@ footer #copyright {
 	font-weight: bold;
 }
 
-
-
 /* from oauth/authorize.html */
 #verifier {
 	margin-top: 30px;
@@ -587,4 +585,9 @@ footer #copyright {
 .wrap-text {
 	word-break: break-all;
 	overflow-wrap: break-word;
+}
+
+.error-border{
+	border: 1px solid #A8000B;
+	background:#F9F2F3
 }
