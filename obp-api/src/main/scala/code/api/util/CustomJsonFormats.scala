@@ -34,20 +34,31 @@ object CustomJsonFormats {
 }
 
 
-object FieldIgnoreSerializer extends Serializer[AnyRef] {
-  private val typedIgnoreRegx = "(.+?):(.+)".r
+object OptionalFieldSerializer extends Serializer[AnyRef] {
+  private val typedOptionalPathRegx = "(.+?):(.+)".r
   private val memo = new Memo[universe.Type, List[String]]()
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, json.JValue), AnyRef] = Functions.doNothing
-  private lazy val propsConfigIgnoreFields = Array(
-      APIUtil.getPropsValue("outbound.ignore.fields", "").split("""\s*,\s*"""),
-      APIUtil.getPropsValue("inbound.ignore.fields", "").split("""\s*,\s*""")
-    ).flatten.filterNot(StringUtils.isBlank).toList
+  private lazy val propsOutboundOptionalFields =
+      APIUtil.getPropsValue("outbound.optional.fields", "")
+        .split("""\s*,\s*""").filterNot(StringUtils.isBlank).toList
+
+  private lazy val propsInboundOptionalFields =
+    APIUtil.getPropsValue("inbound.optional.fields", "")
+      .split("""\s*,\s*""").filterNot(StringUtils.isBlank).toList
+
 
   // keep current process InBound or OutBound instance, avoid dead loop.
   private val threadLocal = new java.lang.ThreadLocal[Any]
 
   override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = {
-    case x if isInOutBoundType(x) && threadLocal.get() == null =>
+    case x if isOutboundType(x) && threadLocal.get() == null =>
+      threadLocal.set(x)
+      try{
+        toIgnoreFieldJson(x)
+      } finally {
+        threadLocal.remove()
+      }
+    case x if isInboundType(x) && threadLocal.get() == null =>
       threadLocal.set(x)
       try{
         toIgnoreFieldJson(x)
@@ -61,11 +72,22 @@ object FieldIgnoreSerializer extends Serializer[AnyRef] {
   def toIgnoreFieldJson(any: Any, tp: universe.Type, ignoreFunc: List[String] => List[String] = Functions.unary)(implicit formats: Formats): JValue = {
     val TYPE_NAME = tp.typeSymbol.name.decodedName.toString
     // if props value like this InBoundGetBanks:data.logoUrl, the type name must match current process object type.
-    val filterPropsIgnoreFields = propsConfigIgnoreFields collect {
-      case typedIgnoreRegx(TYPE_NAME, ignorePath) => ignorePath
-      case x => x
+    val filterPropsIgnoreFields: List[String] = {
+      val optionalProps = if(isOutboundType(any)) {
+        this.propsOutboundOptionalFields
+      } else if(isInboundType(any)) {
+        this.propsInboundOptionalFields
+      } else {
+        Nil
+      }
+
+      optionalProps collect {
+        case typedOptionalPathRegx(TYPE_NAME, ignorePath) => ignorePath
+        case x if !x.contains(':') => x
+      }
     }
-    val ignoreFieldNames: List[String] = getIgnores(tp) ::: filterPropsIgnoreFields
+
+    val ignoreFieldNames: List[String] = getOptionals(tp) ::: filterPropsIgnoreFields
     val zson = json.Extraction.decompose(any)
     ignoreFieldNames match {
       case Nil => zson
@@ -73,23 +95,20 @@ object FieldIgnoreSerializer extends Serializer[AnyRef] {
     }
   }
 
-  private def isInOutBoundType(any: Any) = {
-    if(ReflectUtils.isObpObject(any)) {
-      val className = any.getClass.getSimpleName
-      className.startsWith("OutBound") || className.startsWith("InBound")
-    } else {
-      false
-    }
-  }
+  private def isInboundType(any: Any) =
+    ReflectUtils.isObpObject(any) && any.getClass.getSimpleName.startsWith("InBound")
 
-  def getIgnores(tp: universe.Type): List[String] = {
+  private def isOutboundType(any: Any) =
+    ReflectUtils.isObpObject(any) && any.getClass.getSimpleName.startsWith("OutBound")
+
+  def getOptionals(tp: universe.Type): List[String] = {
     if(!ReflectUtils.isObpType(tp)) {
       return Nil
     }
     memo.memoize(tp){
       val fields: List[universe.Symbol] = tp.decls.filter(decl => decl.isTerm && (decl.asTerm.isVal || decl.asTerm.isVar)).toList
-      val (ignoreFields, notIgnoreFields) = fields.partition(_.annotations.exists(_.tree.tpe <:< typeOf[ignore]))
-      val annotedFieldNames = ignoreFields.map(_.name.decodedName.toString.trim)
+      val (optionalFields, notIgnoreFields) = fields.partition(_.annotations.exists(_.tree.tpe <:< typeOf[optional]))
+      val annotedFieldNames = optionalFields.map(_.name.decodedName.toString.trim)
       val subAnnotedFieldNames = notIgnoreFields.flatMap(it => {
         val fieldName = it.name.decodedName.toString.trim
         val fieldType: universe.Type = it.info match {
@@ -100,7 +119,7 @@ object FieldIgnoreSerializer extends Serializer[AnyRef] {
           case x => x
         }
 
-        getIgnores(fieldType)
+        getOptionals(fieldType)
           .map(it =>  s"$fieldName.$it")
       })
       annotedFieldNames ++ subAnnotedFieldNames
