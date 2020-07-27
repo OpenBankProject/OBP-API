@@ -350,6 +350,7 @@ object ConnectorBuilderUtil {
     "getCustomerAttributeById",
     "createDirectDebit",
     "deleteCustomerAttribute",
+    "getPhysicalCardsForUser",
 
     // The follow methods's parameter or return type are special
     "getCurrentFxRate",

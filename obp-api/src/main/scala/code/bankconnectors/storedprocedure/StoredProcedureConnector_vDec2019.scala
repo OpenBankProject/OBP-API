@@ -74,7 +74,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-07-27T16:08:51Z
+// ---------- created on 2020-07-27T16:34:44Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -1135,6 +1135,76 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, transactionId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_transaction", req, callContext)
         response.map(convertToTuple[Transaction](callContext))        
+  }
+          
+  messageDocs += getPhysicalCardsForUserDoc
+  def getPhysicalCardsForUserDoc = MessageDoc(
+    process = "obp.getPhysicalCardsForUser",
+    messageFormat = messageFormat,
+    description = "Get Physical Cards For User",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+          OutBoundGetPhysicalCardsForUser( UserCommons(userPrimaryKey=UserPrimaryKey(123),
+      userId=userIdExample.value,
+      idGivenByProvider="string",
+      provider="string",
+      emailAddress=emailExample.value,
+      name=userNameExample.value))
+    ),
+    exampleInboundMessage = (
+     InBoundGetPhysicalCardsForUser(status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=List( PhysicalCard(cardId=cardIdExample.value,
+      bankId=bankIdExample.value,
+      bankCardNumber=bankCardNumberExample.value,
+      cardType=cardTypeExample.value,
+      nameOnCard=nameOnCardExample.value,
+      issueNumber=issueNumberExample.value,
+      serialNumber=serialNumberExample.value,
+      validFrom=toDate(validFromDateExample),
+      expires=toDate(expiresDateExample),
+      enabled=true,
+      cancelled=true,
+      onHotList=true,
+      technology="string",
+      networks=List("string"),
+      allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
+      account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
+      accountType=accountTypeExample.value,
+      balance=BigDecimal(balanceAmountExample.value),
+      currency=currencyExample.value,
+      name=bankAccountNameExample.value,
+      label=labelExample.value,
+      iban=Some(ibanExample.value),
+      number=accountNumberExample.value,
+      bankId=BankId(bankIdExample.value),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
+      branchId=branchIdExample.value,
+      accountRoutingScheme=accountRoutingSchemeExample.value,
+      accountRoutingAddress=accountRoutingAddressExample.value,
+      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)),
+      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
+      value=accountRuleValueExample.value)),
+      accountHolder=bankAccountAccountHolderExample.value,
+      queryTags=Some(queryTagsExample.value.split("[,;]").toList)),
+      replacement=Some( CardReplacementInfo(requestedDate=toDate(requestedDateExample),
+      reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
+      pinResets=List( PinResetInfo(requestedDate=toDate(requestedDateExample),
+      reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
+      collected=Some(CardCollectionInfo(toDate(collectedDateExample))),
+      posted=Some(CardPostedInfo(toDate(postedDateExample))),
+      customerId=customerIdExample.value)))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getPhysicalCardsForUser(user: User): Box[List[PhysicalCard]] = {
+        import com.openbankproject.commons.dto.{OutBoundGetPhysicalCardsForUser => OutBound, InBoundGetPhysicalCardsForUser => InBound}  
+        val callContext: Option[CallContext] = None
+        val req = OutBound(user)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_physical_cards_for_user", req, callContext)
+        response.map(convertToTuple[List[PhysicalCard]](callContext))        
   }
           
   messageDocs += getPhysicalCardForBankDoc
@@ -5666,8 +5736,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-07-27T16:08:51Z
-//---------------- dynamic end ---------------------please don't modify this line                
+// ---------- created on 2020-07-27T16:34:44Z
+//---------------- dynamic end ---------------------please don't modify this line                 
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

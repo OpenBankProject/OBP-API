@@ -980,8 +980,8 @@ case class InBoundGetCounterparty(status: Status, data: Counterparty) extends In
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundGetPhysicalCards(user: User) extends TopicTrait
-case class InBoundGetPhysicalCards(status: Status, data: List[PhysicalCard]) extends InBoundTrait[List[PhysicalCard]] {
+case class OutBoundGetPhysicalCardsForUser(user: User) extends TopicTrait
+case class InBoundGetPhysicalCardsForUser(status: Status, data: List[PhysicalCard]) extends InBoundTrait[List[PhysicalCard]] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
