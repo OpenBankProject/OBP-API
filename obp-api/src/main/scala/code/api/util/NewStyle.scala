@@ -2126,8 +2126,8 @@ object NewStyle {
       ), callContext, CreateOrUpdateCounterpartyMetadataError), callContext)}
     }
 
-    def getPhysicalCards(user : User, callContext: Option[CallContext]) : OBPReturnType[List[PhysicalCard]] = {
-      Future{Connector.connector.vend.getPhysicalCards(user : User)} map {
+    def getPhysicalCardsForUser(user : User, callContext: Option[CallContext]) : OBPReturnType[List[PhysicalCard]] = {
+      Future{Connector.connector.vend.getPhysicalCardsForUser(user : User)} map {
         i => (unboxFullOrFail(i, callContext, CardNotFound), callContext)
       }
     }

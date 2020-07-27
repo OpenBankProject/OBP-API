@@ -48,7 +48,7 @@ trait APIMethods130 {
         cc => {
             for {
               (Full(u), callContext) <- authenticatedAccess(cc)
-              (cards,callContext) <- NewStyle.function.getPhysicalCards(u, callContext)
+              (cards,callContext) <- NewStyle.function.getPhysicalCardsForUser(u, callContext)
             } yield {
               (JSONFactory1_3_0.createPhysicalCardsJSON(cards, u), HttpCode.`200`(callContext))
             }
