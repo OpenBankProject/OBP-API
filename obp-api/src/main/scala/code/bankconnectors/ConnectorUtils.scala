@@ -64,64 +64,65 @@ object ConnectorUtils {
     jObj.extract[InBoundTrait[Any]](formats, mainFest).data
   }
 
+}
 
-  lazy val outInboundTransferLocalMapped: OutInBoundTransfer = new OutInBoundTransfer{
-    private val ConnectorMethodRegex = "(?i)OutBound(.)(.+)".r
-    private val connector:Connector = LocalMappedConnector
-    private val queryParamType = universe.typeOf[List[OBPQueryParam]]
-    private val callContextType = universe.typeOf[Option[CallContext]]
-    private implicit val formats = CustomJsonFormats.nullTolerateFormats
+object LocalMappedOutInBoundTransfer extends OutInBoundTransfer {
+  private val ConnectorMethodRegex = "(?i)OutBound(.)(.+)".r
+  private lazy val connector: Connector = LocalMappedConnector
+  private val queryParamType = universe.typeOf[List[OBPQueryParam]]
+  private val callContextType = universe.typeOf[Option[CallContext]]
+  private implicit val formats = CustomJsonFormats.nullTolerateFormats
 
-    override def transfer(outbound: TopicTrait): Future[InBoundTrait[_]] = {
-      val connectorMethod: String = outbound.getClass.getSimpleName match {
-        case ConnectorMethodRegex(x, y) => s"${x.toLowerCase()}$y"
-        case x => x
-      }
-      implicit val inboundMainFest = ManifestFactory.classType[InBoundTrait[_]](Class.forName(s"com.openbankproject.commons.dto.OutBound${connectorMethod.capitalize}"))
-
-      connector.implementedMethods.get(connectorMethod) match {
-        case None => Future.failed(new IllegalArgumentException(s"Outbound instance $outbound have no corresponding method in the ${connector.getClass.getSimpleName}"))
-        case Some(method) =>
-          val nameToValue = outbound.nameToValue.toMap
-          val argNameToType: List[(String, universe.Type)] = method.paramLists.head.map(it => it.name.decodedName.toString.trim -> it.info)
-          val connectorMethodArgs: List[Any] = argNameToType collect {
-            case (_, tp) if tp <:< callContextType => None // For connector method parameter `callContext: Option[CallContext]`, just pass None
-            case (_, tp) if tp <:< queryParamType =>
-              val limit = nameToValue("limit").asInstanceOf[Int]
-              val offset = nameToValue("offset").asInstanceOf[Int]
-              val fromDate = nameToValue("fromDate").asInstanceOf[String]
-              val toDate = nameToValue("toDate").asInstanceOf[String]
-              val queryParams: List[OBPQueryParam] = OBPQueryParam.toOBPQueryParams(limit, offset, fromDate, toDate)
-              queryParams
-            case (name, _) => nameToValue(name)
-          }
-
-          val connectorResult = ReflectUtils.invokeMethod(connector, method, connectorMethodArgs: _*)
-          val futureResult: Future[_] = transferConnectorResult(connectorResult)
-          futureResult.asInstanceOf[Future[InBoundTrait[_]]]
-      }
+  override def transfer(outbound: TopicTrait): Future[InBoundTrait[_]] = {
+    val connectorMethod: String = outbound.getClass.getSimpleName match {
+      case ConnectorMethodRegex(x, y) => s"${x.toLowerCase()}$y"
+      case x => x
     }
+    val clazz = Class.forName(s"com.openbankproject.commons.dto.InBound${connectorMethod.capitalize}")
+    implicit val inboundMainFest: Manifest[InBoundTrait[_]] = ManifestFactory.classType[InBoundTrait[_]](clazz)
 
-    private def transferConnectorResult(any: Any)(implicit inboundMainFest: Manifest[Any]): Future[_] = any match {
-      case x: Future[_] => x.map { it =>
-        val dataJson = json.Extraction.decompose(getData(it))
-        val inboundJson: JObject = "data" -> dataJson
-        inboundJson.extract[Any](formats, inboundMainFest)
-      }
-      case x =>
-        Future{
-          val dataJson = json.Extraction.decompose(getData(x))
-          val inboundJson: JObject = "data" -> dataJson
-          inboundJson.extract[Any](formats, inboundMainFest)
+    connector.implementedMethods.get(connectorMethod) match {
+      case None => Future.failed(new IllegalArgumentException(s"Outbound instance $outbound have no corresponding method in the ${connector.getClass.getSimpleName}"))
+      case Some(method) =>
+        val nameToValue = outbound.nameToValue.toMap
+        val argNameToType: List[(String, universe.Type)] = method.paramLists.head.map(it => it.name.decodedName.toString.trim -> it.info)
+        val connectorMethodArgs: List[Any] = argNameToType collect {
+          case (_, tp) if tp <:< callContextType => None // For connector method parameter `callContext: Option[CallContext]`, just pass None
+          case (_, tp) if tp <:< queryParamType =>
+            val limit = nameToValue("limit").asInstanceOf[Int]
+            val offset = nameToValue("offset").asInstanceOf[Int]
+            val fromDate = nameToValue("fromDate").asInstanceOf[String]
+            val toDate = nameToValue("toDate").asInstanceOf[String]
+            val queryParams: List[OBPQueryParam] = OBPQueryParam.toOBPQueryParams(limit, offset, fromDate, toDate)
+            queryParams
+          case (name, _) => nameToValue(name)
         }
+
+        val connectorResult = ReflectUtils.invokeMethod(connector, method, connectorMethodArgs: _*)
+        val futureResult: Future[InBoundTrait[_]] = transferConnectorResult(connectorResult)
+        futureResult
     }
-    // connector methods return different type value, this method just extract value for InboundXX#data
-    private def getData(any: Any): Any = any match {
-      case (Full(v), _: Option[CallContext]) => v
-      case (v, _: Option[CallContext]) => v
-      case Full((v, _: Option[CallContext])) => v
-      case Full(v) => v
-      case v => v
+  }
+
+  private def transferConnectorResult(any: Any)(implicit inboundMainFest: Manifest[InBoundTrait[_]]): Future[InBoundTrait[_]] = any match {
+    case x: Future[_] => x.map { it =>
+      val dataJson = json.Extraction.decompose(getData(it))
+      val inboundJson: JObject = "data" -> dataJson
+      inboundJson.extract[InBoundTrait[_]](formats, inboundMainFest)
     }
+    case x =>
+      Future{
+        val dataJson = json.Extraction.decompose(getData(x))
+        val inboundJson: JObject = "data" -> dataJson
+        inboundJson.extract[InBoundTrait[_]](formats, inboundMainFest)
+      }
+  }
+  // connector methods return different type value, this method just extract value for InboundXX#data
+  private def getData(any: Any): Any = any match {
+    case (Full(v), _: Option[CallContext]) => v
+    case (v, _: Option[CallContext]) => v
+    case Full((v, _: Option[CallContext])) => v
+    case Full(v) => v
+    case v => v
   }
 }

@@ -27,7 +27,7 @@ import scala.reflect.runtime.{universe => ru}
 object ConnectorEndpoints extends RestHelper{
 
   def registerConnectorEndpoints = {
-    oauthServe(connectorGetMethod)
+    oauthServe(connectorEndpoints)
   }
 
   /**
@@ -40,13 +40,13 @@ object ConnectorEndpoints extends RestHelper{
       else None
   }
 
-  lazy val connectorGetMethod: OBPEndpoint = {
+  lazy val connectorEndpoints: OBPEndpoint = {
     case "connector" :: methodName :: Nil JsonAny json -> req if(hashMethod(methodName, json))  => {
       cc => {
         val methodSymbol: ru.MethodSymbol = getMethod(methodName, json).get
         val outBoundType = Class.forName(s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}")
         val mf = ManifestFactory.classType[TopicTrait](outBoundType)
-        val formats = CustomJsonFormats.formats
+        val formats = CustomJsonFormats.nullTolerateFormats
         val outBound = json.extract[TopicTrait](formats, mf)
         val optionCC = Option(cc)
 
@@ -174,8 +174,8 @@ object ConnectorEndpoints extends RestHelper{
       val (mName, paramNames, _, _, isParamOption) = quadruple
       mName == methodName && paramNames.forall(paramName => isParamOption(paramName) || (json \ paramName) != JNothing)
     }
-    .sortBy(_._2.size)
-    .lastOption
+      .sortBy(_._2.size)
+      .lastOption
       .map(_._3)
   }
 

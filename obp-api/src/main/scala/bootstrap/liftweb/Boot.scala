@@ -114,7 +114,7 @@ import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
 import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion, Functions}
 import com.openbankproject.commons.util.Functions.Implicits._
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
@@ -613,6 +613,10 @@ class Boot extends MdcLoggable {
             .filter(it => starConnectorTypes.exists(it.startsWith(_)))
 
           assert(allSupportedConnectors.contains(connectorName), s"connector.name.export.as.endpoint=$connectorName, this value should be one of ${allSupportedConnectors.mkString(",")}")
+
+        case _ if connectorName == "mapped" =>
+          Functions.doNothing
+
         case Full(connector) =>
           assert(connector == connectorName, s"When 'connector=$connector', this props must be: connector.name.export.as.endpoint=$connector, but current it is $connectorName")
       }
