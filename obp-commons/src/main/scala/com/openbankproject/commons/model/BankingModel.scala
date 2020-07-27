@@ -205,6 +205,11 @@ trait BankAccount{
   @deprecated("Get the account holder(s) via owners")
   @ignore 
   def accountHolder : String
+  //This field is really special, it used for OBP side to distinguish the different accounts from the core baning side.
+  //Because of in OBP side, we just have one account table, no difference for different types of accounts. 
+  //So here, we introduce the field for the OBP presentation layer to filter the accounts. 
+  //also @`Reads a list of card accounts` in Berlin group V1.3 ..
+  def queryTags  : Option[List[String]] = None 
 }
 
 //This class is used for propagate the BankAccount as the parameters over different methods.

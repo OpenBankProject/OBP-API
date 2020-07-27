@@ -135,7 +135,8 @@ case class BankAccountCommons(
                                @ignore   
                                accountRules :List[AccountRule],
                                @ignore   
-                               accountHolder :String) extends BankAccount
+                               accountHolder :String,
+                               override val queryTags : Option[List[String]] = None) extends BankAccount
 
 object BankAccountCommons extends Converter[BankAccount, BankAccountCommons]
 
