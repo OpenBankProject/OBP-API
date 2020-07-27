@@ -17,7 +17,7 @@
 #connector=rest
 #connector=kafka
 #connector=obpjvm
-## proxy connector get data from LocalMappedConnector, and set the follow corresponding fields to be null: @ignore, inbound.ignore.fields props, outbound.ignore.fields props
+## proxy connector get data from LocalMappedConnector, and set the follow corresponding fields to be null: @optional, inbound.optional.fields props, outbound.optional.fields props
 #connector=proxy
 connector=mapped
 

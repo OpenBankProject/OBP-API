@@ -184,7 +184,7 @@ object FiledRenameSerializer extends Serializer[JsonFieldReName] {
 
   def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case x: JsonFieldReName => {
-      val ignoreFieldNames = getObjAnnotedFields(x, ru.typeOf[ignore])
+      val ignoreFieldNames = getObjAnnotedFields(x, ru.typeOf[optional])
       val renamedJFields = ReflectUtils.getConstructorArgs(x)
         .filter(pair => !ignoreFieldNames.contains(pair._1))
         .map(pair => {
@@ -441,10 +441,6 @@ object MapperSerializer extends Serializer[Mapper[_]] {
 
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, json.JValue), Mapper[_]] = Functions.doNothing
 }
-
-@scala.annotation.meta.field
-@scala.annotation.meta.param
-class ignore extends scala.annotation.StaticAnnotation
 
 @scala.annotation.meta.field
 @scala.annotation.meta.param
