@@ -2,7 +2,7 @@ package code.bankconnectors
 
 import java.lang.reflect.Method
 
-import code.api.util.{CallContext, CustomJsonFormats, FieldIgnoreSerializer, OBPQueryParam}
+import code.api.util.{CallContext, CustomJsonFormats, OptionalFieldSerializer, OBPQueryParam}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.{InBoundTrait, OutInBoundTransfer}
 import com.openbankproject.commons.model.TopicTrait
@@ -56,7 +56,7 @@ object ConnectorUtils {
     def processIgnoreFields(fields: List[String]): List[String] = fields.collect {
       case x if x.startsWith("data.") => StringUtils.substringAfter(x, "data.")
     }
-    val zson = FieldIgnoreSerializer.toIgnoreFieldJson(obj, ReflectUtils.classToType(inBoundClass), processIgnoreFields)
+    val zson = OptionalFieldSerializer.toIgnoreFieldJson(obj, ReflectUtils.classToType(inBoundClass), processIgnoreFields)
 
     val jObj: JValue = "data" -> zson
 
