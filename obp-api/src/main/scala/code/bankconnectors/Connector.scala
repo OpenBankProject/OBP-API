@@ -968,6 +968,7 @@ trait Connector extends MdcLoggable {
                                    chargePolicy: String,
                                    challengeType: Option[String],
                                    scaMethod: Option[SCA],
+                                   reasons: Option[List[TransactionRequestReason]],
                                    callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = Future{(Failure(setUnimplementedError), callContext)}
 
   //place holder for various connector methods that overwrite methods like these, does the actual data access

@@ -37,7 +37,7 @@ import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.model.{toUserExtended, _}
 import code.transactionChallenge.MappedExpectedChallengeAnswer
-import code.transactionrequests.MappedTransactionRequestProvider
+import code.transactionrequests.{MappedTransactionRequestProvider, TransactionRequestReasons}
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
@@ -545,6 +545,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -572,6 +573,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -599,6 +601,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_WEB_FORM.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -632,6 +635,7 @@ trait APIMethods400 {
                     chargePolicy,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext)
                 } yield (createdTransactionRequest, callContext)
 
@@ -640,7 +644,7 @@ trait APIMethods400 {
                 for {
                   //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
                   transDetailsSEPAJson <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $SEPA json format", 400, cc.callContext) {
-                    json.extract[TransactionRequestBodySEPAJSON]
+                    json.extract[TransactionRequestBodySEPAJsonV400]
                   }
                   toIban = transDetailsSEPAJson.to.iban
                   (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIban(toIban, cc.callContext)
@@ -665,8 +669,22 @@ trait APIMethods400 {
                     chargePolicy,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    transDetailsSEPAJson.reasons,
                     callContext)
-                } yield (createdTransactionRequest, callContext)
+                } yield {
+                  for (reason <- transDetailsSEPAJson.reasons.getOrElse(Nil)) {
+                    TransactionRequestReasons
+                      .create
+                      .TransactionRequestId(createdTransactionRequest.id.value)
+                      .Amount(reason.amount.getOrElse(""))
+                      .Code(reason.code)
+                      .Currency(reason.currency.getOrElse(""))
+                      .DocumentNumber(reason.documentNumber.getOrElse(""))
+                      .Description(reason.description.getOrElse(""))
+                      .save()
+                  }
+                  (createdTransactionRequest, callContext)
+                }
               }
               case FREE_FORM => {
                 for {
@@ -688,6 +706,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     cc.callContext)
                 } yield
                   (createdTransactionRequest, callContext)

@@ -217,8 +217,16 @@ case class TransactionRequestBodySEPAJsonV400(
                                                description: String,
                                                charge_policy: String,
                                                future_date: Option[String] = None,
-                                               reason: Option[List[TransactionRequestReason]] = None
+                                               reasons: Option[List[TransactionRequestReason]] = None
                                              ) extends TransactionRequestCommonBodyJSON
+
+case class TransactionRequestReasonV400(
+                                         code: String,
+                                         document_number: Option[String],
+                                         amount: Option[String],
+                                         currency: Option[String],
+                                         description: Option[String]
+                                       )
 // the data from endpoint, extract as valid JSON
 case class TransactionRequestBodyRefundJsonV400(
   to: TransactionRequestAccountJsonV140,

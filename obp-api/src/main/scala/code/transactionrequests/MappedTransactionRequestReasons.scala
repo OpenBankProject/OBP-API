@@ -1,5 +1,6 @@
 package code.transactionrequests
 
+import code.api.util.APIUtil
 import code.util.UUIDString
 import com.openbankproject.commons.model.TransactionRequestReasonsTrait
 import net.liftweb.mapper._
@@ -7,7 +8,10 @@ import net.liftweb.mapper._
 class TransactionRequestReasons extends TransactionRequestReasonsTrait with LongKeyedMapper[TransactionRequestReasons] with IdPK with CreatedUpdated{
   def getSingleton = TransactionRequestReasons
 
-  object TransactionRequestReasonId extends UUIDString(this) // Add class for this
+  object TransactionRequestReasonId extends UUIDString(this) {
+    override def defaultValue = APIUtil.generateUUID()
+  }
+  object TransactionRequestId extends UUIDString(this)
   object Code extends MappedString(this, 8)
   object DocumentNumber extends MappedString(this, 100)
   object Currency extends MappedString(this, 3)
@@ -15,6 +19,7 @@ class TransactionRequestReasons extends TransactionRequestReasonsTrait with Long
   object Description extends MappedString(this, 512)
 
   override def transactionRequestReasonId: String = TransactionRequestReasonId.get
+  override def transactionRequestId: String = TransactionRequestId.get
   override def code: String = Code.get
   override def documentNumber: String = DocumentNumber.get
   override def amount: String = Amount.get

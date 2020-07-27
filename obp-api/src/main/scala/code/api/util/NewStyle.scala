@@ -15,7 +15,7 @@ import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
-import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityInfo}
+import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityInfo, TransactionRequestReasonV400}
 import code.bankconnectors.Connector
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
@@ -683,17 +683,18 @@ object NewStyle {
       }
     }  
     def createTransactionRequestv400(
-      u: User,
-      viewId: ViewId,
-      fromAccount: BankAccount,
-      toAccount: BankAccount,
-      transactionRequestType: TransactionRequestType,
-      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-      detailsPlain: String,
-      chargePolicy: String,
-      challengeType: Option[String],
-      scaMethod: Option[SCA],
-      callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
+                                      u: User,
+                                      viewId: ViewId,
+                                      fromAccount: BankAccount,
+                                      toAccount: BankAccount,
+                                      transactionRequestType: TransactionRequestType,
+                                      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                      detailsPlain: String,
+                                      chargePolicy: String,
+                                      challengeType: Option[String],
+                                      scaMethod: Option[SCA],
+                                      reasons: Option[List[TransactionRequestReason]],
+                                      callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
     {
       Connector.connector.vend.createTransactionRequestv400(
         u: User,
@@ -706,6 +707,7 @@ object NewStyle {
         chargePolicy: String,
         challengeType: Option[String],
         scaMethod: Option[SCA],
+        reasons: Option[List[TransactionRequestReason]],
         callContext: Option[CallContext]
       ) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400), i._2)
@@ -784,7 +786,7 @@ object NewStyle {
                       amount: BigDecimal,
                       description: String,
                       transactionRequestType: TransactionRequestType,
-                      chargePolicy: String, 
+                      chargePolicy: String,
                       callContext: Option[CallContext]): OBPReturnType[TransactionId]=
       Connector.connector.vend.makePaymentv210(
         fromAccount: BankAccount,

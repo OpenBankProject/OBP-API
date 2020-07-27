@@ -3628,6 +3628,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                             chargePolicy: String,
                                             challengeType: Option[String],
                                             scaMethod: Option[SCA],
+                                            reasons: Option[List[TransactionRequestReason]],
                                             callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
 
     for {

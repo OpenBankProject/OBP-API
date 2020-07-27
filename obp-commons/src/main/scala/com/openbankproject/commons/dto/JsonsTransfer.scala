@@ -1031,7 +1031,7 @@ case class InBoundGetChargeValue(status: Status, data: String) extends InBoundTr
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundCreateTransactionRequestv400(outboundAdapterCallContext: OutboundAdapterCallContext, initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA]) extends TopicTrait
+case class OutBoundCreateTransactionRequestv400(outboundAdapterCallContext: OutboundAdapterCallContext, initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], reasons: Option[List[TransactionRequestReason]]) extends TopicTrait
 case class InBoundCreateTransactionRequestv400(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest) extends InBoundTrait[TransactionRequest]
 
 case class OutBoundCreateTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, fromAccount: BankAccount, counterparty: BankAccount, body: TransactionRequestBody, status: String, charge: TransactionRequestCharge) extends TopicTrait
