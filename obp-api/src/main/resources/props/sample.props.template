@@ -16,7 +16,7 @@ connector=mapped
 #connector=stored_procedure_vDec2019
 #connector=obpjvm
 #connector=star
-## proxy connector get data from LocalMappedConnector, and set the follow corresponding fields to be null: @ignore, inbound.ignore.fields props, outbound.ignore.fields props
+## proxy connector get data from LocalMappedConnector, and set the follow corresponding fields to be null: @optional, inbound.optional.fields props, outbound.optional.fields props
 ## the proxy connector only for test purpose
 #connector=proxy
 #connector=...
@@ -714,6 +714,11 @@ featured_apis=elasticSearchWarehouseV300
 # akka_connector.loglevel=INFO/DEBUG etc.
 # In case isn't defined default value is "akka-connector-actor"
 # akka_connector.name_of_actor=SOME_ACTOR_NAME
+# akka connector timeout seconds, default is 3 seconds
+# akka_connector.timeout=10
+## When akka_connector.embed_adapter set true, will start embed akka adapter,
+## Outbound akka message will be sent to this embed akka adapter's Actor. the default value is false
+#akka_connector.embed_adapter=true
 # --------------------------------------------------------------
 
 
@@ -837,12 +842,12 @@ dynamic_endpoints_url_prefix=dynamic
 # --------------------------------------------------------------------
 
 ## Inbound and Outbound ignore field names, case class name can be prefix.
-inbound.ignore.fields=\
+inbound.optional.fields=\
 inboundAdapterCallContext.generalContext,\
 inboundAdapterCallContext.sessionId,\
 InBoundGetBanks:data.logoUrl
 
-outbound.ignore.fields= \
+outbound.optional.fields= \
 outboundAdapterCallContext.sessionId, \
 outboundAdapterCallContext.consumerId, \
 outboundAdapterCallContext.generalContext
