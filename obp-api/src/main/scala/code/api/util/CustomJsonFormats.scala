@@ -1,6 +1,8 @@
 package code.api.util
 
 import code.api.util.ApiRole.rolesMappedToClasses
+import com.openbankproject.commons.dto.InBoundTrait
+import com.openbankproject.commons.model.TopicTrait
 import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util.{JsonUtils, _}
 import net.liftweb.json
@@ -46,19 +48,14 @@ object OptionalFieldSerializer extends Serializer[AnyRef] {
     APIUtil.getPropsValue("inbound.optional.fields", "")
       .split("""\s*,\s*""").filterNot(StringUtils.isBlank).toList
 
+  private val outboundType = typeOf[TopicTrait]
+  private val inboundType = typeOf[InBoundTrait[_]]
 
   // keep current process InBound or OutBound instance, avoid dead loop.
   private val threadLocal = new java.lang.ThreadLocal[Any]
 
   override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = {
-    case x if isOutboundType(x) && threadLocal.get() == null =>
-      threadLocal.set(x)
-      try{
-        toIgnoreFieldJson(x)
-      } finally {
-        threadLocal.remove()
-      }
-    case x if isInboundType(x) && threadLocal.get() == null =>
+    case x if isOutInboundType(x) && threadLocal.get() == null =>
       threadLocal.set(x)
       try{
         toIgnoreFieldJson(x)
@@ -73,9 +70,9 @@ object OptionalFieldSerializer extends Serializer[AnyRef] {
     val TYPE_NAME = tp.typeSymbol.name.decodedName.toString
     // if props value like this InBoundGetBanks:data.logoUrl, the type name must match current process object type.
     val filterPropsIgnoreFields: List[String] = {
-      val optionalProps = if(isOutboundType(any)) {
+      val optionalProps = if (tp <:< outboundType) {
         this.propsOutboundOptionalFields
-      } else if(isInboundType(any)) {
+      } else if (tp <:< inboundType) {
         this.propsInboundOptionalFields
       } else {
         Nil
@@ -95,11 +92,10 @@ object OptionalFieldSerializer extends Serializer[AnyRef] {
     }
   }
 
-  private def isInboundType(any: Any) =
-    ReflectUtils.isObpObject(any) && any.getClass.getSimpleName.startsWith("InBound")
-
-  private def isOutboundType(any: Any) =
-    ReflectUtils.isObpObject(any) && any.getClass.getSimpleName.startsWith("OutBound")
+  private def isOutInboundType(any: Any) = {
+    val typeName = any.getClass.getSimpleName
+    ReflectUtils.isObpObject(any) && (typeName.startsWith("OutBound") || typeName.startsWith("InBound"))
+  }
 
   def getOptionals(tp: universe.Type): List[String] = {
     if(!ReflectUtils.isObpType(tp)) {
