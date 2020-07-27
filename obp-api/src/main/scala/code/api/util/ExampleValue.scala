@@ -177,6 +177,9 @@ object ExampleValue {
   lazy val ibanExample = ConnectorField("DE91 1000 0000 0123 4567 89", s"MUST uniquely identify the bank account globally.")
   glossaryItems += makeGlossaryItem("Account.iban", ibanExample)
 
+  lazy val queryTagsExample = ConnectorField("Card,Debit", s"This field is only used for OBP to distinguish the debit accounts, card accounts ... ")
+  glossaryItems += makeGlossaryItem("Account.queryTagsExample", queryTagsExample)
+
   lazy val transactionRequestIban = ibanExample
 
   lazy val challengeIdExample = ConnectorField("123chaneid13-6d02-40e3-a129-0b2bf89de9f0", s"MUST uniquely identify the challenge globally.")
