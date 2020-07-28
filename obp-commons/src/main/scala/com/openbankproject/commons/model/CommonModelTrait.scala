@@ -444,6 +444,7 @@ trait TransactionRequestTypeCharge {
 
 trait TransactionRequestReasonsTrait {
   def transactionRequestReasonId: String
+  def transactionRequestId: String
   def code: String
   def documentNumber: String
   def amount: String

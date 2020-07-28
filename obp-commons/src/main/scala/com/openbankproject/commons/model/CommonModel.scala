@@ -708,7 +708,7 @@ case class TransactionRequestBody (
 
 case class TransactionRequestReason(
                                      code: String,
-                                     document_number: Option[String],
+                                     documentNumber: Option[String],
                                      amount: Option[String],
                                      currency: Option[String],
                                      description: Option[String]
