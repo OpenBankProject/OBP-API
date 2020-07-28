@@ -108,7 +108,7 @@ trait ObpLookupSystem extends MdcLoggable {
 
     val hostname = APIUtil.getPropsValue("akka_connector.hostname")
     val port = APIUtil.getPropsValue("akka_connector.port")
-    val embedAdapter = APIUtil.getPropsAsBoolValue("akka_connector.embed_adapter", false)
+    val embedAdapter = APIUtil.getPropsAsBoolValue("akka_connector.embedded_adapter", false)
 
     val actorPath: String = (hostname, port) match {
       case (Full(h), Full(p)) if !embedAdapter =>
