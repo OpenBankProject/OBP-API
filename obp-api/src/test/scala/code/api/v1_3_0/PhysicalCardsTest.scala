@@ -61,7 +61,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getBankLegacy(bankId : BankId, callContext: Option[CallContext])  = Full(bank, callContext)
   
     //these methods are required in this test, there is no need to extends connector.
-    override def getPhysicalCards(user : User) = {
+    override def getPhysicalCardsForUser(user : User) = {
       val cardList = if(user == resourceUser1) {
         user1AllCards
       } else if (user == resourceUser2) {

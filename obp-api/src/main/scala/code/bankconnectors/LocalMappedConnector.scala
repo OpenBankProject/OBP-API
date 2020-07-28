@@ -717,7 +717,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def getPhysicalCards(user: User): Box[List[PhysicalCard]] = {
+  override def getPhysicalCardsForUser(user: User): Box[List[PhysicalCard]] = {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCards(user)
     val cardList = for (l <- list) yield
       PhysicalCard(
