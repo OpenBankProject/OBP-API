@@ -37,7 +37,7 @@ import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.model.{toUserExtended, _}
 import code.transactionChallenge.MappedExpectedChallengeAnswer
-import code.transactionrequests.{MappedTransactionRequestProvider, TransactionRequestReasons}
+import code.transactionrequests.MappedTransactionRequestProvider
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
@@ -671,20 +671,7 @@ trait APIMethods400 {
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     transDetailsSEPAJson.reasons,
                     callContext)
-                } yield {
-                  for (reason <- transDetailsSEPAJson.reasons.getOrElse(Nil)) {
-                    TransactionRequestReasons
-                      .create
-                      .TransactionRequestId(createdTransactionRequest.id.value)
-                      .Amount(reason.amount.getOrElse(""))
-                      .Code(reason.code)
-                      .Currency(reason.currency.getOrElse(""))
-                      .DocumentNumber(reason.documentNumber.getOrElse(""))
-                      .Description(reason.description.getOrElse(""))
-                      .save()
-                  }
-                  (createdTransactionRequest, callContext)
-                }
+                } yield (createdTransactionRequest, callContext)
               }
               case FREE_FORM => {
                 for {

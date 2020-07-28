@@ -3654,13 +3654,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue))
       // Always create a new Transaction Request
       transactionRequest <- Future {
-        createTransactionRequestImpl210(TransactionRequestId(generateUUID()), transactionRequestType, fromAccount, toAccount, transactionRequestCommonBody, detailsPlain, status.toString, charge, chargePolicy)
+        val transactionRequest = createTransactionRequestImpl210(TransactionRequestId(generateUUID()), transactionRequestType, fromAccount, toAccount, transactionRequestCommonBody, detailsPlain, status.toString, charge, chargePolicy)
+        saveTransactionRequestReasons(reasons, transactionRequest)
+        transactionRequest
       } map {
         unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestImpl210")
       }
 
       // If no challenge necessary, create Transaction immediately and put in data store and object to return
-      (transactionRequest, callConext) <- status match {
+      (transactionRequest, callContext) <- status match {
         case TransactionRequestStatus.COMPLETED =>
           for {
             (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
@@ -3742,6 +3744,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     } yield {
       logger.debug(transactionRequest)
       (Full(transactionRequest), callContext)
+    }
+  }
+
+  private def saveTransactionRequestReasons(reasons: Option[List[TransactionRequestReason]], transactionRequest: Box[TransactionRequest]) = {
+    for (reason <- reasons.getOrElse(Nil)) {
+      TransactionRequestReasons
+        .create
+        .TransactionRequestId(transactionRequest.map(_.id.value).getOrElse(""))
+        .Amount(reason.amount.getOrElse(""))
+        .Code(reason.code)
+        .Currency(reason.currency.getOrElse(""))
+        .DocumentNumber(reason.documentNumber.getOrElse(""))
+        .Description(reason.description.getOrElse(""))
+        .save()
     }
   }
 

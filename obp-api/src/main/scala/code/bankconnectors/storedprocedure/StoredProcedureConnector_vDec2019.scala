@@ -74,7 +74,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-07-27T16:34:44Z
+// ---------- created on 2020-07-28T13:44:41Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -1834,7 +1834,12 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       detailsPlain="string",
       chargePolicy="string",
       challengeType=Some("string"),
-      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS))
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      reasons=Some(List( TransactionRequestReason(code="string",
+      documentNumber=Some("string"),
+      amount=Some(amountExample.value),
+      currency=Some(currencyExample.value),
+      description=Some("string")))))
     ),
     exampleInboundMessage = (
      InBoundCreateTransactionRequestv400(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -1909,9 +1914,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createTransactionRequestv400(initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
+  override def createTransactionRequestv400(initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], reasons: Option[List[TransactionRequestReason]], callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateTransactionRequestv400 => OutBound, InBoundCreateTransactionRequestv400 => InBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, viewId, fromAccount, toAccount, transactionRequestType, transactionRequestCommonBody, detailsPlain, chargePolicy, challengeType, scaMethod)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, viewId, fromAccount, toAccount, transactionRequestType, transactionRequestCommonBody, detailsPlain, chargePolicy, challengeType, scaMethod, reasons)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_transaction_requestv400", req, callContext)
         response.map(convertToTuple[TransactionRequest](callContext))        
   }
@@ -5736,8 +5741,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-07-27T16:34:44Z
-//---------------- dynamic end ---------------------please don't modify this line                 
+// ---------- created on 2020-07-28T13:44:41Z
+//---------------- dynamic end ---------------------please don't modify this line                  
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 
