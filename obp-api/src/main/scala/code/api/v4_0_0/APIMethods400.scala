@@ -669,7 +669,7 @@ trait APIMethods400 {
                     chargePolicy,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
-                    transDetailsSEPAJson.reasons,
+                    transDetailsSEPAJson.reasons.map(_.map(_.transform)),
                     callContext)
                 } yield (createdTransactionRequest, callContext)
               }

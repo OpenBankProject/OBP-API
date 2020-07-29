@@ -10,7 +10,6 @@ import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, 
 import code.api.util.ErrorMessages.{AdapterFunctionNotImplemented, AdapterUnknownError}
 import code.api.util.ExampleValue._
 import code.api.util._
-import code.api.v4_0_0.TransactionRequestReasonV400
 import code.bankconnectors._
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
 import com.openbankproject.commons.ExecutionContext.Implicits.global

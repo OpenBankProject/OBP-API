@@ -15,7 +15,7 @@ import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
-import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityInfo, TransactionRequestReasonV400}
+import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityInfo, TransactionRequestReasonJsonV400}
 import code.bankconnectors.Connector
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
