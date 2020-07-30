@@ -27,8 +27,10 @@ import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
+import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.ListResult
 
-import scala.collection.immutable.Nil
+import scala.collection.immutable.{List, Nil}
 
 // JObject creation
 import code.api.v1_2_1.{APIInfoJSON, APIMethods121, HostedBy, OBPAPI1_2_1}
@@ -762,9 +764,30 @@ so the caller must specify any required filtering by catalog explicitly.
       case _ => filteredResources4
     }
 
+    /**
+     * dynamic endpoints related structure is not STABLE structure, no need be parsed to a static structure.
+     * So here filter out them.
+     */
+    val filteredResources6 = filteredResources5.map {
+        case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createDynamicEndpoint) =>
+              doc.copy(exampleRequestBody =  ExampleValue.dynamicEndpointRequestBodyEmptyExample,
+                successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample
+              )
 
+        case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoint) =>
+              doc.copy(successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample)
 
-    val resourcesToUse = filteredResources5.toSet.toList
+        case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoints) =>
+              doc.copy(successResponseBody = ListResult(
+                "dynamic_endpoints",
+                List(ExampleValue.dynamicEndpointResponseBodyEmptyExample)
+              ))
+
+        case doc =>
+          doc
+    }
+
+    val resourcesToUse = filteredResources6.toSet.toList
 
 
     logger.debug(s"allResources count is ${allResources.length}")
