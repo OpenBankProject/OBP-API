@@ -596,7 +596,7 @@ $additionalInstructions
              (createdTransactionRequest,callContext) <- transactionRequestTypes match {
                case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
                  for {
-                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(
+                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(
                      u,
                      ViewId("Owner"),//This is the default 
                      fromAccount,
