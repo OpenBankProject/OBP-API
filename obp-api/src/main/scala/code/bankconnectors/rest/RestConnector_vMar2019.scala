@@ -23,13 +23,14 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
-import java.net.URLEncoder
+import java.net.{ConnectException, URLEncoder}
 import java.util.UUID.randomUUID
 import java.util.Date
 
 import akka.http.scaladsl.model.{HttpProtocol, _}
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.util.ByteString
+import _root_.akka.stream.StreamTcpException
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions
 import code.api.{APIFailure, APIFailureNewStyle}
 import com.openbankproject.commons.model.ErrorMessage
@@ -68,6 +69,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Extraction.decompose
 import net.liftweb.json.JsonParser.ParseException
 import org.apache.commons.lang3.StringUtils
+
 
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
   //this one import is for implicit convert, don't delete
@@ -9273,7 +9275,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     val responseFuture = makeHttpRequest(request)
 
     val result: Future[(Box[JValue], Option[CallContext])] = responseFuture.map {
-      case response@HttpResponse(status, _, entity@_, _) => (status, entity)
+      case HttpResponse(status, _, entity@_, _) =>
+        (status, entity)
     }.flatMap {
       case (status, entity) if status.isSuccess() =>
         this.extractBody(entity)
@@ -9304,6 +9307,9 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         Future.failed(
           new Exception(s"$AdapterTimeOurError Please Check Adapter Side, the response should be returned to OBP-Side in $httpRequestTimeout seconds. Details: ${e.getMessage}", e)
         )
+      case e: StreamTcpException if classOf[ConnectException].isInstance(e.getCause) =>
+        logger.error(s"dynamic endpoint corresponding adapter function not available, the http method is: $method, url is ${method.value}", e)
+        Future.failed(new Exception(s"$AdapterFunctionNotImplemented Please Check Rest Adapter Side! Details: the http method is: ${method.value}, url is $paramUrl", e))
       case e: Exception =>
         Future.failed(new Exception(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}", e))
     }
@@ -9429,7 +9435,11 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       case response@HttpResponse(status, _, entity@_, _) => (status, entity)
     }.flatMap {
       case (status, entity) if status.isSuccess() => extractEntity[T](entity, inBoundMapping)
-      case (status, entity) if status.intValue == 404 => Future.successful(Empty)
+      case (status, _) if status.intValue == 404 =>
+        Future {
+          val errorMsg = s"$ResourceNotExists the resource url is: $url"
+          ParamFailure(errorMsg, APIFailureNewStyle(errorMsg, status.intValue()))
+        }
       case (status, entity) => {
           val future: Future[Box[Box[T]]] = extractBody(entity) map { msg =>
             tryo {
