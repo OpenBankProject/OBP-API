@@ -16,7 +16,7 @@ class TransactionRequestReasons extends TransactionRequestReasonsTrait with Long
   object DocumentNumber extends MappedString(this, 100)
   object Currency extends MappedString(this, 3)
   object Amount extends MappedString(this, 32)
-  object Description extends MappedString(this, 512)
+  object Description extends MappedString(this, 2048)
 
   override def transactionRequestReasonId: String = TransactionRequestReasonId.get
   override def transactionRequestId: String = TransactionRequestId.get
