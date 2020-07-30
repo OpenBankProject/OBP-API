@@ -350,7 +350,7 @@ trait APIMethods400 {
          |$transactionRequestGeneralText
          |
        """.stripMargin,
-      transactionRequestBodySEPAJSON,
+      transactionRequestBodySEPAJsonV400,
       transactionRequestWithChargeJSON210,
       List(
         $UserNotLoggedIn,
@@ -545,6 +545,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -572,6 +573,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -599,6 +601,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_WEB_FORM.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -632,6 +635,7 @@ trait APIMethods400 {
                     chargePolicy,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext)
                 } yield (createdTransactionRequest, callContext)
 
@@ -640,7 +644,7 @@ trait APIMethods400 {
                 for {
                   //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
                   transDetailsSEPAJson <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $SEPA json format", 400, cc.callContext) {
-                    json.extract[TransactionRequestBodySEPAJSON]
+                    json.extract[TransactionRequestBodySEPAJsonV400]
                   }
                   toIban = transDetailsSEPAJson.to.iban
                   (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIban(toIban, cc.callContext)
@@ -665,6 +669,7 @@ trait APIMethods400 {
                     chargePolicy,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    transDetailsSEPAJson.reasons.map(_.map(_.transform)),
                     callContext)
                 } yield (createdTransactionRequest, callContext)
               }
@@ -688,6 +693,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     cc.callContext)
                 } yield
                   (createdTransactionRequest, callContext)

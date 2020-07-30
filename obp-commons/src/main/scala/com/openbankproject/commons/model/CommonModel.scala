@@ -706,6 +706,14 @@ case class TransactionRequestBody (
                                     val description : String
                                   )
 
+case class TransactionRequestReason(
+                                     code: String,
+                                     documentNumber: Option[String],
+                                     amount: Option[String],
+                                     currency: Option[String],
+                                     description: Option[String]
+                                   )
+
 case class Transaction(
                    //A universally unique id
                    @optional

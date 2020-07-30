@@ -104,7 +104,7 @@ import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.transaction_types.MappedTransactionType
 import code.transactionattribute.MappedTransactionAttribute
-import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
+import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
 import code.util.Helper
@@ -820,6 +820,7 @@ object ToSchemify {
     MappedKycStatus,
     MappedSocialMedia,
     MappedTransactionType,
+    TransactionRequestReasons,
     MappedMeeting,
     MappedMeetingInvitee,
     MappedBankAccountData,
