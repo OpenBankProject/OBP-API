@@ -653,7 +653,8 @@ trait APIMethods300 {
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             // Assume owner view was requested
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
-            params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
+            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            params <- createQueriesByHttpParamsFuture(httpParams)map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
             (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(bank, Some(user), view, BankIdAccountId(bankId, accountId), params, callContext) map {
