@@ -108,10 +108,10 @@ trait ObpLookupSystem extends MdcLoggable {
 
     val hostname = APIUtil.getPropsValue("akka_connector.hostname")
     val port = APIUtil.getPropsValue("akka_connector.port")
-    val embedAdapter = APIUtil.getPropsAsBoolValue("akka_connector.embedded_adapter", false)
+    val embeddedAdapter = APIUtil.getPropsAsBoolValue("akka_connector.embedded_adapter", false)
 
     val actorPath: String = (hostname, port) match {
-      case (Full(h), Full(p)) if !embedAdapter =>
+      case (Full(h), Full(p)) if !embeddedAdapter =>
         val hostname = h
         val port = p
         val akka_connector_hostname = Helper.getAkkaConnectorHostname
@@ -125,7 +125,7 @@ trait ObpLookupSystem extends MdcLoggable {
           logger.error("Failed to find an available port.")
         }
 
-        if(embedAdapter) {
+        if(embeddedAdapter) {
           AkkaConfig(LocalMappedOutInBoundTransfer, Some(ObpActorSystem.northSideAkkaConnectorActorSystem))
         } else {
           AkkaConnectorHelperActor.startAkkaConnectorHelperActors(ObpActorSystem.northSideAkkaConnectorActorSystem)
