@@ -2,19 +2,18 @@ package code.transactionStatusScheduler
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.ActorSystem
+import code.actorsystem.ObpLookupSystem
 import code.transactionrequests.TransactionRequests
 import code.util.Helper.MdcLoggable
-
 
 import scala.concurrent.duration._
 
 
 object TransactionStatusScheduler extends MdcLoggable {
 
-  val actorSystem = ActorSystem()
-  implicit val executor = actorSystem.dispatcher
-  val scheduler = actorSystem.scheduler
+  private lazy val actorSystem = ObpLookupSystem.obpLookupSystem
+  implicit lazy val executor = actorSystem.dispatcher
+  private lazy val scheduler = actorSystem.scheduler
 
   def start(interval: Long): Unit = {
     scheduler.schedule(
