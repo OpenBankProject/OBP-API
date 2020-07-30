@@ -9,6 +9,7 @@ import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json
 import net.liftweb.json.JObject
+import net.liftweb.json.JsonAST.JField
 
 case class ConnectorField(value: String, description: String) {
 
@@ -1495,8 +1496,13 @@ object ExampleValue {
       |    "url": "http://swagger.io"
       |  }
       |}""".stripMargin
-  lazy val dynamicEndpointRequestBodyExample = json.parse(dynamicEndpointSwagger).asInstanceOf[JObject]
-  lazy val dynamicEndpointResponseBodyExample = ("dynamic_endpoint_id", "dynamic-endpoint-id") ~ ("swagger_string", dynamicEndpointRequestBodyExample)
+  lazy val dynamicEndpointRequestBodyExample: JObject = json.parse(dynamicEndpointSwagger).asInstanceOf[JObject]
+  lazy val dynamicEndpointResponseBodyExample: JObject = ("dynamic_endpoint_id", "dynamic-endpoint-id") ~ ("swagger_string", dynamicEndpointRequestBodyExample)
+
+  lazy val dynamicEndpointRequestBodyEmptyExample: JObject = "swagger" -> "2.0"
+  lazy val dynamicEndpointResponseBodyEmptyExample: JObject = dynamicEndpointResponseBodyExample.transformField {
+    case JField("swagger_string", _) => JField("swagger_string", "swagger" -> "2.0")
+  }.asInstanceOf[JObject]
 
   /**
    * parse date example value to Date type
