@@ -1419,7 +1419,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def createBankAccount(
+  override def createBankAccountV400(
                                   bankId: BankId,
                                   accountId: AccountId,
                                   accountType: String,
@@ -1442,6 +1442,30 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       branchId: String,
       accountRoutingScheme: String,
       accountRoutingAddress: String), callContext)
+  }
+
+  override def createBankAccountV410(
+                                  bankId: BankId,
+                                  accountId: AccountId,
+                                  accountType: String,
+                                  accountLabel: String,
+                                  currency: String,
+                                  initialBalance: BigDecimal,
+                                  accountHolderName: String,
+                                  branchId: String,
+                                  accountRoutings: List[AccountRouting],
+                                  callContext: Option[CallContext]
+                                ): OBPReturnType[Box[BankAccount]] = Future {
+    (Connector.connector.vend.createBankAccountLegacy(bankId: BankId,
+      accountId: AccountId,
+      accountType: String,
+      accountLabel: String,
+      currency: String,
+      initialBalance: BigDecimal,
+      accountHolderName: String,
+      branchId: String,
+      accountRoutings.head.scheme: String,
+      accountRoutings.head.address: String), callContext)
   }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist

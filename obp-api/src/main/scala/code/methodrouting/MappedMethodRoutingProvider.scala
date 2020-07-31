@@ -55,6 +55,7 @@ object MappedMethodRoutingProvider extends MethodRoutingProvider with CustomJson
     tryo{
       entityToPersist
         .MethodName(methodRouting.methodName)
+        .MethodVersion(methodRouting.methodVersion)
         .BankIdPattern(bankIdPattern.orNull)
         .IsBankIdExactMatch(isExactMatch)
         .ConnectorName(methodRouting.connectorName)
@@ -76,6 +77,7 @@ class MethodRouting extends MethodRoutingT with LongKeyedMapper[MethodRouting] w
 
   object MethodRoutingId extends MappedUUID(this)
   object MethodName extends MappedString(this, 255)
+  object MethodVersion extends MappedString(this, 10)
   object BankIdPattern extends MappedString(this, 255){
     override def defaultValue: String = MethodRouting.bankIdPatternMatchAny
   }
@@ -85,6 +87,7 @@ class MethodRouting extends MethodRoutingT with LongKeyedMapper[MethodRouting] w
 
   override def methodRoutingId: Option[String] = Option(MethodRoutingId.get)
   override def methodName: String = MethodName.get
+  override def methodVersion: String = MethodVersion.get
   override def bankIdPattern: Option[String] = Option(BankIdPattern.get)
   override def isBankIdExactMatch: Boolean = IsBankIdExactMatch.get
   override def connectorName: String = ConnectorName.get

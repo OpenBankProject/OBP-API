@@ -4303,11 +4303,12 @@ trait APIMethods310 {
             }
             connectorName = postedData.connectorName
             methodName = postedData.methodName
+            methodVersion = postedData.methodVersion.replace(".", "").toUpperCase
             _ <- Helper.booleanToFuture(s"$InvalidConnectorName please check connectorName: $connectorName", failCode=400) {
               NewStyle.function.getConnectorByName(connectorName).isDefined
             }
             _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400) {
-              NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
+              NewStyle.function.getConnectorMethod(connectorName, methodName + methodVersion).isDefined
             }
             invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
             _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
@@ -4403,11 +4404,12 @@ trait APIMethods310 {
             }
             connectorName = putData.connectorName
             methodName = putData.methodName
+            methodVersion = putData.methodVersion.replace(".", "").toUpperCase
             _ <- Helper.booleanToFuture(s"$InvalidConnectorName please check connectorName: $connectorName", failCode=400) {
               NewStyle.function.getConnectorByName(connectorName).isDefined
             }
             _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400) {
-              NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
+              NewStyle.function.getConnectorMethod(connectorName, methodName + methodVersion).isDefined
             }
             (_, _) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)
 

@@ -1089,22 +1089,45 @@ object NewStyle {
       accountRoutingScheme: String,
       accountRoutingAddress: String, 
       callContext: Option[CallContext]
-    ): OBPReturnType[BankAccount] = 
-      Connector.connector.vend.createBankAccount(
-        bankId: BankId,
-        accountId: AccountId,
-        accountType: String,
-        accountLabel: String,
-        currency: String,
-        initialBalance: BigDecimal,
-        accountHolderName: String,
-        branchId: String,
-        accountRoutingScheme: String,
-        accountRoutingAddress: String,
-        callContext
-      ) map {
-        i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
-      }
+    ): OBPReturnType[BankAccount] = {
+      NewStyle.function.getMethodRoutingsByMethdName(Full("createBankAccount")).flatMap(methodRoutings =>
+        methodRoutings.headOption match {
+          case Some(methodRouting) if methodRouting.methodVersion == "v4.1.0" =>
+            println("Using version v4.1.0")
+            Connector.connector.vend.createBankAccountV410(
+              bankId: BankId,
+              accountId: AccountId,
+              accountType: String,
+              accountLabel: String,
+              currency: String,
+              initialBalance: BigDecimal,
+              accountHolderName: String,
+              branchId: String,
+              List(AccountRouting(accountRoutingScheme: String, accountRoutingAddress: String)),
+              callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
+            }
+          case _ =>
+            println("Using version v4.0.0")
+            Connector.connector.vend.createBankAccountV400(
+              bankId: BankId,
+              accountId: AccountId,
+              accountType: String,
+              accountLabel: String,
+              currency: String,
+              initialBalance: BigDecimal,
+              accountHolderName: String,
+              branchId: String,
+              accountRoutingScheme: String,
+              accountRoutingAddress: String,
+              callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
+            }
+        }
+      )
+    }
 
     def addBankAccount(
       bankId: BankId,

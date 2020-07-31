@@ -21,6 +21,7 @@ object MethodRoutingProvider extends SimpleInjector {
 trait MethodRoutingT {
   def methodRoutingId: Option[String]
   def methodName: String
+  def methodVersion: String
   def bankIdPattern: Option[String]
 
   /**
@@ -44,6 +45,7 @@ case class MethodRoutingCommons(methodName: String,
                                 bankIdPattern: Option[String],
                                 parameters: List[MethodRoutingParam] = Nil,
                                 methodRoutingId: Option[String] = None,
+                                methodVersion: String = "",
                                ) extends MethodRoutingT with JsonFieldReName {
   /**
     * when serialized to json, the  Option filed will be not shown, this method just generate a full fields json, include all None value fields
@@ -54,6 +56,7 @@ case class MethodRoutingCommons(methodName: String,
 
     JObject(List(
       JField("method_name", JString(this.methodName)),
+      JField("method_version", JString(this.methodVersion)),
       JField("connector_name", JString(this.connectorName)),
       JField("is_bank_id_exact_match", JBool(this.isBankIdExactMatch)),
       JField("bank_id_pattern", this.bankIdPattern.map(JString(_)).getOrElse(JString("*"))),

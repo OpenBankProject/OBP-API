@@ -1363,7 +1363,46 @@ trait Connector extends MdcLoggable {
                          accountRoutingScheme: String,
                          accountRoutingAddress: String,
                          callContext: Option[CallContext]
+                       ) = createBankAccountV400(
+    bankId: BankId,
+    accountId: AccountId,
+    accountType: String,
+    accountLabel: String,
+    currency: String,
+    initialBalance: BigDecimal,
+    accountHolderName: String,
+    branchId: String,
+    accountRoutingScheme: String,
+    accountRoutingAddress: String,
+    callContext: Option[CallContext]
+  )
+
+  def createBankAccountV400(
+                         bankId: BankId,
+                         accountId: AccountId,
+                         accountType: String,
+                         accountLabel: String,
+                         currency: String,
+                         initialBalance: BigDecimal,
+                         accountHolderName: String,
+                         branchId: String,
+                         accountRoutingScheme: String,
+                         accountRoutingAddress: String,
+                         callContext: Option[CallContext]
                        ): OBPReturnType[Box[BankAccount]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createBankAccountV410(
+                             bankId: BankId,
+                             accountId: AccountId,
+                             accountType: String,
+                             accountLabel: String,
+                             currency: String,
+                             initialBalance: BigDecimal,
+                             accountHolderName: String,
+                             branchId: String,
+                             accountRoutings: List[AccountRouting],
+                             callContext: Option[CallContext]
+                           ): OBPReturnType[Box[BankAccount]] = Future{(Failure(setUnimplementedError), callContext)}
 
   //generates an unused account number and then creates the sandbox account using that number
   @deprecated("This return Box, not a future, try to use @createBankAccount instead. ","10-05-2019")
