@@ -576,7 +576,7 @@ object NewStyle {
       }
     }
 
-    def createHttpParams(url: String): Future[List[HTTPParam]] = {
+    def extractHttpParamsFromUrl(url: String): Future[List[HTTPParam]] = {
       createHttpParamsByUrlFuture(url) map { unboxFull(_) }
     }
     def createObpParams(httpParams: List[HTTPParam], allowedParams: List[String], callContext: Option[CallContext]): Future[List[OBPQueryParam]] = {
