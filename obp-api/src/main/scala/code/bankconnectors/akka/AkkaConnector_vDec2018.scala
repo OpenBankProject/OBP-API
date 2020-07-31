@@ -1962,9 +1962,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         response.map(convertToTuple[BankAccountCommons](callContext))        
   }
           
-  messageDocs += createBankAccountV400Doc
-  def createBankAccountV400Doc = MessageDoc(
-    process = "obp.createBankAccountV400",
+  messageDocs += createBankAccountDoc
+  def createBankAccountDoc = MessageDoc(
+    process = "obp.createBankAccount",
     messageFormat = messageFormat,
     description = "Create Bank Account",
     outboundTopic = None,
@@ -2007,22 +2007,22 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createBankAccountV400(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, currency: String, initialBalance: BigDecimal, accountHolderName: String, branchId: String, accountRoutingScheme: String, accountRoutingAddress: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
+  override def createBankAccount(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, currency: String, initialBalance: BigDecimal, accountHolderName: String, branchId: String, accountRoutingScheme: String, accountRoutingAddress: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateBankAccount => OutBound, InBoundCreateBankAccount => InBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName, branchId, accountRoutingScheme, accountRoutingAddress)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[BankAccountCommons](callContext))        
   }
 
-  messageDocs += createBankAccountV410Doc
-  def createBankAccountV410Doc = MessageDoc(
-    process = "obp.createBankAccountV410",
+  messageDocs += createBankAccount_C1Doc
+  def createBankAccount_C1Doc = MessageDoc(
+    process = "obp.createBankAccount_C1",
     messageFormat = messageFormat,
     description = "Create Bank Account",
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundCreateBankAccount.`v4.1.0`(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      OutBoundCreateBankAccount_M1(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
         bankId=BankId(bankIdExample.value),
         accountId=AccountId(accountIdExample.value),
         accountType=accountTypeExample.value,
@@ -2058,9 +2058,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createBankAccountV410(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, currency: String, initialBalance: BigDecimal, accountHolderName: String, branchId: String, accountRoutings: List[AccountRouting], callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
-    import com.openbankproject.commons.dto.{OutBoundCreateBankAccount => OutBound, InBoundCreateBankAccount => InBound}
-    val req = OutBound.`v4.1.0`(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName, branchId, accountRoutings)
+  override def createBankAccount_C1(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, currency: String, initialBalance: BigDecimal, accountHolderName: String, branchId: String, accountRoutings: List[AccountRouting], callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
+    import com.openbankproject.commons.dto.{OutBoundCreateBankAccount_M1 => OutBound, InBoundCreateBankAccount => InBound}
+    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName, branchId, accountRoutings)
     val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _)
     response.map(convertToTuple[BankAccountCommons](callContext))
   }

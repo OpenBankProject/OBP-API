@@ -1363,35 +1363,9 @@ trait Connector extends MdcLoggable {
                          accountRoutingScheme: String,
                          accountRoutingAddress: String,
                          callContext: Option[CallContext]
-                       ) = createBankAccountV400(
-    bankId: BankId,
-    accountId: AccountId,
-    accountType: String,
-    accountLabel: String,
-    currency: String,
-    initialBalance: BigDecimal,
-    accountHolderName: String,
-    branchId: String,
-    accountRoutingScheme: String,
-    accountRoutingAddress: String,
-    callContext: Option[CallContext]
-  )
-
-  def createBankAccountV400(
-                         bankId: BankId,
-                         accountId: AccountId,
-                         accountType: String,
-                         accountLabel: String,
-                         currency: String,
-                         initialBalance: BigDecimal,
-                         accountHolderName: String,
-                         branchId: String,
-                         accountRoutingScheme: String,
-                         accountRoutingAddress: String,
-                         callContext: Option[CallContext]
                        ): OBPReturnType[Box[BankAccount]] = Future{(Failure(setUnimplementedError), callContext)}
 
-  def createBankAccountV410(
+  def createBankAccount_C1(
                              bankId: BankId,
                              accountId: AccountId,
                              accountType: String,

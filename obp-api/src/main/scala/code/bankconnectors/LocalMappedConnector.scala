@@ -1419,7 +1419,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def createBankAccountV400(
+  override def createBankAccount(
                                   bankId: BankId,
                                   accountId: AccountId,
                                   accountType: String,
@@ -1444,7 +1444,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       accountRoutingAddress: String), callContext)
   }
 
-  override def createBankAccountV410(
+  override def createBankAccount_C1(
                                   bankId: BankId,
                                   accountId: AccountId,
                                   accountType: String,

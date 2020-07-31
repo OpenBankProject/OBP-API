@@ -16,7 +16,7 @@ import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityInfo, TransactionRequestReasonJsonV400}
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, MethodRoutingHolder}
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
@@ -43,7 +43,7 @@ import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
 import com.openbankproject.commons.util.ApiVersion
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, EmptyBox, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
@@ -1090,43 +1090,43 @@ object NewStyle {
       accountRoutingAddress: String, 
       callContext: Option[CallContext]
     ): OBPReturnType[BankAccount] = {
-      NewStyle.function.getMethodRoutingsByMethdName(Full("createBankAccount")).flatMap(methodRoutings =>
-        methodRoutings.headOption match {
-          case Some(methodRouting) if methodRouting.methodVersion == "v4.1.0" =>
-            println("Using version v4.1.0")
-            Connector.connector.vend.createBankAccountV410(
-              bankId: BankId,
-              accountId: AccountId,
-              accountType: String,
-              accountLabel: String,
-              currency: String,
-              initialBalance: BigDecimal,
-              accountHolderName: String,
-              branchId: String,
-              List(AccountRouting(accountRoutingScheme: String, accountRoutingAddress: String)),
-              callContext
-            ) map {
-              i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
-            }
-          case _ =>
-            println("Using version v4.0.0")
-            Connector.connector.vend.createBankAccountV400(
-              bankId: BankId,
-              accountId: AccountId,
-              accountType: String,
-              accountLabel: String,
-              currency: String,
-              initialBalance: BigDecimal,
-              accountHolderName: String,
-              branchId: String,
-              accountRoutingScheme: String,
-              accountRoutingAddress: String,
-              callContext
-            ) map {
-              i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
-            }
-        }
-      )
+      println(MethodRoutingHolder.methodRouting)
+      // Problem : MethodRoutingHolder.methodRouting return Empty
+      MethodRoutingHolder.methodRouting match {
+        case Full(routing) if routing.methodName == "createBankAccount" && routing.methodVersion == "1" =>
+          println("Using createBankAccount version 1")
+          Connector.connector.vend.createBankAccount_C1(
+            bankId: BankId,
+            accountId: AccountId,
+            accountType: String,
+            accountLabel: String,
+            currency: String,
+            initialBalance: BigDecimal,
+            accountHolderName: String,
+            branchId: String,
+            List(AccountRouting(accountRoutingScheme: String, accountRoutingAddress: String)),
+            callContext
+          ) map {
+            i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
+          }
+        case _ =>
+          println("Using createBankAccount original version")
+          Connector.connector.vend.createBankAccount(
+            bankId: BankId,
+            accountId: AccountId,
+            accountType: String,
+            accountLabel: String,
+            currency: String,
+            initialBalance: BigDecimal,
+            accountHolderName: String,
+            branchId: String,
+            accountRoutingScheme: String,
+            accountRoutingAddress: String,
+            callContext
+          ) map {
+            i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
+          }
+      }
     }
 
     def addBankAccount(

@@ -4303,7 +4303,10 @@ trait APIMethods310 {
             }
             connectorName = postedData.connectorName
             methodName = postedData.methodName
-            methodVersion = postedData.methodVersion.replace(".", "").toUpperCase
+            methodVersion = postedData.methodVersion match {
+              case version if version.isEmpty => ""
+              case version => "_C" + version
+            }
             _ <- Helper.booleanToFuture(s"$InvalidConnectorName please check connectorName: $connectorName", failCode=400) {
               NewStyle.function.getConnectorByName(connectorName).isDefined
             }
@@ -4404,7 +4407,10 @@ trait APIMethods310 {
             }
             connectorName = putData.connectorName
             methodName = putData.methodName
-            methodVersion = putData.methodVersion.replace(".", "").toUpperCase
+            methodVersion = putData.methodVersion match {
+              case version if version.isEmpty => ""
+              case version => "_C" + version
+            }
             _ <- Helper.booleanToFuture(s"$InvalidConnectorName please check connectorName: $connectorName", failCode=400) {
               NewStyle.function.getConnectorByName(connectorName).isDefined
             }
