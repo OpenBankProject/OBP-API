@@ -583,7 +583,7 @@ trait APIMethods300 {
               (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
               view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId),Some(u), callContext)
               allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
-              httpParams <- NewStyle.function.createHttpParams(cc.url)
+              httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
               obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
               reqParams = req.params.filterNot(param => allowedParams.contains(param._1))
               (transactionIds, callContext) <- if(reqParams.nonEmpty) {
@@ -653,7 +653,8 @@ trait APIMethods300 {
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             // Assume owner view was requested
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
-            params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            params <- createQueriesByHttpParamsFuture(httpParams)map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
             (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(bank, Some(user), view, BankIdAccountId(bankId, accountId), params, callContext) map {
@@ -1539,7 +1540,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser,callContext)
             
-            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
               x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
@@ -2184,7 +2185,7 @@ trait APIMethods300 {
             for {
               (Full(u), callContext) <- authenticatedAccess(cc)
               _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics, callContext)
-              httpParams <- NewStyle.function.createHttpParams(cc.url)
+              httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
               obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
                 x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
               }

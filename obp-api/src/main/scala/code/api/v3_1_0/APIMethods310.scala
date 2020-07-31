@@ -328,7 +328,7 @@ trait APIMethods310 {
 
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadMetrics, callContext)
             
-            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
@@ -418,7 +418,7 @@ trait APIMethods310 {
 
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadMetrics, callContext)
             
-            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
                 unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
@@ -486,7 +486,7 @@ trait APIMethods310 {
               canUseCustomerFirehose(u)
             }
             allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
-            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
             customers <- NewStyle.function.getCustomers(bankId, callContext, obpQueryParams)
             reqParams = req.params.filterNot(param => allowedParams.contains(param._1))
@@ -730,7 +730,7 @@ trait APIMethods310 {
             _ <- Helper.booleanToFuture(failMsg = ViewDoesNotPermitAccess + " You need the view canQueryAvailableFunds.") {
               view.canQueryAvailableFunds
             }
-            httpParams: List[HTTPParam] <- NewStyle.function.createHttpParams(cc.url)
+            httpParams: List[HTTPParam] <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             _ <- Helper.booleanToFuture(failMsg = MissingQueryParams + amount) {
               httpParams.exists(_.name == amount)
             }
@@ -1026,7 +1026,7 @@ trait APIMethods310 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetWebhooks, callContext)
-            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             allowedParams = List("limit", "offset", "account_id", "user_id")
             obpParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
             additionalParam = OBPBankId(bankId.value)
@@ -5029,7 +5029,7 @@ trait APIMethods310 {
         cc => {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
               x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
             }
