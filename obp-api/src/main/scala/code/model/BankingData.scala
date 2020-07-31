@@ -27,8 +27,8 @@ TESOBE (http://www.tesobe.com/)
 package code.model
 
 import code.accountholders.AccountHolders
-import code.api.Constant
-import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, unboxFullOrFail}
+import code.api.{APIFailureNewStyle, Constant}
+import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.bankconnectors.{Connector, LocalMappedConnector}
@@ -45,6 +45,7 @@ import net.liftweb.json.{JArray, JObject}
 
 import scala.collection.immutable.{List, Set}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.Future
 
 case class BankExtended(bank: Bank) {
@@ -59,6 +60,14 @@ case class BankExtended(bank: Bank) {
     privateAccountAccessesAtOneBank
       .map(a=>BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
       .flatMap(a => BankAccountX(a.bankId, a.accountId))
+  }
+
+  def privateAccountsFuture(privateAccountAccessesAtOneBank : List[AccountAccess], callContext: Option[CallContext]): Future[(List[BankAccount], Option[CallContext])] = {
+    val accounts: List[BankIdAccountId] = privateAccountAccessesAtOneBank
+      .map(a=>BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
+    Connector.connector.vend.getBankAccounts(accounts, callContext) map { i =>
+      (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFound", 400 ), i._2)
+    }
   }
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
