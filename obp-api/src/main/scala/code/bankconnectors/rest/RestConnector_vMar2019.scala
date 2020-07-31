@@ -9437,7 +9437,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       case (status, entity) if status.isSuccess() => extractEntity[T](entity, inBoundMapping)
       case (status, _) if status.intValue == 404 =>
         Future {
-          val errorMsg = s"$ResourceNotExists the resource url is: $url"
+          val errorMsg = s"$ResourceDoesNotExist the resource url is: $url"
           ParamFailure(errorMsg, APIFailureNewStyle(errorMsg, status.intValue()))
         }
       case (status, entity) => {
