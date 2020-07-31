@@ -2758,10 +2758,10 @@ trait APIMethods400 {
                   privateAccountAccesses.filter(aa => accountIds.contains(aa.account_id.get))
                 }
             }
-            availablePrivateAccounts <- bank.privateAccountsFuture(privateAccountAccesses2)
+            (availablePrivateAccounts, callContext) <- bank.privateAccountsFuture(privateAccountAccesses2, Some(cc))
           } yield {
             val bankAccounts = Implementations2_0_0.processAccounts(privateViewsUserCanAccessAtOneBank, availablePrivateAccounts)
-            (bankAccounts, HttpCode.`200`(cc.callContext))
+            (bankAccounts, HttpCode.`200`(callContext))
           }
       }
     }
