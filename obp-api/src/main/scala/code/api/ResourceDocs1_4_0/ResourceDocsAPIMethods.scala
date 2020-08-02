@@ -524,7 +524,30 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             rd <- getResourceDocsList(requestedApiVersion)
           } yield {
             // Filter
-            val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
+            val rdFiltered = ResourceDocsAPIMethodsUtil
+              .filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
+              .map {
+                /**
+                 * dynamic endpoints related structure is not STABLE structure, no need be parsed to a static structure.
+                 * So here filter out them.
+                 */
+                case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createDynamicEndpoint) =>
+                  doc.copy(exampleRequestBody =  ExampleValue.dynamicEndpointRequestBodyEmptyExample,
+                    successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample
+                  )
+
+                case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoint) =>
+                  doc.copy(successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample)
+
+                case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoints) =>
+                  doc.copy(successResponseBody = ListResult(
+                    "dynamic_endpoints",
+                    List(ExampleValue.dynamicEndpointResponseBodyEmptyExample)
+                  ))
+
+                case doc =>
+                  doc
+              }
             // Format the data as json
             val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
             //Get definitions of objects of success responses
@@ -764,30 +787,7 @@ so the caller must specify any required filtering by catalog explicitly.
       case _ => filteredResources4
     }
 
-    /**
-     * dynamic endpoints related structure is not STABLE structure, no need be parsed to a static structure.
-     * So here filter out them.
-     */
-    val filteredResources6 = filteredResources5.map {
-        case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createDynamicEndpoint) =>
-              doc.copy(exampleRequestBody =  ExampleValue.dynamicEndpointRequestBodyEmptyExample,
-                successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample
-              )
-
-        case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoint) =>
-              doc.copy(successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample)
-
-        case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoints) =>
-              doc.copy(successResponseBody = ListResult(
-                "dynamic_endpoints",
-                List(ExampleValue.dynamicEndpointResponseBodyEmptyExample)
-              ))
-
-        case doc =>
-          doc
-    }
-
-    val resourcesToUse = filteredResources6.toSet.toList
+    val resourcesToUse = filteredResources5.toSet.toList
 
 
     logger.debug(s"allResources count is ${allResources.length}")

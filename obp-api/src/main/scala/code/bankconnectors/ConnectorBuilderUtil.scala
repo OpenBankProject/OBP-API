@@ -170,7 +170,7 @@ object ConnectorBuilderUtil {
       }
 
       var body =
-      s"""|    import com.openbankproject.commons.dto.{$outBoundName => OutBound, $inBoundName => InBound}  $callContext
+      s"""|    import com.openbankproject.commons.dto.{$inBoundName => InBound, $outBoundName => OutBound}  $callContext
           |        val req = OutBound($parametersNamesString)
           |        val response: Future[Box[InBound]] = ${responseExpression(methodName)}
           |        response.map(convertToTuple[$inboundDataFieldType](callContext))        """.stripMargin
