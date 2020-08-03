@@ -56,6 +56,7 @@ case class BankExtended(bank: Bank) {
       .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 
+  // TODO refactor this function to get accounts from list in a single call via connector
   def privateAccounts(privateAccountAccessesAtOneBank : List[AccountAccess]) : List[BankAccount] = {
     privateAccountAccessesAtOneBank
       .map(a=>BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
