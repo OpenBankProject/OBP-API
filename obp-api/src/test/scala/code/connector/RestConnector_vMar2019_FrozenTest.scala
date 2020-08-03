@@ -3,6 +3,7 @@ package code.connector
 import java.io.{FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream}
 import java.net.URI
 
+import code.bankconnectors.ConnectorUtils
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.connector.RestConnector_vMar2019_FrozenUtil.{connectorMethodNames, persistFilePath, typeNameToFieldsInfo}
 import com.openbankproject.commons.util.ReflectUtils
@@ -93,10 +94,10 @@ object RestConnector_vMar2019_FrozenUtil {
     .map(_.name.toString)
     .toList.filterNot(_ == "dynamicEndpointProcess")
 
-  // typeNameToFieldsInfo sturcture is: (typeFullName, Map(fieldName->fieldTypeName))
+  // typeNameToFieldsInfo structure is: (typeFullName, Map(fieldName->fieldTypeName))
   val typeNameToFieldsInfo: Map[String, Map[String, String]] = {
     val outBoundNames = connectorMethodNames.map(it => s"com.openbankproject.commons.dto.OutBound${it.capitalize}")
-    val inBoundNames = connectorMethodNames.map(it => s"com.openbankproject.commons.dto.InBound${it.capitalize}")
+    val inBoundNames = connectorMethodNames.map(it => ConnectorUtils.getInBoundClass(it).getName)
     val outBoundInboundNames: List[String] = outBoundNames ::: inBoundNames
 
     val outBoundInBoundTypes: List[Type] = outBoundInboundNames.map(ReflectUtils.getTypeByName(_))

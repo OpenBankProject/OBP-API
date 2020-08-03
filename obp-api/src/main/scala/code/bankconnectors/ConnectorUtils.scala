@@ -28,7 +28,7 @@ object ConnectorUtils {
 
 
       val methodName = method.getName
-      val inBoundType: Option[Class[_]] = ReflectUtils.forClassOption(s"com.openbankproject.commons.dto.InBound${methodName.capitalize}")
+      val inBoundType: Option[Class[_]] = getInBoundClassOption(methodName)
       if (!methodName.contains("$default$") && inBoundType.isDefined && !excludeProxyMethods.contains(methodName)) {
         deleteIgnoreFieldValue(originResult, inBoundType.orNull).asInstanceOf[AnyRef]
       } else {
@@ -64,6 +64,44 @@ object ConnectorUtils {
     jObj.extract[InBoundTrait[Any]](formats, mainFest).data
   }
 
+  // regex that match versioned style InBound type, for example: OutBoundCreateBankAccount_M1
+  private val versionedInBound = """(.+)_[a-zA-Z][\d_]+""".r
+
+  private def getMaybeInBoundName(connectorMethodName: String): List[String] =
+    List(
+      connectorMethodName.capitalize,
+      versionedInBound.replaceFirstIn(connectorMethodName.capitalize, "$1")
+    ).map(name => s"com.openbankproject.commons.dto.InBound$name")
+      .distinct
+  /**
+   * according connector method name, to get corresponding InBound class, if method name have version,
+   * will find versioned InBound, when there is no versioned InBound, will find no versioned InBound
+   * @param connectorMethodName
+   * @return
+   */
+  def getInBoundClass(connectorMethodName: String): Class[_] = {
+    val maybeInBoundName = getMaybeInBoundName(connectorMethodName)
+
+    val errorMsg = maybeInBoundName match {
+      case head :: Nil =>
+        s"Connector#$connectorMethodName have no corresponding InBound type. Must exists type: $head"
+      case _ =>
+        s"Connector#$connectorMethodName have no corresponding InBound type. Must exists at lease one type of: ${maybeInBoundName.mkString(",")}"
+    }
+
+    getInBoundClassOption(connectorMethodName)
+      .getOrElse(throw new ClassNotFoundException(errorMsg))
+  }
+
+  def getInBoundClassOption(connectorMethodName: String): Option[Class[_]] = {
+    val maybeClass: Option[Class[_]] = getMaybeInBoundName(connectorMethodName)
+      .map(ReflectUtils.forClassOption)
+      .collectFirst {
+        case Some(clazz) => clazz
+      }
+    maybeClass
+  }
+
 }
 
 object LocalMappedOutInBoundTransfer extends OutInBoundTransfer {
@@ -78,7 +116,7 @@ object LocalMappedOutInBoundTransfer extends OutInBoundTransfer {
       case ConnectorMethodRegex(x, y) => s"${x.toLowerCase()}$y"
       case x => x
     }
-    val clazz = Class.forName(s"com.openbankproject.commons.dto.InBound${connectorMethod.capitalize}")
+    val clazz = ConnectorUtils.getInBoundClass(connectorMethod)
     implicit val inboundMainFest: Manifest[InBoundTrait[_]] = ManifestFactory.classType[InBoundTrait[_]](clazz)
 
     connector.implementedMethods.get(connectorMethod) match {
@@ -125,4 +163,5 @@ object LocalMappedOutInBoundTransfer extends OutInBoundTransfer {
     case Full(v) => v
     case v => v
   }
+
 }

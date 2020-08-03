@@ -27,15 +27,9 @@ Berlin 13359, Germany
 import code.actorsystem.ObpActorInit
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats}
-import code.bankconnectors.Connector
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
-import code.bankconnectors.vMar2017.InboundBank
-import code.bankconnectors.vSept2018._
-import code.kafka.KafkaHelper
-import code.setup.{DefaultUsers, KafkaSetup, ServerSetupWithTestData}
-import com.openbankproject.commons.dto.InBoundGetBanks
-import com.openbankproject.commons.model._
-import net.liftweb.common.{Box, Failure, Full}
+import code.setup.{DefaultUsers, ServerSetupWithTestData}
+import net.liftweb.common.Full
 import org.scalatest.Tag
 
 class StoredProcedureConnector_vDec2019Test extends ServerSetupWithTestData with DefaultUsers with ObpActorInit{

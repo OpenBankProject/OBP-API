@@ -109,7 +109,7 @@ object ConnectorBuilderUtil {
       createDocExample(outBoundType).replaceAll("(?m)^(\\S)", "      $1")
     }
     private[this] val inBoundExample = {
-      var typeName = s"com.openbankproject.commons.dto.InBound${methodName.capitalize}"
+      val typeName = ConnectorUtils.getInBoundClass(methodName).getName
       val inBoundType = ReflectUtils.getTypeByName(typeName)
       createDocExample(inBoundType).replaceAll("(?m)^(\\S)", "      $1")
     }

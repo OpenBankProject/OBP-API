@@ -3,7 +3,7 @@ package code.connector
 import code.api.v2_2_0.JSONFactory220.MessageDocJson
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v2_2_0.V220ServerSetup
-import code.bankconnectors.LocalMappedConnector
+import code.bankconnectors.{ConnectorUtils, LocalMappedConnector}
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
@@ -56,7 +56,7 @@ class MessageDocTest extends V220ServerSetup with DefaultUsers {
 
     val method = processName.replace("obp.", "")
     val outBoundManifest = ManifestFactory.classType[AnyRef](Class.forName(s"com.openbankproject.commons.dto.OutBound${method.capitalize}"));
-    val inBoundManifest = ManifestFactory.classType[AnyRef](Class.forName(s"com.openbankproject.commons.dto.InBound${method.capitalize}"));
+    val inBoundManifest = ManifestFactory.classType[AnyRef](ConnectorUtils.getInBoundClass(method));
     println(s"processName: $processName")
 
     val outBound = outBoundJson.extract(formats, outBoundManifest)
