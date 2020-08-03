@@ -628,8 +628,8 @@ object JSONFactory220 {
       ),
       branch_id = account.branchId,
       account_routing = AccountRoutingJsonV121(
-        scheme = account.accountRoutingScheme,
-        address = account.accountRoutingAddress
+        scheme = account.accountRoutings.headOption.map(_.scheme).getOrElse(""),
+        address = account.accountRoutings.headOption.map(_.address).getOrElse("")
       )
     )
   }

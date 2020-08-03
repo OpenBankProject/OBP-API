@@ -359,8 +359,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           bankRoutingAddress = bankAccount.bankRoutingAddress,
           branchRoutingScheme = "",
           branchRoutingAddress = "",
-          accountRoutingScheme = bankAccount.accountRoutingScheme,
-          accountRoutingAddress = bankAccount.accountRoutingAddress
+          accountRoutingScheme = bankAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""),
+          accountRoutingAddress = bankAccount.accountRoutings.headOption.map(_.address).getOrElse("")
         )
       } yield {
         inboundAccountCommons
@@ -1110,12 +1110,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           .counterpartyAccountNumber(toAccount.number)
           .counterpartyAccountKind(toAccount.accountType)
           .counterpartyBankName(toAccount.bankName)
-          .counterpartyIban(toAccount.iban.getOrElse(""))
+          .counterpartyIban(toAccount.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address).getOrElse(""))
           .counterpartyNationalId(toAccount.nationalIdentifier)
           //New data: real counterparty (toCounterparty: CounterpartyTrait)
           //      .CPCounterPartyId(toAccount.accountId.value)
-          .CPOtherAccountRoutingScheme(toAccount.accountRoutingScheme)
-          .CPOtherAccountRoutingAddress(toAccount.accountRoutingAddress)
+          .CPOtherAccountRoutingScheme(toAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""))
+          .CPOtherAccountRoutingAddress(toAccount.accountRoutings.headOption.map(_.address).getOrElse(""))
           .CPOtherBankRoutingScheme(toAccount.bankRoutingScheme)
           .CPOtherBankRoutingAddress(toAccount.bankRoutingAddress)
           .chargePolicy(chargePolicy)
@@ -1161,12 +1161,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         .counterpartyAccountNumber(toAccount.number)
         .counterpartyAccountKind(toAccount.accountType)
         .counterpartyBankName(toAccount.bankName)
-        .counterpartyIban(toAccount.iban.getOrElse(""))
+        .counterpartyIban(toAccount.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address).getOrElse(""))
         .counterpartyNationalId(toAccount.nationalIdentifier)
         //New data: real counterparty (toCounterparty: CounterpartyTrait)
         //      .CPCounterPartyId(toAccount.accountId.value)
-        .CPOtherAccountRoutingScheme(toAccount.accountRoutingScheme)
-        .CPOtherAccountRoutingAddress(toAccount.accountRoutingAddress)
+        .CPOtherAccountRoutingScheme(toAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""))
+        .CPOtherAccountRoutingAddress(toAccount.accountRoutings.headOption.map(_.address).getOrElse(""))
         .CPOtherBankRoutingScheme(toAccount.bankRoutingScheme)
         .CPOtherBankRoutingAddress(toAccount.bankRoutingAddress)
         .chargePolicy(chargePolicy)

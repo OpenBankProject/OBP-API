@@ -185,20 +185,11 @@ trait BankAccount{
                                         // `Name of the account given by the bank or the PSU in online-banking.`
   @optional
   def label: String
-  @deprecated("We should use accountRoutings instead")
-  @optional
-  def iban : Option[String]
   def number : String
   def bankId : BankId
   //It means last transaction refresh date only used for HBCI now.
   def lastUpdate : Date
   def branchId: String
-  @deprecated("We should use accountRoutings instead")
-  @optional
-  def accountRoutingScheme: String
-  @deprecated("We should use accountRoutings instead")
-  @optional
-  def accountRoutingAddress: String
   def accountRoutings: List[AccountRouting] // Introduced in v3.0.0
   @optional
   def accountRules: List[AccountRule]

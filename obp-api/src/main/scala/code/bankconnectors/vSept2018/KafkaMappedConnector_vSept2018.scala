@@ -60,12 +60,12 @@ import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.util.{ApiVersion, RequiredFieldValidation}
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
-
 import scala.reflect.runtime.universe._
 
 trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with MdcLoggable {
@@ -1174,12 +1174,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             accountId = fromAccount.accountId.value,
             accountType = fromAccount.accountType,
             currency = fromAccount.currency,
-            iban = fromAccount.iban.getOrElse(""),
+            iban = fromAccount.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address).getOrElse(""),
             number = fromAccount.number,
             bankId = fromAccount.bankId.value,
             branchId = fromAccount.bankId.value,
-            accountRoutingScheme = fromAccount.accountRoutingScheme,
-            accountRoutingAddress= fromAccount.accountRoutingAddress)
+            accountRoutingScheme = fromAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""),
+            accountRoutingAddress= fromAccount.accountRoutings.headOption.map(_.address).getOrElse(""))
           )
           _ <- Full(logger.debug(s"Kafka getTransactionRequests210 Req says: is: $req"))
           kafkaMessage <- processToBox(req)
@@ -3107,13 +3107,10 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       currency="string",
       name="string",
       label="string",
-      iban=Option("string"),
       number="string",
       bankId= BankId(value="string"),
       lastUpdate=new Date(),
       branchId="string",
-      accountRoutingScheme="string",
-      accountRoutingAddress="string",
       accountRoutings=List( AccountRouting(scheme="string",
       address="string")),
       accountRules=List( AccountRule(scheme="string",

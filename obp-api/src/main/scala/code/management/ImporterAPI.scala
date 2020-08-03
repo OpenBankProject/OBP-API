@@ -8,6 +8,7 @@ import code.bankconnectors.Connector
 import code.tesobe.ErrorMessage
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.Transaction
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import net.liftweb.common.Full
 import net.liftweb.http._
 import net.liftweb.http.js.JsExp
@@ -75,7 +76,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
         JField("alias", JString("no"))))),
       JField("number", JString(thisAcc.map(_.number).getOrElse(""))),
       JField("kind", JString(thisAcc.map(_.accountType).getOrElse(""))),
-      JField("bank", JObject(List( JField("IBAN", JString(thisAcc.flatMap(_.iban).getOrElse(""))),
+      JField("bank", JObject(List( JField("IBAN", JString(thisAcc.flatMap(_.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address)).getOrElse(""))),
         JField("national_identifier", JString(thisBank.map(_.nationalIdentifier).getOrElse(""))),
         JField("name", JString(thisBank.map(_.fullName).getOrElse(""))))))))
 

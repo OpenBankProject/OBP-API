@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.sandbox
 
 import java.util.Date
+
 import code.api.Constant._
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
@@ -49,6 +50,7 @@ import code.users.Users
 import code.views.Views
 import code.views.system.ViewDefinition
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import dispatch._
 import net.liftweb.common.{Empty, ParamFailure}
 import net.liftweb.json.JsonAST.{JObject, JValue}
@@ -276,7 +278,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     foundAccount.label should equal(account.label)
     foundAccount.number should equal(account.number)
     foundAccount.accountType should equal(account.`type`)
-    foundAccount.iban should equal(Some(account.IBAN))
+    foundAccount.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address) should equal(Some(account.IBAN))
     foundAccount.balance.toString should equal(account.balance.amount)
     foundAccount.currency should equal(account.balance.currency)
 

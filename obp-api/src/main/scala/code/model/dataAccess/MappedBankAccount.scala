@@ -45,7 +45,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   object accountRuleValue2 extends MappedLong(this)
 
   override def accountId: AccountId = AccountId(theAccountId.get)
-  override def iban: Option[String] = {
+  def iban: Option[String] = {
     val i = accountIban.get
     if(i.isEmpty) None else Some(i)
   }

@@ -153,6 +153,12 @@ object TransactionRequestStatus extends Enumeration {
   val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED = Value
 }
 
+object AccountRoutingScheme extends Enumeration {
+  type AccountRoutingScheme = Value
+  val IBAN = Value
+  val OBP = Value
+}
+
 
 //-------------------simple enum definition, just some sealed trait way, start-------------
 trait SimpleEnum extends JsonAble {

@@ -98,25 +98,7 @@ object Transformer {
     )
   
   
-  def bankAccount(acc: BankAccount) =
-    BankAccountCommons(
-      accountId = acc.accountId,
-      accountType = acc.accountType,
-      balance = acc.balance,
-      currency = acc.currency,
-      name = acc.name,
-      label = acc.label,
-      iban = None,
-      number = acc.number,
-      bankId = acc.bankId,
-      lastUpdate = acc.lastUpdate,
-      branchId = acc.branchId,
-      accountRoutingScheme = acc.accountRoutingScheme,
-      accountRoutingAddress = acc.accountRoutingAddress,
-      accountRoutings = Nil,
-      accountRules = Nil,
-      accountHolder = acc.accountHolder
-    )
+  def bankAccount(acc: BankAccount): BankAccountCommons = acc
   
   
   def coreAccount(a: CoreAccount) =
@@ -158,24 +140,7 @@ object Transformer {
     Transaction(
       uuid = t.uuid ,
       id  = t.id ,
-      thisAccount = BankAccountCommons(
-        accountId = t.thisAccount.accountId,
-        accountType = t.thisAccount.accountType,
-        balance = t.thisAccount.balance,
-        currency = t.thisAccount.currency,
-        name = t.thisAccount.name,
-        label = t.thisAccount.label,
-        iban = t.thisAccount.iban,
-        number = t.thisAccount.number,
-        bankId = t.thisAccount.bankId,
-        lastUpdate = t.thisAccount.lastUpdate,
-        branchId = t.thisAccount.branchId,
-        accountRoutingScheme = t.thisAccount.accountRoutingScheme,
-        accountRoutingAddress = t.thisAccount.accountRoutingAddress,
-        accountRoutings = t.thisAccount.accountRoutings,
-        accountRules = t.thisAccount.accountRules,
-        accountHolder = t.thisAccount.accountHolder
-      ) ,
+      thisAccount = BankAccountCommons.toCommons(t.thisAccount),
       otherAccount = t.otherAccount ,
       transactionType = t.transactionType ,
       amount = t.amount ,
