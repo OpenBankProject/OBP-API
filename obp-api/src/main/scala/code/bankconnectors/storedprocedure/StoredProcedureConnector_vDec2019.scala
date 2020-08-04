@@ -74,7 +74,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-07-28T13:44:41Z
+// ---------- created on 2020-08-04T15:04:44Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -2429,6 +2429,81 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val req = OutBound(bankId, accountNumber)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_account_exists", req, callContext)
         response.map(convertToTuple[Boolean](callContext))        
+  }
+          
+  messageDocs += getProductsDoc
+  def getProductsDoc = MessageDoc(
+    process = "obp.getProducts",
+    messageFormat = messageFormat,
+    description = "Get Products",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetProducts(bankId=BankId(bankIdExample.value),
+      params=List( GetProductsParam(name="string",
+      value=valueExample.value.split("[,;]").toList)))
+    ),
+    exampleInboundMessage = (
+     InBoundGetProducts(status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=List( ProductCommons(bankId=BankId(bankIdExample.value),
+      code=ProductCode("string"),
+      parentProductCode=ProductCode("string"),
+      name="string",
+      category="string",
+      family="string",
+      superFamily="string",
+      moreInfoUrl="string",
+      details="string",
+      description="string",
+      meta=Meta( License(id="string",
+      name="string")))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getProducts(bankId: BankId, params: List[GetProductsParam]): Box[List[Product]] = {
+        import com.openbankproject.commons.dto.{OutBoundGetProducts => OutBound, InBoundGetProducts => InBound}  
+        val callContext: Option[CallContext] = None
+        val req = OutBound(bankId, params)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_products", req, callContext)
+        response.map(convertToTuple[List[ProductCommons]](callContext))        
+  }
+          
+  messageDocs += getProductDoc
+  def getProductDoc = MessageDoc(
+    process = "obp.getProduct",
+    messageFormat = messageFormat,
+    description = "Get Product",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetProduct(bankId=BankId(bankIdExample.value),
+      productCode=ProductCode("string"))
+    ),
+    exampleInboundMessage = (
+     InBoundGetProduct(status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= ProductCommons(bankId=BankId(bankIdExample.value),
+      code=ProductCode("string"),
+      parentProductCode=ProductCode("string"),
+      name="string",
+      category="string",
+      family="string",
+      superFamily="string",
+      moreInfoUrl="string",
+      details="string",
+      description="string",
+      meta=Meta( License(id="string",
+      name="string"))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = {
+        import com.openbankproject.commons.dto.{OutBoundGetProduct => OutBound, InBoundGetProduct => InBound}  
+        val callContext: Option[CallContext] = None
+        val req = OutBound(bankId, productCode)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_product", req, callContext)
+        response.map(convertToTuple[ProductCommons](callContext))        
   }
           
   messageDocs += getBranchDoc
@@ -5741,8 +5816,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-07-28T13:44:41Z
-//---------------- dynamic end ---------------------please don't modify this line                  
+// ---------- created on 2020-08-04T15:04:44Z
+//---------------- dynamic end ---------------------please don't modify this line                    
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

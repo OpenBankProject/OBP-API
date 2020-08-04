@@ -285,6 +285,8 @@ object ConnectorBuilderUtil {
     "deleteUserAuthContextById",
     "getUserAuthContexts",
     "createOrUpdateProductAttribute",
+    "getProduct",
+    "getProducts",
     "getProductAttributeById",
     "getProductAttributesByBankAndCode",
     "deleteProductAttribute",
