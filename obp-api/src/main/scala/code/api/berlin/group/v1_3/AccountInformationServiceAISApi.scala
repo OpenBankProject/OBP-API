@@ -10,7 +10,7 @@ import code.api.util.APIUtil.{defaultBankId, passesPsd2Aisp, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{ApiTag, NewStyle}
+import code.api.util.{ApiTag, Consent, NewStyle}
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
 import code.database.authorisation.Authorisations
@@ -28,6 +28,7 @@ import net.liftweb.json._
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.Future
 
 object APIMethods_AccountInformationServiceAISApi extends RestHelper {
@@ -124,9 +125,6 @@ As a last option, an ASPSP might in addition accept a command with access rights
                new SimpleDateFormat(DateWithDay).parse(consentJson.validUntil)
              }
              
-             failMsg = s"$InvalidJsonContent Only Support empty accounts List for now. It will return an accessible account List. "
-             _ <- Helper.booleanToFuture(failMsg) {consentJson.access.accounts.get.isEmpty}
-             
              createdConsent <- Future(Consents.consentProvider.vend.createBerlinGroupConsent(
                u,
                recurringIndicator = consentJson.recurringIndicator,
@@ -136,6 +134,19 @@ As a last option, an ASPSP might in addition accept a command with access rights
              )) map {
                i => connectorEmptyResponse(i, callContext)
              }
+             consentJWT <-
+             Consent.createBerlinGroupConsentJWT(
+               u,
+               consentJson,
+               createdConsent.secret,
+               createdConsent.consentId,
+               None,
+               Some(validUntil)
+             )
+             _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
+               i => connectorEmptyResponse(i, callContext)
+             }
+             
 /*             _ <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
                "",
                createdConsent.consentId,
