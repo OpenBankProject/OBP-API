@@ -9233,7 +9233,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     val mockResponse: Box[(Int, JValue)] = MockResponseHolder.mockResponse
 
     // when there is no methodRouting, but there is mock response, just return mock response content
-    if(urlInMethodRouting.isEmpty &&  mockResponse.isDefined) {
+    if(urlInMethodRouting.isEmpty && mockResponse.isDefined) {
       val Full((code, body)) = mockResponse
       val response: JObject = ("code" -> code) ~ ("value" -> body)
       return Future.successful((Full(response), callContext))

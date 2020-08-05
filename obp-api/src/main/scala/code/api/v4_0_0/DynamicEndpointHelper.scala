@@ -551,7 +551,7 @@ object DynamicEndpointHelper extends RestHelper {
  * one endpoint information defined in swagger file.
  * @param path path defined in swagger file
  * @param successCode success response code
- * @param resourceDoc ResourseDoc built with one endpoint information defined in swagger file
+ * @param resourceDoc ResourceDoc built with one endpoint information defined in swagger file
  */
 case class DynamicEndpointItem(path: String, successCode: Int, resourceDoc: ResourceDoc)
 
