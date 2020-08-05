@@ -293,8 +293,7 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
   val description = entity \ "description" match {
     case JString(s) if StringUtils.isNotBlank(s) =>
       s"""
-        |**Entity Description:**
-        |$s
+        |${s.capitalize}
         |""".stripMargin
     case _ => ""
   }
@@ -312,7 +311,7 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
       if(descriptions.nonEmpty) {
         descriptions
           .map(field => s"""* ${field.name}: ${(field.value \ "description").asInstanceOf[JString].s}""")
-          .mkString("**Properties Description:** \n", "\n", "")
+          .mkString("**Property List:** \n", "\n", "")
       } else {
         ""
       }
