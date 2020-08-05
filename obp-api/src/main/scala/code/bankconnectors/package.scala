@@ -5,7 +5,7 @@ import java.util.regex.Pattern
 
 import akka.http.scaladsl.model.HttpMethod
 import code.api.{APIFailureNewStyle, ApiVersionHolder}
-import code.api.util.{CallContext, NewStyle}
+import code.api.util.{APIUtil, CallContext, NewStyle}
 import code.methodrouting.{MethodRouting, MethodRoutingT}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
@@ -109,9 +109,20 @@ package object bankconnectors extends MdcLoggable {
    * according connector method name, bankId and call parameters to find connector name and MethodRouting
    * @param methodName connector method name
    * @param argNameToValue connector method parameterName -> parameterValue
-   * @return connector name and methodRouting instance
+   *        can only pass these parameters: type is BankId or string type bankId, or nested field is bankId,
+   *        if no these type parameters, pass Array.empty is ok
+   * @return methodRouting instance -> connector name
    */
   def getConnectorNameAndMethodRouting(methodName: String, argNameToValue: Array[(String, AnyRef)]): (Box[MethodRoutingT], String) = {
+    val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
+
+    val routing = MethodRoutingHolder.methodRouting
+    if(!connector.equalsIgnoreCase("star")) {
+      return (Empty, connector)
+    } else if(routing.isDefined) { // if current call stack already have routing, just use it.
+      return (routing, routing.map(_.connectorName).orNull)
+    }
+
     val args = argNameToValue.map(_._2)
 
     var bankId: Option[String] = argNameToValue collectFirst {

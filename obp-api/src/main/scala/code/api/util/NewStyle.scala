@@ -16,6 +16,7 @@ import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityInfo, TransactionRequestReasonJsonV400}
+import code.bankconnectors
 import code.bankconnectors.{Connector, MethodRoutingHolder}
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
@@ -1091,41 +1092,49 @@ object NewStyle {
       callContext: Option[CallContext]
     ): OBPReturnType[BankAccount] = {
       println(MethodRoutingHolder.methodRouting)
-      // Problem : MethodRoutingHolder.methodRouting return Empty
-      MethodRoutingHolder.methodRouting match {
-        case Full(routing) if routing.methodName == "createBankAccount" && routing.methodVersion == "1" =>
+
+      val connectorMethodName = "createBankAccount"
+      val (methodRouting, _) = bankconnectors.getConnectorNameAndMethodRouting(connectorMethodName, Array("bankId" -> BankId))
+
+      methodRouting match {
+        case Full(routing) if routing.methodVersion == "1" =>
           println("Using createBankAccount version 1")
-          Connector.connector.vend.createBankAccount_C1(
-            bankId: BankId,
-            accountId: AccountId,
-            accountType: String,
-            accountLabel: String,
-            currency: String,
-            initialBalance: BigDecimal,
-            accountHolderName: String,
-            branchId: String,
-            List(AccountRouting(accountRoutingScheme: String, accountRoutingAddress: String)),
-            callContext
-          ) map {
+          MethodRoutingHolder.init(methodRouting) {
+            Connector.connector.vend.createBankAccount_C1(
+              bankId: BankId,
+              accountId: AccountId,
+              accountType: String,
+              accountLabel: String,
+              currency: String,
+              initialBalance: BigDecimal,
+              accountHolderName: String,
+              branchId: String,
+              List(AccountRouting(accountRoutingScheme: String, accountRoutingAddress: String)),
+              callContext
+            )
+          } map {
             i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
           }
         case _ =>
           println("Using createBankAccount original version")
-          Connector.connector.vend.createBankAccount(
-            bankId: BankId,
-            accountId: AccountId,
-            accountType: String,
-            accountLabel: String,
-            currency: String,
-            initialBalance: BigDecimal,
-            accountHolderName: String,
-            branchId: String,
-            accountRoutingScheme: String,
-            accountRoutingAddress: String,
-            callContext
-          ) map {
+          MethodRoutingHolder.init(methodRouting) {
+            Connector.connector.vend.createBankAccount(
+              bankId: BankId,
+              accountId: AccountId,
+              accountType: String,
+              accountLabel: String,
+              currency: String,
+              initialBalance: BigDecimal,
+              accountHolderName: String,
+              branchId: String,
+              accountRoutingScheme: String,
+              accountRoutingAddress: String,
+              callContext
+            )
+          } map {
             i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
           }
+
       }
     }
 
