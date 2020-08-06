@@ -32,3 +32,33 @@ create or replace view v_transaction_comment as select id numeric_transaciton_co
 create or replace view v_view_privilege as select id numeric_view_privilege_id, user_c numeric_resource_user_id, view_c numeric_view_id  from viewprivileges;
 
 create or replace view v_transaction_request_type_charge as select id, mbankid bank_id, mtransactionrequesttypeid transaction_request_type_id, mchargecurrency currency , mchargeamount amount, mchargesummary summary from mappedtransactionrequesttypecharge;
+
+-- In case when we can create a customer at OBP-API side but we get it from CBS(core banking system)
+-- via this view we expose such created customers to CBS in order to be able to list they
+-- We don't want to end up with scenario where you create customer with success code 201 but you cannot get it
+create view v_customer as
+select
+	mbank bank_id,
+	mcustomerid customer_id,
+	mnumber customer_number,
+	mmobilenumber mobile_number,
+	mlegalname legal_name,
+	memail email,
+	mfaceimageurl face_image_url,
+	mfaceimagetime face_image_time,
+	mdateofbirth date_of_birth,
+	mrelationshipstatus relationship_status,
+	mdependents dependents,
+	mhighesteducationattained highest_education_attained,
+	memploymentstatus employment_status,
+	mcreditrating credit_rating,
+	mcreditsource credit_source,
+	mcreditlimitcurrency credit_limit_currency,
+	mcreditlimitamount credit_limit_amount,
+	mkycstatus kyc_status,
+	mlastokdate last_ok_date,
+	mtitle title,
+	mbranchid branch_id,
+	mnamesuffix name_suffix
+from
+	mappedcustomer;
