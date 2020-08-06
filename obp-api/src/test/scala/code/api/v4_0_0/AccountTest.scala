@@ -1,6 +1,7 @@
 package code.api.v4_0_0
 
-import com.openbankproject.commons.model.ErrorMessage
+import code.api.Constant
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, ErrorMessage}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountAttributeJson
 import code.api.util.APIUtil.OAuth._
@@ -12,13 +13,14 @@ import code.api.v3_1_0.{AccountAttributeResponseJson, CreateAccountResponseJsonV
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.AmountOfMoneyJsonV121
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
 import scala.collection.immutable.List
+import scala.util.Random
 
 class AccountTest extends V400ServerSetup {
   /**
@@ -145,7 +147,46 @@ class AccountTest extends V400ServerSetup {
       account2.branch_id should be (addAccountJson.branch_id)
       account2.user_id should be (addAccountJsonOtherUser.user_id)
       account2.label should be (addAccountJson.label)
-      account2.account_routings should be (List(addAccountJson.account_routings))
+      account2.account_routings should be (addAccountJson.account_routings)
+    }
+
+    scenario("Create new account with an already existing routing scheme/address should not create the account", ApiEndpoint3, VersionOfApi) {
+      When("We make a request v4.0.0 to create the first account")
+      Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
+      val request400_1 = (v4_0_0_Request / "banks" / testBankId.value / "accounts").POST <@(user1)
+      val response400_1 = makePostRequest(request400_1, write(addAccountJson))
+      Then("We should get a 201")
+      response400_1.code should equal(201)
+      val account = response400_1.body.extract[CreateAccountResponseJsonV310]
+      account.account_id should not be empty
+      account.product_code should be (addAccountJson.product_code)
+      account.`label` should be (addAccountJson.`label`)
+      account.balance.amount.toDouble should be (addAccountJson.balance.amount.toDouble)
+      account.balance.currency should be (addAccountJson.balance.currency)
+      account.branch_id should be (addAccountJson.branch_id)
+      account.user_id should be (addAccountJson.user_id)
+      account.label should be (addAccountJson.label)
+      account.account_routings should be (addAccountJson.account_routings)
+
+      When("We make a request v4.0.0 to create the second account with an already existing scheme/address")
+      val request400_2 = (v4_0_0_Request / "banks" / testBankId.value / "accounts").POST <@(user1)
+      val response400_2 = makePostRequest(request400_2, write(addAccountJson))
+      Then("We should get a 400 in the createAccount response")
+      response400_2.code should equal(400)
+      response400_2.body.toString should include("OBP-30115: Account Routing already exist.")
+    }
+
+    scenario("Create new account with a duplication in routing scheme should not create the account", ApiEndpoint3, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
+      When("We make a request v4.0.0 to create the account")
+      val request400 = (v4_0_0_Request / "banks" / testBankId.value / "accounts" / "TEST_ACCOUNT_ID" ).POST <@(user1)
+      val postCreateAccountJsonWithRoutingSchemeDuplication = addAccountJson.copy(account_routings =
+        List(AccountRoutingJsonV121(AccountRoutingScheme.IBAN.toString, Random.nextString(10)),
+          AccountRoutingJsonV121(AccountRoutingScheme.IBAN.toString, Random.nextString(10))))
+      val response400 = makePostRequest(request400, write(postCreateAccountJsonWithRoutingSchemeDuplication))
+      Then("We should get a 400 in the createAccount response")
+      response400.code should equal(400)
+      response400.body.toString should include ("Duplication detected in account routings, please specify only one value per routing scheme")
     }
   }
 
