@@ -216,6 +216,12 @@ object NewStyle {
       }
     }
 
+    def getBankAccountByRouting(scheme: String, address: String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
+      Future(Connector.connector.vend.getBankAccountByRouting(scheme: String, address : String, callContext: Option[CallContext])) map { i =>
+        unboxFullOrFail(i, callContext,s"${BankAccountNotFound.replaceAll("BANK_ID and ACCOUNT_ID. ", s"scheme and address.")} Current scheme is $scheme, current address is $address", 404 )
+      }
+    }
+
     def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Connector.connector.vend.getBankAccountByIban(iban : String, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"${BankAccountNotFound.replaceAll("BANK_ID and ACCOUNT_ID. ", "IBAN.")} Current IBAN is $iban", 404 ), i._2)

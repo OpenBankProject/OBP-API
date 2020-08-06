@@ -1266,6 +1266,13 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme") {
               createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
             }
+            alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
+              NewStyle.function.getBankAccountByRouting(accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
+              ))
+            alreadyExistingAccountRouting = alreadyExistAccountRoutings.find(_.nonEmpty).flatten
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.map(_.scheme).getOrElse("")}, ${alreadyExistingAccountRouting.map(_.address).getOrElse("")})") {
+                alreadyExistAccountRoutings.forall(_.isEmpty)
+            }
             (bankAccount,callContext) <- NewStyle.function.addBankAccount(
               bankId,
               accountType,

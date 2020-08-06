@@ -4813,6 +4813,18 @@ trait APIMethods310 {
             _ <- Helper.booleanToFuture(s"$UpdateBankAccountException Duplication detected in account routings, please specify only one value per routing scheme"){
               consentJson.account_routings.map(_.scheme).distinct.size == consentJson.account_routings.size
             }
+            alreadyExistAccountRoutings <- Future.sequence(consentJson.account_routings.map(accountRouting =>
+              NewStyle.function.getBankAccountByRouting(accountRouting.scheme, accountRouting.address, callContext)
+                .map {
+                  // If we find an already existing account routing linked to the account, it just mean we don't want to update it
+                  case bankAccount if !(bankAccount._1.bankId == bankId && bankAccount._1.accountId == accountId) => Some(accountRouting)
+                  case _ => None
+                } fallbackTo Future.successful(None)
+            ))
+            alreadyExistingAccountRouting = alreadyExistAccountRoutings.find(_.nonEmpty).flatten
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.map(_.scheme).getOrElse("")}, ${alreadyExistingAccountRouting.map(_.address).getOrElse("")})") {
+              alreadyExistAccountRoutings.forall(_.isEmpty)
+            }
             (bankAccount,callContext) <- NewStyle.function.updateBankAccount(
               bankId,
               accountId,
@@ -5462,6 +5474,13 @@ trait APIMethods310 {
             (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
             _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme", 400){
               createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
+            }
+            alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
+              NewStyle.function.getBankAccountByRouting(accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
+            ))
+            alreadyExistingAccountRouting = alreadyExistAccountRoutings.find(_.nonEmpty).flatten
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.map(_.scheme).getOrElse("")}, ${alreadyExistingAccountRouting.map(_.address).getOrElse("")})") {
+              alreadyExistAccountRoutings.forall(_.isEmpty)
             }
             (bankAccount,callContext) <- NewStyle.function.createBankAccount(
               bankId,
