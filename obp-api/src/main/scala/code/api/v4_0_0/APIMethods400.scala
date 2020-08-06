@@ -1,13 +1,14 @@
 package code.api.v4_0_0
 
 import java.util.Date
+import java.util.regex.Pattern
 
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{fullBoxOrException, _}
+import code.api.util.APIUtil.{PrimaryDataBody, fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -2891,9 +2892,12 @@ trait APIMethods400 {
       "POST",
       "/management/dynamic-endpoints",
       " Create Dynamic Endpoint",
-      s"""Create a Dynamic Endpoint.
+      s"""Create dynamic endpoints.
          |
-         |Create one DynamicEndpoint,
+         |Create dynamic endpoints with one json format swagger content.
+         |
+         |If the host of swagger is `obp_mock`, every dynamic endpoint will return example response of swagger,\n
+         |when create MethodRouting for given dynamic endpoint, it will be routed to given url.
          |
          |""",
       dynamicEndpointRequestBodyExample,
@@ -3049,12 +3053,14 @@ trait APIMethods400 {
 
 
     lazy val dynamicEndpoint: OBPEndpoint = {
-      case DynamicReq(url, json, method, params, pathParams, role) => { cc =>
+      case DynamicReq(url, json, method, params, pathParams, role, mockResponse) => { cc =>
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
 
-          (box, _) <- NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
+          (box, _) <- MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread
+            NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
+          }
         } yield {
           box match {
             case Full(v) =>

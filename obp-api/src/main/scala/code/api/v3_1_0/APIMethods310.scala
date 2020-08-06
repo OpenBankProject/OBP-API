@@ -4184,7 +4184,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetMethodRoutings, callContext)
-            methodRoutings <- NewStyle.function.getMethodRoutingsByMethdName(req.param("method_name"))
+            methodRoutings <- NewStyle.function.getMethodRoutingsByMethodName(req.param("method_name"))
           } yield {
             val listCommons: List[MethodRoutingCommons] = req.param("active") match {
               case Full("true") =>  methodRoutings ++ getDefaultMethodRountings(methodRoutings )
@@ -4316,7 +4316,7 @@ trait APIMethods310 {
                 Pattern.compile(postedData.bankIdPattern.get)
               }
             }
-            _ <- NewStyle.function.checkMethodRoutingAlreadyExists(methodName, callContext)
+            _ <- NewStyle.function.checkMethodRoutingAlreadyExists(postedData, callContext)
             Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(postedData)
           } yield {
             val commonsData: MethodRoutingCommons = methodRouting

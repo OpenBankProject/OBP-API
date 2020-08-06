@@ -4,7 +4,6 @@ import java.util.Date
 import java.util.UUID.randomUUID
 
 import akka.http.scaladsl.model.HttpMethod
-import code.DynamicData.DynamicDataProvider
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
 import code.api.cache.Caching
@@ -27,13 +26,13 @@ import code.entitlementrequest.EntitlementRequest
 import code.fx.{MappedFXRate, fx}
 import com.openbankproject.commons.model.FXRate
 import code.metadata.counterparties.Counterparties
-import code.methodrouting.{MethodRoutingProvider, MethodRoutingT}
+import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
 import code.standingorders.StandingOrderTrait
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
-import com.openbankproject.commons.util.JsonUtils
+import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
@@ -41,7 +40,6 @@ import com.openbankproject.commons.dto.{CustomerAndAttribute, ProductCollectionI
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
-import com.openbankproject.commons.util.ApiVersion
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
@@ -1687,15 +1685,24 @@ object NewStyle {
       Connector.connector.vend.deletePhysicalCardForBank(bankId: BankId, cardId: String, callContext:Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, s"$CardNotFound Current CardId($cardId)"), i._2)
       }
-    def getMethodRoutingsByMethdName(methodName: Box[String]): Future[List[MethodRoutingT]] = Future {
+    def getMethodRoutingsByMethodName(methodName: Box[String]): Future[List[MethodRoutingT]] = Future {
       this.getMethodRoutings(methodName.toOption)
     }
-    def checkMethodRoutingAlreadyExists(methodName: String, callContext:Option[CallContext]): OBPReturnType[Boolean] = Future {
-      val exists = this.getMethodRoutings(Some(methodName)).isEmpty match {
-        case true => Full(true)
-        case false => Empty
+    def checkMethodRoutingAlreadyExists(methodRouting: MethodRoutingT, callContext:Option[CallContext]): OBPReturnType[Boolean] = Future {
+      val methodRoutingCommons: MethodRoutingCommons = {
+        val commons: MethodRoutingCommons = methodRouting
+        commons.copy(methodRoutingId = None, parameters = commons.parameters.sortBy(_.key))
       }
-      (unboxFullOrFail(exists, callContext, s"$MethodRoutingNameAlreadyUsed"), callContext)
+
+      val exists: Boolean =
+        this.getMethodRoutings(Some(methodRouting.methodName), Option(methodRouting.isBankIdExactMatch), methodRouting.bankIdPattern)
+          .exists {v =>
+              val commons: MethodRoutingCommons = v
+              methodRoutingCommons == commons.copy(methodRoutingId = None, parameters = commons.parameters.sortBy(_.key))
+          }
+
+      val notExists = if(exists) Empty else Full(true)
+      (unboxFullOrFail(notExists, callContext, s"$MethodRoutingNameAlreadyUsed"), callContext)
     }
     def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) =
       Connector.connector.vend.getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) map {
