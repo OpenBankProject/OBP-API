@@ -1,16 +1,12 @@
 
 drop view v_resource_user cascade;
 create or replace view v_resource_user as select userid_ resource_user_id, name_ username, email, id numeric_resource_user_id, provider_ provider, providerid provider_id from resourceuser;
-select * from v_resource_user where username = 'simonredfern';
 
 drop view v_auth_user cascade;
 create or replace view v_auth_user as select username, firstname, lastname, email, uniqueid auth_user_id, id numeric_auth_user_id, user_c, validated from authuser;
-select * from v_auth_user where username = 'simonredfern';
 
 drop view v_auth_user_resource_user cascade;
 create or replace view v_auth_user_resource_user as select au.username from v_auth_user au, v_resource_user ru where au.numeric_auth_user_id = ru.numeric_resource_user_id;
-select * from v_auth_user_resource_user where username = 'simonredfern';
-
 
 create or replace view v_view as select bankpermalink bank_id, accountpermalink account_id, permalink_ view_id,  description_ description from viewimpl;
 
@@ -39,11 +35,14 @@ create or replace view v_transaction_request_type_charge as select id, mbankid b
 create view v_customer as
 select
 	mbank bank_id,
+	mbranchid branch_id,
 	mcustomerid customer_id,
 	mnumber customer_number,
 	mmobilenumber mobile_number,
-	mlegalname legal_name,
 	memail email,
+	mtitle title,
+	mlegalname legal_name,
+	mnamesuffix name_suffix,
 	mfaceimageurl face_image_url,
 	mfaceimagetime face_image_time,
 	mdateofbirth date_of_birth,
@@ -55,10 +54,7 @@ select
 	mcreditsource credit_source,
 	mcreditlimitcurrency credit_limit_currency,
 	mcreditlimitamount credit_limit_amount,
-	mkycstatus kyc_status,
-	mlastokdate last_ok_date,
-	mtitle title,
-	mbranchid branch_id,
-	mnamesuffix name_suffix
+	createdat insert_date,
+	updatedat update_date
 from
 	mappedcustomer;
