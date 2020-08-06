@@ -57,4 +57,30 @@ select
 	createdat insert_date,
 	updatedat update_date
 from
-	mappedcustomer;
+	mappedcustomer
+union
+select
+	null bank_id,
+	null branch_id,
+	null customer_id,
+	null customer_number,
+	null mobile_number,
+	null email,
+	null title,
+	null legal_name,
+	null name_suffix,
+	null face_image_url,
+	null face_image_time,
+	null date_of_birth,
+	null relationship_status,
+	null dependents,
+	null highest_education_attained,
+	null employment_status,
+	null credit_rating,
+	null credit_source,
+	null credit_limit_currency,
+	null credit_limit_amount,
+	null insert_date,
+	null update_date
+where
+	1 = 0
