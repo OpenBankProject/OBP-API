@@ -4,11 +4,13 @@ import com.openbankproject.commons.model.ErrorMessage
 import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_ConfirmationOfFundsServicePIISApi
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.{BankAccountNotFound, InvalidJsonContent, InvalidJsonFormat}
-import code.model.dataAccess.MappedBankAccount
+import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import net.liftweb.json
 import net.liftweb.json.Serialization.write
+import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 with DefaultUsers {
@@ -46,8 +48,8 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
     }
     
     scenario("Success case - Enough Funds", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
-      val accounts = MappedBankAccount.findAll().map(_.accountIban.get).filter(_ != null)
-      val iban = accounts.head
+      val accountsIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val iban = accountsIban.head.accountRouting.address
       
       val checkAvailabilityOfFundsJsonBody = json.parse(
         s"""{
@@ -70,9 +72,12 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
     }
 
     scenario("Success case - Not Enough Funds", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
-      val accounts = MappedBankAccount.findAll().filter(_.accountIban.get != null)
-      val iban = accounts.head.accountIban.get
-      val balance = accounts.head.balance
+      val accountsIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val iban = accountsIban.head.accountRouting.address
+      val account = MappedBankAccount.find(
+        By(MappedBankAccount.bank, accountsIban.head.bankId.value),
+        By(MappedBankAccount.theAccountId, accountsIban.head.accountId.value)).openOrThrowException("Can not be empty here")
+      val balance = account.balance
       val laggerbalance = balance +1000
 
       val checkAvailabilityOfFundsJsonBody = json.parse(

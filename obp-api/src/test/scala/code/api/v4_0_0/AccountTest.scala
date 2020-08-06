@@ -1,7 +1,7 @@
 package code.api.v4_0_0
 
 import code.api.Constant
-import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, ErrorMessage}
+import com.openbankproject.commons.model.{AccountRouting, AccountRoutingJsonV121, AmountOfMoneyJsonV121, ErrorMessage}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountAttributeJson
 import code.api.util.APIUtil.OAuth._
@@ -38,7 +38,9 @@ class AccountTest extends V400ServerSetup {
 
   lazy val testBankId = testBankId1
   lazy val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
-  lazy val addAccountJsonOtherUser = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser2.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
+  lazy val addAccountJsonOtherUser = SwaggerDefinitionsJSON.createAccountRequestJsonV310
+    .copy(user_id = resourceUser2.userId, balance = AmountOfMoneyJsonV121("EUR","0"),
+      account_routings = List(AccountRoutingJsonV121(Random.nextString(4), Random.nextString(4))))
   
   
   feature(s"test $ApiEndpoint1") {
@@ -110,7 +112,7 @@ class AccountTest extends V400ServerSetup {
       account.branch_id should be (addAccountJson.branch_id)
       account.user_id should be (addAccountJson.user_id)
       account.label should be (addAccountJson.label)
-      account.account_routings should be (List(addAccountJson.account_routings))
+      account.account_routings should be (addAccountJson.account_routings)
 
 
       Then(s"We call $ApiEndpoint1 to get the account back")
@@ -136,18 +138,18 @@ class AccountTest extends V400ServerSetup {
 
       Then("We grant the roles and test it again")
       Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.canCreateAccount.toString)
-      val responseWithOtherUesr = makePostRequest(requestWithNewAccountId, write(addAccountJsonOtherUser))
+      val responseWithOtherUser = makePostRequest(requestWithNewAccountId, write(addAccountJsonOtherUser))
 
-      val account2 = responseWithOtherUesr.body.extract[CreateAccountResponseJsonV310]
+      val account2 = responseWithOtherUser.body.extract[CreateAccountResponseJsonV310]
       account2.account_id should not be empty
-      account2.product_code should be (addAccountJson.product_code)
-      account2.`label` should be (addAccountJson.`label`)
-      account2.balance.amount.toDouble should be (addAccountJson.balance.amount.toDouble)
-      account2.balance.currency should be (addAccountJson.balance.currency)
-      account2.branch_id should be (addAccountJson.branch_id)
+      account2.product_code should be (addAccountJsonOtherUser.product_code)
+      account2.`label` should be (addAccountJsonOtherUser.`label`)
+      account2.balance.amount.toDouble should be (addAccountJsonOtherUser.balance.amount.toDouble)
+      account2.balance.currency should be (addAccountJsonOtherUser.balance.currency)
+      account2.branch_id should be (addAccountJsonOtherUser.branch_id)
       account2.user_id should be (addAccountJsonOtherUser.user_id)
-      account2.label should be (addAccountJson.label)
-      account2.account_routings should be (addAccountJson.account_routings)
+      account2.label should be (addAccountJsonOtherUser.label)
+      account2.account_routings should be (addAccountJsonOtherUser.account_routings)
     }
 
     scenario("Create new account with an already existing routing scheme/address should not create the account", ApiEndpoint3, VersionOfApi) {
@@ -179,14 +181,14 @@ class AccountTest extends V400ServerSetup {
     scenario("Create new account with a duplication in routing scheme should not create the account", ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       When("We make a request v4.0.0 to create the account")
-      val request400 = (v4_0_0_Request / "banks" / testBankId.value / "accounts" / "TEST_ACCOUNT_ID" ).POST <@(user1)
+      val request400 = (v4_0_0_Request / "banks" / testBankId.value / "accounts").POST <@(user1)
       val postCreateAccountJsonWithRoutingSchemeDuplication = addAccountJson.copy(account_routings =
         List(AccountRoutingJsonV121(AccountRoutingScheme.IBAN.toString, Random.nextString(10)),
           AccountRoutingJsonV121(AccountRoutingScheme.IBAN.toString, Random.nextString(10))))
       val response400 = makePostRequest(request400, write(postCreateAccountJsonWithRoutingSchemeDuplication))
       Then("We should get a 400 in the createAccount response")
       response400.code should equal(400)
-      response400.body.toString should include ("Duplication detected in account routings, please specify only one value per routing scheme")
+      response400.body.toString should include ("OBP-30114: Invalid Account Routings. Duplication detected in account routings, please specify only one value per routing scheme")
     }
   }
 

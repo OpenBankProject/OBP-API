@@ -9,9 +9,11 @@ import code.api.v3_1_0.{PostPutProductJsonV310, ProductJsonV310}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage}
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
+
+import scala.util.Random
 
 class DeleteProductCascadeTest extends V400ServerSetup {
 
@@ -67,7 +69,8 @@ class DeleteProductCascadeTest extends V400ServerSetup {
         )
 
       val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310
-        .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"), product_code = product.code)
+        .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"), product_code = product.code,
+        account_routings = List(AccountRoutingJsonV121(Random.nextString(4), Random.nextString(10))))
       createAccountViaEndpoint(testBankId, addAccountJson, user1)
 
       When("We grant the role")

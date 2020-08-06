@@ -4,10 +4,11 @@ import code.atms.MappedAtm
 import code.branches.MappedBranch
 import code.crm.MappedCrmEvent
 import code.metadata.counterparties.MappedCounterpartyMetadata
-import code.model.dataAccess.{MappedBank, MappedBankAccount}
+import code.model.dataAccess.{BankAccountRouting, MappedBank, MappedBankAccount}
 import code.products.MappedProduct
 import code.transaction.MappedTransaction
 import code.views.Views
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.model.{AccountId, BankId, View}
 
 // , MappedDataLicense
@@ -204,13 +205,18 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
       balance <- tryo{BigDecimal(acc.balance.amount)} ?~ s"Invalid balance: ${acc.balance.amount}"
       currency = acc.balance.currency
     } yield {
+      BankAccountRouting.create
+        .BankId(acc.bank)
+        .AccountId(acc.id)
+        .AccountRoutingScheme(AccountRoutingScheme.IBAN.toString)
+        .AccountRoutingAddress(acc.IBAN)
+        .saveMe()
       MappedBankAccount.create
         .theAccountId(acc.id)
         .bank(acc.bank)
         .accountLabel(acc.label)
         .accountNumber(acc.number)
         .kind(acc.`type`)
-        .accountIban(acc.IBAN)
         .accountCurrency(currency.toUpperCase)
         .accountBalance(convertToSmallestCurrencyUnits(balance, currency))
     }

@@ -37,7 +37,9 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
 
   lazy val testBankId = testBankId1
   lazy val putCreateAccountJSONV310 = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
-  lazy val putCreateAccountOtherUserJsonV310 = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser2.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
+  lazy val putCreateAccountOtherUserJsonV310 = SwaggerDefinitionsJSON.createAccountRequestJsonV310
+    .copy(user_id = resourceUser2.userId, balance = AmountOfMoneyJsonV121("EUR","0"),
+    account_routings = List(AccountRoutingJsonV121(Random.nextString(4), Random.nextString(4))))
   
   
   feature("test Update Account") {
@@ -154,15 +156,20 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       val requestPutOtherAccount = (v3_1_0_Request / "management" / "banks" / testBankId.value / "accounts" / testAccount1.value).PUT <@ (user1)
       val requestGetOtherAccount = (v3_1_0_Request / "my" / "banks" / testBankId.value / "accounts" / testAccount1.value / "account").PUT <@ (user1)
 
+      val responseGetOtherAccount_1 = makeGetRequest(requestGetOtherAccount)
+      Then("We should get 200 on the first getAccount response to get original account routings")
+      responseGetOtherAccount_1.code should equal(200)
+      val originalAccountRoutings = responseGetOtherAccount_1.body.extract[ModeratedCoreAccountJsonV300].account_routings
+
       val responsePutOtherAccount = makePutRequest(requestPutOtherAccount, write(testPutJsonWithSameIban))
       Then("We should get 400 in the updateAccount response")
       responsePutOtherAccount.code should equal(400)
       responsePutOtherAccount.body.toString should include ("OBP-30115: Account Routing already exist.")
 
-      val responseGetOtherAccount = makeGetRequest(requestGetOtherAccount)
-      And("We should get 200 and non-updated account routings on the getAccount response")
-      responseGetOtherAccount.code should equal(200)
-      responseGetOtherAccount.body.extract[ModeratedCoreAccountJsonV300].account_routings should be (List())
+      val responseGetOtherAccount_2 = makeGetRequest(requestGetOtherAccount)
+      And("We should get 200 and non-updated account routings on the second getAccount response")
+      responseGetOtherAccount_2.code should equal(200)
+      responseGetOtherAccount_2.body.extract[ModeratedCoreAccountJsonV300].account_routings should be (originalAccountRoutings)
     }
   }
 
@@ -193,7 +200,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       account.branch_id should be (putCreateAccountJSONV310.branch_id)
       account.user_id should be (putCreateAccountJSONV310.user_id)
       account.label should be (putCreateAccountJSONV310.label)
-      account.account_routings should be (List(putCreateAccountJSONV310.account_routings))
+      account.account_routings should be (putCreateAccountJSONV310.account_routings)
 
       
       Then(s"we call $ApiEndpoint4 to get the account back")
@@ -248,18 +255,18 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / testBankId.value / "accounts" / "TEST_ACCOUNT_ID" ).PUT <@(user1)
       val putCreateAccountJson = putCreateAccountJSONV310.copy(account_routings = List(AccountRoutingJsonV121("AccountNumber", "15649885656")))
-      val response310 = makePutRequest(request310, write(putCreateAccountJSONV310))
+      val response310 = makePutRequest(request310, write(putCreateAccountJson))
       Then("We should get a 201")
       response310.code should equal(201)
       val account = response310.body.extract[CreateAccountResponseJsonV310]
-      account.product_code should be (putCreateAccountJSONV310.product_code)
-      account.`label` should be (putCreateAccountJSONV310.`label`)
-      account.balance.amount.toDouble should be (putCreateAccountJSONV310.balance.amount.toDouble)
-      account.balance.currency should be (putCreateAccountJSONV310.balance.currency)
-      account.branch_id should be (putCreateAccountJSONV310.branch_id)
-      account.user_id should be (putCreateAccountJSONV310.user_id)
-      account.label should be (putCreateAccountJSONV310.label)
-      account.account_routings should be (List(putCreateAccountJSONV310.account_routings))
+      account.product_code should be (putCreateAccountJson.product_code)
+      account.`label` should be (putCreateAccountJson.`label`)
+      account.balance.amount.toDouble should be (putCreateAccountJson.balance.amount.toDouble)
+      account.balance.currency should be (putCreateAccountJson.balance.currency)
+      account.branch_id should be (putCreateAccountJson.branch_id)
+      account.user_id should be (putCreateAccountJson.user_id)
+      account.label should be (putCreateAccountJson.label)
+      account.account_routings should be (putCreateAccountJson.account_routings)
 
 
       Then(s"we call $ApiEndpoint6 to get the account back")

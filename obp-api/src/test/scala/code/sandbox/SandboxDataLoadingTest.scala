@@ -60,6 +60,8 @@ import net.liftweb.json.{JField, _}
 import net.liftweb.mapper.By
 import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
 
+import scala.util.Random
+
 /*
 This tests:
 
@@ -1061,9 +1063,68 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     Connector.connector.vend.getBankAccountOld(BankId(acc1.bank), AccountId(acc2.id)).isDefined should equal(true)
   }
 
+  it should "not allow multiple accounts with the same IBAN" in {
+    val users = standardUsers
+    val banks = standardBanks
+
+    def getResponse(accountJsons : List[JValue]) = {
+      BankAccountRouting.bulkDelete_!!()
+      val json = createImportJson(banks.map(Extraction.decompose), users.map(Extraction.decompose), accountJsons, Nil, Nil, Nil, Nil, Nil)
+      postImportJson(json)
+    }
+
+    val acc1 = account1AtBank1
+    val acc2 = account2AtBank1
+
+    val acc1Json = Extraction.decompose(acc1)
+    val acc2Json = Extraction.decompose(acc2)
+    val sameIbanJson = replaceField(acc2Json, "IBAN", acc1.IBAN)
+
+    getResponse(List(acc1Json, sameIbanJson)).code should equal(FAILED)
+
+    //no accounts should have been created
+    Connector.connector.vend.getBankAccountOld(BankId(acc1.bank), AccountId(acc1.id)).isDefined should equal(false)
+    Connector.connector.vend.getBankAccountOld(BankId(acc1.bank), AccountId(acc2.id)).isDefined should equal(false)
+
+    //check it works with the normal different IBAN
+    getResponse(List(acc1Json, acc2Json)).code should equal(SUCCESS)
+
+    //and the accounts should be created
+    Connector.connector.vend.getBankAccountOld(BankId(acc1.bank), AccountId(acc1.id)).isDefined should equal(true)
+    Connector.connector.vend.getBankAccountOld(BankId(acc1.bank), AccountId(acc2.id)).isDefined should equal(true)
+  }
+
+  it should "not allow an account to be created with an existing IBAN" in {
+    val banks = standardBanks.map(Extraction.decompose)
+    val users = standardUsers.map(Extraction.decompose)
+
+    def getResponse(accountJsons : List[JValue]) = {
+      val json = createImportJson(banks, users, accountJsons, Nil, Nil, Nil, Nil, Nil)
+      postImportJson(json)
+    }
+
+    val acc1 = account1AtBank1
+    val acc2 = account2AtBank1
+
+    val acc1Json = Extraction.decompose(acc1)
+    val acc2Json = Extraction.decompose(acc2)
+
+    //add account1
+    getResponse(List(acc1Json)).code should equal(SUCCESS)
+
+    val sameIbanAccountJson = replaceField(acc2Json, "IBAN", acc1.IBAN)
+
+    //when we try to add an account with the same IBAN than account1 it should now fail
+    getResponse(List(sameIbanAccountJson)).code should equal(FAILED)
+
+    //and the account2 should not have been created
+    Connector.connector.vend.getBankAccountOld(BankId(acc2.bank), AccountId(acc2.id)).isDefined should equal(false)
+  }
+
   it should "require transactions to have non-empty ids" in {
 
     def getResponse(transactionJsons : List[JValue]) = {
+      BankAccountRouting.bulkDelete_!!()
       val json = createImportJson(standardBanks.map(Extraction.decompose),
         standardUsers.map(Extraction.decompose), standardAccounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
@@ -1095,6 +1156,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
   it should "require transactions for a single account do not have the same id" in {
 
     def getResponse(transactionJsons : List[JValue]) = {
+      BankAccountRouting.bulkDelete_!!()
       val json = createImportJson(standardBanks.map(Extraction.decompose),
         standardUsers.map(Extraction.decompose), standardAccounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
@@ -1163,6 +1225,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val accounts = standardAccounts
 
     def getResponse(transactionJsons : List[JValue]) = {
+      BankAccountRouting.bulkDelete_!!()
       val json = createImportJson(banks.map(Extraction.decompose),
         users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
@@ -1553,6 +1616,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
+      BankAccountRouting.bulkDelete_!!()
       val json = createImportJson(banks.map(Extraction.decompose),
         users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
@@ -1606,6 +1670,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
+      BankAccountRouting.bulkDelete_!!()
       val json = createImportJson(banks.map(Extraction.decompose),
         users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
