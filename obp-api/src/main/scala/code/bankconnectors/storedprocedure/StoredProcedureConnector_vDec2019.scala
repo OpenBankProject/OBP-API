@@ -5893,7 +5893,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     Future{
       StoredProcedureUtils.callProcedure[T](procedureName, outBound)
     }.map(convertToId(_)) recoverWith {
-      case e: Exception => Future.failed(new Exception(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}", e))
+      case e: Exception => Future(Failure(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}"))
     }
   }
 
