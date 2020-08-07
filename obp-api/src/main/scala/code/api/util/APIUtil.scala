@@ -2598,7 +2598,10 @@ Returns a string showed to the developer
     // Remove duplicated content, because in the process of box, the FailBox will be wrapped may multiple times, and message is same.
     getPropsAsBoolValue("display_internal_errors", false) match {
       case true => // Show all error in a chain
-        obj.messageChain.split(" <- ").distinct.mkString(" <- ")
+        obj.rootExceptionCause match {
+          case Full(cause) => obj.messageChain.split(" <- ").distinct.mkString(" <- ") + " <- " + cause
+          case _ => obj.messageChain.split(" <- ").distinct.mkString(" <- ")
+        }
       case false => // Do not display internal errors
         val obpFailures = obj.failureChain.filter(x => messageIsNotNull(x, obj) && x.msg.startsWith("OBP-"))
         obpFailures match {
