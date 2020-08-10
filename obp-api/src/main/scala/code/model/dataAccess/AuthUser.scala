@@ -123,7 +123,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
     override def validations = isEmpty(Helper.i18n("Please.enter.your.username")) _ :: 
                                valUnique(Helper.i18n("unique.username")) _ ::
                                valUniqueExternally(Helper.i18n("unique.username")) _ :: 
-                               super.validations
+                               super.validations.distinct
     override val fieldId = Some(Text("txtUsername"))
 
     /**
@@ -137,6 +137,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
               case username if username == name => List(FieldError(this, Text(msg))) // issue 179
               case _ => Nil
             }
+          case ParamFailure(message,_,_,_) if message.contains("NO DATA") => Nil
           case _ => List(FieldError(this, Text(msg))) // issue 179
         }
       } else {
