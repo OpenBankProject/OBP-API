@@ -1297,18 +1297,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                   callContext: Option[CallContext]
                                 ): OBPReturnType[Box[BankAccount]] = Future {
 
-    val oldAccountRoutings = BankAccountRouting.findAll(By(BankAccountRouting.BankId, bankId.value),
+    val oldAccountRoutings: List[BankAccountRouting] = BankAccountRouting.findAll(By(BankAccountRouting.BankId, bankId.value),
       By(BankAccountRouting.AccountId, accountId.value))
-      .map(_.accountRouting)
 
     // Add or update new routing schemes
     accountRoutings.foreach(accountRouting =>
-      oldAccountRoutings.find(_.scheme == accountRouting.scheme) match {
-        case Some(_) =>
-          BankAccountRouting
-            .find(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountId, accountId.value),
-              By(BankAccountRouting.AccountRoutingScheme, accountRouting.scheme))
-            .map(_.AccountRoutingAddress(accountRouting.address).saveMe())
+      oldAccountRoutings.find(_.accountRouting.scheme == accountRouting.scheme) match {
+        case Some(updatedAccountRouting) =>
+          updatedAccountRouting.AccountRoutingAddress(accountRouting.address).saveMe()
         case None =>
           BankAccountRouting.create
             .BankId(bankId.value)
@@ -1320,18 +1316,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
 
     // Delete non-present routing schemes
-    oldAccountRoutings.foreach(accountRouting =>
-      accountRoutings.find(_.scheme == accountRouting.scheme)
-        .getOrElse(
-          BankAccountRouting
-            .find(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountId, accountId.value),
-              By(BankAccountRouting.AccountRoutingScheme, accountRouting.scheme))
-            .map(_.delete_!)
-        )
-    )
+    oldAccountRoutings.filterNot(accountRouting => accountRoutings.exists(_.scheme == accountRouting.accountRouting.scheme))
+      .foreach(_.delete_!)
 
     (for {
-      (account, callContext) <- LocalMappedConnector.getBankAccountCommon(bankId, accountId, callContext)
+      (account, _) <- LocalMappedConnector.getBankAccountCommon(bankId, accountId, callContext)
     } yield {
       account
         .kind(accountType)

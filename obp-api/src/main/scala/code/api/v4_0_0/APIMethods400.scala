@@ -1269,9 +1269,11 @@ trait APIMethods400 {
             alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
               NewStyle.function.getBankAccountByRouting(accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
               ))
-            alreadyExistingAccountRouting = alreadyExistAccountRoutings.find(_.nonEmpty).flatten
-            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.map(_.scheme).getOrElse("")}, ${alreadyExistingAccountRouting.map(_.address).getOrElse("")})") {
-                alreadyExistAccountRoutings.forall(_.isEmpty)
+            alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
+              case Some(accountRouting) => s"scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
+            }
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})") {
+              alreadyExistingAccountRouting.isEmpty
             }
             (bankAccount,callContext) <- NewStyle.function.addBankAccount(
               bankId,

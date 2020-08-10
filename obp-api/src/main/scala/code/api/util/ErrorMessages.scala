@@ -287,7 +287,10 @@ object ErrorMessages {
   val AttributeNotFound = "OBP-30071: Attribute Definition not found. Please specify a valid value for ATTRIBUTE_DEFINITION_ID."
   
   val CreateCounterpartyError = "OBP-30072: Could not create the Counterparty."
-  
+
+  val BankAccountNotFoundByAccountRouting = "OBP-30073: Bank Account not found. Please specify valid values for account routing scheme and address."
+  val BankAccountNotFoundByIban = "OBP-30074: Bank Account not found. Please specify a valid value for iban."
+
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."

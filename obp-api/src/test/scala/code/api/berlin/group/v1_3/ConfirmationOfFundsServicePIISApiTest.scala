@@ -3,7 +3,7 @@ package code.api.berlin.group.v1_3
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_ConfirmationOfFundsServicePIISApi
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ErrorMessages.{BankAccountNotFound, InvalidJsonContent, InvalidJsonFormat}
+import code.api.util.ErrorMessages.{BankAccountNotFound, BankAccountNotFoundByIban, InvalidJsonContent, InvalidJsonFormat}
 import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
@@ -34,7 +34,7 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
       Then("We should get a 404 ")
       response.code should equal(404)
       response.body.extract[ErrorMessage]
-        .message should startWith(s"${BankAccountNotFound.replaceAll("BANK_ID and ACCOUNT_ID. ", "IBAN.")}")
+        .message should startWith(BankAccountNotFoundByIban)
     }
 
     scenario("Failed Case, invalid post json", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
