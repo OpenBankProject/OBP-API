@@ -109,3 +109,83 @@ select
 	null update_date
 where
 	1 = 0
+
+-- In case when we can create a atm at OBP-API side but we get it from CBS(core banking system)
+-- via this view we expose such created atm to CBS in order to be able to list they
+-- We don't want to end up with scenario where you create atm with success code 201 but you cannot get it
+create view v_atm as
+select
+	mname name,
+	mbankid bank_id,
+	mline1 line_1,
+	mline2 line_2,
+	mline3 line_3,
+	mcity city,
+	mcounty county,
+	mstate state,
+	mcountrycode country_code,
+	mpostcode post_code,
+	mlocatedat located_at,
+	mlocationlatitude location_latitude,
+	mlocationlongitude location_longitude,
+	mlicenseid license_id,
+	mlicensename license_name,
+	mopeningtimeonmonday opening_time_on_monday,
+	mclosingtimeonmonday mclosing_time_on_monday,
+	mopeningtimeontuesday opening_time_on_tuesday,
+	mclosingtimeontuesday closing_time_on_tuesday,
+	mopeningtimeonwednesday opening_time_on_wednesday,
+	mclosingtimeonwednesday closing_time_on_wednesday,
+	mopeningtimeonthursday opening_time_on_thursday,
+	mclosingtimeonthursday closing_time_on_thursday,
+	mopeningtimeonfriday opening_time_on_friday,
+	mclosingtimeonfriday closing_time_on_friday,
+	mopeningtimeonsaturday opening_time_on_saturday,
+	mclosingtimeonsaturday closing_time_on_saturday,
+	mopeningtimeonsunday opening_time_on_sunday,
+	mclosingtimeonsunday closing_time_on_sunday,
+	mhasdepositcapability has_deposit_capability,
+	misaccessible is_accessible,
+	mmoreinfo more_info,
+	matmid atm_id
+FROM
+	mappedatm
+union
+select
+	null name,
+	null bank_id,
+	null line_1,
+	null line_2,
+	null line_3,
+	null city,
+	null county,
+	null state,
+	null country_code,
+	null post_code,
+	null located_at,
+	null location_latitude,
+	null location_longitude,
+	null license_id,
+	null license_name,
+	null opening_time_on_monday,
+	null mclosing_time_on_monday,
+	null opening_time_on_tuesday,
+	null closing_time_on_tuesday,
+	null opening_time_on_wednesday,
+	null closing_time_on_wednesday,
+	null opening_time_on_thursday,
+	null closing_time_on_thursday,
+	null opening_time_on_friday,
+	null closing_time_on_friday,
+	null opening_time_on_saturday,
+	null closing_time_on_saturday,
+	null opening_time_on_sunday,
+	null closing_time_on_sunday,
+	null has_deposit_capability,
+	null is_accessible,
+	null more_info,
+	null atm_id
+from
+	mappedatm
+where
+	1 = 0;
