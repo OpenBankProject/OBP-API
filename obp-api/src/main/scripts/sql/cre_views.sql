@@ -189,3 +189,40 @@ from
 	mappedatm
 where
 	1 = 0;
+
+
+-- In case when we can create a bank at OBP-API side but we get it from CBS(core banking system)
+-- via this view we expose such created bank to CBS in order to be able to list they
+-- We don't want to end up with scenario where you create bank with success code 201 but you cannot get it
+create view v_bank as
+select
+	permalink bank_id,
+	fullbankname bank_name,
+	shortbankname short_bank_name,
+	national_identifier national_identifier,
+	mbankroutingscheme bank_routing_scheme,
+	mbankroutingaddress bank_routing_address,
+	logourl logo_url,
+	websiteurl website_url,
+	updatedat updated_at,
+	createdat created_at,
+	swiftbic swift_bic
+from
+	mappedbank
+union
+select
+	null bank_id,
+	null bank_name,
+	null short_bank_name,
+	null national_identifier,
+	null bank_routing_scheme,
+	null bank_routing_address,
+	null logo_url,
+	null website_url,
+	null updated_at,
+	null created_at,
+	null swift_bic
+from
+	mappedbank
+where
+	1 = 0;
