@@ -3,8 +3,33 @@ drop view v_resource_user cascade;
 create or replace view v_resource_user as select userid_ resource_user_id, name_ username, email, id numeric_resource_user_id, provider_ provider, providerid provider_id from resourceuser;
 
 drop view v_auth_user cascade;
-create or replace view v_auth_user as select username, firstname, lastname, email, uniqueid auth_user_id, id numeric_auth_user_id, user_c, validated from authuser;
-
+create view v_auth_user as
+select
+	username,
+	firstname,
+	lastname,
+	email,
+	uniqueid auth_user_id,
+	id numeric_auth_user_id,
+	user_c,
+	validated
+from
+	authuser
+union
+select
+	null username,
+	null firstname,
+	null lastname,
+	null email,
+	null auth_user_id,
+	null numeric_auth_user_id,
+	null user_c,
+	null validated
+from
+	authuser
+where
+	1 = 0;
+	
 drop view v_auth_user_resource_user cascade;
 create or replace view v_auth_user_resource_user as select au.username from v_auth_user au, v_resource_user ru where au.numeric_auth_user_id = ru.numeric_resource_user_id;
 
