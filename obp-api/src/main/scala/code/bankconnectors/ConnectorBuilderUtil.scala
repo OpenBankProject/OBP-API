@@ -357,7 +357,8 @@ object ConnectorBuilderUtil {
     // The follow methods's parameter or return type are special
     "getCurrentFxRate",
     "getBankAccountOld",    // old method, but v3.0.0 apis use a lot
-    "checkExternalUserCredentials"
+    "checkExternalUserCredentials",
+    "checkExternalUserExists"
   ).distinct
 
   /**

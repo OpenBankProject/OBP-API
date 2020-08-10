@@ -121,9 +121,30 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
     override def displayName = S.?("Username")
     override def dbIndexed_? = true
     override def validations = isEmpty(Helper.i18n("Please.enter.your.username")) _ :: 
-                               valUnique(Helper.i18n("unique.username")) _ :: 
+                               valUnique(Helper.i18n("unique.username")) _ ::
+                               valUniqueExternally(Helper.i18n("unique.username")) _ :: 
                                super.validations
     override val fieldId = Some(Text("txtUsername"))
+
+    /**
+     * Make sure that the field is unique in the CBS
+     */
+    def valUniqueExternally(msg: => String)(value: String): List[FieldError] ={
+      if (APIUtil.getPropsAsBoolValue("connector.user.authentication", false)) {
+        Connector.connector.vend.checkExternalUserExists(value, None).map(_.name) match {
+          case Full(name) =>
+            value match {
+              case username if username == name => List(FieldError(this, Text(msg))) // issue 179
+              case _ => Nil
+            }
+          case _ => List(FieldError(this, Text(msg))) // issue 179
+        }
+      } else {
+        Nil
+      }
+    }
+      
+      
   }
 
   override lazy val password = new MyPasswordNew
@@ -820,7 +841,7 @@ def restoreSomeSessions(): Unit = {
       user.validated_? && !LoginAttempt.userIsLocked(usernameFromGui) &&
         !isObpProvider(user)
     }
-
+    
     def loginAction = {
       if (S.post_?) {
         val usernameFromGui = S.param("username").getOrElse("")
