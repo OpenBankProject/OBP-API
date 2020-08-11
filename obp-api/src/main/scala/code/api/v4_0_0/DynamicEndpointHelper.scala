@@ -168,7 +168,7 @@ object DynamicEndpointHelper extends RestHelper {
     }
 
   private def buildDynamicEndpointInfo(openAPI: OpenAPI, id: String): DynamicEndpointInfo = {
-    val tags: List[ResourceDocTag] = List(ApiTag.apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle)
+    val tags: List[ResourceDocTag] = List(ApiTag(s"Dynamic-Endpoints-Grp-(${openAPI.getInfo.getTitle})"), apiTagApi, apiTagNewStyle)
 
     val serverUrl = {
       val servers = openAPI.getServers
