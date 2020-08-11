@@ -26,7 +26,7 @@ class BankAccountRouting extends BankAccountRoutingTrait with LongKeyedMapper[Ba
 object BankAccountRouting extends BankAccountRouting with LongKeyedMetaMapper[BankAccountRouting] {
 
   override def dbIndexes: List[BaseIndex[BankAccountRouting]] =
-    UniqueIndex(BankId, AccountId, AccountRoutingScheme) :: UniqueIndex(AccountRoutingScheme, AccountRoutingAddress) :: super.dbIndexes
+    UniqueIndex(BankId, AccountId, AccountRoutingScheme) :: UniqueIndex(BankId, AccountRoutingScheme, AccountRoutingAddress) :: super.dbIndexes
 
 }
 

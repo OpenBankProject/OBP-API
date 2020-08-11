@@ -1011,6 +1011,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       userOwners=List( InternalBasicUser(userId=userIdExample.value,
       emailAddress=emailExample.value,
       name=usernameExample.value))))))))),
+      bankId=Some(BankId(bankIdExample.value)),
       scheme="string",
       address="string")
     ),
@@ -1043,10 +1044,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /getBankAccountByRouting
-  override def getBankAccountByRouting(scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
+  override def getBankAccountByRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetBankAccountByRouting => OutBound, InBoundGetBankAccountByRouting => InBound}
         val url = getUrl(callContext, "getBankAccountByRouting")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , scheme, address)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, scheme, address)
         val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }

@@ -838,6 +838,7 @@ case class InBoundGetBankAccountLegacy (inboundAdapterCallContext: InboundAdapte
 
 
 case class OutBoundGetBankAccountByRouting (outboundAdapterCallContext: OutboundAdapterCallContext,
+                                            bankId: Option[BankId],
                                             scheme: String,
                                             address: String) extends TopicTrait
 case class InBoundGetBankAccountByRouting (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BankAccountCommons) extends InBoundTrait[BankAccountCommons]

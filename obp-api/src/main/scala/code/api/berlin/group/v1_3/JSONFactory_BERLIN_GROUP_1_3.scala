@@ -428,6 +428,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 
   private def extractAccountData(scheme: String, address: String): (String, String, String, String, String) = {
     val (iban: String, bban: String, pan: String, maskedPan: String, currency: String) = Connector.connector.vend.getBankAccountByRouting(
+      None,
       scheme,
       address,
       None
