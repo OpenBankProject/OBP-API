@@ -221,8 +221,8 @@ To populate the OBP database with sandbox data:
 
 1) In the API's props file, set `allow_sandbox_data_import=true`
 2) Grant your user the role `CanCreateSandbox`. See previous section on how to do this
-5) Now post the JSON data using the payload field at `/#2_1_0-sandboxDataImport`
-6) If successful you should see an empty result `{}` and no error message
+3) Now post the JSON data using the payload field at `/#2_1_0-sandboxDataImport`. An example of an import set of data (json) can be found [here](https://raw.githubusercontent.com/OpenBankProject/OBP-API/develop/obp-api/src/main/scala/code/api/sandbox/example_data/2016-04-28/example_import.json)
+4) If successful you should see this result `{ "success": "Success" }` and no error message
 
 
 
