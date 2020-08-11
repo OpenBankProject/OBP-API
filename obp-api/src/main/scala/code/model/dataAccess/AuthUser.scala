@@ -31,7 +31,7 @@ import code.accountholders.AccountHolders
 import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
-import code.api.{DirectLogin, GatewayLogin, OAuthHandshake}
+import code.api.{APIFailure, DirectLogin, GatewayLogin, OAuthHandshake}
 import code.bankconnectors.Connector
 import code.loginattempts.LoginAttempt
 import code.users.Users
@@ -121,9 +121,34 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
     override def displayName = S.?("Username")
     override def dbIndexed_? = true
     override def validations = isEmpty(Helper.i18n("Please.enter.your.username")) _ :: 
-                               valUnique(Helper.i18n("unique.username")) _ :: 
+                               valUnique(Helper.i18n("unique.username")) _ ::
+                               valUniqueExternally(Helper.i18n("unique.username")) _ :: 
                                super.validations
     override val fieldId = Some(Text("txtUsername"))
+
+    /**
+     * Make sure that the field is unique in the CBS
+     */
+    def valUniqueExternally(msg: => String)(uniqueUsername: String): List[FieldError] ={
+      if (APIUtil.getPropsAsBoolValue("connector.user.authentication", false)) {
+        Connector.connector.vend.checkExternalUserExists(uniqueUsername, None).map(_.sub) match {
+          case Full(returnedUsername) => // Get the username via connector
+            if(uniqueUsername == returnedUsername) { // Username is NOT unique
+              List(FieldError(this, Text(msg))) // provide the error message
+            } else { 
+              Nil // All good. Allow username creation
+            }
+          case ParamFailure(message,_,_,APIFailure(errorMessage, errorCode)) if errorMessage.contains("NO DATA") => // Cannot get the username via connector
+            Nil // All good. Allow username creation
+          case _ => // Any other case we provide error message
+            List(FieldError(this, Text(msg)))
+        }
+      } else {
+        Nil // All good. Allow username creation
+      }
+    }
+      
+      
   }
 
   override lazy val password = new MyPasswordNew
@@ -820,7 +845,7 @@ def restoreSomeSessions(): Unit = {
       user.validated_? && !LoginAttempt.userIsLocked(usernameFromGui) &&
         !isObpProvider(user)
     }
-
+    
     def loginAction = {
       if (S.post_?) {
         val usernameFromGui = S.param("username").getOrElse("")
