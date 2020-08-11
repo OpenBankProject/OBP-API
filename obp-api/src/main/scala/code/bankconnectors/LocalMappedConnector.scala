@@ -4220,4 +4220,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   //    : we call that method only when we set external authentication and provider is not OBP-API
   override def checkExternalUserCredentials(username: String, password: String, callContext: Option[CallContext]): Box[InboundExternalUser] = Failure("")
 
+  //NOTE: this method is not for mapped connector, we put it here for the star default implementation.
+  //    : we call that method only when we set external authentication and provider is not OBP-API
+  override def checkExternalUserExists(username: String, callContext: Option[CallContext]): Box[InboundExternalUser] = Failure("")
+
 }
