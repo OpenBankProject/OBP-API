@@ -284,7 +284,8 @@ case class ModeratedCoreAccountJsonV300(
                                          `type`: String,
                                          balance: AmountOfMoneyJsonV121,
                                          account_routings: List[AccountRoutingJsonV121],
-                                         account_rules: List[AccountRuleJsonV300]
+                                         account_rules: List[AccountRuleJsonV300],
+                                         account_attributes: Option[List[AccountAttributeResponseJson]] = None
 )
 
 
@@ -854,7 +855,15 @@ object JSONFactory300{
     )
   }
 
-  def createFirehoseCoreBankAccountJSON(accounts : List[ModeratedBankAccount]) : ModeratedCoreAccountsJsonV300 =  {
+  def createFirehoseCoreBankAccountJSON(accounts : List[ModeratedBankAccount], accountAttributes: Option[List[AccountAttribute]] = None) : ModeratedCoreAccountsJsonV300 =  {
+    def getAttributes(bankId: BankId, accountId: AccountId): Option[List[AccountAttributeResponseJson]] = accountAttributes match {
+      case Some(v) =>
+        val attributes: List[AccountAttributeResponseJson] =
+          v.filter(attr => attr.bankId == bankId && attr.accountId == accountId)
+           .map(createAccountAttributeJson)
+        Some(attributes)
+      case None => None
+    }
     ModeratedCoreAccountsJsonV300(
       accounts.map(
         account =>
@@ -867,7 +876,8 @@ object JSONFactory300{
             stringOptionOrNull(account.accountType),
             createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
             createAccountRoutingsJSON(account.accountRoutings),
-            createAccountRulesJSON(account.accountRules)
+            createAccountRulesJSON(account.accountRules),
+            account_attributes = getAttributes(account.bankId, account.accountId)
           )
       )
     )
