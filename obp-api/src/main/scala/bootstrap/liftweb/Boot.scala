@@ -729,7 +729,7 @@ class Boot extends MdcLoggable {
           .saveMe()
         logger.debug(s"creating Bank(${defaultBankId})")   
     }
-    
+
     MappedBankAccount.find(By(MappedBankAccount.bank, defaultBankId), By(MappedBankAccount.theAccountId, incomingAccountId)) match {
       case Full(b) =>
         logger.debug(s"BankAccount(${defaultBankId}, $incomingAccountId) is found.")
@@ -808,6 +808,7 @@ object ToSchemify {
     Admin,
     MappedBank,
     MappedBankAccount,
+    BankAccountRouting,
     MappedTransaction,
     MappedCustomerMessage,
     MappedBranch,

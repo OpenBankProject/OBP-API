@@ -120,16 +120,10 @@ case class BankAccountCommons(
                                name :String,
                                @optional
                                label :String,
-                               @optional
-                               iban :Option[String],
                                number :String,
                                bankId :BankId,
                                lastUpdate :Date,
                                branchId :String,
-                               @optional
-                               accountRoutingScheme :String,
-                               @optional
-                               accountRoutingAddress :String,
                                accountRoutings :List[AccountRouting],
                                @optional
                                accountRules :List[AccountRule],

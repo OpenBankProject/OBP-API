@@ -164,7 +164,7 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
     }
   }
   override def accountId : AccountId = AccountId(permalink.get)
-  override def iban: Option[String] = {
+  def iban: Option[String] = {
     val i = accountIban.get
     if (i.isEmpty) None else Some(i)
   }
@@ -176,8 +176,8 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
   override def label: String = accountLabel.get
   override def accountHolder: String = holder.get
   override def lastUpdate: Date = accountLastUpdate.get
-  override def accountRoutingScheme: String = mAccountRoutingScheme.get
-  override def accountRoutingAddress: String = mAccountRoutingAddress.get
+  def accountRoutingScheme: String = mAccountRoutingScheme.get
+  def accountRoutingAddress: String = mAccountRoutingAddress.get
   override def branchId: String = mBranchId.get
   def createAccountRule(scheme: String, value: Long) = {
     scheme match {

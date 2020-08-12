@@ -19,8 +19,10 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.util.Helpers._
 import org.bson.types.ObjectId
-
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
+
+import scala.collection.immutable.List
 import scala.concurrent._
 
 private object LocalRecordConnector extends Connector with MdcLoggable {
@@ -243,7 +245,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
             ("number" -> account.number) ~
             ("kind" -> account.accountType) ~
             ("bank" ->
-              ("IBAN" -> account.iban.getOrElse("")) ~
+              ("IBAN" -> account.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address).getOrElse("")) ~
                 ("national_identifier" -> account.nationalIdentifier) ~
                 ("name" -> account.bankId.value))) ~
 //          ("other_account" ->
@@ -438,8 +440,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     initialBalance: BigDecimal,
     accountHolderName: String,
     branchId: String,
-    accountRoutingScheme: String,
-    accountRoutingAddress: String
+    accountRoutings: List[AccountRouting]
   ): Box[BankAccount] = {
     HostedBank.find(bankId) match {
       case Full(b) => Full(createAccount(b, accountId, accountNumber, accountType, accountLabel, currency, initialBalance, accountHolderName))

@@ -447,7 +447,7 @@ trait Connector extends MdcLoggable {
   def getBankAccountLegacy(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
 
   def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
-  def getBankAccountByRouting(scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
+  def getBankAccountByRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
 
   def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : OBPReturnType[Box[List[BankAccount]]]= Future{(Failure(setUnimplementedError), callContext)}
 
@@ -1324,8 +1324,7 @@ trait Connector extends MdcLoggable {
     initialBalance: BigDecimal,
     accountHolderName: String,
     branchId: String,
-    accountRoutingScheme: String,
-    accountRoutingAddress: String,
+    accountRoutings: List[AccountRouting],
     callContext: Option[CallContext]
   ): OBPReturnType[Box[BankAccount]] = Future{(Failure(setUnimplementedError), callContext)}
   
@@ -1336,8 +1335,7 @@ trait Connector extends MdcLoggable {
                          accountType: String,
                          accountLabel: String,
                          branchId: String,
-                         accountRoutingScheme: String,
-                         accountRoutingAddress: String,
+                         accountRoutings: List[AccountRouting],
                          callContext: Option[CallContext]
                        ): OBPReturnType[Box[BankAccount]] = Future{(Failure(setUnimplementedError), callContext)}
   
@@ -1367,8 +1365,7 @@ trait Connector extends MdcLoggable {
                          initialBalance: BigDecimal,
                          accountHolderName: String,
                          branchId: String,
-                         accountRoutingScheme: String,
-                         accountRoutingAddress: String,
+                         accountRoutings: List[AccountRouting],
                          callContext: Option[CallContext]
                        ): OBPReturnType[Box[BankAccount]] = Future{(Failure(setUnimplementedError), callContext)}
 
@@ -1383,8 +1380,7 @@ trait Connector extends MdcLoggable {
                                initialBalance: BigDecimal,
                                accountHolderName: String,
                                branchId: String,
-                               accountRoutingScheme: String,
-                               accountRoutingAddress: String
+                               accountRoutings: List[AccountRouting]
                              ): Box[BankAccount] = {
     val uniqueAccountNumber = {
       def exists(number : String) = Connector.connector.vend.accountExists(bankId, number).openOrThrowException(attemptedToOpenAnEmptyBox)
@@ -1410,8 +1406,7 @@ trait Connector extends MdcLoggable {
       initialBalance,
       accountHolderName,
       branchId: String,//added field in V220
-      accountRoutingScheme, //added field in V220
-      accountRoutingAddress //added field in V220
+      accountRoutings
     )
 
   }
@@ -1427,8 +1422,7 @@ trait Connector extends MdcLoggable {
                                 initialBalance: BigDecimal,
                                 accountHolderName: String,
                                 branchId: String,
-                                accountRoutingScheme: String,
-                                accountRoutingAddress: String
+                                accountRoutings: List[AccountRouting]
                               ): Box[BankAccount] = Failure(setUnimplementedError)
 
   /**

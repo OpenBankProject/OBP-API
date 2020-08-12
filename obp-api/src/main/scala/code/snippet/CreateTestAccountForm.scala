@@ -90,7 +90,7 @@ object CreateTestAccountForm{
         accountDoesNotExist <- booleanToBox(BankAccountX(bankId, accountId).isEmpty,
           s"Account with id $accountId already exists at bank $bankId")
         bankAccount <- Connector.connector.vend.createBankAccountLegacy(bankId, accountId, accountType, accountLabel, currency, initialBalanceAsNumber, user.name,
-                                                                         "", "", "")//added field in V220
+                                                                         "", List.empty)//added field in V220
                                                                         
       } yield {
         BankAccountCreation.setAsOwner(bankId, accountId, user)

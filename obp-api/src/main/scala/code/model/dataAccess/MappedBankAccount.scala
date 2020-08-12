@@ -45,7 +45,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   object accountRuleValue2 extends MappedLong(this)
 
   override def accountId: AccountId = AccountId(theAccountId.get)
-  override def iban: Option[String] = {
+  def iban: Option[String] = {
     val i = accountIban.get
     if(i.isEmpty) None else Some(i)
   }
@@ -74,10 +74,9 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
     }
   }
   override def accountRoutings: List[AccountRouting] = {
-    iban match {
-      case Some(_) => List(AccountRouting("IBAN",accountIban.get), AccountRouting(mAccountRoutingScheme.get, mAccountRoutingAddress.get))
-      case None => List(AccountRouting(mAccountRoutingScheme.get, mAccountRoutingAddress.get))
-    }
+    BankAccountRouting.findAll(By(BankAccountRouting.BankId, this.bankId.value),
+      By(BankAccountRouting.AccountId, this.accountId.value))
+      .map(_.accountRouting)
   }
   override def accountRules: List[AccountRule] = createAccountRule(accountRuleScheme1.get, accountRuleValue1.get) :::
                                                   createAccountRule(accountRuleScheme2.get, accountRuleValue2.get)

@@ -57,6 +57,8 @@ import net.liftweb.util.Helpers.tryo
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -1309,12 +1311,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
             accountId = fromAccount.accountId.value,
             accountType = fromAccount.accountType,
             currency = fromAccount.currency,
-            iban = fromAccount.iban.getOrElse(""),
+            iban = fromAccount.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.scheme).getOrElse(""),
             number = fromAccount.number,
             bankId = fromAccount.bankId.value,
             branchId = fromAccount.bankId.value,
-            accountRoutingScheme = fromAccount.accountRoutingScheme,
-            accountRoutingAddress = fromAccount.accountRoutingAddress)
+            accountRoutingScheme = fromAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""),
+            accountRoutingAddress = fromAccount.accountRoutings.headOption.map(_.address).getOrElse(""))
         )
         _ <- Full(logger.debug(s"Kafka getTransactionRequests210 Req says: is: $req"))
         kafkaMessage <- processToBox(req)

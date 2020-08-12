@@ -216,9 +216,15 @@ object NewStyle {
       }
     }
 
+    def getBankAccountByRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
+      Future(Connector.connector.vend.getBankAccountByRouting(bankId: Option[BankId], scheme: String, address : String, callContext: Option[CallContext])) map { i =>
+        unboxFullOrFail(i, callContext,s"$BankAccountNotFoundByAccountRouting Current scheme is $scheme, current address is $address, current bankId is $bankId", 404 )
+      }
+    }
+
     def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Connector.connector.vend.getBankAccountByIban(iban : String, callContext: Option[CallContext]) map { i =>
-        (unboxFullOrFail(i._1, callContext,s"${BankAccountNotFound.replaceAll("BANK_ID and ACCOUNT_ID. ", "IBAN.")} Current IBAN is $iban", 404 ), i._2)
+        (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFoundByIban Current IBAN is $iban", 404 ), i._2)
       }
     }
 
@@ -1084,8 +1090,7 @@ object NewStyle {
       initialBalance: BigDecimal,
       accountHolderName: String,
       branchId: String,
-      accountRoutingScheme: String,
-      accountRoutingAddress: String, 
+      accountRoutings: List[AccountRouting],
       callContext: Option[CallContext]
     ): OBPReturnType[BankAccount] = 
       Connector.connector.vend.createBankAccount(
@@ -1097,8 +1102,7 @@ object NewStyle {
         initialBalance: BigDecimal,
         accountHolderName: String,
         branchId: String,
-        accountRoutingScheme: String,
-        accountRoutingAddress: String,
+        accountRoutings: List[AccountRouting],
         callContext
       ) map {
         i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
@@ -1112,8 +1116,7 @@ object NewStyle {
       initialBalance: BigDecimal,
       accountHolderName: String,
       branchId: String,
-      accountRoutingScheme: String,
-      accountRoutingAddress: String,
+      accountRoutings: List[AccountRouting],
       callContext: Option[CallContext]
     ): OBPReturnType[BankAccount] =
       Connector.connector.vend.addBankAccount(
@@ -1124,8 +1127,7 @@ object NewStyle {
         initialBalance: BigDecimal,
         accountHolderName: String,
         branchId: String,
-        accountRoutingScheme: String,
-        accountRoutingAddress: String,
+        accountRoutings: List[AccountRouting],
         callContext: Option[CallContext]
       ) map {
         i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
@@ -1137,8 +1139,7 @@ object NewStyle {
                            accountType: String,
                            accountLabel: String,
                            branchId: String,
-                           accountRoutingScheme: String,
-                           accountRoutingAddress: String,
+                           accountRoutings: List[AccountRouting],
                            callContext: Option[CallContext]
                          ): OBPReturnType[BankAccount] =
       Connector.connector.vend.updateBankAccount(
@@ -1147,8 +1148,7 @@ object NewStyle {
         accountType: String,
         accountLabel: String,
         branchId: String,
-        accountRoutingScheme: String,
-        accountRoutingAddress: String,
+        accountRoutings,
         callContext
       ) map {
         i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)

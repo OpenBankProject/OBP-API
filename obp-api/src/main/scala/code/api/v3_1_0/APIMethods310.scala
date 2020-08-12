@@ -2458,17 +2458,16 @@ trait APIMethods310 {
                 for{
                   accountId <- Future{AccountId(UUID.randomUUID().toString)}
                   (_, callContext) <- NewStyle.function.createBankAccount(
-                                                                                 bankId, 
-                                                                                 accountId, 
-                                                                                 accountApplication.productCode.value,
-                                                                                 "", 
-                                                                                 "EUR",
-                                                                                 BigDecimal("0"), 
-                                                                                 u.name,
-                                                                                 "", 
-                                                                                 "", 
-                                                                                 "",
-                                                                                 callContext)
+                    bankId,
+                    accountId,
+                    accountApplication.productCode.value,
+                    "",
+                    "EUR",
+                    BigDecimal("0"),
+                    u.name,
+                    "",
+                    List.empty,
+                    callContext)
                 }yield {
                   BankAccountCreation.setAsOwner(bankId, accountId, u)
                 }
@@ -4813,14 +4812,30 @@ trait APIMethods310 {
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[UpdateAccountRequestJsonV310]
             }
+            _ <- Helper.booleanToFuture(s"$UpdateBankAccountException Duplication detected in account routings, please specify only one value per routing scheme"){
+              consentJson.account_routings.map(_.scheme).distinct.size == consentJson.account_routings.size
+            }
+            alreadyExistAccountRoutings <- Future.sequence(consentJson.account_routings.map(accountRouting =>
+              NewStyle.function.getBankAccountByRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext)
+                .map {
+                  // If we find an already existing account routing linked to the account, it just mean we don't want to update it
+                  case bankAccount if !(bankAccount._1.bankId == bankId && bankAccount._1.accountId == accountId) => Some(accountRouting)
+                  case _ => None
+                } fallbackTo Future.successful(None)
+            ))
+            alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
+              case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
+            }
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})") {
+              alreadyExistingAccountRouting.isEmpty
+            }
             (bankAccount,callContext) <- NewStyle.function.updateBankAccount(
               bankId,
               accountId,
               consentJson.`type`,
               consentJson.label,
               consentJson.branch_id,
-              consentJson.account_routing.scheme,
-              consentJson.account_routing.address,
+              consentJson.account_routings.map(r => AccountRouting(r.scheme, r.address)),
               callContext
             )
           } yield {
@@ -5461,6 +5476,18 @@ trait APIMethods310 {
             _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(createAccountJson.balance.currency)}
             currency = createAccountJson.balance.currency
             (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme", 400){
+              createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
+            }
+            alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
+              NewStyle.function.getBankAccountByRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
+            ))
+            alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
+              case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
+            }
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})") {
+              alreadyExistingAccountRouting.isEmpty
+            }
             (bankAccount,callContext) <- NewStyle.function.createBankAccount(
               bankId,
               accountId,
@@ -5470,8 +5497,7 @@ trait APIMethods310 {
               initialBalanceAsNumber,
               postedOrLoggedInUser.name,
               createAccountJson.branch_id,
-              createAccountJson.account_routing.scheme,
-              createAccountJson.account_routing.address,
+              createAccountJson.account_routings.map(r => AccountRouting(r.scheme, r.address)),
               callContext
             )
             (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, ProductCode(accountType), callContext)

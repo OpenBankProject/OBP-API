@@ -1007,8 +1007,8 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       toCounterpartyId = toAccount.accountId.value,
       toCounterpartyName = toAccount.name,
       toCounterpartyCurrency = fromAccount.currency, // TODO toCounterparty.currency
-      toCounterpartyRoutingAddress = toAccount.accountRoutingAddress,
-      toCounterpartyRoutingScheme = toAccount.accountRoutingScheme,
+      toCounterpartyRoutingAddress = toAccount.accountRoutings.headOption.map(_.address).getOrElse(""),
+      toCounterpartyRoutingScheme = toAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""),
       toCounterpartyBankRoutingAddress = toAccount.bankRoutingAddress,
       toCounterpartyBankRoutingScheme = toAccount.bankRoutingScheme
     )
@@ -1355,8 +1355,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     initialBalance: BigDecimal,
     accountHolderName: String,
     branchId: String,
-    accountRoutingScheme: String,
-    accountRoutingAddress: String
+    accountRoutings: List[AccountRouting]
   ): Box[BankAccount] = {
 
     for {

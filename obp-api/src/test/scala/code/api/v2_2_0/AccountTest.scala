@@ -9,6 +9,8 @@ import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJ
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization.write
 
+import scala.util.Random
+
 class AccountTest extends V220ServerSetup with DefaultUsers {
 
   override def beforeAll(): Unit = {
@@ -114,7 +116,9 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
 
       Then("We test login user create account for other users with no role first")
       val requestPutNewAccountId = (v2_2Request / "banks" / testBank.value / "accounts" / mockAccountId2).PUT <@ (user1)
-      val responseWithNoRole = makePutRequest(requestPutNewAccountId, write(accountPutJSON.copy(user_id = resourceUser2.userId)))
+      val accountPutJSON2 = accountPutJSON.copy(user_id = resourceUser2.userId,
+        account_routing = AccountRoutingJsonV121(Random.nextString(4), Random.nextString(10)))
+      val responseWithNoRole = makePutRequest(requestPutNewAccountId, write(accountPutJSON2))
 
       responseWithNoRole.code should equal(403)
       responseWithNoRole.body.toString contains(s"$UserHasMissingRoles") should be (true)
@@ -122,7 +126,7 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
 
       Then("We grant the roles and test it again")
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canCreateAccount.toString)
-      val responseWithOtherUesrV310 = makePutRequest(requestPutNewAccountId, write(accountPutJSON.copy(user_id = resourceUser2.userId)))
+      val responseWithOtherUesrV310 = makePutRequest(requestPutNewAccountId, write(accountPutJSON2))
       
       Then("We should get a 200")
       responseWithOtherUesrV310.code should equal(200)

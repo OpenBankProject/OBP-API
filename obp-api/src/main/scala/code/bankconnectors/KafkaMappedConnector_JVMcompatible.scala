@@ -710,7 +710,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       if (transactionRequestType.value == SANDBOX_TAN.toString)
         toAccount.accountId.value
       else
-        toAccount.accountRoutingAddress
+        toAccount.accountRoutings.headOption.map(_.address).getOrElse("")
   
     val toCounterpartyBankRoutingAddress =
       if (transactionRequestType.value == SANDBOX_TAN.toString)
@@ -939,8 +939,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     initialBalance: BigDecimal,
     accountHolderName: String,
     branchId: String,
-    accountRoutingScheme: String,
-    accountRoutingAddress: String
+    accountRoutings: List[AccountRouting]
   ): Box[BankAccount] = {
 
     for {

@@ -111,8 +111,8 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
 
       //toCounterparty fields
       .mName(toAccount.name)
-      .mOtherAccountRoutingScheme(toAccount.accountRoutingScheme)
-      .mOtherAccountRoutingAddress(toAccount.accountRoutingAddress)
+      .mOtherAccountRoutingScheme(toAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""))
+      .mOtherAccountRoutingAddress(toAccount.accountRoutings.headOption.map(_.address).getOrElse(""))
       .mOtherBankRoutingScheme(toAccount.bankRoutingScheme)
       .mOtherBankRoutingAddress(toAccount.bankRoutingAddress)
       // We need transfer CounterpartyTrait to BankAccount, so We lost some data. can not fill the following fields .

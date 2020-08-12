@@ -120,8 +120,8 @@ object JSONFactory_UKOpenBanking_200 extends CustomJsonFormats {
         AccountSubType = x.accountType,
         Nickname = x.label,
         AccountInner(
-          SchemeName = x.accountRoutingScheme,
-          Identification = x.accountRoutingAddress,
+          SchemeName = x.accountRoutings.headOption.map(_.scheme).getOrElse(""),
+          Identification = x.accountRoutings.headOption.map(_.address).getOrElse(""),
           Name = x.name
         )
       )
@@ -180,8 +180,8 @@ object JSONFactory_UKOpenBanking_200 extends CustomJsonFormats {
         AccountSubType = x.accountType,
         Nickname = x.label,
         AccountInner(
-          SchemeName = x.accountRoutingScheme,
-          Identification = x.accountRoutingAddress,
+          SchemeName = x.accountRoutings.headOption.map(_.scheme).getOrElse(""),
+          Identification = x.accountRoutings.headOption.map(_.address).getOrElse(""),
           Name = x.name
         )
       )
