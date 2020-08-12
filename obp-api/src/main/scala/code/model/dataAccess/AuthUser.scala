@@ -1087,6 +1087,7 @@ def restoreSomeSessions(): Unit = {
 
       val directLoginEndpointUrl = thisApiInstance + "/my/logins/direct"
       val registrationMessage = s"Thank you for registering a user on $thisApiInstance. \n" +
+        s"Username: ${registered.username.get} \n" +
         s"User Email: ${registered.getEmail} \n" +
         s"User First Name: ${registered.getFirstName} \n" +
         s"User Last Name: ${registered.getLastName} \n" +
@@ -1128,6 +1129,7 @@ def restoreSomeSessions(): Unit = {
 
       val thisApiInstance = APIUtil.getPropsValue("hostname", "unknown host")
       val registrationMessage = s"New user signed up for API keys on $thisApiInstance. \n" +
+        s"Username: ${registered.username.get} \n" +
         s"User Email: ${registered.getEmail} \n" +
         s"User First Name: ${registered.getFirstName} \n" +
         s"User Last Name: ${registered.getLastName} \n" 
