@@ -4154,7 +4154,7 @@ trait APIMethods310 {
       |Query url parameters:
       |
       |* method_name: filter with method_name
-      |* active: if active = true, it will show all the webui_ props. Even if they are set yet, we will retrun all the default webui_ props
+      |* active: if active = true, it will show all the webui_ props. Even if they are set yet, we will return all the default webui_ props
       |
       |eg: 
       |${getObpApiRoot}/v3.1.0/management/method_routings?active=true
@@ -4186,9 +4186,11 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetMethodRoutings, callContext)
             methodRoutings <- NewStyle.function.getMethodRoutingsByMethodName(req.param("method_name"))
           } yield {
+            val definedMethodRoutings = methodRoutings.sortWith(_.methodName < _.methodName)
             val listCommons: List[MethodRoutingCommons] = req.param("active") match {
-              case Full("true") =>  methodRoutings ++ getDefaultMethodRountings(methodRoutings )
-              case _ => methodRoutings
+              case Full("true") => definedMethodRoutings ++ 
+                  getDefaultMethodRountings(methodRoutings).sortWith(_.methodName < _.methodName)
+              case _ => definedMethodRoutings
             }
             (ListResult("method_routings", listCommons.map(_.toJson)), HttpCode.`200`(callContext))
           }
