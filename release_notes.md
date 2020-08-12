@@ -3,6 +3,10 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+12/08/2020    376be727      Added following props for the email notice on the registration page, it keep the similar props as consumer registration
+                            webui_register_user_success_message_email = Thank you for registering to use the Open Bank Project API.
+                            mail.api.user.registered.sender.address=no-reply@example.com
+                            mail.api.user.registered.notification.addresses=you@example.com
 14/07/2020    376be727      Added full support for MS SQL as a mapper databas
 13/07/2020    d42dda90      Added props: webui_header_content_url. If we set the props, it will override the id ="table-header" content in default.html
 19/06/2020    ea819aab      Added props: refresh_user.interval. default is 30 minutes.
