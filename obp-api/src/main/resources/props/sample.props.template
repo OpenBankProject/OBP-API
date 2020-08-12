@@ -417,6 +417,7 @@ oauth2_server_url =
 #webui_agree_terms_html=<div id="signup-agree-terms" class="checkbox"><label><input type="checkbox" />I hereby agree to the <a href="$url" title="T &amp; C">Terms and Conditions</a></label></div>
 webui_agree_privacy_policy_url = https://openbankproject.com/privacy-policy
 webui_agree_privacy_policy_html_text =<div id="signup-agree-privacy-policy"><label>By submitting this information you consent to processing your data by TESOBE GmbH according to our <a href="$url" title="Privacy Policy">Privacy Policy</a>. TESOBE shall use this information to send you emails and provide customer support.</label></div>
+#webui_legal_notice_html_text=<div id="signup-legal_notice">Tesobe will use your information as set out in our privacy notice</div>
 
 ## For partner logos and links
 webui_main_partners=[\
