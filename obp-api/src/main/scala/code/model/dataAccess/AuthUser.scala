@@ -1068,7 +1068,87 @@ def restoreSomeSessions(): Unit = {
     findAll(ByList(this.username, usernames))
   }
   lazy val signupBubmitButtonValue = getWebUiPropsValue("webui_signup_form_submit_button_value", S.?("sign.up"))
-  
+
+  def sendEmailToDeveloper(registered : TheUserType) = {
+    import net.liftweb.util.Mailer
+    import net.liftweb.util.Mailer._
+
+    val mailSent = for {
+      send : String <- APIUtil.getPropsValue("mail.api.user.registered.notification.send") if send.equalsIgnoreCase("true")
+      from <- APIUtil.getPropsValue("mail.api.user.registered.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
+    } yield {
+
+
+      val thisApiInstance = APIUtil.getPropsValue("hostname", "unknown host")
+      val apiExplorerUrl = getWebUiPropsValue("webui_api_explorer_url", "unknown host")
+      val directLoginDocumentationUrl = getWebUiPropsValue("webui_direct_login_documentation_url", apiExplorerUrl + "/glossary#Direct-Login")
+      val oauthDocumentationUrl = getWebUiPropsValue("webui_oauth_1_documentation_url", apiExplorerUrl + "/glossary#OAuth-1.0a")
+      val oauthEndpointUrl = thisApiInstance + "/oauth/initiate"
+
+      val directLoginEndpointUrl = thisApiInstance + "/my/logins/direct"
+      val registrationMessage = s"Thank you for registering a user on $thisApiInstance. \n" +
+        s"User Email: ${registered.getEmail} \n" +
+        s"User First Name: ${registered.getFirstName} \n" +
+        s"User Last Name: ${registered.getLastName} \n" +
+        s"OAuth Endpoint: ${oauthEndpointUrl} \n" +
+        s"OAuth Documentation: ${directLoginDocumentationUrl} \n" +
+        s"Direct Login Endpoint: ${directLoginEndpointUrl} \n" +
+        s"Direct Login Documentation: ${oauthDocumentationUrl} \n" 
+
+      val params = PlainMailBodyType(registrationMessage) :: List(To(registered.getEmail))
+
+      val webuiRegisteruserSuccessMssageEmail : String = getWebUiPropsValue(
+        "webui_register_user_success_message_email",
+        "Thank you for registering to use the Open Bank Project API.")
+
+      //this is an async call
+      Mailer.sendMail(
+        From(from),
+        Subject(webuiRegisteruserSuccessMssageEmail),
+        params :_*
+      )
+    }
+
+    if(mailSent.isEmpty)
+      this.logger.warn(s"Sending email with API user registration data is omitted: $mailSent")
+
+  }
+
+//   This is to let the system administrators / API managers know that someone has registered the new user.
+  def notifyRegistrationOccurred(registered : TheUserType) = {
+    import net.liftweb.util.Mailer
+    import net.liftweb.util.Mailer._
+
+    val mailSent = for {
+      // e.g mail.api.user.registered.sender.address=no-reply@example.com
+      from <- APIUtil.getPropsValue("mail.api.user.registered.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
+      // no spaces, comma separated e.g. mail.api.user.registered.notification.addresses=notify@example.com,notify2@example.com,notify3@example.com
+      toAddressesString <- APIUtil.getPropsValue("mail.api.user.registered.notification.addresses") ?~ "Could not send mail: Missing props param for 'to'"
+    } yield {
+
+      val thisApiInstance = APIUtil.getPropsValue("hostname", "unknown host")
+      val registrationMessage = s"New user signed up for API keys on $thisApiInstance. \n" +
+        s"User Email: ${registered.getEmail} \n" +
+        s"User First Name: ${registered.getFirstName} \n" +
+        s"User Last Name: ${registered.getLastName} \n" 
+
+      //technically doesn't work for all valid email addresses so this will mess up if someone tries to send emails to "foo,bar"@example.com
+      val to = toAddressesString.split(",").toList
+      val toParams = to.map(To(_))
+      val params = PlainMailBodyType(registrationMessage) :: toParams
+
+      //this is an async call
+      Mailer.sendMail(
+        From(from),
+        Subject(s"New API user registered on $thisApiInstance"),
+        params :_*
+      )
+    }
+
+    //if Mailer.sendMail wasn't called (note: this actually isn't checking if the mail failed to send as that is being done asynchronously)
+    if(mailSent.isEmpty)
+      this.logger.warn(s"API user registration failed: $mailSent")
+  }
   //overridden to allow redirect to loginRedirect after signup. This is mostly to allow
   // loginFirst menu items to work if the user doesn't have an account. Without this,
   // if a user tries to access a logged-in only page, and then signs up, they don't get redirected
@@ -1096,6 +1176,8 @@ def restoreSomeSessions(): Unit = {
           }
           if (Helper.isValidInternalRedirectUrl(redir.toString)) {
             actionsAfterSignup(theUser, () => {
+              notifyRegistrationOccurred(theUser)
+              sendEmailToDeveloper(theUser)
               S.redirectTo(redir)
             })
           } else {

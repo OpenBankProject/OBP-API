@@ -209,6 +209,10 @@ apiPathZero=obp
 
 ## Sending mail out
 ## Not need in dev mode, but important for production
+mail.api.user.registered.sender.address=no-reply@example.com
+mail.api.user.registered.notification.addresses=you@example.com
+
+## Not need in dev mode, but important for production
 mail.api.consumer.registered.sender.address=no-reply@example.com
 mail.api.consumer.registered.notification.addresses=you@example.com
 # This property allows sending API registration data to developer's email.
@@ -487,6 +491,9 @@ webui_show_dummy_user_tokens=false
 # when developer register the consumer successfully, it will show this message to developer on the webpage or email. 
 webui_register_consumer_success_message_webpage = Thanks for registering your consumer with the Open Bank Project API! Here is your developer information. Please save it in a secure location.
 webui_register_consumer_success_message_email = Thank you for registering to use the Open Bank Project API.
+
+# when developer register the user successfully, it will show this message to developer on the email. 
+webui_register_user_success_message_email = Thank you for registering to use the Open Bank Project API.
 
 #Log in page
 #webui_login_button_text = 
