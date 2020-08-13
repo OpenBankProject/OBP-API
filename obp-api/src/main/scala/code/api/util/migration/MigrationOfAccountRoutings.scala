@@ -6,7 +6,8 @@ import java.time.{ZoneId, ZonedDateTime}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
-import net.liftweb.mapper.{DB, NotNullRef}
+import net.liftweb.common.Full
+import net.liftweb.mapper.{By, DB, NotNullRef}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfAccountRoutings {
@@ -39,12 +40,8 @@ object MigrationOfAccountRoutings {
           for {
             accountIban <- definedAccountsIban
           } yield {
-            BankAccountRouting.create
-              .BankId(accountIban.bankId.value)
-              .AccountId(accountIban.accountId.value)
-              .AccountRoutingScheme("IBAN")
-              .AccountRoutingAddress(accountIban.iban.get)
-              .save()
+            createBankAccountRouting(accountIban.bankId.value, accountIban.accountId.value,
+              "IBAN", accountIban.iban.get)
           }
         }
 
@@ -58,12 +55,8 @@ object MigrationOfAccountRoutings {
           for {
             accountOtherScheme <- accountsOtherSchemeNonDuplicatedIban
           } yield {
-            BankAccountRouting.create
-              .BankId(accountOtherScheme.bankId.value)
-              .AccountId(accountOtherScheme.accountId.value)
-              .AccountRoutingScheme(accountOtherScheme.accountRoutingScheme)
-              .AccountRoutingAddress(accountOtherScheme.accountRoutingAddress)
-              .save()
+            createBankAccountRouting(accountOtherScheme.bankId.value, accountOtherScheme.accountId.value,
+              accountOtherScheme.accountRoutingScheme, accountOtherScheme.accountRoutingAddress)
           }
         }
 
@@ -86,6 +79,45 @@ object MigrationOfAccountRoutings {
           s"""BankAccountRouting table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
+    }
+  }
+
+  /**
+   * create BankAccountRouting if not exists
+   * @param bankId
+   * @param accountId
+   * @param accountRoutingScheme
+   * @param accountRoutingAddress
+   */
+  private def createBankAccountRouting(bankId: String, accountId: String, accountRoutingScheme: String, accountRoutingAddress: String): Boolean = {
+    // query according unique index: UniqueIndex(BankId, AccountId, AccountRoutingScheme)
+    BankAccountRouting.find(By(BankAccountRouting.BankId, bankId),
+      By(BankAccountRouting.AccountId, accountId),
+      By(BankAccountRouting.AccountRoutingScheme, accountRoutingScheme)
+    ) match {
+      case Full(routing) if routing.accountRouting.address == accountRoutingAddress =>
+        false // DB have the same routing
+      case Full(routing) =>
+        // only accountRoutingAddress is different.
+        routing.AccountRoutingAddress(accountRoutingAddress).save()
+      case _ =>
+        // query according unique index: UniqueIndex(BankId, AccountRoutingScheme, AccountRoutingAddress)
+        BankAccountRouting.find(By(BankAccountRouting.BankId, bankId),
+            By(BankAccountRouting.AccountRoutingScheme, accountRoutingScheme),
+            By(BankAccountRouting.AccountRoutingAddress, accountRoutingAddress),
+          ) match {
+          case Full(routing) =>
+            // only accountId is different
+            routing.AccountId(accountId).save()
+          case _ =>
+            // not exists corresponding routing in DB.
+            BankAccountRouting.create
+              .BankId(bankId)
+              .AccountId(accountId)
+              .AccountRoutingScheme(accountRoutingScheme)
+              .AccountRoutingAddress(accountRoutingAddress)
+              .save()
+        }
     }
   }
 }
