@@ -416,7 +416,10 @@ respectively the OAuth2 access token.
 
              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
 
-             (accounts, callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
+             //The card contains the account object, it mean the card account.
+             (cards,callContext) <- NewStyle.function.getPhysicalCardsForUser(u, callContext)
+             
+             accounts = cards.filter(card => availablePrivateAccounts.map(_.accountId).contains(card.account.accountId)).map(_.account)
 
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createCardAccountListJson(accounts, u), callContext)
