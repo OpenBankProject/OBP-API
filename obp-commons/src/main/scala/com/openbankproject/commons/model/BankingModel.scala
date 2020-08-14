@@ -200,7 +200,7 @@ trait BankAccount{
   //Because of in OBP side, we just have one account table, no difference for different types of accounts. 
   //So here, we introduce the field for the OBP presentation layer to filter the accounts. 
   //also @`Reads a list of card accounts` in Berlin group V1.3 ..
-  def queryTags  : Option[List[String]] = None 
+  def attributes  : Option[List[Attribute]] = None
 }
 
 //This class is used for propagate the BankAccount as the parameters over different methods.
@@ -294,6 +294,11 @@ case class Iban(
   iban: String
 )
 
+case class Attribute(
+  name: String,
+  `type`: String,
+  value: String
+)
 case class AccountRule(
   scheme: String, 
   value: String
