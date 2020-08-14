@@ -104,7 +104,7 @@ import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.transaction_types.MappedTransactionType
 import code.transactionattribute.MappedTransactionAttribute
-import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
+import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
 import code.util.Helper
@@ -729,7 +729,7 @@ class Boot extends MdcLoggable {
           .saveMe()
         logger.debug(s"creating Bank(${defaultBankId})")   
     }
-    
+
     MappedBankAccount.find(By(MappedBankAccount.bank, defaultBankId), By(MappedBankAccount.theAccountId, incomingAccountId)) match {
       case Full(b) =>
         logger.debug(s"BankAccount(${defaultBankId}, $incomingAccountId) is found.")
@@ -808,6 +808,7 @@ object ToSchemify {
     Admin,
     MappedBank,
     MappedBankAccount,
+    BankAccountRouting,
     MappedTransaction,
     MappedCustomerMessage,
     MappedBranch,
@@ -820,6 +821,7 @@ object ToSchemify {
     MappedKycStatus,
     MappedSocialMedia,
     MappedTransactionType,
+    TransactionRequestReasons,
     MappedMeeting,
     MappedMeetingInvitee,
     MappedBankAccountData,

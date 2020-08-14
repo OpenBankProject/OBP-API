@@ -1,13 +1,14 @@
 package code.api.v4_0_0
 
 import java.util.Date
+import java.util.regex.Pattern
 
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{fullBoxOrException, _}
+import code.api.util.APIUtil.{PrimaryDataBody, fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -350,7 +351,7 @@ trait APIMethods400 {
          |$transactionRequestGeneralText
          |
        """.stripMargin,
-      transactionRequestBodySEPAJSON,
+      transactionRequestBodySEPAJsonV400,
       transactionRequestWithChargeJSON210,
       List(
         $UserNotLoggedIn,
@@ -545,6 +546,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -572,6 +574,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -599,6 +602,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_WEB_FORM.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -632,6 +636,7 @@ trait APIMethods400 {
                     chargePolicy,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext)
                 } yield (createdTransactionRequest, callContext)
 
@@ -640,7 +645,7 @@ trait APIMethods400 {
                 for {
                   //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
                   transDetailsSEPAJson <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $SEPA json format", 400, cc.callContext) {
-                    json.extract[TransactionRequestBodySEPAJSON]
+                    json.extract[TransactionRequestBodySEPAJsonV400]
                   }
                   toIban = transDetailsSEPAJson.to.iban
                   (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIban(toIban, cc.callContext)
@@ -665,6 +670,7 @@ trait APIMethods400 {
                     chargePolicy,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    transDetailsSEPAJson.reasons.map(_.map(_.transform)),
                     callContext)
                 } yield (createdTransactionRequest, callContext)
               }
@@ -688,6 +694,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     cc.callContext)
                 } yield
                   (createdTransactionRequest, callContext)
@@ -1256,6 +1263,18 @@ trait APIMethods400 {
             _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(createAccountJson.balance.currency)}
             currency = createAccountJson.balance.currency
             (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme") {
+              createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
+            }
+            alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
+              NewStyle.function.getBankAccountByRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
+              ))
+            alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
+              case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
+            }
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})") {
+              alreadyExistingAccountRouting.isEmpty
+            }
             (bankAccount,callContext) <- NewStyle.function.addBankAccount(
               bankId,
               accountType,
@@ -1264,8 +1283,7 @@ trait APIMethods400 {
               initialBalanceAsNumber,
               postedOrLoggedInUser.name,
               createAccountJson.branch_id,
-              createAccountJson.account_routing.scheme,
-              createAccountJson.account_routing.address,
+              createAccountJson.account_routings.map(r => AccountRouting(r.scheme, r.address)),
               callContext
             )
             accountId = bankAccount.accountId
@@ -2752,10 +2770,10 @@ trait APIMethods400 {
                   privateAccountAccesses.filter(aa => accountIds.contains(aa.account_id.get))
                 }
             }
+            (availablePrivateAccounts, callContext) <- bank.privateAccountsFuture(privateAccountAccesses2, Some(cc))
           } yield {
-            val availablePrivateAccounts = bank.privateAccounts(privateAccountAccesses2)
             val bankAccounts = Implementations2_0_0.processAccounts(privateViewsUserCanAccessAtOneBank, availablePrivateAccounts)
-            (bankAccounts, HttpCode.`200`(cc.callContext))
+            (bankAccounts, HttpCode.`200`(callContext))
           }
       }
     }
@@ -2885,9 +2903,12 @@ trait APIMethods400 {
       "POST",
       "/management/dynamic-endpoints",
       " Create Dynamic Endpoint",
-      s"""Create a Dynamic Endpoint.
+      s"""Create dynamic endpoints.
          |
-         |Create one DynamicEndpoint,
+         |Create dynamic endpoints with one json format swagger content.
+         |
+         |If the host of swagger is `obp_mock`, every dynamic endpoint will return example response of swagger,\n
+         |when create MethodRouting for given dynamic endpoint, it will be routed to given url.
          |
          |""",
       dynamicEndpointRequestBodyExample,
@@ -3043,12 +3064,14 @@ trait APIMethods400 {
 
 
     lazy val dynamicEndpoint: OBPEndpoint = {
-      case DynamicReq(url, json, method, params, pathParams, role) => { cc =>
+      case DynamicReq(url, json, method, params, pathParams, role, mockResponse) => { cc =>
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
 
-          (box, _) <- NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
+          (box, _) <- MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread
+            NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
+          }
         } yield {
           box match {
             case Full(v) =>

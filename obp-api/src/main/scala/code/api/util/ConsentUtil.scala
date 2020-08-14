@@ -2,8 +2,10 @@ package code.api.util
 
 import java.util.Date
 
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.PostConsentJson
 import code.api.{Constant, RequestHeader}
 import code.api.v3_1_0.{EntitlementJsonV400, PostConsentBodyCommonJson, ViewJsonV400}
+import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
 import code.entitlement.Entitlement
@@ -407,6 +409,53 @@ object Consent {
     val jwtPayloadAsJson = compactRender(Extraction.decompose(json))
     val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
     CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)
+  }
+
+  def createBerlinGroupConsentJWT(user: User,
+                                  consent: PostConsentJson,
+                                  secret: String,
+                                  consentId: String,
+                                  consumerId: Option[String],
+                                  validUntil: Option[Date]): Future[String] = {
+
+    lazy val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
+    val currentTimeInSeconds = System.currentTimeMillis / 1000
+    val validUntilTimeInSeconds = validUntil match {
+      case Some(date) => date.getTime() / 1000
+      case _ => currentTimeInSeconds
+    }
+    
+    // 1. Add views
+    val listOfFutures: List[Future[ConsentView]] = consent.access.accounts.getOrElse(Nil) map { account =>
+      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
+        ConsentView(
+          bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
+          account_id = bankAccount._1.map(_.accountId.value).getOrElse(""),
+          view_id = "owner"
+        )
+      }
+    }
+
+    Future.sequence(listOfFutures) map { views =>
+      val json = ConsentJWT(
+        createdByUserId = user.userId,
+        sub = APIUtil.generateUUID(),
+        iss = Constant.HostName,
+        aud = consumerId.getOrElse(currentConsumerId),
+        jti = consentId,
+        iat = currentTimeInSeconds,
+        nbf = currentTimeInSeconds,
+        exp = validUntilTimeInSeconds,
+        name = None,
+        email = None,
+        entitlements = Nil,
+        views = views
+      )
+      implicit val formats = CustomJsonFormats.formats
+      val jwtPayloadAsJson = compactRender(Extraction.decompose(json))
+      val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
+      CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)
+    }
   }
   
 }

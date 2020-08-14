@@ -35,7 +35,7 @@ import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
 import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSONV121}
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
-import code.api.v2_1_0.ResourceUserJSON
+import code.api.v2_1_0.{IbanJson, ResourceUserJSON}
 import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
 import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, ViewBasicV300}
 import code.api.v3_1_0.AccountAttributeResponseJson
@@ -211,6 +211,32 @@ case class PostViewJsonV400(view_id: String, is_system: Boolean)
 case class PostAccountAccessJsonV400(user_id: String, view: PostViewJsonV400)
 case class RevokedJsonV400(revoked: Boolean)
 
+case class TransactionRequestBodySEPAJsonV400(
+                                               value: AmountOfMoneyJsonV121,
+                                               to: IbanJson,
+                                               description: String,
+                                               charge_policy: String,
+                                               future_date: Option[String] = None,
+                                               reasons: Option[List[TransactionRequestReasonJsonV400]] = None
+                                             ) extends TransactionRequestCommonBodyJSON
+
+case class TransactionRequestReasonJsonV400(
+                                             code: String,
+                                             document_number: Option[String],
+                                             amount: Option[String],
+                                             currency: Option[String],
+                                             description: Option[String]
+                                           ) {
+  def transform: TransactionRequestReason = {
+    TransactionRequestReason(
+      code = this.code,
+      documentNumber = this.document_number,
+      currency = this.currency,
+      amount = this.amount,
+      description = this.description
+    )
+  }
+}
 // the data from endpoint, extract as valid JSON
 case class TransactionRequestBodyRefundJsonV400(
   to: TransactionRequestAccountJsonV140,

@@ -3,6 +3,14 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+12/08/2020    51621aa1      Added props: webui_legal_notice_html_text. If we set the props, the content will be showed as the legal notice on the registration page 
+11/08/2020    5319a5f8      WARNING: Added new account routing system. 
+                            - Impacted endpoints: Create Account, Create Account (POST) and Update Account.
+                              multiple account routings can now be put in the "account_routings" field.
+                            - Impacted connector messages: OutBoundUpdateBankAccount, OutBoundCreateBankAccount,
+                              OutBoundCreateBankAccountLegacy, OutBoundAddBankAccount and OutBoundCreateSandboxBankAccount.
+                              Parameters "accountRoutingScheme" and "accountRoutingAddress" have been replaced by a List[AccountRouting].
+                              OutBoundGetBankAccountByRouting message is also impacted with an additionnal parameter: Option[BankId].
 14/07/2020    376be727      Added full support for MS SQL as a mapper databas
 13/07/2020    d42dda90      Added props: webui_header_content_url. If we set the props, it will override the id ="table-header" content in default.html
 19/06/2020    ea819aab      Added props: refresh_user.interval. default is 30 minutes.

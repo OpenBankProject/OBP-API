@@ -571,8 +571,8 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     fields.put("toCounterpartyId", toAccount.accountId.value)
     fields.put("toCounterpartyName", toAccount.name)
     fields.put("toCounterpartyCurrency", fromAccount.currency) // TODO toCounterparty.currency
-    fields.put("toCounterpartyRoutingAddress", toAccount.accountRoutingAddress)
-    fields.put("toCounterpartyRoutingScheme", toAccount.accountRoutingScheme)
+    fields.put("toCounterpartyRoutingAddress", toAccount.accountRoutings.headOption.map(_.address).getOrElse(""))
+    fields.put("toCounterpartyRoutingScheme", toAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""))
     fields.put("toCounterpartyBankRoutingAddress", toAccount.bankRoutingAddress)
     fields.put("toCounterpartyBankRoutingScheme", toAccount.bankRoutingScheme)
 
@@ -789,8 +789,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     initialBalance: BigDecimal,
     accountHolderName: String,
     branchId: String,
-    accountRoutingScheme: String,
-    accountRoutingAddress: String
+    accountRoutings: List[AccountRouting]
   ): Box[BankAccount] = {
   
     for {

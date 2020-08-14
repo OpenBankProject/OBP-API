@@ -6,7 +6,7 @@ import java.util.{Date, TimeZone}
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.successStatus
 import code.api.util.APIUtil.MessageDoc
 import code.api.util.CustomJsonFormats.formats
-import code.api.util.{APIUtil, FieldIgnoreSerializer}
+import code.api.util.{APIUtil, OptionalFieldSerializer}
 import code.bankconnectors.ConnectorBuilderUtil._
 import com.openbankproject.commons.model.Status
 import com.openbankproject.commons.util.Functions
@@ -36,7 +36,7 @@ object MSsqlStoredProcedureBuilder {
     // Boot.scala set default TimeZone, So here need also fix the TimeZone to make example Date is a fix value,
     // not affect by local TimeZone.
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
-    implicit val customFormats = formats + StatusSerializer + FieldIgnoreSerializer
+    implicit val customFormats = formats + StatusSerializer + OptionalFieldSerializer
     val messageDocs: ArrayBuffer[MessageDoc] = StoredProcedureConnector_vDec2019.messageDocs
     def toProcedureName(processName: String) = StringHelpers.snakify(processName.replace("obp.", "obp_"))
     def toJson(any: Any) = json.prettyRender(json.Extraction.decompose(any))

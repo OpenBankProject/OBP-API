@@ -170,7 +170,7 @@ object ConnectorBuilderUtil {
       }
 
       var body =
-      s"""|    import com.openbankproject.commons.dto.{$outBoundName => OutBound, $inBoundName => InBound}  $callContext
+      s"""|    import com.openbankproject.commons.dto.{$inBoundName => InBound, $outBoundName => OutBound}  $callContext
           |        val req = OutBound($parametersNamesString)
           |        val response: Future[Box[InBound]] = ${responseExpression(methodName)}
           |        response.map(convertToTuple[$inboundDataFieldType](callContext))        """.stripMargin
@@ -285,6 +285,8 @@ object ConnectorBuilderUtil {
     "deleteUserAuthContextById",
     "getUserAuthContexts",
     "createOrUpdateProductAttribute",
+    "getProduct",
+    "getProducts",
     "getProductAttributeById",
     "getProductAttributesByBankAndCode",
     "deleteProductAttribute",
@@ -350,11 +352,13 @@ object ConnectorBuilderUtil {
     "getCustomerAttributeById",
     "createDirectDebit",
     "deleteCustomerAttribute",
+    "getPhysicalCardsForUser",
 
     // The follow methods's parameter or return type are special
     "getCurrentFxRate",
     "getBankAccountOld",    // old method, but v3.0.0 apis use a lot
-    "checkExternalUserCredentials"
+    "checkExternalUserCredentials",
+    "checkExternalUserExists"
   ).distinct
 
   /**

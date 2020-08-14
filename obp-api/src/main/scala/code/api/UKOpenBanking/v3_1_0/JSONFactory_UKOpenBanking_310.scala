@@ -190,14 +190,14 @@ object JSONFactory_UKOpenBanking_310 extends CustomJsonFormats {
         AccountSubType = x.accountType,
         Nickname = x.label,
         List(AccountInner(
-          SchemeName = List(x.accountRoutingScheme),
-          Identification = x.accountRoutingAddress,
+          SchemeName = List(x.accountRoutings.headOption.map(_.scheme).getOrElse("")),
+          Identification = x.accountRoutings.headOption.map(_.address).getOrElse(""),
           Name = x.label,
           SecondaryIdentification=""
         )),
         ServicerUKV310(
-          SchemeName = List(x.accountRoutingScheme),
-          Identification = x.accountRoutingAddress
+          SchemeName = List(x.accountRoutings.headOption.map(_.scheme).getOrElse("")),
+          Identification = x.accountRoutings.headOption.map(_.address).getOrElse(""),
         )
       )
     )
@@ -279,14 +279,14 @@ object JSONFactory_UKOpenBanking_310 extends CustomJsonFormats {
         AccountSubType = x.accountType,
         Nickname = x.label,
         List(AccountInner(
-          SchemeName = List(x.accountRoutingScheme),
-          Identification = x.accountRoutingAddress,
+          SchemeName = List(x.accountRoutings.headOption.map(_.scheme).getOrElse("")),
+          Identification = x.accountRoutings.headOption.map(_.address).getOrElse(""),
           Name = x.name,
           SecondaryIdentification ="String"
         )),
         ServicerUKV310(
-          SchemeName = List(x.accountRoutingScheme),
-          Identification = x.accountRoutingAddress,
+          SchemeName = List(x.accountRoutings.headOption.map(_.scheme).getOrElse("")),
+          Identification = x.accountRoutings.headOption.map(_.address).getOrElse(""),
         )
       )
     )

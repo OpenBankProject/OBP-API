@@ -28,7 +28,7 @@ package com.openbankproject.commons.model
 
 import java.util.Date
 
-import com.openbankproject.commons.util.{OBPRequired, ignore}
+import com.openbankproject.commons.util.{OBPRequired, optional}
 
 import scala.collection.immutable.List
 import scala.math.BigDecimal
@@ -183,28 +183,24 @@ trait BankAccount{
   def currency : String
   def name : String // Is this used? -->It is used for BerlinGroup V1.3, it has the name in account response. 
                                         // `Name of the account given by the bank or the PSU in online-banking.`
-  @ignore
+  @optional
   def label: String
-  @deprecated("We should use accountRoutings instead")
-  @ignore 
-  def iban : Option[String]
   def number : String
   def bankId : BankId
   //It means last transaction refresh date only used for HBCI now.
   def lastUpdate : Date
   def branchId: String
-  @deprecated("We should use accountRoutings instead")
-  @ignore 
-  def accountRoutingScheme: String
-  @deprecated("We should use accountRoutings instead")
-  @ignore 
-  def accountRoutingAddress: String
   def accountRoutings: List[AccountRouting] // Introduced in v3.0.0
-  @ignore 
+  @optional
   def accountRules: List[AccountRule]
   @deprecated("Get the account holder(s) via owners")
-  @ignore 
+  @optional
   def accountHolder : String
+  //This field is really special, it used for OBP side to distinguish the different accounts from the core baning side.
+  //Because of in OBP side, we just have one account table, no difference for different types of accounts. 
+  //So here, we introduce the field for the OBP presentation layer to filter the accounts. 
+  //also @`Reads a list of card accounts` in Berlin group V1.3 ..
+  def queryTags  : Option[List[String]] = None 
 }
 
 //This class is used for propagate the BankAccount as the parameters over different methods.
@@ -239,7 +235,7 @@ as see from the perspective of the original party.
 case class Counterparty(
   
   @deprecated("older version, please first consider the V210, account scheme and address","05/05/2017")
-  @ignore
+  @optional
   val nationalIdentifier: String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
   val kind: String, // Type of bank account.
   
@@ -248,15 +244,15 @@ case class Counterparty(
   val counterpartyName: String,
   val thisBankId: BankId, // i.e. the Account that sends/receives money to/from this Counterparty
   val thisAccountId: AccountId, // These 2 fields specify the account that uses this Counterparty
-  @ignore
+  @optional
   val otherBankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
-  @ignore
+  @optional
   val otherBankRoutingAddress: Option[String], // The (BIC) value e.g. 67895
-  @ignore
+  @optional
   val otherAccountRoutingScheme: String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
-  @ignore
+  @optional
   val otherAccountRoutingAddress: Option[String], // The (IBAN) value e.g. 2349870987820374
-  @ignore
+  @optional
   val otherAccountProvider: String, // hasBankId and hasAccountId would refer to an OBP account
   val isBeneficiary: Boolean // True if the originAccount can send money to the Counterparty
 )
@@ -307,6 +303,12 @@ case class AccountRouting(
   scheme: String,
   address: String
 )
+
+trait BankAccountRoutingTrait {
+  def bankId: BankId
+  def accountId: AccountId
+  def accountRouting: AccountRouting
+}
 
 case class CoreAccount(
   id: String,

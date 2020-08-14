@@ -23,55 +23,55 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
-import java.net.URLEncoder
-import java.util.UUID.randomUUID
+import java.net.{ConnectException, URLEncoder, UnknownHostException}
 import java.util.Date
+import java.util.UUID.randomUUID
 
-import akka.http.scaladsl.model.{HttpProtocol, _}
+import _root_.akka.stream.StreamTcpException
 import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.model.{HttpProtocol, _}
 import akka.util.ByteString
+import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions
-import code.api.{APIFailure, APIFailureNewStyle}
-import com.openbankproject.commons.model.ErrorMessage
 import code.api.cache.Caching
-import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric}
+import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric, _}
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle, OBPQueryParam}
+import code.api.util.ExampleValue._
+import code.api.util.{APIUtil, CallContext, OBPQueryParam}
+import code.api.v4_0_0.MockResponseHolder
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
+import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.kafka.KafkaHelper
+import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
 import code.util.AkkaHttpClient._
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto.{InBoundTrait, _}
-import com.openbankproject.commons.model.{TopicTrait, _}
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
+import com.openbankproject.commons.model.{ErrorMessage, TopicTrait, _}
+import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, _}
+import net.liftweb.json
+import net.liftweb.json.Extraction.decompose
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonParser.ParseException
+import net.liftweb.json.{JValue, _}
 import net.liftweb.util.Helpers.tryo
+import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
-import code.api.util.ExampleValue._
-import code.api.util.APIUtil._
-import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
-import code.customer.internalMapping.MappedCustomerIdMappingProvider
-import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
-import com.openbankproject.commons.util.JsonUtils
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
-import com.openbankproject.commons.util.ReflectUtils
-import net.liftweb.json
-import net.liftweb.json.{JValue, _}
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.Extraction.decompose
-import net.liftweb.json.JsonParser.ParseException
-import org.apache.commons.lang3.StringUtils
+
 
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
   //this one import is for implicit convert, don't delete
-  import com.openbankproject.commons.model.{CustomerFaceImage, CreditLimit, CreditRating, AmountOfMoney}
+  import com.openbankproject.commons.model.{AmountOfMoney, CreditLimit, CreditRating, CustomerFaceImage}
 
   implicit override val nameOfConnector = RestConnector_vMar2019.toString
 
@@ -882,13 +882,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -959,13 +956,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -1017,6 +1011,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       userOwners=List( InternalBasicUser(userId=userIdExample.value,
       emailAddress=emailExample.value,
       name=usernameExample.value))))))))),
+      bankId=Some(BankId(bankIdExample.value)),
       scheme="string",
       address="string")
     ),
@@ -1036,13 +1031,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -1052,10 +1044,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /getBankAccountByRouting
-  override def getBankAccountByRouting(scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
+  override def getBankAccountByRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundGetBankAccountByRouting => OutBound, InBoundGetBankAccountByRouting => InBound}
         val url = getUrl(callContext, "getBankAccountByRouting")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , scheme, address)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, scheme, address)
         val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -1113,13 +1105,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -1528,13 +1517,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -1605,13 +1591,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -2150,13 +2133,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -2252,13 +2232,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -2353,13 +2330,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -2451,13 +2425,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -2550,13 +2521,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -2661,13 +2629,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=accountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -2837,13 +2802,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=accountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -2956,13 +2918,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=accountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -3075,13 +3034,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=accountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -3195,13 +3151,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=accountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -3266,13 +3219,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -3284,13 +3234,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -3374,13 +3321,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -3392,13 +3336,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -3547,13 +3488,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -3812,13 +3750,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -4018,8 +3953,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       accountType=accountTypeExample.value,
       accountLabel="string",
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value)
+      accountRoutings=List(AccountRouting(accountRoutingSchemeExample.value, accountRoutingAddressExample.value)))
     ),
     exampleInboundMessage = (
      InBoundUpdateBankAccount(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
@@ -4037,13 +3971,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -4053,10 +3984,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /updateBankAccount
-  override def updateBankAccount(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, branchId: String, accountRoutingScheme: String, accountRoutingAddress: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
+  override def updateBankAccount(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, branchId: String, accountRoutings: List[AccountRouting], callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
         import com.openbankproject.commons.dto.{OutBoundUpdateBankAccount => OutBound, InBoundUpdateBankAccount => InBound}
         val url = getUrl(callContext, "updateBankAccount")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, accountType, accountLabel, branchId, accountRoutingScheme, accountRoutingAddress)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, accountType, accountLabel, branchId, accountRoutings)
         val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -4103,8 +4034,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       initialBalance=BigDecimal("123.321"),
       accountHolderName="string",
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value)
+      List(AccountRouting(accountRoutingSchemeExample.value, accountRoutingAddressExample.value))
+     )
     ),
     exampleInboundMessage = (
      InBoundCreateBankAccount(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
@@ -4122,13 +4053,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -4138,10 +4066,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /createBankAccount
-  override def createBankAccount(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, currency: String, initialBalance: BigDecimal, accountHolderName: String, branchId: String, accountRoutingScheme: String, accountRoutingAddress: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
+  override def createBankAccount(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, currency: String, initialBalance: BigDecimal, accountHolderName: String, branchId: String, accountRoutings: List[AccountRouting], callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
         import com.openbankproject.commons.dto.{OutBoundCreateBankAccount => OutBound, InBoundCreateBankAccount => InBound}
         val url = getUrl(callContext, "createBankAccount")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName, branchId, accountRoutingScheme, accountRoutingAddress)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName, branchId, accountRoutings)
         val result: OBPReturnType[Box[BankAccountCommons]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -4622,13 +4550,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -4771,13 +4696,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -4789,13 +4711,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -4895,13 +4814,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -4913,13 +4829,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -9093,13 +9006,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -9111,13 +9021,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
-      iban=Some(ibanExample.value),
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
       lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
       branchId=branchIdExample.value,
-      accountRoutingScheme=accountRoutingSchemeExample.value,
-      accountRoutingAddress=accountRoutingAddressExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
@@ -9230,6 +9137,15 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       case _: EmptyBox => None
       case Full(routing) => routing.parameters.find(_.key == "url").map(_.value)
     }
+    val mockResponse: Box[(Int, JValue)] = MockResponseHolder.mockResponse
+
+    // when there is no methodRouting, but there is mock response, just return mock response content
+    if(urlInMethodRouting.isEmpty && mockResponse.isDefined) {
+      val Full((code, body)) = mockResponse
+      val response: JObject = ("code" -> code) ~ ("value" -> body)
+      return Future.successful((Full(response), callContext))
+    }
+
     val pathVariableRex = """\{:(.+?)\}""".r
     val targetUrl = urlInMethodRouting.map { urlInRouting =>
       val tuples: Iterator[(String, String)] = pathVariableRex.findAllMatchIn(urlInRouting).map{ regex =>
@@ -9247,7 +9163,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         expression -> paramValue
       }
 
-      (urlInRouting /: tuples) {(pre, kv)=>
+      tuples.foldLeft(urlInRouting) { (pre, kv)=>
         pre.replace(kv._1, kv._2)
       }
     }.getOrElse(url)
@@ -9273,7 +9189,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     val responseFuture = makeHttpRequest(request)
 
     val result: Future[(Box[JValue], Option[CallContext])] = responseFuture.map {
-      case response@HttpResponse(status, _, entity@_, _) => (status, entity)
+      case HttpResponse(status, _, entity@_, _) =>
+        (status, entity)
     }.flatMap {
       case (status, entity) if status.isSuccess() =>
         this.extractBody(entity)
@@ -9304,6 +9221,9 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         Future.failed(
           new Exception(s"$AdapterTimeOurError Please Check Adapter Side, the response should be returned to OBP-Side in $httpRequestTimeout seconds. Details: ${e.getMessage}", e)
         )
+      case e: StreamTcpException if classOf[ConnectException].isInstance(e.getCause) || classOf[UnknownHostException].isInstance(e.getCause)=>
+        logger.error(s"dynamic endpoint corresponding adapter function not available, the http method is: $method, url is ${method.value}", e)
+        Future.failed(new Exception(s"$AdapterFunctionNotImplemented Please Check Rest Adapter Side! http method: ${method.value}, url: $paramUrl", e))
       case e: Exception =>
         Future.failed(new Exception(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}", e))
     }
@@ -9424,12 +9344,15 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     val request = prepareHttpRequest(url, method, HttpProtocol("HTTP/1.1"), outBoundJson).withHeaders(callContext)
     logger.debug(s"RestConnector_vMar2019 request is : $request")
     val responseFuture = makeHttpRequest(request)
-    val jsonType = typeOf[T]
     responseFuture.map {
-      case response@HttpResponse(status, _, entity@_, _) => (status, entity)
+      case HttpResponse(status, _, entity@_, _) => (status, entity)
     }.flatMap {
       case (status, entity) if status.isSuccess() => extractEntity[T](entity, inBoundMapping)
-      case (status, entity) if status.intValue == 404 => Future.successful(Empty)
+      case (status, _) if status.intValue == 404 =>
+        Future {
+          val errorMsg = s"$ResourceDoesNotExist the resource url is: $url"
+          ParamFailure(errorMsg, APIFailureNewStyle(errorMsg, status.intValue()))
+        }
       case (status, entity) => {
           val future: Future[Box[Box[T]]] = extractBody(entity) map { msg =>
             tryo {

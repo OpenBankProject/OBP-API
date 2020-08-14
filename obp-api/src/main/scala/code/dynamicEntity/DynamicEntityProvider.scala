@@ -433,10 +433,13 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       // 'type' exists and value should be one of allowed type
       val fieldType = value \ "type"
       val fieldTypeName = fieldType.asInstanceOf[JString].s
+
       checkFormat(fieldType.isInstanceOf[JString] && fieldTypeName.nonEmpty, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'type' field should be exists and type is json string")
       checkFormat(allowedFieldType.contains(fieldTypeName), s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'type' field should be one of these string value: ${allowedFieldType.mkString(", ")}")
 
-      if(DynamicEntityFieldType.withName(fieldTypeName) == DynamicEntityFieldType.string) {
+      val fieldTypeOp: Option[DynamicEntityFieldType] = DynamicEntityFieldType.withNameOption(fieldTypeName)
+
+      if(fieldTypeOp.exists(_ == DynamicEntityFieldType.string)) {
         val minLength = value \ "minLength"
         val maxLength = value \ "maxLength"
         def toInt(jValue: JValue) = jValue.asInstanceOf[JInt].num.intValue()
@@ -458,8 +461,8 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       val fieldExample = value \ "example"
       checkFormat(fieldExample != JNothing, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'example' field should be exists")
       // example type is correct
-      if(DynamicEntityFieldType.withNameOption(fieldTypeName).isDefined) {
-        val dEntityFieldType: DynamicEntityFieldType = DynamicEntityFieldType.withName(fieldTypeName)
+      if(fieldTypeOp.isDefined) {
+        val Some(dEntityFieldType: DynamicEntityFieldType) = fieldTypeOp
         checkFormat(dEntityFieldType.isJValueValid(fieldExample),
           s"$DynamicEntityInstanceValidateFail The value of $fieldName's 'example' is wrong, ${dEntityFieldType.wrongTypeMsg}")
       } else if(ReferenceType.referenceTypeNames.contains(fieldTypeName)) {

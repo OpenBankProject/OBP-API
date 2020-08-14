@@ -279,7 +279,7 @@ case class UpdateAccountRequestJsonV310(
   label: String,
   `type`: String,
   branch_id: String,
-  account_routing: AccountRoutingJsonV121
+  account_routings: List[AccountRoutingJsonV121]
 )
 
 case class UpdateAccountResponseJsonV310(
@@ -288,7 +288,7 @@ case class UpdateAccountResponseJsonV310(
   label: String,
   `type`: String,
   branch_id: String,
-  account_routing: AccountRoutingJsonV121
+  account_routings: List[AccountRoutingJsonV121]
 )
 
 case class PostCustomerResponseJsonV310(messages: List[String])
@@ -664,7 +664,7 @@ case class CreateAccountRequestJsonV310(
   product_code : String,
   balance : AmountOfMoneyJsonV121,
   branch_id : String,
-  account_routing: AccountRoutingJsonV121
+  account_routings: List[AccountRoutingJsonV121]
 )
 
 case class CreateAccountResponseJsonV310(
@@ -981,10 +981,8 @@ object JSONFactory310{
       label = bankAccount.label,
       `type` = bankAccount.accountType,
       branch_id = bankAccount.branchId,
-      account_routing= AccountRoutingJsonV121(
-        bankAccount.accountRoutingScheme,
-        bankAccount.accountRoutingAddress
-      )
+      account_routings= bankAccount.accountRoutings
+        .map(r => AccountRoutingJsonV121(r.scheme, r.address))
     )
   }
   
@@ -1361,10 +1359,7 @@ object JSONFactory310{
         account.balance.toString()
       ),
       branch_id = account.branchId,
-      account_routings = List(AccountRoutingJsonV121(
-        scheme = account.accountRoutingScheme,
-        address = account.accountRoutingAddress
-      )),
+      account_routings = account.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address)),
       accountAttributes.map(createAccountAttributeJson)
     )
   }

@@ -10,6 +10,7 @@ import code.consent.Consent
 import code.database.authorisation.Authorisation
 import code.model.ModeratedTransaction
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User}
 import net.liftweb.common.Full
 import net.liftweb.json.JValue
@@ -292,7 +293,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   }
 
   def createCardAccountListJson(bankAccounts: List[BankAccount], user: User): CoreCardAccountsJsonV13 = {
-    CoreCardAccountsJsonV13(bankAccounts.map {
+    CoreCardAccountsJsonV13(bankAccounts.filter(_.queryTags.getOrElse(List("")).contains("Card")).map {
       x =>
         val (iBan: String, bBan: String) = getIbanAndBban(x)
 
@@ -343,7 +344,8 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   }
 
   private def getIbanAndBban(x: BankAccount) = {
-    val iBan = if (x.accountRoutings.headOption.isDefined && x.accountRoutings.head.scheme == "IBAN") x.accountRoutings.head.address else x.iban.getOrElse("")
+    val iBan = x.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString)
+      .map(_.address).getOrElse("")
     val bBan = if (iBan.size > 4) iBan.substring(4) else ""
     (iBan, bBan)
   }
@@ -426,6 +428,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 
   private def extractAccountData(scheme: String, address: String): (String, String, String, String, String) = {
     val (iban: String, bban: String, pan: String, maskedPan: String, currency: String) = Connector.connector.vend.getBankAccountByRouting(
+      None,
       scheme,
       address,
       None

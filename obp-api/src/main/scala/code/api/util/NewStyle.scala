@@ -4,7 +4,6 @@ import java.util.Date
 import java.util.UUID.randomUUID
 
 import akka.http.scaladsl.model.HttpMethod
-import code.DynamicData.DynamicDataProvider
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
 import code.api.cache.Caching
@@ -15,7 +14,7 @@ import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
-import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityInfo}
+import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityInfo, TransactionRequestReasonJsonV400}
 import code.bankconnectors.Connector
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
@@ -27,13 +26,13 @@ import code.entitlementrequest.EntitlementRequest
 import code.fx.{MappedFXRate, fx}
 import com.openbankproject.commons.model.FXRate
 import code.metadata.counterparties.Counterparties
-import code.methodrouting.{MethodRoutingProvider, MethodRoutingT}
+import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
 import code.standingorders.StandingOrderTrait
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
-import com.openbankproject.commons.util.JsonUtils
+import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
@@ -41,7 +40,6 @@ import com.openbankproject.commons.dto.{CustomerAndAttribute, ProductCollectionI
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
-import com.openbankproject.commons.util.ApiVersion
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
@@ -218,9 +216,15 @@ object NewStyle {
       }
     }
 
+    def getBankAccountByRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
+      Future(Connector.connector.vend.getBankAccountByRouting(bankId: Option[BankId], scheme: String, address : String, callContext: Option[CallContext])) map { i =>
+        unboxFullOrFail(i, callContext,s"$BankAccountNotFoundByAccountRouting Current scheme is $scheme, current address is $address, current bankId is $bankId", 404 )
+      }
+    }
+
     def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Connector.connector.vend.getBankAccountByIban(iban : String, callContext: Option[CallContext]) map { i =>
-        (unboxFullOrFail(i._1, callContext,s"${BankAccountNotFound.replaceAll("BANK_ID and ACCOUNT_ID. ", "IBAN.")} Current IBAN is $iban", 404 ), i._2)
+        (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFoundByIban Current IBAN is $iban", 404 ), i._2)
       }
     }
 
@@ -576,7 +580,7 @@ object NewStyle {
       }
     }
 
-    def createHttpParams(url: String): Future[List[HTTPParam]] = {
+    def extractHttpParamsFromUrl(url: String): Future[List[HTTPParam]] = {
       createHttpParamsByUrlFuture(url) map { unboxFull(_) }
     }
     def createObpParams(httpParams: List[HTTPParam], allowedParams: List[String], callContext: Option[CallContext]): Future[List[OBPQueryParam]] = {
@@ -683,17 +687,18 @@ object NewStyle {
       }
     }  
     def createTransactionRequestv400(
-      u: User,
-      viewId: ViewId,
-      fromAccount: BankAccount,
-      toAccount: BankAccount,
-      transactionRequestType: TransactionRequestType,
-      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-      detailsPlain: String,
-      chargePolicy: String,
-      challengeType: Option[String],
-      scaMethod: Option[SCA],
-      callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
+                                      u: User,
+                                      viewId: ViewId,
+                                      fromAccount: BankAccount,
+                                      toAccount: BankAccount,
+                                      transactionRequestType: TransactionRequestType,
+                                      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                      detailsPlain: String,
+                                      chargePolicy: String,
+                                      challengeType: Option[String],
+                                      scaMethod: Option[SCA],
+                                      reasons: Option[List[TransactionRequestReason]],
+                                      callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
     {
       Connector.connector.vend.createTransactionRequestv400(
         u: User,
@@ -706,6 +711,7 @@ object NewStyle {
         chargePolicy: String,
         challengeType: Option[String],
         scaMethod: Option[SCA],
+        reasons: Option[List[TransactionRequestReason]],
         callContext: Option[CallContext]
       ) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400), i._2)
@@ -784,7 +790,7 @@ object NewStyle {
                       amount: BigDecimal,
                       description: String,
                       transactionRequestType: TransactionRequestType,
-                      chargePolicy: String, 
+                      chargePolicy: String,
                       callContext: Option[CallContext]): OBPReturnType[TransactionId]=
       Connector.connector.vend.makePaymentv210(
         fromAccount: BankAccount,
@@ -1084,8 +1090,7 @@ object NewStyle {
       initialBalance: BigDecimal,
       accountHolderName: String,
       branchId: String,
-      accountRoutingScheme: String,
-      accountRoutingAddress: String, 
+      accountRoutings: List[AccountRouting],
       callContext: Option[CallContext]
     ): OBPReturnType[BankAccount] = 
       Connector.connector.vend.createBankAccount(
@@ -1097,8 +1102,7 @@ object NewStyle {
         initialBalance: BigDecimal,
         accountHolderName: String,
         branchId: String,
-        accountRoutingScheme: String,
-        accountRoutingAddress: String,
+        accountRoutings: List[AccountRouting],
         callContext
       ) map {
         i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
@@ -1112,8 +1116,7 @@ object NewStyle {
       initialBalance: BigDecimal,
       accountHolderName: String,
       branchId: String,
-      accountRoutingScheme: String,
-      accountRoutingAddress: String,
+      accountRoutings: List[AccountRouting],
       callContext: Option[CallContext]
     ): OBPReturnType[BankAccount] =
       Connector.connector.vend.addBankAccount(
@@ -1124,8 +1127,7 @@ object NewStyle {
         initialBalance: BigDecimal,
         accountHolderName: String,
         branchId: String,
-        accountRoutingScheme: String,
-        accountRoutingAddress: String,
+        accountRoutings: List[AccountRouting],
         callContext: Option[CallContext]
       ) map {
         i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
@@ -1137,8 +1139,7 @@ object NewStyle {
                            accountType: String,
                            accountLabel: String,
                            branchId: String,
-                           accountRoutingScheme: String,
-                           accountRoutingAddress: String,
+                           accountRoutings: List[AccountRouting],
                            callContext: Option[CallContext]
                          ): OBPReturnType[BankAccount] =
       Connector.connector.vend.updateBankAccount(
@@ -1147,8 +1148,7 @@ object NewStyle {
         accountType: String,
         accountLabel: String,
         branchId: String,
-        accountRoutingScheme: String,
-        accountRoutingAddress: String,
+        accountRoutings,
         callContext
       ) map {
         i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
@@ -1213,7 +1213,7 @@ object NewStyle {
       
     
     def getExchangeRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String, callContext: Option[CallContext]): Future[FXRate] =
-      Future(Connector.connector.vend.getCurrentFxRateCached(bankId, fromCurrencyCode, toCurrencyCode)) map {
+      Future(Connector.connector.vend.getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode)) map {
         fallbackFxRate =>
           fallbackFxRate match {
             case Empty =>
@@ -1685,15 +1685,24 @@ object NewStyle {
       Connector.connector.vend.deletePhysicalCardForBank(bankId: BankId, cardId: String, callContext:Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, s"$CardNotFound Current CardId($cardId)"), i._2)
       }
-    def getMethodRoutingsByMethdName(methodName: Box[String]): Future[List[MethodRoutingT]] = Future {
+    def getMethodRoutingsByMethodName(methodName: Box[String]): Future[List[MethodRoutingT]] = Future {
       this.getMethodRoutings(methodName.toOption)
     }
-    def checkMethodRoutingAlreadyExists(methodName: String, callContext:Option[CallContext]): OBPReturnType[Boolean] = Future {
-      val exists = this.getMethodRoutings(Some(methodName)).isEmpty match {
-        case true => Full(true)
-        case false => Empty
+    def checkMethodRoutingAlreadyExists(methodRouting: MethodRoutingT, callContext:Option[CallContext]): OBPReturnType[Boolean] = Future {
+      val methodRoutingCommons: MethodRoutingCommons = {
+        val commons: MethodRoutingCommons = methodRouting
+        commons.copy(methodRoutingId = None, parameters = commons.parameters.sortBy(_.key))
       }
-      (unboxFullOrFail(exists, callContext, s"$MethodRoutingNameAlreadyUsed"), callContext)
+
+      val exists: Boolean =
+        this.getMethodRoutings(Some(methodRouting.methodName), Option(methodRouting.isBankIdExactMatch), methodRouting.bankIdPattern)
+          .exists {v =>
+              val commons: MethodRoutingCommons = v
+              methodRoutingCommons == commons.copy(methodRoutingId = None, parameters = commons.parameters.sortBy(_.key))
+          }
+
+      val notExists = if(exists) Empty else Full(true)
+      (unboxFullOrFail(notExists, callContext, s"$MethodRoutingNameAlreadyUsed"), callContext)
     }
     def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) =
       Connector.connector.vend.getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) map {
@@ -2124,6 +2133,12 @@ object NewStyle {
         counterpartyId:String,
         counterpartyName:String
       ), callContext, CreateOrUpdateCounterpartyMetadataError), callContext)}
+    }
+
+    def getPhysicalCardsForUser(user : User, callContext: Option[CallContext]) : OBPReturnType[List[PhysicalCard]] = {
+      Future{Connector.connector.vend.getPhysicalCardsForUser(user : User)} map {
+        i => (unboxFullOrFail(i, callContext, CardNotFound), callContext)
+      }
     }
 
   }

@@ -478,6 +478,13 @@ trait APIMethods300 {
          |
          |For VIEW_ID try 'owner'
          |
+         |optional request parameters for filter with attributes
+         |URL params example:
+         |  /banks/some-bank-id/firehose/accounts/views/owner?manager=John&count=8
+         |
+         |to invalid Browser cache, add timestamp query parameter as follow, the parameter name must be `_timestamp_`
+         |URL params example:
+         |  `/banks/some-bank-id/firehose/accounts/views/owner?manager=John&count=8&_timestamp_=1596762180358`
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -504,12 +511,12 @@ trait APIMethods300 {
             availableBankIdAccountIdList <- Future {
               Views.views.vend.getAllFirehoseAccounts(bank.bankId).map(a => BankIdAccountId(a.bankId,a.accountId)) 
             }
-            params = req.params
+            params = req.params.filterNot(_._1 == "_timestamp_") // ignore `_timestamp_` parameter, it is for invalid Browser caching
             availableBankIdAccountIdList2 <- if(params.isEmpty) {
               Future.successful(availableBankIdAccountIdList)
             } else {
               AccountAttributeX.accountAttributeProvider.vend
-                .getAccountIdsByParams(bankId, req.params)
+                .getAccountIdsByParams(bankId, params)
                 .map { boxedAccountIds =>
                   val accountIds = boxedAccountIds.getOrElse(Nil)
                   availableBankIdAccountIdList.filter(availableBankIdAccountId => accountIds.contains(availableBankIdAccountId.accountId.value))
@@ -526,8 +533,23 @@ trait APIMethods300 {
             } yield {
               moderatedAccount
             }
+            // if there are accountAttribute query parameter, link to corresponding accountAttributes.
+            (accountAttributes: Option[List[AccountAttribute]], callContext) <- if(moderatedAccounts.nonEmpty && params.nonEmpty) {
+              val futures: List[OBPReturnType[List[AccountAttribute]]] = availableBankIdAccountIdList2.map { bankIdAccount =>
+                val BankIdAccountId(bId, accountId) = bankIdAccount
+                NewStyle.function.getAccountAttributesByAccount(
+                  bId,
+                  accountId,
+                  callContext: Option[CallContext])
+              }
+              Future.reduceLeft(futures){ (r, t) => // combine to one future
+                r.copy(_1 = t._1 ::: t._1)
+              } map (it => (Some(it._1), it._2)) // convert list to Option[List[AccountAttribute]]
+            } else {
+              Future.successful(None, callContext)
+            }
           } yield {
-            (JSONFactory300.createFirehoseCoreBankAccountJSON(moderatedAccounts), HttpCode.`200`(callContext))
+            (JSONFactory300.createFirehoseCoreBankAccountJSON(moderatedAccounts, accountAttributes), HttpCode.`200`(callContext))
           }
       }
     }
@@ -583,7 +605,7 @@ trait APIMethods300 {
               (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
               view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId),Some(u), callContext)
               allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
-              httpParams <- NewStyle.function.createHttpParams(cc.url)
+              httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
               obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
               reqParams = req.params.filterNot(param => allowedParams.contains(param._1))
               (transactionIds, callContext) <- if(reqParams.nonEmpty) {
@@ -653,7 +675,8 @@ trait APIMethods300 {
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             // Assume owner view was requested
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
-            params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            params <- createQueriesByHttpParamsFuture(httpParams)map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
             (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(bank, Some(user), view, BankIdAccountId(bankId, accountId), params, callContext) map {
@@ -1539,7 +1562,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser,callContext)
             
-            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
               x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
@@ -2184,7 +2207,7 @@ trait APIMethods300 {
             for {
               (Full(u), callContext) <- authenticatedAccess(cc)
               _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics, callContext)
-              httpParams <- NewStyle.function.createHttpParams(cc.url)
+              httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
               obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
                 x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
               }

@@ -27,8 +27,10 @@ import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
+import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.ListResult
 
-import scala.collection.immutable.Nil
+import scala.collection.immutable.{List, Nil}
 
 // JObject creation
 import code.api.v1_2_1.{APIInfoJSON, APIMethods121, HostedBy, OBPAPI1_2_1}
@@ -522,7 +524,30 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             rd <- getResourceDocsList(requestedApiVersion)
           } yield {
             // Filter
-            val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
+            val rdFiltered = ResourceDocsAPIMethodsUtil
+              .filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
+              .map {
+                /**
+                 * dynamic endpoints related structure is not STABLE structure, no need be parsed to a static structure.
+                 * So here filter out them.
+                 */
+                case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createDynamicEndpoint) =>
+                  doc.copy(exampleRequestBody =  ExampleValue.dynamicEndpointRequestBodyEmptyExample,
+                    successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample
+                  )
+
+                case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoint) =>
+                  doc.copy(successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample)
+
+                case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoints) =>
+                  doc.copy(successResponseBody = ListResult(
+                    "dynamic_endpoints",
+                    List(ExampleValue.dynamicEndpointResponseBodyEmptyExample)
+                  ))
+
+                case doc =>
+                  doc
+              }
             // Format the data as json
             val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
             //Get definitions of objects of success responses
@@ -761,8 +786,6 @@ so the caller must specify any required filtering by catalog explicitly.
       case Some(false) => filteredResources4.filter(x => x.catalogs.psd2 == false)
       case _ => filteredResources4
     }
-
-
 
     val resourcesToUse = filteredResources5.toSet.toList
 

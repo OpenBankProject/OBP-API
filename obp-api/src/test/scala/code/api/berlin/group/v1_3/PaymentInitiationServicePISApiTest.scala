@@ -5,10 +5,11 @@ import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancellationJson
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.{AuthorisationNotFound, InvalidJsonFormat, NotPositiveAmount, _}
-import code.model.dataAccess.MappedBankAccount
+import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.setup.{APIResponse, DefaultUsers}
 import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.model.{ErrorMessage, SepaCreditTransfers}
 import net.liftweb.json.Serialization.write
 import net.liftweb.mapper.By
@@ -81,24 +82,30 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.body.extract[ErrorMessage].message should equal (error)
     }
     scenario("Successful case - small amount -- change the balance", BerlinGroupV1_3, PIS, initiatePayment) {
-      val accounts = MappedBankAccount.findAll().map(_.accountIban.get).filter(_ != null)
-      val ibanFrom = accounts.head
-      val ibanTo = accounts.last
+      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val acountRoutingIbanFrom = accountsRoutingIban.head
+      val acountRoutingIbanTo = accountsRoutingIban.last
 
-      val beforePaymentFromAccountBalance = MappedBankAccount.find(By(MappedBankAccount.accountIban, ibanFrom)).map(_.balance).openOrThrowException("Can not be empty here")
-      val beforePaymentToAccountBalance =  MappedBankAccount.find(By(MappedBankAccount.accountIban, ibanTo)).map(_.balance).openOrThrowException("Can not be empty here")
+      val beforePaymentFromAccountBalance = MappedBankAccount.find(
+        By(MappedBankAccount.bank, acountRoutingIbanFrom.bankId.value),
+        By(MappedBankAccount.theAccountId, acountRoutingIbanFrom.accountId.value))
+        .map(_.balance).openOrThrowException("Can not be empty here")
+      val beforePaymentToAccountBalance = MappedBankAccount.find(
+        By(MappedBankAccount.bank, acountRoutingIbanTo.bankId.value),
+        By(MappedBankAccount.theAccountId, acountRoutingIbanTo.accountId.value))
+        .map(_.balance).openOrThrowException("Can not be empty here")
 
       val initiatePaymentJson =
         s"""{
            | "debtorAccount": {
-           |   "iban": "${ibanFrom}"
+           |   "iban": "${acountRoutingIbanFrom.accountRouting.address}"
            | },
            |"instructedAmount": {
            |  "currency": "EUR",
            |  "amount": "12"
            |},
            |"creditorAccount": {
-           |  "iban": "${ibanTo}"
+           |  "iban": "${acountRoutingIbanTo.accountRouting.address}"
            |},
            |"creditorName": "70charname"
             }""".stripMargin
@@ -113,31 +120,43 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       payment._links.scaStatus should not be null
 
 
-      val afterPaymentFromAccountBalance = MappedBankAccount.find(By(MappedBankAccount.accountIban, ibanFrom)).map(_.balance).openOrThrowException("Can not be empty here")
-      val afterPaymentToAccountBalacne =  MappedBankAccount.find(By(MappedBankAccount.accountIban, ibanTo)).map(_.balance).openOrThrowException("Can not be empty here")
+      val afterPaymentFromAccountBalance = MappedBankAccount.find(
+        By(MappedBankAccount.bank, acountRoutingIbanFrom.bankId.value),
+        By(MappedBankAccount.theAccountId, acountRoutingIbanFrom.accountId.value))
+        .map(_.balance).openOrThrowException("Can not be empty here")
+      val afterPaymentToAccountBalacne = MappedBankAccount.find(
+        By(MappedBankAccount.bank, acountRoutingIbanTo.bankId.value),
+        By(MappedBankAccount.theAccountId, acountRoutingIbanTo.accountId.value))
+        .map(_.balance).openOrThrowException("Can not be empty here")
 
       afterPaymentFromAccountBalance-beforePaymentFromAccountBalance should be (BigDecimal(-12))
       afterPaymentToAccountBalacne-beforePaymentToAccountBalance should be (BigDecimal(12))
     }
     scenario("Successful case - big amount -- do not change the balance", BerlinGroupV1_3, PIS, initiatePayment) {
-      val accounts = MappedBankAccount.findAll().map(_.accountIban.get).filter(_ != null)
-      val ibanFrom = accounts.head
-      val ibanTo = accounts.last
+      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val acountRoutingIbanFrom = accountsRoutingIban.head
+      val acountRoutingIbanTo = accountsRoutingIban.last
 
-      val beforePaymentFromAccountBalance = MappedBankAccount.find(By(MappedBankAccount.accountIban, ibanFrom)).map(_.balance).openOrThrowException("Can not be empty here")
-      val beforePaymentToAccountBalance =  MappedBankAccount.find(By(MappedBankAccount.accountIban, ibanTo)).map(_.balance).openOrThrowException("Can not be empty here")
+      val beforePaymentFromAccountBalance = MappedBankAccount.find(
+        By(MappedBankAccount.bank, acountRoutingIbanFrom.bankId.value),
+        By(MappedBankAccount.theAccountId, acountRoutingIbanFrom.accountId.value))
+        .map(_.balance).openOrThrowException("Can not be empty here")
+      val beforePaymentToAccountBalance = MappedBankAccount.find(
+        By(MappedBankAccount.bank, acountRoutingIbanTo.bankId.value),
+        By(MappedBankAccount.theAccountId, acountRoutingIbanTo.accountId.value))
+        .map(_.balance).openOrThrowException("Can not be empty here")
 
       val initiatePaymentJson =
         s"""{
            | "debtorAccount": {
-           |   "iban": "${ibanFrom}"
+           |   "iban": "${acountRoutingIbanFrom.accountRouting.address}"
            | },
            |"instructedAmount": {
            |  "currency": "EUR",
            |  "amount": "123324"
            |},
            |"creditorAccount": {
-           |  "iban": "${ibanTo}"
+           |  "iban": "${acountRoutingIbanTo.accountRouting.address}"
            |},
            |"creditorName": "70charname"
             }""".stripMargin
@@ -151,9 +170,14 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       payment.paymentId should not be null
       payment._links.scaStatus should not be null
 
-
-      val afterPaymentFromAccountBalance = MappedBankAccount.find(By(MappedBankAccount.accountIban, ibanFrom)).map(_.balance).openOrThrowException("Can not be empty here")
-      val afterPaymentToAccountBalacne =  MappedBankAccount.find(By(MappedBankAccount.accountIban, ibanTo)).map(_.balance).openOrThrowException("Can not be empty here")
+      val afterPaymentFromAccountBalance = MappedBankAccount.find(
+        By(MappedBankAccount.bank, acountRoutingIbanFrom.bankId.value),
+        By(MappedBankAccount.theAccountId, acountRoutingIbanFrom.accountId.value))
+        .map(_.balance).openOrThrowException("Can not be empty here")
+      val afterPaymentToAccountBalacne = MappedBankAccount.find(
+        By(MappedBankAccount.bank, acountRoutingIbanTo.bankId.value),
+        By(MappedBankAccount.theAccountId, acountRoutingIbanTo.accountId.value))
+        .map(_.balance).openOrThrowException("Can not be empty here")
 
       afterPaymentFromAccountBalance-beforePaymentFromAccountBalance should be (BigDecimal(0))
       afterPaymentToAccountBalacne-beforePaymentToAccountBalance should be (BigDecimal(0))
@@ -161,9 +185,9 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
   }
   feature(s"test the BG v1.3 -${getPaymentInformation.name}") {
     scenario("Successful case ", BerlinGroupV1_3, PIS, initiatePayment) {
-      val accounts = MappedBankAccount.findAll().map(_.accountIban.get).filter(_ != null)
-      val ibanFrom = accounts.head
-      val ibanTo = accounts.last
+      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val ibanFrom = accountsRoutingIban.head.accountRouting.address
+      val ibanTo = accountsRoutingIban.last.accountRouting.address
 
       val initiatePaymentJson =
         s"""{
@@ -203,9 +227,9 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
   }
   feature(s"test the BG v1.3 -${getPaymentInitiationStatus.name}") {
     scenario("Successful case ", BerlinGroupV1_3, PIS, initiatePayment) {
-      val accounts = MappedBankAccount.findAll().map(_.accountIban.get).filter(_ != null)
-      val ibanFrom = accounts.head
-      val ibanTo = accounts.last
+      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val ibanFrom = accountsRoutingIban.head.accountRouting.address
+      val ibanTo = accountsRoutingIban.last.accountRouting.address
 
       val initiatePaymentJson =
         s"""{
@@ -251,25 +275,31 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     }
     scenario(s"Successful Case ", BerlinGroupV1_3, PIS, startPaymentAuthorisation) {
 
-      val accounts = MappedBankAccount.findAll().map(_.accountIban.get).filter(_ != null)
-      val ibanFrom = accounts.head
-      val ibanTo = accounts.last
+      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val acountRoutingIbanFrom = accountsRoutingIban.head
+      val acountRoutingIbanTo = accountsRoutingIban.last
 
-      val beforePaymentFromAccountBalance = MappedBankAccount.find(By(MappedBankAccount.accountIban, ibanFrom)).map(_.balance).openOrThrowException("Can not be empty here")
-      val beforePaymentToAccountBalance =  MappedBankAccount.find(By(MappedBankAccount.accountIban, ibanTo)).map(_.balance).openOrThrowException("Can not be empty here")
+      val beforePaymentFromAccountBalance = MappedBankAccount.find(
+        By(MappedBankAccount.bank, acountRoutingIbanFrom.bankId.value),
+        By(MappedBankAccount.theAccountId, acountRoutingIbanFrom.accountId.value))
+        .map(_.balance).openOrThrowException("Can not be empty here")
+      val beforePaymentToAccountBalance = MappedBankAccount.find(
+        By(MappedBankAccount.bank, acountRoutingIbanTo.bankId.value),
+        By(MappedBankAccount.theAccountId, acountRoutingIbanTo.accountId.value))
+        .map(_.balance).openOrThrowException("Can not be empty here")
 
       
       val initiatePaymentJson =
         s"""{
            | "debtorAccount": {
-           |   "iban": "${ibanFrom}"
+           |   "iban": "${acountRoutingIbanFrom.accountRouting.address}"
            | },
            |"instructedAmount": {
            |  "currency": "EUR",
            |  "amount": "12355"
            |},
            |"creditorAccount": {
-           |  "iban": "${ibanTo}"
+           |  "iban": "${acountRoutingIbanTo.accountRouting.address}"
            |},
            |"creditorName": "70charname"
             }""".stripMargin
@@ -324,8 +354,14 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       responseUpdatePaymentPsuData.body.extract[StartPaymentAuthorisationJson].scaStatus should be("finalised")
       responseUpdatePaymentPsuData.body.extract[StartPaymentAuthorisationJson].authorisationId should be(authorisationId)
 
-      val afterPaymentFromAccountBalance = MappedBankAccount.find(By(MappedBankAccount.accountIban, ibanFrom)).map(_.balance).openOrThrowException("Can not be empty here")
-      val afterPaymentToAccountBalacne =  MappedBankAccount.find(By(MappedBankAccount.accountIban, ibanTo)).map(_.balance).openOrThrowException("Can not be empty here")
+      val afterPaymentFromAccountBalance = MappedBankAccount.find(
+        By(MappedBankAccount.bank, acountRoutingIbanFrom.bankId.value),
+        By(MappedBankAccount.theAccountId, acountRoutingIbanFrom.accountId.value))
+        .map(_.balance).openOrThrowException("Can not be empty here")
+      val afterPaymentToAccountBalacne = MappedBankAccount.find(
+        By(MappedBankAccount.bank, acountRoutingIbanTo.bankId.value),
+        By(MappedBankAccount.theAccountId, acountRoutingIbanTo.accountId.value))
+        .map(_.balance).openOrThrowException("Can not be empty here")
 
       afterPaymentFromAccountBalance-beforePaymentFromAccountBalance should be (BigDecimal(-12355.00))
       afterPaymentToAccountBalacne-beforePaymentToAccountBalance should be (BigDecimal(12355.00))
@@ -347,9 +383,9 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     }
     scenario(s"Successful Case ", BerlinGroupV1_3, PIS) {
 
-      val accounts = MappedBankAccount.findAll().map(_.accountIban.get).filter(_ != null)
-      val ibanFrom = accounts.head
-      val ibanTo = accounts.last
+      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val ibanFrom = accountsRoutingIban.head.accountRouting.address
+      val ibanTo = accountsRoutingIban.last.accountRouting.address
 
       val initiatePaymentJson =
         s"""{

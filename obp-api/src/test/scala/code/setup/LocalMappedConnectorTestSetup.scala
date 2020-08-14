@@ -12,6 +12,7 @@ import code.model.dataAccess._
 import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import net.liftweb.common.Box
 import net.liftweb.mapper.{By, MetaMapper}
 import net.liftweb.util.Helpers._
@@ -56,9 +57,20 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
   }
 
   override protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
+    BankAccountRouting.create
+      .BankId(bankId.value)
+      .AccountId(accountId.value)
+      .AccountRoutingScheme(AccountRoutingScheme.IBAN.toString)
+      .AccountRoutingAddress(randomString(20))
+      .saveMe
+    BankAccountRouting.create
+      .BankId(bankId.value)
+      .AccountId(accountId.value)
+      .AccountRoutingScheme(randomString(4))
+      .AccountRoutingAddress(randomString(4))
+      .saveMe
     MappedBankAccount.create
       .bank(bankId.value)
-      .accountIban(randomString(20))//Added the Iban for test accounts
       .theAccountId(accountId.value)
       .accountCurrency(currency.toUpperCase)
       .accountBalance(900000000)
@@ -67,8 +79,6 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .accountName(randomString(4))
       .accountNumber(randomString(4))
       .accountLabel(randomString(4))
-      .mAccountRoutingScheme(randomString(4))  
-      .mAccountRoutingAddress(randomString(4))   
       .mBranchId(randomString(4))   
       .saveMe
   }

@@ -16,7 +16,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, ChallengeJsonV400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, TransactionRequestWithChargeJSON400, UserLockStatusJson, When}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, ChallengeJsonV400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, TransactionRequestBodySEPAJsonV400, TransactionRequestReasonJsonV400, TransactionRequestWithChargeJSON400, UserLockStatusJson, When}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
@@ -1936,6 +1936,22 @@ object SwaggerDefinitionsJSON {
     "SHARED",
     Some("20881230")
   )
+  val transactionRequestBodySEPAJsonV400 = TransactionRequestBodySEPAJsonV400(
+    amountOfMoneyJsonV121,
+    ibanJson,
+    description = "This is a SEPA Transaction Request",
+    charge_policy = "SHARED",
+    future_date = Some("20881230"),
+    reasons = Some(List(
+      TransactionRequestReasonJsonV400(
+        code = "410",
+        document_number = Some("2020/154"),
+        amount = Some("100"),
+        currency = Some("EUR"),
+        description = Some("SEPA payment")
+      )
+    ))
+  )
   val transactionRequestBodyFreeFormJSON = TransactionRequestBodyFreeFormJSON(
     amountOfMoneyJsonV121,
     "This is a FREE_FORM Transaction Request",
@@ -3372,7 +3388,7 @@ object SwaggerDefinitionsJSON {
     label = "Label",
     `type` = "CURRENT",
     branch_id = "1234",
-    account_routing = accountRoutingJsonV121
+    account_routings = List(accountRoutingJsonV121)
   )
 
   val updateAccountResponseJsonV310 = UpdateAccountResponseJsonV310(
@@ -3381,7 +3397,7 @@ object SwaggerDefinitionsJSON {
     label = "Label",
     `type` = "CURRENT",
     branch_id = "1234",
-    account_routing = accountRoutingJsonV121
+    account_routings = List(AccountRoutingJsonV121(accountRoutingSchemeExample.value, accountRoutingAddressExample.value))
   )
   val createPhysicalCardJsonV310 = CreatePhysicalCardJsonV310(
     card_number = bankCardNumberExample.value,
@@ -3647,7 +3663,7 @@ object SwaggerDefinitionsJSON {
     product_code = accountTypeExample.value,
     balance =  amountOfMoneyJsonV121,
     branch_id  = branchIdExample.value,
-    account_routing = accountRoutingJsonV121
+    account_routings = List(accountRoutingJsonV121)
   )
   
   val postAccountAccessJsonV400 = PostAccountAccessJsonV400(userIdExample.value, PostViewJsonV400(ExampleValue.viewIdExample.value, true))

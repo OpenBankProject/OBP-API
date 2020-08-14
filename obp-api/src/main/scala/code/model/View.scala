@@ -33,6 +33,7 @@ import java.util.Date
 import code.api.util.ErrorMessages
 import code.metadata.counterparties.Counterparties
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import net.liftweb.common._
 
 case class ViewExtended(val view: View) {
@@ -315,11 +316,11 @@ case class ViewExtended(val view: View) {
       val accountType = if(view.canSeeBankAccountType) Some(bankAccount.accountType) else None
       val currency = if(view.canSeeBankAccountCurrency) Some(bankAccount.currency) else None
       val label = if(view.canSeeBankAccountLabel) Some(bankAccount.label) else None
-      val iban = if(view.canSeeBankAccountIban) bankAccount.iban else None
+      val iban = if(view.canSeeBankAccountIban) bankAccount.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address) else None
       val number = if(view.canSeeBankAccountNumber) Some(bankAccount.number) else None
       //From V300, use scheme and address stuff...
-      val accountRoutingScheme = if(view.canSeeBankAccountRoutingScheme) Some(bankAccount.accountRoutingScheme) else None
-      val accountRoutingAddress = if(view.canSeeBankAccountRoutingAddress) Some(bankAccount.accountRoutingAddress) else None
+      val accountRoutingScheme = if(view.canSeeBankAccountRoutingScheme) bankAccount.accountRoutings.headOption.map(_.scheme) else None
+      val accountRoutingAddress = if(view.canSeeBankAccountRoutingAddress) bankAccount.accountRoutings.headOption.map(_.address) else None
       val accountRoutings = if(view.canSeeBankAccountRoutingScheme && view.canSeeBankAccountRoutingAddress) bankAccount.accountRoutings else Nil
       val accountRules = if(view.canSeeBankAccountCreditLimit) bankAccount.accountRules else Nil
 
@@ -366,15 +367,15 @@ case class ViewExtended(val view: View) {
       val currency = if(view.canSeeBankAccountCurrency) Some(bankAccount.currency) else None
       val label = if(view.canSeeBankAccountLabel) Some(bankAccount.label) else None
       val nationalIdentifier = if(view.canSeeBankAccountNationalIdentifier) Some(bankAccount.nationalIdentifier) else None
-      val iban = if(view.canSeeBankAccountIban) bankAccount.iban else None
+      val iban = if(view.canSeeBankAccountIban) bankAccount.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address) else None
       val number = if(view.canSeeBankAccountNumber) Some(bankAccount.number) else None
       val bankName = if(view.canSeeBankAccountBankName) Some(bankAccount.bankName) else None
       val bankId = bankAccount.bankId
       //From V300, use scheme and address stuff...
       val bankRoutingScheme = if(view.canSeeBankRoutingScheme) Some(bankAccount.bankRoutingScheme) else None
       val bankRoutingAddress = if(view.canSeeBankRoutingAddress) Some(bankAccount.bankRoutingAddress) else None
-      val accountRoutingScheme = if(view.canSeeBankAccountRoutingScheme) Some(bankAccount.accountRoutingScheme) else None
-      val accountRoutingAddress = if(view.canSeeBankAccountRoutingAddress) Some(bankAccount.accountRoutingAddress) else None
+      val accountRoutingScheme = if(view.canSeeBankAccountRoutingScheme) bankAccount.accountRoutings.headOption.map(_.scheme) else None
+      val accountRoutingAddress = if(view.canSeeBankAccountRoutingAddress) bankAccount.accountRoutings.headOption.map(_.address) else None
       val accountRoutings = if(view.canSeeBankAccountRoutingScheme && view.canSeeBankAccountRoutingAddress) bankAccount.accountRoutings else Nil
       val accountRules = if(view.canSeeBankAccountCreditLimit) bankAccount.accountRules else Nil
 

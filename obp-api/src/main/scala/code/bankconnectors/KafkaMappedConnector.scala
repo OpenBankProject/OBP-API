@@ -602,8 +602,8 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
                                        //toCounterty
                                        "toCounterpartyId" -> toAccount.accountId.value,
                                        "toCounterpartyOtherBankRoutingAddress" -> toAccount.bankRoutingAddress,
-                                       "toCounterpartyOtherAccountRoutingAddress" -> toAccount.accountRoutingAddress,
-                                       "toCounterpartyOtherAccountRoutingScheme" -> toAccount.accountRoutingScheme,
+                                       "toCounterpartyOtherAccountRoutingAddress" -> toAccount.accountRoutings.headOption.map(_.address).getOrElse(""),
+                                       "toCounterpartyOtherAccountRoutingScheme" -> toAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""),
                                        "toCounterpartyOtherBankRoutingScheme" -> toAccount.bankRoutingScheme,
                                        "type" -> "AC")
 
@@ -769,8 +769,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     initialBalance: BigDecimal,
     accountHolderName: String,
     branchId: String,
-    accountRoutingScheme: String,
-    accountRoutingAddress: String
+    accountRoutings: List[AccountRouting]
   ): Box[BankAccount] = {
 
     for {

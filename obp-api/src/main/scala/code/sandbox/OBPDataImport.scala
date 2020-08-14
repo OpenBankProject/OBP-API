@@ -18,6 +18,7 @@ import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.model.{Bank, _}
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.common._
@@ -322,6 +323,12 @@ trait OBPDataImport extends MdcLoggable {
       Connector.connector.vend.getBankAccountOld(BankId(acc.bank), AccountId(acc.id))
     })
 
+    val ibans = data.accounts.map(_.IBAN)
+    val duplicateIbans = ibans diff ibans.distinct
+    val existingIbans = data.accounts.flatMap(acc => {
+      Connector.connector.vend.getBankAccountByRouting(Some(BankId(acc.bank)), AccountRoutingScheme.IBAN.toString, acc.IBAN, None).map(_._1)
+    })
+
     if(!banksNotSpecifiedInImport.isEmpty) {
       Failure(s"Error: one or more accounts specified are for" +
         s" banks not specified in the import data. Unspecified banks: $banksNotSpecifiedInImport)")
@@ -336,6 +343,13 @@ trait OBPDataImport extends MdcLoggable {
     } else if(existing.nonEmpty) {
       val existingAccountAndBankIds = existing.map(e => (s"(account id: ${e.accountId.value} bank id: ${e.bankId.value})").mkString(","))
       Failure(s"Account(s) to be imported already exist: $existingAccountAndBankIds")
+    } else if(duplicateIbans.nonEmpty) {
+      val duplicateMsg = duplicateIbans.map(iban => s"(iban $iban)").mkString(",")
+      Failure(s"Error: accounts cannot share an iban: $duplicateMsg")
+    } else if(existingIbans.nonEmpty) {
+      val existingAccountIban = existingIbans.map(e =>
+        (s"(iban: ${e.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).getOrElse("")})").mkString(","))
+      Failure(s"Account IBAN(s) to be imported already exist: $existingAccountIban")
     } else {
 
       val validatedAccounts: Box[List[SandboxAccountImport]] = dataOrFirstFailure(data.accounts.map(validateAccount(_, data)))
