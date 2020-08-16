@@ -551,7 +551,7 @@ $additionalInstructions
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
-               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
 
              transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfers ", 400, callContext) {
