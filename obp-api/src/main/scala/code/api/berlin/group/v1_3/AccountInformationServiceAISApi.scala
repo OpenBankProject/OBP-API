@@ -300,7 +300,11 @@ of the PSU at this ASPSP.
             //    }
             //    ]
             bankAccountsFiltered = accounts.filter(bankAccount =>
-              bankAccount.attributes.toList.flatten.find(_.value.equalsIgnoreCase("card")).isEmpty)
+              bankAccount.attributes.toList.flatten.find(attribute =>
+                attribute.name.equals("CashAccountTypeCode")&&
+                attribute.`type`.equals("STRING")&&
+                attribute.value.equalsIgnoreCase("card")
+              ).isEmpty)
             
           } yield {
             (JSONFactory_BERLIN_GROUP_1_3.createAccountListJson(bankAccountsFiltered, u), callContext)
@@ -443,7 +447,11 @@ respectively the OAuth2 access token.
               
              //also see `getAccountList` endpoint
              bankAccountsFiltered = accounts.filter(bankAccount => 
-               bankAccount.attributes.toList.flatten.find(_.value.equalsIgnoreCase("card")).isDefined)
+               bankAccount.attributes.toList.flatten.find(attribute=> 
+                   attribute.name.equals("CashAccountTypeCode")&& 
+                   attribute.`type`.equals("STRING")&&
+                 attribute.value.equalsIgnoreCase("card") 
+               ).isDefined)
 
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createCardAccountListJson(bankAccountsFiltered, u), callContext)
