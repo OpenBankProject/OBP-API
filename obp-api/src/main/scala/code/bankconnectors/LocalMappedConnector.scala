@@ -3730,11 +3730,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId)
               //now we support multiple challenges. We can support multiple people to answer the challenges.
               //So here we return the challengeIds. 
-              // how to decide where to create challenges
-              // in OBP side:
-              //   1st: connector == mapped
-              //   2rd: connector == star && no records in `methodrouting` table.
-              
               (challengeIds, callContext) <- Connector.connector.vend.createChallenges(
                 fromAccount.bankId,
                 fromAccount.accountId,
