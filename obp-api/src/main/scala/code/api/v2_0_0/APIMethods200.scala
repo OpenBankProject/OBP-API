@@ -1029,17 +1029,16 @@ trait APIMethods200 {
     )
 
     lazy val getPermissionsForBankAccount : OBPEndpoint = {
-      //get access
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
-            (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound // Check bank exists.
-            account <- BankAccountX(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
-            permissions <- account permissions u
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            permissions <- NewStyle.function.permissions(account, u)
           } yield {
             val permissionsJSON = JSONFactory121.createPermissionsJSON(permissions.sortBy(_.user.emailAddress))
-            successJsonResponse(Extraction.decompose(permissionsJSON))
+            (permissionsJSON, HttpCode.`200`(callContext))
           }
       }
     }
