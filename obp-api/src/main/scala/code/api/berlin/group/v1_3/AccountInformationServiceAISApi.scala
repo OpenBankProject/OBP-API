@@ -281,9 +281,33 @@ of the PSU at this ASPSP.
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
             
             (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
+
+            //If the bankAccount from obp side, there the attributes field should be Empty.
+
+            //If it comes from core banking, then we need to filter out the card accounts.
+
+            //eg: the following is a card account, can not be showed in this response. 
+            //    "attributes": [
+            //    {
+            //      "name": "CashAccountTypeCode",
+            //      "type": "STRING",
+            //      "value": "CARD"
+            //    },
+            //    {
+            //      "name": "STATUS",
+            //      "type": "STRING",
+            //      "value": "ACTIVE"
+            //    }
+            //    ]
+            bankAccountsFiltered = accounts.filter(bankAccount =>
+              bankAccount.attributes.toList.flatten.find(attribute =>
+                attribute.name.equals("CashAccountTypeCode")&&
+                attribute.`type`.equals("STRING")&&
+                attribute.value.equalsIgnoreCase("card")
+              ).isEmpty)
             
           } yield {
-            (JSONFactory_BERLIN_GROUP_1_3.createAccountListJson(accounts, u), callContext)
+            (JSONFactory_BERLIN_GROUP_1_3.createAccountListJson(bankAccountsFiltered, u), callContext)
           }
          }
        }
@@ -416,10 +440,21 @@ respectively the OAuth2 access token.
 
              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
 
+             //The card contains the account object, it mean the card account.
+             (cards,callContext) <- NewStyle.function.getPhysicalCardsForUser(u, callContext)
+
              (accounts, callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
+              
+             //also see `getAccountList` endpoint
+             bankAccountsFiltered = accounts.filter(bankAccount => 
+               bankAccount.attributes.toList.flatten.find(attribute=> 
+                   attribute.name.equals("CashAccountTypeCode")&& 
+                   attribute.`type`.equals("STRING")&&
+                 attribute.value.equalsIgnoreCase("card") 
+               ).isDefined)
 
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountListJson(accounts, u), callContext)
+             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountListJson(bankAccountsFiltered, u), callContext)
            }
        }
      }

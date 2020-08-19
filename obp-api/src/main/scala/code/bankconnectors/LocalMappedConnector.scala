@@ -3700,54 +3700,54 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             (transactionRequest, callContext)
           }
         case TransactionRequestStatus.INITIATED =>
-          // return the lists of users, who need to be answered the challenges
-          def getUsersForChallenges(bankId: BankId,
-                                    accountId: AccountId) = {
-            Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None) map {
-              _._1.map {
-                x => {
-                  if (x.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt > 1) {
-                    for (
-                      permission <- Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
-                    ) yield {
-                      permission.views.exists(_.canAddTransactionRequestToAnyAccount == true) match {
-                        case true => Some(permission.user)
-                        case _ => None
+          //If it is BerlinGroup standard, there is no need the challenges, it has its own `Start the authorisation process for a payment initiation` endpoint
+          if(transactionRequestType.value ==TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString) {
+            Future(transactionRequest, callContext)
+          } else {
+            // return the lists of users, who need to be answered the challenges
+            def getUsersForChallenges(bankId: BankId,
+                                      accountId: AccountId) = {
+              Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None) map {
+                _._1.map {
+                  x => {
+                    if (x.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt > 1) {
+                      for (
+                        permission <- Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
+                      ) yield {
+                        permission.views.exists(_.canAddTransactionRequestToAnyAccount == true) match {
+                          case true => Some(permission.user)
+                          case _ => None
+                        }
                       }
-                    }
-                  } else List(Some(initiator))
-                }.flatten.distinct
+                    } else List(Some(initiator))
+                  }.flatten.distinct
+                }
               }
             }
-          }
-
-          for {
-            //if challenge necessary, create a new one
-            users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId)
-            //now we support multiple challenges. We can support multiple people to answer the challenges.
-            //So here we return the challengeIds. 
-            // how to decide where to create challenges
-            // in OBP side:
-            //   1st: connector == mapped
-            //   2rd: connector == star && no records in `methodrouting` table.
-            
-            (challengeIds, callContext) <- Connector.connector.vend.createChallenges(
-              fromAccount.bankId,
-              fromAccount.accountId,
-              users.toList.flatten.map(_.userId),
-              transactionRequestType: TransactionRequestType,
-              transactionRequest.id.value,
-              scaMethod,
-              callContext
-            ) map { i =>
-              (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
+  
+            for {
+              //if challenge necessary, create a new one
+              users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId)
+              //now we support multiple challenges. We can support multiple people to answer the challenges.
+              //So here we return the challengeIds. 
+              (challengeIds, callContext) <- Connector.connector.vend.createChallenges(
+                fromAccount.bankId,
+                fromAccount.accountId,
+                users.toList.flatten.map(_.userId),
+                transactionRequestType: TransactionRequestType,
+                transactionRequest.id.value,
+                scaMethod,
+                callContext
+              ) map { i =>
+                (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
+              }
+              //TODO, this challengeIds are only for mapped connector now. we only return the first challengeId in the request yet.
+              newChallenge = TransactionRequestChallenge(challengeIds.headOption.getOrElse(""), allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
+              _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
+              transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
+            } yield {
+              (transactionRequest, callContext)
             }
-            //TODO, this challengeIds are only for mapped connector now. we only return the first challengeId in the request yet.
-            newChallenge = TransactionRequestChallenge(challengeIds.headOption.getOrElse(""), allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
-            _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
-            transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
-          } yield {
-            (transactionRequest, callContext)
           }
         case _ => Future(transactionRequest, callContext)
       }

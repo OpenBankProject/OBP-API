@@ -551,7 +551,7 @@ $additionalInstructions
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
-               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
 
              transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfers ", 400, callContext) {
@@ -596,7 +596,7 @@ $additionalInstructions
              (createdTransactionRequest,callContext) <- transactionRequestTypes match {
                case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
                  for {
-                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(
+                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(
                      u,
                      ViewId("Owner"),//This is the default 
                      fromAccount,
@@ -610,7 +610,9 @@ $additionalInstructions
                      "",
                      None,
                      None,
-                     callContext) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
+                     None,
+                     callContext
+                   ) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
                  } yield (createdTransactionRequest, callContext)
                }
              }

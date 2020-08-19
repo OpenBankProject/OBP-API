@@ -294,7 +294,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   }
 
   def createCardAccountListJson(bankAccounts: List[BankAccount], user: User): CoreCardAccountsJsonV13 = {
-    CoreCardAccountsJsonV13(bankAccounts.filter(_.attributes.map(_.map(_.name)) == "CashAccountType").map {
+    CoreCardAccountsJsonV13(bankAccounts.map {
       x =>
         val (iBan: String, bBan: String) = getIbanAndBban(x)
 
