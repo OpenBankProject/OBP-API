@@ -58,6 +58,7 @@ import scala.reflect.runtime.universe.MethodSymbol
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
     (nameOf(Implementations1_2_1.deleteViewForBankAccount), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addPermissionForUserForBankAccountForOneView), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_4_0.getTransactionRequestTypes), ApiVersion.v1_4_0.toString),
     (nameOf(Implementations1_4_0.addCustomerMessage), ApiVersion.v1_4_0.toString),
     (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString),
@@ -249,6 +250,11 @@ object NewStyle {
     
     def removeView(account: BankAccount, user: User, viewId: ViewId) = Future {
       account.removeView(user, viewId)
+    } map { fullBoxOrException(_)
+    } map { unboxFull(_) }
+    
+    def grantAccessToView(account: BankAccount, u: User, viewIdBankIdAccountId : ViewIdBankIdAccountId, provider : String, providerId: String) = Future {
+      account.grantAccessToView(u, viewIdBankIdAccountId, provider, providerId)
     } map { fullBoxOrException(_)
     } map { unboxFull(_) }
     

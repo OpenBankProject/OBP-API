@@ -852,13 +852,13 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: ViewId(viewId) :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            // TODO Check Error cases
-            addedView <- account grantAccessToView(u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            addedView <- NewStyle.function.grantAccessToView(account, u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
           } yield {
             val viewJson = JSONFactory.createViewJSON(addedView)
-            successJsonResponse(Extraction.decompose(viewJson), 201)
+            (viewJson, HttpCode.`201`(callContext))
           }
       }
     }
