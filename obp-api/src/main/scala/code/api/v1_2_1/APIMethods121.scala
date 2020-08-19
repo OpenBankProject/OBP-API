@@ -11,11 +11,13 @@ import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
+import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.bankconnectors._
 import code.metadata.comments.Comments
 import code.metadata.counterparties.Counterparties
 import code.model.{BankAccountX, BankX, ModeratedTransactionMetadata, toBankAccountExtended, toBankExtended, toUserExtended}
+import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.google.common.cache.CacheBuilder
@@ -34,6 +36,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 trait APIMethods121 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -691,15 +694,16 @@ trait APIMethods121 {
       ) :: "views" :: ViewId(viewId) :: Nil JsonDelete req => {
         cc =>
           for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             //custom views are started ith `_`,eg _lift, _work, and System views startWith letter, eg: owner
-            _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), cc.user) ?~! CannotFindCustomViewError
-            _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
-            
-            u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- {account removeView(u, viewId)} ?~! DeleteCustomViewError
-          } yield noContentJsonResponse
+            _ <- Helper.booleanToFuture(InvalidCustomViewFormat) { viewId.value.startsWith("_") }
+            _ <- NewStyle.function.customView(viewId, BankIdAccountId(bankId, accountId), callContext)
+            deleted <- NewStyle.function.removeView(account, u, viewId)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
       }
     }
   
