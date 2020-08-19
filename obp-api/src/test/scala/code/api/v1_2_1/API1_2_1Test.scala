@@ -1687,8 +1687,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val view = randomCustomViewPermalink(bankId, bankAccount)
       When("the request is sent")
       val reply = deleteView(bankId, bankAccount.id, view, None)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 401 code")
+      reply.code should equal (401)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }

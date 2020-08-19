@@ -10,6 +10,7 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
+import code.api.v1_2_1.OBPAPI1_2_1.Implementations1_2_1
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
@@ -56,6 +57,7 @@ import scala.reflect.runtime.universe.MethodSymbol
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
+    (nameOf(Implementations1_2_1.deleteViewForBankAccount), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_4_0.getTransactionRequestTypes), ApiVersion.v1_4_0.toString),
     (nameOf(Implementations1_4_0.addCustomerMessage), ApiVersion.v1_4_0.toString),
     (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString),
@@ -242,6 +244,11 @@ object NewStyle {
     
     def permissions(account: BankAccount, user: User) = Future {
       account.permissions(user)
+    } map { fullBoxOrException(_)
+    } map { unboxFull(_) } 
+    
+    def removeView(account: BankAccount, user: User, viewId: ViewId) = Future {
+      account.removeView(user, viewId)
     } map { fullBoxOrException(_)
     } map { unboxFull(_) }
     
