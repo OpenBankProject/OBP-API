@@ -23,8 +23,8 @@ object RemotedataExpectedChallengeAnswerProvider extends ObpActorInit with Expec
     (actor ? cc.getExpectedChallengeAnswer(challengeId: String)).mapTo[Box[ExpectedChallengeAnswer]]
   )
   
-  override def validateChallengeAnswerInOBPSide(challengeId: String, challengeAnswer: String, userId: Option[String]): Box[Boolean] = getValueFromFuture(
-    (actor ? cc.validateChallengeAnswerInOBPSide(challengeId, challengeAnswer, userId)).mapTo[Box[Boolean]]
+  override def validateChallengeAnswer(challengeId: String, challengeAnswer: String, userId: Option[String]): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.validateChallengeAnswer(challengeId, challengeAnswer, userId)).mapTo[Box[Boolean]]
   )
   
 }

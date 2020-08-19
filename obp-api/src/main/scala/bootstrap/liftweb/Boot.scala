@@ -104,7 +104,7 @@ import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.transaction_types.MappedTransactionType
 import code.transactionattribute.MappedTransactionAttribute
-import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
+import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
 import code.util.Helper
@@ -114,7 +114,7 @@ import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
 import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion, Functions}
 import com.openbankproject.commons.util.Functions.Implicits._
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
@@ -613,6 +613,10 @@ class Boot extends MdcLoggable {
             .filter(it => starConnectorTypes.exists(it.startsWith(_)))
 
           assert(allSupportedConnectors.contains(connectorName), s"connector.name.export.as.endpoint=$connectorName, this value should be one of ${allSupportedConnectors.mkString(",")}")
+
+        case _ if connectorName == "mapped" =>
+          Functions.doNothing
+
         case Full(connector) =>
           assert(connector == connectorName, s"When 'connector=$connector', this props must be: connector.name.export.as.endpoint=$connector, but current it is $connectorName")
       }
@@ -725,7 +729,7 @@ class Boot extends MdcLoggable {
           .saveMe()
         logger.debug(s"creating Bank(${defaultBankId})")   
     }
-    
+
     MappedBankAccount.find(By(MappedBankAccount.bank, defaultBankId), By(MappedBankAccount.theAccountId, incomingAccountId)) match {
       case Full(b) =>
         logger.debug(s"BankAccount(${defaultBankId}, $incomingAccountId) is found.")
@@ -804,6 +808,7 @@ object ToSchemify {
     Admin,
     MappedBank,
     MappedBankAccount,
+    BankAccountRouting,
     MappedTransaction,
     MappedCustomerMessage,
     MappedBranch,
@@ -816,6 +821,7 @@ object ToSchemify {
     MappedKycStatus,
     MappedSocialMedia,
     MappedTransactionType,
+    TransactionRequestReasons,
     MappedMeeting,
     MappedMeetingInvitee,
     MappedBankAccountData,

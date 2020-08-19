@@ -42,8 +42,8 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       val requestPost = (v2_2Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
-      Then("We should get a 200 and check all the fields")
-      responsePost.code should equal(200)
+      Then("We should get a 201 and check all the fields")
+      responsePost.code should equal(201)
 
       var accountRoutingAddress = (responsePost.body \  "other_account_routing_address" ) match {
         case JString(i) => i
@@ -63,8 +63,8 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       val responseGet = makeGetRequest(requestGet)
   
   
-      Then("We should get a 200 and check all the fields")
-      responsePost.code should equal(200)
+      Then("We should get a 201 and check all the fields")
+      responsePost.code should equal(201)
   
       val accountRoutingAddressGet = (responsePost.body \  "other_account_routing_address" ) match {
         case JString(i) => i
@@ -97,10 +97,10 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
   
       val requestPost = (v2_2Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
-      Then("We should get a 400")
-      responsePost.code should equal(400)
+      Then("We should get a 404")
+      responsePost.code should equal(404)
 
-      responsePost.body.extract[ErrorMessage].message should startWith(ErrorMessages.AccountNotFound)
+      responsePost.body.extract[ErrorMessage].message should startWith(ErrorMessages.BankAccountNotFound)
     }
 
     scenario("counterparty is not unique for name/bank_id/account_id/view_id") {
@@ -123,7 +123,7 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       Then("We should get a 400 and check the error massage")
       responsePost.code should equal(400)
       
-      responsePost.body.extract[ErrorMessage].message should startWith(ErrorMessages.CounterpartyAlreadyExists)
+      responsePost.body.extract[ErrorMessage].message should startWith("OBP-30014: Counterparty already exists.")
 
     }
   }

@@ -8,7 +8,7 @@
     <groupId>com.tesobe</groupId>
     <artifactId>obp-parent</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>1.6.0</version>
+    <version>1.7.0</version>
   </parent>
   <artifactId>obp-api</artifactId>
   <packaging>war</packaging>
@@ -27,6 +27,19 @@
       <groupId>com.tesobe</groupId>
       <artifactId>obp-commons</artifactId>
     </dependency>
+    <!--embed akka adapter start-->
+    <dependency>
+      <groupId>com.github.OpenBankProject.OBP-Adapter-Akka-SpringBoot</groupId>
+      <artifactId>adapter-akka-commons</artifactId>
+      <version>v1.1.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <!--embed akka adapter end-->
     <dependency>
       <groupId>com.github.everit-org.json-schema</groupId>
       <artifactId>org.everit.json.schema</artifactId>
@@ -40,7 +53,6 @@
     <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-mapper_${scala.version}</artifactId>
-      <version>${lift.version}</version>
     </dependency>
     <dependency>
       <groupId>net.databinder.dispatch</groupId>

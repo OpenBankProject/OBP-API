@@ -61,6 +61,7 @@ import net.liftweb.util.Helpers._
 
 import scala.collection.immutable.{List, Nil, Seq}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.dto.GetProductsParam
 
 import scala.concurrent.Future
 
@@ -1006,8 +1007,8 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       toCounterpartyId = toAccount.accountId.value,
       toCounterpartyName = toAccount.name,
       toCounterpartyCurrency = fromAccount.currency, // TODO toCounterparty.currency
-      toCounterpartyRoutingAddress = toAccount.accountRoutingAddress,
-      toCounterpartyRoutingScheme = toAccount.accountRoutingScheme,
+      toCounterpartyRoutingAddress = toAccount.accountRoutings.headOption.map(_.address).getOrElse(""),
+      toCounterpartyRoutingScheme = toAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""),
       toCounterpartyBankRoutingAddress = toAccount.bankRoutingAddress,
       toCounterpartyBankRoutingScheme = toAccount.bankRoutingScheme
     )
@@ -1354,8 +1355,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     initialBalance: BigDecimal,
     accountHolderName: String,
     branchId: String,
-    accountRoutingScheme: String,
-    accountRoutingAddress: String
+    accountRoutings: List[AccountRouting]
   ): Box[BankAccount] = {
 
     for {
@@ -1542,11 +1542,11 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
 
 
-  override def getProducts(bankId: BankId, params: Map[String, List[String]]): Box[List[Product]] = Empty
+  override def getProducts(bankId: BankId, params: List[GetProductsParam]): Box[List[Product]] = Empty
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-  override  def createOrUpdateBranch(branch: Branch): Box[BranchT] = Empty
+  override  def createOrUpdateBranch(branch: BranchT): Box[BranchT] = Empty
   
   override def createOrUpdateBank(
     bankId: String,

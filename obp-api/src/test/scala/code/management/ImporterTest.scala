@@ -8,6 +8,7 @@ import code.bankconnectors.Connector
 import code.model._
 import code.setup.{APIResponse, DefaultConnectorTestSetup, ServerSetup}
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.model.{AccountId, Transaction}
 import net.liftweb.util.TimeHelpers._
 
@@ -70,7 +71,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
         |            "number": "${account.number}",
         |            "kind": "${account.accountType}",
         |            "bank": {
-        |                "IBAN": "${account.iban.getOrElse("")}",
+        |                "IBAN": "${account.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address).getOrElse("")}",
         |                "national_identifier": "${account.nationalIdentifier}",
         |                "name": "${account.bankName}"
         |            }

@@ -72,6 +72,7 @@ object Migration extends MdcLoggable {
       alterTableMappedUserAuthContextUpdate()
       populateNameAndAppTypeFieldsAtConsumerTable()
       populateAzpAndSubFieldsAtConsumerTable()
+      populateTableBankAccountRouting()
     }
     
     private def dummyScript(): Boolean = {
@@ -195,6 +196,12 @@ object Migration extends MdcLoggable {
       val name = nameOf(MappedUserAuthContextUpdate)
       runOnce(name) {
         MigrationOfMappedUserAuthContextUpdate.dropUniqueIndex(name)
+      }
+    }
+    private def populateTableBankAccountRouting(): Boolean = {
+      val name = nameOf(populateTableBankAccountRouting)
+      runOnce(name) {
+        MigrationOfAccountRoutings.populate(name)
       }
     }
     

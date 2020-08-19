@@ -19,12 +19,13 @@ import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import code.transactionattribute.MappedTransactionAttribute
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, CreateViewJson, UpdateViewJSON}
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, CreateViewJson, UpdateViewJSON}
 import dispatch.Req
 import net.liftweb.json.Serialization.write
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 
+import scala.util.Random
 import scala.util.Random.nextInt
 
 trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
@@ -299,12 +300,16 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   def createTransactionRequestForDeleteCascade(bankId: String) = {
     // Create a Bank
     val bank = createBank(bankId)
-    val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310
-      .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
+    val addAccountJson1 = SwaggerDefinitionsJSON.createAccountRequestJsonV310
+      .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"),
+        account_routings = List(AccountRoutingJsonV121(Random.nextString(4), Random.nextString(10))))
+    val addAccountJson2 = SwaggerDefinitionsJSON.createAccountRequestJsonV310
+      .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"),
+        account_routings = List(AccountRoutingJsonV121(Random.nextString(4), Random.nextString(10))))
     // Create from account
-    val fromAccount = createAccountViaEndpoint(bank.bankId.value, addAccountJson, user1)
+    val fromAccount = createAccountViaEndpoint(bank.bankId.value, addAccountJson1, user1)
     // Create to account
-    val toAccount = createAccountViaEndpoint(bank.bankId.value, addAccountJson, user1)
+    val toAccount = createAccountViaEndpoint(bank.bankId.value, addAccountJson2, user1)
     // Create a custom view
     val customViewJson = createViewJson.copy(name = "_cascade_delete", metadata_view = "_cascade_delete", is_public = false)
     val customView = createViewViaEndpoint(bank.bankId.value, toAccount.account_id, customViewJson, user1)

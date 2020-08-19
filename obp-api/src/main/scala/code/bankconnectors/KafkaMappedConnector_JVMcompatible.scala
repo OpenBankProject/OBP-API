@@ -57,6 +57,7 @@ import com.openbankproject.commons.model.TransactionRequestTypeCharge
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
+import com.openbankproject.commons.dto.GetProductsParam
 import com.openbankproject.commons.model.{CounterpartyTrait, _}
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.obp.transport.Pager
@@ -709,7 +710,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       if (transactionRequestType.value == SANDBOX_TAN.toString)
         toAccount.accountId.value
       else
-        toAccount.accountRoutingAddress
+        toAccount.accountRoutings.headOption.map(_.address).getOrElse("")
   
     val toCounterpartyBankRoutingAddress =
       if (transactionRequestType.value == SANDBOX_TAN.toString)
@@ -938,8 +939,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     initialBalance: BigDecimal,
     accountHolderName: String,
     branchId: String,
-    accountRoutingScheme: String,
-    accountRoutingAddress: String
+    accountRoutings: List[AccountRouting]
   ): Box[BankAccount] = {
 
     for {
@@ -1128,7 +1128,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }
 
 
-  override def getProducts(bankId: BankId, params: Map[String, List[String]]): Box[List[Product]] = {
+  override def getProducts(bankId: BankId, params: List[GetProductsParam]): Box[List[Product]] = {
     LocalMappedConnector.getProducts(bankId, params)
   }
 
@@ -1151,11 +1151,11 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     LocalMappedConnector.getProduct(bankId, productCode)
   }
 
-  override  def createOrUpdateBranch(branch: Branch): Box[BranchT] = {
+  override  def createOrUpdateBranch(branch: BranchT): Box[BranchT] = {
     LocalMappedConnector.createOrUpdateBranch(branch)
   }
 
-  override def createOrUpdateAtm(atm: Atms.Atm): Box[AtmT] = {
+  override def createOrUpdateAtm(atm: AtmT): Box[AtmT] = {
     LocalMappedConnector.createOrUpdateAtm(atm)
   }
 

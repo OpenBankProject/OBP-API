@@ -60,12 +60,12 @@ import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.util.{ApiVersion, RequiredFieldValidation}
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
-
 import scala.reflect.runtime.universe._
 
 trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with MdcLoggable {
@@ -542,40 +542,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       adapterImplementation = Some(AdapterImplementation("Accounts", 7))
   )
   override def getBankAccountLegacy(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]) = saveConnectorMetric {
-      getValueFromFuture(getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]))._1.map(bankAccount =>(bankAccount, callContext))
-  }("getBankAccount")
-
-  override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext])  = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(accountTTL second){
-
-        val req = OutboundGetAccountbyAccountID(
-          authInfo = getAuthInfo(callContext).openOrThrowException(NoCallContext),
-          bankId.value,
-          accountId.value
-        )
-        logger.debug(s"Kafka getBankAccountFuture says: req is: $req")
-        
-        processRequest[InboundGetAccountbyAccountID](req) map { inbound =>
-          val boxedResult = inbound match {
-            case Full(inboundData) if (inboundData.status.hasNoError) =>
-              Full(new BankAccountSept2018(inboundData.data.get))
-            case Full(inbound) if (inbound.status.hasError) =>
-              Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
-            case failureOrEmpty: Failure => failureOrEmpty
-          }
-          (boxedResult, callContext)
-        }
-
-      }
-    }
+      getValueFromFuture(checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]))._1.map(bankAccount =>(bankAccount, callContext))
   }("getBankAccount")
 
   messageDocs += MessageDoc(
@@ -1207,12 +1174,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             accountId = fromAccount.accountId.value,
             accountType = fromAccount.accountType,
             currency = fromAccount.currency,
-            iban = fromAccount.iban.getOrElse(""),
+            iban = fromAccount.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address).getOrElse(""),
             number = fromAccount.number,
             bankId = fromAccount.bankId.value,
             branchId = fromAccount.bankId.value,
-            accountRoutingScheme = fromAccount.accountRoutingScheme,
-            accountRoutingAddress= fromAccount.accountRoutingAddress)
+            accountRoutingScheme = fromAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""),
+            accountRoutingAddress= fromAccount.accountRoutings.headOption.map(_.address).getOrElse(""))
           )
           _ <- Full(logger.debug(s"Kafka getTransactionRequests210 Req says: is: $req"))
           kafkaMessage <- processToBox(req)
@@ -3121,8 +3088,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       initialBalance=BigDecimal("123.321"),
       accountHolderName="string",
       branchId="string",
-      accountRoutingScheme="string",
-      accountRoutingAddress="string")
+      accountRoutings=List(AccountRouting(accountRoutingSchemeExample.value, accountRoutingAddressExample.value))
+     )
     ),
     exampleInboundMessage = (
      InBoundCreateBankAccount(inboundAdapterCallContext= InboundAdapterCallContext(correlationId="string",
@@ -3140,13 +3107,10 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       currency="string",
       name="string",
       label="string",
-      iban=Option("string"),
       number="string",
       bankId= BankId(value="string"),
       lastUpdate=new Date(),
       branchId="string",
-      accountRoutingScheme="string",
-      accountRoutingAddress="string",
       accountRoutings=List( AccountRouting(scheme="string",
       address="string")),
       accountRules=List( AccountRule(scheme="string",
@@ -3155,10 +3119,10 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     adapterImplementation = Some(AdapterImplementation("Account", 1))
   )
-  override def createBankAccount(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, currency: String, initialBalance: BigDecimal, accountHolderName: String, branchId: String, accountRoutingScheme: String, accountRoutingAddress: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
+  override def createBankAccount(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, currency: String, initialBalance: BigDecimal, accountHolderName: String, branchId: String, accountRoutings: List[AccountRouting], callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
     import com.openbankproject.commons.dto.{OutBoundCreateBankAccount => OutBound, InBoundCreateBankAccount => InBound}
 
-    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName, branchId, accountRoutingScheme, accountRoutingAddress)
+    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName, branchId, accountRoutings)
     logger.debug(s"Kafka createBankAccount Req is: $req")
     processRequest[InBound](req) map (convertToTuple(callContext))
   }

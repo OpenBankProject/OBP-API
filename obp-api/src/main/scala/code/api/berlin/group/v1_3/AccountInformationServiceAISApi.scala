@@ -4,13 +4,13 @@ import java.text.SimpleDateFormat
 
 import code.api.APIFailureNewStyle
 import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentResponseJson, _}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil.{defaultBankId, passesPsd2Aisp, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{ApiTag, NewStyle}
+import code.api.util.{ApiTag, Consent, ExampleValue, NewStyle}
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
 import code.database.authorisation.Authorisations
@@ -28,6 +28,7 @@ import net.liftweb.json._
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.Future
 
 object APIMethods_AccountInformationServiceAISApi extends RestHelper {
@@ -87,22 +88,32 @@ As a last option, an ASPSP might in addition accept a command with access rights
   * to see the list of available payment accounts or
   * to see the list of available payment accounts with balances.
 """,
-       json.parse("""{
-                      "access": {"accounts": []},
-                      "recurringIndicator": false,
-                      "validUntil": "2020-12-31",
-                      "frequencyPerDay": 4,
-                      "combinedServiceIndicator": false
-                    }"""),
-       json.parse("""{
-                      "consentStatus": "received",
-                      "consentId": "1234-wertiq-983",
-                      "_links": {
-                        "startAuthorisation": {
-                          "href": "/v1.3/consents/1234-wertiq-983/authorisations"
-                        }
-                      }
-                    }"""),
+       PostConsentJson(
+         access = ConsentAccessJson(
+           accounts = Option(List( ConsentAccessAccountsJson(
+             iban = Some(ExampleValue.ibanExample.value),
+             bban = None,
+             pan = None,
+             maskedPan = None,
+             msisdn = None,
+             currency = None,
+           ))),
+           balances = None,
+           transactions = None,
+           availableAccounts = None,
+           allPsd2 = None
+         ),
+         recurringIndicator = true,
+         validUntil = "2020-12-31",
+         frequencyPerDay = 4,
+         combinedServiceIndicator = false
+       ),
+       PostConsentResponseJson(
+         consentId = "1234-wertiq-983",
+         consentStatus = "received",
+         _links = ConsentLinksV13("/v1.3/consents/1234-wertiq-983/authorisations")
+       )
+         ,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
@@ -124,9 +135,6 @@ As a last option, an ASPSP might in addition accept a command with access rights
                new SimpleDateFormat(DateWithDay).parse(consentJson.validUntil)
              }
              
-             failMsg = s"$InvalidJsonContent Only Support empty accounts List for now. It will return an accessible account List. "
-             _ <- Helper.booleanToFuture(failMsg) {consentJson.access.accounts.get.isEmpty}
-             
              createdConsent <- Future(Consents.consentProvider.vend.createBerlinGroupConsent(
                u,
                recurringIndicator = consentJson.recurringIndicator,
@@ -136,6 +144,19 @@ As a last option, an ASPSP might in addition accept a command with access rights
              )) map {
                i => connectorEmptyResponse(i, callContext)
              }
+             consentJWT <-
+             Consent.createBerlinGroupConsentJWT(
+               u,
+               consentJson,
+               createdConsent.secret,
+               createdConsent.consentId,
+               None,
+               Some(validUntil)
+             )
+             _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
+               i => connectorEmptyResponse(i, callContext)
+             }
+             
 /*             _ <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
                "",
                createdConsent.consentId,

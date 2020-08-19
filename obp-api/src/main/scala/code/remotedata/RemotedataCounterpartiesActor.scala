@@ -19,9 +19,9 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
 
   def receive: PartialFunction[Any, Unit] = {
 
-    case cc.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)=>
-      logger.debug(s"checkCounterpartyAvailable($name, $thisBankId, $thisAccountId, $thisViewId)")
-      sender ! (mapper.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String))
+    case cc.checkCounterpartyExists(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)=>
+      logger.debug(s"checkCounterpartyExists($name, $thisBankId, $thisAccountId, $thisViewId)")
+      sender ! (mapper.checkCounterpartyExists(name: String, thisBankId: String, thisAccountId: String, thisViewId: String))
 
     case cc.createCounterparty(
       createdByUserId: String,

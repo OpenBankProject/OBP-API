@@ -85,12 +85,40 @@ package object bankconnectors extends MdcLoggable {
     */
   private[this]def invokeMethod(method: Method, args: Array[AnyRef]): (AnyRef, MethodSymbol) = {
     val methodName = method.getName
-    val paramNameToValue: Map[String, Any] = method.getParameters.map(_.getName).zip(args).toMap
-    val bankIdInArgs = paramNameToValue.find(isBankId).map(_._2)
+    val argNameToValue: Array[(String, AnyRef)] = method.getParameters.map(_.getName).zip(args)
 
-    val bankId: Option[String] = bankIdInArgs match {
-      case Some(v) => Some(v.toString())
-      case None => args.toStream.map(getNestedBankId(_)).find(_.isDefined).flatten.map(_.toString)
+    val (methodRouting: Box[MethodRoutingT], connectorName: String) = getConnectorNameAndMethodRouting(methodName, argNameToValue)
+
+    val connector = connectorName match {
+      case "star" => throw new IllegalStateException(s"Props of connector.start.methodName.$methodName, value should not be 'star'")
+      case name => Connector.getConnectorInstance(name)
+    }
+    val methodSymbol = connector.implementedMethods.get(methodName).map(_.alternatives) match {
+      case Some(m::Nil) if m.isMethod => m.asMethod
+      case _ =>
+        findMethodByArgs(connector, methodName, args:_*)
+        .getOrElse(sys.error(s"not found matched method, method name: ${methodName}, params: ${args.mkString(",")}"))
+    }
+
+    MethodRoutingHolder.init(methodRouting){
+      (method.invoke(connector, args: _*), methodSymbol)
+    }
+  }
+
+  /**
+   * according connector method name, bankId and call parameters to find connector name and MethodRouting
+   * @param methodName connector method name
+   * @param argNameToValue connector method parameterName -> parameterValue
+   * @return connector name and methodRouting instance
+   */
+  def getConnectorNameAndMethodRouting(methodName: String, argNameToValue: Array[(String, AnyRef)]): (Box[MethodRoutingT], String) = {
+    val args = argNameToValue.map(_._2)
+
+    var bankId: Option[String] = argNameToValue collectFirst {
+      case BankIdExtractor(v) => v
+    }
+    if(bankId.isEmpty) {
+      bankId = args.toStream.map(findBankIdIn(_)).find(_.isDefined).flatten
     }
 
     val methodRouting: Box[MethodRoutingT] = bankId match {
@@ -108,7 +136,7 @@ package object bankconnectors extends MdcLoggable {
               routing.parameters.exists(
                 it => {
                   val value = it.value
-                  it.key == "url_pattern" &&  // url_pattern is equals with current target url to remote server or as regex match
+                  it.key == "url_pattern" && // url_pattern is equals with current target url to remote server or as regex match
                     (value == url || {
                       val regexStr = value.replaceAll("""\{[^/]+?\}""", "[^/]+?")
                       Pattern.compile(regexStr).matcher(url).matches()
@@ -118,7 +146,7 @@ package object bankconnectors extends MdcLoggable {
           })
       }
       case None => NewStyle.function.getMethodRoutings(Some(methodName), Some(false))
-        .find {routing =>
+        .find { routing =>
           val bankIdPattern = routing.bankIdPattern
           bankIdPattern.isEmpty || bankIdPattern.get == MethodRouting.bankIdPatternMatchAny
         }
@@ -128,7 +156,7 @@ package object bankconnectors extends MdcLoggable {
         NewStyle.function.getMethodRoutings(Some(methodName), Some(true), Some(bankId)).headOption
           .orElse {
             NewStyle.function.getMethodRoutings(Some(methodName), Some(false))
-              .filter {methodRouting=>
+              .filter { methodRouting =>
                 methodRouting.bankIdPattern.isEmpty || bankId.matches(methodRouting.bankIdPattern.get)
               }
               .sortBy(_.bankIdPattern) // if there are both matched bankIdPattern and null bankIdPattern, the have value bankIdPattern success
@@ -136,40 +164,31 @@ package object bankconnectors extends MdcLoggable {
           }
       }
     }
-    val connectorName: Box[String] = methodRouting.map(_.connectorName)
-
-    val connector = connectorName.getOrElse("mapped") match {
-      case "star" => throw new IllegalStateException(s"Props of connector.start.methodName.$methodName, value should not be 'star'")
-      case name => Connector.getConnectorInstance(name)
-    }
-    val methodSymbol = connector.implementedMethods.get(methodName).map(_.alternatives) match {
-      case Some(m::Nil) if m.isMethod => m.asMethod
-      case _ =>
-        findMethodByArgs(connector, methodName, args:_*)
-        .getOrElse(sys.error(s"not found matched method, method name: ${methodName}, params: ${args.mkString(",")}"))
-    }
-
-    MethodRoutingHolder.init(methodRouting){
-      (method.invoke(connector, args: _*), methodSymbol)
-    }
+    val connectorName: String = methodRouting.map(_.connectorName).getOrElse("mapped")
+    (methodRouting, connectorName)
   }
 
+  private[this] object BankIdExtractor {
+    /**
+     * according valueName and value to find bankId, it can be String type or BankId type
+     * @return String type bankId
+     */
+    def unapply(nameAndValue: (String, Any)): Option[String] = nameAndValue match {
+      case ("bankId", null | None) => None
+      case ("bankId", _: EmptyBox) => None
+      case ("bankId", v: String) => Some(v)
+      case ("bankId", Some(v: String))  => Some(v)
+      case ("bankId", Full(v: String))  => Some(v)
+      case(name, v) if name.endsWith("BankId") => unapply("bankId" -> v)
 
-  /**
-    * according valueName and value to check if the value is bankId
-    * @param valueNameAndValue tuple of valueName and value
-    * @return true if this value is bankId
-    */
-  private[this] def isBankId(valueNameAndValue: (String, Any)) = {
-    valueNameAndValue match {
-      case ("bankId", _) => true
-      case (_, _:BankId) => true
-      case(valueName, _:String) if(valueName.endsWith("BankId")) => true
-      case _ => false
+      case (_, v: BankId)  => Some(v.toString)
+      case (_, Some(v: BankId))  => Some(v.toString)
+      case (_, Full(v: BankId))  => Some(v.toString)
+      case _ => None
     }
   }
   /**
-    * find nested bankId value in the object, For example:
+    * find bankId value in the object, nested bankId value will be searched, For example:
     * BankAccount(BankId("bkId"), AccountId("aId")) ---> Some(BankId("bkId"))
     * List(BankId("bkId"), BankId("bkId2")) ---> Some(BankId("bkId"))
     * Array(BankId("bkId"), BankId("bkId2")) ---> Some(BankId("bkId"))
@@ -177,19 +196,18 @@ package object bankconnectors extends MdcLoggable {
     * @param obj to extract bankId object
     * @return Some(bankId) or None, type maybe Option[String] or Option[BankId]
     */
-  private[this] def getNestedBankId(obj: Any): Option[Any] = {
+  private[this] def findBankIdIn(obj: Any): Option[String] = {
     val processObj: Option[Any] = obj match {
       case null | None => None
       case _: EmptyBox => None
       case Seq() | Array() => None
-      case map: Map[_, _] if(map.isEmpty) => None
+      case map: Map[_, _] if map.isEmpty => None
       case Seq(head, _*) => Some(head)
       case Array(head, _*) => Some(head)
       case map: Map[_, _] => map.headOption.map(_._2)
       case other => {
-        val typeName = other.getClass.getName
         // only obp project defined type will do nested search
-        if(typeName.startsWith("code.") || typeName.startsWith("com.openbankproject.commons.")) {
+        if (ReflectUtils.isObpObject(other)) {
           Some(other)
         } else {
           None
@@ -198,20 +216,19 @@ package object bankconnectors extends MdcLoggable {
     }
 
     processObj match {
-      case None => None
-
+      case Some(bankId: BankId) => Some(bankId.value)
       case Some(value) if ReflectUtils.isObpObject(value) => {
         val argNameToValues: Map[String, Any] = getConstructorArgs(value)
         //find from current object constructor args
         // orElse: if current object constructor args not found value, recursive search args
-        argNameToValues
-          .find(isBankId)
-          .map(_._2)
-          .orElse {
-            argNameToValues.values
-              .map(getNestedBankId(_))
-              .find(it => it.isDefined)
-          }
+        var bankIdOption: Option[String] = argNameToValues collectFirst {
+          case BankIdExtractor(v) => v
+        }
+        if(bankIdOption.isEmpty) {
+          val argValues = argNameToValues.values
+          bankIdOption = argValues.toStream.map(findBankIdIn(_)).find(_.isDefined).map(_.get)
+        }
+        bankIdOption
       }
 
       case _ => None

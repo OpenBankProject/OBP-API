@@ -58,10 +58,10 @@ import org.apache.commons.lang3.{StringUtils, Validate}
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.dto.GetProductsParam
 
 import scala.concurrent.Future
 import scala.util.Random
-import scala.reflect.runtime.universe.MethodSymbol
 
 trait APIMethods310 {
   self: RestHelper =>
@@ -328,7 +328,7 @@ trait APIMethods310 {
 
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadMetrics, callContext)
             
-            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
@@ -418,7 +418,7 @@ trait APIMethods310 {
 
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadMetrics, callContext)
             
-            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
                 unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
@@ -486,7 +486,7 @@ trait APIMethods310 {
               canUseCustomerFirehose(u)
             }
             allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
-            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
             customers <- NewStyle.function.getCustomers(bankId, callContext, obpQueryParams)
             reqParams = req.params.filterNot(param => allowedParams.contains(param._1))
@@ -730,7 +730,7 @@ trait APIMethods310 {
             _ <- Helper.booleanToFuture(failMsg = ViewDoesNotPermitAccess + " You need the view canQueryAvailableFunds.") {
               view.canQueryAvailableFunds
             }
-            httpParams: List[HTTPParam] <- NewStyle.function.createHttpParams(cc.url)
+            httpParams: List[HTTPParam] <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             _ <- Helper.booleanToFuture(failMsg = MissingQueryParams + amount) {
               httpParams.exists(_.name == amount)
             }
@@ -1026,7 +1026,7 @@ trait APIMethods310 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetWebhooks, callContext)
-            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             allowedParams = List("limit", "offset", "account_id", "user_id")
             obpParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
             additionalParam = OBPBankId(bankId.value)
@@ -2458,17 +2458,16 @@ trait APIMethods310 {
                 for{
                   accountId <- Future{AccountId(UUID.randomUUID().toString)}
                   (_, callContext) <- NewStyle.function.createBankAccount(
-                                                                                 bankId, 
-                                                                                 accountId, 
-                                                                                 accountApplication.productCode.value,
-                                                                                 "", 
-                                                                                 "EUR",
-                                                                                 BigDecimal("0"), 
-                                                                                 u.name,
-                                                                                 "", 
-                                                                                 "", 
-                                                                                 "",
-                                                                                 callContext)
+                    bankId,
+                    accountId,
+                    accountApplication.productCode.value,
+                    "",
+                    "EUR",
+                    BigDecimal("0"),
+                    u.name,
+                    "",
+                    List.empty,
+                    callContext)
                 }yield {
                   BankAccountCreation.setAsOwner(bankId, accountId, u)
                 }
@@ -2741,7 +2740,8 @@ trait APIMethods310 {
                 case true => anonymousAccess(cc)
               }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            products <- Future(Connector.connector.vend.getProducts(bankId, req.params)) map {
+            params = req.params.toList.map(kv => GetProductsParam(kv._1, kv._2))
+            products <- Future(Connector.connector.vend.getProducts(bankId, params)) map {
               unboxFullOrFail(_, callContext, ProductNotFoundByProductCode)
             }
           } yield {
@@ -4153,7 +4153,7 @@ trait APIMethods310 {
       |Query url parameters:
       |
       |* method_name: filter with method_name
-      |* active: if active = true, it will show all the webui_ props. Even if they are set yet, we will retrun all the default webui_ props
+      |* active: if active = true, it will show all the webui_ props. Even if they are set yet, we will return all the default webui_ props
       |
       |eg: 
       |${getObpApiRoot}/v3.1.0/management/method_routings?active=true
@@ -4183,11 +4183,13 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetMethodRoutings, callContext)
-            methodRoutings <- NewStyle.function.getMethodRoutingsByMethdName(req.param("method_name"))
+            methodRoutings <- NewStyle.function.getMethodRoutingsByMethodName(req.param("method_name"))
           } yield {
+            val definedMethodRoutings = methodRoutings.sortWith(_.methodName < _.methodName)
             val listCommons: List[MethodRoutingCommons] = req.param("active") match {
-              case Full("true") =>  methodRoutings ++ getDefaultMethodRountings(methodRoutings )
-              case _ => methodRoutings
+              case Full("true") => definedMethodRoutings ++ 
+                  getDefaultMethodRountings(methodRoutings).sortWith(_.methodName < _.methodName)
+              case _ => definedMethodRoutings
             }
             (ListResult("method_routings", listCommons.map(_.toJson)), HttpCode.`200`(callContext))
           }
@@ -4315,7 +4317,7 @@ trait APIMethods310 {
                 Pattern.compile(postedData.bankIdPattern.get)
               }
             }
-            _ <- NewStyle.function.checkMethodRoutingAlreadyExists(methodName, callContext)
+            _ <- NewStyle.function.checkMethodRoutingAlreadyExists(postedData, callContext)
             Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(postedData)
           } yield {
             val commonsData: MethodRoutingCommons = methodRouting
@@ -4810,14 +4812,30 @@ trait APIMethods310 {
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[UpdateAccountRequestJsonV310]
             }
+            _ <- Helper.booleanToFuture(s"$UpdateBankAccountException Duplication detected in account routings, please specify only one value per routing scheme"){
+              consentJson.account_routings.map(_.scheme).distinct.size == consentJson.account_routings.size
+            }
+            alreadyExistAccountRoutings <- Future.sequence(consentJson.account_routings.map(accountRouting =>
+              NewStyle.function.getBankAccountByRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext)
+                .map {
+                  // If we find an already existing account routing linked to the account, it just mean we don't want to update it
+                  case bankAccount if !(bankAccount._1.bankId == bankId && bankAccount._1.accountId == accountId) => Some(accountRouting)
+                  case _ => None
+                } fallbackTo Future.successful(None)
+            ))
+            alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
+              case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
+            }
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})") {
+              alreadyExistingAccountRouting.isEmpty
+            }
             (bankAccount,callContext) <- NewStyle.function.updateBankAccount(
               bankId,
               accountId,
               consentJson.`type`,
               consentJson.label,
               consentJson.branch_id,
-              consentJson.account_routing.scheme,
-              consentJson.account_routing.address,
+              consentJson.account_routings.map(r => AccountRouting(r.scheme, r.address)),
               callContext
             )
           } yield {
@@ -5028,7 +5046,7 @@ trait APIMethods310 {
         cc => {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
               x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
             }
@@ -5424,7 +5442,7 @@ trait APIMethods310 {
         cc =>{
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            (account, callContext) <- Connector.connector.vend.getBankAccount(bankId, accountId, callContext)
+            (account, callContext) <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext)
             _ <- Helper.booleanToFuture(AccountIdAlreadyExists){
               account.isEmpty
             }
@@ -5458,6 +5476,18 @@ trait APIMethods310 {
             _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(createAccountJson.balance.currency)}
             currency = createAccountJson.balance.currency
             (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme", 400){
+              createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
+            }
+            alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
+              NewStyle.function.getBankAccountByRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
+            ))
+            alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
+              case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
+            }
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})") {
+              alreadyExistingAccountRouting.isEmpty
+            }
             (bankAccount,callContext) <- NewStyle.function.createBankAccount(
               bankId,
               accountId,
@@ -5467,8 +5497,7 @@ trait APIMethods310 {
               initialBalanceAsNumber,
               postedOrLoggedInUser.name,
               createAccountJson.branch_id,
-              createAccountJson.account_routing.scheme,
-              createAccountJson.account_routing.address,
+              createAccountJson.account_routings.map(r => AccountRouting(r.scheme, r.address)),
               callContext
             )
             (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, ProductCode(accountType), callContext)
@@ -5656,7 +5685,7 @@ trait APIMethods310 {
             } else if (fromAccountPost.bank_id.isEmpty && fromAccountPost.account_id.isEmpty && fromAccountPost.counterparty_id.isDefined){
               for {
                  (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(fromAccountPost.counterparty_id.get), cc.callContext)
-                 fromAccount <- NewStyle.function.toBankAccount(fromCounterparty, false, callContext)
+                 fromAccount <- NewStyle.function.getBankAccountFromCounterparty(fromCounterparty, false, callContext)
               }yield{
                 (fromAccount, callContext)
               }
@@ -5676,7 +5705,7 @@ trait APIMethods310 {
             } else if (toAccountPost.bank_id.isEmpty && toAccountPost.account_id.isEmpty && toAccountPost.counterparty_id.isDefined){
               for {
                 (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toAccountPost.counterparty_id.get), cc.callContext)
-                toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
+                toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
               }yield{
                 (toAccount, callContext)
               }

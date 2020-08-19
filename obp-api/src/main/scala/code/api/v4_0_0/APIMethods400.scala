@@ -1,13 +1,14 @@
 package code.api.v4_0_0
 
 import java.util.Date
+import java.util.regex.Pattern
 
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{fullBoxOrException, _}
+import code.api.util.APIUtil.{PrimaryDataBody, fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -25,7 +26,8 @@ import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_1_0.{CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310, ListResult}
+import code.api.v3_1_0.{CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310}
+import com.openbankproject.commons.model.ListResult
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
 import code.bankconnectors.Connector
@@ -42,7 +44,8 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.userlocks.UserLocksProvider
 import code.users.Users
-import code.util.{Helper, JsonUtils}
+import code.util.Helper
+import com.openbankproject.commons.util.JsonUtils
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -348,7 +351,7 @@ trait APIMethods400 {
          |$transactionRequestGeneralText
          |
        """.stripMargin,
-      transactionRequestBodySEPAJSON,
+      transactionRequestBodySEPAJsonV400,
       transactionRequestWithChargeJSON210,
       List(
         $UserNotLoggedIn,
@@ -543,6 +546,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -570,6 +574,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -597,6 +602,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_WEB_FORM.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -608,7 +614,7 @@ trait APIMethods400 {
                   }
                   toCounterpartyId = transactionRequestBodyCounterparty.to.counterparty_id
                   (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), cc.callContext)
-                  toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
+                  toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
                   // Check we can send money to it.
                   _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
                     toCounterparty.isBeneficiary
@@ -630,6 +636,7 @@ trait APIMethods400 {
                     chargePolicy,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     callContext)
                 } yield (createdTransactionRequest, callContext)
 
@@ -638,11 +645,11 @@ trait APIMethods400 {
                 for {
                   //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
                   transDetailsSEPAJson <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $SEPA json format", 400, cc.callContext) {
-                    json.extract[TransactionRequestBodySEPAJSON]
+                    json.extract[TransactionRequestBodySEPAJsonV400]
                   }
                   toIban = transDetailsSEPAJson.to.iban
                   (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIban(toIban, cc.callContext)
-                  toAccount <- NewStyle.function.toBankAccount(toCounterparty, true, callContext)
+                  toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
                   _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
                     toCounterparty.isBeneficiary
                   }
@@ -663,6 +670,7 @@ trait APIMethods400 {
                     chargePolicy,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    transDetailsSEPAJson.reasons.map(_.map(_.transform)),
                     callContext)
                 } yield (createdTransactionRequest, callContext)
               }
@@ -686,14 +694,25 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     cc.callContext)
                 } yield
                   (createdTransactionRequest, callContext)
               }
             }
           } yield {
-            val challenges: List[MappedExpectedChallengeAnswer] = MappedExpectedChallengeAnswer
-              .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, createdTransactionRequest.id.value))
+            //TODO, remove this `isSandboxMode` logic, the challenges should come from other places.
+            val challenges : List[ChallengeJson] = if(APIUtil.isSandboxMode){
+               MappedExpectedChallengeAnswer
+                .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, createdTransactionRequest.id.value))
+                .map(mappedExpectedChallengeAnswer => 
+                  ChallengeJson(mappedExpectedChallengeAnswer.challengeId,mappedExpectedChallengeAnswer.transactionRequestId,mappedExpectedChallengeAnswer.expectedUserId) )
+            } else {
+              if(!("COMPLETED").equals(createdTransactionRequest.status)) 
+                List(ChallengeJson(createdTransactionRequest.challenge.id, createdTransactionRequest.id.value, u.userId))
+              else 
+                null
+            }
             (JSONFactory400.createTransactionRequestWithChargeJSON(createdTransactionRequest, challenges), HttpCode.`201`(callContext))
           }
       }
@@ -746,7 +765,6 @@ trait APIMethods400 {
         $BankAccountNotFound,
         TransactionRequestStatusNotInitiated,
         TransactionRequestTypeHasChanged,
-        InvalidTransactionRequestChallengeId,
         AllowedAttemptsUsedUp,
         TransactionDisabled,
         UnknownError
@@ -788,15 +806,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType', but current value (${transactionRequestType.value}) ") {
               existingTransactionRequestType.equals(transactionRequestType.value)
             }
-
-            // Check the challengeId is valid for this existingTransactionRequest
-            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
-              existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
-              MappedExpectedChallengeAnswer
-                .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
-                .exists(_.challengeId == challengeAnswerJson.id)
-            }
-
+            
             //Check the allowed attempts, Note: not supported yet, the default value is 3
             _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}") {
               existingTransactionRequest.challenge.allowed_attempts > 0
@@ -810,37 +820,54 @@ trait APIMethods400 {
               ).exists(_ == existingTransactionRequest.challenge.challenge_type)
             }
 
-            challengeAnswerOBP <- NewStyle.function.validateChallengeAnswerInOBPSide400(challengeAnswerJson.id, challengeAnswerJson.answer, u.userId, callContext)
 
-            _ <- Helper.booleanToFuture(s"$InvalidChallengeAnswer") {
-              challengeAnswerOBP
-            }
-            accountAttributes <- Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None)
-            _ <- Helper.booleanToFuture(s"$NextChallengePending") {
-              val quorum = accountAttributes._1.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
-              MappedExpectedChallengeAnswer
-                .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
-                .count(_.successful == true) match {
-                  case number if number >= quorum => true
-                  case _ =>
-                    MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
-                    false
-                }
+            // Check the challengeId is valid for this existingTransactionRequest
+            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
+              if (APIUtil.isDataFromOBPSide("validateChallengeAnswer")) {
+                MappedExpectedChallengeAnswer
+                  .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
+                  .exists(_.challengeId == challengeAnswerJson.id)
+              }else{
+                existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
+              }
             }
 
-            (challengeAnswerKafka, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
+            (challengeAnswerIsValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
 
             _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ") {
-              challengeAnswerKafka
+              challengeAnswerIsValidated
             }
 
-            // All Good, proceed with the Transaction creation...
-            (transactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
-              case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT =>
-                NewStyle.function.createTransactionAfterChallengeV300(u, fromAccount, transReqId, transactionRequestType, callContext)
-              case _ =>
-                NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
-            }
+            
+            //TODO, this is a temporary solution, we only checked single challenge Id for remote connectors. here is only for the localMapped Connector logic
+            _ <- if (APIUtil.isDataFromOBPSide("validateChallengeAnswer")){
+              for{
+                accountAttributes <- Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None)
+                _ <- Helper.booleanToFuture(s"$NextChallengePending") {
+                  val quorum = accountAttributes._1.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
+                  MappedExpectedChallengeAnswer
+                    .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
+                    .count(_.successful == true) match {
+                    case number if number >= quorum => true
+                    case _ =>
+                      MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
+                      false
+                  }
+                }
+              } yield {
+                true
+              }
+            } else{
+            Future{true}
+          } 
+            
+          // All Good, proceed with the Transaction creation...
+          (transactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+            case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT =>
+              NewStyle.function.createTransactionAfterChallengeV300(u, fromAccount, transReqId, transactionRequestType, callContext)
+            case _ =>
+              NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
+          }
           } yield {
 
             (JSONFactory210.createTransactionRequestWithChargeJSON(transactionRequest), HttpCode.`202`(callContext))
@@ -1236,6 +1263,18 @@ trait APIMethods400 {
             _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(createAccountJson.balance.currency)}
             currency = createAccountJson.balance.currency
             (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme") {
+              createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
+            }
+            alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
+              NewStyle.function.getBankAccountByRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
+              ))
+            alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
+              case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
+            }
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})") {
+              alreadyExistingAccountRouting.isEmpty
+            }
             (bankAccount,callContext) <- NewStyle.function.addBankAccount(
               bankId,
               accountType,
@@ -1244,8 +1283,7 @@ trait APIMethods400 {
               initialBalanceAsNumber,
               postedOrLoggedInUser.name,
               createAccountJson.branch_id,
-              createAccountJson.account_routing.scheme,
-              createAccountJson.account_routing.address,
+              createAccountJson.account_routings.map(r => AccountRouting(r.scheme, r.address)),
               callContext
             )
             accountId = bankAccount.accountId
@@ -2732,10 +2770,10 @@ trait APIMethods400 {
                   privateAccountAccesses.filter(aa => accountIds.contains(aa.account_id.get))
                 }
             }
+            (availablePrivateAccounts, callContext) <- bank.privateAccountsFuture(privateAccountAccesses2, Some(cc))
           } yield {
-            val availablePrivateAccounts = bank.privateAccounts(privateAccountAccesses2)
             val bankAccounts = Implementations2_0_0.processAccounts(privateViewsUserCanAccessAtOneBank, availablePrivateAccounts)
-            (bankAccounts, HttpCode.`200`(cc.callContext))
+            (bankAccounts, HttpCode.`200`(callContext))
           }
       }
     }
@@ -2865,9 +2903,12 @@ trait APIMethods400 {
       "POST",
       "/management/dynamic-endpoints",
       " Create Dynamic Endpoint",
-      s"""Create a Dynamic Endpoint.
+      s"""Create dynamic endpoints.
          |
-         |Create one DynamicEndpoint,
+         |Create dynamic endpoints with one json format swagger content.
+         |
+         |If the host of swagger is `obp_mock`, every dynamic endpoint will return example response of swagger,\n
+         |when create MethodRouting for given dynamic endpoint, it will be routed to given url.
          |
          |""",
       dynamicEndpointRequestBodyExample,
@@ -3023,12 +3064,14 @@ trait APIMethods400 {
 
 
     lazy val dynamicEndpoint: OBPEndpoint = {
-      case DynamicReq(url, json, method, params, pathParams, role) => { cc =>
+      case DynamicReq(url, json, method, params, pathParams, role, mockResponse) => { cc =>
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
 
-          (box, _) <- NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
+          (box, _) <- MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread
+            NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
+          }
         } yield {
           box match {
             case Full(v) =>
@@ -4087,17 +4130,18 @@ trait APIMethods400 {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (Full(u), _) <- authenticatedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
             postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
               json.extract[PostCounterpartyJSON]
             }
             _ <- Helper.booleanToFuture(s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}"){postJson.description.length <= 36}
 
 
-            //Note: The following checkCounterpartyAvailable is only obp standard now. It depends how to identify the counterparty. For this, we only use the BANK_ID+ACCOUNT_ID+COUNTERPARTY_NAME here.
+            (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(postJson.name, bankId.value, accountId.value, viewId.value, callContext)
+
             _ <- Helper.booleanToFuture(CounterpartyAlreadyExists.replace("value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME.",
               s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${bankId.value}) and ACCOUNT_ID(${accountId.value}) and VIEW_ID($viewId)")){
-              Counterparties.counterparties.vend.checkCounterpartyAvailable(postJson.name, bankId.value, accountId.value, viewId.value)
+              counterparty.isEmpty
             }
 
             //If other_account_routing_scheme=="OBP" or other_account_secondary_routing_address=="OBP" we will check if it is a real obp bank account.

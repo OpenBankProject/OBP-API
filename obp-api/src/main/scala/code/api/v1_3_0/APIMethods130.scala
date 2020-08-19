@@ -4,11 +4,14 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.ErrorMessages
+import code.api.util.NewStyle.HttpCode
+import code.api.util.{ErrorMessages, NewStyle}
 import code.bankconnectors.Connector
 import code.model.BankX
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
 
@@ -44,11 +47,10 @@ trait APIMethods130 {
       case "cards" :: Nil JsonGet _ => {
         cc => {
             for {
-              u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-              cards <- Connector.connector.vend.getPhysicalCards(u)
+              (Full(u), callContext) <- authenticatedAccess(cc)
+              (cards,callContext) <- NewStyle.function.getPhysicalCardsForUser(u, callContext)
             } yield {
-              val cardsJson = JSONFactory1_3_0.createPhysicalCardsJSON(cards, u)
-              successJsonResponse(Extraction.decompose(cardsJson))
+              (JSONFactory1_3_0.createPhysicalCardsJSON(cards, u), HttpCode.`200`(callContext))
             }
           }
       }

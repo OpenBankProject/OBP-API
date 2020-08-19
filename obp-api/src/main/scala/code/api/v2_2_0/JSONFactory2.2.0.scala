@@ -29,7 +29,7 @@ package code.api.v2_2_0
 import java.util.Date
 
 import code.actorsystem.ObpActorConfig
-import code.api.util.{APIUtil, ApiPropsWithAlias, CustomJsonFormats, FieldIgnoreSerializer}
+import code.api.util.{APIUtil, ApiPropsWithAlias, CustomJsonFormats, OptionalFieldSerializer}
 import code.api.util.APIUtil.{EndpointInfo, MessageDoc, getPropsValue}
 import code.api.v1_2_1.BankRoutingJsonV121
 import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
@@ -628,8 +628,8 @@ object JSONFactory220 {
       ),
       branch_id = account.branchId,
       account_routing = AccountRoutingJsonV121(
-        scheme = account.accountRoutingScheme,
-        address = account.accountRoutingAddress
+        scheme = account.accountRoutings.headOption.map(_.scheme).getOrElse(""),
+        address = account.accountRoutings.headOption.map(_.address).getOrElse("")
       )
     )
   }
@@ -846,7 +846,7 @@ object JSONFactory220 {
     MessageDocsJson(messageDocsList.map(createMessageDocJson))
   }
 
-  private implicit val formats = CustomJsonFormats.formats + FieldIgnoreSerializer
+  private implicit val formats = CustomJsonFormats.formats + OptionalFieldSerializer
 
   def createMessageDocJson(md: MessageDoc): MessageDocJson = {
     val inBoundType = ReflectUtils.getType(md.exampleInboundMessage)

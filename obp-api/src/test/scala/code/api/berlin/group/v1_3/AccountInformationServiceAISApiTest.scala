@@ -129,8 +129,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       val postJsonBody = APIMethods_AccountInformationServiceAISApi
         .resourceDocs
         .filter( _.partialFunction == APIMethods_AccountInformationServiceAISApi.createConsent)
-        .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
-        .jvalueToCaseclass
+        .head.exampleRequestBody.asInstanceOf[PostConsentJson]
       val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, write(postJsonBody))
 
@@ -148,8 +147,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       val postJsonBody = APIMethods_AccountInformationServiceAISApi
         .resourceDocs
         .filter( _.partialFunction == APIMethods_AccountInformationServiceAISApi.createConsent)
-        .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
-        .jvalueToCaseclass
+        .head.exampleRequestBody.asInstanceOf[PostConsentJson]
       val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, write(postJsonBody))
 
@@ -176,8 +174,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       val postJsonBody = APIMethods_AccountInformationServiceAISApi
         .resourceDocs
         .filter( _.partialFunction == APIMethods_AccountInformationServiceAISApi.createConsent)
-        .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
-        .jvalueToCaseclass
+        .head.exampleRequestBody.asInstanceOf[PostConsentJson]
       val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, write(postJsonBody))
 
@@ -207,8 +204,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
         val postJsonBody = APIMethods_AccountInformationServiceAISApi
           .resourceDocs
           .filter( _.partialFunction == APIMethods_AccountInformationServiceAISApi.createConsent)
-          .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
-          .jvalueToCaseclass
+          .head.exampleRequestBody.asInstanceOf[PostConsentJson] 
         val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
         val response: APIResponse = makePostRequest(requestPost, write(postJsonBody))
 
@@ -232,8 +228,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
         val postJsonBody = APIMethods_AccountInformationServiceAISApi
           .resourceDocs
           .filter( _.partialFunction == APIMethods_AccountInformationServiceAISApi.createConsent)
-          .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
-          .jvalueToCaseclass
+          .head.exampleRequestBody.asInstanceOf[PostConsentJson]
         val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
         val response: APIResponse = makePostRequest(requestPost, write(postJsonBody))
   
@@ -267,7 +262,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
           .resourceDocs
           .filter( _.partialFunction == APIMethods_AccountInformationServiceAISApi.updateConsentsPsuData)
           .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
-          .jvalueToCaseclass
+          .jvalueToCaseclass.extract[PostConsentJson]
         val requestUpdateConsentsPsuData = (V1_3_BG / "consents"/consentId /"authorisations"/ authorisationId).PUT <@ (user1)
         val responseUpdateConsentsPsuData = makePutRequest(requestUpdateConsentsPsuData, write(updateConsentsPsuDataJsonBody))
         responseUpdateConsentsPsuData.code should be (200)

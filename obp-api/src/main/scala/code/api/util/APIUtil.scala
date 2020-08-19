@@ -50,6 +50,7 @@ import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.customer.CustomerX
 import code.entitlement.Entitlement
+import code.methodrouting.MethodRoutingProvider
 import code.metrics._
 import code.model._
 import code.model.dataAccess.AuthUser
@@ -2597,7 +2598,10 @@ Returns a string showed to the developer
     // Remove duplicated content, because in the process of box, the FailBox will be wrapped may multiple times, and message is same.
     getPropsAsBoolValue("display_internal_errors", false) match {
       case true => // Show all error in a chain
-        obj.messageChain.split(" <- ").distinct.mkString(" <- ")
+        obj.rootExceptionCause match {
+          case Full(cause) => obj.messageChain.split(" <- ").distinct.mkString(" <- ") + " <- " + cause
+          case _ => obj.messageChain.split(" <- ").distinct.mkString(" <- ")
+        }
       case false => // Do not display internal errors
         val obpFailures = obj.failureChain.filter(x => messageIsNotNull(x, obj) && x.msg.startsWith("OBP-"))
         obpFailures match {
@@ -2703,6 +2707,20 @@ Returns a string showed to the developer
 
   //TODO, now we have the star connector, it will break the isSandboxMode method logic. Need to double check how to use this method now. 
   val isSandboxMode: Boolean = (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
+  
+  def isDataFromOBPSide (methodName: String, argNameToValue: Array[(String, AnyRef)] = Array.empty): Boolean = {
+    val connectorNameInProps = APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox)
+    //if the connector == mapped, then the data is always over obp database
+    if(connectorNameInProps == "mapped") {
+        true
+    } else if(connectorNameInProps == "star") {
+      val (_, connectorName) = code.bankconnectors.getConnectorNameAndMethodRouting(methodName, argNameToValue)
+      connectorName == "mapped"
+    } else {
+      false
+    }
+  }
+
   
   /**
     * This function is implemented in order to support encrypted values in props file.

@@ -133,8 +133,13 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       }
 
       //It is clear, we create the counterpartyId first, and assign it to metadata.counterpartyId and counterparty.counterpartyId manually
-      val counterpartyId = APIUtil.createImplicitCounterpartyId(theBankId.value, theAccountId.value, counterpartyName, 
-                                                                otherAccountRoutingScheme, otherAccountRoutingAddress)
+      val counterpartyId = APIUtil.createImplicitCounterpartyId(
+        theBankId.value, 
+        theAccountId.value, 
+        counterpartyName,
+        otherAccountRoutingScheme, 
+        otherAccountRoutingAddress
+      )
       val otherAccount = createCounterparty(counterpartyId)
 
       Some(new Transaction(

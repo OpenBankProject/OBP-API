@@ -35,7 +35,7 @@ import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
 import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSONV121}
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
-import code.api.v2_1_0.ResourceUserJSON
+import code.api.v2_1_0.{IbanJson, ResourceUserJSON}
 import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
 import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, ViewBasicV300}
 import code.api.v3_1_0.AccountAttributeResponseJson
@@ -44,7 +44,7 @@ import com.openbankproject.commons.model.DirectDebitTrait
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccountCore}
 import code.standingorders.StandingOrderTrait
-import code.transactionChallenge.MappedExpectedChallengeAnswer
+import code.transactionChallenge.{ExpectedChallengeAnswer, MappedExpectedChallengeAnswer}
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
 import com.openbankproject.commons.model._
@@ -211,6 +211,32 @@ case class PostViewJsonV400(view_id: String, is_system: Boolean)
 case class PostAccountAccessJsonV400(user_id: String, view: PostViewJsonV400)
 case class RevokedJsonV400(revoked: Boolean)
 
+case class TransactionRequestBodySEPAJsonV400(
+                                               value: AmountOfMoneyJsonV121,
+                                               to: IbanJson,
+                                               description: String,
+                                               charge_policy: String,
+                                               future_date: Option[String] = None,
+                                               reasons: Option[List[TransactionRequestReasonJsonV400]] = None
+                                             ) extends TransactionRequestCommonBodyJSON
+
+case class TransactionRequestReasonJsonV400(
+                                             code: String,
+                                             document_number: Option[String],
+                                             amount: Option[String],
+                                             currency: Option[String],
+                                             description: Option[String]
+                                           ) {
+  def transform: TransactionRequestReason = {
+    TransactionRequestReason(
+      code = this.code,
+      documentNumber = this.document_number,
+      currency = this.currency,
+      amount = this.amount,
+      description = this.description
+    )
+  }
+}
 // the data from endpoint, extract as valid JSON
 case class TransactionRequestBodyRefundJsonV400(
   to: TransactionRequestAccountJsonV140,
@@ -293,6 +319,12 @@ case class UserLockStatusJson(
                              )
 
 case class DatabaseInfoJson(product_name: String, product_version: String)
+
+case class ChallengeJson(
+  challenge_id: String,
+  transaction_request_id: String,
+  expected_user_id: String
+)
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
@@ -316,7 +348,7 @@ object JSONFactory400 {
     BanksJson400(l.map(createBankJSON400))
   }
 
-  def createTransactionRequestWithChargeJSON(tr : TransactionRequest, challenges: List[MappedExpectedChallengeAnswer]) : TransactionRequestWithChargeJSON400 = {
+  def createTransactionRequestWithChargeJSON(tr : TransactionRequest, challenges: List[ChallengeJson]) : TransactionRequestWithChargeJSON400 = {
     new TransactionRequestWithChargeJSON400(
       id = stringOrNull(tr.id.value),
       `type` = stringOrNull(tr.`type`),
@@ -361,7 +393,7 @@ object JSONFactory400 {
             case _ => ""
           }
           challenges.map(
-            e => ChallengeJsonV400(id = stringOrNull(e.challengeId), user_id = e.expectedUserId, allowed_attempts = tr.challenge.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), link = link)
+            e => ChallengeJsonV400(id = stringOrNull(e.challenge_id), user_id = e.expected_user_id, allowed_attempts = tr.challenge.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), link = link)
           )
         }
         // catch { case _ : Throwable => ChallengeJSON (id = "", allowed_attempts = 0, challenge_type = "")}

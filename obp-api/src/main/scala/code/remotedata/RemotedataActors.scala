@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.{ActorSystem, Props => ActorProps}
 import bootstrap.liftweb.ToSchemify
-import code.actorsystem.ObpActorConfig
+import code.actorsystem.{ObpActorConfig, ObpLookupSystem}
 import code.api.util.APIUtil
 import code.util.Helper
 import code.util.Helper.MdcLoggable
@@ -14,8 +14,8 @@ import net.liftweb.db.StandardDBVendor
 import net.liftweb.http.LiftRules
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.Props
-
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.duration._
 
 
@@ -116,7 +116,7 @@ object RemotedataActors extends MdcLoggable {
   }
 
   def showLogoAfterDelay() = {
-    val actorSystem = ActorSystem()
+    val actorSystem = ObpLookupSystem.obpLookupSystem
     val scheduler = actorSystem.scheduler
     scheduler.scheduleOnce(
       Duration(4, TimeUnit.SECONDS),

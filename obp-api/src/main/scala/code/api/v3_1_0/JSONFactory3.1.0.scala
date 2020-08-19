@@ -279,7 +279,7 @@ case class UpdateAccountRequestJsonV310(
   label: String,
   `type`: String,
   branch_id: String,
-  account_routing: AccountRoutingJsonV121
+  account_routings: List[AccountRoutingJsonV121]
 )
 
 case class UpdateAccountResponseJsonV310(
@@ -288,7 +288,7 @@ case class UpdateAccountResponseJsonV310(
   label: String,
   `type`: String,
   branch_id: String,
-  account_routing: AccountRoutingJsonV121
+  account_routings: List[AccountRoutingJsonV121]
 )
 
 case class PostCustomerResponseJsonV310(messages: List[String])
@@ -664,7 +664,7 @@ case class CreateAccountRequestJsonV310(
   product_code : String,
   balance : AmountOfMoneyJsonV121,
   branch_id : String,
-  account_routing: AccountRoutingJsonV121
+  account_routings: List[AccountRoutingJsonV121]
 )
 
 case class CreateAccountResponseJsonV310(
@@ -718,29 +718,6 @@ case class ModeratedAccountJSON(
                                  account_routing :AccountRoutingJsonV121,
                                  account_attributes: List[AccountAttributeResponseJson]
                                )
-
-/**
-  * this case class is a generic list items container for serialized to json string
-  * it will serialize to key value way as follow:
-  * ListResult("someName", List("value"))
-  * --> {"somename": ["value"]}
-  *
-  * note: the type can be defined as:
-  * > case class ListResult[T](name: String, results: List[T])
-  * because lift json not support type parameter is another field type parameter when do deserialize
-  *
-  * when do deserialize to type ListResult, should supply exactly type parameter, should not give wildcard like this:
-  * > jValue.extract[ListResult[List[_]]]
-  *
-  * @param name convert to json single field name
-  * @param results convert json single field value
-  * @tparam T List type
-  */
-case class ListResult[+T <: List[_] : TypeTag](name: String, results: T) {
-
-  def itemType: Type = implicitly[TypeTag[T]].tpe
-
-}
 
 case class HistoricalTransactionAccountJsonV310(
   bank_id: Option[String],
@@ -1004,10 +981,8 @@ object JSONFactory310{
       label = bankAccount.label,
       `type` = bankAccount.accountType,
       branch_id = bankAccount.branchId,
-      account_routing= AccountRoutingJsonV121(
-        bankAccount.accountRoutingScheme,
-        bankAccount.accountRoutingAddress
-      )
+      account_routings= bankAccount.accountRoutings
+        .map(r => AccountRoutingJsonV121(r.scheme, r.address))
     )
   }
   
@@ -1384,10 +1359,7 @@ object JSONFactory310{
         account.balance.toString()
       ),
       branch_id = account.branchId,
-      account_routings = List(AccountRoutingJsonV121(
-        scheme = account.accountRoutingScheme,
-        address = account.accountRoutingAddress
-      )),
+      account_routings = account.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address)),
       accountAttributes.map(createAccountAttributeJson)
     )
   }

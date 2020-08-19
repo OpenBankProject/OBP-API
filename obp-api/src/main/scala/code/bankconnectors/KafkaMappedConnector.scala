@@ -57,6 +57,8 @@ import net.liftweb.util.Helpers._
 
 import scala.collection.immutable.{List, Seq}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.dto.GetProductsParam
+
 import scala.concurrent.Future
 
 object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable {
@@ -600,8 +602,8 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
                                        //toCounterty
                                        "toCounterpartyId" -> toAccount.accountId.value,
                                        "toCounterpartyOtherBankRoutingAddress" -> toAccount.bankRoutingAddress,
-                                       "toCounterpartyOtherAccountRoutingAddress" -> toAccount.accountRoutingAddress,
-                                       "toCounterpartyOtherAccountRoutingScheme" -> toAccount.accountRoutingScheme,
+                                       "toCounterpartyOtherAccountRoutingAddress" -> toAccount.accountRoutings.headOption.map(_.address).getOrElse(""),
+                                       "toCounterpartyOtherAccountRoutingScheme" -> toAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""),
                                        "toCounterpartyOtherBankRoutingScheme" -> toAccount.bankRoutingScheme,
                                        "type" -> "AC")
 
@@ -767,8 +769,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     initialBalance: BigDecimal,
     accountHolderName: String,
     branchId: String,
-    accountRoutingScheme: String,
-    accountRoutingAddress: String
+    accountRoutings: List[AccountRouting]
   ): Box[BankAccount] = {
 
     for {
@@ -954,11 +955,11 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
 
-  override def getProducts(bankId: BankId, params: Map[String, List[String]]): Box[List[Product]] = Empty
+  override def getProducts(bankId: BankId, params: List[GetProductsParam]): Box[List[Product]] = Empty
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-  override  def createOrUpdateBranch(branch: Branch): Box[BranchT] = Empty
+  override  def createOrUpdateBranch(branch: BranchT): Box[BranchT] = Empty
   
   override def createOrUpdateBank(
     bankId: String,

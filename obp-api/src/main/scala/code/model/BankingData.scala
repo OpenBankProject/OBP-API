@@ -27,12 +27,13 @@ TESOBE (http://www.tesobe.com/)
 package code.model
 
 import code.accountholders.AccountHolders
-import code.api.Constant
-import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, unboxFullOrFail}
+import code.api.{APIFailureNewStyle, Constant}
+import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.customer.CustomerX
+import code.model.dataAccess.MappedBankAccount
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
@@ -44,6 +45,7 @@ import net.liftweb.json.{JArray, JObject}
 
 import scala.collection.immutable.{List, Set}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.Future
 
 case class BankExtended(bank: Bank) {
@@ -54,10 +56,19 @@ case class BankExtended(bank: Bank) {
       .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 
+  // TODO refactor this function to get accounts from list in a single call via connector
   def privateAccounts(privateAccountAccessesAtOneBank : List[AccountAccess]) : List[BankAccount] = {
     privateAccountAccessesAtOneBank
       .map(a=>BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
       .flatMap(a => BankAccountX(a.bankId, a.accountId))
+  }
+
+  def privateAccountsFuture(privateAccountAccessesAtOneBank : List[AccountAccess], callContext: Option[CallContext]): Future[(List[BankAccount], Option[CallContext])] = {
+    val accounts: List[BankIdAccountId] = privateAccountAccessesAtOneBank
+      .map(a=>BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
+    Connector.connector.vend.getBankAccounts(accounts, callContext) map { i =>
+      (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFound", 400 ), i._2)
+    }
   }
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
@@ -502,7 +513,7 @@ object BankAccountX {
     *                          incoming: counterparty send money to obp account.
     * @return BankAccount
     */
-  def toBankAccount(counterparty: CounterpartyTrait, isOutgoingAccount: Boolean) : Box[BankAccount] = {
+  def getBankAccountFromCounterparty(counterparty: CounterpartyTrait, isOutgoingAccount: Boolean) : Box[BankAccount] = {
     if (
       (counterparty.otherBankRoutingScheme =="OBP" || counterparty.otherBankRoutingScheme =="OBP_BANK_ID" )
       && (counterparty.otherAccountRoutingScheme =="OBP" || counterparty.otherAccountRoutingScheme =="OBP_ACCOUNT_ID")
@@ -531,11 +542,19 @@ object BankAccountX {
       val defaultBankId= BankId(APIUtil.defaultBankId)
       val incomingAccountId= AccountId(Constant.INCOMING_ACCOUNT_ID)
       val outgoingAccountId= AccountId(Constant.OUTGOING_ACCOUNT_ID)
-      if (isOutgoingAccount){
+      val bankAccount: Box[BankAccount] = if (isOutgoingAccount){
         LocalMappedConnector.getBankAccountOld(defaultBankId,outgoingAccountId)
       } else{
         LocalMappedConnector.getBankAccountOld(defaultBankId,incomingAccountId)
       }
+      Full(
+        bankAccount.openOrThrowException("").asInstanceOf[MappedBankAccount]
+        .holder(counterparty.name) //We mapped the counterpartName to otherAccount. please see @APIUtil.createImplicitCounterpartyId 
+        .accountIban(counterparty.otherAccountRoutingAddress)//now, we only have single pair AccountRouting, will put these to AccountRoutings later.
+        .mAccountRoutingScheme(counterparty.otherBankRoutingScheme)//This is for the swift bank code..
+        .mAccountRoutingScheme(counterparty.otherBankRoutingAddress)
+      )
+
     }
   }
 

@@ -277,9 +277,9 @@ trait APIMethods200 {
           for{
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            (availablePrivateAccounts, callContext) <- bank.privateAccountsFuture(privateAccountAccesses, callContext)
           } yield {
-            val (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
-            val availablePrivateAccounts = bank.privateAccounts(privateAccountAccesses)
             (processAccounts(privateViewsUserCanAccessAtOneBank, availablePrivateAccounts), HttpCode.`200`(callContext))
           }
       }
@@ -325,11 +325,10 @@ trait APIMethods200 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-
+            (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            (privateAccountsForOneBank, callContext) <- bank.privateAccountsFuture(privateAccountAccesses, callContext)
           } yield {
-            val (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
-            val privateAaccountsForOneBank = bank.privateAccounts(privateAccountAccesses)
-            val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAaccountsForOneBank, privateViewsUserCanAccessAtOneBank)
+            val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAccountsForOneBank, privateViewsUserCanAccessAtOneBank)
             (result, HttpCode.`200`(callContext))
           }
       }
@@ -339,10 +338,10 @@ trait APIMethods200 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            (privateAccountsForOneBank, callContext) <- bank.privateAccountsFuture(privateAccountAccesses, callContext)
           } yield {
-            val (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
-            val privateAaccountsForOneBank = bank.privateAccounts(privateAccountAccesses)
-            val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAaccountsForOneBank, privateViewsUserCanAccessAtOneBank)
+           val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAccountsForOneBank, privateViewsUserCanAccessAtOneBank)
             (result, HttpCode.`200`(callContext))
           }
       }
@@ -352,10 +351,10 @@ trait APIMethods200 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
+            (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, BankId(defaultBankId))
+            (availablePrivateAccounts, callContext) <- bank.privateAccountsFuture(privateAccountAccesses, callContext)
           } yield {
-            val (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, BankId(defaultBankId))
-            val privateAaccountsForOneBank = bank.privateAccounts(privateAccountAccesses)
-            val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAaccountsForOneBank, privateViewsUserCanAccessAtOneBank)
+            val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, availablePrivateAccounts, privateViewsUserCanAccessAtOneBank)
             (result, HttpCode.`200`(callContext))
           }
       }
@@ -394,9 +393,9 @@ trait APIMethods200 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            (availablePrivateAccounts, callContext) <- bank.privateAccountsFuture(privateAccountAccesses, callContext)
           } yield {
-            val (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
-            val availablePrivateAccounts = bank.privateAccounts(privateAccountAccesses)
             (privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank), HttpCode.`200`(callContext))
           }
       }
@@ -1158,8 +1157,7 @@ trait APIMethods200 {
               accountLabel, currency, initialBalanceAsNumber, 
               postedOrLoggedInUser.name,
               "", //added new field in V220
-              "", //added new field in V220
-              "" //added new field in V220
+              List.empty
             )
           } yield {
             BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
