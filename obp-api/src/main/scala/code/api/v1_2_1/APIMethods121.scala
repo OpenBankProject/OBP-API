@@ -913,11 +913,13 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: ViewId(viewId) :: Nil JsonDelete req => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            isRevoked <- account revokeAccessToView(u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
-            if(isRevoked)
-          } yield noContentJsonResponse
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            _ <- NewStyle.function.revokeAccessToView(account, u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
+          } yield {
+            (Full(""), HttpCode.`204`(callContext))
+          }
       }
     }
 
