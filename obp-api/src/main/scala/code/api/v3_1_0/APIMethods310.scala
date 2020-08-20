@@ -4816,7 +4816,7 @@ trait APIMethods310 {
               consentJson.account_routings.map(_.scheme).distinct.size == consentJson.account_routings.size
             }
             alreadyExistAccountRoutings <- Future.sequence(consentJson.account_routings.map(accountRouting =>
-              NewStyle.function.getBankAccountByRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext)
+              NewStyle.function.getAccountRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext)
                 .map {
                   // If we find an already existing account routing linked to the account, it just mean we don't want to update it
                   case bankAccount if !(bankAccount._1.bankId == bankId && bankAccount._1.accountId == accountId) => Some(accountRouting)
@@ -5480,7 +5480,7 @@ trait APIMethods310 {
               createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
             }
             alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
-              NewStyle.function.getBankAccountByRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
+              NewStyle.function.getAccountRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
             ))
             alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
               case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
