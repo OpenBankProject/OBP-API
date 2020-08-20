@@ -258,6 +258,11 @@ object NewStyle {
     } map { fullBoxOrException(_)
     } map { unboxFull(_) }
     
+    def grantAccessToMultipleViews(account: BankAccount, u: User, viewIdBankIdAccountIds : List[ViewIdBankIdAccountId], provider : String, providerId: String) = Future {
+      account.grantAccessToMultipleViews(u, viewIdBankIdAccountIds, provider, providerId)
+    } map { fullBoxOrException(_)
+    } map { unboxFull(_) }
+    
     def revokeAccessToView(account: BankAccount, u: User, viewIdBankIdAccountId : ViewIdBankIdAccountId, provider : String, providerId: String) = Future {
       account.revokeAccessToView(u, viewIdBankIdAccountId, provider, providerId)
     } map { fullBoxOrException(_)
