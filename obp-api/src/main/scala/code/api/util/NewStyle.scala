@@ -29,6 +29,7 @@ import com.openbankproject.commons.model.FXRate
 import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
+import code.model.dataAccess.BankAccountRouting
 import code.standingorders.StandingOrderTrait
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.usercustomerlinks.UserCustomerLink
@@ -217,6 +218,12 @@ object NewStyle {
     def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[AccountsBalances] = {
       Connector.connector.vend.getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccounts", 400 ), i._2)
+      }
+    }
+
+    def getAccountRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]) : OBPReturnType[BankAccountRouting] = {
+      Future(Connector.connector.vend.getAccountRouting(bankId: Option[BankId], scheme: String, address : String, callContext: Option[CallContext])) map { i =>
+        unboxFullOrFail(i, callContext,s"$AccountRoutingNotFound Current scheme is $scheme, current address is $address, current bankId is $bankId", 404 )
       }
     }
 

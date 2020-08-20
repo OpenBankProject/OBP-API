@@ -28,7 +28,7 @@ import com.openbankproject.commons.model.DirectDebitTrait
 import com.openbankproject.commons.model.FXRate
 import code.fx.fx.TTL
 import code.management.ImporterAPI.ImporterTransaction
-import code.model.dataAccess.ResourceUser
+import code.model.dataAccess.{BankAccountRouting, ResourceUser}
 import code.model.toUserExtended
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -448,6 +448,7 @@ trait Connector extends MdcLoggable {
 
   def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
   def getBankAccountByRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
+  def getAccountRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccountRouting, Option[CallContext])]= Failure(setUnimplementedError)
 
   def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : OBPReturnType[Box[List[BankAccount]]]= Future{(Failure(setUnimplementedError), callContext)}
 

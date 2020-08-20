@@ -527,6 +527,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  override def getAccountRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccountRouting, Option[CallContext])] = {
+    bankId match {
+      case Some(bankId) =>
+        BankAccountRouting
+          .find(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+          .map(accountRouting => (accountRouting, callContext))
+      case None =>
+        BankAccountRouting
+          .find(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+          .map(accountRouting => (accountRouting, callContext))
+    }
+  }
+
   def getBankAccountCommon(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
     MappedBankAccount
       .find(By(MappedBankAccount.bank, bankId.value), By(MappedBankAccount.theAccountId, accountId.value))

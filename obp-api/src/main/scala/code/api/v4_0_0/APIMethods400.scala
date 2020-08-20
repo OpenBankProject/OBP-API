@@ -1267,7 +1267,7 @@ trait APIMethods400 {
               createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
             }
             alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
-              NewStyle.function.getBankAccountByRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
+              NewStyle.function.getAccountRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
               ))
             alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
               case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
