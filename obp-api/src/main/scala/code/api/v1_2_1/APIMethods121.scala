@@ -697,7 +697,7 @@ trait APIMethods121 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-            //custom views are started ith `_`,eg _lift, _work, and System views startWith letter, eg: owner
+            // custom views start with `_` eg _play, _work, and System views start with a letter, eg: owner
             _ <- Helper.booleanToFuture(InvalidCustomViewFormat) { viewId.value.startsWith("_") }
             _ <- NewStyle.function.customView(viewId, BankIdAccountId(bankId, accountId), callContext)
             deleted <- NewStyle.function.removeView(account, u, viewId)
@@ -810,13 +810,14 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
-            addedViews <- account grantAccessToMultipleViews(u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), provider, providerId)
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            failMsg = "wrong format JSON"
+            viewIds <- NewStyle.function.tryons(failMsg, 400, callContext) { json.extract[ViewIdsJson] }
+            addedViews <- NewStyle.function.grantAccessToMultipleViews(account, u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), provider, providerId)
           } yield {
-            val viewJson = JSONFactory.createViewsJSON(addedViews)
-            successJsonResponse(Extraction.decompose(viewJson), 201)
+            (JSONFactory.createViewsJSON(addedViews), HttpCode.`201`(callContext))
           }
       }
     }
@@ -852,13 +853,13 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: ViewId(viewId) :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            // TODO Check Error cases
-            addedView <- account grantAccessToView(u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            addedView <- NewStyle.function.grantAccessToView(account, u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
           } yield {
             val viewJson = JSONFactory.createViewJSON(addedView)
-            successJsonResponse(Extraction.decompose(viewJson), 201)
+            (viewJson, HttpCode.`201`(callContext))
           }
       }
     }
@@ -913,11 +914,13 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: ViewId(viewId) :: Nil JsonDelete req => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            isRevoked <- account revokeAccessToView(u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
-            if(isRevoked)
-          } yield noContentJsonResponse
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            _ <- NewStyle.function.revokeAccessToView(account, u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
+          } yield {
+            (Full(""), HttpCode.`204`(callContext))
+          }
       }
     }
 
@@ -949,11 +952,13 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: Nil JsonDelete req => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            isRevoked <- account revokeAllAccountAccesses(u, provider, providerId)
-            if(isRevoked)
-          } yield noContentJsonResponse
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            _ <- NewStyle.function.revokeAllAccountAccesses(account, u, provider, providerId)
+          } yield {
+            (Full(""), HttpCode.`204`(callContext))
+          }
       }
     }
 

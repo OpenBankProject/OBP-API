@@ -2633,9 +2633,13 @@ Returns a string showed to the developer
         val callContext = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
         val apiFailure = af.copy(failMsg = failuresMsg).copy(ccl = callContext)
         throw new Exception(JsonAST.compactRender(Extraction.decompose(apiFailure)))
+      case ParamFailure(_, _, _, failure : APIFailure) =>
+        val callContext = CallContextLight(partialFunctionName = "", directLoginToken= "", oAuthToken= "")
+        val apiFailure = APIFailureNewStyle(failMsg = failure.msg, failCode = failure.responseCode, ccl = Some(callContext))
+        throw new Exception(JsonAST.compactRender(Extraction.decompose(apiFailure)))
       case ParamFailure(msg,_,_,_) =>
         throw new Exception(msg)
-      case obj@Failure(msg, _, c) =>
+      case obj@Failure(_, _, _) =>
         val failuresMsg = filterMessage(obj)
         throw new Exception(failuresMsg)
       case _ =>
