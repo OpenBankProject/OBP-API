@@ -263,6 +263,11 @@ object NewStyle {
     } map { fullBoxOrException(_)
     } map { unboxFull(_) }
     
+    def revokeAllAccountAccesses(account: BankAccount, u: User, provider : String, providerId: String) = Future {
+      account.revokeAllAccountAccesses(u, provider, providerId)
+    } map { fullBoxOrException(_)
+    } map { unboxFull(_) }
+    
     def moderatedBankAccountCore(account: BankAccount, view: View, user: Box[User], callContext: Option[CallContext]) = Future {
       account.moderatedBankAccountCore(view, BankIdAccountId(account.bankId, account.accountId), user, callContext)
     } map { fullBoxOrException(_)
