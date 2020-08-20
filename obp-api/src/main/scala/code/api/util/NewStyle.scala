@@ -30,7 +30,7 @@ import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
 import code.standingorders.StandingOrderTrait
-import code.transactionChallenge.ExpectedChallengeAnswer
+import code.transactionChallenge.{ExpectedChallengeAnswer}
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
@@ -39,6 +39,7 @@ import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.dto.{CustomerAndAttribute, ProductCollectionItemsTree}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
@@ -771,7 +772,98 @@ object NewStyle {
     def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = 
      Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) map { i =>
        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
-      } 
+      }
+
+    def validateChallengeAnswerC2(
+      challengeType: ChallengeType.Value,
+      transactionRequestId: Option[String], 
+      consentId: Option[String], 
+      challengeId: String, 
+      hashOfSuppliedAnswer: String, 
+      callContext: Option[CallContext]
+    ): OBPReturnType[ExpectedChallengeAnswer] = {
+      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT && transactionRequestId.isEmpty ){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId) ")}
+      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && consentId.isEmpty ){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId) ")}
+      }else{
+        Connector.connector.vend.validateChallengeAnswerC2(
+          transactionRequestId: Option[String],
+          consentId: Option[String],
+          challengeId: String,
+          hashOfSuppliedAnswer: String,
+          callContext: Option[CallContext]
+        ) map { i =>
+          (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
+        }
+      }
+    }
+
+    /**
+     * 
+     * @param userIds OBP support multiple challenges, we can ask different users to answer different challenges
+     * @param challengeType OBP support different challenge types, @see the Enum ChallengeType
+     * @param scaMethod @@see the Enum StrongCustomerAuthentication
+     * @param scaStatus @@see the Enum StrongCustomerAuthenticationStatus
+     * @param transactionRequestId it is also the BelinGroup PaymentId
+     * @param consentId 
+     * @param authenticationMethodId this is used for BelinGroup Consent
+     * @param callContext
+     * @return
+     */
+    def createChallengesC2(
+      userIds: List[String],
+      challengeType: ChallengeType.Value,
+      transactionRequestId: Option[String],
+      scaMethod: Option[SCA],
+      scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
+      consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
+      authenticationMethodId: Option[String],
+      callContext: Option[CallContext]
+    ) : OBPReturnType[List[ExpectedChallengeAnswer]] = {
+      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
+      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
+      }else{
+        Connector.connector.vend.createChallengesC2(
+          userIds: List[String],
+          challengeType: ChallengeType.Value,
+          transactionRequestId: Option[String],
+          scaMethod: Option[SCA],
+          scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
+          consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
+          authenticationMethodId: Option[String],
+          callContext: Option[CallContext]
+        ) map { i =>
+          (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
+        }
+      }
+    }
+    
+    def getExpectedChallengeAnswersByTransactionRequestId(
+      transactionRequestId: String, 
+      callContext:  Option[CallContext]
+    ): OBPReturnType[List[ExpectedChallengeAnswer]] = {
+      Connector.connector.vend.getExpectedChallengeAnswersByTransactionRequestId(
+        transactionRequestId: String,
+        callContext:  Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeTransactionRequestId Current transactionRequestId($transactionRequestId) ", 400), i._2)
+      }
+    }
+
+    def getExpectedChallengeAnswer(
+      challengeId: String, 
+      callContext:  Option[CallContext]
+    ): OBPReturnType[ExpectedChallengeAnswer] = {
+      Connector.connector.vend.getExpectedChallengeAnswer(
+        challengeId: String,
+        callContext:  Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeChallengeId Current challengeId($challengeId) ", 400), i._2)
+      }
+    } 
     
     def createTransactionAfterChallengeV300(
       initiator: User,

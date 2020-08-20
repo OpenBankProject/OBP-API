@@ -774,7 +774,8 @@ database_messages_scheduler_interval=3600
 # SEPA_OTP_INSTRUCTION_TRANSPORT=dummy
 # FREE_FORM_OTP_INSTRUCTION_TRANSPORT=dummy
 # COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=dummy
-# Possible values: dummy,email,sms
+# SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT=dummy
+# Possible values: dummy,email,sms,PHOTO_OTP,CHIP_OTP,PHOTO_OTP,PUSH_OTP
 # In case isn't defined default value is "sms"
 # -----------------------------------------------------------------------
 

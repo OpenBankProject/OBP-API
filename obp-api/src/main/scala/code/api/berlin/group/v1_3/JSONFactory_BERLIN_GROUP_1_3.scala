@@ -9,6 +9,7 @@ import code.bankconnectors.Connector
 import code.consent.Consent
 import code.database.authorisation.Authorisation
 import code.model.ModeratedTransaction
+import code.transactionChallenge.ExpectedChallengeAnswer
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User}
@@ -588,16 +589,16 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  def createStartPaymentAuthorisationsJson(authorizations: List[Authorisation]): List[StartPaymentAuthorisationJson] = {
-    authorizations.map(createStartPaymentAuthorisationJson)
+  def createStartPaymentAuthorisationsJson(expectedChallengeAnswers: List[ExpectedChallengeAnswer]): List[StartPaymentAuthorisationJson] = {
+    expectedChallengeAnswers.map(createStartPaymentAuthorisationJson)
   }
 
-  def createStartPaymentAuthorisationJson(authorization: Authorisation) = {
+  def createStartPaymentAuthorisationJson(expectedChallengeAnswer: ExpectedChallengeAnswer) = {
       StartPaymentAuthorisationJson(
-        scaStatus = authorization.scaStatus,
-        authorisationId = authorization.authorisationId,
+        scaStatus = expectedChallengeAnswer.scaStatus.map(_.toString).getOrElse(""),
+        authorisationId = expectedChallengeAnswer.challengeId,
         psuMessage = "Please check your SMS at a mobile device.",
-        _links = ScaStatusJsonV13(s"/v1.3/payments/sepa-credit-transfers/${authorization.authorisationId}")
+        _links = ScaStatusJsonV13(s"/v1.3/payments/sepa-credit-transfers/${expectedChallengeAnswer.challengeId}")
       )
   }
 
