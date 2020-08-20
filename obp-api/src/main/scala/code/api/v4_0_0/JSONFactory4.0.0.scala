@@ -386,7 +386,9 @@ object JSONFactory400 {
             "/owner",
             "/transaction-request-types/",
             stringOrNull(tr.`type`),
-            "/transaction-requests/challenge").mkString("")
+            "/transaction-requests/",
+            stringOrNull(tr.id.value),
+            "/challenge").mkString("")
           val link = tr.challenge.challenge_type match  {
             case challengeType if challengeType == TransactionChallengeTypes.OTP_VIA_WEB_FORM.toString => otpViaWebFormPath
             case challengeType if challengeType == TransactionChallengeTypes.OTP_VIA_API.toString => otpViaApiPath
