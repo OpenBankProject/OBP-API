@@ -53,7 +53,7 @@ import code.products.MappedProduct
 import code.standingorders.{StandingOrderTrait, StandingOrders}
 import code.taxresidence.TaxResidenceX
 import code.transaction.MappedTransaction
-import code.transactionChallenge.{ChallengeTrait, Challenges, MappedExpectedChallengeAnswer}
+import code.transactionChallenge.{Challenges, MappedExpectedChallengeAnswer}
 import code.transactionattribute.TransactionAttributeX
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
@@ -305,7 +305,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def validateChallengeAnswerC2(
+  override def validateChallenge(
     transactionRequestId: Option[String],
     consentId: Option[String],
     challengeId: String,

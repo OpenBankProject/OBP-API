@@ -1,6 +1,7 @@
 package code.transactionChallenge
 
 
+import com.openbankproject.commons.model.ChallengeTrait
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import net.liftweb.common.Box

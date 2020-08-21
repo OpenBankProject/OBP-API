@@ -1,7 +1,7 @@
 package code.transactionChallenge
 
 import code.api.util.ErrorMessages
-import com.openbankproject.commons.model.ErrorMessage
+import com.openbankproject.commons.model.{ChallengeTrait, ErrorMessage}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus

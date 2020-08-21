@@ -2,7 +2,8 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.transactionChallenge.{ChallengeTrait, ChallengeProvider, RemotedataChallengeProviderCaseClasses}
+import code.transactionChallenge.{ChallengeProvider, RemotedataChallengeProviderCaseClasses}
+import com.openbankproject.commons.model.ChallengeTrait
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import net.liftweb.common._
