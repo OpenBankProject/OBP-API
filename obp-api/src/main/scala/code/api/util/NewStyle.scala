@@ -31,7 +31,6 @@ import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRo
 import code.model._
 import code.model.dataAccess.BankAccountRouting
 import code.standingorders.StandingOrderTrait
-import code.transactionChallenge.ExpectedChallengeAnswer
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
@@ -40,6 +39,7 @@ import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.dto.{CustomerAndAttribute, ProductCollectionItemsTree}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
@@ -799,7 +799,98 @@ object NewStyle {
     def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = 
      Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) map { i =>
        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
-      } 
+      }
+
+    def validateChallenge(
+      challengeType: ChallengeType.Value,
+      transactionRequestId: Option[String], 
+      consentId: Option[String], 
+      challengeId: String, 
+      hashOfSuppliedAnswer: String, 
+      callContext: Option[CallContext]
+    ): OBPReturnType[ChallengeTrait] = {
+      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT && transactionRequestId.isEmpty ){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId) ")}
+      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && consentId.isEmpty ){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId) ")}
+      }else{
+        Connector.connector.vend.validateChallenge(
+          transactionRequestId: Option[String],
+          consentId: Option[String],
+          challengeId: String,
+          hashOfSuppliedAnswer: String,
+          callContext: Option[CallContext]
+        ) map { i =>
+          (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
+        }
+      }
+    }
+
+    /**
+     * 
+     * @param userIds OBP support multiple challenges, we can ask different users to answer different challenges
+     * @param challengeType OBP support different challenge types, @see the Enum ChallengeType
+     * @param scaMethod @see the Enum StrongCustomerAuthentication
+     * @param scaStatus @see the Enum StrongCustomerAuthenticationStatus
+     * @param transactionRequestId it is also the BelinGroup PaymentId
+     * @param consentId 
+     * @param authenticationMethodId this is used for BelinGroup Consent
+     * @param callContext
+     * @return
+     */
+    def createChallengesC2(
+      userIds: List[String],
+      challengeType: ChallengeType.Value,
+      transactionRequestId: Option[String],
+      scaMethod: Option[SCA],
+      scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
+      consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
+      authenticationMethodId: Option[String],
+      callContext: Option[CallContext]
+    ) : OBPReturnType[List[ChallengeTrait]] = {
+      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
+      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
+      }else{
+        Connector.connector.vend.createChallengesC2(
+          userIds: List[String],
+          challengeType: ChallengeType.Value,
+          transactionRequestId: Option[String],
+          scaMethod: Option[SCA],
+          scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
+          consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
+          authenticationMethodId: Option[String],
+          callContext: Option[CallContext]
+        ) map { i =>
+          (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
+        }
+      }
+    }
+    
+    def getChallengesByTransactionRequestId(
+      transactionRequestId: String, 
+      callContext:  Option[CallContext]
+    ): OBPReturnType[List[ChallengeTrait]] = {
+      Connector.connector.vend.getChallengesByTransactionRequestId(
+        transactionRequestId: String,
+        callContext:  Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeTransactionRequestId Current transactionRequestId($transactionRequestId) ", 400), i._2)
+      }
+    }
+
+    def getChallenge(
+      challengeId: String, 
+      callContext:  Option[CallContext]
+    ): OBPReturnType[ChallengeTrait] = {
+      Connector.connector.vend.getChallenge(
+        challengeId: String,
+        callContext:  Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeChallengeId Current challengeId($challengeId) ", 400), i._2)
+      }
+    } 
     
     def createTransactionAfterChallengeV300(
       initiator: User,
