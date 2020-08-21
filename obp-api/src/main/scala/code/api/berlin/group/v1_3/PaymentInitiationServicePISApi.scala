@@ -979,7 +979,7 @@ There are the following request types on this access path:
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
 
-             (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
+             (challenge, callContext) <- NewStyle.function.validateChallenge(
                ChallengeType.BERLINGROUP_PAYMENT,
                Some(paymentId),
                None,

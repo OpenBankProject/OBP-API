@@ -9,7 +9,6 @@ import code.bankconnectors.Connector
 import code.consent.Consent
 import code.database.authorisation.Authorisation
 import code.model.ModeratedTransaction
-import code.transactionChallenge.ChallengeTrait
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User}

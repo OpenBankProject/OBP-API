@@ -61,7 +61,7 @@ import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
 import scala.reflect.runtime.universe.{MethodSymbol, typeOf}
 import _root_.akka.http.scaladsl.model.HttpMethod
-import code.transactionChallenge.{ChallengeTrait, MappedExpectedChallengeAnswer}
+import code.transactionChallenge.MappedExpectedChallengeAnswer
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, InBoundTrait, ProductCollectionItemsTree}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 
@@ -392,7 +392,7 @@ trait Connector extends MdcLoggable {
   // Validates an answer for a challenge and returns if the answer is correct or not
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Full(true), callContext)}
   
-  def validateChallengeAnswerC2(
+  def validateChallenge(
     transactionRequestId: Option[String],
     consentId: Option[String],
     challengeId: String,

@@ -30,7 +30,6 @@ import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
 import code.standingorders.StandingOrderTrait
-import code.transactionChallenge.{ChallengeTrait}
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
@@ -774,7 +773,7 @@ object NewStyle {
        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
       }
 
-    def validateChallengeAnswerC2(
+    def validateChallenge(
       challengeType: ChallengeType.Value,
       transactionRequestId: Option[String], 
       consentId: Option[String], 
@@ -787,7 +786,7 @@ object NewStyle {
       }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && consentId.isEmpty ){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId) ")}
       }else{
-        Connector.connector.vend.validateChallengeAnswerC2(
+        Connector.connector.vend.validateChallenge(
           transactionRequestId: Option[String],
           consentId: Option[String],
           challengeId: String,
