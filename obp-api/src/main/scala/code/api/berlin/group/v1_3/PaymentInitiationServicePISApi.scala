@@ -12,7 +12,7 @@ import code.consent.ConsentStatus
 import code.database.authorisation.Authorisations
 import code.fx.fx
 import code.model._
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{TRANSFER_TO_ACCOUNT, TRANSFER_TO_ATM, TRANSFER_TO_PHONE}
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{SEPA_CREDIT_TRANSFERS, TRANSFER_TO_ACCOUNT, TRANSFER_TO_ATM, TRANSFER_TO_PHONE}
 import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
@@ -26,6 +26,8 @@ import net.liftweb.json._
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus}
+
 import scala.concurrent.Future
 
 object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
@@ -156,7 +158,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
-               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
@@ -209,7 +211,7 @@ Returns the content of a payment object""",
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
-               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
              (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
 
@@ -269,14 +271,12 @@ This function returns an array of hyperlinks to all generated authorisation sub-
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
-               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-             authorisations <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByPaymentId(paymentId)) map {
-               connectorEmptyResponse(_, callContext)
-             }
+             (challenges, callContext) <-  NewStyle.function.getChallengesByTransactionRequestId(paymentId, callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationsJson(authorisations), callContext)
+             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationsJson(challenges), callContext)
            }
        }
      }
@@ -310,7 +310,7 @@ Retrieve a list of all created cancellation authorisation sub-resources.
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
-               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
              authorisations <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByPaymentId(paymentId)) map {
                connectorEmptyResponse(_, callContext)
@@ -351,20 +351,15 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
-               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-             authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
-               paymentId,
-               authorisationid
-             )) map {
-               unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current PAYMENT_ID($paymentId) and AUTHORISATION_ID($authorisationid)")
-             }
+             (challenge, callContext) <- NewStyle.function.getChallenge(authorisationid, callContext)
              
            } yield {
              (json.parse(
                s"""{
-                "scaStatus" : "${authorisation.scaStatus}"
+                "scaStatus" : "${challenge.scaStatus.getOrElse("received")}"
               }"""), callContext)
            }
          }
@@ -398,7 +393,7 @@ Check the transaction status of a payment initiation.""",
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
-               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
              (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
 
@@ -683,28 +678,32 @@ This applies in the following scenarios:
     case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _  => {
       cc =>
         for {
-          (_, callContext) <- authenticatedAccess(cc)
+          (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- passesPsd2Pisp(callContext)
           _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
             PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
           }
           _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
-            TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+            TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
           }
           (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-          
-          authorisation <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
-            paymentId,
-            "",
-            AuthenticationType.SMS_OTP.toString,
-            "",
-            ScaStatus.received.toString,
-            "12345" // TODO Implement SMS sending
-          )) map {
-            unboxFullOrFail(_, callContext, s"$UnknownError ")
+
+          (challenges, callContext) <- NewStyle.function.createChallengesC2(
+            List(u.userId),
+            ChallengeType.BERLINGROUP_PAYMENT,
+            Some(paymentId),
+            getScaMethodAtInstance(SEPA_CREDIT_TRANSFERS.toString).toOption,
+            Some(StrongCustomerAuthenticationStatus.received),
+            None,
+            None,
+            callContext
+          )
+          //NOTE: in OBP it support multiple challenges, but in Berlin Group it has only one challenge. The following guard is to make sure it return the 1st challenge properly.
+          challenge <- NewStyle.function.tryons(InvalidConnectorResponseForCreateChallenge,400, callContext) {
+            challenges.head
           }
         } yield {
-          (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(authorisation), callContext)
+          (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), callContext)
         }
     }
   }
@@ -774,7 +773,7 @@ This applies in the following scenarios:
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
-               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              authorisation <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
@@ -876,7 +875,7 @@ There are the following request types on this access path:
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
-               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              authorisation <- Future(Authorisations.authorisationProvider.vend.checkAnswer(
@@ -943,11 +942,11 @@ There are the following request types on this access path:
     therefore many optional elements are not present. 
     Maybe in a later version the access path will change.
     
-    NOTE: For this endpoint, for sandbox mode, the `scaAuthenticationData` is fixed value: 12345. To make the process work.
+    NOTE: For this endpoint, for sandbox mode, the `scaAuthenticationData` is fixed value: 123. To make the process work.
           Normally the app use will get SMS/EMAIL to get the value for this process.
       
 """,
-       json.parse("""{"scaAuthenticationData":"12345"}"""),
+       json.parse("""{"scaAuthenticationData":"123"}"""),
        json.parse("""{
                         "scaStatus": "finalised",
                         "authorisationId": "88695566-6642-46d5-9985-0d824624f507",
@@ -976,13 +975,19 @@ There are the following request types on this access path:
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
-               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-             authorisation <- Future(Authorisations.authorisationProvider.vend.checkAnswer(paymentId,authorisationid, updatePaymentPsuDataJson.scaAuthenticationData))map {
-               i => connectorEmptyResponse(i, callContext)
-             }
 
+             (challenge, callContext) <- NewStyle.function.validateChallenge(
+               ChallengeType.BERLINGROUP_PAYMENT,
+               Some(paymentId),
+               None,
+               authorisationid,
+               updatePaymentPsuDataJson.scaAuthenticationData,
+               callContext
+             )
+             
              //Map obp transaction request id with BerlinGroup PaymentId
              transactionRequestId = TransactionRequestId(paymentId)
              
@@ -993,13 +998,13 @@ There are the following request types on this access path:
                AccountId(existingTransactionRequest.from.account_id), 
                callContext
              )
-              _ <- if(authorisation.scaStatus =="finalised") 
+              _ <- if(challenge.scaStatus == Some(StrongCustomerAuthenticationStatus.finalised)) 
                  NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
               else //If it is not `finalised`, just return the `authorisation` back, without any payments
                 Future{true}
              
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(authorisation), callContext)
+             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), callContext)
            }
          }
        }

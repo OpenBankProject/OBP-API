@@ -53,7 +53,7 @@ import code.products.MappedProduct
 import code.standingorders.{StandingOrderTrait, StandingOrders}
 import code.taxresidence.TaxResidenceX
 import code.transaction.MappedTransaction
-import code.transactionChallenge.ExpectedChallengeAnswer
+import code.transactionChallenge.{Challenges, MappedExpectedChallengeAnswer}
 import code.transactionattribute.TransactionAttributeX
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
@@ -69,6 +69,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, ProductCollectionItemsTree}
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, DirectDebitTrait, FXRate, Product, ProductAttribute, ProductCollectionItem, TaxResidence, TransactionRequestCommonBodyJSON, _}
 import com.tesobe.CacheKeyFromArguments
@@ -162,13 +163,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                transactionRequestId: String,
                                scaMethod: Option[SCA],
                                callContext: Option[CallContext]): OBPReturnType[Box[String]] = Future {
-    createChallengeInternal(bankId: BankId,
-      accountId: AccountId,
+    val challenge = createChallengeInternal(
       userId: String,
-      transactionRequestType: TransactionRequestType,
       transactionRequestId: String,
       scaMethod: Option[SCA],
+      None, //there are only for new version, set the empty here.
+      None,//there are only for new version, set the empty here.
+      None,//there are only for new version, set the empty here.
       callContext: Option[CallContext])
+    (challenge._1.map(_.challengeId),challenge._2)
   }
 
   /**
@@ -189,13 +192,40 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val challenges = for {
       userId <- userIds
     } yield {
-      val (challengeId, _) = createChallengeInternal(
-        bankId,
-        accountId,
+      val (challenge, _) = createChallengeInternal(
         userId,
-        transactionRequestType: TransactionRequestType,
         transactionRequestId,
         scaMethod,
+        None, //there are only for new version, set the empty here.
+        None,//there are only for new version, set the empty here.
+        None,//there are only for new version, set the empty here.
+        callContext
+      )
+      challenge.map(_.challengeId).toList
+    }
+    (Full(challenges.flatten), callContext)
+  }
+
+  override def createChallengesC2(
+    userIds: List[String],
+    challengeType: ChallengeType.Value,
+    transactionRequestId: Option[String],
+    scaMethod: Option[SCA],
+    scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
+    consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
+    authenticationMethodId: Option[String],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[ChallengeTrait]]] = Future {
+    val challenges = for {
+      userId <- userIds
+    } yield {
+      val (challengeId, _) = createChallengeInternal(
+        userId,
+        transactionRequestId.getOrElse(""),
+        scaMethod,
+        scaStatus,
+        consentId,
+        authenticationMethodId,
         callContext
       )
       challengeId.toList
@@ -203,24 +233,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (Full(challenges.flatten), callContext)
   }
 
-  private def createChallengeInternal(bankId: BankId,
-                                      accountId: AccountId,
-                                      userId: String,
-                                      transactionRequestType: TransactionRequestType,
-                                      transactionRequestId: String,
-                                      scaMethod: Option[SCA],
-                                      callContext: Option[CallContext]) = {
+  private def createChallengeInternal(
+    userId: String,
+    transactionRequestId: String,
+    scaMethod: Option[SCA],
+    scaStatus: Option[SCAStatus], //Only use for BerlinGroup Now
+    consentId: Option[String],    // Note: consentId and transactionRequestId are exclusive here.
+    authenticationMethodId: Option[String],      
+    callContext: Option[CallContext]
+  ) = {
     def createHashedPassword(challengeAnswer: String) = {
       val challengeId = APIUtil.generateUUID()
       val salt = BCrypt.gensalt()
       val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
-      ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(
+      (Challenges.ChallengeProvider.vend.saveChallenge(
         challengeId,
         transactionRequestId,
         salt,
         challengeAnswerHashed,
-        userId)
-      (Full(challengeId), callContext)
+        userId,
+        scaMethod,
+        scaStatus,
+        consentId,
+        authenticationMethodId), callContext)
     }
 
     scaMethod match {
@@ -237,8 +272,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             Mailer.sendMail(From("challenge@tesobe.com"), Subject("Challenge"), params: _*)
         }
         hashedPassword
-      case Some(StrongCustomerAuthentication.SMS) =>
+      case Some(StrongCustomerAuthentication.SMS) | Some(StrongCustomerAuthentication.SMS_OTP) =>
         val challengeAnswer = Random.nextInt(99999999).toString()
+        logger.debug(s"${scaMethod.toString} challengeAnswer is $challengeAnswer")
         val hashedPassword = createHashedPassword(challengeAnswer)
         val sendingResult: Seq[Box[Boolean]] = APIUtil.getPhoneNumbersByUserId(userId) map {
           tuple =>
@@ -263,16 +299,36 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         val errorMessage = sendingResult.filter(_.isInstanceOf[Failure]).map(_.asInstanceOf[Failure].msg)
 
         if (sendingResult.forall(_ == Full(true))) hashedPassword else (Failure(errorMessage.toSet.mkString(" <- ")), callContext)
-      case None => // All versions which precede v4.0.0 i.e. to keep backward compatibility 
+      case _ => // All versions which precede v4.0.0 i.e. to keep backward compatibility 
         createHashedPassword("123")
     }
   }
 
 
+  override def validateChallenge(
+    transactionRequestId: Option[String],
+    consentId: Option[String],
+    challengeId: String,
+    hashOfSuppliedAnswer: String,
+    callContext: Option[CallContext]
+  ) = Future {
+    Future {
+      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+      (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
+    }
+  }
+  
+  override def getChallengesByTransactionRequestId(transactionRequestId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] =
+    Future {(Challenges.ChallengeProvider.vend.getChallengesByTransactionRequestId(transactionRequestId), callContext)}
+
+
+  override def getChallenge(challengeId: String, callContext:  Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = 
+    Future {(Challenges.ChallengeProvider.vend.getChallenge(challengeId), callContext)}
+
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = 
     Future { 
       val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
-      (ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswer(challengeId, hashOfSuppliedAnswer, userId), callContext)
+      (Full(Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId).isDefined), callContext)
     } 
   
   

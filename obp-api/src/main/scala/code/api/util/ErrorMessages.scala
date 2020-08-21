@@ -411,6 +411,8 @@ object ErrorMessages {
   val TransactionRequestsNotEnabled = "OBP-40018: Sorry, Transaction Requests are not enabled in this API instance."
   val NextChallengePending = s"OBP-40019: Cannot create transaction due to transaction request is in status: ${NEXT_CHALLENGE_PENDING}."
   val TransactionRequestStatusNotInitiatedOrPending = s"OBP-40020: Transaction Request Status is not ${INITIATED} or ${NEXT_CHALLENGE_PENDING}."
+  val InvalidChallengeTransactionRequestId = "OBP-40021: Invalid Challenge PaymentId or TRANSACTION_REQUEST_ID. "
+  val InvalidChallengeChallengeId = "OBP-40022: Invalid ChallengeId. "
 
 
   // Exceptions (OBP-50XXX)

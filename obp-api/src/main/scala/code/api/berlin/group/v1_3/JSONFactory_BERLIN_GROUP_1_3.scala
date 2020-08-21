@@ -588,16 +588,16 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  def createStartPaymentAuthorisationsJson(authorizations: List[Authorisation]): List[StartPaymentAuthorisationJson] = {
-    authorizations.map(createStartPaymentAuthorisationJson)
+  def createStartPaymentAuthorisationsJson(challenges: List[ChallengeTrait]): List[StartPaymentAuthorisationJson] = {
+    challenges.map(createStartPaymentAuthorisationJson)
   }
 
-  def createStartPaymentAuthorisationJson(authorization: Authorisation) = {
+  def createStartPaymentAuthorisationJson(challenge: ChallengeTrait) = {
       StartPaymentAuthorisationJson(
-        scaStatus = authorization.scaStatus,
-        authorisationId = authorization.authorisationId,
+        scaStatus = challenge.scaStatus.map(_.toString).getOrElse(""),
+        authorisationId = challenge.challengeId,
         psuMessage = "Please check your SMS at a mobile device.",
-        _links = ScaStatusJsonV13(s"/v1.3/payments/sepa-credit-transfers/${authorization.authorisationId}")
+        _links = ScaStatusJsonV13(s"/v1.3/payments/sepa-credit-transfers/${challenge.challengeId}")
       )
   }
 

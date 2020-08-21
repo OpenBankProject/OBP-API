@@ -39,7 +39,7 @@ import code.users.Users
 import code.util.Helper._
 import com.openbankproject.commons.util.JsonUtils
 import code.views.Views
-import com.openbankproject.commons.model.enums.{AccountAttributeType, AttributeCategory, AttributeType, CardAttributeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType, TransactionRequestStatus}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, AttributeCategory, AttributeType, CardAttributeType, ChallengeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType, TransactionRequestStatus}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full, ParamFailure}
@@ -61,7 +61,9 @@ import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
 import scala.reflect.runtime.universe.{MethodSymbol, typeOf}
 import _root_.akka.http.scaladsl.model.HttpMethod
+import code.transactionChallenge.MappedExpectedChallengeAnswer
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, InBoundTrait, ProductCollectionItemsTree}
+import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 
 /*
 So we can switch between different sources of resources e.g.
@@ -375,9 +377,33 @@ trait Connector extends MdcLoggable {
                       transactionRequestId: String,
                       scaMethod: Option[SCA], 
                       callContext: Option[CallContext]) : OBPReturnType[Box[List[String]]]= Future{(Failure(setUnimplementedError), callContext)}
+
+  // now, we try to share the same challenges for obp payments, berlin group payments, and berlin group consents
+  def createChallengesC2(
+    userIds: List[String],
+    challengeType: ChallengeType.Value,
+    transactionRequestId: Option[String],
+    scaMethod: Option[SCA],
+    scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
+    consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
+    authenticationMethodId: Option[String],
+    callContext: Option[CallContext]) : OBPReturnType[Box[List[ChallengeTrait]]]= Future{(Failure(setUnimplementedError), callContext)}
+  
   // Validates an answer for a challenge and returns if the answer is correct or not
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Full(true), callContext)}
+  
+  def validateChallenge(
+    transactionRequestId: Option[String],
+    consentId: Option[String],
+    challengeId: String,
+    hashOfSuppliedAnswer: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ChallengeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
 
+  def getChallengesByTransactionRequestId(transactionRequestId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def getChallenge(challengeId: String, callContext:  Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+  
   //gets a particular bank handled by this connector
   def getBankLegacy(bankId : BankId, callContext: Option[CallContext]) : Box[(Bank, Option[CallContext])] = Failure(setUnimplementedError)
 

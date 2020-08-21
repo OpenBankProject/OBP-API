@@ -3239,6 +3239,10 @@ Returns a string showed to the developer
       case Full(sca) if sca == StrongCustomerAuthentication.DUMMY.toString() => Full(StrongCustomerAuthentication.DUMMY)
       case Full(sca) if sca == StrongCustomerAuthentication.SMS.toString() => Full(StrongCustomerAuthentication.SMS)
       case Full(sca) if sca == StrongCustomerAuthentication.EMAIL.toString() => Full(StrongCustomerAuthentication.EMAIL)
+      case Full(sca) if sca == StrongCustomerAuthentication.SMS_OTP.toString() => Full(StrongCustomerAuthentication.SMS_OTP)
+      case Full(sca) if sca == StrongCustomerAuthentication.CHIP_OTP.toString() => Full(StrongCustomerAuthentication.CHIP_OTP)
+      case Full(sca) if sca == StrongCustomerAuthentication.PHOTO_OTP.toString() => Full(StrongCustomerAuthentication.PHOTO_OTP)
+      case Full(sca) if sca == StrongCustomerAuthentication.PUSH_OTP.toString() => Full(StrongCustomerAuthentication.PUSH_OTP)
       case _ => Full(StrongCustomerAuthentication.SMS)
     }
   }
