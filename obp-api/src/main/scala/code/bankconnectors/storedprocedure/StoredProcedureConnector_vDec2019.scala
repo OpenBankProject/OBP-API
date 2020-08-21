@@ -74,7 +74,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-08-14T15:10:32Z
+// ---------- created on 2020-08-20T13:23:06Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -3211,6 +3211,102 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[TransactionRequest](callContext))        
   }
           
+  messageDocs += makePaymentV400Doc
+  def makePaymentV400Doc = MessageDoc(
+    process = "obp.makePaymentV400",
+    messageFormat = messageFormat,
+    description = "Make Payment V400",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundMakePaymentV400(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      transactionRequest= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
+      `type`=transactionRequestTypeExample.value,
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
+      to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      description="string",
+      message="string",
+      from= FromAccountTransfer(mobile_phone_number="string",
+      nickname="string"),
+      to=ToAccountTransferToPhone("string"))),
+      to_transfer_to_atm=Some( TransactionRequestTransferToAtm(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      description="string",
+      message="string",
+      from= FromAccountTransfer(mobile_phone_number="string",
+      nickname="string"),
+      to= ToAccountTransferToAtm(legal_name="string",
+      date_of_birth="string",
+      mobile_phone_number="string",
+      kyc_document= ToAccountTransferToAtmKycDocument(`type`="string",
+      number="string")))),
+      to_transfer_to_account=Some( TransactionRequestTransferToAccount(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      description="string",
+      transfer_type="string",
+      future_date="string",
+      to= ToAccountTransferToAccount(name="string",
+      bank_code="string",
+      branch_number="string",
+      account= ToAccountTransferToAccountAccount(number=accountNumberExample.value,
+      iban=ibanExample.value)))),
+      to_sepa_credit_transfers=Some( SepaCreditTransfers(debtorAccount=PaymentAccount("string"),
+      instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      creditorAccount=PaymentAccount("string"),
+      creditorName="string")),
+      value= AmountOfMoney(currency=currencyExample.value,
+      amount=amountExample.value),
+      description="string"),
+      transaction_ids="string",
+      status="string",
+      start_date=toDate(transactionRequestStartDateExample),
+      end_date=toDate(transactionRequestEndDateExample),
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
+      allowed_attempts=123,
+      challenge_type="string"),
+      charge= TransactionRequestCharge(summary="string",
+      value= AmountOfMoney(currency=currencyExample.value,
+      amount=amountExample.value)),
+      charge_policy="string",
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
+      name="string",
+      this_bank_id=BankId(bankIdExample.value),
+      this_account_id=AccountId(accountIdExample.value),
+      this_view_id=ViewId(viewIdExample.value),
+      other_account_routing_scheme="string",
+      other_account_routing_address="string",
+      other_bank_routing_scheme="string",
+      other_bank_routing_address="string",
+      is_beneficiary=true,
+      future_date=Some("string")),
+      reasons=Some(List( TransactionRequestReason(code="string",
+      documentNumber=Some("string"),
+      amount=Some(amountExample.value),
+      currency=Some(currencyExample.value),
+      description=Some("string")))))
+    ),
+    exampleInboundMessage = (
+     InBoundMakePaymentV400(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=TransactionId(transactionIdExample.value))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def makePaymentV400(transactionRequest: TransactionRequest, reasons: Option[List[TransactionRequestReason]], callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = {
+        import com.openbankproject.commons.dto.{InBoundMakePaymentV400 => InBound, OutBoundMakePaymentV400 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionRequest, reasons)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_make_payment_v400", req, callContext)
+        response.map(convertToTuple[TransactionId](callContext))        
+  }
+          
   messageDocs += createCounterpartyDoc
   def createCounterpartyDoc = MessageDoc(
     process = "obp.createCounterparty",
@@ -5821,8 +5917,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-08-14T15:10:32Z
-//---------------- dynamic end ---------------------please don't modify this line  
+// ---------- created on 2020-08-20T13:23:06Z
+//---------------- dynamic end ---------------------please don't modify this line   
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

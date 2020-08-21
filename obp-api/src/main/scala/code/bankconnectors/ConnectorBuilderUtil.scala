@@ -246,6 +246,7 @@ object ConnectorBuilderUtil {
     "createPhysicalCard",
     "updatePhysicalCard",
     "makePaymentv210",
+    "makePaymentV400",
     "createTransactionRequestv210",
     "getTransactionRequests210",
     "getTransactionRequestImpl",
