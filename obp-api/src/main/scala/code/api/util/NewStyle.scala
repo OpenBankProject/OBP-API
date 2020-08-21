@@ -802,8 +802,8 @@ object NewStyle {
      * 
      * @param userIds OBP support multiple challenges, we can ask different users to answer different challenges
      * @param challengeType OBP support different challenge types, @see the Enum ChallengeType
-     * @param scaMethod @@see the Enum StrongCustomerAuthentication
-     * @param scaStatus @@see the Enum StrongCustomerAuthenticationStatus
+     * @param scaMethod @see the Enum StrongCustomerAuthentication
+     * @param scaStatus @see the Enum StrongCustomerAuthenticationStatus
      * @param transactionRequestId it is also the BelinGroup PaymentId
      * @param consentId 
      * @param authenticationMethodId this is used for BelinGroup Consent
