@@ -2027,7 +2027,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       reply.code should equal (400)
     }
 
-    scenario("we cannot revoke the access of a user to owner view on a bank account if that user is an account holder of that account", API1_2_1, DeletePermission){
+    scenario("we can revoke the access of a user to owner view on a bank account if that user is an account holder of that account", API1_2_1, DeletePermission){
       Given("A user is the account holder of an account (and has access to the owner view)")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -2040,12 +2040,12 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       When("We try to revoke this user's access to the owner view")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, resourceUser3.idGivenByProvider, ownerViewId.value, user1)
 
-      Then("We will get a 400 response code")
-      reply.code should equal (400)
+      Then("We will get a 204 response code")
+      reply.code should equal (204)
 
-      And("The account holder should still have access to the owner view")
+      And("The account holder do not have access to the owner view")
       val view = Views.views.vend.customView(ownerViewId, BankIdAccountId(BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
-      Views.views.vend.getOwners(view).toList should contain (resourceUser3)
+      Views.views.vend.getOwners(view).toList should not contain (resourceUser3)
     }
 
     scenario("we cannot revoke a user access to a view on an bank account because the view does not exist", API1_2_1, DeletePermission){
@@ -2142,7 +2142,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       Views.views.vend.getOwners(view).toList(0).idGivenByProvider should equal(userId)
     }
 
-    scenario("we cannot revoke the access of a user to owner view on a bank account via a revoke all views call" +
+    scenario("we can revoke the access of a user to owner view on a bank account via a revoke all views call" +
       " if that user is an account holder of that account", API1_2_1, DeletePermissions){
       Given("A user is the account holder of an account (and has access to the owner view)")
       val bankId = randomBank
@@ -2156,12 +2156,12 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       When("We try to revoke this user's access to all views")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, resourceUser3.idGivenByProvider, user1)
 
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 204 code")
+      reply.code should equal (204)
 
-      And("The user should not have had his access revoked")
+      And("The user should have had his access revoked")
       val view = Views.views.vend.customView(ViewId(CUSTOM_OWNER_VIEW_ID), BankIdAccountId(BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
-      Views.views.vend.getOwners(view).toList should contain (resourceUser3)
+      Views.views.vend.getOwners(view).toList should not contain (resourceUser3)
     }
   }
 
