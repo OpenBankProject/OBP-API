@@ -10,9 +10,9 @@ import net.liftweb.mapper.By
 import org.mindrot.jbcrypt.BCrypt
 import net.liftweb.util.Helpers.tryo
 
-object MappedExpectedChallengeAnswerProvider extends ExpectedChallengeAnswerProvider {
+object MappedChallengeProvider extends ChallengeProvider {
   
-  override def saveExpectedChallengeAnswer(
+  override def saveChallenge(
     challengeId: String,
     transactionRequestId: String,
     salt: String,
@@ -22,7 +22,7 @@ object MappedExpectedChallengeAnswerProvider extends ExpectedChallengeAnswerProv
     scaStatus: Option[SCAStatus],
     consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
     authenticationMethodId: Option[String], 
-  ): Box[ExpectedChallengeAnswer] = 
+  ): Box[ChallengeTrait] = 
     tryo (
       MappedExpectedChallengeAnswer
         .create
@@ -38,33 +38,33 @@ object MappedExpectedChallengeAnswerProvider extends ExpectedChallengeAnswerProv
         .saveMe()
     )
   
-  override def getExpectedChallengeAnswer(challengeId: String): Box[MappedExpectedChallengeAnswer] =
+  override def getChallenge(challengeId: String): Box[MappedExpectedChallengeAnswer] =
       MappedExpectedChallengeAnswer.find(By(MappedExpectedChallengeAnswer.mChallengeId,challengeId))
 
-  override def getExpectedChallengeAnswersByTransactionRequestId(transactionRequestId: String): Box[List[ExpectedChallengeAnswer]] =
+  override def getChallengesByTransactionRequestId(transactionRequestId: String): Box[List[ChallengeTrait]] =
     Full(MappedExpectedChallengeAnswer.findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId,transactionRequestId)))
   
-  override def validateChallengeAnswer(
+  override def validateChallenge(
     challengeId: String,
     challengeAnswer: String,
     userId: Option[String]
-  ): Box[ExpectedChallengeAnswer] = {
+  ): Box[ChallengeTrait] = {
     
-    val expectedChallengeAnswer = getExpectedChallengeAnswer(challengeId).openOrThrowException(s"${ErrorMessages.InvalidChallengeAnswer}")
+    val challenge = getChallenge(challengeId).openOrThrowException(s"${ErrorMessages.InvalidChallengeAnswer}")
     
-    val currentHashedAnswer = BCrypt.hashpw(challengeAnswer, expectedChallengeAnswer.salt).substring(0, 44)
-    val expectedHashedAnswer = expectedChallengeAnswer.expectedAnswer
+    val currentHashedAnswer = BCrypt.hashpw(challengeAnswer, challenge.salt).substring(0, 44)
+    val expectedHashedAnswer = challenge.expectedAnswer
 
     userId match {
       case None => 
         if(currentHashedAnswer==expectedHashedAnswer) {
-          tryo{expectedChallengeAnswer.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
+          tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
         } else {
           Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
         }
       case Some(id) =>
-        if(currentHashedAnswer==expectedHashedAnswer && id==expectedChallengeAnswer.expectedUserId) {
-          tryo{expectedChallengeAnswer.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
+        if(currentHashedAnswer==expectedHashedAnswer && id==challenge.expectedUserId) {
+          tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
         } else {
           Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
         }

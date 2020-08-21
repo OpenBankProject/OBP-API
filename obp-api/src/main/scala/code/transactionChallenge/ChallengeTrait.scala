@@ -1,14 +1,14 @@
 package code.transactionChallenge
 
 import code.api.util.APIUtil
-import code.remotedata.RemotedataExpectedChallengeAnswerProvider
+import code.remotedata.RemotedataChallenges
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import net.liftweb.util.{Props, SimpleInjector}
 
 
 
-trait ExpectedChallengeAnswer {
+trait ChallengeTrait {
   def challengeId : String
   def transactionRequestId : String
   def expectedAnswer : String
@@ -29,14 +29,14 @@ trait ExpectedChallengeAnswer {
 }
 
 
-object ExpectedChallengeAnswer extends SimpleInjector {
+object Challenges extends SimpleInjector {
 
-  val expectedChallengeAnswerProvider = new Inject(buildOne _) {}
+  val ChallengeProvider = new Inject(buildOne _) {}
 
-  def buildOne: ExpectedChallengeAnswerProvider =
+  def buildOne: ChallengeProvider =
     APIUtil.getPropsAsBoolValue("use_akka", false) match {
-      case false  => MappedExpectedChallengeAnswerProvider
-      case true => RemotedataExpectedChallengeAnswerProvider      // We will use Akka as a middleware
+      case false  => MappedChallengeProvider
+      case true => RemotedataChallenges      // We will use Akka as a middleware
     }
 }
 

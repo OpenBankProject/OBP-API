@@ -30,7 +30,7 @@ import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
 import code.standingorders.StandingOrderTrait
-import code.transactionChallenge.{ExpectedChallengeAnswer}
+import code.transactionChallenge.{ChallengeTrait}
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
@@ -781,7 +781,7 @@ object NewStyle {
       challengeId: String, 
       hashOfSuppliedAnswer: String, 
       callContext: Option[CallContext]
-    ): OBPReturnType[ExpectedChallengeAnswer] = {
+    ): OBPReturnType[ChallengeTrait] = {
       if(challengeType == ChallengeType.BERLINGROUP_PAYMENT && transactionRequestId.isEmpty ){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId) ")}
       }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && consentId.isEmpty ){
@@ -820,7 +820,7 @@ object NewStyle {
       consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
       authenticationMethodId: Option[String],
       callContext: Option[CallContext]
-    ) : OBPReturnType[List[ExpectedChallengeAnswer]] = {
+    ) : OBPReturnType[List[ChallengeTrait]] = {
       if(challengeType == ChallengeType.BERLINGROUP_PAYMENT && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
       }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
@@ -841,11 +841,11 @@ object NewStyle {
       }
     }
     
-    def getExpectedChallengeAnswersByTransactionRequestId(
+    def getChallengesByTransactionRequestId(
       transactionRequestId: String, 
       callContext:  Option[CallContext]
-    ): OBPReturnType[List[ExpectedChallengeAnswer]] = {
-      Connector.connector.vend.getExpectedChallengeAnswersByTransactionRequestId(
+    ): OBPReturnType[List[ChallengeTrait]] = {
+      Connector.connector.vend.getChallengesByTransactionRequestId(
         transactionRequestId: String,
         callContext:  Option[CallContext]
       ) map { i =>
@@ -853,11 +853,11 @@ object NewStyle {
       }
     }
 
-    def getExpectedChallengeAnswer(
+    def getChallenge(
       challengeId: String, 
       callContext:  Option[CallContext]
-    ): OBPReturnType[ExpectedChallengeAnswer] = {
-      Connector.connector.vend.getExpectedChallengeAnswer(
+    ): OBPReturnType[ChallengeTrait] = {
+      Connector.connector.vend.getChallenge(
         challengeId: String,
         callContext:  Option[CallContext]
       ) map { i =>

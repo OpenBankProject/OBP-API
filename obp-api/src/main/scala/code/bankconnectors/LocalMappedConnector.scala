@@ -53,7 +53,7 @@ import code.products.MappedProduct
 import code.standingorders.{StandingOrderTrait, StandingOrders}
 import code.taxresidence.TaxResidenceX
 import code.transaction.MappedTransaction
-import code.transactionChallenge.{ExpectedChallengeAnswer, MappedExpectedChallengeAnswer}
+import code.transactionChallenge.{ChallengeTrait, Challenges, MappedExpectedChallengeAnswer}
 import code.transactionattribute.TransactionAttributeX
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
@@ -215,7 +215,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
     authenticationMethodId: Option[String],
     callContext: Option[CallContext]
-  ): OBPReturnType[Box[List[ExpectedChallengeAnswer]]] = Future {
+  ): OBPReturnType[Box[List[ChallengeTrait]]] = Future {
     val challenges = for {
       userId <- userIds
     } yield {
@@ -246,7 +246,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       val challengeId = APIUtil.generateUUID()
       val salt = BCrypt.gensalt()
       val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
-      (ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(
+      (Challenges.ChallengeProvider.vend.saveChallenge(
         challengeId,
         transactionRequestId,
         salt,
@@ -314,21 +314,21 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   ) = Future {
     Future {
       val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
-      (ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswer(challengeId, hashOfSuppliedAnswer, userId), callContext)
+      (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
     }
   }
+  
+  override def getChallengesByTransactionRequestId(transactionRequestId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] =
+    Future {(Challenges.ChallengeProvider.vend.getChallengesByTransactionRequestId(transactionRequestId), callContext)}
 
-  override def getExpectedChallengeAnswersByTransactionRequestId(transactionRequestId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ExpectedChallengeAnswer]]] =
-    Future {(ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.getExpectedChallengeAnswersByTransactionRequestId(transactionRequestId), callContext)}
 
-
-  override def getExpectedChallengeAnswer(challengeId: String, callContext:  Option[CallContext]): OBPReturnType[Box[ExpectedChallengeAnswer]] = 
-    Future {(ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.getExpectedChallengeAnswer(challengeId), callContext)}
+  override def getChallenge(challengeId: String, callContext:  Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = 
+    Future {(Challenges.ChallengeProvider.vend.getChallenge(challengeId), callContext)}
 
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = 
     Future { 
       val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
-      (Full(ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswer(challengeId, hashOfSuppliedAnswer, userId).isDefined), callContext)
+      (Full(Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId).isDefined), callContext)
     } 
   
   

@@ -44,7 +44,7 @@ import com.openbankproject.commons.model.DirectDebitTrait
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccountCore}
 import code.standingorders.StandingOrderTrait
-import code.transactionChallenge.{ExpectedChallengeAnswer, MappedExpectedChallengeAnswer}
+import code.transactionChallenge.{ChallengeTrait, MappedExpectedChallengeAnswer}
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
 import com.openbankproject.commons.model._

@@ -274,9 +274,9 @@ This function returns an array of hyperlinks to all generated authorisation sub-
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-             (expectedChallengeAnswers, callContext) <-  NewStyle.function.getExpectedChallengeAnswersByTransactionRequestId(paymentId, callContext)
+             (challenges, callContext) <-  NewStyle.function.getChallengesByTransactionRequestId(paymentId, callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationsJson(expectedChallengeAnswers), callContext)
+             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationsJson(challenges), callContext)
            }
        }
      }
@@ -354,12 +354,12 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-             (expectedChallengeAnswer, callContext) <- NewStyle.function.getExpectedChallengeAnswer(authorisationid, callContext)
+             (challenge, callContext) <- NewStyle.function.getChallenge(authorisationid, callContext)
              
            } yield {
              (json.parse(
                s"""{
-                "scaStatus" : "${expectedChallengeAnswer.scaStatus.getOrElse("received")}"
+                "scaStatus" : "${challenge.scaStatus.getOrElse("received")}"
               }"""), callContext)
            }
          }
@@ -979,7 +979,7 @@ There are the following request types on this access path:
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
 
-             (expectedChallengeAnswer, callContext) <- NewStyle.function.validateChallengeAnswerC2(
+             (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
                ChallengeType.BERLINGROUP_PAYMENT,
                Some(paymentId),
                None,
@@ -998,13 +998,13 @@ There are the following request types on this access path:
                AccountId(existingTransactionRequest.from.account_id), 
                callContext
              )
-              _ <- if(expectedChallengeAnswer.scaStatus == Some(StrongCustomerAuthenticationStatus.finalised)) 
+              _ <- if(challenge.scaStatus == Some(StrongCustomerAuthenticationStatus.finalised)) 
                  NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
               else //If it is not `finalised`, just return the `authorisation` back, without any payments
                 Future{true}
              
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(expectedChallengeAnswer), callContext)
+             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), callContext)
            }
          }
        }

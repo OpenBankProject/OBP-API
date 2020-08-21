@@ -770,13 +770,13 @@ database_messages_scheduler_interval=3600
 # -----------------------------------------------
 
 # -- SCA (Strong Customer Authentication) method for OTP challenge-------
-# ACCOUNT_OTP_INSTRUCTION_TRANSPORT=dummy
-# SEPA_OTP_INSTRUCTION_TRANSPORT=dummy
-# FREE_FORM_OTP_INSTRUCTION_TRANSPORT=dummy
-# COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=dummy
-# SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT=dummy
-# Possible values: dummy,email,sms,PHOTO_OTP,CHIP_OTP,PHOTO_OTP,PUSH_OTP
-# In case isn't defined default value is "sms"
+# ACCOUNT_OTP_INSTRUCTION_TRANSPORT=DUMMY
+# SEPA_OTP_INSTRUCTION_TRANSPORT=DUMMY
+# FREE_FORM_OTP_INSTRUCTION_TRANSPORT=DUMMY
+# COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=DUMMY
+# SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT=DUMMY
+# Possible values: DUMMY,EMAIL,SMS,PHOTO_OTP,CHIP_OTP,PHOTO_OTP,PUSH_OTP
+# In case isn't defined default value is "SMS"
 # -----------------------------------------------------------------------
 
 # Convert the Bank's plain text reference(s) to OBP UUIDs and visa versa. Note: this is currently only for the Rest Connector.

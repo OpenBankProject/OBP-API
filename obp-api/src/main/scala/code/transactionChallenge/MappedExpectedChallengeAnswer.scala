@@ -6,7 +6,7 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import net.liftweb.mapper._
 
-class MappedExpectedChallengeAnswer extends ExpectedChallengeAnswer with LongKeyedMapper[MappedExpectedChallengeAnswer] with IdPK with CreatedUpdated {
+class MappedExpectedChallengeAnswer extends ChallengeTrait with LongKeyedMapper[MappedExpectedChallengeAnswer] with IdPK with CreatedUpdated {
 
   def getSingleton = MappedExpectedChallengeAnswer
 

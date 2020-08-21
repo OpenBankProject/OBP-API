@@ -61,7 +61,7 @@ import scala.math.{BigDecimal, BigInt}
 import scala.util.Random
 import scala.reflect.runtime.universe.{MethodSymbol, typeOf}
 import _root_.akka.http.scaladsl.model.HttpMethod
-import code.transactionChallenge.{ExpectedChallengeAnswer, MappedExpectedChallengeAnswer}
+import code.transactionChallenge.{ChallengeTrait, MappedExpectedChallengeAnswer}
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, InBoundTrait, ProductCollectionItemsTree}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 
@@ -387,7 +387,7 @@ trait Connector extends MdcLoggable {
     scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
     consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
     authenticationMethodId: Option[String],
-    callContext: Option[CallContext]) : OBPReturnType[Box[List[ExpectedChallengeAnswer]]]= Future{(Failure(setUnimplementedError), callContext)}
+    callContext: Option[CallContext]) : OBPReturnType[Box[List[ChallengeTrait]]]= Future{(Failure(setUnimplementedError), callContext)}
   
   // Validates an answer for a challenge and returns if the answer is correct or not
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Full(true), callContext)}
@@ -398,11 +398,11 @@ trait Connector extends MdcLoggable {
     challengeId: String,
     hashOfSuppliedAnswer: String,
     callContext: Option[CallContext]
-  ): OBPReturnType[Box[ExpectedChallengeAnswer]] = Future{(Failure(setUnimplementedError), callContext)}
+  ): OBPReturnType[Box[ChallengeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
 
-  def getExpectedChallengeAnswersByTransactionRequestId(transactionRequestId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ExpectedChallengeAnswer]]] = Future{(Failure(setUnimplementedError), callContext)}
+  def getChallengesByTransactionRequestId(transactionRequestId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
   
-  def getExpectedChallengeAnswer(challengeId: String, callContext:  Option[CallContext]): OBPReturnType[Box[ExpectedChallengeAnswer]] = Future{(Failure(setUnimplementedError), callContext)}
+  def getChallenge(challengeId: String, callContext:  Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
   
   //gets a particular bank handled by this connector
   def getBankLegacy(bankId : BankId, callContext: Option[CallContext]) : Box[(Bank, Option[CallContext])] = Failure(setUnimplementedError)

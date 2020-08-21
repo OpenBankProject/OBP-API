@@ -6,8 +6,8 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatu
 import net.liftweb.common.Box
 
 
-trait ExpectedChallengeAnswerProvider {
-  def saveExpectedChallengeAnswer(
+trait ChallengeProvider {
+  def saveChallenge(
     challengeId: String,
     transactionRequestId: String,
     salt: String,
@@ -17,23 +17,23 @@ trait ExpectedChallengeAnswerProvider {
     scaStatus: Option[SCAStatus],
     consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
      authenticationMethodId: Option[String], 
-  ): Box[ExpectedChallengeAnswer]
+  ): Box[ChallengeTrait]
   
-  def getExpectedChallengeAnswer(challengeId: String): Box[ExpectedChallengeAnswer]
+  def getChallenge(challengeId: String): Box[ChallengeTrait]
   
-  def getExpectedChallengeAnswersByTransactionRequestId(transactionRequestId: String): Box[List[ExpectedChallengeAnswer]]
+  def getChallengesByTransactionRequestId(transactionRequestId: String): Box[List[ChallengeTrait]]
   
   /**
     * There is another method:  Connector.validateChallengeAnswer, it validate the challenge over Kafka.
     * This method, will validate the answer in OBP side. 
     */
-  def validateChallengeAnswer(challengeId: String, challengeAnswer: String, userId: Option[String]) : Box[ExpectedChallengeAnswer] 
+  def validateChallenge(challengeId: String, challengeAnswer: String, userId: Option[String]) : Box[ChallengeTrait] 
 }
 
 
 
-class RemotedataExpectedChallengeAnswerProviderCaseClasses {
-  case class saveExpectedChallengeAnswer(
+class RemotedataChallengeProviderCaseClasses {
+  case class saveChallenge(
     challengeId: String,
     transactionRequestId: String,
     salt: String,
@@ -44,11 +44,11 @@ class RemotedataExpectedChallengeAnswerProviderCaseClasses {
     consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
     authenticationMethodId: Option[String]
   )
-  case class getExpectedChallengeAnswer(challengeId: String)
-  case class getExpectedChallengeAnswersByTransactionRequestId(transactionRequestId: String)
-  case class validateChallengeAnswer(challengeId: String, challengeAnswer: String, userId: Option[String])
+  case class getChallenge(challengeId: String)
+  case class getChallengesByTransactionRequestId(transactionRequestId: String)
+  case class validateChallenge(challengeId: String, challengeAnswer: String, userId: Option[String])
 }
 
-object RemotedataExpectedChallengeAnswerProviderCaseClasses extends RemotedataExpectedChallengeAnswerProviderCaseClasses
+object RemotedataChallengeProviderCaseClasses extends RemotedataChallengeProviderCaseClasses
 
 
