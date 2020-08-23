@@ -4269,18 +4269,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
     Full(res)
   }
-  
-  override def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEndpointT]] = Future {
-    (DynamicEndpointProvider.connectorMethodProvider.vend.create(swaggerString), callContext)
-  }
-
-  override  def getDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEndpointT]] = Future {
-    (DynamicEndpointProvider.connectorMethodProvider.vend.get(dynamicEndpointId), callContext)
-  }
-  
-  override def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
-    (DynamicEndpointProvider.connectorMethodProvider.vend.getAll(), callContext)
-  }
 
   override def deleteCustomerAttribute(customerAttributeId: String, callContext: Option[CallContext] ): OBPReturnType[Box[Boolean]] = {
     CustomerAttributeX.customerAttributeProvider.vend.deleteCustomerAttribute(customerAttributeId)  map { ( _, callContext) }
