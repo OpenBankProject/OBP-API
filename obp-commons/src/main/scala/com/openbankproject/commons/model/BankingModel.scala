@@ -352,3 +352,9 @@ case class CounterpartyBespoke(
 case class CustomerDependant(
   dateOfBirth: Date
 )
+
+trait DoubleEntryBookTransactionTrait {
+  def transactionRequestId: Option[TransactionRequestId]
+  def debitTransactionId: TransactionId
+  def creditTransactionId: TransactionId
+}
