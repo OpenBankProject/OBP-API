@@ -26,7 +26,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
 
     //to find exists dynamicEntity, if dynamicEntityId supplied, query by dynamicEntityId, or use entityName and dynamicEntityId to do query
     val existsDynamicEntity: Box[DynamicEntity] = dynamicEntity.dynamicEntityId match {
-      case Some(id) if (StringUtils.isNotBlank(id)) => getByDynamicEntityId(id)
+      case Some(id) if StringUtils.isNotBlank(id) => getByDynamicEntityId(id)
       case _ => Empty
     }
     val entityToPersist = existsDynamicEntity match {
