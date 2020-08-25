@@ -455,15 +455,7 @@ trait APIMethods310 {
          |Allows bulk access to customers.
          |User must have the CanUseFirehoseAtAnyBank Role
          |
-         |Possible custom URL parameters for pagination:
-         |
-         |* sort_direction=ASC/DESC
-         |* limit=NUMBER ==> default value: 50
-         |* offset=NUMBER ==> default value: 0
-         |* from_date=DATE => default value: date of the oldest customer created (format below)
-         |* to_date=DATE => default value: date of the newest customer created (format below)
-         |
-         |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.
+         |${urlParametersDocument(true, true)}
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -999,10 +991,9 @@ trait APIMethods310 {
          |
          |Possible custom URL parameters for pagination:
          |
-         |* limit=NUMBER
-         |* offset=NUMBER
-         |* account_id=STRING
-         |* user_id=STRING
+         |${urlParametersDocument(false, false)}
+         |* account_id=STRING (if null ignore)
+         |* user_id=STRING (if null ignore)
          |
          |
         |""",
