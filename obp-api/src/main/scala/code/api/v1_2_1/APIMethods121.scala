@@ -2139,20 +2139,13 @@ trait APIMethods121 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
       "Get Transactions for Account (Full)",
-      """Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
+      s"""Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
          |
          |Authentication via OAuth is required if the view is not public.
          |
-         |Possible custom headers for pagination:
+         |${urlParametersDocument(true, true)}
          |
-         |* obp_sort_by=CRITERIA ==> default value: "completed" field
-         |* obp_sort_direction=ASC/DESC ==> default value: DESC
-         |* obp_limit=NUMBER ==> default value: 50
-         |* obp_offset=NUMBER ==> default value: 0
-         |* obp_from_date=DATE => default value: date of the oldest transaction registered (format below)
-         |* obp_to_date=DATE => default value: date of the newest transaction registered (format below)
-         |
-         |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.""",
+         |""",
       emptyObjectJson,
       transactionsJSON,
       List(BankAccountNotFound, UnknownError),
