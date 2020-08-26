@@ -29,7 +29,7 @@ import com.openbankproject.commons.model.FXRate
 import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
-import code.model.dataAccess.BankAccountRouting
+import code.model.dataAccess.{BankAccountRouting, DoubleEntryBookTransaction}
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
@@ -955,7 +955,12 @@ object NewStyle {
       ) map { i => 
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForMakePayment ",400), i._2)
       }
-    
+
+    def saveDoubleEntryBookTransaction(transactionRequestId: Option[TransactionRequestId], debitTransactionId: TransactionId, creditTransactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[DoubleEntryTransaction] =
+      Connector.connector.vend.saveDoubleEntryBookTransaction(transactionRequestId: Option[TransactionRequestId], debitTransactionId: TransactionId, creditTransactionId: TransactionId, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForSaveDoubleEntryBookTransaction ", 400), i._2)
+      }
+
     def createOrUpdateProductAttribute(
       bankId: BankId,
       productCode: ProductCode,

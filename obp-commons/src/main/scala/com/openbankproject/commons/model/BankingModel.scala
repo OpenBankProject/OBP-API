@@ -358,3 +358,11 @@ trait DoubleEntryBookTransactionTrait {
   def debitTransactionId: TransactionId
   def creditTransactionId: TransactionId
 }
+
+case class DoubleEntryTransaction(
+                                   transactionRequestId: Option[TransactionRequestId],
+                                   debitTransactionId: TransactionId,
+                                   creditTransactionId: TransactionId
+                                 ) extends DoubleEntryBookTransactionTrait
+object DoubleEntryTransaction extends Converter[DoubleEntryBookTransactionTrait, DoubleEntryTransaction]
+
