@@ -1119,7 +1119,7 @@ trait APIMethods310 {
          |
          |""",
       emptyObjectJson,
-      transactionJSON,
+      transactionJsonV300,
       List(UserNotLoggedIn, BankAccountNotFound ,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagTransaction, apiTagNewStyle))
@@ -1136,8 +1136,12 @@ trait APIMethods310 {
             (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(bankId, accountId, transactionId, view, user, callContext) map {
               unboxFullOrFail(_, callContext, GetTransactionsException)
             }
+            (transactionAttributes, callContext) <- NewStyle.function.getTransactionAttributes(
+              bankId,
+              transactionId,
+              cc.callContext: Option[CallContext])
           } yield {
-            (JSONFactory.createTransactionJSON(moderatedTransaction), HttpCode.`200`(callContext))
+            (JSONFactory300.createTransactionJSON(moderatedTransaction, transactionAttributes), HttpCode.`200`(callContext))
           }
       }
     }

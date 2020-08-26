@@ -36,7 +36,7 @@ import code.api.v1_2_1.TransactionJSON
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.TransactionRequestWithChargeJSONs210
 import code.api.v2_2_0.CounterpartyWithMetadataJson
-import code.api.v3_0_0.NewModeratedCoreAccountJsonV300
+import code.api.v3_0_0.{NewModeratedCoreAccountJsonV300, TransactionJsonV300}
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations2_2_0
@@ -186,9 +186,9 @@ class TransactionTest extends V310ServerSetup {
       val getTransactionbyIdResponse = makeGetRequest(getTransactionbyIdRequest)
 
       getTransactionbyIdResponse.code should equal(200)
-      getTransactionbyIdResponse.body.extract[TransactionJSON].id should be(transactionNewId)
-      getTransactionbyIdResponse.body.extract[TransactionJSON].details.`type` should be(postJsonAccount.`type`)
-      getTransactionbyIdResponse.body.extract[TransactionJSON].details.description should be(postJsonAccount.description)
+      getTransactionbyIdResponse.body.extract[TransactionJsonV300].id should be(transactionNewId)
+      getTransactionbyIdResponse.body.extract[TransactionJsonV300].details.`type` should be(postJsonAccount.`type`)
+      getTransactionbyIdResponse.body.extract[TransactionJsonV300].details.description should be(postJsonAccount.description)
       
     }
 
@@ -259,9 +259,9 @@ class TransactionTest extends V310ServerSetup {
       val getTransactionbyIdResponse = makeGetRequest(getTransactionbyIdRequest)
 
       getTransactionbyIdResponse.code should equal(200)
-      getTransactionbyIdResponse.body.extract[TransactionJSON].id should be(transactionNewId)
-      getTransactionbyIdResponse.body.extract[TransactionJSON].details.`type` should be(postJsonAccount.`type`)
-      getTransactionbyIdResponse.body.extract[TransactionJSON].details.description should be(postJsonAccount.description)
+      getTransactionbyIdResponse.body.extract[TransactionJsonV300].id should be(transactionNewId)
+      getTransactionbyIdResponse.body.extract[TransactionJsonV300].details.`type` should be(postJsonAccount.`type`)
+      getTransactionbyIdResponse.body.extract[TransactionJsonV300].details.description should be(postJsonAccount.description)
     }
 
     scenario("We will test saveHistoricalTransaction -- counterparty  --> account", ApiEndpoint2, VersionOfApi) {
@@ -331,9 +331,9 @@ class TransactionTest extends V310ServerSetup {
       val getTransactionbyIdResponse = makeGetRequest(getTransactionbyIdRequest)
 
       getTransactionbyIdResponse.code should equal(200)
-      getTransactionbyIdResponse.body.extract[TransactionJSON].id should be(transactionNewId)
-      getTransactionbyIdResponse.body.extract[TransactionJSON].details.`type` should be(postJsonAccount.`type`)
-      getTransactionbyIdResponse.body.extract[TransactionJSON].details.description should be(postJsonAccount.description)
+      getTransactionbyIdResponse.body.extract[TransactionJsonV300].id should be(transactionNewId)
+      getTransactionbyIdResponse.body.extract[TransactionJsonV300].details.`type` should be(postJsonAccount.`type`)
+      getTransactionbyIdResponse.body.extract[TransactionJsonV300].details.description should be(postJsonAccount.description)
     }
 
     scenario("We will test saveHistoricalTransaction -- counterparty  --> counterparty", ApiEndpoint2, VersionOfApi) {
@@ -415,9 +415,9 @@ class TransactionTest extends V310ServerSetup {
       val getTransactionbyIdResponse = makeGetRequest(getTransactionbyIdRequest)
 
       getTransactionbyIdResponse.code should equal(200)
-      getTransactionbyIdResponse.body.extract[TransactionJSON].id should be(transactionNewId)
-      getTransactionbyIdResponse.body.extract[TransactionJSON].details.`type` should be(postJsonAccount.`type`)
-      getTransactionbyIdResponse.body.extract[TransactionJSON].details.description should be(postJsonAccount.description)
+      getTransactionbyIdResponse.body.extract[TransactionJsonV300].id should be(transactionNewId)
+      getTransactionbyIdResponse.body.extract[TransactionJsonV300].details.`type` should be(postJsonAccount.`type`)
+      getTransactionbyIdResponse.body.extract[TransactionJsonV300].details.description should be(postJsonAccount.description)
     }
     
     scenario(s"We will test saveHistoricalTransaction --counterparty- test error: $InvalidJsonFormat", ApiEndpoint2, VersionOfApi) {
