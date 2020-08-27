@@ -317,6 +317,8 @@ case class UserLockStatusJson(
                                last_lock_date : Date
                              )
 
+case class LogoutLinkJson(link: String)
+
 case class DatabaseInfoJson(product_name: String, product_version: String)
 
 case class ChallengeJson(

@@ -7,7 +7,7 @@ import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{logoutLinkV400, _}
 import code.api.util.APIUtil.{PrimaryDataBody, fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -115,6 +115,38 @@ trait APIMethods400 {
           } yield {
             (Migration.DbFunction.mapperDatabaseInfo(), HttpCode.`200`(callContext))
           }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getLogoutLink,
+      implementedInApiVersion,
+      nameOf(getLogoutLink), // TODO can we get this string from the val two lines above?
+      "GET",
+      "/users/current/logout-link",
+      "Get Logout Link",
+      s"""Get the Logout Link
+         |
+         |${authenticationRequiredMessage(true)}
+      """.stripMargin,
+      emptyObjectJson,
+      logoutLinkV400,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagUser, apiTagNewStyle))
+
+    lazy val getLogoutLink: OBPEndpoint = {
+      case "users" :: "current" :: "logout-link" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (Full(_), callContext) <- authenticatedAccess(cc)
+          } yield {
+            val link = code.api.Constant.HostName + AuthUser.logoutPath.foldLeft("")(_ + "/" + _)
+            val logoutLink = LogoutLinkJson(link)
+            (logoutLink, HttpCode.`200`(callContext))
+          }
+        }
       }
     }
 

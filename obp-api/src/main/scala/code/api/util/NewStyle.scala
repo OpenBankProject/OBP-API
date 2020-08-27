@@ -58,6 +58,23 @@ import scala.reflect.runtime.universe.MethodSymbol
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
+    (nameOf(Implementations1_2_1.deleteWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.updateWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addImageForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteImageForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getImagesForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getTagsForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addCommentForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteCommentForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getCommentsForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteTransactionNarrative), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.updateTransactionNarrative), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addTransactionNarrative), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getTransactionNarrative), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.deleteViewForBankAccount), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addPermissionForUserForBankAccountForOneView), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_4_0.getTransactionRequestTypes), ApiVersion.v1_4_0.toString),

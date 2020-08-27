@@ -263,10 +263,17 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @return a Full(true) if everything is okay, a Failure otherwise
     */
   final def grantAccessToView(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[View] = {
+    def grantAccessToCustomOrSystemView(user: User): Box[View] = {
+      val ViewIdBankIdAccountId(viewId, bankId, accountId) = viewUID
+      Views.views.vend.systemView(viewId) match {
+        case Full(systemView) => Views.views.vend.grantAccessToSystemView(bankId, accountId, systemView, user)
+        case _ => Views.views.vend.grantAccessToCustomView(viewUID, user)
+      }
+    }
     if(canGrantAccessToViewCommon(bankId, accountId, user))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        savedView <- Views.views.vend.grantAccessToCustomView(viewUID, otherUser) ?~ "could not save the privilege"
+        savedView <- grantAccessToCustomOrSystemView(otherUser) ?~ "could not save the privilege"
       } yield savedView
     else
       Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
@@ -297,11 +304,18 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @return a Full(true) if everything is okay, a Failure otherwise
     */
   final def revokeAccessToView(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
+    def revokeAccessToCustomOrSystemView(user: User): Box[Boolean] = {
+      val ViewIdBankIdAccountId(viewId, bankId, accountId) = viewUID
+      Views.views.vend.systemView(viewId) match {
+        case Full(systemView) => Views.views.vend.revokeAccessToSystemView(bankId, accountId, systemView, user)
+        case _ => Views.views.vend.revokeAccess(viewUID, user)
+      }
+    }
     //check if the user have access to the owner view in this the account
     if(canRevokeAccessToViewCommon(bankId, accountId, user))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        isRevoked <- Views.views.vend.revokeAccess(viewUID, otherUser) ?~ "could not revoke the privilege"
+        isRevoked <- revokeAccessToCustomOrSystemView(otherUser: User) ?~ "could not revoke the privilege"
       } yield isRevoked
     else
       Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
