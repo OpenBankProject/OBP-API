@@ -45,7 +45,7 @@ This file defines which endpoints from all the versions are available in v1
  */
 object MxOpenFinanceCollector extends OBPRestHelper with MdcLoggable with ScannedApis {
   //please modify these three parameter if it is not correct.
-  override val apiVersion = ScannedApiVersion("mx-open-finance", "MXOF", "v0.0.1")
+  override val apiVersion = ScannedApiVersion("mx-open-finance", "MXOF", "v1.0")
   val versionStatus = "DRAFT"
 
   private[this] val endpoints =
