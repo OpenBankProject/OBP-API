@@ -3499,7 +3499,6 @@ object SwaggerDefinitionsJSON {
     balance = amountOfMoneyJsonV121,
     account_routings = List(accountRoutingJsonV121),
     views_basic = List(viewBasicV300),
-    account_attributes = List(accountAttributeResponseJson),
     tags = List(accountTagJSON)
   )
 
