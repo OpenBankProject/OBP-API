@@ -1,8 +1,7 @@
 package code.api.MxOpenFinace
 
-import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
-import code.api.util.ApiTag
+import code.api.util.{ApiTag, CallContext, NewStyle}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import com.github.dwickern.macros.NameOf.nameOf
@@ -11,9 +10,14 @@ import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json._
+import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_1_0._
+import code.metadata.tags.Tags
+import code.util.Helper
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Future
 
 object APIMethods_AccountsApi extends RestHelper {
     val apiVersion =  MxOpenFinanceCollector.apiVersion
@@ -38,23 +42,7 @@ object APIMethods_AccountsApi extends RestHelper {
             Get Account by AccountId
             """,
        json.parse(""""""),
-       json.parse("""{
-  "Meta" : {
-    "LastAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "FirstAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "TotalPages" : 0
-  },
-  "Links" : {
-    "Last" : "Last",
-    "Prev" : "Prev",
-    "Next" : "Next",
-    "Self" : "Self",
-    "First" : "First"
-  },
-  "Data" : {
-    "Account" : [ "{}", "{}" ]
-  }
-}"""),
+       ofReadAccountBasic,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Accounts") :: apiTagMockedData :: Nil
@@ -64,25 +52,18 @@ object APIMethods_AccountsApi extends RestHelper {
        case "accounts" :: accountId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
-             } yield {
-            (json.parse("""{
-  "Meta" : {
-    "LastAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "FirstAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "TotalPages" : 0
-  },
-  "Links" : {
-    "Last" : "Last",
-    "Prev" : "Prev",
-    "Next" : "Next",
-    "Self" : "Self",
-    "First" : "First"
-  },
-  "Data" : {
-    "Account" : [ "{}", "{}" ]
-  }
-}"""), callContext)
+             (Full(user), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+             (account, callContext) <- NewStyle.function.getBankAccount(BankId(defaultBankId), AccountId(accountId), callContext)
+             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(BankId(defaultBankId), AccountId(accountId)), callContext)
+             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), callContext)
+             (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
+               BankId(defaultBankId),
+               account.accountId,
+               cc.callContext: Option[CallContext])
+             tags <- Future(Tags.tags.vend.getTagsOnAccount(BankId(defaultBankId), account.accountId)(view.viewId))
+           } yield {
+            (createOFReadAccountBasicJson(moderatedAccount), callContext)
            }
          }
        }
