@@ -46,7 +46,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
   
   val startDateString = DateWithMsForFilteringFromDateString
   val startDateStringWrongFormat = "Wrong Date Format"
-  val endDateString = DateWithMsForFilteringEenDateString
+  val endDateString = DateWithMsForFilteringEndDateString
   val endDateStringWrongFormat = "Wrong Date Format"
   val inputStringDateFormat = DateWithMsFormat
   val startDateObject: Date = DefaultFromDate
