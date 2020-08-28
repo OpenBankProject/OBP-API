@@ -1098,45 +1098,64 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
       fromTransAmt = -amount //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, rate)
-      debitTransactionId <- Future {
+      debitTransactionBox <- Future {
         saveTransaction(fromAccount, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
+          .map(debitTransactionId => (fromAccount.bankId, fromAccount.accountId, debitTransactionId))
           .or {
             val settlementAccount = BankAccountX(toAccount.bankId, AccountId(transactionRequestType.value), callContext)
               .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
             settlementAccount.flatMap(settlementAccount =>
               saveTransaction(settlementAccount._1, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
+                .map(debitTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, debitTransactionId))
             )
           }
       }
-      creditTransactionId <- Future {
+      creditTransactionBox <- Future {
         saveTransaction(toAccount, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
+          .map(creditTransactionId => (toAccount.bankId, toAccount.accountId, creditTransactionId))
           .or {
             val settlementAccount = BankAccountX(fromAccount.bankId, AccountId(transactionRequestType.value), callContext)
               .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
             settlementAccount.flatMap(settlementAccount =>
               saveTransaction(settlementAccount._1, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
+                .map(creditTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, creditTransactionId))
             )
           }
       }
+
+      debitTransaction = debitTransactionBox.openOrThrowException("Error while opening debitTransaction")
+      creditTransaction = creditTransactionBox.openOrThrowException("Error while opening creditTransaction")
+
       _ <- NewStyle.function.saveDoubleEntryBookTransaction(
-        Some(transactionRequestId),
-        debitTransactionId.openOrThrowException("Error while opening debitTransactionId"),
-        creditTransactionId.openOrThrowException("Error while opening creditTransactionId"),
-        callContext)
+        DoubleEntryTransaction(
+          transactionRequestBankId = Some(fromAccount.bankId),
+          transactionRequestAccountId = Some(fromAccount.accountId),
+          transactionRequestId = Some(transactionRequestId),
+          debitTransactionBankId = debitTransaction._1,
+          debitTransactionAccountId = debitTransaction._2,
+          debitTransactionId = debitTransaction._3,
+          creditTransactionBankId = creditTransaction._1,
+          creditTransactionAccountId = creditTransaction._2,
+          creditTransactionId = creditTransaction._3
+        ), callContext)
     } yield {
-      (debitTransactionId, callContext)
+      (debitTransactionBox.map(_._3), callContext)
     }
   }
 
-  override def saveDoubleEntryBookTransaction(transactionRequestId: Option[TransactionRequestId],
-                                     debitTransactionId: TransactionId,
-                                     creditTransactionId: TransactionId,
-                                     callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]] = {
+  override def saveDoubleEntryBookTransaction(doubleEntryTransaction: DoubleEntryTransaction,
+                                              callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]] = {
   Future(
     tryo(DoubleEntryBookTransaction.create
-      .TransactionRequestId(transactionRequestId.map(_.value).getOrElse(""))
-      .DebitTransactionId(debitTransactionId.value)
-      .CreditTransactionId(creditTransactionId.value)
+      .TransactionRequestBankId(doubleEntryTransaction.transactionRequestBankId.map(_.value).getOrElse(""))
+      .TransactionRequestAccountId(doubleEntryTransaction.transactionRequestAccountId.map(_.value).getOrElse(""))
+      .TransactionRequestId(doubleEntryTransaction.transactionRequestId.map(_.value).getOrElse(""))
+      .DebitTransactionBankId(doubleEntryTransaction.debitTransactionBankId.value)
+      .DebitTransactionAccountId(doubleEntryTransaction.debitTransactionAccountId.value)
+      .DebitTransactionId(doubleEntryTransaction.debitTransactionId.value)
+      .CreditTransactionBankId(doubleEntryTransaction.creditTransactionBankId.value)
+      .CreditTransactionAccountId(doubleEntryTransaction.creditTransactionAccountId.value)
+      .CreditTransactionId(doubleEntryTransaction.creditTransactionId.value)
       .saveMe())
   ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
   }
@@ -1165,16 +1184,59 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       toAccountId = AccountId(transactionRequest.from.account_id)
       toAccountRoutingScheme = transactionRequest.other_account_routing_scheme
       toAccountRoutingAddress = transactionRequest.other_account_routing_address
-      toAccount = Connector.connector.vend.getBankAccountByRouting(None, toAccountRoutingScheme, toAccountRoutingAddress, None).map(_._1).openOrThrowException(s"$BankAccountNotFound Current Scheme(${toAccountRoutingScheme}), Address(${toAccountRoutingAddress}) ")
+      toAccount <-
+        Connector.connector.vend.getBankAccountByRouting(None, toAccountRoutingScheme, toAccountRoutingAddress, None) match {
+          case Full(bankAccount) => Future.successful(bankAccount._1)
+          case _: EmptyBox =>
+            NewStyle.function.getCounterpartyByIban(toAccountRoutingAddress, callContext).flatMap(counterparty =>
+              NewStyle.function.getBankAccountFromCounterparty(counterparty._1, isOutgoingAccount = true, callContext)
+            )
+        }
       transactionRequestCommonBody = TransactionRequestCommonBodyJSONCommons(AmountOfMoneyJsonV121(transactionRequest.body.value.amount, fromCurrency), transactionRequest.body.description)
-      sentTransactionId <- Future {
+
+
+      debitTransactionBox <- Future {
         saveTransaction(fromAccount, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
+          .map(debitTransactionId => (fromAccount.bankId, fromAccount.accountId, debitTransactionId))
+          .or {
+            val settlementAccount = BankAccountX(toAccount.bankId, AccountId(transactionRequestType.value), callContext)
+              .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
+            settlementAccount.flatMap(settlementAccount =>
+              saveTransaction(settlementAccount._1, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
+                .map(debitTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, debitTransactionId))
+            )
+          }
       }
-      _sentTransactionId <- Future {
+      creditTransactionBox <- Future {
         saveTransaction(toAccount, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
+          .map(creditTransactionId => (toAccount.bankId, toAccount.accountId, creditTransactionId))
+          .or {
+            val settlementAccount = BankAccountX(fromAccount.bankId, AccountId(transactionRequestType.value), callContext)
+              .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
+            settlementAccount.flatMap(settlementAccount =>
+              saveTransaction(settlementAccount._1, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
+                .map(creditTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, creditTransactionId))
+            )
+          }
       }
+
+      debitTransaction = debitTransactionBox.openOrThrowException("Error while opening debitTransaction")
+      creditTransaction = creditTransactionBox.openOrThrowException("Error while opening creditTransaction")
+
+      _ <- NewStyle.function.saveDoubleEntryBookTransaction(
+        DoubleEntryTransaction(
+          transactionRequestBankId = Some(fromAccount.bankId),
+          transactionRequestAccountId = Some(fromAccount.accountId),
+          transactionRequestId = Some(transactionRequest.id),
+          debitTransactionBankId = debitTransaction._1,
+          debitTransactionAccountId = debitTransaction._2,
+          debitTransactionId = debitTransaction._3,
+          creditTransactionBankId = creditTransaction._1,
+          creditTransactionAccountId = creditTransaction._2,
+          creditTransactionId = creditTransaction._3
+        ), callContext)
     } yield {
-      (sentTransactionId, callContext)
+      (debitTransactionBox.map(_._3), callContext)
     }
   }
 
@@ -1196,36 +1258,48 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       fromTransAmt = -amount //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, rate)
 
-      _ <- Future(println(fromAccount))
-      _ <- Future(println(toAccount))
-
-      debitTransactionId <- Future(
+      debitTransactionBox <- Future(
         saveHistoricalTransaction(fromAccount, toAccount, posted, completed, fromTransAmt, description, transactionRequestType, chargePolicy, callContext)
+          .map(debitTransactionId => (fromAccount.bankId, fromAccount.accountId, debitTransactionId))
           .or {
             val settlementAccount = BankAccountX(toAccount.bankId, AccountId(transactionRequestType), callContext)
               .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
-              .openOrThrowException("Error while opening incoming settlement settlementAccount")
-            saveHistoricalTransaction(settlementAccount._1, toAccount, posted, completed, fromTransAmt, description, transactionRequestType, chargePolicy, callContext)
+            settlementAccount.flatMap(settlementAccount =>
+              saveHistoricalTransaction(settlementAccount._1, toAccount, posted, completed, fromTransAmt, description, transactionRequestType, chargePolicy, callContext)
+                .map(debitTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, debitTransactionId))
+            )
           }
       )
-
-      creditTransactionId <- Future(
+      creditTransactionBox <- Future(
         saveHistoricalTransaction(toAccount, fromAccount, posted, completed, toTransAmt, description, transactionRequestType, chargePolicy, callContext)
+          .map(creditTransactionId => (toAccount.bankId, toAccount.accountId, creditTransactionId))
           .or {
             val settlementAccount = BankAccountX(fromAccount.bankId, AccountId(transactionRequestType), callContext)
               .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
-              .openOrThrowException("Error while opening outgoing settlement settlementAccount")
-            saveHistoricalTransaction(settlementAccount._1, fromAccount, posted, completed, toTransAmt, description, transactionRequestType, chargePolicy, callContext)
+            settlementAccount.flatMap(settlementAccount =>
+              saveHistoricalTransaction(settlementAccount._1, fromAccount, posted, completed, toTransAmt, description, transactionRequestType, chargePolicy, callContext)
+                .map(creditTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, creditTransactionId))
+            )
           }
       )
 
+      debitTransaction = debitTransactionBox.openOrThrowException("Error while opening debitTransaction")
+      creditTransaction = creditTransactionBox.openOrThrowException("Error while opening creditTransaction")
+
       _ <- NewStyle.function.saveDoubleEntryBookTransaction(
-        transactionRequestId = None,
-        debitTransactionId.openOrThrowException("Error while opening debitTransactionId"),
-        creditTransactionId.openOrThrowException("Error while opening creditTransactionId"),
-        callContext)
+        DoubleEntryTransaction(
+          transactionRequestBankId = None,
+          transactionRequestAccountId = None,
+          transactionRequestId = None,
+          debitTransactionBankId = debitTransaction._1,
+          debitTransactionAccountId = debitTransaction._2,
+          debitTransactionId = debitTransaction._3,
+          creditTransactionBankId = creditTransaction._1,
+          creditTransactionAccountId = creditTransaction._2,
+          creditTransactionId = creditTransaction._3
+        ), callContext)
     } yield {
-      (debitTransactionId, callContext)
+      (debitTransactionBox.map(_._3), callContext)
     }
   }
 

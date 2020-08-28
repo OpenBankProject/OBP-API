@@ -704,9 +704,7 @@ trait Connector extends MdcLoggable {
                       chargePolicy: String,
                       callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]]= Future{(Failure(setUnimplementedError), callContext)}
 
-  def saveDoubleEntryBookTransaction(transactionRequestId: Option[TransactionRequestId],
-                                     debitTransactionId: TransactionId,
-                                     creditTransactionId: TransactionId,
+  def saveDoubleEntryBookTransaction(doubleEntryTransaction: DoubleEntryTransaction,
                                      callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]]= Future{(Failure(setUnimplementedError), callContext)}
 
   protected def makePaymentImpl(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId]= Failure(setUnimplementedError)

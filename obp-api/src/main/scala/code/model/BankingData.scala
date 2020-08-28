@@ -554,14 +554,18 @@ object BankAccountX {
       }
     else {
       //in obp we are creating a fake account with the counterparty information in this case:
-      //These are just the obp mapped mode, if connector to the bank, bank will decide it. 
+      //These are just the obp mapped mode, if connector to the bank, bank will decide it.
+
+      val accountRouting1 =
+        if (counterparty.otherAccountRoutingScheme.isEmpty) Nil
+        else List(AccountRouting(counterparty.otherAccountRoutingScheme, counterparty.otherAccountRoutingAddress))
+      val accountRouting2 =
+        if (counterparty.otherAccountSecondaryRoutingScheme.isEmpty) Nil
+        else List(AccountRouting(counterparty.otherAccountSecondaryRoutingScheme, counterparty.otherAccountSecondaryRoutingAddress))
 
       Full(BankAccountCommons(
         AccountId(""), "", 0, "EUR", "", "", "", BankId(""), new Date(), "",
-        accountRoutings = List(
-          AccountRouting(counterparty.otherAccountRoutingScheme, counterparty.otherAccountRoutingAddress),
-          AccountRouting(counterparty.otherAccountSecondaryRoutingScheme, counterparty.otherAccountSecondaryRoutingAddress)
-        ),
+        accountRoutings = accountRouting1 ++ accountRouting2,
         List.empty, accountHolder = counterparty.name,
         Some(List(Attribute(
           name = "BANK_ROUTING_SCHEME",

@@ -956,8 +956,8 @@ object NewStyle {
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForMakePayment ",400), i._2)
       }
 
-    def saveDoubleEntryBookTransaction(transactionRequestId: Option[TransactionRequestId], debitTransactionId: TransactionId, creditTransactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[DoubleEntryTransaction] =
-      Connector.connector.vend.saveDoubleEntryBookTransaction(transactionRequestId: Option[TransactionRequestId], debitTransactionId: TransactionId, creditTransactionId: TransactionId, callContext: Option[CallContext]) map { i =>
+    def saveDoubleEntryBookTransaction(doubleEntryTransaction: DoubleEntryTransaction, callContext: Option[CallContext]): OBPReturnType[DoubleEntryTransaction] =
+      Connector.connector.vend.saveDoubleEntryBookTransaction(doubleEntryTransaction: DoubleEntryTransaction, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForSaveDoubleEntryBookTransaction ", 400), i._2)
       }
 
