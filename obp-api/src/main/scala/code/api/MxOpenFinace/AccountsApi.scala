@@ -13,7 +13,8 @@ import net.liftweb.json._
 import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_1_0._
 import code.metadata.tags.Tags
 import code.util.Helper
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
+import code.views.Views
+import com.openbankproject.commons.model.{AccountId, BankAccount, BankId, BankIdAccountId}
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -63,7 +64,7 @@ object APIMethods_AccountsApi extends RestHelper {
                cc.callContext: Option[CallContext])
              tags <- Future(Tags.tags.vend.getTagsOnAccount(BankId(defaultBankId), account.accountId)(view.viewId))
            } yield {
-            (createOFReadAccountBasicJson(moderatedAccount), callContext)
+            (createReadAccountBasicJsonMXOFV10(moderatedAccount), callContext)
            }
          }
        }
@@ -79,23 +80,7 @@ object APIMethods_AccountsApi extends RestHelper {
             Get Accounts
             """,
        json.parse(""""""),
-       json.parse("""{
-  "Meta" : {
-    "LastAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "FirstAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "TotalPages" : 0
-  },
-  "Links" : {
-    "Last" : "Last",
-    "Prev" : "Prev",
-    "Next" : "Next",
-    "Self" : "Self",
-    "First" : "First"
-  },
-  "Data" : {
-    "Account" : [ "{}", "{}" ]
-  }
-}"""),
+       ofReadAccountBasic,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Accounts") :: apiTagMockedData :: Nil
@@ -106,24 +91,11 @@ object APIMethods_AccountsApi extends RestHelper {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
-             } yield {
-            (json.parse("""{
-  "Meta" : {
-    "LastAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "FirstAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "TotalPages" : 0
-  },
-  "Links" : {
-    "Last" : "Last",
-    "Prev" : "Prev",
-    "Next" : "Next",
-    "Self" : "Self",
-    "First" : "First"
-  },
-  "Data" : {
-    "Account" : [ "{}", "{}" ]
-  }
-}"""), callContext)
+             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
+             (accounts: List[BankAccount], callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
+           } yield {
+             (createReadAccountsBasicJsonMXOFV10(accounts), callContext)
            }
          }
        }
