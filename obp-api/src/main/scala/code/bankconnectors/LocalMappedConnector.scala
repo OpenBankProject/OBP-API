@@ -71,7 +71,7 @@ import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
-import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, DirectDebitTrait, FXRate, Product, ProductAttribute, ProductCollectionItem, TaxResidence, _}
+import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, DirectDebitTrait, FXRate, Product, ProductAttribute, ProductCollectionItem, TaxResidence, TransactionRequestCommonBodyJSON, _}
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
@@ -1096,6 +1096,43 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
       fromTransAmt = -amount //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, rate)
+      sentTransactionId <- Future {
+        saveTransaction(fromAccount, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
+      }
+      _sentTransactionId <- Future {
+        saveTransaction(toAccount, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
+      }
+    } yield {
+      (sentTransactionId, callContext)
+    }
+  }
+  
+  override def makePaymentV400(transactionRequest: TransactionRequest,
+                               reasons: Option[List[TransactionRequestReason]],
+                               callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = Future {
+    val fromCurrency = transactionRequest.body.value.currency
+    val toCurrency = transactionRequest.body.value.currency
+    for {
+      //def exchangeRate --> do not return any exception, but it may return NONO there.
+      rate <- Future (fx.exchangeRate(fromCurrency, toCurrency, Some(transactionRequest.from.bank_id)))
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${fromCurrency} to ${toCurrency}) is not supported." ){
+        rate.isDefined
+      }
+      amount = BigDecimal(transactionRequest.body.value.amount)
+      description = transactionRequest.body.description
+      transactionRequestType = TransactionRequestType(transactionRequest.`type`)
+      chargePolicy = transactionRequest.charge_policy
+      fromTransAmt = -amount //from fromAccount balance should decrease
+      toTransAmt = fx.convert(amount, rate)
+      fromBankId = BankId(transactionRequest.from.bank_id)
+      fromAccountId = AccountId(transactionRequest.from.account_id)
+      fromAccount = Connector.connector.vend.getBankAccountOld(fromBankId, fromAccountId).openOrThrowException(s"$BankAccountNotFound Current Bank_Id(${fromBankId}), Account_Id(${fromAccountId}) ")
+      // toBankId = BankId(transactionRequest.from.bank_id)
+      toAccountId = AccountId(transactionRequest.from.account_id)
+      toAccountRoutingScheme = transactionRequest.other_account_routing_scheme
+      toAccountRoutingAddress = transactionRequest.other_account_routing_address
+      toAccount = Connector.connector.vend.getBankAccountByRouting(None, toAccountRoutingScheme, toAccountRoutingAddress, None).map(_._1).openOrThrowException(s"$BankAccountNotFound Current Scheme(${toAccountRoutingScheme}), Address(${toAccountRoutingAddress}) ")
+      transactionRequestCommonBody = TransactionRequestCommonBodyJSONCommons(AmountOfMoneyJsonV121(transactionRequest.body.value.amount, fromCurrency), transactionRequest.body.description)
       sentTransactionId <- Future {
         saveTransaction(fromAccount, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
       }
@@ -3743,17 +3780,24 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       // If no challenge necessary, create Transaction immediately and put in data store and object to return
       (transactionRequest, callContext) <- status match {
         case TransactionRequestStatus.COMPLETED =>
-          for {
-            (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
-              fromAccount,
-              toAccount,
-              transactionRequestCommonBody,
-              BigDecimal(transactionRequestCommonBody.value.amount),
-              transactionRequestCommonBody.description,
-              transactionRequestType,
-              chargePolicy,
-              callContext
-            )
+                for {
+                  (createdTransactionId, callContext) <- transactionRequestType match {
+                    case TransactionRequestType("SEPA") =>
+                      Connector.connector.vend.makePaymentV400(transactionRequest, reasons, callContext)map { i =>
+                        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForMakePayment ",400), i._2)
+                      }
+                    case _ =>
+                      NewStyle.function.makePaymentv210(
+                        fromAccount,
+                        toAccount,
+                        transactionRequestCommonBody,
+                        BigDecimal(transactionRequestCommonBody.value.amount),
+                        transactionRequestCommonBody.description,
+                        transactionRequestType,
+                        chargePolicy,
+                        callContext
+                      )
+                  }
             //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
             transactionRequest <- Future(transactionRequest.copy(challenge = null))
 

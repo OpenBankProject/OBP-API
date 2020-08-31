@@ -305,7 +305,7 @@ trait Connector extends MdcLoggable {
     * The scala compiler will tweak the method name, so we need clean the `getMethodName` return value.
     * @return
     */
-  private def setUnimplementedError() : String = {
+  protected def setUnimplementedError() : String = {
     val currentMethodName = Thread.currentThread.getStackTrace()(2).getMethodName
       .replaceFirst("""^.*\$(.+?)\$.*$""", "$1") // "$anonfun$getBanksFuture$" --> .
       .replace("Future","") //getBanksFuture --> getBanks
@@ -1681,6 +1681,13 @@ trait Connector extends MdcLoggable {
                                     detailsPlain: String,
                                     chargePolicy: String,
                                     callContext: Option[CallContext]): Future[Box[(TransactionRequest, Option[CallContext])]]  = Future{Failure(setUnimplementedError)}
+
+  def makePaymentV400(transactionRequest: TransactionRequest,
+                      reasons: Option[List[TransactionRequestReason]],
+                      callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = Future {
+    Failure(setUnimplementedError)
+  }
+
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

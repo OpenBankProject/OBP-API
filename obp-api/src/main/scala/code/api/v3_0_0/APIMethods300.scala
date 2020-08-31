@@ -571,15 +571,8 @@ trait APIMethods300 {
          |To find ACCOUNT_IDs, use the getFirehoseAccountsAtOneBank call.
          |
          |For VIEW_ID try 'owner'
-         |Possible custom headers for pagination:
          |
-         |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
-         |* limit=NUMBER ==> default value: 50
-         |* offset=NUMBER ==> default value: 0
-         |* from_date=DATE => default value: $DateWithMsForFilteringFromDateString
-         |* to_date=DATE => default value: $DateWithMsForFilteringEenDateString
-         |
-         |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.        
+         |${urlParametersDocument(true, true)}       
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -641,15 +634,9 @@ trait APIMethods300 {
         |
         |${authenticationRequiredMessage(true)}
         |
-        |Possible custom url parameters for pagination:
+        |${urlParametersDocument(true, true)}
         |
-        |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
-        |* limit=NUMBER ==> default value: 50
-        |* offset=NUMBER ==> default value: 0
-        |* from_date=DATE => default value: $DateWithMsForFilteringFromDateString
-        |* to_date=DATE => default value: $DateWithMsForFilteringEenDateString
-        |
-        |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.""",
+        |""",
       emptyObjectJson,
       coreTransactionsJsonV300,
       List(
@@ -702,15 +689,9 @@ trait APIMethods300 {
         |
         |Authentication is required if the view is not public.
         |
-        |Possible custom headers for pagination:
+        |${urlParametersDocument(true, true)}
         |
-        |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
-        |* limit=NUMBER ==> default value: 50
-        |* offset=NUMBER ==> default value: 0
-        |* from_date=DATE => default value: $DateWithMsForFilteringFromDateString
-        |* to_date=DATE => default value: $DateWithMsForFilteringEenDateString
-        |
-        |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.""",
+        |""",
       emptyObjectJson,
       transactionsJsonV300,
       List(
@@ -1542,6 +1523,9 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(true)}
         |
         |CanGetAnyUser entitlement is required,
+        |
+        |${urlParametersDocument(false, false)}
+        |* locked_status (if null ignore)
         |
       """.stripMargin,
       emptyObjectJson,
