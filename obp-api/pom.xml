@@ -456,6 +456,12 @@
       <version>1.2.0</version>
     </dependency>
 
+    <dependency>
+      <groupId>sh.ory.hydra</groupId>
+      <artifactId>hydra-client</artifactId>
+      <version>1.7.0</version>
+    </dependency>
+
   </dependencies>
 
   <build>
