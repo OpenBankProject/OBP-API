@@ -49,6 +49,8 @@ import scala.collection.immutable.List
 import scala.xml.{NodeSeq, Text}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+import org.apache.logging.log4j.core.util.UuidUtil
+import sh.ory.hydra.model.AcceptLoginRequest
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -360,6 +362,7 @@ import net.liftweb.util.Helpers._
         "#loginText * " #> {S.?("log.in")} &
         "#usernameText * " #> {S.?("username")} &
         "#passwordText * " #> {S.?("password")} &
+        "#login_challenge [value]" #> S.param("login_challenge").getOrElse("") &
         "autocomplete=off [autocomplete] " #> APIUtil.getAutocompleteValue &
         "#recoverPasswordLink * " #> {
           "a [href]" #> {lostPasswordPath.mkString("/", "/", "")} &
@@ -815,7 +818,7 @@ def restoreSomeSessions(): Unit = {
     *  case4: wrong username   --> Invalid Login Credentials
     *  case5: UnKnow error     --> UnexpectedErrorDuringLogin
     */
-  override def login = {
+  override def login: NodeSeq = {
     def redirectUri(): String = {
       loginRedirect.get match {
         case Full(url) =>
@@ -829,8 +832,21 @@ def restoreSomeSessions(): Unit = {
     // variable redirect is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
     // val currentUrl = S.uriAndQueryString.getOrElse("/")
     // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
-    def checkInternalRedirecAndLogUseIn(preLoginState: () => Unit, redirect: String, user: AuthUser) = {
-      if (Helper.isValidInternalRedirectUrl(redirect)) {
+    def checkInternalRedirectAndLogUseIn(preLoginState: () => Unit, redirect: String, user: AuthUser) = {
+      if(loginWithHydra) {
+        val challenge = S.param("login_challenge").openOrThrowException("When login with hydra, request body must have challenge parameter")
+        val acceptLoginRequest = new AcceptLoginRequest()
+        acceptLoginRequest.setSubject(user.email.get)
+        acceptLoginRequest.remember(false)
+        acceptLoginRequest.rememberFor(3600)
+        val response = hydraAdmin.acceptLoginRequest(challenge, acceptLoginRequest)
+        val redirectTo = response.getRedirectTo
+        logUserIn(user, () => {
+          S.notice(S.?("logged.in"))
+          preLoginState()
+          S.redirectTo(redirectTo)
+        })
+      } else if (Helper.isValidInternalRedirectUrl(redirect)) {
         logUserIn(user, () => {
           S.notice(S.?("logged.in"))
           preLoginState()
@@ -882,7 +898,7 @@ def restoreSomeSessions(): Unit = {
                   val preLoginState = capturePreLoginState()
                   logger.info("login redirect: " + loginRedirect.get)
                   val redirect = redirectUri()
-                  checkInternalRedirecAndLogUseIn(preLoginState, redirect, user)
+                  checkInternalRedirectAndLogUseIn(preLoginState, redirect, user)
                 } else { // If user is NOT locked AND password is wrong => increment bad login attempt counter.
                   LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
                   S.error(Helper.i18n("invalid.login.credentials"))
@@ -905,7 +921,7 @@ def restoreSomeSessions(): Unit = {
                   //This method is used for connector = kafka* || obpjvm*
                   //It will update the views and createAccountHolder ....
                   registeredUserHelper(user.username.get)
-                  checkInternalRedirecAndLogUseIn(preLoginState, redirect, user)
+                  checkInternalRedirectAndLogUseIn(preLoginState, redirect, user)
     
               // If user cannot be found locally, try to authenticate user via connector
               case Empty if (APIUtil.getPropsAsBoolValue("connector.user.authentication", false) || 
@@ -918,7 +934,7 @@ def restoreSomeSessions(): Unit = {
                 externalUserHelper(usernameFromGui, passwordFromGui) match {
                     case Full(user: AuthUser) =>
                       LoginAttempt.resetBadLoginAttempts(usernameFromGui)
-                      checkInternalRedirecAndLogUseIn(preLoginState, redirect, user)
+                      checkInternalRedirectAndLogUseIn(preLoginState, redirect, user)
                     case _ =>
                       LoginAttempt.incrementBadLoginAttempts(username.get)
                       Empty
@@ -943,6 +959,12 @@ def restoreSomeSessions(): Unit = {
       scala.xml.XML.loadString(loginSubmitButton(loginButtonText, loginAction _).toString().replace("type=\"submit\"","class=\"submit\" type=\"submit\""))
     }
 
+    // login with hydra, but direct to login page, need redirect to hydra
+    if(AuthUser.loginWithHydra && S.param("login_challenge").isEmpty) {
+      val state = urlEncode(UuidUtil.getTimeBasedUuid.toString)
+      val scope = hydraClientScope.mkString("+")
+      return S.redirectTo(s"$hydraPublicUrl/oauth2/auth?client_id=$hydraClientId&response_type=code&state=$state&scope=$scope")
+    }
     val bind =
           "submit" #> insertSubmitButton
    bind(loginXhtml)
@@ -1077,8 +1099,8 @@ def restoreSomeSessions(): Unit = {
     val usernames: List[String] = this.getResourceUsersByEmail(email).map(_.user.name)
     findAll(ByList(this.username, usernames))
   }
-  lazy val signupBubmitButtonValue = getWebUiPropsValue("webui_signup_form_submit_button_value", S.?("sign.up"))
-  
+  lazy val signupSubmitButtonValue = getWebUiPropsValue("webui_signup_form_submit_button_value", S.?("sign.up"))
+
   //overridden to allow redirect to loginRedirect after signup. This is mostly to allow
   // loginFirst menu items to work if the user doesn't have an account. Without this,
   // if a user tries to access a logged-in only page, and then signs up, they don't get redirected
@@ -1122,10 +1144,60 @@ def restoreSomeSessions(): Unit = {
     }
 
     def innerSignup = {
-      val bind = "type=submit" #> signupSubmitButton(signupBubmitButtonValue, testSignup _)
+      val bind = "type=submit" #> signupSubmitButton(signupSubmitButtonValue, testSignup _)
       bind(signupXhtml(theUser))
     }
 
     innerSignup
+  }
+
+  val loginWithHydra = APIUtil.getPropsAsBoolValue("login_with_hydra", false)
+
+  lazy val hydraPublicUrl = APIUtil.getPropsValue("hydra_public_url")
+    .openOrThrowException("If props login_with_hydra is true, hydra_public_url value should not be blank")
+    .replaceFirst("/$", "")
+
+  lazy val hydraClientId = APIUtil.getPropsValue("hydra_client_id")
+    .openOrThrowException("If props login_with_hydra is true, hydra_client_id value should not be blank")
+
+  lazy val hydraClientScope = APIUtil.getPropsValue("hydra_client_scope")
+    .openOrThrowException("If props login_with_hydra is true, hydra_client_scope value should not be blank")
+    .trim.split("""\s*,\s*""")
+
+  lazy val hydraAdmin = {
+    import sh.ory.hydra.Configuration
+    import sh.ory.hydra.api.AdminApi
+
+    val hydraAdminUrl = APIUtil.getPropsValue("hydra_admin_url")
+      .openOrThrowException("If props login_with_hydra is true, hydra_admin_url value should not be blank")
+    val defaultClient = Configuration.getDefaultApiClient
+    defaultClient.setBasePath(hydraAdminUrl)
+    new AdminApi(defaultClient)
+  }
+
+/*  lazy val hydraPublic = {
+    // Import classes:
+    import sh.ory.hydra.ApiClient
+    import sh.ory.hydra.ApiException
+    import sh.ory.hydra.Configuration
+    import sh.ory.hydra.api.AdminApi
+
+    val loginWithHydra = APIUtil.getPropsAsBoolValue("login_with_hydra", false)
+    if(loginWithHydra) {
+      val hydraPublicUrl = APIUtil.getPropsValue("hydra_public_url")
+        .openOrThrowException("If props login_with_hydra is true, hydra_public_url value should not be blank")
+      val defaultClient = Configuration.getDefaultApiClient
+      defaultClient.setBasePath(hydraPublicUrl)
+
+      Some(new PublicApi(defaultClient))
+    } else {
+      None
+    }
+  }*/
+
+  override def logout: Nothing = {
+    // TODO do logout logic for hydra way.
+    println("do logout")
+    super.logout
   }
 }

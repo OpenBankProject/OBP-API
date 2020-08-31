@@ -489,6 +489,7 @@ class Boot extends MdcLoggable {
           Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
           // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
+          Menu.i("Consent") / "consent" >> AuthUser.loginFirst,//OAuth consent page
           OAuthWorkedThanks.menu, //OAuth thanks page that will do the redirect
           Menu.i("INTRODUCTION") / "introduction"
     ) ++ accountCreation ++ Admin.menus
