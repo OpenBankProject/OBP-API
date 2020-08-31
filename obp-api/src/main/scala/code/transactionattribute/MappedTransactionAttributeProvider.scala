@@ -1,8 +1,9 @@
 package code.transactionattribute
 
+import code.api.attributedefinition.AttributeDefinition
 import code.util.{AttributeQueryTrait, MappedUUID, UUIDString}
-import com.openbankproject.commons.model.enums.TransactionAttributeType
-import com.openbankproject.commons.model.{BankId, TransactionAttribute, TransactionId}
+import com.openbankproject.commons.model.enums.{AttributeCategory, TransactionAttributeType}
+import com.openbankproject.commons.model.{BankId, TransactionAttribute, TransactionId, ViewId}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -30,6 +31,28 @@ object MappedTransactionAttributeProvider extends TransactionAttributeProvider {
         By(MappedTransactionAttribute.mBankId, bankId.value),
         By(MappedTransactionAttribute.mTransactionId, transactionId.value)
       )
+    }
+  }
+  override def getTransactionAttributesCanBeSeenOnView(bankId: BankId,
+                                                       transactionId: TransactionId, 
+                                                       viewId: ViewId): Future[Box[List[TransactionAttribute]]] = {
+    Future {
+      val attributeDefinitions = AttributeDefinition.findAll(
+        By(AttributeDefinition.BankId, bankId.value),
+        By(AttributeDefinition.Category, AttributeCategory.Account.toString)
+      ).filter(_.canBeSeenOnViews.exists(_ == viewId.value)) // Filter by view_id
+      val transactionAttributes = MappedTransactionAttribute.findAll(
+        By(MappedTransactionAttribute.mBankId, bankId.value),
+        By(MappedTransactionAttribute.mTransactionId, transactionId.value)
+      )
+      val filteredTransactionAttributes = for {
+        definition <- attributeDefinitions
+        attribute <- transactionAttributes
+        if definition.bankId.value == attribute.bankId.value && definition.name == attribute.name
+      } yield {
+        attribute
+      }
+      Full(filteredTransactionAttributes)
     }
   }
 
