@@ -274,12 +274,12 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def createChallengesC2(userIds: List[String], challengeType: ChallengeType.Value, transactionRequestId: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], scaStatus: Option[SCAStatus], consentId: Option[String], authenticationMethodId: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = {
-        import com.openbankproject.commons.dto.{InBoundCreateChallengesC2 => InBound, OutBoundCreateChallengesC2 => OutBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateChallengesC2 => InBound, OutBoundCreateChallengesC2 => OutBound}
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userIds, challengeType, transactionRequestId, scaMethod, scaStatus, consentId, authenticationMethodId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_challenges_c2", req, callContext)
-        response.map(convertToTuple[List[ChallengeCommons]](callContext))        
+        response.map(convertToTuple[List[ChallengeCommons]](callContext))
   }
-          
+
   messageDocs += validateChallengeAnswerDoc
   def validateChallengeAnswerDoc = MessageDoc(
     process = "obp.validateChallengeAnswer",
@@ -340,12 +340,12 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   )
 
   override def validateChallenge(transactionRequestId: Option[String], consentId: Option[String], challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = {
-        import com.openbankproject.commons.dto.{InBoundValidateChallenge => InBound, OutBoundValidateChallenge => OutBound}  
+        import com.openbankproject.commons.dto.{InBoundValidateChallenge => InBound, OutBoundValidateChallenge => OutBound}
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionRequestId, consentId, challengeId, hashOfSuppliedAnswer)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_validate_challenge", req, callContext)
-        response.map(convertToTuple[ChallengeCommons](callContext))        
+        response.map(convertToTuple[ChallengeCommons](callContext))
   }
-          
+
   messageDocs += getBankDoc
   def getBankDoc = MessageDoc(
     process = "obp.getBank",
@@ -1709,6 +1709,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       attributes=Some(List( Attribute(name=attributeNameExample.value,
       `type`=attributeTypeExample.value,
       value=attributeValueExample.value)))),
+      transactionRequestId = TransactionRequestId(uuidExample.value),
       transactionRequestCommonBody= TransactionRequestCommonBodyJSONCommons(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description="string"),
@@ -1725,9 +1726,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def makePaymentv210(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amount: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
-        import com.openbankproject.commons.dto.{InBoundMakePaymentv210 => InBound, OutBoundMakePaymentv210 => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccount, toAccount, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy)
+  override def makePaymentv210(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestId: TransactionRequestId, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amount: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
+        import com.openbankproject.commons.dto.{InBoundMakePaymentv210 => InBound, OutBoundMakePaymentv210 => OutBound}
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccount, toAccount, transactionRequestId, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_make_paymentv210", req, callContext)
         response.map(convertToTuple[TransactionId](callContext))        
   }
@@ -6000,7 +6001,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   }
           
 // ---------- created on 2020-08-21T11:02:15Z
-//---------------- dynamic end ---------------------please don't modify this line     
+//---------------- dynamic end ---------------------please don't modify this line
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

@@ -120,7 +120,6 @@ case class ModeratedCoreAccountJsonV400(
                                          balance: AmountOfMoneyJsonV121,
                                          account_routings: List[AccountRoutingJsonV121],
                                          views_basic: List[ViewBasicV300],
-                                         account_attributes: List[AccountAttributeResponseJson],
                                          tags: List[AccountTagJSON]
                                        )
 
@@ -412,9 +411,8 @@ object JSONFactory400 {
   
   def createNewCoreBankAccountJson(account : ModeratedBankAccountCore, 
                                    availableViews: List[View],
-                                   accountAttributes: List[AccountAttribute], 
                                    tags: List[TransactionTag]) : ModeratedCoreAccountJsonV400 =  {
-    new ModeratedCoreAccountJsonV400 (
+    ModeratedCoreAccountJsonV400 (
       account.accountId.value,
       stringOrNull(account.bankId.value),
       stringOptionOrNull(account.label),
@@ -424,7 +422,6 @@ object JSONFactory400 {
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       createAccountRoutingsJSON(account.accountRoutings),
       views_basic = availableViews.map(view => code.api.v3_0_0.ViewBasicV300(id = view.viewId.value, short_name = view.name, description = view.description, is_public = view.isPublic)),
-      accountAttributes.map(createAccountAttributeJson),
       tags.map(createAccountTagJSON)
     )
   }

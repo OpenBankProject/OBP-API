@@ -3243,6 +3243,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
       accountHolder=bankAccountAccountHolderExample.value),
+      transactionRequestId = TransactionRequestId(uuidExample.value),
       transactionRequestCommonBody= TransactionRequestCommonBodyJSONCommons(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount="string"),
       description="string"),
@@ -3266,10 +3267,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /makePaymentv210
-  override def makePaymentv210(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amount: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
+  override def makePaymentv210(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestId: TransactionRequestId, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amount: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
         import com.openbankproject.commons.dto.{OutBoundMakePaymentv210 => OutBound, InBoundMakePaymentv210 => InBound}
         val url = getUrl(callContext, "makePaymentv210")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , fromAccount, toAccount, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , fromAccount, toAccount, transactionRequestId, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy)
         val result: OBPReturnType[Box[TransactionId]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }

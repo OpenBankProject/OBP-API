@@ -26,6 +26,8 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.model
 
+import java.util.Date
+
 import code.accountholders.AccountHolders
 import code.api.{APIFailureNewStyle, Constant}
 import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, fullBoxOrException, unboxFull, unboxFullOrFail}
@@ -38,7 +40,7 @@ import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.views.system.AccountAccess
-import com.openbankproject.commons.model.{AccountId, AccountRouting, Bank, BankAccount, BankAccountInMemory, BankId, BankIdAccountId, Counterparty, CounterpartyId, CounterpartyTrait, CreateViewJson, Customer, Permission, TransactionId, UpdateViewJSON, User, UserPrimaryKey, View, ViewId, ViewIdBankIdAccountId}
+import com.openbankproject.commons.model.{AccountId, AccountRouting, Attribute, Bank, BankAccount, BankAccountCommons, BankAccountInMemory, BankId, BankIdAccountId, Counterparty, CounterpartyId, CounterpartyTrait, CreateViewJson, Customer, Permission, TransactionId, UpdateViewJSON, User, UserPrimaryKey, View, ViewId, ViewIdBankIdAccountId}
 import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JArray, JObject}
@@ -551,24 +553,32 @@ object BankAccountX {
         toAccount
       }
     else {
-      //in obp we have the default bank and default accounts for this case: 
-      //These are just the obp mapped mode, if connector to the bank, bank will decide it. 
-      val defaultBankId= BankId(APIUtil.defaultBankId)
-      val incomingAccountId= AccountId(Constant.INCOMING_ACCOUNT_ID)
-      val outgoingAccountId= AccountId(Constant.OUTGOING_ACCOUNT_ID)
-      val bankAccount: Box[BankAccount] = if (isOutgoingAccount){
-        LocalMappedConnector.getBankAccountOld(defaultBankId,outgoingAccountId)
-      } else{
-        LocalMappedConnector.getBankAccountOld(defaultBankId,incomingAccountId)
-      }
-      Full(
-        bankAccount.openOrThrowException("").asInstanceOf[MappedBankAccount]
-        .holder(counterparty.name) //We mapped the counterpartName to otherAccount. please see @APIUtil.createImplicitCounterpartyId 
-        .accountIban(counterparty.otherAccountRoutingAddress)//now, we only have single pair AccountRouting, will put these to AccountRoutings later.
-        .mAccountRoutingScheme(counterparty.otherBankRoutingScheme)//This is for the swift bank code..
-        .mAccountRoutingScheme(counterparty.otherBankRoutingAddress)
-      )
+      //in obp we are creating a fake account with the counterparty information in this case:
+      //These are just the obp mapped mode, if connector to the bank, bank will decide it.
 
+      val accountRouting1 =
+        if (counterparty.otherAccountRoutingScheme.isEmpty) Nil
+        else List(AccountRouting(counterparty.otherAccountRoutingScheme, counterparty.otherAccountRoutingAddress))
+      val accountRouting2 =
+        if (counterparty.otherAccountSecondaryRoutingScheme.isEmpty) Nil
+        else List(AccountRouting(counterparty.otherAccountSecondaryRoutingScheme, counterparty.otherAccountSecondaryRoutingAddress))
+
+      Full(BankAccountCommons(
+        AccountId(""), "", 0, "EUR", "", "", "", BankId(""), new Date(), "",
+        accountRoutings = accountRouting1 ++ accountRouting2,
+        List.empty, accountHolder = counterparty.name,
+        Some(List(Attribute(
+          name = "BANK_ROUTING_SCHEME",
+          `type` = "STRING",
+          value = counterparty.otherBankRoutingScheme
+        ),
+          Attribute(
+            name = "BANK_ROUTING_ADDRESS",
+            `type` = "STRING",
+            value = counterparty.otherBankRoutingAddress
+          ),
+        ))
+      ))
     }
   }
 
