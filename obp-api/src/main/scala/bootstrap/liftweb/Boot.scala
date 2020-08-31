@@ -810,6 +810,7 @@ object ToSchemify {
     MappedBankAccount,
     BankAccountRouting,
     MappedTransaction,
+    DoubleEntryBookTransaction,
     MappedCustomerMessage,
     MappedBranch,
     MappedAtm,

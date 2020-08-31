@@ -29,7 +29,7 @@ import com.openbankproject.commons.model.FXRate
 import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
-import code.model.dataAccess.BankAccountRouting
+import code.model.dataAccess.{BankAccountRouting, DoubleEntryBookTransaction}
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
@@ -935,6 +935,7 @@ object NewStyle {
     
     def makePaymentv210(fromAccount: BankAccount,
                       toAccount: BankAccount,
+                      transactionRequestId: TransactionRequestId,
                       transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                       amount: BigDecimal,
                       description: String,
@@ -944,6 +945,7 @@ object NewStyle {
       Connector.connector.vend.makePaymentv210(
         fromAccount: BankAccount,
         toAccount: BankAccount,
+        transactionRequestId: TransactionRequestId,
         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
         amount: BigDecimal,
         description: String,
@@ -953,7 +955,12 @@ object NewStyle {
       ) map { i => 
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForMakePayment ",400), i._2)
       }
-    
+
+    def saveDoubleEntryBookTransaction(doubleEntryTransaction: DoubleEntryTransaction, callContext: Option[CallContext]): OBPReturnType[DoubleEntryTransaction] =
+      Connector.connector.vend.saveDoubleEntryBookTransaction(doubleEntryTransaction: DoubleEntryTransaction, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForSaveDoubleEntryBookTransaction ", 400), i._2)
+      }
+
     def createOrUpdateProductAttribute(
       bankId: BankId,
       productCode: ProductCode,

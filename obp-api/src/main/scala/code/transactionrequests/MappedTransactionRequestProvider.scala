@@ -7,7 +7,7 @@ import code.model._
 import code.transactionrequests.TransactionRequests.{TransactionRequestTypes, _}
 import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.TransactionRequestStatus
+import com.openbankproject.commons.model.enums.{AccountRoutingScheme, TransactionRequestStatus}
 import net.liftweb.common.{Box, Failure, Full, Logger}
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
@@ -86,6 +86,13 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
                                                charge: TransactionRequestCharge,
                                                chargePolicy: String): Box[TransactionRequest] = {
 
+    val toAccountRouting = transactionRequestType.value match {
+      case "SEPA" =>
+        toAccount.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString)
+          .orElse(toAccount.accountRoutings.headOption)
+      case _ => toAccount.accountRoutings.headOption
+    }
+
     // Note: We don't save transaction_ids, status and challenge here.
     val mappedTransactionRequest = MappedTransactionRequest.create
 
@@ -111,10 +118,12 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
 
       //toCounterparty fields
       .mName(toAccount.name)
-      .mOtherAccountRoutingScheme(toAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""))
-      .mOtherAccountRoutingAddress(toAccount.accountRoutings.headOption.map(_.address).getOrElse(""))
-      .mOtherBankRoutingScheme(toAccount.bankRoutingScheme)
-      .mOtherBankRoutingAddress(toAccount.bankRoutingAddress)
+      .mOtherAccountRoutingScheme(toAccountRouting.map(_.scheme).getOrElse(""))
+      .mOtherAccountRoutingAddress(toAccountRouting.map(_.address).getOrElse(""))
+      .mOtherBankRoutingScheme(toAccount.attributes.flatMap(_.find(_.name == "BANK_ROUTING_SCHEME")
+        .map(_.value)).getOrElse(toAccount.bankRoutingScheme))
+      .mOtherBankRoutingAddress(toAccount.attributes.flatMap(_.find(_.name == "BANK_ROUTING_ADDRESS")
+        .map(_.value)).getOrElse(toAccount.bankRoutingScheme))
       // We need transfer CounterpartyTrait to BankAccount, so We lost some data. can not fill the following fields .
       //.mThisBankId(toAccount.bankId.value) 
       //.mThisAccountId(toAccount.accountId.value)
