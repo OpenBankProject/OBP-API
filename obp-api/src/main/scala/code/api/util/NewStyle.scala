@@ -1125,6 +1125,19 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
+    def getModeratedAccountAttributesByAccount(bankId: BankId, 
+                                               accountId: AccountId, 
+                                               viewId: ViewId, 
+                                               callContext: Option[CallContext]): OBPReturnType[List[AccountAttribute]] = {
+      Connector.connector.vend.getAccountAttributesByAccountCanBeSeenOnView(
+        bankId: BankId,
+        accountId: AccountId,
+        viewId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
 
     def getCustomerAttributes(bankId: BankId,
       customerId: CustomerId,
@@ -1185,6 +1198,19 @@ object NewStyle {
       Connector.connector.vend.getTransactionAttributes(
         bankId: BankId,
         transactionId: TransactionId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }    
+    def getModeratedTransactionAttributes(bankId: BankId,
+                                          transactionId: TransactionId,
+                                          viewId: ViewId,
+      callContext: Option[CallContext]): OBPReturnType[List[TransactionAttribute]] = {
+      Connector.connector.vend.getTransactionAttributesCanBeSeenOnView(
+        bankId: BankId,
+        transactionId: TransactionId,
+        viewId,
         callContext: Option[CallContext]
       ) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)

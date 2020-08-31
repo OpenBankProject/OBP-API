@@ -2978,6 +2978,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
   }
+  override def getAccountAttributesByAccountCanBeSeenOnView(bankId: BankId, 
+                                                            accountId: AccountId,
+                                                            viewId: ViewId, 
+                                                            callContext: Option[CallContext]
+                                                           ): OBPReturnType[Box[List[AccountAttribute]]] = {
+    AccountAttributeX.accountAttributeProvider.vend.getAccountAttributesByAccountCanBeSeenOnView(
+      bankId: BankId,
+      accountId: AccountId,
+      viewId) map {
+      (_, callContext)
+    }
+  }
 
   override def createOrUpdateCustomerAttribute(
                                                 bankId: BankId,
@@ -3117,6 +3129,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     TransactionAttributeX.transactionAttributeProvider.vend.getTransactionAttributes(
       bankId: BankId,
       transactionId: TransactionId) map {
+      (_, callContext)
+    }
+  }
+  override def getTransactionAttributesCanBeSeenOnView(bankId: BankId,
+                                                       transactionId: TransactionId,
+                                                       viewId: ViewId,
+                                                       callContext: Option[CallContext]
+                                       ): OBPReturnType[Box[List[TransactionAttribute]]] = {
+    TransactionAttributeX.transactionAttributeProvider.vend.getTransactionAttributesCanBeSeenOnView(
+      bankId: BankId,
+      transactionId: TransactionId,
+      viewId) map {
       (_, callContext)
     }
   }

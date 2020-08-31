@@ -6,8 +6,7 @@ import code.accountattribute.{MappedAccountAttributeProvider, RemotedataAccountA
 import code.actorsystem.ObpActorHelper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.enums.AccountAttributeType
-import com.openbankproject.commons.model.{AccountId, BankId, ProductAttribute, ProductCode}
-
+import com.openbankproject.commons.model.{AccountId, BankId, ProductAttribute, ProductCode, ViewId}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class RemotedataAccountAttributeActor extends Actor with ObpActorHelper with MdcLoggable {
@@ -23,7 +22,11 @@ class RemotedataAccountAttributeActor extends Actor with ObpActorHelper with Mdc
       
     case cc.getAccountAttributesByAccount(bankId: BankId, accountId: AccountId) =>
       logger.debug(s"getAccountAttributesByAccount(${bankId}, ${accountId})")
-      mapper.getAccountAttributesByAccount(bankId, accountId) pipeTo sender
+      mapper.getAccountAttributesByAccount(bankId, accountId) pipeTo sender 
+      
+    case cc.getAccountAttributesByAccountCanBeSeenOnView(bankId: BankId, accountId: AccountId, viewId: ViewId) =>
+      logger.debug(s"getAccountAttributesByAccount(${bankId}, ${accountId}, ${viewId})")
+      mapper.getAccountAttributesByAccountCanBeSeenOnView(bankId, accountId, viewId) pipeTo sender
 
     case cc.getAccountAttributeById(accountAttributeId: String) =>
       logger.debug(s"getAccountAttributeById(${accountAttributeId})")
