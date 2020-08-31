@@ -38,8 +38,10 @@ import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.EntitlementJSONs
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
-import code.api.v3_1_0.{AccountAttributeResponseJson, CustomerWithAttributesJsonV310}
+import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
+import code.api.v4_0_0.JSONFactory400.createTransactionAttributeJson
+import code.api.v4_0_0.TransactionAttributeResponseJson
 import code.atms.Atms.Atm
 import code.branches.Branches.Branch
 import code.entitlement.Entitlement
@@ -192,7 +194,8 @@ case class TransactionJsonV300(
   this_account: ThisAccountJsonV300,
   other_account: OtherAccountJsonV300,
   details: TransactionDetailsJSON,
-  metadata: TransactionMetadataJSON
+  metadata: TransactionMetadataJSON,
+  transaction_attributes: List[TransactionAttributeResponseJson]
 )
 
 case class TransactionsJsonV300(
@@ -210,7 +213,8 @@ case class CoreTransactionJsonV300(
   id: String,
   this_account: ThisAccountJsonV300,
   other_account: CoreCounterpartyJsonV300,
-  details: CoreTransactionDetailsJSON
+  details: CoreTransactionDetailsJSON,
+  transaction_attributes: List[TransactionAttributeResponseJson]
 )
 
 case class CoreCounterpartiesJsonV300(
@@ -535,6 +539,16 @@ case class UserJsonV300(
                          views: Option[ViewsJSON300]
                        )
 
+case class ModeratedTransactionCoreWithAttributes(
+                                                   transaction: ModeratedTransactionCore,
+                                                   transactionAttributes: List[TransactionAttribute] = List.empty
+                                                 )
+
+case class ModeratedTransactionWithAttributes(
+                                               transaction: ModeratedTransaction,
+                                               transactionAttributes: List[TransactionAttribute] = List.empty
+                                             )
+
 object JSONFactory300{
 
   // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
@@ -557,17 +571,18 @@ object JSONFactory300{
   }
 
   //stated -- Transaction relevant methods /////
-  def createTransactionsJson(transactions: List[ModeratedTransaction]) : TransactionsJsonV300 = {
-    TransactionsJsonV300(transactions.map(createTransactionJSON))
+  def createTransactionsJson(moderatedTansactionsWithAttributes: List[ModeratedTransactionWithAttributes]) : TransactionsJsonV300 = {
+    TransactionsJsonV300(moderatedTansactionsWithAttributes.map(t => createTransactionJSON(t.transaction, t.transactionAttributes)))
   }
 
-  def createTransactionJSON(transaction : ModeratedTransaction) : TransactionJsonV300 = {
+  def createTransactionJSON(transaction : ModeratedTransaction, transactionAttributes: List[TransactionAttribute]) : TransactionJsonV300 = {
     TransactionJsonV300(
       id = transaction.id.value,
       this_account = transaction.bankAccount.map(createThisAccountJSON).getOrElse(null),
       other_account = transaction.otherBankAccount.map(createOtherBankAccount).getOrElse(null),
       details = createTransactionDetailsJSON(transaction),
-      metadata = transaction.metadata.map(createTransactionMetadataJSON).getOrElse(null)
+      metadata = transaction.metadata.map(createTransactionMetadataJSON).getOrElse(null),
+      transaction_attributes = transactionAttributes.map(createTransactionAttributeJson)
     )
   }
 
@@ -630,16 +645,17 @@ object JSONFactory300{
   }
 
   // following are create core transactions, without the meta data parts
-  def createCoreTransactionsJSON(transactionsCore: List[ModeratedTransactionCore]) : CoreTransactionsJsonV300 = {
-    CoreTransactionsJsonV300(transactionsCore.map(createCoreTransactionJSON))
+  def createCoreTransactionsJSON(moderatedTransactionsCoreWithAttributes: List[ModeratedTransactionCoreWithAttributes]) : CoreTransactionsJsonV300 = {
+    CoreTransactionsJsonV300(moderatedTransactionsCoreWithAttributes.map(t => createCoreTransactionJSON(t.transaction, t.transactionAttributes)))
   }
 
-  def createCoreTransactionJSON(transactionCore : ModeratedTransactionCore) : CoreTransactionJsonV300 = {
+  def createCoreTransactionJSON(transactionCore : ModeratedTransactionCore, transactionAttributes: List[TransactionAttribute]) : CoreTransactionJsonV300 = {
     CoreTransactionJsonV300(
       id = transactionCore.id.value,
       this_account = transactionCore.bankAccount.map(createThisAccountJSON).getOrElse(null),
       other_account = transactionCore.otherBankAccount.map(createCoreCounterparty).getOrElse(null),
-      details = createCoreTransactionDetailsJSON(transactionCore)
+      details = createCoreTransactionDetailsJSON(transactionCore),
+      transaction_attributes = transactionAttributes.map(createTransactionAttributeJson)
     )
   }
 

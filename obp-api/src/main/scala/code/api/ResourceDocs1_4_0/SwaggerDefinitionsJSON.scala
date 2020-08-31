@@ -2855,7 +2855,13 @@ object SwaggerDefinitionsJSON {
     this_account = thisAccountJsonV300,
     other_account = otherAccountJsonV300,
     details = transactionDetailsJSON,
-    metadata = transactionMetadataJSON
+    metadata = transactionMetadataJSON,
+    transaction_attributes = List(TransactionAttributeResponseJson(
+      transaction_attribute_id = transactionAttributeIdExample.value,
+      name = transactionAttributeNameExample.value,
+      `type` = transactionAttributeTypeExample.value,
+      value = transactionAttributeValueExample.value
+    ))
   )
   
   val transactionsJsonV300 = TransactionsJsonV300(
@@ -2873,7 +2879,13 @@ object SwaggerDefinitionsJSON {
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     this_account = thisAccountJsonV300,
     other_account = coreCounterpartyJsonV300,
-    details = coreTransactionDetailsJSON
+    details = coreTransactionDetailsJSON,
+    transaction_attributes = List(TransactionAttributeResponseJson(
+      transaction_attribute_id = transactionAttributeIdExample.value,
+      name = transactionAttributeNameExample.value,
+      `type` = transactionAttributeTypeExample.value,
+      value = transactionAttributeValueExample.value
+    ))
   )
   
   val coreCounterpartiesJsonV300 =  CoreCounterpartiesJsonV300(

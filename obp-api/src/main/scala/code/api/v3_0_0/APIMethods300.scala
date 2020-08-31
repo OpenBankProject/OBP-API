@@ -588,38 +588,40 @@ trait APIMethods300 {
       //get private accounts for all banks
       case "banks" :: BankId(bankId):: "firehose" :: "accounts" ::  AccountId(accountId) :: "views" :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
         cc =>
-          val res =
-            for {
-              (Full(u), callContext) <-  authenticatedAccess(cc)
-              _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  ) {
-               canUseAccountFirehose(u)
-              }
-              (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-              (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-              view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId),Some(u), callContext)
-              allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
-              httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-              obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
-              reqParams = req.params.filterNot(param => allowedParams.contains(param._1))
-              (transactionIds, callContext) <- if(reqParams.nonEmpty) {
-                 NewStyle.function.getTransactionIdsByAttributeNameValues(bankId, reqParams, callContext)
-              } else{
-                Future((List.empty[TransactionId], callContext))
-              }
-            } yield {
-              for {
-              //Note: error handling and messages for getTransactionParams are in the sub method
-                (transactions, callContext) <- bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankId, accountId), callContext, obpQueryParams)
-                transactionsFiltered= if(reqParams.isEmpty) {
-                  transactions
-                } else {
-                  transactions.filter(transaction => transactionIds.contains(transaction.id))
-                }
-              } yield {
-                (createTransactionsJson(transactionsFiltered), HttpCode.`200`(callContext))
-              }
+          for {
+            (Full(u), callContext) <-  authenticatedAccess(cc)
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  ) {
+             canUseAccountFirehose(u)
             }
-          res map { fullBoxOrException(_) } map { unboxFull(_) }
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId),Some(u), callContext)
+            allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            reqParams = req.params.filterNot(param => allowedParams.contains(param._1))
+            (transactionIds, callContext) <- if(reqParams.nonEmpty) {
+               NewStyle.function.getTransactionIdsByAttributeNameValues(bankId, reqParams, callContext)
+            } else{
+              Future((List.empty[TransactionId], callContext))
+            }
+            (transactions, callContext) <- Future(bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankId, accountId), callContext, obpQueryParams)) map {
+              unboxFullOrFail(_, callContext, UnknownError)
+            }
+            (moderatedTansactionsWithAttributes, callContext) <- Future.sequence(transactions.map(transaction =>
+              NewStyle.function.getTransactionAttributes(
+                bankId,
+                transaction.id,
+                cc.callContext: Option[CallContext]).map(attributes => ModeratedTransactionWithAttributes(transaction, attributes._1))
+            )).map(t => (t, callContext))
+            transactionsFiltered = if(reqParams.isEmpty) {
+              moderatedTansactionsWithAttributes
+            } else {
+              moderatedTansactionsWithAttributes.filter(t => transactionIds.contains(t.transaction.id))
+            }
+          } yield {
+            (createTransactionsJson(transactionsFiltered), HttpCode.`200`(callContext))
+          }
       }
     }
 
@@ -669,8 +671,14 @@ trait APIMethods300 {
             (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(bank, Some(user), view, BankIdAccountId(bankId, accountId), params, callContext) map {
               i => (unboxFullOrFail(i._1, callContext, UnknownError), i._2)
             }
+            moderatedTransactionsCoreWithAttributes <- Future.sequence(transactionsCore.map(transaction =>
+              NewStyle.function.getTransactionAttributes(
+                bankId,
+                transaction.id,
+                cc.callContext: Option[CallContext]).map(attributes => ModeratedTransactionCoreWithAttributes(transaction, attributes._1))
+            ))
           } yield {
-            (createCoreTransactionsJSON(transactionsCore), HttpCode.`200`(callContext))
+            (createCoreTransactionsJSON(moderatedTransactionsCoreWithAttributes), HttpCode.`200`(callContext))
           }
       }
     }
@@ -723,8 +731,14 @@ trait APIMethods300 {
             (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, user, view, BankIdAccountId(bankId, accountId), callContext, params) map {
               connectorEmptyResponse(_, callContext)
             }
+            moderatedTansactionsWithAttributes <- Future.sequence(transactions.map(transaction =>
+              NewStyle.function.getTransactionAttributes(
+                bankId,
+                transaction.id,
+                cc.callContext: Option[CallContext]).map(attributes => ModeratedTransactionWithAttributes(transaction, attributes._1))
+            ))
           } yield {
-            (createTransactionsJson(transactions), HttpCode.`200`(callContext))
+            (createTransactionsJson(moderatedTansactionsWithAttributes), HttpCode.`200`(callContext))
           }
       }
     }
