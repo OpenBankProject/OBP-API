@@ -552,7 +552,7 @@ trait Connector extends MdcLoggable {
   def getTransactionsCore(bankId: BankId, accountId: AccountId, queryParams:  List[OBPQueryParam] = Nil, callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionCore]]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getTransactionLegacy(bankId: BankId, accountId : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): Box[(Transaction, Option[CallContext])] = Failure(setUnimplementedError)
-  
+
   def getTransaction(bankId: BankId, accountId : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): OBPReturnType[Box[Transaction]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getPhysicalCardsForUser(user : User) : Box[List[PhysicalCard]] = Failure(setUnimplementedError)
@@ -696,6 +696,7 @@ trait Connector extends MdcLoggable {
   //Note: introduce v210 here, is for kafka connectors, use callContext and return Future.
   def makePaymentv210(fromAccount: BankAccount,
                       toAccount: BankAccount,
+                      transactionRequestId: TransactionRequestId,
                       transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                       amount: BigDecimal,
                       description: String,
@@ -703,6 +704,8 @@ trait Connector extends MdcLoggable {
                       chargePolicy: String,
                       callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]]= Future{(Failure(setUnimplementedError), callContext)}
 
+  def saveDoubleEntryBookTransaction(doubleEntryTransaction: DoubleEntryTransaction,
+                                     callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]]= Future{(Failure(setUnimplementedError), callContext)}
 
   protected def makePaymentImpl(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId]= Failure(setUnimplementedError)
 
@@ -929,6 +932,7 @@ trait Connector extends MdcLoggable {
             (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
               toAccount,
+              transactionRequest.id,
               transactionRequestCommonBody,
               BigDecimal(transactionRequestCommonBody.value.amount),
               transactionRequestCommonBody.description,
@@ -1216,6 +1220,7 @@ trait Connector extends MdcLoggable {
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
               toAccount,
+              transactionRequest.id,
               transactionRequestCommonBody=sandboxBody,
               BigDecimal(sandboxBody.value.amount),
               sandboxBody.description,
@@ -1244,6 +1249,7 @@ trait Connector extends MdcLoggable {
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
               toAccount,
+              transactionRequest.id,
               transactionRequestCommonBody=counterpartyBody,
               BigDecimal(counterpartyBody.value.amount),
               counterpartyBody.description,
@@ -1272,6 +1278,7 @@ trait Connector extends MdcLoggable {
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
               toAccount,
+              transactionRequest.id,
               transactionRequestCommonBody=sepaBody,
               BigDecimal(sepaBody.value.amount),
               sepaBody.description,
@@ -1292,6 +1299,7 @@ trait Connector extends MdcLoggable {
           (transactionId,callContext) <- NewStyle.function.makePaymentv210(
             fromAccount,
             fromAccount,
+            transactionRequest.id,
             transactionRequestCommonBody=freeformBody,
             BigDecimal(freeformBody.value.amount),
             freeformBody.description,
@@ -1312,6 +1320,7 @@ trait Connector extends MdcLoggable {
           (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
             fromAccount,
             toAccount,
+            transactionRequest.id,
             TransactionRequestCommonBodyJSONCommons(
               toSepaCreditTransfers.instructedAmount,
               ""
@@ -1991,6 +2000,13 @@ trait Connector extends MdcLoggable {
                                     accountId: AccountId,
                                     callContext: Option[CallContext]): OBPReturnType[Box[List[AccountAttribute]]] = 
     Future{(Failure(setUnimplementedError), callContext)}
+  
+  def getAccountAttributesByAccountCanBeSeenOnView(bankId: BankId,
+                                                   accountId: AccountId,
+                                                   viewId: ViewId,
+                                                   callContext: Option[CallContext]
+                                                  ): OBPReturnType[Box[List[AccountAttribute]]] = 
+    Future{(Failure(setUnimplementedError), callContext)}
 
   def getCustomerAttributes(
     bankId: BankId,
@@ -2028,6 +2044,12 @@ trait Connector extends MdcLoggable {
     bankId: BankId,
     transactionId: TransactionId,
     callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[TransactionAttribute]]] = Future{(Failure(setUnimplementedError), callContext)}  
+  
+  def getTransactionAttributesCanBeSeenOnView(bankId: BankId,
+                                              transactionId: TransactionId,
+                                              viewId: ViewId, 
+                                              callContext: Option[CallContext]
   ): OBPReturnType[Box[List[TransactionAttribute]]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getCustomerAttributeById(

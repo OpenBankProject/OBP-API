@@ -1673,7 +1673,6 @@ trait APIMethods400 {
          |* Balance - Currency and Value
          |* Account Routings - A list that might include IBAN or national account identifiers
          |* Account Rules - A list that might include Overdraft and other bank specific rules
-         |* Account Attributes - A list that might include custom defined account attribute
          |* Tags - A list of Tags assigned to this account
          |
          |This call returns the owner view and requires access to that view.
@@ -1694,14 +1693,10 @@ trait APIMethods400 {
             (user @Full(u), account) <- SS.userAccount
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), cc.callContext)
             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, cc.callContext)
-            (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
-              bankId,
-              account.accountId,
-              cc.callContext: Option[CallContext])
             tags <- Future(Tags.tags.vend.getTagsOnAccount(bankId, account.accountId)(view.viewId))
           } yield {
             val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
-            (createNewCoreBankAccountJson(moderatedAccount, availableViews, accountAttributes, tags), HttpCode.`200`(callContext))
+            (createNewCoreBankAccountJson(moderatedAccount, availableViews, tags), HttpCode.`200`(cc.callContext))
           }
       }
     }

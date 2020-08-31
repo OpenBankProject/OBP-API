@@ -54,7 +54,6 @@ class AccountTest extends V400ServerSetup {
       Then("We should get a 200 and check the response body")
       response.code should equal(200)
       val moderatedCoreAccountJsonV400 = response.body.extract[ModeratedCoreAccountJsonV400]
-      moderatedCoreAccountJsonV400.account_attributes.length == 0 should be (true)
       moderatedCoreAccountJsonV400.views_basic.length >= 1 should be (true)
 
     }
@@ -122,7 +121,6 @@ class AccountTest extends V400ServerSetup {
       Then("We should get a 200 and check the response body")
       response.code should equal(200)
       val moderatedCoreAccountJsonV400 = response.body.extract[ModeratedCoreAccountJsonV400]
-      moderatedCoreAccountJsonV400.account_attributes.length == 0 should be (true)
       moderatedCoreAccountJsonV400.views_basic.length >= 1 should be (true)
 
 

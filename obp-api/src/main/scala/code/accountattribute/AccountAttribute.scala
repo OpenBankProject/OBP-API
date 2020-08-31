@@ -5,7 +5,7 @@ package code.accountattribute
 import code.api.util.APIUtil
 import code.remotedata.RemotedataAccountAttribute
 import com.openbankproject.commons.model.enums.AccountAttributeType
-import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankId, ProductAttribute, ProductCode}
+import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankId, ProductAttribute, ProductCode, ViewId}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
@@ -41,6 +41,9 @@ trait AccountAttributeProvider {
   def getAccountAttributesFromProvider(accountId: AccountId, productCode: ProductCode): Future[Box[List[AccountAttribute]]]
   def getAccountAttributesByAccount(bankId: BankId,
                                     accountId: AccountId): Future[Box[List[AccountAttribute]]]
+  def getAccountAttributesByAccountCanBeSeenOnView(bankId: BankId, 
+                                                   accountId: AccountId, 
+                                                   viewId: ViewId): Future[Box[List[AccountAttribute]]]
 
   def getAccountAttributeById(productAttributeId: String): Future[Box[AccountAttribute]]
 
@@ -68,6 +71,9 @@ class RemotedataAccountAttributeCaseClasses {
   case class getAccountAttributesFromProvider(accountId: AccountId, productCode: ProductCode)
   case class getAccountAttributesByAccount(bankId: BankId,
                                            accountId: AccountId)
+  case class getAccountAttributesByAccountCanBeSeenOnView(bankId: BankId, 
+                                                          accountId: AccountId, 
+                                                          viewId: ViewId)
 
   case class getAccountAttributeById(accountAttributeId: String)
 
