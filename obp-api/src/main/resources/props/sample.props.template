@@ -860,3 +860,12 @@ outboundAdapterCallContext.generalContext
 ## example:
 #connector.name.export.as.endpoint=stored_procedure_vDec2019
 # ------------------------------------------------------------------------------------------
+
+# ------------------------------ Hydra oauth2 props ------------------------------
+## if login_with_hydra set to true, all other props must not be empty
+#login_with_hydra=true
+#hydra_public_url=http://127.0.0.1:4444
+#hydra_admin_url=http://127.0.0.1:4445
+#hydra_client_id=auth-code-client
+#hydra_client_scope=openid,offline
+# ------------------------------ Hydra oauth2 props end ------------------------------
