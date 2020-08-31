@@ -1195,6 +1195,19 @@ object NewStyle {
       ) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
+    }    
+    def getModeratedTransactionAttributes(bankId: BankId,
+                                          transactionId: TransactionId,
+                                          viewId: ViewId,
+      callContext: Option[CallContext]): OBPReturnType[List[TransactionAttribute]] = {
+      Connector.connector.vend.getTransactionAttributesCanBeSeenOnView(
+        bankId: BankId,
+        transactionId: TransactionId,
+        viewId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
     }
 
     def getCustomerAttributeById(
