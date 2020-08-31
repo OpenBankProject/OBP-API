@@ -1991,6 +1991,13 @@ trait Connector extends MdcLoggable {
                                     accountId: AccountId,
                                     callContext: Option[CallContext]): OBPReturnType[Box[List[AccountAttribute]]] = 
     Future{(Failure(setUnimplementedError), callContext)}
+  
+  def getAccountAttributesByAccountCanBeSeenOnView(bankId: BankId,
+                                                   accountId: AccountId,
+                                                   viewId: ViewId,
+                                                   callContext: Option[CallContext]
+                                                  ): OBPReturnType[Box[List[AccountAttribute]]] = 
+    Future{(Failure(setUnimplementedError), callContext)}
 
   def getCustomerAttributes(
     bankId: BankId,
