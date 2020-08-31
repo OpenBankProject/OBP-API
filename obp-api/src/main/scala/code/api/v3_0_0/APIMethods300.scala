@@ -406,13 +406,9 @@ trait APIMethods300 {
           // Assume owner view was requested
           view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
           moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
-          (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
-            bankId,
-            accountId,
-            callContext: Option[CallContext])
         } yield {
           val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
-          (createNewCoreBankAccountJson(moderatedAccount, availableViews, accountAttributes), HttpCode.`200`(callContext))
+          (createNewCoreBankAccountJson(moderatedAccount, availableViews), HttpCode.`200`(callContext))
         }
       }
     }

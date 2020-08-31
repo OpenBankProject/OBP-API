@@ -3498,8 +3498,7 @@ object SwaggerDefinitionsJSON {
     `type`= accountTypeExample.value,
     balance = amountOfMoneyJsonV121,
     account_routings = List(accountRoutingJsonV121),
-    views_basic = List(viewBasicV300),
-    account_attributes = List(accountAttributeResponseJson)
+    views_basic = List(viewBasicV300)
   )  
   val moderatedCoreAccountJsonV400 = ModeratedCoreAccountJsonV400(
     id = accountIdExample.value,
@@ -3511,7 +3510,6 @@ object SwaggerDefinitionsJSON {
     balance = amountOfMoneyJsonV121,
     account_routings = List(accountRoutingJsonV121),
     views_basic = List(viewBasicV300),
-    account_attributes = List(accountAttributeResponseJson),
     tags = List(accountTagJSON)
   )
 

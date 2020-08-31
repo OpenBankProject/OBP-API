@@ -302,8 +302,7 @@ case class NewModeratedCoreAccountJsonV300(
   `type`: String,
   balance: AmountOfMoneyJsonV121,
   account_routings: List[AccountRoutingJsonV121],
-  views_basic: List[ViewBasicV300],
-  account_attributes: List[AccountAttributeResponseJson]
+  views_basic: List[ViewBasicV300]
 )
 
 case class ModeratedCoreAccountsJsonV300(
@@ -847,8 +846,8 @@ object JSONFactory300{
   }
 
   //Here we added the views and accountAttributes here.
-  def createNewCoreBankAccountJson(account : ModeratedBankAccountCore, availableViews: List[View],accountAttributes: List[AccountAttribute]) : NewModeratedCoreAccountJsonV300 =  {
-    new NewModeratedCoreAccountJsonV300 (
+  def createNewCoreBankAccountJson(account : ModeratedBankAccountCore, availableViews: List[View]) : NewModeratedCoreAccountJsonV300 =  {
+    NewModeratedCoreAccountJsonV300 (
       account.accountId.value,
       stringOrNull(account.bankId.value),
       stringOptionOrNull(account.label),
@@ -857,8 +856,7 @@ object JSONFactory300{
       stringOptionOrNull(account.accountType),
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       createAccountRoutingsJSON(account.accountRoutings),
-      views_basic = availableViews.map(view => code.api.v3_0_0.ViewBasicV300(id = view.viewId.value, short_name = view.name, description = view.description, is_public = view.isPublic)),
-      accountAttributes.map(createAccountAttributeJson)
+      views_basic = availableViews.map(view => code.api.v3_0_0.ViewBasicV300(id = view.viewId.value, short_name = view.name, description = view.description, is_public = view.isPublic))
     )
   }
 
