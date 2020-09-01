@@ -25,6 +25,10 @@ object Constant extends MdcLoggable {
   final val SYSTEM_AUDITOR_VIEW_ID = "auditor"
   final val SYSTEM_ACCOUNTANT_VIEW_ID = "accountant"
   final val SYSTEM_FIREHOSE_VIEW_ID = "firehose"
+  final val READ_ACCOUNT_BASIC_VIEW_ID = "MxOfReadAccountBasic"
+  final val READ_ACCOUNT_DETAIL_VIEW_ID = "MxOfReadAccountDetail"
+  final val READ_ACCOUNT_BALANCE_VIEW_ID = "MxOfReadAccountBalance"
+  final val READ_ACCOUNT_TRANSACTION_VIEW_ID = "MxOfReadTransaction"
 
   //These are the default incoming and outgoing account ids. we will create both during the boot.scala.
   final val INCOMING_ACCOUNT_ID= "OBP_DEFAULT_INCOMING_ACCOUNT_ID"    
