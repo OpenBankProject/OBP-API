@@ -74,7 +74,7 @@ case class UserExtended(val user: User) extends MdcLoggable {
     //And in side the checkViewAccessAndReturnView, it will first check the customer view and then will check system view.
     APIUtil.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), bankIdAccountId, Some(this.user))
   }
-  
+
   final def hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean = {
     checkOwnerViewAccessAndReturnOwnerView(bankIdAccountId).isDefined
   }

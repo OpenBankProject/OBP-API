@@ -5,7 +5,7 @@ import java.util.Date
 import code.api.Constant
 import code.api.util.CustomJsonFormats
 import code.model.{ModeratedBankAccountCore, ModeratedTransaction}
-import com.openbankproject.commons.model.BankAccount
+import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankAccount, BankId, View}
 import net.liftweb.json.JValue
 
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
