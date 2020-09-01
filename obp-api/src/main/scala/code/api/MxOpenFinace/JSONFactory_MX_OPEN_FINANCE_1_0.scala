@@ -5,7 +5,7 @@ import java.util.Date
 import code.api.Constant
 import code.api.util.CustomJsonFormats
 import code.model.ModeratedBankAccountCore
-import com.openbankproject.commons.model.BankAccount
+import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankAccount, BankId, View}
 import net.liftweb.json.JValue
 
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
@@ -69,23 +69,48 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
 
   lazy val ofReadAccountBasic = ReadAccountBasicMXOF10(Meta = metaMocked, Links = linksMocked, Data = DataAccountBasicMXOF10(Account = List(accountBasic)))
 
-  def createReadAccountBasicJsonMXOFV10(account : ModeratedBankAccountCore): ReadAccountBasicMXOF10 = {
+
+  private def extractOptionalAttributeValue(name: String, 
+                                            bankId: BankId, 
+                                            accountId: AccountId, 
+                                            list: List[AccountAttribute]): Option[String] =
+    list.filter(e => e.name == name && e.bankId == bankId && e.accountId == accountId).headOption.map(_.value)
+  private def extractAttributeValue(name: String, 
+                                    bankId: BankId,
+                                    accountId: AccountId, 
+                                    list: List[AccountAttribute]): String =
+    extractOptionalAttributeValue(name, bankId, accountId, list).getOrElse("")
+  
+  def createReadAccountBasicJsonMXOFV10(account : ModeratedBankAccountCore, 
+                                        moderatedAttributes: List[AccountAttribute],
+                                        view: View): ReadAccountBasicMXOF10 = {
+    
     val accountBasic = AccountBasicMXOF10(
       AccountId = account.accountId.value,
-      Status = "",
-      StatusUpdateDateTime = "",
+      Status = extractAttributeValue("Status", account.bankId, account.accountId, moderatedAttributes),
+      StatusUpdateDateTime = extractAttributeValue("StatusUpdateDateTime", account.bankId, account.accountId, moderatedAttributes),
       Currency = account.currency.getOrElse(""),
       AccountType = account.accountType.getOrElse(""),
-      AccountSubType = "",
-      AccountIndicator = "",
-      OnboardingType = None,
+      AccountSubType = extractAttributeValue("AccountSubType", account.bankId, account.accountId, moderatedAttributes),
+      AccountIndicator = extractAttributeValue("AccountIndicator", account.bankId, account.accountId, moderatedAttributes),
+      OnboardingType = extractOptionalAttributeValue("OnboardingType", account.bankId, account.accountId, moderatedAttributes),
       Nickname = account.label,
-      OpeningDate = None,
-      MaturityDate = None,
-      Account = account.accountRoutings.headOption.map(e => 
-        AccountDetailMXOF10(SchemeName = e.scheme, Identification = e.address, None)
-      ),
-      Servicer = None
+      OpeningDate = extractOptionalAttributeValue("OpeningDate", account.bankId, account.accountId, moderatedAttributes),
+      MaturityDate = extractOptionalAttributeValue("MaturityDate", account.bankId, account.accountId, moderatedAttributes),
+      Account = view.viewId.value match {
+        case Constant.READ_ACCOUNT_DETAIL_VIEW_ID =>
+          account.accountRoutings.headOption.map(e =>
+            AccountDetailMXOF10(SchemeName = e.scheme, Identification = e.address, None)
+          )
+        case _ => 
+          None
+      },
+      Servicer = view.viewId.value match {
+        case Constant.READ_ACCOUNT_DETAIL_VIEW_ID =>
+          None
+        case _ =>
+          None
+      }
     )
     val links = LinksMXOF10(
       s"${Constant.HostName}/mx-open-finance/v1.0/accounts/" + account.accountId.value,

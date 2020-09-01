@@ -48,6 +48,7 @@ object DoubleEntryBookTransaction extends DoubleEntryBookTransaction with LongKe
   override def dbIndexes: List[BaseIndex[DoubleEntryBookTransaction]] =
     UniqueIndex(DebitTransactionBankId, DebitTransactionAccountId, DebitTransactionId) ::
     UniqueIndex(CreditTransactionBankId, CreditTransactionAccountId, CreditTransactionId) ::
+    // UniqueIndex(DebitTransactionBankId, DebitTransactionAccountId, DebitTransactionId, CreditTransactionBankId, CreditTransactionAccountId, CreditTransactionId) ::
     super.dbIndexes
 
 }

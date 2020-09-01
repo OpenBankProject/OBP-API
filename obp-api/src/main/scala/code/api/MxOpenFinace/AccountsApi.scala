@@ -1,5 +1,6 @@
 package code.api.MxOpenFinace
 
+import code.api.Constant
 import code.api.util.APIUtil._
 import code.api.util.{ApiTag, CallContext, NewStyle}
 import code.api.util.ApiTag._
@@ -14,7 +15,7 @@ import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_1_0._
 import code.metadata.tags.Tags
 import code.util.Helper
 import code.views.Views
-import com.openbankproject.commons.model.{AccountId, BankAccount, BankId, BankIdAccountId}
+import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankAccount, BankId, BankIdAccountId, View, ViewId}
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -52,19 +53,21 @@ object APIMethods_AccountsApi extends RestHelper {
      lazy val getAccountByAccountId : OBPEndpoint = {
        case "accounts" :: accountId :: Nil JsonGet _ => {
          cc =>
+           val detailViewId = ViewId(Constant.READ_ACCOUNT_DETAIL_VIEW_ID)
+           val basicViewId = ViewId(Constant.READ_ACCOUNT_BASIC_VIEW_ID)
            for {
-             (Full(user), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (user, callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
              (account, callContext) <- NewStyle.function.getBankAccount(BankId(defaultBankId), AccountId(accountId), callContext)
-             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(BankId(defaultBankId), AccountId(accountId)), callContext)
-             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), callContext)
-             (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
+             view: View <- NewStyle.function.checkViewsAccessAndReturnView(detailViewId, basicViewId, BankIdAccountId(BankId(defaultBankId), AccountId(accountId)), user, callContext)
+             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, callContext)
+             (moderatedAttributes: List[AccountAttribute], callContext) <- NewStyle.function.getModeratedAccountAttributesByAccount(
                BankId(defaultBankId),
                account.accountId,
-               cc.callContext: Option[CallContext])
-             tags <- Future(Tags.tags.vend.getTagsOnAccount(BankId(defaultBankId), account.accountId)(view.viewId))
+               view.viewId,
+               callContext: Option[CallContext])
            } yield {
-            (createReadAccountBasicJsonMXOFV10(moderatedAccount), callContext)
+            (createReadAccountBasicJsonMXOFV10(moderatedAccount, moderatedAttributes, view: View), callContext)
            }
          }
        }
@@ -93,7 +96,7 @@ object APIMethods_AccountsApi extends RestHelper {
              (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-             (accounts: List[BankAccount], callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
+             (accounts: List[BankAccount], callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
            } yield {
              (createReadAccountsBasicJsonMXOFV10(accounts), callContext)
            }
