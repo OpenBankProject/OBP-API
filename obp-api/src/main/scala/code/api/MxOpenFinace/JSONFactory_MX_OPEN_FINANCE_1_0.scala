@@ -6,7 +6,6 @@ import code.api.Constant
 import code.api.util.CustomJsonFormats
 import code.model.{ModeratedBankAccountCore, ModeratedTransaction}
 import com.openbankproject.commons.model.BankAccount
-import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import net.liftweb.json.JValue
 
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
@@ -200,7 +199,7 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
         TransactionReference = None,
         TransferTracingCode = None,
         AccountIndicator = moderatedTransaction.bankAccount.map(_.accountType).flatten.getOrElse(null),
-        Status = TransactionRequestStatus.BOOKED.toString, // [ Booked, Pending, Cancelled ]
+        Status = "BOOKED", // [ Booked, Pending, Cancelled ]
         BookingDateTime = moderatedTransaction.startDate.map(_.toString).getOrElse(null),
         ValueDateTime = None,
         TransactionInformation = moderatedTransaction.description.getOrElse(null),
