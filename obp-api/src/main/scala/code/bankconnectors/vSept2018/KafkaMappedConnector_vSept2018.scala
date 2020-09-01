@@ -2353,6 +2353,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   override def makePaymentv210(
     fromAccount: BankAccount,
     toAccount: BankAccount,
+    transactionRequestId: TransactionRequestId,
     transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
     amount: BigDecimal,
     description: String,

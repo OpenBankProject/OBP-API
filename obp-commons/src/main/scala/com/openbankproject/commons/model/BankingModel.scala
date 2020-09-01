@@ -352,3 +352,29 @@ case class CounterpartyBespoke(
 case class CustomerDependant(
   dateOfBirth: Date
 )
+
+trait DoubleEntryBookTransactionTrait {
+  def transactionRequestBankId: Option[BankId]
+  def transactionRequestAccountId: Option[AccountId]
+  def transactionRequestId: Option[TransactionRequestId]
+  def debitTransactionBankId: BankId
+  def debitTransactionAccountId: AccountId
+  def debitTransactionId: TransactionId
+  def creditTransactionBankId: BankId
+  def creditTransactionAccountId: AccountId
+  def creditTransactionId: TransactionId
+}
+
+case class DoubleEntryTransaction(
+                                  transactionRequestBankId: Option[BankId],
+                                  transactionRequestAccountId: Option[AccountId],
+                                  transactionRequestId: Option[TransactionRequestId],
+                                  debitTransactionBankId: BankId,
+                                  debitTransactionAccountId: AccountId,
+                                  debitTransactionId: TransactionId,
+                                  creditTransactionBankId: BankId,
+                                  creditTransactionAccountId: AccountId,
+                                  creditTransactionId: TransactionId
+                                 ) extends DoubleEntryBookTransactionTrait
+object DoubleEntryTransaction extends Converter[DoubleEntryBookTransactionTrait, DoubleEntryTransaction]
+

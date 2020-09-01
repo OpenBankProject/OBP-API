@@ -147,6 +147,7 @@ case class InBoundGetTransaction(inboundAdapterCallContext: InboundAdapterCallCo
 case class OutBoundMakePaymentv210(outboundAdapterCallContext: OutboundAdapterCallContext,
                                    fromAccount: BankAccount,
                                    toAccount: BankAccount,
+                                   transactionRequestId: TransactionRequestId,
                                    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                    amount: BigDecimal,
                                    description: String,
