@@ -630,6 +630,10 @@ class Boot extends MdcLoggable {
       val owner = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined
       val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).isDefined
       val accountant = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).isDefined
+      val readAccountBasic = Views.views.vend.getOrCreateSystemView(READ_ACCOUNT_BASIC_VIEW_ID).isDefined
+      val readAccountDetail = Views.views.vend.getOrCreateSystemView(READ_ACCOUNT_DETAIL_VIEW_ID).isDefined
+      val readAccountBalance = Views.views.vend.getOrCreateSystemView(READ_ACCOUNT_BALANCE_VIEW_ID).isDefined
+      val readAccountTransaction = Views.views.vend.getOrCreateSystemView(READ_ACCOUNT_TRANSACTION_VIEW_ID).isDefined
       // Only create Firehose view if they are enabled at instance.
       val accountFirehose = if (ApiPropsWithAlias.allowAccountFirehose)
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
@@ -641,6 +645,10 @@ class Boot extends MdcLoggable {
            |System view ${SYSTEM_AUDITOR_VIEW_ID} exists/created at the instance: ${auditor}
            |System view ${SYSTEM_ACCOUNTANT_VIEW_ID} exists/created at the instance: ${accountant}
            |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${accountFirehose}
+           |System view ${READ_ACCOUNT_BASIC_VIEW_ID} exists/created at the instance: ${readAccountBasic}
+           |System view ${READ_ACCOUNT_DETAIL_VIEW_ID} exists/created at the instance: ${readAccountDetail}
+           |System view ${READ_ACCOUNT_BALANCE_VIEW_ID} exists/created at the instance: ${readAccountBalance}
+           |System view ${READ_ACCOUNT_TRANSACTION_VIEW_ID} exists/created at the instance: ${readAccountTransaction}
            |""".stripMargin
       logger.info(comment)
     }
