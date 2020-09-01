@@ -49,6 +49,7 @@ import scala.collection.immutable.List
 import scala.xml.{NodeSeq, Text}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+import org.apache.commons.lang3.StringUtils
 import org.apache.logging.log4j.core.util.UuidUtil
 import sh.ory.hydra.{ApiClient, Configuration}
 import sh.ory.hydra.api.{AdminApi, PublicApi}
@@ -836,6 +837,7 @@ def restoreSomeSessions(): Unit = {
     // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
     def checkInternalRedirectAndLogUseIn(preLoginState: () => Unit, redirect: String, user: AuthUser) = {
       val loginChallengeBox = S.param("login_challenge")
+        .filter(StringUtils.isNotBlank(_))
       if(loginWithHydra && loginChallengeBox.isDefined) {
         val challenge = loginChallengeBox.orNull
         val acceptLoginRequest = new AcceptLoginRequest()
