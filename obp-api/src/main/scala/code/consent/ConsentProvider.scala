@@ -5,6 +5,8 @@ import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 import java.util.Date
 
+import scala.collection.immutable.List
+
 object Consents extends SimpleInjector {
   val consentProvider = new Inject(buildOne _) {}
   def buildOne: ConsentProvider = MappedConsentProvider
@@ -30,6 +32,17 @@ trait ConsentProvider {
     validUntil: Date,
     frequencyPerDay: Int,
     combinedServiceIndicator: Boolean): Box[Consent]
+
+  def saveUKConsent(
+    user: User,
+    bankId: Option[String],//for UK Open Banking endpoints, there is no BankId there.
+    accountIds: Option[List[String]],//for UK Open Banking endpoints, there is no accountIds there.
+    consumerId: Option[String],
+    permissions: List[String],
+    expirationDateTime: Date,
+    transactionFromDateTime: Date,
+    transactionToDateTime: Date
+  ): Box[Consent]
 }
 
 trait Consent {
@@ -145,7 +158,9 @@ object ConsentStatus extends Enumeration {
   type ConsentStatus = Value
   val INITIATED, ACCEPTED, REJECTED, REVOKED,
       //The following are for BelinGroup
-      RECEIVED, VALID, REVOKEDBYPSU, EXPIRED, TERMINATEDBYTPP = Value
+      RECEIVED, VALID, REVOKEDBYPSU, EXPIRED, TERMINATEDBYTPP ,
+     //these added for UK Open Banking 
+     AUTHORISED, AWAITINGAUTHORISATION = Value
 }
 
 

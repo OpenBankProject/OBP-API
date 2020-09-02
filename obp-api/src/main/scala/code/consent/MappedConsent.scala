@@ -3,13 +3,14 @@ package code.consent
 import java.util.Date
 
 import scala.util.Random
-import code.api.util.ErrorMessages
+import code.api.util.{Consent, ErrorMessages}
 import code.util.MappedUUID
 import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.{MappedString, _}
 import net.liftweb.util.Helpers.{now, tryo}
 import org.mindrot.jbcrypt.BCrypt
+import scala.collection.immutable.List
 
 object MappedConsentProvider extends ConsentProvider {
   override def getConsentByConsentId(consentId: String): Box[MappedConsent] = {
@@ -77,7 +78,41 @@ object MappedConsentProvider extends ConsentProvider {
         Failure(ErrorMessages.UnknownError)
     }
   }
-  
+
+  override def saveUKConsent(
+    user: User,
+    bankId: Option[String],//for UK Open Banking endpoints, there is no BankId there.
+    accountIds: Option[List[String]],//for UK Open Banking endpoints, there is no accountIds there.
+    consumerId: Option[String],
+    permissions: List[String],
+    expirationDateTime: Date,
+    transactionFromDateTime: Date,
+    transactionToDateTime: Date
+  ) ={
+    tryo {
+      val consent = MappedConsent
+        .create
+        .mUserId(user.userId)
+        .mStatus(ConsentStatus.AUTHORISED.toString)
+        .mExpirationDateTime(expirationDateTime)
+        .mTransactionFromDateTime(transactionFromDateTime)
+        .mTransactionToDateTime(transactionToDateTime)
+        .mStatusUpdateDateTime(now)
+        .saveMe()
+      val jwt = Consent.createUKConsentJWT(
+        user: User,
+        permissions: List[String],
+        expirationDateTime: Date,
+        transactionFromDateTime: Date,
+        transactionToDateTime: Date,
+        secret = consent.secret,
+        consentId = consent.consentId,
+        consumerId: Option[String]
+      )
+      setJsonWebToken(consent.consentId, jwt).head
+    }
+  }
+
   override def setJsonWebToken(consentId: String, jwt: String): Box[MappedConsent] = {
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
       case Full(consent) =>

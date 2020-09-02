@@ -2,6 +2,7 @@ package code.api.util
 
 import java.util.Date
 
+import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_0_0_1.ConsentPostBodyDataMXOFV001
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.PostConsentJson
 import code.api.{Constant, RequestHeader}
 import code.api.v3_1_0.{EntitlementJsonV400, PostConsentBodyCommonJson, ViewJsonV400}
@@ -456,6 +457,51 @@ object Consent {
       val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
       CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)
     }
+  }
+  
+  def createUKConsentJWT(
+    user: User,
+    permissions: List[String],
+    expirationDateTime: Date,
+    transactionFromDateTime: Date,
+    transactionToDateTime: Date,
+    secret: String,
+    consentId: String,
+    consumerId: Option[String]
+  ): String = {
+
+    lazy val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
+    val currentTimeInSeconds = System.currentTimeMillis / 1000
+    val validUntilTimeInSeconds = currentTimeInSeconds
+    
+    // 1. Add views
+    val consentViews: List[ConsentView] = permissions.map { permission =>
+        ConsentView(
+          bank_id = null,
+          account_id = null,
+          view_id = permission
+        )
+    }
+
+    val json = ConsentJWT(
+      createdByUserId = user.userId,
+      sub = APIUtil.generateUUID(),
+      iss = Constant.HostName,
+      aud = consumerId.getOrElse(currentConsumerId),
+      jti = consentId,
+      iat = currentTimeInSeconds,
+      nbf = currentTimeInSeconds,
+      exp = validUntilTimeInSeconds,
+      name = None,
+      email = None,
+      entitlements = Nil,
+      views = consentViews
+    )
+    
+    implicit val formats = CustomJsonFormats.formats
+    val jwtPayloadAsJson = compactRender(Extraction.decompose(json))
+    val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
+    CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)
   }
   
 }

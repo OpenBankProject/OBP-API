@@ -89,6 +89,16 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
   )
 
   case class ReadTransactionMXOFV001(Data: List[TransactionBasicMXOFV001], Links: LinksMXOFV001, Meta: MetaMXOFV001)
+
+  case class ConsentPostBodyDataMXOFV001(
+    TransactionToDateTime: String,
+    ExpirationDateTime: String,
+    Permissions: List[String],
+    TransactionFromDateTime: String
+  )
+  case class ConsentPostBodyMXOFV001(
+    Data: ConsentPostBodyDataMXOFV001
+  )
   
   
   lazy val metaMocked = MetaMXOFV001(
