@@ -42,7 +42,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
               "Data" : {
                 "TransactionToDateTime" : "2000-01-23T04:56:07.000+00:00",
                 "ExpirationDateTime" : "2000-01-23T04:56:07.000+00:00",
-                "Permissions" : [ { }, { } ],
+                "Permissions" : [ "ReadAccountsBasic", "ReadAccountsDetail" ],
                 "TransactionFromDateTime" : "2000-01-23T04:56:07.000+00:00"
               }
 }"""),
@@ -60,12 +60,12 @@ object APIMethods_AccountAccessApi extends RestHelper {
                 "First" : "First"
               },
               "Data" : {
-                "Status" : { },
+                "Status" : "Authorised",
                 "StatusUpdateDateTime" : "2000-01-23T04:56:07.000+00:00",
                 "CreationDateTime" : "2000-01-23T04:56:07.000+00:00",
                 "TransactionToDateTime" : "2000-01-23T04:56:07.000+00:00",
                 "ExpirationDateTime" : "2000-01-23T04:56:07.000+00:00",
-                "Permissions" : [ { }, { } ],
+                "Permissions" : [ "ReadAccountsBasic", "ReadAccountsDetail" ],
                 "ConsentId" : "ConsentId",
                 "TransactionFromDateTime" : "2000-01-23T04:56:07.000+00:00"
               }
