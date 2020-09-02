@@ -134,6 +134,7 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
 
   def getSingleton = MappedConsent
 
+  //the following are the obp consent.
   object mConsentId extends MappedUUID(this)
   object mUserId extends MappedString(this, 36)
   object mSecret extends MappedUUID(this)
@@ -146,12 +147,18 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   }
   object mJsonWebToken extends MappedText(this)
 
-  //The following are added for BerlinGroup
+  //The following are added for BerlinGroup.
   object mRecurringIndicator extends MappedBoolean(this)
   object mValidUntil extends MappedDate(this)
   object mFrequencyPerDay extends MappedInt(this)
   object mCombinedServiceIndicator extends MappedBoolean(this)
   object mLastActionDate extends MappedDate(this)
+
+  //The following are added for UK OpenBanking.
+  object mExpirationDateTime extends MappedDateTime(this)
+  object mTransactionFromDateTime extends MappedDateTime(this)
+  object mTransactionToDateTime extends MappedDateTime(this)
+  object mStatusUpdateDateTime extends MappedDateTime(this)
 
   override def consentId: String = mConsentId.get
   override def userId: String = mUserId.get
@@ -167,6 +174,12 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   override def frequencyPerDay = mFrequencyPerDay.get
   override def combinedServiceIndicator = mCombinedServiceIndicator.get
   override def lastActionDate = mLastActionDate.get
+
+  override def expirationDateTime = mExpirationDateTime.get    
+  override def transactionFromDateTime= mTransactionFromDateTime.get    
+  override def transactionToDateTime= mTransactionToDateTime.get    
+  override def creationDateTime= createdAt.get    
+  override def statusUpdateDateTime= mStatusUpdateDateTime.get    
 
 }
 
