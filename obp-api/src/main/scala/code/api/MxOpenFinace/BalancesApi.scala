@@ -35,45 +35,11 @@ object APIMethods_BalancesApi extends RestHelper {
        "GET", 
        "/accounts/ACCOUNT_ID/balances", 
        "getBalanceByAccountId",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             Get Balance for an Account
             """,
        json.parse(""""""),
-       json.parse("""{
-  "Meta" : {
-    "LastAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "FirstAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "TotalPages" : 0
-  },
-  "Links" : {
-    "Last" : "Last",
-    "Prev" : "Prev",
-    "Next" : "Next",
-    "Self" : "Self",
-    "First" : "First"
-  },
-  "Data" : {
-    "Balance" : [ {
-      "Type" : "Available",
-      "AccountId" : "AccountId",
-      "AccountIndicator" : "Debit",
-      "Amount" : {
-        "Amount" : "Amount",
-        "Currency" : "Currency"
-      },
-      "DateTime" : "2000-01-23T04:56:07.000+00:00"
-    }, {
-      "Type" : "Available",
-      "AccountId" : "AccountId",
-      "AccountIndicator" : "Debit",
-      "Amount" : {
-        "Amount" : "Amount",
-        "Currency" : "Currency"
-      },
-      "DateTime" : "2000-01-23T04:56:07.000+00:00"
-    } ]
-  }
-}"""),
+       ofReadBalances,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Balances") :: apiTagMockedData :: Nil

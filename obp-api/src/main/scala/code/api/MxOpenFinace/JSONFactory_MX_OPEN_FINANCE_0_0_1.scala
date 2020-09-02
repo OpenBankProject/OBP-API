@@ -122,6 +122,33 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
 
   lazy val ofReadAccountBasic = ReadAccountBasicMXOFV001(Meta = metaMocked, Links = linksMocked, Data = DataAccountBasicMXOFV001(Account = List(accountBasic)))
 
+  val dataJson = DataJsonMXOFV001(
+    List(BalanceJsonMXOFV001(
+    AccountId = "accountId",
+    Amount = AmountOfMoneyJsonV121("currency", "1000"),
+    CreditDebitIndicator = "Credit",
+    Type = "Available",
+    DateTime = null,
+    CreditLine = List(CreditLineJsonMXOFV001(
+      Included = true,
+      Amount = AmountOfMoneyJsonV121("currency", "1000"),
+      Type = "Pre-Agreed"
+    )))))
+  
+  lazy val ofReadBalances = AccountBalancesMXOFV001(
+    Data = dataJson,
+    Links = LinksMXOFV001(
+      s"${Constant.HostName}/mx-open-finance/v0.0.1/accounts/accountId/balances",
+      None,
+      None,
+      None,
+      None),
+    Meta = MetaMXOFV001(
+      new Date(),
+      new Date(),
+      0
+    )
+  )
 
   private def extractOptionalAttributeValue(name: String, 
                                             bankId: BankId, 
