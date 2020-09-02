@@ -149,7 +149,7 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
       OpeningDate = extractOptionalAttributeValue("OpeningDate", account.bankId, account.accountId, moderatedAttributes),
       MaturityDate = extractOptionalAttributeValue("MaturityDate", account.bankId, account.accountId, moderatedAttributes),
       Account = view.viewId.value match {
-        case Constant.READ_ACCOUNT_DETAIL_VIEW_ID =>
+        case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
           account.accountRoutings.headOption.map(e =>
             AccountDetailMXOF10(SchemeName = e.scheme, Identification = e.address, None)
           )
@@ -157,7 +157,7 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
           None
       },
       Servicer = view.viewId.value match {
-        case Constant.READ_ACCOUNT_DETAIL_VIEW_ID =>
+        case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
           None
         case _ =>
           None
