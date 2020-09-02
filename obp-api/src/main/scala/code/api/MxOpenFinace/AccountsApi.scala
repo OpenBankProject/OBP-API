@@ -53,8 +53,8 @@ object APIMethods_AccountsApi extends RestHelper {
      lazy val getAccountByAccountId : OBPEndpoint = {
        case "accounts" :: accountId :: Nil JsonGet _ => {
          cc =>
-           val detailViewId = ViewId(Constant.READ_ACCOUNT_DETAIL_VIEW_ID)
-           val basicViewId = ViewId(Constant.READ_ACCOUNT_BASIC_VIEW_ID)
+           val detailViewId = ViewId(Constant.READ_ACCOUNTS_DETAIL_VIEW_ID)
+           val basicViewId = ViewId(Constant.READ_ACCOUNTS_BASIC_VIEW_ID)
            for {
              (user, callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
