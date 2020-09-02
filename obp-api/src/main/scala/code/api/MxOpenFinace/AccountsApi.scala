@@ -1,7 +1,7 @@
 package code.api.MxOpenFinace
 
 import code.api.Constant
-import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_1_0._
+import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_0_0_1._
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._

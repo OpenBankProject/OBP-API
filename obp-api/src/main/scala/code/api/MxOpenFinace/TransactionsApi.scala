@@ -204,7 +204,7 @@ object APIMethods_TransactionsApi extends RestHelper {
              } map { unboxFull(_) }
              
              } yield {
-              (JSONFactory_MX_OPEN_FINANCE_1_0.createGetTransactionsByAccountIdMXOFV10(transactions), callContext)
+              (JSONFactory_MX_OPEN_FINANCE_0_0_1.createGetTransactionsByAccountIdMXOFV10(transactions), callContext)
            }
          }
        }

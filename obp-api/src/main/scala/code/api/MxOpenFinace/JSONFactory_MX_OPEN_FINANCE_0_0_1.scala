@@ -12,93 +12,93 @@ import scala.collection.immutable.List
 
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
 
-object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
+object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
 
-  case class MetaMXOF10(LastAvailableDateTime: Date, FirstAvailableDateTime: Date, TotalPages: Int)
-  case class LinksMXOF10(Self: String, First: Option[String], Prev: Option[String], Next: Option[String], Last: Option[String] )
-  case class ReadAccountBasicMXOF10(Data: DataAccountBasicMXOF10, Links: LinksMXOF10, Meta: MetaMXOF10)
-  case class DataAccountBasicMXOF10(Account: List[AccountBasicMXOF10])
-  case class ServicerMXOF10(SchemeName: String,
-                            Identification: String)
-  case class AccountBasicMXOF10(AccountId: String,
-                                Status: String,
-                                StatusUpdateDateTime: String,
-                                Currency: String,
-                                AccountType: String,
-                                AccountSubType: String,
-                                AccountIndicator: String,
-                                OnboardingType: Option[String],
-                                Nickname: Option[String],
-                                OpeningDate: Option[String],
-                                MaturityDate: Option[String],
-                                Account: Option[AccountDetailMXOF10],
-                                Servicer: Option[ServicerMXOF10]
+  case class MetaMXOFV001(LastAvailableDateTime: Date, FirstAvailableDateTime: Date, TotalPages: Int)
+  case class LinksMXOFV001(Self: String, First: Option[String], Prev: Option[String], Next: Option[String], Last: Option[String] )
+  case class ReadAccountBasicMXOFV001(Data: DataAccountBasicMXOFV001, Links: LinksMXOFV001, Meta: MetaMXOFV001)
+  case class DataAccountBasicMXOFV001(Account: List[AccountBasicMXOFV001])
+  case class ServicerMXOFV001(SchemeName: String,
+                              Identification: String)
+  case class AccountBasicMXOFV001(AccountId: String,
+                                  Status: String,
+                                  StatusUpdateDateTime: String,
+                                  Currency: String,
+                                  AccountType: String,
+                                  AccountSubType: String,
+                                  AccountIndicator: String,
+                                  OnboardingType: Option[String],
+                                  Nickname: Option[String],
+                                  OpeningDate: Option[String],
+                                  MaturityDate: Option[String],
+                                  Account: Option[AccountDetailMXOFV001],
+                                  Servicer: Option[ServicerMXOFV001]
                                )
-  case class AccountDetailMXOF10(
+  case class AccountDetailMXOFV001(
                                   SchemeName: String,
                                   Identification: String,
                                   Name: Option[String]
                                 )
 
-  case class AmountMXOF10(
+  case class AmountMXOFV001(
     Amount: String,
     Currency: String
   )
-  case class CurrencyExchangeMXOF10(
+  case class CurrencyExchangeMXOFV001(
     SourceCurrency: String,
     TargetCurrency: String,
     UnitCurrency: String,
     ExchangeRate: Double,
     ContractIdentification: String,
     QuotationDate: String,
-    InstructedAmount: AmountMXOF10
+    InstructedAmount: AmountMXOFV001
   )
-  case class BankTransactionCodeMXOF10(
+  case class BankTransactionCodeMXOFV001(
     Code: String,
     SubCode: String
   )
-  case class CardInstrumentMXOF10(
+  case class CardInstrumentMXOFV001(
     CardSchemeName: String,
     AuthorisationType: String,
     Name: String,
     Identification: String
   )
-  case class AdditionalProp1MXOF10(
+  case class AdditionalProp1MXOFV001(
 
   )
-  case class SupplementaryDataMXOF10(
-    additionalProp1: AdditionalProp1MXOF10
+  case class SupplementaryDataMXOFV001(
+    additionalProp1: AdditionalProp1MXOFV001
   )
   
-  case class TransactionBasicMXOF10(
-    AccountId: String,
-    TransactionId: String,
-    TransactionReference: Option[String],
-    TransferTracingCode: Option[String],
-    AccountIndicator: String,
-    Status: String,
-    BookingDateTime: String,
-    ValueDateTime: Option[String],
-    TransactionInformation: String,
-    AddressLine: Option[String],
-    Amount: AmountMXOF10,
-    CurrencyExchange: Option[CurrencyExchangeMXOF10],
-    BankTransactionCode: Option[BankTransactionCodeMXOF10],
-    CardInstrument: Option[CardInstrumentMXOF10],
-    SupplementaryData: Option[SupplementaryDataMXOF10]
+  case class TransactionBasicMXOFV001(
+                                       AccountId: String,
+                                       TransactionId: String,
+                                       TransactionReference: Option[String],
+                                       TransferTracingCode: Option[String],
+                                       AccountIndicator: String,
+                                       Status: String,
+                                       BookingDateTime: String,
+                                       ValueDateTime: Option[String],
+                                       TransactionInformation: String,
+                                       AddressLine: Option[String],
+                                       Amount: AmountMXOFV001,
+                                       CurrencyExchange: Option[CurrencyExchangeMXOFV001],
+                                       BankTransactionCode: Option[BankTransactionCodeMXOFV001],
+                                       CardInstrument: Option[CardInstrumentMXOFV001],
+                                       SupplementaryData: Option[SupplementaryDataMXOFV001]
   )
 
-  case class ReadTransactionMXOF10(Data: List[TransactionBasicMXOF10], Links: LinksMXOF10, Meta: MetaMXOF10)
+  case class ReadTransactionMXOFV001(Data: List[TransactionBasicMXOFV001], Links: LinksMXOFV001, Meta: MetaMXOFV001)
   
   
-  lazy val metaMocked = MetaMXOF10(
+  lazy val metaMocked = MetaMXOFV001(
     LastAvailableDateTime = new Date(),
     FirstAvailableDateTime = new Date(),
     TotalPages = 0
   )
-  lazy val linksMocked = LinksMXOF10(Self = "Self", None, None, None, None)
+  lazy val linksMocked = LinksMXOFV001(Self = "Self", None, None, None, None)
 
-  lazy val accountBasic = AccountBasicMXOF10(
+  lazy val accountBasic = AccountBasicMXOFV001(
     AccountId = "string",
     Status = "Enabled",
     StatusUpdateDateTime = "2020-08-28T06:44:05.618Z",
@@ -111,16 +111,16 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
     OpeningDate = Some("2020-08-28T06:44:05.618Z"),
     MaturityDate = Some("2020-08-28T06:44:05.618Z"),
     Account = Some(
-        AccountDetailMXOF10(
+        AccountDetailMXOFV001(
         SchemeName = "string",
         Identification = "string",
         Name = Some("string")
       )
     ),
-    Servicer = Some(ServicerMXOF10(SchemeName = "string", Identification = "string"))
+    Servicer = Some(ServicerMXOFV001(SchemeName = "string", Identification = "string"))
   )
 
-  lazy val ofReadAccountBasic = ReadAccountBasicMXOF10(Meta = metaMocked, Links = linksMocked, Data = DataAccountBasicMXOF10(Account = List(accountBasic)))
+  lazy val ofReadAccountBasic = ReadAccountBasicMXOFV001(Meta = metaMocked, Links = linksMocked, Data = DataAccountBasicMXOFV001(Account = List(accountBasic)))
 
 
   private def extractOptionalAttributeValue(name: String, 
@@ -136,9 +136,9 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
   
   def createReadAccountBasicJsonMXOFV10(account : ModeratedBankAccountCore, 
                                         moderatedAttributes: List[AccountAttribute],
-                                        view: View): ReadAccountBasicMXOF10 = {
+                                        view: View): ReadAccountBasicMXOFV001 = {
     
-    val accountBasic = AccountBasicMXOF10(
+    val accountBasic = AccountBasicMXOFV001(
       AccountId = account.accountId.value,
       Status = extractAttributeValue("Status", account.bankId, account.accountId, moderatedAttributes),
       StatusUpdateDateTime = extractAttributeValue("StatusUpdateDateTime", account.bankId, account.accountId, moderatedAttributes),
@@ -153,7 +153,7 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
       Account = view.viewId.value match {
         case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
           account.accountRoutings.headOption.map(e =>
-            AccountDetailMXOF10(SchemeName = e.scheme, Identification = e.address, None)
+            AccountDetailMXOFV001(SchemeName = e.scheme, Identification = e.address, None)
           )
         case _ => 
           None
@@ -165,23 +165,23 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
           None
       }
     )
-    val links = LinksMXOF10(
+    val links = LinksMXOFV001(
       s"${Constant.HostName}/mx-open-finance/v0.0.1/accounts/" + account.accountId.value,
       None,
       None,
       None,
       None
     )
-    val meta = MetaMXOF10(
+    val meta = MetaMXOFV001(
       TotalPages = 1,
       FirstAvailableDateTime = new Date(),
       LastAvailableDateTime = new Date()
     )
-    ReadAccountBasicMXOF10(Meta = meta, Links = links, Data = DataAccountBasicMXOF10(Account = List(accountBasic)))
+    ReadAccountBasicMXOFV001(Meta = meta, Links = links, Data = DataAccountBasicMXOFV001(Account = List(accountBasic)))
   }
-  def createReadAccountsBasicJsonMXOFV10(accounts : List[BankAccount]): ReadAccountBasicMXOF10 = {
+  def createReadAccountsBasicJsonMXOFV10(accounts : List[BankAccount]): ReadAccountBasicMXOFV001 = {
     val accountsBasic = accounts.map(account =>
-      AccountBasicMXOF10(
+      AccountBasicMXOFV001(
         AccountId = account.accountId.value,
         Status = "",
         StatusUpdateDateTime = "",
@@ -194,33 +194,33 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
         OpeningDate = None,
         MaturityDate = None,
         Account = account.accountRoutings.headOption.map(e =>
-          AccountDetailMXOF10(SchemeName = e.scheme, Identification = e.address, None)
+          AccountDetailMXOFV001(SchemeName = e.scheme, Identification = e.address, None)
         ),
         Servicer = None
       )
     )
-    val links = LinksMXOF10(
+    val links = LinksMXOFV001(
       s"${Constant.HostName}/mx-open-finance/v0.0.1/accounts/",
       None,
       None,
       None,
       None
     )
-    val meta = MetaMXOF10(
+    val meta = MetaMXOFV001(
       TotalPages = 1,
       FirstAvailableDateTime = new Date(),
       LastAvailableDateTime = new Date()
     )
-    ReadAccountBasicMXOF10(Meta = meta, Links = links, Data = DataAccountBasicMXOF10(Account = accountsBasic))
+    ReadAccountBasicMXOFV001(Meta = meta, Links = links, Data = DataAccountBasicMXOFV001(Account = accountsBasic))
   }
 
-  def createGetTransactionsByAccountIdMXOFV10(moderatedTransactions : List[ModeratedTransaction]): ReadTransactionMXOF10 = {
+  def createGetTransactionsByAccountIdMXOFV10(moderatedTransactions : List[ModeratedTransaction]): ReadTransactionMXOFV001 = {
 
     val accountId = moderatedTransactions.map(_.bankAccount.map(_.accountId.value)).flatten.headOption.getOrElse("")
     
     val transactions = moderatedTransactions.map(
       moderatedTransaction =>
-        TransactionBasicMXOF10(
+        TransactionBasicMXOFV001(
         AccountId = accountId,
         TransactionId = moderatedTransaction.id.value,
         TransactionReference = None,
@@ -231,7 +231,7 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
         ValueDateTime = None,
         TransactionInformation = moderatedTransaction.description.getOrElse(null),
         AddressLine = None,
-        Amount = AmountMXOF10(
+        Amount = AmountMXOFV001(
           moderatedTransaction.amount.map(_.bigDecimal.toString).getOrElse(null),
           moderatedTransaction.currency.getOrElse(null),
         ),
@@ -242,7 +242,7 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
       )
     )
     
-    val links = LinksMXOF10(
+    val links = LinksMXOFV001(
       s"${Constant.HostName}/mx-open-finance/v0.0.1/accounts/" + accountId + "/transactions",
       None,
       None,
@@ -250,40 +250,40 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
       None
     )
     
-    val meta = MetaMXOF10(
+    val meta = MetaMXOFV001(
       TotalPages = 1,
       FirstAvailableDateTime = new Date(),
       LastAvailableDateTime = new Date()
     )
-    ReadTransactionMXOF10(transactions, Meta = meta, Links = links)
+    ReadTransactionMXOFV001(transactions, Meta = meta, Links = links)
   }
 
 
   def createAccountBalanceJSON(moderatedAccount: ModeratedBankAccountCore) = {
     val accountId = moderatedAccount.accountId.value
 
-    val dataJson = DataJsonMXOF10(
-      List(BalanceJsonMXOF10(
+    val dataJson = DataJsonMXOFV001(
+      List(BalanceJsonMXOFV001(
         AccountId = accountId,
         Amount = AmountOfMoneyJsonV121(moderatedAccount.currency.getOrElse(""), moderatedAccount.balance.getOrElse("")),
         CreditDebitIndicator = "Credit",
         Type = "Available",
         DateTime = null,
-        CreditLine = List(CreditLineJsonMXOF10(
+        CreditLine = List(CreditLineJsonMXOFV001(
           Included = true,
           Amount = AmountOfMoneyJsonV121(moderatedAccount.currency.getOrElse(""), moderatedAccount.balance.getOrElse("")),
           Type = "Pre-Agreed"
         )))))
 
-    AccountBalancesUKV310(
+    AccountBalancesMXOFV001(
       Data = dataJson,
-      Links = LinksMXOF10(
+      Links = LinksMXOFV001(
         s"${Constant.HostName}/mx-open-finance/v0.0.1/accounts/${accountId}/balances",
         None,
         None,
         None,
         None),
-      Meta = MetaMXOF10(
+      Meta = MetaMXOFV001(
         new Date(),
         new Date(),
         0
@@ -291,29 +291,29 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
     )
   }
 
-  case class CreditLineJsonMXOF10(
+  case class CreditLineJsonMXOFV001(
                                    Included: Boolean,
                                    Amount: AmountOfMoneyJsonV121,
                                    Type: String
                                  )
 
-  case class BalanceJsonMXOF10(
+  case class BalanceJsonMXOFV001(
                                 AccountId: String,
                                 Amount: AmountOfMoneyJsonV121,
                                 CreditDebitIndicator: String,
                                 Type: String,
                                 DateTime: Date,
-                                CreditLine: List[CreditLineJsonMXOF10]
+                                CreditLine: List[CreditLineJsonMXOFV001]
                               )
 
-  case class DataJsonMXOF10(
-                             Balance: List[BalanceJsonMXOF10]
+  case class DataJsonMXOFV001(
+                             Balance: List[BalanceJsonMXOFV001]
                            )
 
-  case class AccountBalancesUKV310(
-                                    Data: DataJsonMXOF10,
-                                    Links: LinksMXOF10,
-                                    Meta: MetaMXOF10
+  case class AccountBalancesMXOFV001(
+                                      Data: DataJsonMXOFV001,
+                                      Links: LinksMXOFV001,
+                                      Meta: MetaMXOFV001
                                   )
 
 
