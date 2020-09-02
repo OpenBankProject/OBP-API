@@ -5,8 +5,10 @@ import java.util.Date
 import code.api.Constant
 import code.api.util.CustomJsonFormats
 import code.model.{ModeratedBankAccountCore, ModeratedTransaction}
-import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankAccount, BankId, View}
+import com.openbankproject.commons.model._
 import net.liftweb.json.JValue
+
+import scala.collection.immutable.List
 
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
 
@@ -164,7 +166,7 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
       }
     )
     val links = LinksMXOF10(
-      s"${Constant.HostName}/mx-open-finance/v1.0/accounts/" + account.accountId.value,
+      s"${Constant.HostName}/mx-open-finance/v0.0.1/accounts/" + account.accountId.value,
       None,
       None,
       None,
@@ -198,7 +200,7 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
       )
     )
     val links = LinksMXOF10(
-      s"${Constant.HostName}/mx-open-finance/v1.0/accounts/",
+      s"${Constant.HostName}/mx-open-finance/v0.0.1/accounts/",
       None,
       None,
       None,
@@ -241,7 +243,7 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
     )
     
     val links = LinksMXOF10(
-      s"${Constant.HostName}/mx-open-finance/v1.0/accounts/" + accountId + "/transactions",
+      s"${Constant.HostName}/mx-open-finance/v0.0.1/accounts/" + accountId + "/transactions",
       None,
       None,
       None,
@@ -257,6 +259,62 @@ object JSONFactory_MX_OPEN_FINANCE_1_0 extends CustomJsonFormats {
   }
 
 
+  def createAccountBalanceJSON(moderatedAccount: ModeratedBankAccountCore) = {
+    val accountId = moderatedAccount.accountId.value
+
+    val dataJson = DataJsonMXOF10(
+      List(BalanceJsonMXOF10(
+        AccountId = accountId,
+        Amount = AmountOfMoneyJsonV121(moderatedAccount.currency.getOrElse(""), moderatedAccount.balance.getOrElse("")),
+        CreditDebitIndicator = "Credit",
+        Type = "Available",
+        DateTime = null,
+        CreditLine = List(CreditLineJsonMXOF10(
+          Included = true,
+          Amount = AmountOfMoneyJsonV121(moderatedAccount.currency.getOrElse(""), moderatedAccount.balance.getOrElse("")),
+          Type = "Pre-Agreed"
+        )))))
+
+    AccountBalancesUKV310(
+      Data = dataJson,
+      Links = LinksMXOF10(
+        s"${Constant.HostName}/mx-open-finance/v0.0.1/accounts/${accountId}/balances",
+        None,
+        None,
+        None,
+        None),
+      Meta = MetaMXOF10(
+        new Date(),
+        new Date(),
+        0
+      )
+    )
+  }
+
+  case class CreditLineJsonMXOF10(
+                                   Included: Boolean,
+                                   Amount: AmountOfMoneyJsonV121,
+                                   Type: String
+                                 )
+
+  case class BalanceJsonMXOF10(
+                                AccountId: String,
+                                Amount: AmountOfMoneyJsonV121,
+                                CreditDebitIndicator: String,
+                                Type: String,
+                                DateTime: Date,
+                                CreditLine: List[CreditLineJsonMXOF10]
+                              )
+
+  case class DataJsonMXOF10(
+                             Balance: List[BalanceJsonMXOF10]
+                           )
+
+  case class AccountBalancesUKV310(
+                                    Data: DataJsonMXOF10,
+                                    Links: LinksMXOF10,
+                                    Meta: MetaMXOF10
+                                  )
 
 
 }

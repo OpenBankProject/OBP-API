@@ -1,25 +1,23 @@
 package code.api.MxOpenFinace
 
 import code.api.Constant
+import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_1_0._
 import code.api.util.APIUtil._
-import code.api.util.{ApiTag, CallContext, NewStyle}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
+import code.api.util.{ApiTag, CallContext, NewStyle}
+import code.util.Helper
+import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model._
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json._
-import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_1_0._
-import code.metadata.tags.Tags
-import code.util.Helper
-import code.views.Views
-import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankAccount, BankId, BankIdAccountId, View, ViewId}
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.Future
 
 object APIMethods_AccountsApi extends RestHelper {
     val apiVersion =  MxOpenFinanceCollector.apiVersion
