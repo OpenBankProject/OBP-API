@@ -521,6 +521,7 @@ case class OutBoundMakeHistoricalPayment(outboundAdapterCallContext: OutboundAda
                                          posted: Date,
                                          completed: Date,
                                          amount: BigDecimal,
+                                         currency: String,
                                          description: String,
                                          transactionRequestType: String,
                                          chargePolicy: String

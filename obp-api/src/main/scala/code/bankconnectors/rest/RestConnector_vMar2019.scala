@@ -9034,6 +9034,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       posted=new Date(),
       completed=new Date(),
       amount=BigDecimal("123.321"),
+      currency=currencyExample.value,
       description="string",
       transactionRequestType=transactionRequestTypeExample.value,
       chargePolicy="string")
@@ -9053,10 +9054,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /makeHistoricalPayment
-  override def makeHistoricalPayment(fromAccount: BankAccount, toAccount: BankAccount, posted: Date, completed: Date, amount: BigDecimal, description: String, transactionRequestType: String, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
+  override def makeHistoricalPayment(fromAccount: BankAccount, toAccount: BankAccount, posted: Date, completed: Date, amount: BigDecimal, currency: String, description: String, transactionRequestType: String, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
         import com.openbankproject.commons.dto.{OutBoundMakeHistoricalPayment => OutBound, InBoundMakeHistoricalPayment => InBound}
         val url = getUrl(callContext, "makeHistoricalPayment")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , fromAccount, toAccount, posted, completed, amount, description, transactionRequestType, chargePolicy)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , fromAccount, toAccount, posted, completed, amount, currency, description, transactionRequestType, chargePolicy)
         val result: OBPReturnType[Box[TransactionId]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }

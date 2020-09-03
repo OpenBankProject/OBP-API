@@ -5912,6 +5912,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       posted=toDate(postedDateExample),
       completed=toDate(completedDateExample),
       amount=BigDecimal(amountExample.value),
+      currency=currencyExample.value,
       description="string",
       transactionRequestType=transactionRequestTypeExample.value,
       chargePolicy="string")
@@ -5924,9 +5925,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def makeHistoricalPayment(fromAccount: BankAccount, toAccount: BankAccount, posted: Date, completed: Date, amount: BigDecimal, description: String, transactionRequestType: String, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
+  override def makeHistoricalPayment(fromAccount: BankAccount, toAccount: BankAccount, posted: Date, completed: Date, amount: BigDecimal, currency: String, description: String, transactionRequestType: String, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
         import com.openbankproject.commons.dto.{InBoundMakeHistoricalPayment => InBound, OutBoundMakeHistoricalPayment => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccount, toAccount, posted, completed, amount, description, transactionRequestType, chargePolicy)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccount, toAccount, posted, completed, amount, currency, description, transactionRequestType, chargePolicy)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_make_historical_payment", req, callContext)
         response.map(convertToTuple[TransactionId](callContext))        
   }

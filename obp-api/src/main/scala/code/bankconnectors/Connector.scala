@@ -2211,6 +2211,7 @@ trait Connector extends MdcLoggable {
                             posted: Date,
                             completed: Date,
                             amount: BigDecimal,
+                            currency: String,
                             description: String,
                             transactionRequestType: String,
                             chargePolicy: String,

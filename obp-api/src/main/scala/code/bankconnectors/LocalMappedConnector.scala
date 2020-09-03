@@ -1094,60 +1094,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                description: String,
                                transactionRequestType: TransactionRequestType,
                                chargePolicy: String,
-                               callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
-    for {
-      
-      //def exchangeRate --> do not return any exception, but it may return NONO there.
-      rate <- Future (fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value)))
-      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported." ){
-        rate.isDefined
-      }
-      fromTransAmt = -amount //from fromAccount balance should decrease
-      toTransAmt = fx.convert(amount, rate)
-      debitTransactionBox <- Future {
-        saveTransaction(fromAccount, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
-          .map(debitTransactionId => (fromAccount.bankId, fromAccount.accountId, debitTransactionId))
-          .or {
-            val settlementAccount = BankAccountX(toAccount.bankId, AccountId(transactionRequestType.value), callContext)
-              .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
-            settlementAccount.flatMap(settlementAccount =>
-              saveTransaction(settlementAccount._1, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
-                .map(debitTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, debitTransactionId))
-            )
-          }
-      }
-      creditTransactionBox <- Future {
-        saveTransaction(toAccount, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
-          .map(creditTransactionId => (toAccount.bankId, toAccount.accountId, creditTransactionId))
-          .or {
-            val settlementAccount = BankAccountX(fromAccount.bankId, AccountId(transactionRequestType.value), callContext)
-              .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
-            settlementAccount.flatMap(settlementAccount =>
-              saveTransaction(settlementAccount._1, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
-                .map(creditTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, creditTransactionId))
-            )
-          }
-      }
-
-      debitTransaction = debitTransactionBox.openOrThrowException("Error while opening debitTransaction")
-      creditTransaction = creditTransactionBox.openOrThrowException("Error while opening creditTransaction")
-
-      _ <- NewStyle.function.saveDoubleEntryBookTransaction(
-        DoubleEntryTransaction(
-          transactionRequestBankId = Some(fromAccount.bankId),
-          transactionRequestAccountId = Some(fromAccount.accountId),
-          transactionRequestId = Some(transactionRequestId),
-          debitTransactionBankId = debitTransaction._1,
-          debitTransactionAccountId = debitTransaction._2,
-          debitTransactionId = debitTransaction._3,
-          creditTransactionBankId = creditTransaction._1,
-          creditTransactionAccountId = creditTransaction._2,
-          creditTransactionId = creditTransaction._3
-        ), callContext)
-    } yield {
-      (debitTransactionBox.map(_._3), callContext)
-    }
-  }
+                               callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] =
+    savePayment(fromAccount, toAccount, transactionRequestId, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy, callContext)
 
   override def saveDoubleEntryBookTransaction(doubleEntryTransaction: DoubleEntryTransaction,
                                               callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]] = {
@@ -1169,27 +1117,25 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def makePaymentV400(transactionRequest: TransactionRequest,
                                reasons: Option[List[TransactionRequestReason]],
                                callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = Future {
-    val fromCurrency = transactionRequest.body.value.currency
-    val toCurrency = transactionRequest.body.value.currency
+
+    val amount = BigDecimal(transactionRequest.body.value.amount)
+    val description = transactionRequest.body.description
+    val transactionRequestType = TransactionRequestType(transactionRequest.`type`)
+    val chargePolicy = transactionRequest.charge_policy
+    val fromBankId = BankId(transactionRequest.from.bank_id)
+    val fromAccountId = AccountId(transactionRequest.from.account_id)
+    val fromAccount = Connector.connector.vend.getBankAccountOld(fromBankId, fromAccountId).openOrThrowException(s"$BankAccountNotFound Current Bank_Id(${fromBankId}), Account_Id(${fromAccountId}) ")
+    val transactionRequestCommonBody = TransactionRequestCommonBodyJSONCommons(
+      AmountOfMoneyJsonV121(
+        transactionRequest.body.value.currency,
+        transactionRequest.body.value.amount
+      ),
+      transactionRequest.body.description
+    )
+    val toAccountRoutingScheme = transactionRequest.other_account_routing_scheme
+    val toAccountRoutingAddress = transactionRequest.other_account_routing_address
+
     for {
-      //def exchangeRate --> do not return any exception, but it may return NONO there.
-      rate <- Future (fx.exchangeRate(fromCurrency, toCurrency, Some(transactionRequest.from.bank_id)))
-      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${fromCurrency} to ${toCurrency}) is not supported." ){
-        rate.isDefined
-      }
-      amount = BigDecimal(transactionRequest.body.value.amount)
-      description = transactionRequest.body.description
-      transactionRequestType = TransactionRequestType(transactionRequest.`type`)
-      chargePolicy = transactionRequest.charge_policy
-      fromTransAmt = -amount //from fromAccount balance should decrease
-      toTransAmt = fx.convert(amount, rate)
-      fromBankId = BankId(transactionRequest.from.bank_id)
-      fromAccountId = AccountId(transactionRequest.from.account_id)
-      fromAccount = Connector.connector.vend.getBankAccountOld(fromBankId, fromAccountId).openOrThrowException(s"$BankAccountNotFound Current Bank_Id(${fromBankId}), Account_Id(${fromAccountId}) ")
-      // toBankId = BankId(transactionRequest.from.bank_id)
-      toAccountId = AccountId(transactionRequest.from.account_id)
-      toAccountRoutingScheme = transactionRequest.other_account_routing_scheme
-      toAccountRoutingAddress = transactionRequest.other_account_routing_address
       toAccount <-
         Connector.connector.vend.getBankAccountByRouting(None, toAccountRoutingScheme, toAccountRoutingAddress, None) match {
           case Full(bankAccount) => Future.successful(bankAccount._1)
@@ -1198,52 +1144,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               NewStyle.function.getBankAccountFromCounterparty(counterparty._1, isOutgoingAccount = true, callContext)
             )
         }
-      transactionRequestCommonBody = TransactionRequestCommonBodyJSONCommons(AmountOfMoneyJsonV121(transactionRequest.body.value.amount, fromCurrency), transactionRequest.body.description)
-
-
-      debitTransactionBox <- Future {
-        saveTransaction(fromAccount, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
-          .map(debitTransactionId => (fromAccount.bankId, fromAccount.accountId, debitTransactionId))
-          .or {
-            val settlementAccount = BankAccountX(toAccount.bankId, AccountId(transactionRequestType.value), callContext)
-              .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
-            settlementAccount.flatMap(settlementAccount =>
-              saveTransaction(settlementAccount._1, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
-                .map(debitTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, debitTransactionId))
-            )
-          }
-      }
-      creditTransactionBox <- Future {
-        saveTransaction(toAccount, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
-          .map(creditTransactionId => (toAccount.bankId, toAccount.accountId, creditTransactionId))
-          .or {
-            val settlementAccount = BankAccountX(fromAccount.bankId, AccountId(transactionRequestType.value), callContext)
-              .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
-            settlementAccount.flatMap(settlementAccount =>
-              saveTransaction(settlementAccount._1, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
-                .map(creditTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, creditTransactionId))
-            )
-          }
-      }
-
-      debitTransaction = debitTransactionBox.openOrThrowException("Error while opening debitTransaction")
-      creditTransaction = creditTransactionBox.openOrThrowException("Error while opening creditTransaction")
-
-      _ <- NewStyle.function.saveDoubleEntryBookTransaction(
-        DoubleEntryTransaction(
-          transactionRequestBankId = Some(fromAccount.bankId),
-          transactionRequestAccountId = Some(fromAccount.accountId),
-          transactionRequestId = Some(transactionRequest.id),
-          debitTransactionBankId = debitTransaction._1,
-          debitTransactionAccountId = debitTransaction._2,
-          debitTransactionId = debitTransaction._3,
-          creditTransactionBankId = creditTransaction._1,
-          creditTransactionAccountId = creditTransaction._2,
-          creditTransactionId = creditTransaction._3
-        ), callContext)
-    } yield {
-      (debitTransactionBox.map(_._3), callContext)
-    }
+      (debitTransactionId, callContext) <- savePayment(
+        fromAccount, toAccount, transactionRequest.id, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy, callContext)
+    } yield (debitTransactionId, callContext)
   }
 
   override def makeHistoricalPayment(
@@ -1252,17 +1155,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                       posted: Date,
                                       completed: Date,
                                       amount: BigDecimal,
+                                      currency: String,
                                       description: String,
                                       transactionRequestType: String,
                                       chargePolicy: String,
                                       callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
     for {
-      //def exchangeRate --> do not return any exception, but it may return NONO there.
-      rate <- Future (fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value)))
-      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported."){rate.isDefined}
-      
-      fromTransAmt = -amount //from fromAccount balance should decrease
-      toTransAmt = fx.convert(amount, rate)
+      /* Here there is three possibilities
+        - fromAccount and toAccount are two real OBP accounts, in this case, we take the exchange rate of the fromAccount bankId
+        - fromAccount is a real OBP account and toAccount is a fake account from counterparty, in this case, we take the exchange rate of the fromAccount bankId
+        - toAccount is a real OBP account and fromAccount is a fake account from counterparty, in this case, we take the exchange rate of the toAccount bankId
+        NOTE: if fromAccount and toAccount are fake account from counterparty, the makeHistoricalPayment will fail
+       */
+
+      (bankIdExchangeRate, callContext) <- NewStyle.function.getBank(fromAccount.bankId, callContext)
+        .fallbackTo(NewStyle.function.getBank(toAccount.bankId, callContext))
+
+      debitRate <- Future (fx.exchangeRate(currency, fromAccount.currency, Some(bankIdExchangeRate.bankId.value)))
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${currency} to ${fromAccount.currency}) is not supported."){debitRate.isDefined}
+      creditRate <- Future (fx.exchangeRate(currency, toAccount.currency, Some(bankIdExchangeRate.bankId.value)))
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${currency} to ${toAccount.currency}) is not supported."){creditRate.isDefined}
+
+      fromTransAmt = -fx.convert(amount, debitRate) //from fromAccount balance should decrease
+      toTransAmt = fx.convert(amount, creditRate)
 
       debitTransactionBox <- Future(
         saveHistoricalTransaction(fromAccount, toAccount, posted, completed, fromTransAmt, description, transactionRequestType, chargePolicy, callContext)
@@ -1357,6 +1272,77 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       } yield {
         mappedTransaction.theTransactionId
       }
+
+  private def savePayment(fromAccount: BankAccount,
+                          toAccount: BankAccount,
+                          transactionRequestId: TransactionRequestId,
+                          transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                          amount: BigDecimal,
+                          description: String,
+                          transactionRequestType: TransactionRequestType,
+                          chargePolicy: String,
+                          callContext: Option[CallContext]) =
+    for {
+      /* Here there is three possibilities
+        - fromAccount and toAccount are two real OBP accounts, in this case, we take the exchange rate of the fromAccount bankId
+        - fromAccount is a real OBP account and toAccount is a fake account from counterparty, in this case, we take the exchange rate of the fromAccount bankId
+        - toAccount is a real OBP account and fromAccount is a fake account from counterparty, in this case, we take the exchange rate of the toAccount bankId
+        NOTE: if fromAccount and toAccount are fake account from counterparty, the makeHistoricalPayment will fail
+       */
+
+      (bankIdExchangeRate, callContext) <- NewStyle.function.getBank(fromAccount.bankId, callContext)
+        .fallbackTo(NewStyle.function.getBank(toAccount.bankId, callContext))
+
+      transactionCurrency = transactionRequestCommonBody.value.currency
+      debitRate <- Future (fx.exchangeRate(transactionCurrency, fromAccount.currency, Some(bankIdExchangeRate.bankId.value)))
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${transactionCurrency} to ${fromAccount.currency}) is not supported."){debitRate.isDefined}
+      creditRate <- Future (fx.exchangeRate(transactionCurrency, toAccount.currency, Some(bankIdExchangeRate.bankId.value)))
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${transactionCurrency} to ${toAccount.currency}) is not supported."){creditRate.isDefined}
+
+      fromTransAmt = -fx.convert(amount, debitRate) //from fromAccount balance should decrease
+      toTransAmt = fx.convert(amount, creditRate)
+
+      debitTransactionBox <- Future {
+        saveTransaction(fromAccount, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
+          .map(debitTransactionId => (fromAccount.bankId, fromAccount.accountId, debitTransactionId))
+          .or {
+            val settlementAccount = BankAccountX(toAccount.bankId, AccountId(transactionRequestType.value), callContext)
+              .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
+            settlementAccount.flatMap(settlementAccount =>
+              saveTransaction(settlementAccount._1, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
+                .map(debitTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, debitTransactionId))
+            )
+          }
+      }
+      creditTransactionBox <- Future {
+        saveTransaction(toAccount, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
+          .map(creditTransactionId => (toAccount.bankId, toAccount.accountId, creditTransactionId))
+          .or {
+            val settlementAccount = BankAccountX(fromAccount.bankId, AccountId(transactionRequestType.value), callContext)
+              .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
+            settlementAccount.flatMap(settlementAccount =>
+              saveTransaction(settlementAccount._1, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
+                .map(creditTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, creditTransactionId))
+            )
+          }
+      }
+
+      debitTransaction = debitTransactionBox.openOrThrowException("Error while opening debitTransaction")
+      creditTransaction = creditTransactionBox.openOrThrowException("Error while opening creditTransaction")
+
+      _ <- NewStyle.function.saveDoubleEntryBookTransaction(
+        DoubleEntryTransaction(
+          transactionRequestBankId = Some(fromAccount.bankId),
+          transactionRequestAccountId = Some(fromAccount.accountId),
+          transactionRequestId = Some(transactionRequestId),
+          debitTransactionBankId = debitTransaction._1,
+          debitTransactionAccountId = debitTransaction._2,
+          debitTransactionId = debitTransaction._3,
+          creditTransactionBankId = creditTransaction._1,
+          creditTransactionAccountId = creditTransaction._2,
+          creditTransactionId = creditTransaction._3
+        ), callContext)
+    } yield (debitTransactionBox.map(_._3), callContext)
 
   /**
     * Saves a transaction with @amount, @toAccount and @transactionRequestType for @fromAccount and @toCounterparty. <br>
