@@ -184,25 +184,15 @@ object APIMethods_TransactionsApi extends RestHelper {
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-
-             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
-
-             bankId = BankId(defaultBankId)
-
-             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-
-             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, AccountId(accountId), callContext)
-
-             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
-
+             (account, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
+             (bank, callContext) <- NewStyle.function.getBank(account.bankId, callContext)
+             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
              params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
-
-             (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(bankId,bankAccount.accountId), callContext, params) map {
+             (transactions, callContext) <- account.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(account.bankId,account.accountId), callContext, params) map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
-             
              } yield {
               (JSONFactory_MX_OPEN_FINANCE_0_0_1.createGetTransactionsByAccountIdMXOFV10(transactions), callContext)
            }
