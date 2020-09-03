@@ -461,6 +461,8 @@ object Consent {
   
   def createUKConsentJWT(
     user: User,
+    bankId: Option[String],
+    accountIds: Option[List[String]],
     permissions: List[String],
     expirationDateTime: Date,
     transactionFromDateTime: Date,
@@ -475,12 +477,26 @@ object Consent {
     val validUntilTimeInSeconds = currentTimeInSeconds
     
     // 1. Add views
-    val consentViews: List[ConsentView] = permissions.map { permission =>
-        ConsentView(
-          bank_id = null,
-          account_id = null,
-          view_id = permission
-        )
+    val consentViews: List[ConsentView] = if (bankId.isDefined && accountIds.isDefined) {
+      permissions.map {
+        permission =>
+          accountIds.get.map(
+            accountId =>
+              ConsentView(
+                bank_id = bankId.getOrElse(null),
+                account_id = accountId,
+                view_id = permission
+              ))
+      }.flatten
+    } else {
+      permissions.map {
+        permission =>
+          ConsentView(
+            bank_id = null,
+            account_id = null,
+            view_id = permission
+          )
+      }
     }
 
     val json = ConsentJWT(
