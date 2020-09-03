@@ -91,7 +91,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
                u,
                bankId = None,
                accountIds = None,
-               consumerId = None,
+               consumerId = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")),
                permissions = consentJson.Data.Permissions,
                expirationDateTime = DateWithDayFormat.parse(consentJson.Data.ExpirationDateTime) ,
                transactionFromDateTime = DateWithDayFormat.parse(consentJson.Data.TransactionFromDateTime),
