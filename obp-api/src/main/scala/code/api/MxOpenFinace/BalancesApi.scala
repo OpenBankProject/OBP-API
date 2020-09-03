@@ -51,9 +51,8 @@ object APIMethods_BalancesApi extends RestHelper {
            val viewId = ViewId(Constant.READ_BALANCES_VIEW_ID)
            for {
              (user, callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
-             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
-             (account, callContext) <- NewStyle.function.getBankAccount(BankId(defaultBankId), AccountId(accountId), callContext)
-             view: View <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(BankId(defaultBankId), AccountId(accountId)), user, callContext)
+             (account, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
+             view: View <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, AccountId(accountId)), user, callContext)
              moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, callContext)
            } yield {
              (createAccountBalanceJSON(moderatedAccount), callContext)
