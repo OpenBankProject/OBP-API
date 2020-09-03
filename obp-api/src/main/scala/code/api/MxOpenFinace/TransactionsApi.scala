@@ -37,7 +37,7 @@ object APIMethods_TransactionsApi extends RestHelper {
        "GET", 
        "/accounts/ACCOUNT_ID/transactions", 
        "getTransactionsByAccountId",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             Get Transactions
             """,
        json.parse(""""""),
