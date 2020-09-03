@@ -55,12 +55,11 @@ object APIMethods_AccountsApi extends RestHelper {
            val basicViewId = ViewId(Constant.READ_ACCOUNTS_BASIC_VIEW_ID)
            for {
              (user, callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
-             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
-             (account, callContext) <- NewStyle.function.getBankAccount(BankId(defaultBankId), AccountId(accountId), callContext)
-             view: View <- NewStyle.function.checkViewsAccessAndReturnView(detailViewId, basicViewId, BankIdAccountId(BankId(defaultBankId), AccountId(accountId)), user, callContext)
+             (account, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
+             view: View <- NewStyle.function.checkViewsAccessAndReturnView(detailViewId, basicViewId, BankIdAccountId(account.bankId, AccountId(accountId)), user, callContext)
              moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, callContext)
              (moderatedAttributes: List[AccountAttribute], callContext) <- NewStyle.function.getModeratedAccountAttributesByAccount(
-               BankId(defaultBankId),
+               account.bankId,
                account.accountId,
                view.viewId,
                callContext: Option[CallContext])
