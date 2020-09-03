@@ -565,6 +565,11 @@
           <configuration>
             <nosuffix>true</nosuffix>
             <encoding>${project.build.sourceEncoding}</encoding>
+            <excludes>
+              <!-- yuicompressor fails to compile patterns library, hence stopping full build -->
+              <!-- We won't be modifying this library so will exclude it for now -->
+              <exclude>**/*.min.*</exclude>
+            </excludes>
           </configuration>
         </plugin>
         <plugin>
