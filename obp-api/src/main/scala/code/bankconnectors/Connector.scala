@@ -471,7 +471,8 @@ trait Connector extends MdcLoggable {
 
   //This one just added the callContext in parameters.
   def getBankAccountLegacy(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
-
+  
+  def getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
   def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
   def getBankAccountByRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
   def getAccountRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccountRouting, Option[CallContext])]= Failure(setUnimplementedError)
