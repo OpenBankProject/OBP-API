@@ -867,5 +867,7 @@ outboundAdapterCallContext.generalContext
 #hydra_public_url=http://127.0.0.1:4444
 #hydra_admin_url=http://127.0.0.1:4445
 #hydra_client_id=auth-code-client
-#hydra_client_scope=openid,offline
+#hydra_consents=ReadAccountsBasic,ReadAccountsDetail,ReadBalances,ReadTransactionsBasic,"ReadTransactionsDebits,ReadTransactionsDetail
+## check the oauth2.jwk_set.url props, it must contains jwks.json that locate in ${hydra_public_url}/.well-known/jwks.json
+##oauth2.jwk_set.url=http://localhost:4444/.well-known/jwks.json,https://www.googleapis.com/oauth2/v3/certs
 # ------------------------------ Hydra oauth2 props end ------------------------------
