@@ -2516,9 +2516,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                    national_identifier: String,
                                    bankRoutingScheme: String,
                                    bankRoutingAddress: String
-                                 ): Box[Bank] =
+                                 ): Box[Bank] = {
   //check the bank existence and update or insert data
-    getMappedBank(BankId(bankId)) match {
+    val bank = getMappedBank(BankId(bankId)) match {
       case Full(mappedBank) =>
         tryo {
           mappedBank
@@ -2548,6 +2548,42 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .saveMe()
         } ?~! ErrorMessages.UpdateBankError
     }
+
+    // Insert the default settlement accounts if they doesn't exist
+    MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, INCOMING_ACCOUNT_ID)) match {
+      case Full(_) =>
+        logger.debug(s"BankAccount(${bankId}, $INCOMING_ACCOUNT_ID) is found.")
+      case _ =>
+        MappedBankAccount.create
+          .bank(bankId)
+          .theAccountId(INCOMING_ACCOUNT_ID)
+          .accountCurrency("EUR")
+          .kind("SETTLEMENT")
+          .holder(fullBankName)
+          .accountName("Default incoming settlement account")
+          .accountLabel("Settlement account: Do not delete!")
+          .saveMe()
+        logger.debug(s"creating BankAccount(${bankId}, $INCOMING_ACCOUNT_ID).")
+    }
+
+    MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, OUTGOING_ACCOUNT_ID)) match {
+      case Full(_) =>
+        logger.debug(s"BankAccount(${bankId}, $OUTGOING_ACCOUNT_ID) is found.")
+      case _ =>
+        MappedBankAccount.create
+          .bank(bankId)
+          .theAccountId(OUTGOING_ACCOUNT_ID)
+          .accountCurrency("EUR")
+          .kind("SETTLEMENT")
+          .holder(fullBankName)
+          .accountName("Default outgoing settlement account")
+          .accountLabel("Settlement account: Do not delete!")
+          .saveMe()
+        logger.debug(s"creating BankAccount(${bankId}, $OUTGOING_ACCOUNT_ID).")
+    }
+
+    bank
+  }
 
   override def createCounterparty(
                                    name: String,

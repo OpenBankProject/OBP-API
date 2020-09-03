@@ -841,7 +841,7 @@ def restoreSomeSessions(): Unit = {
       if(loginWithHydra && loginChallengeBox.isDefined) {
         val challenge = loginChallengeBox.orNull
         val acceptLoginRequest = new AcceptLoginRequest()
-        acceptLoginRequest.setSubject(user.email.get)
+        acceptLoginRequest.setSubject(user.username.get)
         acceptLoginRequest.remember(false)
         acceptLoginRequest.rememberFor(3600)
         val response = hydraAdmin.acceptLoginRequest(challenge, acceptLoginRequest)
