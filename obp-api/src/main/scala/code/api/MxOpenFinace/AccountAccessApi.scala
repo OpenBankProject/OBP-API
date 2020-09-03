@@ -7,10 +7,12 @@ import code.api.util.APIUtil._
 import code.api.util.{ApiTag, NewStyle}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
+import code.api.util.NewStyle.HttpCode
 import code.consent.Consents
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.common.Full
+import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json._
@@ -39,7 +41,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
        "POST", 
        "/account-access-consents", 
        "CreateAccountAccessConsents",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             Create Account Access Consents
             """,
        json.parse("""{
@@ -121,7 +123,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
           "ConsentId" : "${createdConsent.consentId}",
           "TransactionFromDateTime" : "${consentJson.Data.TransactionFromDateTime}",
         }
-    }"""), callContext)
+    }"""), HttpCode.`201`(callContext))
            }
          }
        }
@@ -133,7 +135,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
     "DELETE",
     "/account-access-consents/CONSENT_ID",
     "DeleteAccountAccessConsentsConsentId",
-    s"""${mockedDataText(true)}
+    s"""${mockedDataText(false)}
             Delete Account Access Consents
             """,
     json.parse(""""""),
@@ -148,8 +150,15 @@ object APIMethods_AccountAccessApi extends RestHelper {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
-             } yield {
-             (NotImplemented, callContext)
+             _ <- passesPsd2Aisp(callContext)
+             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+               unboxFullOrFail(_, callContext, ConsentNotFound)
+             }
+             consent <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
+               i => connectorEmptyResponse(i, callContext)
+             }
+           } yield {
+             (JsRaw(""), HttpCode.`204`(callContext))
            }
          }
        }
