@@ -101,6 +101,8 @@ object MappedConsentProvider extends ConsentProvider {
         .saveMe()
       val jwt = Consent.createUKConsentJWT(
         user: User,
+        bankId: Option[String],
+        accountIds: Option[List[String]],
         permissions: List[String],
         expirationDateTime: Date,
         transactionFromDateTime: Date,
