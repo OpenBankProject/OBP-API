@@ -383,6 +383,7 @@ object ErrorMessages {
   val ConsumerAtConsentCannotBeFound = "OBP-35018: The Consumer specified in this consent cannot be found."
   val ConsumerValidationMethodForConsentNotDefined = "OBP-35019: Consumer validation method for consent is not defined at this instance."
   val ConsentMaxTTL = "OBP-35020: You exceeded max value of time to live of consents."
+  val ConsentViewNotFund = "OBP-35021: Consent Views not found by CONSENT_ID."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "

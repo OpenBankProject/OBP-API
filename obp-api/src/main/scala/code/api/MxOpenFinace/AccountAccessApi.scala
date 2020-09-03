@@ -4,7 +4,7 @@ import code.api.Constant
 import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_0_0_1.ConsentPostBodyMXOFV001
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
-import code.api.util.{ApiTag, NewStyle}
+import code.api.util.{ApiTag, ConsentJWT, JwtUtil, NewStyle}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
@@ -59,11 +59,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
                 "TotalPages" : 0
               },
               "Links" : {
-                "Last" : "Last",
-                "Prev" : "Prev",
-                "Next" : "Next",
-                "Self" : "Self",
-                "First" : "First"
+                "Self" : "Self"
               },
               "Data" : {
                 "Status" : "Authorised",
@@ -115,8 +111,8 @@ object APIMethods_AccountAccessApi extends RestHelper {
         },
         "Data" : {
           "Status" : "${createdConsent.status}",
-          "StatusUpdateDateTime" : "${createdConsent.statusUpdateDateTime.toString}",
-          "CreationDateTime" : "${createdConsent.creationDateTime.toString}",
+          "StatusUpdateDateTime" : "${createdConsent.statusUpdateDateTime}",
+          "CreationDateTime" : "${createdConsent.creationDateTime}",
           "TransactionToDateTime" : "${consentJson.Data.TransactionToDateTime}",
           "ExpirationDateTime" :  "${consentJson.Data.ExpirationDateTime}",
           "Permissions" : ${consentJson.Data.Permissions.mkString("""["""","""","""",""""]""")},
@@ -170,7 +166,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
     "GET",
     "/account-access-consents/CONSENT_ID",
     "GetAccountAccessConsentsConsentId",
-    s"""${mockedDataText(true)}
+    s"""${mockedDataText(false)}
             Get Account Access Consents
             """,
     json.parse(""""""),
@@ -182,19 +178,15 @@ object APIMethods_AccountAccessApi extends RestHelper {
             "TotalPages" : 0
           },
           "Links" : {
-            "Last" : "Last",
-            "Prev" : "Prev",
-            "Next" : "Next",
             "Self" : "Self",
-            "First" : "First"
           },
           "Data" : {
-            "Status" : { },
+            "Status" : "AUTHORISED",
             "StatusUpdateDateTime" : "2000-01-23T04:56:07.000+00:00",
             "CreationDateTime" : "2000-01-23T04:56:07.000+00:00",
             "TransactionToDateTime" : "2000-01-23T04:56:07.000+00:00",
             "ExpirationDateTime" : "2000-01-23T04:56:07.000+00:00",
-            "Permissions" : [ { }, { } ],
+            "Permissions" : ["ReadAccountsBasic","ReadAccountsDetail" ],
             "ConsentId" : "ConsentId",
             "TransactionFromDateTime" : "2000-01-23T04:56:07.000+00:00"
           }
@@ -209,31 +201,33 @@ object APIMethods_AccountAccessApi extends RestHelper {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+               unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
+             }
+             consentViews <- Future(JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(net.liftweb.json.parse(_).extract[ConsentJWT].views.map(_.view_id))) map {
+               unboxFullOrFail(_, callContext, s"$ConsentViewNotFund ($consentId)")
+             }
              } yield {
-            (json.parse("""{
-  "Meta" : {
-    "LastAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "FirstAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "TotalPages" : 0
-  },
-  "Links" : {
-    "Last" : "Last",
-    "Prev" : "Prev",
-    "Next" : "Next",
-    "Self" : "Self",
-    "First" : "First"
-  },
-  "Data" : {
-    "Status" : { },
-    "StatusUpdateDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "CreationDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "TransactionToDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "ExpirationDateTime" : "2000-01-23T04:56:07.000+00:00",
-    "Permissions" : [ { }, { } ],
-    "ConsentId" : "ConsentId",
-    "TransactionFromDateTime" : "2000-01-23T04:56:07.000+00:00"
-  }
-}"""), callContext)
+             (json.parse(s"""{
+                "Meta" : {
+                  "LastAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
+                  "FirstAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
+                  "TotalPages" : 0
+                },
+                "Links" : {
+                  "Self" : "${Constant.HostName}/mx-open-finance/v0.0.1/account-access-consents/CONSENT_ID"
+                },
+                "Data" : {
+                  "Status" : "${consent.status}",
+                  "StatusUpdateDateTime" : "${consent.statusUpdateDateTime}",
+                  "CreationDateTime" : "${consent.creationDateTime}",
+                  "TransactionToDateTime" : "${consent.transactionToDateTime}",
+                  "ExpirationDateTime" :  "${consent.expirationDateTime}",
+                  "Permissions" : ${consentViews.mkString("""["""","""","""",""""]""")},
+                  "ConsentId" : "${consent.consentId}",
+                  "TransactionFromDateTime" : "${consent.transactionFromDateTime}",
+                }
+            }"""), HttpCode.`200`(callContext))
            }
          }
        }
