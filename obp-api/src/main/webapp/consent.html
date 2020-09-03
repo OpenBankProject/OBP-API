@@ -26,14 +26,51 @@ Berlin 13359, Germany
   Simon Redfern : simon AT tesobe DOT com
   Sebastian Henschel : sebastian AT tesobe DOT com
 -->
+<style>
+	.bootstrap-datetimepicker-widget,
+	.bootstrap-datetimepicker-widget .picker-switch td span{
+		background-color: #fff ;
+		color: #333 ;
+	}
+</style>
 <div id="register-consumer" data-lift="surround?with=default;at=content">
-	<div data-lift="ConsentConfirmation.registerForm">
-		<h1>Consent Confirmation</h1>
-
-		<div id="register-consumer-input">
-			<div id="register-consumer-explanation">The Application (Name) has requested the following permissions on your account:</div>
-
+	<div data-lift="ConsentConfirmation.confirmConsentsForm">
+		<h2 style="text-align: center">Confirm the following permissions on your account for your Application:</h2>
 			<form method="post">
+				<div class="row">
+					<div class="col-xs-12 col-sm-6">
+						<div class="form-group">
+							<label for="bank_id">Banks</label>
+							<select class="form-control" id="bank_id" name="bank_id">
+								<option value="">--select a bank--</option>
+								<option class="bank" value="psd201-bank-y--uk">Bank y</option>
+							</select>
+						</div>
+					</div>
+				</div>
+				<hr>
+				<div class="row">
+					<div class="col-xs-12 col-sm-12">
+						<h4>Accounts:</h4>
+					</div>
+				</div>
+				<br>
+				<div class="row">
+					<div class="col-xs-12 col-sm-6"  id="account_group">
+						<div class="form-group">
+							<input type="checkbox" name="account_id" id="account_id" value="account_x" bank_id="bank_x_y">
+							<label for="account_id" name="account_id_label">account x</label>
+						</div>
+					</div>
+				</div>
+
+				<hr>
+				<div class="row">
+					<div class="col-xs-12 col-sm-12">
+						<h4>Consents:</h4>
+					</div>
+				</div>
+				<br>
 				<div class="row">
 					<div class="col-xs-12 col-sm-12" id="scope_group">
 						<div class="form-group">
@@ -42,11 +79,39 @@ Berlin 13359, Germany
 						</div>
 					</div>
 				</div>
-				<!--						<div class="form-group">
-                                            <input type="checkbox" name="consent_scope" id="consent_scope_offline" value="offline">
-                                            <label for="consent_scope_offline" name="consent_scope_label">offline</label>
-                                        </div>-->
+				<hr>
+				<div class="row">
+					<div class="col-xs-12 col-sm-12">
+						<h4>Date Time:</h4>
+					</div>
+				</div>
+				<br>
+				<div class="row">
+					<div class="col-xs-12 col-sm-6">
+						<div class="form-group">
+							<label for="from_date">TransactionFromDateTime</label>
+							<input type="text" name="from_date" id="from_date" class="form-control" data-date-format="YYYY-MM-DDTHH:mm:ssZ">
+						</div>
+					</div>
+					<div class="col-xs-12 col-sm-6">
+						<div class="form-group">
+							<label for="to_date">TransactionToDateTime</label>
+							<input type="text" name="to_date" id="to_date" class="form-control" data-date-format="YYYY-MM-DDTHH:mm:ssZ">
+						</div>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-xs-12 col-sm-6">
+						<div class="form-group">
+							<label for="expiration_date">ExpirationDateTime</label>
+							<input type="text" name="expiration_date" id="expiration_date" class="form-control" data-date-format="YYYY-MM-DDTHH:mm:ssZ">
+						</div>
+					</div>
+				</div>
+
 				<input type="hidden" name="consent_challenge" id="consent_challenge">
+				<input type="hidden" name="consent_scope" value="openid">
+				<input type="hidden" name="consent_scope" value="offline">
 
 				<input type="button" name="confirm" value="Cancel" class="btn btn-default" />
 
@@ -59,3 +124,22 @@ Berlin 13359, Germany
 
 	</div>
 </div>
+<script type="text/javascript">
+	$(function () {
+		$('#from_date, #to_date').datetimepicker({
+			defaultDate: new Date()
+		});
+		$('#expiration_date').datetimepicker({
+			defaultDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
+		});
+		// hide all account checkboxes
+		$('input[name=account_id]').prop("checked", false).parent().parent().hide();
+		$('#bank_id').change(function(){
+			var current = $(this).val();
+			$('input[name=account_id]').prop("checked", false).parent().parent().hide();
+			if(current) {
+				$('input[name=account_id][bank_id='+current+']').parent().parent().show();
+			}
+		});
+	});
+</script>

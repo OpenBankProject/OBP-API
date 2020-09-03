@@ -964,12 +964,6 @@ def restoreSomeSessions(): Unit = {
       scala.xml.XML.loadString(loginSubmitButton(loginButtonText, loginAction _).toString().replace("type=\"submit\"","class=\"submit\" type=\"submit\""))
     }
 
-    // login with hydra, but direct to login page, need redirect to hydra
-//    if(AuthUser.loginWithHydra && S.param("login_challenge").isEmpty) {
-//      val state = urlEncode(UuidUtil.getTimeBasedUuid.toString)
-//      val scope = hydraClientScope.mkString("+")
-//      return S.redirectTo(s"$hydraPublicUrl/oauth2/auth?client_id=$hydraClientId&response_type=code&state=$state&scope=openid+offline")
-//    }
     val bind =
           "submit" #> insertSubmitButton
    bind(loginXhtml)

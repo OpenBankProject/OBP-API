@@ -107,12 +107,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val DateWithSeconds = "yyyy-MM-dd'T'HH:mm:ss'Z'"
   val DateWithMs = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
   val DateWithMsRollback = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
-  
+  val DateWithSecondsRollback = "yyyy-MM-dd'T'HH:mm:ssZ"
+
   val DateWithDayFormat = new SimpleDateFormat(DateWithDay)
   val DateWithSecondsFormat = new SimpleDateFormat(DateWithSeconds)
   val DateWithMsFormat = new SimpleDateFormat(DateWithMs)
   val DateWithMsRollbackFormat = new SimpleDateFormat(DateWithMsRollback)
-  
+  val DateWithSecondsRollbackFormat = new SimpleDateFormat(DateWithSecondsRollback)
+
   
   val DateWithDayExampleString: String = "2017-09-19"
   val DateWithSecondsExampleString: String = "2017-09-19T02:31:05Z"
@@ -652,7 +654,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   
     //This is for V1.0 V1.1 and V1.2.0 and V1.2.1 
     lazy val fallBackParsedDate = tryo{DateWithMsRollbackFormat.parse(date)}
-  
+
+    lazy val fallBackParsedDateSeconds = tryo{DateWithSecondsRollbackFormat.parse(date)}
+
     if (parsedDate.isDefined)
     {
       Full(parsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
@@ -660,6 +664,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     else if (fallBackParsedDate.isDefined)
     {
       Full(fallBackParsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
+    }
+    else if(fallBackParsedDateSeconds.isDefined) {
+      Full(fallBackParsedDateSeconds.openOrThrowException(attemptedToOpenAnEmptyBox))
     }
     else
     {
