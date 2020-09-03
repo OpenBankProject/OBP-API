@@ -1159,9 +1159,9 @@ def restoreSomeSessions(): Unit = {
   lazy val hydraClientId = APIUtil.getPropsValue("hydra_client_id")
     .openOrThrowException("If props login_with_hydra is true, hydra_client_id value should not be blank")
 
-  lazy val hydraClientScope = APIUtil.getPropsValue("hydra_client_scope")
+  lazy val hydraConsents = APIUtil.getPropsValue("hydra_consents")
     .openOrThrowException("If props login_with_hydra is true, hydra_client_scope value should not be blank")
-    .trim.split("""\s*,\s*""")
+    .trim.split("""\s*,\s*""").toList
 
   lazy val hydraAdmin = {
     val hydraAdminUrl = APIUtil.getPropsValue("hydra_admin_url")

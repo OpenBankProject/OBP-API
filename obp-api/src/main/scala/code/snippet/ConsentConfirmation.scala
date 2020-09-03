@@ -26,7 +26,9 @@
  */
 package code.snippet
 
-import code.api.util.NewStyle
+import code.api.MxOpenFinace.MxOfUtil
+import code.api.util.{APIUtil, NewStyle}
+import code.consent.{Consent, Consents}
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
 import code.views.Views
@@ -38,7 +40,9 @@ import sh.ory.hydra.model.{AcceptConsentRequest, ConsentRequestSession, RejectRe
 
 import scala.jdk.CollectionConverters.{asScalaBufferConverter, mapAsJavaMapConverter, seqAsJavaListConverter}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.{AccountId, BankId, ViewId, ViewIdBankIdAccountId}
 import com.openbankproject.commons.util.Functions.Implicits._
+import net.liftweb.common.Box
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{Duration, SECONDS}
@@ -91,19 +95,59 @@ class ConsentConfirmation extends MdcLoggable {
     val consentResponse = AuthUser.hydraAdmin.getConsentRequest(consentChallenge)
 
     if (S.post_?) {
-      val scopes = S.params("consent_scope")
-      val consentRequest = new AcceptConsentRequest()
-      consentRequest.setGrantScope(scopes.asJava)
-      consentRequest.setGrantAccessTokenAudience(consentResponse.getRequestedAccessTokenAudience)
-      consentRequest.setRemember(false)
-      consentRequest.setRememberFor(3600) // TODO set in props
-      val bankId = S.param("bank_id").orNull
-      val accountIds: List[String] = S.params("account_id")
-      val fromDate = S.param("from_date").orNull
-      val toDate = S.param("to_date").orNull
-      val expirationDate = S.param("expiration_date").orNull
-      // TODO create consent
+      // get values of submit form
+      val consents = S.params("consent_scope")
+      val bankId = S.param("bank_id")
+      val accountIds = S.params("account_id")
+      val fromDate = APIUtil.parseObpStandardDate(S.param("from_date").orNull).orNull
+      val toDate = APIUtil.parseObpStandardDate(S.param("to_date").orNull).orNull
+      val expirationDate = APIUtil.parseObpStandardDate(S.param("expiration_date").orNull).orNull
+
+
       val currentUser = AuthUser.getCurrentUser.openOrThrowException("User is not login, do confirm consent must be authenticated user.")
+
+      { // TO create consent
+        val accountIdsOpt = if (accountIds.isEmpty) None else Some(accountIds)
+        val consent: Box[Consent] = Consents.consentProvider.vend.saveUKConsent(currentUser, bankId, accountIdsOpt, None, consents, expirationDate, fromDate, toDate)
+      }
+
+      { // grant checked consents
+        val grantAccessIds: List[ViewIdBankIdAccountId] = for {
+          consent <- consents
+          accountId <- accountIds
+        } yield ViewIdBankIdAccountId(ViewId(consent), BankId(bankId.orNull), AccountId(accountId))
+        MxOfUtil.grantAccessToViews(currentUser, grantAccessIds)
+      }
+
+      { // revoke unchecked consents
+
+        // AuthUser.hydraConsents is just the follow values, read from props
+        //ViewId: six fixed
+        //"ReadAccountsBasic"
+        //"ReadAccountsDetail"
+        //"ReadBalances"
+        //"ReadTransactionsBasic"
+        //"ReadTransactionsDebits"
+        //"ReadTransactionsDetail"
+
+        // all not checked checkbox consents: all consents exclude checked consents
+        val notCheckedConsents = AuthUser.hydraConsents.diff(consents)
+
+        val revokeAccessIds: List[ViewIdBankIdAccountId] = for {
+          consent <- notCheckedConsents
+          accountId <- accountIds
+        } yield ViewIdBankIdAccountId(ViewId(consent), BankId(bankId.orNull), AccountId(accountId))
+        MxOfUtil.revokeAccessToViews(currentUser, revokeAccessIds)
+      }
+
+
+      // inform hydra
+        val consentRequest = new AcceptConsentRequest()
+        val scopes = "openid" :: "offline" :: consents
+        consentRequest.setGrantScope(scopes.asJava)
+        consentRequest.setGrantAccessTokenAudience(consentResponse.getRequestedAccessTokenAudience)
+        consentRequest.setRemember(false)
+        consentRequest.setRememberFor(3600) // TODO set in props
 
       val session = new ConsentRequestSession()
       val userName = currentUser.name
