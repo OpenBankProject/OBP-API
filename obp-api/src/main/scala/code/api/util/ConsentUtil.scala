@@ -474,7 +474,7 @@ object Consent {
 
     lazy val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
-    val validUntilTimeInSeconds = currentTimeInSeconds
+    val validUntilTimeInSeconds = expirationDateTime.getTime() / 1000
     
     // 1. Add views
     val consentViews: List[ConsentView] = if (bankId.isDefined && accountIds.isDefined) {
@@ -519,5 +519,5 @@ object Consent {
     val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
     CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)
   }
-  
+
 }

@@ -1,15 +1,14 @@
 package code.api.MxOpenFinace
 
-import code.api.APIFailureNewStyle
-import code.api.util.APIUtil.{defaultBankId, passesPsd2Aisp, _}
+import code.api.util.APIUtil.{passesPsd2Aisp, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiTag, NewStyle}
+import code.api.{APIFailureNewStyle, Constant}
 import code.model._
-import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
+import com.openbankproject.commons.model.{AccountId, BankIdAccountId, ViewId}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
@@ -181,12 +180,14 @@ object APIMethods_TransactionsApi extends RestHelper {
      lazy val getTransactionsByAccountId : OBPEndpoint = {
        case "accounts" :: accountId:: "transactions" :: Nil JsonGet _ => {
          cc =>
+           val detailViewId = ViewId(Constant.READ_TRANSACTIONS_BASIC_VIEW_ID)
+           val basicViewId = ViewId(Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID)
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              (account, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
              (bank, callContext) <- NewStyle.function.getBank(account.bankId, callContext)
-             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
+             view <- NewStyle.function.checkViewsAccessAndReturnView(detailViewId, basicViewId, BankIdAccountId(account.bankId, AccountId(accountId)), Full(u), callContext)
              params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
