@@ -11,11 +11,13 @@ import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
+import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.bankconnectors._
 import code.metadata.comments.Comments
 import code.metadata.counterparties.Counterparties
 import code.model.{BankAccountX, BankX, ModeratedTransactionMetadata, toBankAccountExtended, toBankExtended, toUserExtended}
+import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.google.common.cache.CacheBuilder
@@ -34,6 +36,9 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+
+import scala.concurrent.Future
 
 trait APIMethods121 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -88,6 +93,18 @@ trait APIMethods121 {
       view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), user)
       (moderatedTransaction, callContext) <- account.moderatedTransaction(transactionID, view, BankIdAccountId(bankId,accountId), user, callContext)
       metadata <- Box(moderatedTransaction.metadata) ?~ { s"$NoViewPermission can_see_transaction_metadata. Current ViewId($viewId)" }
+    } yield metadata
+  }
+  private def moderatedTransactionMetadataFuture(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionID : TransactionId, user : Box[User], callContext: Option[CallContext]): Future[ModeratedTransactionMetadata] = {
+    for {
+      (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+      view: View <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), user, callContext)
+      (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(bankId, accountId, transactionID, view, user, callContext) map {
+        unboxFullOrFail(_, callContext, GetTransactionsException)
+      }
+      metadata <- Future(moderatedTransaction.metadata) map {
+        unboxFullOrFail(_, callContext, s"$NoViewPermission can_see_transaction_metadata. Current ViewId($viewId)")
+      }
     } yield metadata
   }
 
@@ -691,15 +708,16 @@ trait APIMethods121 {
       ) :: "views" :: ViewId(viewId) :: Nil JsonDelete req => {
         cc =>
           for {
-            //custom views are started ith `_`,eg _lift, _work, and System views startWith letter, eg: owner
-            _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), cc.user) ?~! CannotFindCustomViewError
-            _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
-            
-            u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- {account removeView(u, viewId)} ?~! DeleteCustomViewError
-          } yield noContentJsonResponse
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            // custom views start with `_` eg _play, _work, and System views start with a letter, eg: owner
+            _ <- Helper.booleanToFuture(InvalidCustomViewFormat) { viewId.value.startsWith("_") }
+            _ <- NewStyle.function.customView(viewId, BankIdAccountId(bankId, accountId), callContext)
+            deleted <- NewStyle.function.removeView(account, u, viewId)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
       }
     }
   
@@ -806,13 +824,14 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
-            addedViews <- account grantAccessToMultipleViews(u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), provider, providerId)
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            failMsg = "wrong format JSON"
+            viewIds <- NewStyle.function.tryons(failMsg, 400, callContext) { json.extract[ViewIdsJson] }
+            addedViews <- NewStyle.function.grantAccessToMultipleViews(account, u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), provider, providerId)
           } yield {
-            val viewJson = JSONFactory.createViewsJSON(addedViews)
-            successJsonResponse(Extraction.decompose(viewJson), 201)
+            (JSONFactory.createViewsJSON(addedViews), HttpCode.`201`(callContext))
           }
       }
     }
@@ -848,13 +867,13 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: ViewId(viewId) :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            // TODO Check Error cases
-            addedView <- account grantAccessToView(u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            addedView <- NewStyle.function.grantAccessToView(account, u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
           } yield {
             val viewJson = JSONFactory.createViewJSON(addedView)
-            successJsonResponse(Extraction.decompose(viewJson), 201)
+            (viewJson, HttpCode.`201`(callContext))
           }
       }
     }
@@ -909,11 +928,13 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: ViewId(viewId) :: Nil JsonDelete req => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            isRevoked <- account revokeAccessToView(u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
-            if(isRevoked)
-          } yield noContentJsonResponse
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            _ <- NewStyle.function.revokeAccessToView(account, u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
+          } yield {
+            (Full(""), HttpCode.`204`(callContext))
+          }
       }
     }
 
@@ -945,11 +966,13 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: "views" :: Nil JsonDelete req => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            isRevoked <- account revokeAllAccountAccesses(u, provider, providerId)
-            if(isRevoked)
-          } yield noContentJsonResponse
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            _ <- NewStyle.function.revokeAllAccountAccesses(account, u, provider, providerId)
+          } yield {
+            (Full(""), HttpCode.`204`(callContext))
+          }
       }
     }
 
@@ -2130,20 +2153,13 @@ trait APIMethods121 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
       "Get Transactions for Account (Full)",
-      """Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
+      s"""Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
          |
          |Authentication via OAuth is required if the view is not public.
          |
-         |Possible custom headers for pagination:
+         |${urlParametersDocument(true, true)}
          |
-         |* obp_sort_by=CRITERIA ==> default value: "completed" field
-         |* obp_sort_direction=ASC/DESC ==> default value: DESC
-         |* obp_limit=NUMBER ==> default value: 50
-         |* obp_offset=NUMBER ==> default value: 0
-         |* obp_from_date=DATE => default value: date of the oldest transaction registered (format below)
-         |* obp_to_date=DATE => default value: date of the newest transaction registered (format below)
-         |
-         |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.""",
+         |""",
       emptyObjectJson,
       transactionsJSON,
       List(BankAccountNotFound, UnknownError),
@@ -2257,11 +2273,14 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonGet req => {
         cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            narrative <- Box(metadata.ownerComment) ?~ { s"$NoViewPermission can_see_owner_comment. Current ViewId($viewId)" }
+            (user, callContext) <- authenticatedAccess(cc)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
+            narrative <- Future(metadata.ownerComment) map {
+              unboxFullOrFail(_, cc.callContext, s"$NoViewPermission can_see_owner_comment. Current ViewId($viewId)")
+            }
           } yield {
             val narrativeJson = JSONFactory.createTransactionNarrativeJSON(narrative)
-            successJsonResponse(Extraction.decompose(narrativeJson))
+            (narrativeJson, HttpCode.`200`(cc.callContext))
           }
       }
     }
@@ -2297,14 +2316,16 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {InvalidJsonFormat}
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
-            addNarrative <- Box(metadata.addOwnerComment) ?~ { s"$NoViewPermission can_add_owner_comment. Current ViewId($viewId)" }
+            (user, callContext) <- authenticatedAccess(cc)
+            narrativeJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { json.extract[TransactionNarrativeJSON] }
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
+            addNarrative <- Future(metadata.addOwnerComment) map {
+              unboxFullOrFail(_, callContext, s"$NoViewPermission can_add_owner_comment. Current ViewId($viewId)")
+            }
           } yield {
             addNarrative(narrativeJson.narrative)
             val successJson = SuccessMessage("narrative added")
-            successJsonResponse(Extraction.decompose(successJson), 201)
+            (successJson, HttpCode.`201`(cc.callContext))
           }
       }
     }
@@ -2334,14 +2355,16 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {InvalidJsonFormat}
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
-            addNarrative <- Box(metadata.addOwnerComment) ?~ { s"$NoViewPermission can_add_owner_comment. Current ViewId($viewId)" }
+            (user, callContext) <- authenticatedAccess(cc)
+            narrativeJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { json.extract[TransactionNarrativeJSON] }
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
+            addNarrative <- Future(metadata.addOwnerComment) map {
+              unboxFullOrFail(_, callContext, s"$NoViewPermission can_add_owner_comment. Current ViewId($viewId)")
+            }
           } yield {
             addNarrative(narrativeJson.narrative)
             val successJson = SuccessMessage("narrative updated")
-            successJsonResponse(Extraction.decompose(successJson))
+            (successJson, HttpCode.`200`(cc.callContext))
           }
       }
     }
@@ -2371,11 +2394,15 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonDelete _ => {
         cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            addNarrative <- Box(metadata.addOwnerComment) ?~ { s"$NoViewPermission can_delete_owner_comment. Current ViewId($viewId)" }
+            (user, callContext) <- authenticatedAccess(cc)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
+            addNarrative <- Future(metadata.addOwnerComment) map {
+              unboxFullOrFail(_, callContext, s"$NoViewPermission can_see_owner_comment. Current ViewId($viewId)")
+            }
           } yield {
             addNarrative("")
-            noContentJsonResponse
+            val successJson = SuccessMessage("")
+            (successJson, HttpCode.`204`(callContext))
           }
       }
     }
@@ -2406,11 +2433,14 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonGet req => {
         cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            comments <- Box(metadata.comments) ?~! { s"$NoViewPermission can_see_comments. Current ViewId($viewId)" }
+            (user, callContext) <- authenticatedAccess(cc)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
+            comments <- Future(metadata.comments) map {
+              unboxFullOrFail(_, callContext, s"$NoViewPermission can_see_owner_comment. Current ViewId($viewId)")
+            }
           } yield {
-            val json = JSONFactory.createTransactionCommentsJSON(comments)
-            successJsonResponse(Extraction.decompose(json))
+            val commentsJson = JSONFactory.createTransactionCommentsJSON(comments)
+            (commentsJson, HttpCode.`200`(callContext))
           }
       }
     }
@@ -2444,13 +2474,18 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {InvalidJsonFormat}
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc)) ?~ { s"$InvalidConnectorResponse There is no transaction with id: $transactionId" }
-            addCommentFunc <- Box(metadata.addComment) ?~ { s"$NoViewPermission can_add_comment. Current ViewId($viewId)" }
-            postedComment <- addCommentFunc(u.userPrimaryKey, viewId, commentJson.value, now)
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            commentJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { json.extract[PostTransactionCommentJSON] }
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, Full(user), callContext)
+            addCommentFunc <- Future(metadata.addComment) map {
+              unboxFullOrFail(_, callContext, s"$NoViewPermission can_see_owner_comment. Current ViewId($viewId)")
+            }
+            postedComment <- Future(addCommentFunc(user.userPrimaryKey, viewId, commentJson.value, now)) map {
+              unboxFullOrFail(_, callContext, s"Cannot add the comment ${commentJson.value}")
+            }
           } yield {
-            successJsonResponse(Extraction.decompose(JSONFactory.createTransactionCommentJSON(postedComment)),201)
+            val successJson = JSONFactory.createTransactionCommentJSON(postedComment)
+            (successJson, HttpCode.`201`(callContext))
           }
       }
     }
@@ -2483,11 +2518,15 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments":: commentId :: Nil JsonDelete _ => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            delete <- metadata.deleteComment(commentId, cc.user, account)
+            (user, callContext) <- authenticatedAccess(cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
+            delete <- Future(metadata.deleteComment(commentId, user, account)) map {
+              unboxFullOrFail(_, callContext, "")
+            }
           } yield {
-            noContentJsonResponse
+            val successJson = SuccessMessage("")
+            (successJson, HttpCode.`204`(callContext))
           }
       }
     }
@@ -2517,11 +2556,14 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: Nil JsonGet req => {
         cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            tags <- Box(metadata.tags) ?~ { s"$NoViewPermission can_see_tags. Current ViewId($viewId)" }
+            (user, callContext) <- authenticatedAccess(cc)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
+            tags <- Future(metadata.tags) map {
+              unboxFullOrFail(_, callContext, s"$NoViewPermission can_see_owner_comment. Current ViewId($viewId)")
+            }
           } yield {
-            val json = JSONFactory.createTransactionTagsJSON(tags)
-            successJsonResponse(Extraction.decompose(json))
+            val tagsJson = JSONFactory.createTransactionTagsJSON(tags)
+            (tagsJson, HttpCode.`200`(callContext))
           }
       }
     }
@@ -2553,16 +2595,20 @@ trait APIMethods121 {
     lazy val addTagForViewOnTransaction : OBPEndpoint = {
       //add a tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
-
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            tagJson <- tryo{json.extract[PostTransactionTagJSON]} ?~ { s"$InvalidJsonFormat Check your Post Json Body." }
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
-            addTagFunc <- Box(metadata.addTag) ?~ { s"$NoViewPermission can_add_tag. Current ViewId($viewId)" }
-            postedTag <- addTagFunc(u.userPrimaryKey, viewId, tagJson.value, now)
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            tagJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { json.extract[PostTransactionTagJSON] }
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, Full(user), callContext)
+            addTagFunc <- Future(metadata.addTag) map {
+              unboxFullOrFail(_, callContext, s"$NoViewPermission can_see_owner_comment. Current ViewId($viewId)")
+            }
+            postedTag <- Future(addTagFunc(user.userPrimaryKey, viewId, tagJson.value, now)) map {
+              unboxFullOrFail(_, callContext, s"Cannot add the tag ${tagJson.value}")
+            }
           } yield {
-            successJsonResponse(Extraction.decompose(JSONFactory.createTransactionTagJSON(postedTag)), 201)
+            val successJson = JSONFactory.createTransactionTagJSON(postedTag)
+            (successJson, HttpCode.`201`(callContext))
           }
       }
     }
@@ -2594,11 +2640,15 @@ trait APIMethods121 {
 
         cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            bankAccount <- BankAccountX(bankId, accountId)?~! BankAccountNotFound
-            deleted <- metadata.deleteTag(tagId, cc.user, bankAccount)
+            (user, callContext) <- authenticatedAccess(cc)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
+            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            delete <- Future(metadata.deleteTag(tagId, user, bankAccount)) map {
+              unboxFullOrFail(_, callContext, "")
+            }
           } yield {
-            noContentJsonResponse
+            val successJson = SuccessMessage("")
+            (successJson, HttpCode.`204`(cc.callContext))
           }
       }
     }
@@ -2628,11 +2678,14 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonGet req => {
         cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            images <- Box(metadata.images) ?~ { s"$NoViewPermission can_see_images. Current ViewId($viewId)" }
+            (user, callContext) <- authenticatedAccess(cc)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
+            images <- Future(metadata.images) map {
+              unboxFullOrFail(_, callContext, s"$NoViewPermission can_see_owner_comment. Current ViewId($viewId)")
+            }
           } yield {
-            val json = JSONFactory.createTransactionImagesJSON(images)
-            successJsonResponse(Extraction.decompose(json))
+            val imagesJson = JSONFactory.createTransactionImagesJSON(images)
+            (imagesJson, HttpCode.`200`(callContext))
           }
       }
     }
@@ -2667,14 +2720,19 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            imageJson <- tryo{json.extract[PostTransactionImageJSON]} ?~! InvalidJsonFormat
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
-            addImageFunc <- Box(metadata.addImage) ?~ { s"$NoViewPermission can_add_image. Current ViewId($viewId)" }
-            url <- tryo{new URL(imageJson.URL)} ?~! s"$InvalidUrl Could not parse url string as a valid URL"
-            postedImage <- addImageFunc(u.userPrimaryKey, viewId, imageJson.label, now, url.toString)
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            imageJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { json.extract[PostTransactionImageJSON] }
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, Full(u), callContext)
+            addImageFunc <- Future(metadata.addImage) map {
+              unboxFullOrFail(_, callContext, s"$NoViewPermission can_see_owner_comment. Current ViewId($viewId)")
+            }
+            url <- NewStyle.function.tryons(s"$InvalidUrl Could not parse url string as a valid URL", 400, callContext) { new URL(imageJson.URL) }
+            postedImage <- Future(addImageFunc(u.userPrimaryKey, viewId, imageJson.label, now, url.toString)) map {
+              unboxFullOrFail(_, callContext, s"Cannot add the tag ${imageJson.label}")
+            }
           } yield {
-            successJsonResponse(Extraction.decompose(JSONFactory.createTransactionImageJSON(postedImage)),201)
+            val successJson = JSONFactory.createTransactionImageJSON(postedImage)
+            (successJson, HttpCode.`201`(callContext))
           }
       }
     }
@@ -2708,11 +2766,15 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: imageId :: Nil JsonDelete _ => {
         cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            bankAccount <- BankAccountX(bankId, accountId)?~! BankAccountNotFound
-            deleted <- Box(metadata.deleteImage(imageId, cc.user, bankAccount))
+            (user, callContext) <- authenticatedAccess(cc)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
+            (account, _) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            delete <- Future(metadata.deleteImage(imageId, user, account)) map {
+              unboxFullOrFail(_, callContext, "")
+            }
           } yield {
-            noContentJsonResponse
+            val successJson = SuccessMessage("")
+            (successJson, HttpCode.`204`(cc.callContext))
           }
       }
     }
@@ -2742,12 +2804,15 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonGet req => {
         cc =>
           for {
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            where <- Box(metadata.whereTag) ?~ { s"$NoViewPermission can_see_where_tag. Current ViewId($viewId)" }
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, Full(user), callContext)
+            where <- Future(metadata.whereTag) map {
+              unboxFullOrFail(_, callContext, s"$NoViewPermission can_see_owner_comment. Current ViewId($viewId)")
+            }
           } yield {
             val json = JSONFactory.createLocationJSON(where)
             val whereJson = TransactionWhereJSON(json)
-            successJsonResponse(Extraction.decompose(whereJson))
+            (whereJson, HttpCode.`200`(callContext))
           }
       }
     }
@@ -2782,16 +2847,19 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u))
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            addWhereTag <- Box(metadata.addWhereTag) ?~ { s"$NoViewPermission can_add_where_tag. Current ViewId($viewId)" }
-            whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
-            correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
-            if(addWhereTag(u.userPrimaryKey, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, Full(user), callContext)
+            addWhereTag <- Future(metadata.addWhereTag) map {
+              unboxFullOrFail(_, callContext, s"$NoViewPermission can_add_where_tag. Current ViewId($viewId)")
+            }
+            whereJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { json.extract[PostTransactionWhereJSON] }
+            correctCoordinates <- Future(checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)) map {
+              unboxFullOrFail(_, callContext, "Coordinates not possible")
+            }
+            if(addWhereTag(user.userPrimaryKey, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
           } yield {
             val successJson = SuccessMessage("where tag added")
-            successJsonResponse(Extraction.decompose(successJson), 201)
+            (successJson, HttpCode.`201`(callContext))
           }
       }
     }
@@ -2826,16 +2894,19 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u))
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            addWhereTag <- Box(metadata.addWhereTag) ?~ { s"$NoViewPermission can_add_where_tag. Current ViewId($viewId)" }
-            whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
-            correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
-            if(addWhereTag(u.userPrimaryKey, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, Full(user), callContext)
+            addWhereTag <- Future(metadata.addWhereTag) map {
+              unboxFullOrFail(_, callContext, s"$NoViewPermission can_add_where_tag. Current ViewId($viewId)")
+            }
+            whereJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { json.extract[PostTransactionWhereJSON] }
+            correctCoordinates <- Future(checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)) map {
+              unboxFullOrFail(_, callContext, "Coordinates not possible")
+            }
+            if(addWhereTag(user.userPrimaryKey, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
           } yield {
             val successJson = SuccessMessage("where tag updated")
-            successJsonResponse(Extraction.decompose(successJson))
+            (successJson, HttpCode.`200`(callContext))
           }
       }
     }
@@ -2871,15 +2942,16 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonDelete _ => {
         cc =>
           for {
-            bankAccount <- BankAccountX(bankId, accountId)?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), cc.user)
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            deleted <- metadata.deleteWhereTag(viewId, cc.user, bankAccount)
+            (user, callContext) <- authenticatedAccess(cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), user, callContext)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
+            delete <- Future(metadata.deleteWhereTag(viewId, user, account)) map {
+              unboxFullOrFail(_, callContext, "Delete not completed")
+            }
           } yield {
-            if(deleted)
-              noContentJsonResponse
-            else
-              errorJsonResponse("Delete not completed")
+            val successJson = SuccessMessage("")
+            (successJson, HttpCode.`204`(callContext))
           }
       }
     }

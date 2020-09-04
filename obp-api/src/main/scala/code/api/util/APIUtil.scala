@@ -1650,9 +1650,51 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
 
-/*
-Returns a string showed to the developer
- */
+  /*
+  Returns a string showed to the developer
+   */
+  def urlParametersDocument(containsSortDirection:Boolean, containsDate:Boolean) = {
+      
+    val commonParameters = 
+      s"""
+         |
+         |Possible custom headers for pagination:
+         |
+         |* limit=NUMBER ==> default value: 50
+         |* offset=NUMBER ==> default value: 0
+         |
+         |eg1:?limit=100&offset=0
+         |""". stripMargin
+
+    val sortDirectionParameters =
+      s"""
+         |
+         |* sort_direction=ASC/DESC ==> default value: DESC.
+         |
+         |eg2:?limit=100&offset=0&sort_direction=ASC
+         |
+         |""". stripMargin
+    
+    val dateParameter = if(containsDate){
+      s"""
+         |
+         |* from_date=DATE => example value: $DateWithMsForFilteringFromDateString. NOTE! The default value is one year ago ($DefaultFromDateString).
+         |* to_date=DATE => example value: $DateWithMsForFilteringEenDateString. NOTE! The default value is now ($DefaultToDateString).
+         |
+         |Date format parameter: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.
+         |
+         |eg3:?sort_direction=ASC&limit=100&offset=0&from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString
+         |
+         |""".stripMargin
+    } else {""}
+
+    
+    s"$commonParameters" + 
+      s"$sortDirectionParameters"+ 
+      s"$dateParameter"
+    
+  }
+   
   def authenticationRequiredMessage(authRequired: Boolean) : String =
   authRequired match {
       case true => "Authentication is Mandatory"
@@ -2633,9 +2675,13 @@ Returns a string showed to the developer
         val callContext = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
         val apiFailure = af.copy(failMsg = failuresMsg).copy(ccl = callContext)
         throw new Exception(JsonAST.compactRender(Extraction.decompose(apiFailure)))
+      case ParamFailure(_, _, _, failure : APIFailure) =>
+        val callContext = CallContextLight(partialFunctionName = "", directLoginToken= "", oAuthToken= "")
+        val apiFailure = APIFailureNewStyle(failMsg = failure.msg, failCode = failure.responseCode, ccl = Some(callContext))
+        throw new Exception(JsonAST.compactRender(Extraction.decompose(apiFailure)))
       case ParamFailure(msg,_,_,_) =>
         throw new Exception(msg)
-      case obj@Failure(msg, _, c) =>
+      case obj@Failure(_, _, _) =>
         val failuresMsg = filterMessage(obj)
         throw new Exception(failuresMsg)
       case _ =>
@@ -3235,6 +3281,10 @@ Returns a string showed to the developer
       case Full(sca) if sca == StrongCustomerAuthentication.DUMMY.toString() => Full(StrongCustomerAuthentication.DUMMY)
       case Full(sca) if sca == StrongCustomerAuthentication.SMS.toString() => Full(StrongCustomerAuthentication.SMS)
       case Full(sca) if sca == StrongCustomerAuthentication.EMAIL.toString() => Full(StrongCustomerAuthentication.EMAIL)
+      case Full(sca) if sca == StrongCustomerAuthentication.SMS_OTP.toString() => Full(StrongCustomerAuthentication.SMS_OTP)
+      case Full(sca) if sca == StrongCustomerAuthentication.CHIP_OTP.toString() => Full(StrongCustomerAuthentication.CHIP_OTP)
+      case Full(sca) if sca == StrongCustomerAuthentication.PHOTO_OTP.toString() => Full(StrongCustomerAuthentication.PHOTO_OTP)
+      case Full(sca) if sca == StrongCustomerAuthentication.PUSH_OTP.toString() => Full(StrongCustomerAuthentication.PUSH_OTP)
       case _ => Full(StrongCustomerAuthentication.SMS)
     }
   }

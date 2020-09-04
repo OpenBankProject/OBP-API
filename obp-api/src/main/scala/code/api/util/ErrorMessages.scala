@@ -290,7 +290,9 @@ object ErrorMessages {
 
   val BankAccountNotFoundByAccountRouting = "OBP-30073: Bank Account not found. Please specify valid values for account routing scheme and address."
   val BankAccountNotFoundByIban = "OBP-30074: Bank Account not found. Please specify a valid value for iban."
-
+  val AccountRoutingNotFound = "OBP-30075: Account routing not found, Please specify valid values for account routing scheme and address"
+  val BankAccountNotFoundByAccountId = "OBP-30076: Bank Account not found. Please specify a valid value for ACCOUNT_ID."
+  
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
@@ -410,6 +412,8 @@ object ErrorMessages {
   val TransactionRequestsNotEnabled = "OBP-40018: Sorry, Transaction Requests are not enabled in this API instance."
   val NextChallengePending = s"OBP-40019: Cannot create transaction due to transaction request is in status: ${NEXT_CHALLENGE_PENDING}."
   val TransactionRequestStatusNotInitiatedOrPending = s"OBP-40020: Transaction Request Status is not ${INITIATED} or ${NEXT_CHALLENGE_PENDING}."
+  val InvalidChallengeTransactionRequestId = "OBP-40021: Invalid Challenge PaymentId or TRANSACTION_REQUEST_ID. "
+  val InvalidChallengeChallengeId = "OBP-40022: Invalid ChallengeId. "
 
 
   // Exceptions (OBP-50XXX)
@@ -450,6 +454,7 @@ object ErrorMessages {
   val InvalidConnectorResponseForCreateTransactionAfterChallengev300 = "OBP-50213: The Connector did not return a valid response for payments."
   val InvalidConnectorResponseForMissingRequiredValues = "OBP-50214: Connector return the data, but the data has missing required values."
   val InvalidConnectorResponseForCreateChallenge = "OBP-50215: Connector did not return the set of challenge we requested."
+  val InvalidConnectorResponseForSaveDoubleEntryBookTransaction = "OBP-50216: The Connector did not return a valid response for saving double-entry transaction."
 
 
   // Adapter Exceptions (OBP-6XXXX)

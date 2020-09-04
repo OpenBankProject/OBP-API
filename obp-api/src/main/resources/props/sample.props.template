@@ -770,12 +770,13 @@ database_messages_scheduler_interval=3600
 # -----------------------------------------------
 
 # -- SCA (Strong Customer Authentication) method for OTP challenge-------
-# ACCOUNT_OTP_INSTRUCTION_TRANSPORT=dummy
-# SEPA_OTP_INSTRUCTION_TRANSPORT=dummy
-# FREE_FORM_OTP_INSTRUCTION_TRANSPORT=dummy
-# COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=dummy
-# Possible values: dummy,email,sms
-# In case isn't defined default value is "sms"
+# ACCOUNT_OTP_INSTRUCTION_TRANSPORT=DUMMY
+# SEPA_OTP_INSTRUCTION_TRANSPORT=DUMMY
+# FREE_FORM_OTP_INSTRUCTION_TRANSPORT=DUMMY
+# COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=DUMMY
+# SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT=DUMMY
+# Possible values: DUMMY,EMAIL,SMS,PHOTO_OTP,CHIP_OTP,PHOTO_OTP,PUSH_OTP
+# In case isn't defined default value is "SMS"
 # -----------------------------------------------------------------------
 
 # Convert the Bank's plain text reference(s) to OBP UUIDs and visa versa. Note: this is currently only for the Rest Connector.
@@ -859,3 +860,12 @@ outboundAdapterCallContext.generalContext
 ## example:
 #connector.name.export.as.endpoint=stored_procedure_vDec2019
 # ------------------------------------------------------------------------------------------
+
+# ------------------------------ Hydra oauth2 props ------------------------------
+## if login_with_hydra set to true, all other props must not be empty
+#login_with_hydra=true
+#hydra_public_url=http://127.0.0.1:4444
+#hydra_admin_url=http://127.0.0.1:4445
+#hydra_client_id=auth-code-client
+#hydra_client_scope=openid,offline
+# ------------------------------ Hydra oauth2 props end ------------------------------

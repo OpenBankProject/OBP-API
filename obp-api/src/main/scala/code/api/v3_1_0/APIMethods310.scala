@@ -455,15 +455,7 @@ trait APIMethods310 {
          |Allows bulk access to customers.
          |User must have the CanUseFirehoseAtAnyBank Role
          |
-         |Possible custom URL parameters for pagination:
-         |
-         |* sort_direction=ASC/DESC
-         |* limit=NUMBER ==> default value: 50
-         |* offset=NUMBER ==> default value: 0
-         |* from_date=DATE => default value: date of the oldest customer created (format below)
-         |* to_date=DATE => default value: date of the newest customer created (format below)
-         |
-         |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.
+         |${urlParametersDocument(true, true)}
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -999,10 +991,9 @@ trait APIMethods310 {
          |
          |Possible custom URL parameters for pagination:
          |
-         |* limit=NUMBER
-         |* offset=NUMBER
-         |* account_id=STRING
-         |* user_id=STRING
+         |${urlParametersDocument(false, false)}
+         |* account_id=STRING (if null ignore)
+         |* user_id=STRING (if null ignore)
          |
          |
         |""",
@@ -1119,7 +1110,7 @@ trait APIMethods310 {
          |
          |""",
       emptyObjectJson,
-      transactionJSON,
+      transactionJsonV300,
       List(UserNotLoggedIn, BankAccountNotFound ,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(Core, notPSD2, OBWG),
       List(apiTagTransaction, apiTagNewStyle))
@@ -1136,8 +1127,12 @@ trait APIMethods310 {
             (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(bankId, accountId, transactionId, view, user, callContext) map {
               unboxFullOrFail(_, callContext, GetTransactionsException)
             }
+            (transactionAttributes, callContext) <- NewStyle.function.getTransactionAttributes(
+              bankId,
+              transactionId,
+              cc.callContext: Option[CallContext])
           } yield {
-            (JSONFactory.createTransactionJSON(moderatedTransaction), HttpCode.`200`(callContext))
+            (JSONFactory300.createTransactionJSON(moderatedTransaction, transactionAttributes), HttpCode.`200`(callContext))
           }
       }
     }
@@ -4816,7 +4811,7 @@ trait APIMethods310 {
               consentJson.account_routings.map(_.scheme).distinct.size == consentJson.account_routings.size
             }
             alreadyExistAccountRoutings <- Future.sequence(consentJson.account_routings.map(accountRouting =>
-              NewStyle.function.getBankAccountByRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext)
+              NewStyle.function.getAccountRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext)
                 .map {
                   // If we find an already existing account routing linked to the account, it just mean we don't want to update it
                   case bankAccount if !(bankAccount._1.bankId == bankId && bankAccount._1.accountId == accountId) => Some(accountRouting)
@@ -5480,7 +5475,7 @@ trait APIMethods310 {
               createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
             }
             alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
-              NewStyle.function.getBankAccountByRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
+              NewStyle.function.getAccountRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
             ))
             alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
               case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"

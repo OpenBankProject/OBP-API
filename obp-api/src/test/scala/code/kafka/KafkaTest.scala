@@ -1,6 +1,6 @@
 package code.kafka
 
-import java.util.Date
+import java.util.{Date, UUID}
 
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats}
@@ -299,10 +299,12 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         
         val fromAccount = BankAccountSept2018(KafkaMappedConnector_vSept2018.inboundAccountSept2018Example)
         val toAccount = BankAccountSept2018(KafkaMappedConnector_vSept2018.inboundAccountSept2018Example)
+        val transactionRequestId = TransactionRequestId(UUID.randomUUID().toString)
         val transactionRequestCommonBody = TransactionRequestBodyCommonJSON(AmountOfMoneyJsonV121("",""),"")
         val future = Connector.connector.vend.makePaymentv210(
           fromAccount,
           toAccount,
+          transactionRequestId,
           transactionRequestCommonBody,
           10,
           "",

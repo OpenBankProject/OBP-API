@@ -6,7 +6,7 @@ import code.transactionattribute.{MappedTransactionAttributeProvider, Remotedata
 import code.actorsystem.ObpActorHelper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.enums.TransactionAttributeType
-import com.openbankproject.commons.model.{BankId, TransactionAttribute, TransactionId, ProductAttribute, ProductCode}
+import com.openbankproject.commons.model.{BankId, ProductAttribute, ProductCode, TransactionAttribute, TransactionId, ViewId}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -23,7 +23,11 @@ class RemotedataTransactionAttributeActor extends Actor with ObpActorHelper with
       
     case cc.getTransactionAttributes(bankId: BankId, transactionId: TransactionId) =>
       logger.debug(s"getTransactionAttributes(${bankId}, ${transactionId})")
-      mapper.getTransactionAttributes(bankId, transactionId) pipeTo sender
+      mapper.getTransactionAttributes(bankId, transactionId) pipeTo sender      
+      
+    case cc.getTransactionAttributesCanBeSeenOnView(bankId: BankId, transactionId: TransactionId, viewId: ViewId) =>
+      logger.debug(s"getTransactionAttributesCanBeSeenOnView(${bankId}, ${transactionId}, ${viewId})")
+      mapper.getTransactionAttributesCanBeSeenOnView(bankId, transactionId, viewId) pipeTo sender
 
     case cc.getTransactionAttributeById(transactionAttributeId: String) =>
       logger.debug(s"getTransactionAttributeById(${transactionAttributeId})")

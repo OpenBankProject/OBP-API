@@ -246,6 +246,7 @@ object ConnectorBuilderUtil {
     "createPhysicalCard",
     "updatePhysicalCard",
     "makePaymentv210",
+    "makePaymentV400",
     "createTransactionRequestv210",
     "getTransactionRequests210",
     "getTransactionRequestImpl",
@@ -358,7 +359,9 @@ object ConnectorBuilderUtil {
     "getCurrentFxRate",
     "getBankAccountOld",    // old method, but v3.0.0 apis use a lot
     "checkExternalUserCredentials",
-    "checkExternalUserExists"
+    "checkExternalUserExists",
+    "createChallengesC2",
+    "validateChallenge"
   ).distinct
 
   /**

@@ -28,8 +28,9 @@ package com.openbankproject.commons.dto
 
 import java.util.Date
 
-import com.openbankproject.commons.model.enums.{CardAttributeType, CustomerAttributeType, DynamicEntityOperation, StrongCustomerAuthentication, TransactionAttributeType, TransactionRequestStatus}
+import com.openbankproject.commons.model.enums.{CardAttributeType, ChallengeType, CustomerAttributeType, DynamicEntityOperation, StrongCustomerAuthentication, TransactionAttributeType, TransactionRequestStatus}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.{enums, _}
 import net.liftweb.json.{JObject, JValue}
 
@@ -146,6 +147,7 @@ case class InBoundGetTransaction(inboundAdapterCallContext: InboundAdapterCallCo
 case class OutBoundMakePaymentv210(outboundAdapterCallContext: OutboundAdapterCallContext,
                                    fromAccount: BankAccount,
                                    toAccount: BankAccount,
+                                   transactionRequestId: TransactionRequestId,
                                    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                    amount: BigDecimal,
                                    description: String,
@@ -153,6 +155,12 @@ case class OutBoundMakePaymentv210(outboundAdapterCallContext: OutboundAdapterCa
                                    chargePolicy: String) extends TopicTrait
 
 case class InBoundMakePaymentv210(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionId) extends InBoundTrait[TransactionId]
+
+case class OutBoundMakePaymentV400(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                   transactionRequest: TransactionRequest,
+                                   reasons: Option[List[TransactionRequestReason]]) extends TopicTrait
+
+case class InBoundMakePaymentV400(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionId) extends InBoundTrait[TransactionId]
 
 
 case class OutBoundCreateTransactionRequestv210(outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -1278,4 +1286,27 @@ case class InBoundCheckExternalUserCredentials(inboundAdapterCallContext: Inboun
 
 case class OutBoundCheckExternalUserExists(outboundAdapterCallContext: OutboundAdapterCallContext, username: String) extends TopicTrait
 case class InBoundCheckExternalUserExists(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: InboundExternalUser) extends InBoundTrait[InboundExternalUser]
+
+case class OutBoundCreateChallengesC2(
+  outboundAdapterCallContext: OutboundAdapterCallContext,
+  userIds: List[String],
+  challengeType: ChallengeType.Value,
+  transactionRequestId: Option[String],
+  scaMethod: Option[SCA],
+  scaStatus: Option[SCAStatus],
+  consentId: Option[String],
+  authenticationMethodId: Option[String]) extends TopicTrait
+
+case class InBoundCreateChallengesC2(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ChallengeCommons]) extends InBoundTrait[List[ChallengeCommons]]
+
+case class OutBoundValidateChallenge(
+  outboundAdapterCallContext: OutboundAdapterCallContext,
+  transactionRequestId: Option[String],
+  consentId: Option[String],
+  challengeId: String,
+  hashOfSuppliedAnswer: String
+) extends TopicTrait
+
+case class InBoundValidateChallenge(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
+
 // --------------------- some special connector methods corresponding InBound and OutBound -- end --

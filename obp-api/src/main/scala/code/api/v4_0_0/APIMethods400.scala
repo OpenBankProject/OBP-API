@@ -7,7 +7,7 @@ import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{logoutLinkV400, _}
 import code.api.util.APIUtil.{PrimaryDataBody, fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -115,6 +115,38 @@ trait APIMethods400 {
           } yield {
             (Migration.DbFunction.mapperDatabaseInfo(), HttpCode.`200`(callContext))
           }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getLogoutLink,
+      implementedInApiVersion,
+      nameOf(getLogoutLink), // TODO can we get this string from the val two lines above?
+      "GET",
+      "/users/current/logout-link",
+      "Get Logout Link",
+      s"""Get the Logout Link
+         |
+         |${authenticationRequiredMessage(true)}
+      """.stripMargin,
+      emptyObjectJson,
+      logoutLinkV400,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagUser, apiTagNewStyle))
+
+    lazy val getLogoutLink: OBPEndpoint = {
+      case "users" :: "current" :: "logout-link" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (Full(_), callContext) <- authenticatedAccess(cc)
+          } yield {
+            val link = code.api.Constant.HostName + AuthUser.logoutPath.foldLeft("")(_ + "/" + _)
+            val logoutLink = LogoutLinkJson(link)
+            (logoutLink, HttpCode.`200`(callContext))
+          }
+        }
       }
     }
 
@@ -1267,7 +1299,7 @@ trait APIMethods400 {
               createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
             }
             alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
-              NewStyle.function.getBankAccountByRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
+              NewStyle.function.getAccountRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
               ))
             alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
               case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
@@ -1641,7 +1673,6 @@ trait APIMethods400 {
          |* Balance - Currency and Value
          |* Account Routings - A list that might include IBAN or national account identifiers
          |* Account Rules - A list that might include Overdraft and other bank specific rules
-         |* Account Attributes - A list that might include custom defined account attribute
          |* Tags - A list of Tags assigned to this account
          |
          |This call returns the owner view and requires access to that view.
@@ -1662,14 +1693,10 @@ trait APIMethods400 {
             (user @Full(u), account) <- SS.userAccount
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), cc.callContext)
             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, cc.callContext)
-            (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
-              bankId,
-              account.accountId,
-              cc.callContext: Option[CallContext])
             tags <- Future(Tags.tags.vend.getTagsOnAccount(bankId, account.accountId)(view.viewId))
           } yield {
             val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
-            (createNewCoreBankAccountJson(moderatedAccount, availableViews, accountAttributes, tags), HttpCode.`200`(callContext))
+            (createNewCoreBankAccountJson(moderatedAccount, availableViews, tags), HttpCode.`200`(cc.callContext))
           }
       }
     }

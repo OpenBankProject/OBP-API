@@ -406,13 +406,9 @@ trait APIMethods300 {
           // Assume owner view was requested
           view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
           moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), callContext)
-          (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
-            bankId,
-            accountId,
-            callContext: Option[CallContext])
         } yield {
           val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
-          (createNewCoreBankAccountJson(moderatedAccount, availableViews, accountAttributes), HttpCode.`200`(callContext))
+          (createNewCoreBankAccountJson(moderatedAccount, availableViews), HttpCode.`200`(callContext))
         }
       }
     }
@@ -571,15 +567,8 @@ trait APIMethods300 {
          |To find ACCOUNT_IDs, use the getFirehoseAccountsAtOneBank call.
          |
          |For VIEW_ID try 'owner'
-         |Possible custom headers for pagination:
          |
-         |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
-         |* limit=NUMBER ==> default value: 50
-         |* offset=NUMBER ==> default value: 0
-         |* from_date=DATE => default value: $DateWithMsForFilteringFromDateString
-         |* to_date=DATE => default value: $DateWithMsForFilteringEenDateString
-         |
-         |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.        
+         |${urlParametersDocument(true, true)}       
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -595,38 +584,40 @@ trait APIMethods300 {
       //get private accounts for all banks
       case "banks" :: BankId(bankId):: "firehose" :: "accounts" ::  AccountId(accountId) :: "views" :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
         cc =>
-          val res =
-            for {
-              (Full(u), callContext) <-  authenticatedAccess(cc)
-              _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  ) {
-               canUseAccountFirehose(u)
-              }
-              (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-              (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-              view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId),Some(u), callContext)
-              allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
-              httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-              obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
-              reqParams = req.params.filterNot(param => allowedParams.contains(param._1))
-              (transactionIds, callContext) <- if(reqParams.nonEmpty) {
-                 NewStyle.function.getTransactionIdsByAttributeNameValues(bankId, reqParams, callContext)
-              } else{
-                Future((List.empty[TransactionId], callContext))
-              }
-            } yield {
-              for {
-              //Note: error handling and messages for getTransactionParams are in the sub method
-                (transactions, callContext) <- bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankId, accountId), callContext, obpQueryParams)
-                transactionsFiltered= if(reqParams.isEmpty) {
-                  transactions
-                } else {
-                  transactions.filter(transaction => transactionIds.contains(transaction.id))
-                }
-              } yield {
-                (createTransactionsJson(transactionsFiltered), HttpCode.`200`(callContext))
-              }
+          for {
+            (Full(u), callContext) <-  authenticatedAccess(cc)
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  ) {
+             canUseAccountFirehose(u)
             }
-          res map { fullBoxOrException(_) } map { unboxFull(_) }
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId),Some(u), callContext)
+            allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            reqParams = req.params.filterNot(param => allowedParams.contains(param._1))
+            (transactionIds, callContext) <- if(reqParams.nonEmpty) {
+               NewStyle.function.getTransactionIdsByAttributeNameValues(bankId, reqParams, callContext)
+            } else{
+              Future((List.empty[TransactionId], callContext))
+            }
+            (transactions, callContext) <- Future(bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankId, accountId), callContext, obpQueryParams)) map {
+              unboxFullOrFail(_, callContext, UnknownError)
+            }
+            (moderatedTansactionsWithAttributes, callContext) <- Future.sequence(transactions.map(transaction =>
+              NewStyle.function.getTransactionAttributes(
+                bankId,
+                transaction.id,
+                cc.callContext: Option[CallContext]).map(attributes => ModeratedTransactionWithAttributes(transaction, attributes._1))
+            )).map(t => (t, callContext))
+            transactionsFiltered = if(reqParams.isEmpty) {
+              moderatedTansactionsWithAttributes
+            } else {
+              moderatedTansactionsWithAttributes.filter(t => transactionIds.contains(t.transaction.id))
+            }
+          } yield {
+            (createTransactionsJson(transactionsFiltered), HttpCode.`200`(callContext))
+          }
       }
     }
 
@@ -641,15 +632,9 @@ trait APIMethods300 {
         |
         |${authenticationRequiredMessage(true)}
         |
-        |Possible custom url parameters for pagination:
+        |${urlParametersDocument(true, true)}
         |
-        |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
-        |* limit=NUMBER ==> default value: 50
-        |* offset=NUMBER ==> default value: 0
-        |* from_date=DATE => default value: $DateWithMsForFilteringFromDateString
-        |* to_date=DATE => default value: $DateWithMsForFilteringEenDateString
-        |
-        |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.""",
+        |""",
       emptyObjectJson,
       coreTransactionsJsonV300,
       List(
@@ -682,8 +667,14 @@ trait APIMethods300 {
             (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(bank, Some(user), view, BankIdAccountId(bankId, accountId), params, callContext) map {
               i => (unboxFullOrFail(i._1, callContext, UnknownError), i._2)
             }
+            moderatedTransactionsCoreWithAttributes <- Future.sequence(transactionsCore.map(transaction =>
+              NewStyle.function.getTransactionAttributes(
+                bankId,
+                transaction.id,
+                cc.callContext: Option[CallContext]).map(attributes => ModeratedTransactionCoreWithAttributes(transaction, attributes._1))
+            ))
           } yield {
-            (createCoreTransactionsJSON(transactionsCore), HttpCode.`200`(callContext))
+            (createCoreTransactionsJSON(moderatedTransactionsCoreWithAttributes), HttpCode.`200`(callContext))
           }
       }
     }
@@ -702,15 +693,9 @@ trait APIMethods300 {
         |
         |Authentication is required if the view is not public.
         |
-        |Possible custom headers for pagination:
+        |${urlParametersDocument(true, true)}
         |
-        |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
-        |* limit=NUMBER ==> default value: 50
-        |* offset=NUMBER ==> default value: 0
-        |* from_date=DATE => default value: $DateWithMsForFilteringFromDateString
-        |* to_date=DATE => default value: $DateWithMsForFilteringEenDateString
-        |
-        |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.""",
+        |""",
       emptyObjectJson,
       transactionsJsonV300,
       List(
@@ -742,8 +727,14 @@ trait APIMethods300 {
             (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, user, view, BankIdAccountId(bankId, accountId), callContext, params) map {
               connectorEmptyResponse(_, callContext)
             }
+            moderatedTansactionsWithAttributes <- Future.sequence(transactions.map(transaction =>
+              NewStyle.function.getTransactionAttributes(
+                bankId,
+                transaction.id,
+                cc.callContext: Option[CallContext]).map(attributes => ModeratedTransactionWithAttributes(transaction, attributes._1))
+            ))
           } yield {
-            (createTransactionsJson(transactions), HttpCode.`200`(callContext))
+            (createTransactionsJson(moderatedTansactionsWithAttributes), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1542,6 +1533,9 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(true)}
         |
         |CanGetAnyUser entitlement is required,
+        |
+        |${urlParametersDocument(false, false)}
+        |* locked_status (if null ignore)
         |
       """.stripMargin,
       emptyObjectJson,

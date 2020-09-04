@@ -28,6 +28,8 @@ package com.openbankproject.commons.model
 
 import java.util.Date
 
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.{ReflectUtils, optional}
 import net.liftweb.json.JsonAST.{JObject, JValue}
@@ -129,7 +131,7 @@ case class BankAccountCommons(
                                accountRules :List[AccountRule],
                                @optional
                                accountHolder :String,
-                               override val queryTags : Option[List[String]] = None) extends BankAccount
+                               override val attributes : Option[List[Attribute]] = None) extends BankAccount
 
 object BankAccountCommons extends Converter[BankAccount, BankAccountCommons]
 
@@ -495,6 +497,23 @@ case class TransactionStatusCommons(
    override val transactionTimestamp: String
 ) extends TransactionStatus
 object TransactionStatusCommons extends Converter[TransactionStatus, TransactionStatusCommons]
+
+case class ChallengeCommons(
+  override val challengeId : String,
+  override val transactionRequestId : String,
+  override val expectedAnswer : String  ,
+  override val expectedUserId : String   ,
+  override val salt: String ,
+  override val successful: Boolean,
+  
+  override val challengeType: String,
+  override val consentId: Option[String],
+  override val scaMethod: Option[SCA],
+  override val scaStatus: Option[SCAStatus],
+  override val authenticationMethodId: Option[String] ,
+) extends ChallengeTrait
+object ChallengeCommons extends Converter[ChallengeTrait, ChallengeCommons]
+
 
 //----------------obp-api moved to here case classes
 

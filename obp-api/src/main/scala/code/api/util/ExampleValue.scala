@@ -327,6 +327,15 @@ object ExampleValue {
   
   lazy val cbsErrorCodeExample = ConnectorField("500-OFFLINE", "An error code returned by the CBS")
 
+  lazy val attributeNameExample = ConnectorField("STATUS", s"Transaction attribute name")
+  glossaryItems += makeGlossaryItem("Attribute.name", attributeNameExample)
+
+  lazy val attributeTypeExample = ConnectorField("STRING", s"Transaction attribute type.")
+  glossaryItems += makeGlossaryItem("Attribute.type", attributeTypeExample)
+
+  lazy val attributeValueExample = ConnectorField("closed", s"Transaction attribute value.")
+  glossaryItems += makeGlossaryItem("Attribute.value", attributeValueExample)
+
   //------------------------------------------------------------
   // TODO @Simon please fix the follow example values to reasonable values
   lazy val dateOfBirthExample = ConnectorField("2018-03-09", "customer birthday")

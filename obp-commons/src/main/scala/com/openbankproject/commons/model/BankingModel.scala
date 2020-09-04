@@ -200,7 +200,7 @@ trait BankAccount{
   //Because of in OBP side, we just have one account table, no difference for different types of accounts. 
   //So here, we introduce the field for the OBP presentation layer to filter the accounts. 
   //also @`Reads a list of card accounts` in Berlin group V1.3 ..
-  def queryTags  : Option[List[String]] = None 
+  def attributes  : Option[List[Attribute]] = None
 }
 
 //This class is used for propagate the BankAccount as the parameters over different methods.
@@ -294,6 +294,11 @@ case class Iban(
   iban: String
 )
 
+case class Attribute(
+  name: String,
+  `type`: String,
+  value: String
+)
 case class AccountRule(
   scheme: String, 
   value: String
@@ -347,3 +352,29 @@ case class CounterpartyBespoke(
 case class CustomerDependant(
   dateOfBirth: Date
 )
+
+trait DoubleEntryBookTransactionTrait {
+  def transactionRequestBankId: Option[BankId]
+  def transactionRequestAccountId: Option[AccountId]
+  def transactionRequestId: Option[TransactionRequestId]
+  def debitTransactionBankId: BankId
+  def debitTransactionAccountId: AccountId
+  def debitTransactionId: TransactionId
+  def creditTransactionBankId: BankId
+  def creditTransactionAccountId: AccountId
+  def creditTransactionId: TransactionId
+}
+
+case class DoubleEntryTransaction(
+                                  transactionRequestBankId: Option[BankId],
+                                  transactionRequestAccountId: Option[AccountId],
+                                  transactionRequestId: Option[TransactionRequestId],
+                                  debitTransactionBankId: BankId,
+                                  debitTransactionAccountId: AccountId,
+                                  debitTransactionId: TransactionId,
+                                  creditTransactionBankId: BankId,
+                                  creditTransactionAccountId: AccountId,
+                                  creditTransactionId: TransactionId
+                                 ) extends DoubleEntryBookTransactionTrait
+object DoubleEntryTransaction extends Converter[DoubleEntryBookTransactionTrait, DoubleEntryTransaction]
+

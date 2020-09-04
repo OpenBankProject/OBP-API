@@ -10,6 +10,7 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
+import code.api.v1_2_1.OBPAPI1_2_1.Implementations1_2_1
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
@@ -28,8 +29,8 @@ import com.openbankproject.commons.model.FXRate
 import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
+import code.model.dataAccess.{BankAccountRouting, DoubleEntryBookTransaction}
 import code.standingorders.StandingOrderTrait
-import code.transactionChallenge.ExpectedChallengeAnswer
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
@@ -38,6 +39,7 @@ import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.dto.{CustomerAndAttribute, ProductCollectionItemsTree}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
@@ -56,6 +58,25 @@ import scala.reflect.runtime.universe.MethodSymbol
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
+    (nameOf(Implementations1_2_1.deleteWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.updateWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addImageForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteImageForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getImagesForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getTagsForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addCommentForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteCommentForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getCommentsForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteTransactionNarrative), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.updateTransactionNarrative), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addTransactionNarrative), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getTransactionNarrative), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteViewForBankAccount), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addPermissionForUserForBankAccountForOneView), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_4_0.getTransactionRequestTypes), ApiVersion.v1_4_0.toString),
     (nameOf(Implementations1_4_0.addCustomerMessage), ApiVersion.v1_4_0.toString),
     (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString),
@@ -70,6 +91,7 @@ object NewStyle {
     (nameOf(Implementations2_0_0.addKycMedia), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.addKycStatus), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.addKycCheck), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.getPermissionsForBankAccount), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_1_0.getRoles), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations2_1_0.getCustomersForCurrentUserAtBank), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
@@ -216,9 +238,21 @@ object NewStyle {
       }
     }
 
+    def getAccountRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]) : OBPReturnType[BankAccountRouting] = {
+      Future(Connector.connector.vend.getAccountRouting(bankId: Option[BankId], scheme: String, address : String, callContext: Option[CallContext])) map { i =>
+        unboxFullOrFail(i, callContext,s"$AccountRoutingNotFound Current scheme is $scheme, current address is $address, current bankId is $bankId", 404 )
+      }
+    }
+
     def getBankAccountByRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Future(Connector.connector.vend.getBankAccountByRouting(bankId: Option[BankId], scheme: String, address : String, callContext: Option[CallContext])) map { i =>
         unboxFullOrFail(i, callContext,s"$BankAccountNotFoundByAccountRouting Current scheme is $scheme, current address is $address, current bankId is $bankId", 404 )
+      }
+    }
+
+    def getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
+      Connector.connector.vend.getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFoundByAccountId Current account_id is $accountId", 404 ), i._2)
       }
     }
 
@@ -238,6 +272,36 @@ object NewStyle {
         x => (unboxFullOrFail(x._1, callContext, TransactionNotFound, 404), x._2)
       }
     }
+    
+    def permissions(account: BankAccount, user: User) = Future {
+      account.permissions(user)
+    } map { fullBoxOrException(_)
+    } map { unboxFull(_) } 
+    
+    def removeView(account: BankAccount, user: User, viewId: ViewId) = Future {
+      account.removeView(user, viewId)
+    } map { fullBoxOrException(_)
+    } map { unboxFull(_) }
+    
+    def grantAccessToView(account: BankAccount, u: User, viewIdBankIdAccountId : ViewIdBankIdAccountId, provider : String, providerId: String) = Future {
+      account.grantAccessToView(u, viewIdBankIdAccountId, provider, providerId)
+    } map { fullBoxOrException(_)
+    } map { unboxFull(_) }
+    
+    def grantAccessToMultipleViews(account: BankAccount, u: User, viewIdBankIdAccountIds : List[ViewIdBankIdAccountId], provider : String, providerId: String) = Future {
+      account.grantAccessToMultipleViews(u, viewIdBankIdAccountIds, provider, providerId)
+    } map { fullBoxOrException(_)
+    } map { unboxFull(_) }
+    
+    def revokeAccessToView(account: BankAccount, u: User, viewIdBankIdAccountId : ViewIdBankIdAccountId, provider : String, providerId: String) = Future {
+      account.revokeAccessToView(u, viewIdBankIdAccountId, provider, providerId)
+    } map { fullBoxOrException(_)
+    } map { unboxFull(_) }
+    
+    def revokeAllAccountAccesses(account: BankAccount, u: User, provider : String, providerId: String) = Future {
+      account.revokeAllAccountAccesses(u, provider, providerId)
+    } map { fullBoxOrException(_)
+    } map { unboxFull(_) }
     
     def moderatedBankAccountCore(account: BankAccount, view: View, user: Box[User], callContext: Option[CallContext]) = Future {
       account.moderatedBankAccountCore(view, BankIdAccountId(account.bankId, account.accountId), user, callContext)
@@ -758,7 +822,98 @@ object NewStyle {
     def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = 
      Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) map { i =>
        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
-      } 
+      }
+
+    def validateChallenge(
+      challengeType: ChallengeType.Value,
+      transactionRequestId: Option[String], 
+      consentId: Option[String], 
+      challengeId: String, 
+      hashOfSuppliedAnswer: String, 
+      callContext: Option[CallContext]
+    ): OBPReturnType[ChallengeTrait] = {
+      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT && transactionRequestId.isEmpty ){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId) ")}
+      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && consentId.isEmpty ){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId) ")}
+      }else{
+        Connector.connector.vend.validateChallenge(
+          transactionRequestId: Option[String],
+          consentId: Option[String],
+          challengeId: String,
+          hashOfSuppliedAnswer: String,
+          callContext: Option[CallContext]
+        ) map { i =>
+          (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
+        }
+      }
+    }
+
+    /**
+     * 
+     * @param userIds OBP support multiple challenges, we can ask different users to answer different challenges
+     * @param challengeType OBP support different challenge types, @see the Enum ChallengeType
+     * @param scaMethod @see the Enum StrongCustomerAuthentication
+     * @param scaStatus @see the Enum StrongCustomerAuthenticationStatus
+     * @param transactionRequestId it is also the BelinGroup PaymentId
+     * @param consentId 
+     * @param authenticationMethodId this is used for BelinGroup Consent
+     * @param callContext
+     * @return
+     */
+    def createChallengesC2(
+      userIds: List[String],
+      challengeType: ChallengeType.Value,
+      transactionRequestId: Option[String],
+      scaMethod: Option[SCA],
+      scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
+      consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
+      authenticationMethodId: Option[String],
+      callContext: Option[CallContext]
+    ) : OBPReturnType[List[ChallengeTrait]] = {
+      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
+      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
+      }else{
+        Connector.connector.vend.createChallengesC2(
+          userIds: List[String],
+          challengeType: ChallengeType.Value,
+          transactionRequestId: Option[String],
+          scaMethod: Option[SCA],
+          scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
+          consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
+          authenticationMethodId: Option[String],
+          callContext: Option[CallContext]
+        ) map { i =>
+          (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
+        }
+      }
+    }
+    
+    def getChallengesByTransactionRequestId(
+      transactionRequestId: String, 
+      callContext:  Option[CallContext]
+    ): OBPReturnType[List[ChallengeTrait]] = {
+      Connector.connector.vend.getChallengesByTransactionRequestId(
+        transactionRequestId: String,
+        callContext:  Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeTransactionRequestId Current transactionRequestId($transactionRequestId) ", 400), i._2)
+      }
+    }
+
+    def getChallenge(
+      challengeId: String, 
+      callContext:  Option[CallContext]
+    ): OBPReturnType[ChallengeTrait] = {
+      Connector.connector.vend.getChallenge(
+        challengeId: String,
+        callContext:  Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeChallengeId Current challengeId($challengeId) ", 400), i._2)
+      }
+    } 
     
     def createTransactionAfterChallengeV300(
       initiator: User,
@@ -786,6 +941,7 @@ object NewStyle {
     
     def makePaymentv210(fromAccount: BankAccount,
                       toAccount: BankAccount,
+                      transactionRequestId: TransactionRequestId,
                       transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                       amount: BigDecimal,
                       description: String,
@@ -795,6 +951,7 @@ object NewStyle {
       Connector.connector.vend.makePaymentv210(
         fromAccount: BankAccount,
         toAccount: BankAccount,
+        transactionRequestId: TransactionRequestId,
         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
         amount: BigDecimal,
         description: String,
@@ -804,7 +961,12 @@ object NewStyle {
       ) map { i => 
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForMakePayment ",400), i._2)
       }
-    
+
+    def saveDoubleEntryBookTransaction(doubleEntryTransaction: DoubleEntryTransaction, callContext: Option[CallContext]): OBPReturnType[DoubleEntryTransaction] =
+      Connector.connector.vend.saveDoubleEntryBookTransaction(doubleEntryTransaction: DoubleEntryTransaction, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForSaveDoubleEntryBookTransaction ", 400), i._2)
+      }
+
     def createOrUpdateProductAttribute(
       bankId: BankId,
       productCode: ProductCode,
@@ -969,6 +1131,19 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
+    def getModeratedAccountAttributesByAccount(bankId: BankId, 
+                                               accountId: AccountId, 
+                                               viewId: ViewId, 
+                                               callContext: Option[CallContext]): OBPReturnType[List[AccountAttribute]] = {
+      Connector.connector.vend.getAccountAttributesByAccountCanBeSeenOnView(
+        bankId: BankId,
+        accountId: AccountId,
+        viewId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
 
     def getCustomerAttributes(bankId: BankId,
       customerId: CustomerId,
@@ -1029,6 +1204,19 @@ object NewStyle {
       Connector.connector.vend.getTransactionAttributes(
         bankId: BankId,
         transactionId: TransactionId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }    
+    def getModeratedTransactionAttributes(bankId: BankId,
+                                          transactionId: TransactionId,
+                                          viewId: ViewId,
+      callContext: Option[CallContext]): OBPReturnType[List[TransactionAttribute]] = {
+      Connector.connector.vend.getTransactionAttributesCanBeSeenOnView(
+        bankId: BankId,
+        transactionId: TransactionId,
+        viewId,
         callContext: Option[CallContext]
       ) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
@@ -2028,13 +2216,10 @@ object NewStyle {
       getConnectorByName(connectorName).flatMap(_.implementedMethods.get(methodName))
     }
 
-    def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
-      Connector.connector.vend.createDynamicEndpoint(
-        swaggerString,
-        callContext
-      ) map {
-        i => (connectorEmptyResponse(i._1, callContext), i._2)
-      }
+    def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
+      (DynamicEndpointProvider.connectorMethodProvider.vend.create(swaggerString), callContext)
+    } map {
+      i => (connectorEmptyResponse(i._1, callContext), i._2)
     }
 
     def getDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
@@ -2045,10 +2230,8 @@ object NewStyle {
       }
     }
 
-    def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = {
-      Connector.connector.vend.getDynamicEndpoints(
-        callContext
-      ) 
+    def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
+      (DynamicEndpointProvider.connectorMethodProvider.vend.getAll(), callContext)
     }
     /**
      * delete one DynamicEndpoint and corresponding entitlement and dynamic entitlement

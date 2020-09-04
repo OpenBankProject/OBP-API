@@ -489,6 +489,7 @@ class Boot extends MdcLoggable {
           Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
           // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
+          Menu.i("Consent") / "consent" >> AuthUser.loginFirst,//OAuth consent page
           OAuthWorkedThanks.menu, //OAuth thanks page that will do the redirect
           Menu.i("INTRODUCTION") / "introduction"
     ) ++ accountCreation ++ Admin.menus
@@ -629,6 +630,12 @@ class Boot extends MdcLoggable {
       val owner = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined
       val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).isDefined
       val accountant = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).isDefined
+      val readAccountBasic = Views.views.vend.getOrCreateSystemView(READ_ACCOUNTS_BASIC_VIEW_ID).isDefined
+      val readAccountDetail = Views.views.vend.getOrCreateSystemView(READ_ACCOUNTS_DETAIL_VIEW_ID).isDefined
+      val readAccountBalance = Views.views.vend.getOrCreateSystemView(READ_BALANCES_VIEW_ID).isDefined
+      val readAccountTransactionBasic = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_BASIC_VIEW_ID).isDefined
+      val readAccountTransactionDebits = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_DEBITS_VIEW_ID).isDefined
+      val readAccountTransactionDetails = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_DETAIL_VIEW_ID).isDefined
       // Only create Firehose view if they are enabled at instance.
       val accountFirehose = if (ApiPropsWithAlias.allowAccountFirehose)
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
@@ -640,6 +647,12 @@ class Boot extends MdcLoggable {
            |System view ${SYSTEM_AUDITOR_VIEW_ID} exists/created at the instance: ${auditor}
            |System view ${SYSTEM_ACCOUNTANT_VIEW_ID} exists/created at the instance: ${accountant}
            |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${accountFirehose}
+           |System view ${READ_ACCOUNTS_BASIC_VIEW_ID} exists/created at the instance: ${readAccountBasic}
+           |System view ${READ_ACCOUNTS_DETAIL_VIEW_ID} exists/created at the instance: ${readAccountDetail}
+           |System view ${READ_BALANCES_VIEW_ID} exists/created at the instance: ${readAccountBalance}
+           |System view ${READ_TRANSACTIONS_BASIC_VIEW_ID} exists/created at the instance: ${readAccountTransactionBasic}
+           |System view ${READ_TRANSACTIONS_DEBITS_VIEW_ID} exists/created at the instance: ${readAccountTransactionDebits}
+           |System view ${READ_TRANSACTIONS_DETAIL_VIEW_ID} exists/created at the instance: ${readAccountTransactionDetails}
            |""".stripMargin
       logger.info(comment)
     }
@@ -810,6 +823,7 @@ object ToSchemify {
     MappedBankAccount,
     BankAccountRouting,
     MappedTransaction,
+    DoubleEntryBookTransaction,
     MappedCustomerMessage,
     MappedBranch,
     MappedAtm,
