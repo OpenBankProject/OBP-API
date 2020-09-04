@@ -1,7 +1,7 @@
 package code.api.v4_0_0
 
 import com.openbankproject.commons.model.ErrorMessage
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.bankJSONV220
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.bankJson400
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateBank
 import code.api.util.ErrorMessages.UserHasMissingRoles
@@ -39,7 +39,7 @@ class BankTests extends V400ServerSetupAsync with DefaultUsers {
     scenario("We try to consume endpoint createBank - Anonymous access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "banks").POST
-      val responseGet = makePostRequestAsync(requestGet, write(bankJSONV220))
+      val responseGet = makePostRequestAsync(requestGet, write(bankJson400))
       Then("We should get a 401")
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
       responseGet map { r =>
@@ -51,7 +51,7 @@ class BankTests extends V400ServerSetupAsync with DefaultUsers {
     scenario("We try to consume endpoint createBank without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "banks").POST <@ (user1)
-      val responseGet = makePostRequestAsync(requestGet, write(bankJSONV220))
+      val responseGet = makePostRequestAsync(requestGet, write(bankJson400))
       Then("We should get a 403")
       And("We should get a message: " + s"$CanCreateBank entitlement required")
       responseGet map { r =>
@@ -67,11 +67,11 @@ class BankTests extends V400ServerSetupAsync with DefaultUsers {
       val requestGet = (v4_0_0_Request / "banks").POST <@ (user1)
       val response = for {
         before <- NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None) map {
-          _.exists( e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankJSONV220.id)
+          _.exists( e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankJson400.id)
         }
-        response: APIResponse <- makePostRequestAsync(requestGet, write(bankJSONV220))
+        response: APIResponse <- makePostRequestAsync(requestGet, write(bankJson400))
         after <- NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None) map {
-          _.exists( e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankJSONV220.id)
+          _.exists( e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankJson400.id)
         }
       } yield (before, after, response)
       Then("We should get a 201")
