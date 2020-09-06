@@ -325,6 +325,27 @@ case class ChallengeJson(
   transaction_request_id: String,
   expected_user_id: String
 )
+
+case class SettlementAccountRequestJson(
+                                         user_id: String,
+                                         payment_system: String,
+                                         balance: AmountOfMoneyJsonV121,
+                                         label: String,
+                                         branch_id : String,
+                                         account_routings: List[AccountRoutingJsonV121]
+                                        )
+
+case class SettlementAccountResponseJson(
+                                         account_id: String,
+                                         user_id: String,
+                                         payment_system: String,
+                                         balance: AmountOfMoneyJsonV121,
+                                         label: String,
+                                         branch_id : String,
+                                         account_routings: List[AccountRoutingJsonV121],
+                                         account_attributes: List[AccountAttributeResponseJson]
+                                        )
+
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
@@ -347,6 +368,21 @@ object JSONFactory400 {
   def createBanksJson(l: List[Bank]): BanksJson400 = {
     BanksJson400(l.map(createBankJSON400))
   }
+
+  def createSettlementAccountJson(userId: String, account: BankAccount, accountAttributes: List[AccountAttribute]): SettlementAccountResponseJson =
+    SettlementAccountResponseJson(
+      account_id = account.accountId.value,
+      user_id = userId,
+      label = account.label,
+      payment_system = account.accountId.value.split("_SETTLEMENT_ACCOUNT").headOption.getOrElse(""),
+      balance = AmountOfMoneyJsonV121(
+        account.currency,
+        account.balance.toString()
+      ),
+      branch_id = account.branchId,
+      account_routings = account.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address)),
+      account_attributes = accountAttributes.map(createAccountAttributeJson)
+    )
 
   def createTransactionRequestWithChargeJSON(tr : TransactionRequest, challenges: List[ChallengeJson]) : TransactionRequestWithChargeJSON400 = {
     new TransactionRequestWithChargeJSON400(
