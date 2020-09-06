@@ -293,6 +293,52 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getSettlementAccounts,
+      implementedInApiVersion,
+      nameOf(getSettlementAccounts),
+      "GET",
+      "/banks/BANK_ID/settlement-accounts",
+      "Get Settlement accounts at Bank",
+      """Get settlement accounts on this API instance
+        |Returns a list of settlement accounts at this Bank
+        |
+        |Note: a settlement account is considered as a bank account.
+        |So you can update it and add account attributes to it using the regular account endpoints
+        |""",
+      emptyObjectJson,
+      settlementAccountsJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        BankNotFound,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagBank),
+      Some(List(canGetSettlementAccountAtOneBank))
+    )
+
+    lazy val getSettlementAccounts: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "settlement-accounts" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            _ <- Helper.booleanToFuture(s"$UserHasMissingRoles $canGetSettlementAccountAtOneBank") {
+              hasEntitlement(bankId.value, cc.userId, canCreateSettlementAccountAtOneBank)
+            }
+            (accounts, callContext) <- NewStyle.function.getBankSettlementAccounts(bankId, cc.callContext)
+            settlementAccounts <- Future.sequence(accounts.map(account => {
+              NewStyle.function.getAccountAttributesByAccount(bankId, account.accountId, cc.callContext).map(accountAttributes =>
+                JSONFactory400.getSettlementAccountJson(account, accountAttributes._1)
+              )
+            }))
+          } yield {
+            (SettlementAccountsJson(settlementAccounts), HttpCode.`200`(callContext))
+          }
+
+      }
+    }
+
     val exchangeRates =
       APIUtil.getPropsValue("webui_api_explorer_url", "") +
         "/more?version=OBPv4.0.0&list-all-banks=false&core=&psd2=&obwg=#OBPv2_2_0-getCurrentFxRate"

@@ -698,6 +698,17 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  override def getBankSettlementAccounts(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccount]]] = {
+    Future {
+      Full {
+        MappedBankAccount.findAll(
+          By(MappedBankAccount.bank, bankId.value),
+          By(MappedBankAccount.kind, "SETTLEMENT")
+        )
+      }
+    }.map(account => (account, callContext))
+  }
+
   // localConnector/getBankAccountsHeld/bankIdAccountIds/{bankIdAccountIds}
   override def getBankAccountsHeldLegacy(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): Box[List[AccountHeld]] = {
     Full(
