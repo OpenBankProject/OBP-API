@@ -6,7 +6,6 @@ import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiTag, CallContext, NewStyle}
-import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -45,7 +44,7 @@ object APIMethods_AccountsApi extends RestHelper {
        ofReadAccountBasic,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       ApiTag("Accounts") :: apiTagMockedData :: Nil
+       ApiTag("Accounts") :: apiTagMXOpenFinance :: Nil
      )
 
      lazy val getAccountByAccountId : OBPEndpoint = {
@@ -84,7 +83,7 @@ object APIMethods_AccountsApi extends RestHelper {
        ofReadAccountBasic,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       ApiTag("Accounts") :: apiTagMockedData :: Nil
+       ApiTag("Accounts") :: apiTagMXOpenFinance :: Nil
      )
 
      lazy val getAccounts : OBPEndpoint = {

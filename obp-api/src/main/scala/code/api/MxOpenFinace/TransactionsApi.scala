@@ -174,7 +174,7 @@ object APIMethods_TransactionsApi extends RestHelper {
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       ApiTag("Transactions") :: apiTagMockedData :: Nil
+       ApiTag("Transactions") :: apiTagMXOpenFinance :: Nil
      )
 
      lazy val getTransactionsByAccountId : OBPEndpoint = {

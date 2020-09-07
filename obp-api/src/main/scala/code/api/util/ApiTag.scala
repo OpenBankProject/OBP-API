@@ -59,6 +59,7 @@ object ApiTag {
   val apiTagDocumentation = ResourceDocTag("Documentation")
   val apiTagBerlinGroup = ResourceDocTag("Berlin-Group")
   val apiTagUKOpenBanking = ResourceDocTag("UKOpenBanking")
+  val apiTagMXOpenFinance = ResourceDocTag("MXOpenFinance")
   val apiTagApiBuilder = ResourceDocTag("API-Builder")
   val apiTagAggregateMetrics = ResourceDocTag("Aggregate-Metrics")
   val apiTagNewStyle = ResourceDocTag("New-Style")

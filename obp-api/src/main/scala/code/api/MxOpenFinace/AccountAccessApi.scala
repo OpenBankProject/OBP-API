@@ -2,12 +2,11 @@ package code.api.MxOpenFinace
 
 import code.api.Constant
 import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_0_0_1.ConsentPostBodyMXOFV001
-import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
-import code.api.util.{ApiTag, ConsentJWT, JwtUtil, NewStyle}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
+import code.api.util.{ApiTag, ConsentJWT, JwtUtil, NewStyle}
 import code.consent.Consents
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -74,7 +73,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
         }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       ApiTag("Account Access") :: apiTagMockedData :: Nil
+       ApiTag("Account Access") :: apiTagMXOpenFinance :: Nil
      )
 
      lazy val createAccountAccessConsents : OBPEndpoint = {
@@ -140,7 +139,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
        json.parse(""""""),
     List(UserNotLoggedIn, UnknownError),
     Catalogs(notCore, notPSD2, notOBWG),
-    ApiTag("Account Access") :: apiTagMockedData :: Nil
+    ApiTag("Account Access") :: apiTagMXOpenFinance :: Nil
   )
 
      lazy val deleteAccountAccessConsentsConsentId : OBPEndpoint = {
@@ -195,7 +194,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
         }"""),
     List(UserNotLoggedIn, UnknownError),
     Catalogs(notCore, notPSD2, notOBWG),
-    ApiTag("Account Access") :: apiTagMockedData :: Nil
+    ApiTag("Account Access") :: apiTagMXOpenFinance :: Nil
   )
 
      lazy val getAccountAccessConsentsConsentId : OBPEndpoint = {
