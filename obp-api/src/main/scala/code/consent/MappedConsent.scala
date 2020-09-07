@@ -87,7 +87,9 @@ object MappedConsentProvider extends ConsentProvider {
     permissions: List[String],
     expirationDateTime: Date,
     transactionFromDateTime: Date,
-    transactionToDateTime: Date
+    transactionToDateTime: Date,
+    apiStandard: Option[String],
+    apiVersion: Option[String]
   ) ={
     tryo {
       val consent = MappedConsent
@@ -98,6 +100,8 @@ object MappedConsentProvider extends ConsentProvider {
         .mTransactionFromDateTime(transactionFromDateTime)
         .mTransactionToDateTime(transactionToDateTime)
         .mStatusUpdateDateTime(now)
+        .mApiVersion(apiVersion.getOrElse(null))
+        .mApiStandard(apiStandard.getOrElse(null))
         .saveMe()
       val jwt = Consent.createUKConsentJWT(
         user: User,
@@ -183,6 +187,9 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
     override def defaultValue = BCrypt.gensalt()
   }
   object mJsonWebToken extends MappedText(this)
+  
+  object mApiStandard extends MappedString(this, 50)
+  object mApiVersion extends MappedString(this, 50)
 
   //The following are added for BerlinGroup.
   object mRecurringIndicator extends MappedBoolean(this)
@@ -205,6 +212,9 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   // The salt to hash with (generated using BCrypt.gensalt)
   override def challenge: String = mChallenge.get
   override def jsonWebToken: String = mJsonWebToken.get
+  
+  override def apiStandard: String = mApiStandard.get
+  override def apiVersion: String = mApiVersion.get
 
   override def recurringIndicator: Boolean = mRecurringIndicator.get
   override def validUntil = mValidUntil.get

@@ -523,6 +523,7 @@ object Consent {
 
   def checkUKConsent(user: User, calContext: Option[CallContext]): Box[Boolean] = {
     Consents.consentProvider.vend.getConsentsByUser(user.userId)
+      .filter(_.mApiStandard == "MXOpenFinance")
       .sortWith(_.creationDateTime.getTime > _.creationDateTime.getTime).headOption match {
       case Some(c) if c.mStatus == ConsentStatus.AUTHORISED.toString =>
         System.currentTimeMillis match {

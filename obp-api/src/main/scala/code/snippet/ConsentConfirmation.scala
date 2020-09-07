@@ -108,7 +108,7 @@ class ConsentConfirmation extends MdcLoggable {
 
       { // TO create consent
         val accountIdsOpt = if (accountIds.isEmpty) None else Some(accountIds)
-        val consent: Box[Consent] = Consents.consentProvider.vend.saveUKConsent(currentUser, bankId, accountIdsOpt, None, consents, expirationDate, fromDate, toDate)
+        val consent: Box[Consent] = Consents.consentProvider.vend.saveUKConsent(currentUser, bankId, accountIdsOpt, None, consents, expirationDate, fromDate, toDate, Some("MXOpenFinance"), Some("0.0.1"))
       }
 
       { // grant checked consents

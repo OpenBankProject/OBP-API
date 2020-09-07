@@ -95,7 +95,9 @@ object APIMethods_AccountAccessApi extends RestHelper {
                permissions = consentJson.Data.Permissions,
                expirationDateTime = DateWithDayFormat.parse(consentJson.Data.ExpirationDateTime) ,
                transactionFromDateTime = DateWithDayFormat.parse(consentJson.Data.TransactionFromDateTime),
-               transactionToDateTime= DateWithDayFormat.parse(consentJson.Data.TransactionToDateTime)
+               transactionToDateTime= DateWithDayFormat.parse(consentJson.Data.TransactionToDateTime),
+               apiStandard = Some("MXOpenFinance"), 
+               apiVersion = Some("0.0.1")
              )) map {
                i => connectorEmptyResponse(i, callContext)
              }
