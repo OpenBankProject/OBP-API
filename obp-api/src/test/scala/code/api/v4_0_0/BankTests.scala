@@ -1,6 +1,7 @@
 package code.api.v4_0_0
 
-import com.openbankproject.commons.model.ErrorMessage
+import code.api.Constant.{INCOMING_ACCOUNT_ID, OUTGOING_ACCOUNT_ID}
+import com.openbankproject.commons.model.{AccountId, BankId, ErrorMessage}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.bankJson400
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateBank
@@ -75,10 +76,15 @@ class BankTests extends V400ServerSetupAsync with DefaultUsers {
         }
       } yield (before, after, response)
       Then("We should get a 201")
-      response map { r =>
+      response flatMap  { r =>
           r._1 should equal(false) // Before we create a bank there is no role CanCreateEntitlementAtOneBank
           r._2 should equal(true) // After we create a bank there is a role CanCreateEntitlementAtOneBank
           r._3.code should equal(201)
+          Then("Default settlement accounts should be created")
+          val defaultOutgoingAccount = NewStyle.function.checkBankAccountExists(BankId(bankJson400.id), AccountId(OUTGOING_ACCOUNT_ID), None)
+          val defaultIncomingAccount = NewStyle.function.checkBankAccountExists(BankId(bankJson400.id), AccountId(INCOMING_ACCOUNT_ID), None)
+          defaultOutgoingAccount.map(account => account._1.accountId.value should equal(OUTGOING_ACCOUNT_ID))
+          defaultIncomingAccount.map(account => account._1.accountId.value should equal(INCOMING_ACCOUNT_ID))
       }
     }
   }

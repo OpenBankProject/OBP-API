@@ -324,7 +324,7 @@ trait APIMethods400 {
         cc =>
           for {
             _ <- Helper.booleanToFuture(s"$UserHasMissingRoles $canGetSettlementAccountAtOneBank") {
-              hasEntitlement(bankId.value, cc.userId, canCreateSettlementAccountAtOneBank)
+              hasEntitlement(bankId.value, cc.userId, canGetSettlementAccountAtOneBank)
             }
             (accounts, callContext) <- NewStyle.function.getBankSettlementAccounts(bankId, cc.callContext)
             settlementAccounts <- Future.sequence(accounts.map(account => {

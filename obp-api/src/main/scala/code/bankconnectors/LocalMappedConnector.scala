@@ -572,7 +572,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       By(MappedBankAccount.theAccountId, accountId.value)
     ).map(bankAccount => (bankAccount, callContext))
   }
-  
+
   override def getBankAccountByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
     getBankAccountByRouting(None, "IBAN", iban, callContext)
   }
