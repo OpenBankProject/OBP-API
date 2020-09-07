@@ -47,7 +47,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
               "Data" : {
                 "TransactionToDateTime" : "2000-01-23T04:56:07.000+00:00",
                 "ExpirationDateTime" : "2000-01-23T04:56:07.000+00:00",
-                "Permissions" : [ "ReadAccountsBasic", "ReadAccountsDetail" ],
+                "Permissions" : ["ReadAccountsBasic", "ReadAccountsDetail", "ReadBalances", "ReadTransactionsBasic", "ReadTransactionsDebits", "ReadTransactionsDetail"],
                 "TransactionFromDateTime" : "2000-01-23T04:56:07.000+00:00"
               }
 }"""),
@@ -66,7 +66,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
                 "CreationDateTime" : "2000-01-23T04:56:07.000+00:00",
                 "TransactionToDateTime" : "2000-01-23T04:56:07.000+00:00",
                 "ExpirationDateTime" : "2000-01-23T04:56:07.000+00:00",
-                "Permissions" : [ "ReadAccountsBasic", "ReadAccountsDetail" ],
+                "Permissions" : ["ReadAccountsBasic", "ReadAccountsDetail", "ReadBalances", "ReadTransactionsBasic", "ReadTransactionsDebits", "ReadTransactionsDetail"],
                 "ConsentId" : "ConsentId",
                 "TransactionFromDateTime" : "2000-01-23T04:56:07.000+00:00"
               }
@@ -90,7 +90,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
                u,
                bankId = None,
                accountIds = None,
-               consumerId = None,
+               consumerId = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")),
                permissions = consentJson.Data.Permissions,
                expirationDateTime = DateWithDayFormat.parse(consentJson.Data.ExpirationDateTime) ,
                transactionFromDateTime = DateWithDayFormat.parse(consentJson.Data.TransactionFromDateTime),
@@ -187,7 +187,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
             "CreationDateTime" : "2000-01-23T04:56:07.000+00:00",
             "TransactionToDateTime" : "2000-01-23T04:56:07.000+00:00",
             "ExpirationDateTime" : "2000-01-23T04:56:07.000+00:00",
-            "Permissions" : ["ReadAccountsBasic","ReadAccountsDetail" ],
+            "Permissions" : ["ReadAccountsBasic", "ReadAccountsDetail", "ReadBalances", "ReadTransactionsBasic", "ReadTransactionsDebits", "ReadTransactionsDetail"],
             "ConsentId" : "ConsentId",
             "TransactionFromDateTime" : "2000-01-23T04:56:07.000+00:00"
           }
