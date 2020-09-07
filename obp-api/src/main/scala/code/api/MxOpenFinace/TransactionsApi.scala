@@ -184,6 +184,7 @@ object APIMethods_TransactionsApi extends RestHelper {
            val basicViewId = ViewId(Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID)
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
+             _ <- NewStyle.function.checkUKConsent(u, callContext)
              _ <- passesPsd2Aisp(callContext)
              (account, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
              (bank, callContext) <- NewStyle.function.getBank(account.bankId, callContext)

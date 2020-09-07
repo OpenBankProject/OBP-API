@@ -520,4 +520,24 @@ object Consent {
     CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)
   }
 
+
+  def checkUKConsent(user: User, calContext: Option[CallContext]): Box[Boolean] = {
+    Consents.consentProvider.vend.getConsentsByUser(user.userId)
+      .sortWith(_.creationDateTime.getTime > _.creationDateTime.getTime).headOption match {
+      case Some(c) if c.mStatus == ConsentStatus.AUTHORISED.toString =>
+        System.currentTimeMillis match {
+          case currentTimeMillis if currentTimeMillis < c.creationDateTime.getTime =>
+            Failure(ErrorMessages.ConsentNotBeforeIssue)
+          case currentTimeMillis if currentTimeMillis > c.expirationDateTime.getTime =>
+            Failure(ErrorMessages.ConsentExpiredIssue)
+          case _ =>
+            Full(true)
+        }
+      case Some(c) if c.mStatus != ConsentStatus.AUTHORISED.toString =>
+        Failure(s"${ErrorMessages.ConsentStatusIssue}${ConsentStatus.AUTHORISED.toString}.")
+      case _ =>
+        Failure(ErrorMessages.ConsentNotFound)
+    }
+  }
+
 }

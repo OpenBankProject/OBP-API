@@ -54,10 +54,11 @@ object APIMethods_AccountsApi extends RestHelper {
            val detailViewId = ViewId(Constant.READ_ACCOUNTS_DETAIL_VIEW_ID)
            val basicViewId = ViewId(Constant.READ_ACCOUNTS_BASIC_VIEW_ID)
            for {
-             (user, callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(user), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             _ <- NewStyle.function.checkUKConsent(user, callContext)
              (account, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
-             view: View <- NewStyle.function.checkViewsAccessAndReturnView(detailViewId, basicViewId, BankIdAccountId(account.bankId, AccountId(accountId)), user, callContext)
-             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, callContext)
+             view: View <- NewStyle.function.checkViewsAccessAndReturnView(detailViewId, basicViewId, BankIdAccountId(account.bankId, AccountId(accountId)), Full(user), callContext)
+             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), callContext)
              (moderatedAttributes: List[AccountAttribute], callContext) <- NewStyle.function.getModeratedAccountAttributesByAccount(
                account.bankId,
                account.accountId,
@@ -91,7 +92,7 @@ object APIMethods_AccountsApi extends RestHelper {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
-             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+             _ <- NewStyle.function.checkUKConsent(u, callContext)
              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
              (accounts: List[BankAccount], callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
            } yield {

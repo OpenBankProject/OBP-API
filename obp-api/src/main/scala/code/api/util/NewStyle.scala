@@ -2333,5 +2333,9 @@ object NewStyle {
       }
     }
 
+    def checkUKConsent(user: User, callContext: Option[CallContext]) = Future {
+      Consent.checkUKConsent(user, callContext)
+    } map { fullBoxOrException(_) }
+
   }
 }
