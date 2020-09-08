@@ -26,7 +26,7 @@
  */
 package code.snippet
 
-import code.api.MxOpenFinace.MxOfUtil
+//import code.api.MxOpenFinace.MxOfUtil
 import code.api.util.{APIUtil, NewStyle}
 import code.consent.{Consent, Consents}
 import code.model.dataAccess.AuthUser
@@ -108,8 +108,9 @@ class ConsentConfirmation extends MdcLoggable {
 
       { // TO create consent
         val accountIdsOpt = if (accountIds.isEmpty) None else Some(accountIds)
-        val consent: Box[Consent] =
-          Consents.consentProvider.vend.saveUKConsent(currentUser, bankId, accountIdsOpt, None, consents, expirationDate, fromDate, toDate, Some("MXOpenFinance"), Some("0.0.1"))
+        // val consent: Box[Consent] =
+        // TODO code of  Consents.consentProvider.vend.saveUKConsent not merged yet
+        // Consents.consentProvider.vend.saveUKConsent(currentUser, bankId, accountIdsOpt, None, consents, expirationDate, fromDate, toDate, Some("MXOpenFinance"), Some("0.0.1"))
       }
 
       { // grant checked consents
@@ -117,7 +118,8 @@ class ConsentConfirmation extends MdcLoggable {
           consent <- consents
           accountId <- accountIds
         } yield ViewIdBankIdAccountId(ViewId(consent), BankId(bankId.orNull), AccountId(accountId))
-        MxOfUtil.grantAccessToViews(currentUser, grantAccessIds)
+        //TODO  the MxOfUtil not merged yet
+        //MxOfUtil.grantAccessToViews(currentUser, grantAccessIds)
       }
 
       { // revoke unchecked consents
@@ -138,7 +140,8 @@ class ConsentConfirmation extends MdcLoggable {
           consent <- notCheckedConsents
           accountId <- accountIds
         } yield ViewIdBankIdAccountId(ViewId(consent), BankId(bankId.orNull), AccountId(accountId))
-        MxOfUtil.revokeAccessToViews(currentUser, revokeAccessIds)
+        // TODO the MxOfUtil code not merged
+        //        MxOfUtil.revokeAccessToViews(currentUser, revokeAccessIds)
       }
 
 
