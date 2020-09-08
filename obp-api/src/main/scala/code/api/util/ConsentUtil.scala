@@ -2,10 +2,9 @@ package code.api.util
 
 import java.util.Date
 
-import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_0_0_1.ConsentPostBodyDataMXOFV001
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.PostConsentJson
-import code.api.{Constant, RequestHeader}
 import code.api.v3_1_0.{EntitlementJsonV400, PostConsentBodyCommonJson, ViewJsonV400}
+import code.api.{Constant, RequestHeader}
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
@@ -19,7 +18,7 @@ import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonParser.ParseException
-import net.liftweb.json.{Extraction, MappingException, compactRender}
+import net.liftweb.json.{Extraction, MappingException, compactRender, parse}
 import net.liftweb.mapper.By
 
 import scala.collection.immutable.{List, Nil}
@@ -532,7 +531,14 @@ object Consent {
           case currentTimeMillis if currentTimeMillis > c.expirationDateTime.getTime =>
             Failure(ErrorMessages.ConsentExpiredIssue)
           case _ =>
-            Full(true)
+            val consumerKeyOfLoggedInUser: Option[String] = calContext.flatMap(_.consumer.map(_.key.get))
+            implicit val dateFormats = CustomJsonFormats.formats
+            val consent: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(c.jsonWebToken)
+              .map(parse(_).extract[ConsentJWT])
+            checkConsumerIsActiveAndMatched(
+              consent.openOrThrowException("Parsing of the consent failed."), 
+              consumerKeyOfLoggedInUser
+            )
         }
       case Some(c) if c.mStatus != ConsentStatus.AUTHORISED.toString =>
         Failure(s"${ErrorMessages.ConsentStatusIssue}${ConsentStatus.AUTHORISED.toString}.")
