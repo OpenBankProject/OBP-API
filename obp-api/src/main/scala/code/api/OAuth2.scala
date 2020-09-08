@@ -134,10 +134,11 @@ object OAuth2Login extends RestHelper with MdcLoggable {
           val username = JwtUtil.getSubject(value).getOrElse("")
           for {
             user <- Users.users.vend.getUserByUserNameFuture(username)
+            consumer <-  Future{IdentityProviderCommon.getOrCreateConsumer(value, user.map(_.userId))}
           } yield {
             LoginAttempt.userIsLocked(username) match {
-              case true => (Failure(UsernameHasBeenLocked), Some(cc))
-              case false => (user, Some(cc))
+              case true => (Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer)))
+              case false => (user, Some(cc.copy(consumer = consumer)))
             }
           }
         case ParamFailure(a, b, c, apiFailure : APIFailure) =>

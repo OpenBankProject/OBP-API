@@ -841,7 +841,7 @@ def restoreSomeSessions(): Unit = {
       if(loginWithHydra && loginChallengeBox.isDefined) {
         val challenge = loginChallengeBox.orNull
         val acceptLoginRequest = new AcceptLoginRequest()
-        acceptLoginRequest.setSubject(user.email.get)
+        acceptLoginRequest.setSubject(user.username.get)
         acceptLoginRequest.remember(false)
         acceptLoginRequest.rememberFor(3600)
         val response = hydraAdmin.acceptLoginRequest(challenge, acceptLoginRequest)
@@ -964,12 +964,6 @@ def restoreSomeSessions(): Unit = {
       scala.xml.XML.loadString(loginSubmitButton(loginButtonText, loginAction _).toString().replace("type=\"submit\"","class=\"submit\" type=\"submit\""))
     }
 
-    // login with hydra, but direct to login page, need redirect to hydra
-//    if(AuthUser.loginWithHydra && S.param("login_challenge").isEmpty) {
-//      val state = urlEncode(UuidUtil.getTimeBasedUuid.toString)
-//      val scope = hydraClientScope.mkString("+")
-//      return S.redirectTo(s"$hydraPublicUrl/oauth2/auth?client_id=$hydraClientId&response_type=code&state=$state&scope=openid+offline")
-//    }
     val bind =
           "submit" #> insertSubmitButton
    bind(loginXhtml)
@@ -1158,16 +1152,19 @@ def restoreSomeSessions(): Unit = {
 
   val loginWithHydra = APIUtil.getPropsAsBoolValue("login_with_hydra", false)
 
+  val createHydraClient = APIUtil.getPropsAsBoolValue("mirror_consumer_in_hydra", false)
+
   lazy val hydraPublicUrl = APIUtil.getPropsValue("hydra_public_url")
     .openOrThrowException("If props login_with_hydra is true, hydra_public_url value should not be blank")
     .replaceFirst("/$", "")
 
-  lazy val hydraClientId = APIUtil.getPropsValue("hydra_client_id")
-    .openOrThrowException("If props login_with_hydra is true, hydra_client_id value should not be blank")
+  lazy val hydraAdminUrl = APIUtil.getPropsValue("hydra_admin_url")
+    .openOrThrowException("If props login_with_hydra is true, hydra_admin_url value should not be blank")
+    .replaceFirst("/$", "")
 
-  lazy val hydraClientScope = APIUtil.getPropsValue("hydra_client_scope")
+  lazy val hydraConsents = APIUtil.getPropsValue("hydra_consents")
     .openOrThrowException("If props login_with_hydra is true, hydra_client_scope value should not be blank")
-    .trim.split("""\s*,\s*""")
+    .trim.split("""\s*,\s*""").toList
 
   lazy val hydraAdmin = {
     val hydraAdminUrl = APIUtil.getPropsValue("hydra_admin_url")
