@@ -104,11 +104,12 @@ class ConsentConfirmation extends MdcLoggable {
       val expirationDate = APIUtil.parseObpStandardDate(S.param("expiration_date").orNull).orNull
 
 
-      val currentUser = AuthUser.getCurrentUser.openOrThrowException("User is not login, do confirm consent must be authenticated user.")
+      val currentUser = AuthUser.getCurrentUser.openOrThrowException("User is not logged in, in order to confirm consent the user must be authenticated.")
 
       { // TO create consent
         val accountIdsOpt = if (accountIds.isEmpty) None else Some(accountIds)
-        val consent: Box[Consent] = Consents.consentProvider.vend.saveUKConsent(currentUser, bankId, accountIdsOpt, None, consents, expirationDate, fromDate, toDate)
+        val consent: Box[Consent] =
+          Consents.consentProvider.vend.saveUKConsent(currentUser, bankId, accountIdsOpt, None, consents, expirationDate, fromDate, toDate, Some("MXOpenFinance"), Some("0.0.1"))
       }
 
       { // grant checked consents

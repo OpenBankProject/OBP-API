@@ -1152,8 +1152,14 @@ def restoreSomeSessions(): Unit = {
 
   val loginWithHydra = APIUtil.getPropsAsBoolValue("login_with_hydra", false)
 
+  val createHydraClient = APIUtil.getPropsAsBoolValue("mirror_consumer_in_hydra", false)
+
   lazy val hydraPublicUrl = APIUtil.getPropsValue("hydra_public_url")
     .openOrThrowException("If props login_with_hydra is true, hydra_public_url value should not be blank")
+    .replaceFirst("/$", "")
+
+  lazy val hydraAdminUrl = APIUtil.getPropsValue("hydra_admin_url")
+    .openOrThrowException("If props login_with_hydra is true, hydra_admin_url value should not be blank")
     .replaceFirst("/$", "")
 
   lazy val hydraConsents = APIUtil.getPropsValue("hydra_consents")
