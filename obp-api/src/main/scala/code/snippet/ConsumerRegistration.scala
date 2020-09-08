@@ -141,7 +141,7 @@ class ConsumerRegistration extends MdcLoggable {
 //              .getOrElse("")
         } else {
           "#hydra-client-info-title *" #> "" &
-            "#admin_url *" #> ""
+            "#hydra-client-info *" #> ""
         }
       } &
       "#register-consumer-input" #> "" & {
