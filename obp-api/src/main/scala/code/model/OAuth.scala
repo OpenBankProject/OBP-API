@@ -177,6 +177,9 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
     }
   }
 
+  def deleteConsumer(consumer: Consumer): Boolean =
+    Consumer.delete_!(consumer)
+
   override def updateConsumer(id: Long,
                               key: Option[String],
                               secret: Option[String],
