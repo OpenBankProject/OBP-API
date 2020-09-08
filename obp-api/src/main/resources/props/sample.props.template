@@ -869,4 +869,6 @@ outboundAdapterCallContext.generalContext
 #hydra_consents=ReadAccountsBasic,ReadAccountsDetail,ReadBalances,ReadTransactionsBasic,"ReadTransactionsDebits,ReadTransactionsDetail
 ## check the oauth2.jwk_set.url props, it must contains jwks.json that locate in ${hydra_public_url}/.well-known/jwks.json
 ##oauth2.jwk_set.url=http://localhost:4444/.well-known/jwks.json,https://www.googleapis.com/oauth2/v3/certs
+## whether create hydra client when create consumer, default is false
+#mirror_consumer_in_hydra=true
 # ------------------------------ Hydra oauth2 props end ------------------------------
