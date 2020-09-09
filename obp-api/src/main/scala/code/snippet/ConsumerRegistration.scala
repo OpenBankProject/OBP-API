@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import code.api.DirectLogin
+import code.api.util.ErrorMessages.{CreateConsumerError, CreateOAuth2ConsumerError}
 import code.api.util.{APIUtil, ErrorMessages}
 import code.consumer.Consumers
 import code.model._
@@ -37,8 +38,11 @@ import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, FieldError, Helpers}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+import org.apache.commons.lang3.StringUtils
+import sh.ory.hydra.model.OAuth2Client
 
 import scala.collection.immutable.ListMap
+import scala.jdk.CollectionConverters.seqAsJavaListConverter
 
 
 class ConsumerRegistration extends MdcLoggable {
@@ -114,7 +118,34 @@ class ConsumerRegistration extends MdcLoggable {
       "#directlogin-endpoint a *" #> urlDirectLoginEndpoint &
       "#directlogin-endpoint a [href]" #> urlDirectLoginEndpoint &
       "#post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
-      "#post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl &
+      "#post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl & {
+        if(AuthUser.createHydraClient) {
+          "#hydra-client-info-title *" #>"OAuth2" &
+          "#admin_url *" #> AuthUser.hydraAdminUrl &
+            "#client_id *" #> {consumer.key.get} &
+            "#client_secret *" #> consumer.secret.get &
+            "#redirect_uri *" #> consumer.redirectURL.get &
+            "#client_scope" #> {
+              val lastIndex = AuthUser.hydraConsents.length - 1
+              AuthUser.hydraConsents.zipWithIndex.map { kv =>
+                  ".client-scope-value *" #> {
+                    val (scope, index) = kv
+                    if(index == lastIndex) {
+                      scope
+                    } else {
+                      s"$scope,\\"
+                    }
+                  }
+              }
+            }
+//          & "#base_url *" #> S.getRequestHeader("Referer")
+//              .map(StringUtils.substringBeforeLast(_, S.uri))
+//              .getOrElse("")
+        } else {
+          "#hydra-client-info-title *" #> "" &
+            "#hydra-client-info *" #> ""
+        }
+      } &
       "#register-consumer-input" #> "" & {
         val hasDummyUsers = getWebUiPropsValue("webui_dummy_user_logins", "").nonEmpty
         val isShowDummyUserTokens = getWebUiPropsValue("webui_show_dummy_user_tokens", "false").toBoolean
@@ -201,9 +232,13 @@ class ConsumerRegistration extends MdcLoggable {
       devEmailVar.set(devEmailVar.is)
       redirectionURLVar.set(redirectionURLVar.is)
 
-      if(submitButtonDefenseFlag.isEmpty)
+      val urlRegex = """^(http|https)://(www.)?\S+?(:\d{2,6})?\S*$""".r
+
+      if(submitButtonDefenseFlag.isEmpty) {
         showErrorsForDescription("The 'Register' button random name has been modified !")
-      else{
+      } else if(AuthUser.createHydraClient && (StringUtils.isBlank(redirectionURLVar.is) || urlRegex.findFirstIn(redirectionURLVar.is).isEmpty)) {
+        showErrorsForDescription("The 'Redirect URL' should be a valid url !")
+      } else{
         val consumer = Consumers.consumers.vend.createConsumer(
           Some(Helpers.randomString(40).toLowerCase),
           Some(Helpers.randomString(40).toLowerCase),
@@ -216,6 +251,27 @@ class ConsumerRegistration extends MdcLoggable {
           Some(AuthUser.getCurrentResourceUserUserId))
         logger.debug("consumer: " + consumer)
         consumer match {
+          case Full(x) if AuthUser.createHydraClient =>
+            try {
+              val oAuth2Client = new OAuth2Client()
+              oAuth2Client.setClientId(x.key.get)
+              oAuth2Client.setClientSecret(x.secret.get)
+              val allConsents = "openid" :: "offline" :: AuthUser.hydraConsents
+              oAuth2Client.setScope(allConsents.mkString(" "))
+              oAuth2Client.setGrantTypes(("authorization_code" :: "refresh_token" :: Nil).asJava)
+
+              oAuth2Client.setResponseTypes(("code" :: "id_token" :: Nil).asJava)
+              oAuth2Client.setRedirectUris(List(x.redirectURL.get).asJava)
+              oAuth2Client.setTokenEndpointAuthMethod("client_secret_post")
+              AuthUser.hydraAdmin.createOAuth2Client(oAuth2Client)
+
+              showRegistrationResults(x)
+            } catch {
+              case e: Exception =>
+                logger.error(s"Create hydra client fail", e)
+                Consumers.consumers.vend.deleteConsumer(x)
+                showValidationErrors(CreateOAuth2ConsumerError :: Nil)
+            }
           case Full(x) => showRegistrationResults(x)
           case Failure(msg, _, _) => showValidationErrors(msg.split(";").toList)
           case _ => showUnknownErrors(List(ErrorMessages.UnknownError))

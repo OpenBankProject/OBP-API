@@ -1839,6 +1839,11 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat Min length of BANK_ID should be 5 characters.") {
               bank.id.length > 5
             }
+
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID can not contain space characters") {
+              !bank.id.contains(" ")
+            }
+
             (success, callContext) <- NewStyle.function.createOrUpdateBank(
               bank.id,
               bank.full_name,

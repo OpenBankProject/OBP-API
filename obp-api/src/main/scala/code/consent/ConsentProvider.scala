@@ -41,7 +41,9 @@ trait ConsentProvider {
     permissions: List[String],
     expirationDateTime: Date,
     transactionFromDateTime: Date,
-    transactionToDateTime: Date
+    transactionToDateTime: Date,
+    apiStandard: Option[String],
+    apiVersion: Option[String]
   ): Box[Consent]
 }
 
@@ -72,6 +74,19 @@ trait Consent {
    * ) 
    */
   def jsonWebToken: String
+
+  /**
+   * This field identifies the standard of API of a related consent
+   * For instance: OBP, Berlin-Group, UKOpenBanking etc.
+   * @return API standard
+   */
+  def apiStandard: String
+  /**
+   * This field identifies the version of API of a related consent
+   * * For instance: 4.0.0, 1.3, 2.0.0 etc.
+   * @return API version
+   */
+  def apiVersion: String
 
   //The following recurringIndicator, validUntil, frequencyPerDay, combinedServiceIndicator, lastActionDate are added for BerlinGroup
   /**

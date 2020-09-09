@@ -6,10 +6,10 @@ import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiTag, NewStyle}
-import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
+import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json._
@@ -42,7 +42,7 @@ object APIMethods_BalancesApi extends RestHelper {
        ofReadBalances,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       ApiTag("Balances") :: apiTagMockedData :: Nil
+       ApiTag("Balances") :: apiTagMXOpenFinance :: Nil
      )
 
      lazy val getBalanceByAccountId : OBPEndpoint = {
@@ -50,10 +50,11 @@ object APIMethods_BalancesApi extends RestHelper {
          cc =>
            val viewId = ViewId(Constant.READ_BALANCES_VIEW_ID)
            for {
-             (user, callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(user), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             _ <- NewStyle.function.checkUKConsent(user, callContext)
              (account, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
-             view: View <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, AccountId(accountId)), user, callContext)
-             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, callContext)
+             view: View <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, AccountId(accountId)), Full(user), callContext)
+             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), callContext)
            } yield {
              (createAccountBalanceJSON(moderatedAccount), callContext)
            }
