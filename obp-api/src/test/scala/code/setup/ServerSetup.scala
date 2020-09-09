@@ -81,6 +81,7 @@ trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup
 
   override def beforeEach() = {
     super.beforeEach()
+    wipeTestData()
     //create fake data for the tests
     //fake banks
     val banks = createBanks()

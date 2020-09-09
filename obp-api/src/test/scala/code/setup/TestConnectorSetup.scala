@@ -3,7 +3,7 @@ package code.setup
 import java.util.{Calendar, Date}
 
 import code.accountholders.AccountHolders
-import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_OWNER_VIEW_ID}
+import code.api.Constant.{READ_ACCOUNTS_BASIC_VIEW_ID, READ_ACCOUNTS_DETAIL_VIEW_ID, READ_BALANCES_VIEW_ID, READ_TRANSACTIONS_BASIC_VIEW_ID, READ_TRANSACTIONS_DEBITS_VIEW_ID, READ_TRANSACTIONS_DETAIL_VIEW_ID, SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_OWNER_VIEW_ID}
 import code.api.util.{APIUtil, OBPLimit, OBPOffset}
 import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.model._
@@ -72,6 +72,13 @@ trait TestConnectorSetup {
     val systemOwnerView = getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID)
     val systemAuditorView = getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID)
     val systemAccountantView = getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
+
+    val readAccountBasic = Views.views.vend.getOrCreateSystemView(READ_ACCOUNTS_BASIC_VIEW_ID).isDefined
+    val readAccountDetail = Views.views.vend.getOrCreateSystemView(READ_ACCOUNTS_DETAIL_VIEW_ID).isDefined
+    val readAccountBalance = Views.views.vend.getOrCreateSystemView(READ_BALANCES_VIEW_ID).isDefined
+    val readAccountTransactionBasic = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_BASIC_VIEW_ID).isDefined
+    val readAccountTransactionDebits = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_DEBITS_VIEW_ID).isDefined
+    val readAccountTransactionDetails = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_DETAIL_VIEW_ID).isDefined
     
     accounts.foreach(account => {
       Views.views.vend.grantAccessToSystemView(account.bankId, account.accountId, systemOwnerView, user)
