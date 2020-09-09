@@ -123,6 +123,7 @@ class ConsumerRegistration extends MdcLoggable {
           "#admin_url *" #> AuthUser.hydraAdminUrl &
             "#client_id *" #> {consumer.key.get} &
             "#client_secret *" #> consumer.secret.get &
+            "#redirect_uri *" #> consumer.redirectURL.get &
             "#client_scope" #> {
               val lastIndex = AuthUser.hydraConsents.length - 1
               AuthUser.hydraConsents.zipWithIndex.map { kv =>
