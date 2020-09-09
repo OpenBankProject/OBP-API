@@ -5729,11 +5729,6 @@ trait APIMethods310 {
               isValidCurrencyISOCode(transDetailsJson.value.currency)
             }
 
-            // Prevent default value for transaction request type (at least).
-            _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}") {
-              transDetailsJson.value.currency == fromAccount.currency
-            }
-
             amountOfMoneyJson = AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount)
             chargePolicy = transDetailsJson.charge_policy
             
@@ -5746,6 +5741,7 @@ trait APIMethods310 {
               posted,
               completed,
               amountNumber,
+              transDetailsJson.value.currency,
               transDetailsJson.description,
               transactionType,
               chargePolicy,

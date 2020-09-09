@@ -166,7 +166,7 @@ trait APIMethods400 {
         |* Logo URL
         |* Website""",
       emptyObjectJson,
-      banksJSON,
+      banksJSON400,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
@@ -529,11 +529,6 @@ trait APIMethods400 {
             // Prevent default value for transaction request type (at least).
             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'") {
               isValidCurrencyISOCode(transDetailsJson.value.currency)
-            }
-
-            // Prevent default value for transaction request type (at least).
-            _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}") {
-              transDetailsJson.value.currency == fromAccount.currency
             }
 
             (createdTransactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
@@ -1811,8 +1806,8 @@ trait APIMethods400 {
          |Thus the User can manage the bank they create and assign Roles to other Users.
          |
          |""",
-      bankJSONV220,
-      bankJSONV220,
+      bankJson400,
+      bankJson400,
       List(
         InvalidJsonFormat,
         $UserNotLoggedIn,
@@ -1827,10 +1822,10 @@ trait APIMethods400 {
     lazy val createBank: OBPEndpoint = {
       case "banks" :: Nil JsonPost json -> _ => {
         cc =>
-          val failMsg = s"$InvalidJsonFormat The Json body should be the $BankJSONV220 "
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $BankJson400 "
           for {
             bank <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
-              json.extract[BankJSONV220]
+              json.extract[BankJson400]
             }
             _ <- Helper.booleanToFuture(failMsg = ErrorMessages.InvalidConsumerCredentials) {
               cc.callContext.map(_.consumer.isDefined == true).isDefined
@@ -1848,12 +1843,12 @@ trait APIMethods400 {
               bank.id,
               bank.full_name,
               bank.short_name,
-              bank.logo_url,
-              bank.website_url,
-              bank.swift_bic,
-              bank.national_identifier,
-              bank.bank_routing.scheme,
-              bank.bank_routing.address,
+              bank.logo,
+              bank.website,
+              bank.bank_routings.find(_.scheme == "BIC").map(_.address).getOrElse(""),
+              "",
+              bank.bank_routings.filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
+              bank.bank_routings.filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
               cc.callContext
               )
             entitlements <- NewStyle.function.getEntitlementsByUserId(cc.userId, callContext)
@@ -1866,7 +1861,7 @@ trait APIMethods400 {
                 Future(Entitlement.entitlement.vend.addEntitlement(bank.id, cc.userId, CanCreateEntitlementAtOneBank.toString()))
             }
           } yield {
-            (JSONFactory220.createBankJSON(success), HttpCode.`201`(callContext))
+            (JSONFactory400.createBankJSON400(success), HttpCode.`201`(callContext))
           }
       }
     }
