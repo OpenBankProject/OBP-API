@@ -39,7 +39,7 @@ object APIMethods_TransactionsApi extends RestHelper {
        s"""${mockedDataText(false)}
             Get Transactions
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Data": {
     "Transaction": [

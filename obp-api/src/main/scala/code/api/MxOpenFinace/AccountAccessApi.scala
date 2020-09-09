@@ -2,7 +2,6 @@ package code.api.MxOpenFinace
 
 import code.api.Constant
 import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_0_0_1.ConsentPostBodyMXOFV001
-import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.{ApiTag, ConsentJWT, JwtUtil, NewStyle}
 import code.api.util.ApiTag._
@@ -46,16 +45,16 @@ object APIMethods_AccountAccessApi extends RestHelper {
             """,
        json.parse("""{
               "Data" : {
-                "TransactionToDateTime" : "2000-01-23T04:56:07.000+00:00",
-                "ExpirationDateTime" : "2000-01-23T04:56:07.000+00:00",
+                "TransactionToDateTime" : "2000-01-23T06:44:05.618Z",
+                "ExpirationDateTime" : "2000-01-23T06:44:05.618Z",
                 "Permissions" : ["ReadAccountsBasic", "ReadAccountsDetail", "ReadBalances", "ReadTransactionsBasic", "ReadTransactionsDebits", "ReadTransactionsDetail"],
-                "TransactionFromDateTime" : "2000-01-23T04:56:07.000+00:00"
+                "TransactionFromDateTime" : "2000-01-23T06:44:05.618Z"
               }
 }"""),
        json.parse("""{
               "Meta" : {
-                "LastAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-                "FirstAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
+                "LastAvailableDateTime" : "2000-01-23T06:44:05.618Z",
+                "FirstAvailableDateTime" : "2000-01-23T06:44:05.618Z",
                 "TotalPages" : 0
               },
               "Links" : {
@@ -63,13 +62,13 @@ object APIMethods_AccountAccessApi extends RestHelper {
               },
               "Data" : {
                 "Status" : "Authorised",
-                "StatusUpdateDateTime" : "2000-01-23T04:56:07.000+00:00",
-                "CreationDateTime" : "2000-01-23T04:56:07.000+00:00",
-                "TransactionToDateTime" : "2000-01-23T04:56:07.000+00:00",
-                "ExpirationDateTime" : "2000-01-23T04:56:07.000+00:00",
+                "StatusUpdateDateTime" : "2000-01-23T06:44:05.618Z",
+                "CreationDateTime" : "2000-01-23T06:44:05.618Z",
+                "TransactionToDateTime" : "2000-01-23T06:44:05.618Z",
+                "ExpirationDateTime" : "2000-01-23T06:44:05.618Z",
                 "Permissions" : ["ReadAccountsBasic", "ReadAccountsDetail", "ReadBalances", "ReadTransactionsBasic", "ReadTransactionsDebits", "ReadTransactionsDetail"],
                 "ConsentId" : "ConsentId",
-                "TransactionFromDateTime" : "2000-01-23T04:56:07.000+00:00"
+                "TransactionFromDateTime" : "2000-01-23T06:44:05.618Z"
               }
         }"""),
        List(UserNotLoggedIn, UnknownError),
@@ -102,8 +101,8 @@ object APIMethods_AccountAccessApi extends RestHelper {
            } yield {
             (json.parse(s"""{
         "Meta" : {
-          "LastAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-          "FirstAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
+          "LastAvailableDateTime" : "2000-01-23T06:44:05.618Z",
+          "FirstAvailableDateTime" : "2000-01-23T06:44:05.618Z",
           "TotalPages" : 0
         },
         "Links" : {
@@ -134,8 +133,8 @@ object APIMethods_AccountAccessApi extends RestHelper {
     s"""${mockedDataText(false)}
             Delete Account Access Consents
             """,
-    json.parse(""""""),
-       json.parse(""""""),
+    emptyObjectJson,
+    emptyObjectJson,
     List(UserNotLoggedIn, UnknownError),
     Catalogs(notCore, notPSD2, notOBWG),
     ApiTag("Account Access") :: apiTagMockedData :: Nil
@@ -169,12 +168,12 @@ object APIMethods_AccountAccessApi extends RestHelper {
     s"""${mockedDataText(false)}
             Get Account Access Consents
             """,
-    json.parse(""""""),
+    emptyObjectJson,
     json.parse(
       """{
           "Meta" : {
-            "LastAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-            "FirstAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
+            "LastAvailableDateTime" : "2000-01-23T06:44:05.618Z",
+            "FirstAvailableDateTime" : "2000-01-23T06:44:05.618Z",
             "TotalPages" : 0
           },
           "Links" : {
@@ -182,13 +181,13 @@ object APIMethods_AccountAccessApi extends RestHelper {
           },
           "Data" : {
             "Status" : "AUTHORISED",
-            "StatusUpdateDateTime" : "2000-01-23T04:56:07.000+00:00",
-            "CreationDateTime" : "2000-01-23T04:56:07.000+00:00",
-            "TransactionToDateTime" : "2000-01-23T04:56:07.000+00:00",
-            "ExpirationDateTime" : "2000-01-23T04:56:07.000+00:00",
+            "StatusUpdateDateTime" : "2000-01-23T06:44:05.618Z",
+            "CreationDateTime" : "2000-01-23T06:44:05.618Z",
+            "TransactionToDateTime" : "2000-01-23T06:44:05.618Z",
+            "ExpirationDateTime" : "2000-01-23T06:44:05.618Z",
             "Permissions" : ["ReadAccountsBasic", "ReadAccountsDetail", "ReadBalances", "ReadTransactionsBasic", "ReadTransactionsDebits", "ReadTransactionsDetail"],
             "ConsentId" : "ConsentId",
-            "TransactionFromDateTime" : "2000-01-23T04:56:07.000+00:00"
+            "TransactionFromDateTime" : "2000-01-23T06:44:05.618Z"
           }
         }"""),
     List(UserNotLoggedIn, UnknownError),
@@ -210,8 +209,8 @@ object APIMethods_AccountAccessApi extends RestHelper {
              } yield {
              (json.parse(s"""{
                 "Meta" : {
-                  "LastAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
-                  "FirstAvailableDateTime" : "2000-01-23T04:56:07.000+00:00",
+                  "LastAvailableDateTime" : "2000-01-23T06:44:05.618Z",
+                  "FirstAvailableDateTime" : "2000-01-23T06:44:05.618Z",
                   "TotalPages" : 0
                 },
                 "Links" : {

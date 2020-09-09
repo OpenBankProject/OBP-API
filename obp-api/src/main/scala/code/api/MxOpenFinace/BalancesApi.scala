@@ -38,7 +38,7 @@ object APIMethods_BalancesApi extends RestHelper {
        s"""${mockedDataText(false)}
             Get Balance for an Account
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        ofReadBalances,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 

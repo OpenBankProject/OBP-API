@@ -138,7 +138,7 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
     Amount = AmountOfMoneyJsonV121("currency", "1000"),
     CreditDebitIndicator = "Credit",
     Type = "Available",
-    DateTime = null,
+    DateTime = new Date(),
     CreditLine = List(CreditLineJsonMXOFV001(
       Included = true,
       Amount = AmountOfMoneyJsonV121("currency", "1000"),
