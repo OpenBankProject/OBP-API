@@ -226,6 +226,8 @@ object ErrorMessages {
   val NoViewPermission = "OBP-30022: The current view does not have the permission: "
   val UpdateConsumerError = "OBP-30023: Cannot update Consumer "
   val CreateConsumerError = "OBP-30024: Could not create Consumer "
+  val CreateOAuth2ConsumerError = "OBP-30077: Could not create OAuth2 Consumer."
+
   val CreateUserCustomerLinksError = "OBP-30025: Could not create user_customer_links "
   val ConsumerKeyAlreadyExists = "OBP-30026: Consumer Key already exists. Please specify a different value."
   val NoExistingAccountHolders = "OBP-30027: Account Holders not found. The BANK_ID / ACCOUNT_ID specified for account holder does not exist on this server"

@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import code.api.DirectLogin
-import code.api.util.ErrorMessages.CreateConsumerError
+import code.api.util.ErrorMessages.{CreateConsumerError, CreateOAuth2ConsumerError}
 import code.api.util.{APIUtil, ErrorMessages}
 import code.consumer.Consumers
 import code.model._
@@ -38,6 +38,7 @@ import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, FieldError, Helpers}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+import org.apache.commons.lang3.StringUtils
 import sh.ory.hydra.model.OAuth2Client
 
 import scala.collection.immutable.ListMap
@@ -231,9 +232,13 @@ class ConsumerRegistration extends MdcLoggable {
       devEmailVar.set(devEmailVar.is)
       redirectionURLVar.set(redirectionURLVar.is)
 
-      if(submitButtonDefenseFlag.isEmpty)
+      val urlRegex = """^(http|https)://(www.)?\S+?(:\d{2,6})?\S*$""".r
+
+      if(submitButtonDefenseFlag.isEmpty) {
         showErrorsForDescription("The 'Register' button random name has been modified !")
-      else{
+      } else if(AuthUser.createHydraClient && (StringUtils.isBlank(redirectionURLVar.is) || urlRegex.findFirstIn(redirectionURLVar.is).isEmpty)) {
+        showErrorsForDescription("The 'Redirect URL' should be a valid url !")
+      } else{
         val consumer = Consumers.consumers.vend.createConsumer(
           Some(Helpers.randomString(40).toLowerCase),
           Some(Helpers.randomString(40).toLowerCase),
@@ -265,7 +270,7 @@ class ConsumerRegistration extends MdcLoggable {
               case e: Exception =>
                 logger.error(s"Create hydra client fail", e)
                 Consumers.consumers.vend.deleteConsumer(x)
-                showValidationErrors(s"$CreateConsumerError, fail when create hydra client." :: Nil)
+                showValidationErrors(CreateOAuth2ConsumerError :: Nil)
             }
           case Full(x) => showRegistrationResults(x)
           case Failure(msg, _, _) => showValidationErrors(msg.split(";").toList)
