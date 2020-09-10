@@ -512,6 +512,9 @@ object ApiRole {
 
   case class CanReadResourceDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadResourceDoc = CanReadResourceDoc()
+  
+  case class CanReadGlossary(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canReadGlossary = CanReadGlossary()
 
   case class CanCreateCustomerAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCustomerAttributeDefinitionAtOneBank = CanCreateCustomerAttributeDefinitionAtOneBank()
