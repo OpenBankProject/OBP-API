@@ -242,6 +242,9 @@ object ApiRole {
   case class CanCreateCounterpartyAtBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateCounterpartyAtBank = CanCreateCounterpartyAtBank()
 
+  case class CanGetCounterpartyAtBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetCounterpartyAtBank = CanGetCounterpartyAtBank()
+  
   case class CanCreateProduct(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateProduct = CanCreateProduct()
 

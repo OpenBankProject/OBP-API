@@ -4056,8 +4056,8 @@ trait APIMethods400 {
       "createCounterpartyForAnyAccount",
       "POST",
       "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
-      "Create Counterparty (Explicit) for any account",
-      s"""Create Counterparty (Explicit) for any Account.
+      "Create Counterparty for any account (Explicit)",
+      s"""Create Counterparty for any Account. (Explicit)
          |
          |In OBP, there are two types of Counterparty.
          |
@@ -4215,6 +4215,56 @@ trait APIMethods400 {
 
           } yield {
             (JSONFactory220.createCounterpartyWithMetadataJSON(counterparty,counterpartyMetadata), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCounterpartyByNameForAnyAccount,
+      implementedInApiVersion,
+      nameOf(getCounterpartyByNameForAnyAccount),
+      "GET",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_NAME",
+      "Get Counterparty by name for any account (Explicit) ",
+      s"""
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      emptyObjectJson,
+      counterpartyWithMetadataJson,
+      List(
+        UserNotLoggedIn,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        BankNotFound,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        ViewNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCounterparty, apiTagAccount),
+      Some(List(canGetCounterpartyAtBank)))
+
+    lazy val getCounterpartyByNameForAnyAccount: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: counterpartyName :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+
+            (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(counterpartyName, bankId.value, accountId.value, viewId.value, callContext)
+
+            counterparty <- NewStyle.function.tryons(CounterpartyNotFound.replace(
+              "The BANK_ID / ACCOUNT_ID specified does not exist on this server.",
+              s"COUNTERPARTY_NAME(${counterpartyName}) for the BANK_ID(${bankId.value}) and ACCOUNT_ID(${accountId.value}) and VIEW_ID($viewId)"), 400,  cc.callContext) {
+              counterparty.head
+            }
+            
+            (counterpartyMetadata, callContext) <- NewStyle.function.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, counterparty.name, callContext)
+
+          } yield {
+            (JSONFactory220.createCounterpartyWithMetadataJSON(counterparty,counterpartyMetadata), HttpCode.`200`(callContext))
           }
       }
     }
