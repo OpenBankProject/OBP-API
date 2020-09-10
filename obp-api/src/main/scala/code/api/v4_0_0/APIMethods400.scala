@@ -166,7 +166,7 @@ trait APIMethods400 {
         |* Logo URL
         |* Website""",
       emptyObjectJson,
-      banksJSON,
+      banksJSON400,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
@@ -179,6 +179,161 @@ trait APIMethods400 {
             (banks, callContext) <- NewStyle.function.getBanks(cc.callContext)
           } yield {
             (JSONFactory400.createBanksJson(banks), HttpCode.`200`(callContext))
+          }
+
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createSettlementAccount,
+      implementedInApiVersion,
+      nameOf(createSettlementAccount),
+      "POST",
+      "/banks/BANK_ID/settlement-accounts",
+      "Create Settlement Account",
+      s"""Create a new settlement account at a bank.
+         |
+         |The created settlement account id will be the concatenation of the payment system and the account currency.
+         |For examples: SEPA_SETTLEMENT_ACCOUNT_EUR, CARD_SETTLEMENT_ACCOUNT_USD
+         |
+         |If the POST body USER_ID *is* specified, the logged in user must have the Role CanCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
+         |
+         |If the POST body USER_ID is *not* specified, the account will be owned by the logged in User.
+         |
+         |Note: The Amount MUST be zero.
+         |""",
+      settlementAccountRequestJson,
+      settlementAccountResponseJson,
+      List(
+        InvalidJsonFormat,
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        BankNotFound,
+        InvalidAccountInitialBalance,
+        InitialBalanceMustBeZero,
+        InvalidISOCurrencyCode,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      List(apiTagBank),
+      Some(List(canCreateSettlementAccountAtOneBank))
+    )
+
+    lazy val createSettlementAccount: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "settlement-accounts" :: Nil JsonPost json -> _ => {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the ${prettyRender(Extraction.decompose(settlementAccountRequestJson))}"
+          for {
+            createAccountJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[SettlementAccountRequestJson]
+            }
+            loggedInUserId = cc.userId
+            userIdAccountOwner = if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id else loggedInUserId
+            (postedOrLoggedInUser,callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, cc.callContext)
+            _ <- Helper.booleanToFuture(s"$UserHasMissingRoles $canCreateSettlementAccountAtOneBank") {
+              hasEntitlement(bankId.value, loggedInUserId, canCreateSettlementAccountAtOneBank) || userIdAccountOwner == loggedInUserId
+            }
+            initialBalanceAsString = createAccountJson.balance.amount
+            accountLabel = createAccountJson.label
+            initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
+              BigDecimal(initialBalanceAsString)
+            }
+            _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero){0 == initialBalanceAsNumber}
+            currency = createAccountJson.balance.currency
+            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(currency)}
+
+            (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme") {
+              createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
+            }
+            alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
+              NewStyle.function.getAccountRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
+            ))
+            alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
+              case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
+            }
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})") {
+              alreadyExistingAccountRouting.isEmpty
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme") {
+              createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidPaymentSystemName Space characters are not allowed.") {
+              !createAccountJson.payment_system.contains(" ")
+            }
+            accountId = AccountId(createAccountJson.payment_system.toUpperCase + "_SETTLEMENT_ACCOUNT_" + currency.toUpperCase)
+            (bankAccount,callContext) <- NewStyle.function.createBankAccount(
+              bankId,
+              accountId,
+              "SETTLEMENT",
+              accountLabel,
+              currency,
+              initialBalanceAsNumber,
+              postedOrLoggedInUser.name,
+              createAccountJson.branch_id,
+              createAccountJson.account_routings.map(r => AccountRouting(r.scheme, r.address)),
+              callContext
+            )
+            accountId = bankAccount.accountId
+            (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, ProductCode("SETTLEMENT"), callContext)
+            (accountAttributes, callContext) <- NewStyle.function.createAccountAttributes(
+              bankId,
+              accountId,
+              ProductCode("SETTLEMENT"),
+              productAttributes,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            //1 Create or Update the `Owner` for the new account
+            //2 Add permission to the user
+            //3 Set the user as the account holder
+            BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
+            (JSONFactory400.createSettlementAccountJson(userIdAccountOwner, bankAccount, accountAttributes), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getSettlementAccounts,
+      implementedInApiVersion,
+      nameOf(getSettlementAccounts),
+      "GET",
+      "/banks/BANK_ID/settlement-accounts",
+      "Get Settlement accounts at Bank",
+      """Get settlement accounts on this API instance
+        |Returns a list of settlement accounts at this Bank
+        |
+        |Note: a settlement account is considered as a bank account.
+        |So you can update it and add account attributes to it using the regular account endpoints
+        |""",
+      emptyObjectJson,
+      settlementAccountsJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        BankNotFound,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagBank),
+      Some(List(canGetSettlementAccountAtOneBank))
+    )
+
+    lazy val getSettlementAccounts: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "settlement-accounts" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            _ <- Helper.booleanToFuture(s"$UserHasMissingRoles $canGetSettlementAccountAtOneBank") {
+              hasEntitlement(bankId.value, cc.userId, canGetSettlementAccountAtOneBank)
+            }
+            (accounts, callContext) <- NewStyle.function.getBankSettlementAccounts(bankId, cc.callContext)
+            settlementAccounts <- Future.sequence(accounts.map(account => {
+              NewStyle.function.getAccountAttributesByAccount(bankId, account.accountId, cc.callContext).map(accountAttributes =>
+                JSONFactory400.getSettlementAccountJson(account, accountAttributes._1)
+              )
+            }))
+          } yield {
+            (SettlementAccountsJson(settlementAccounts), HttpCode.`200`(callContext))
           }
 
       }
@@ -529,11 +684,6 @@ trait APIMethods400 {
             // Prevent default value for transaction request type (at least).
             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'") {
               isValidCurrencyISOCode(transDetailsJson.value.currency)
-            }
-
-            // Prevent default value for transaction request type (at least).
-            _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}") {
-              transDetailsJson.value.currency == fromAccount.currency
             }
 
             (createdTransactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
@@ -1811,8 +1961,8 @@ trait APIMethods400 {
          |Thus the User can manage the bank they create and assign Roles to other Users.
          |
          |""",
-      bankJSONV220,
-      bankJSONV220,
+      bankJson400,
+      bankJson400,
       List(
         InvalidJsonFormat,
         $UserNotLoggedIn,
@@ -1827,10 +1977,10 @@ trait APIMethods400 {
     lazy val createBank: OBPEndpoint = {
       case "banks" :: Nil JsonPost json -> _ => {
         cc =>
-          val failMsg = s"$InvalidJsonFormat The Json body should be the $BankJSONV220 "
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $BankJson400 "
           for {
             bank <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
-              json.extract[BankJSONV220]
+              json.extract[BankJson400]
             }
             _ <- Helper.booleanToFuture(failMsg = ErrorMessages.InvalidConsumerCredentials) {
               cc.callContext.map(_.consumer.isDefined == true).isDefined
@@ -1848,12 +1998,12 @@ trait APIMethods400 {
               bank.id,
               bank.full_name,
               bank.short_name,
-              bank.logo_url,
-              bank.website_url,
-              bank.swift_bic,
-              bank.national_identifier,
-              bank.bank_routing.scheme,
-              bank.bank_routing.address,
+              bank.logo,
+              bank.website,
+              bank.bank_routings.find(_.scheme == "BIC").map(_.address).getOrElse(""),
+              "",
+              bank.bank_routings.filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
+              bank.bank_routings.filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
               cc.callContext
               )
             entitlements <- NewStyle.function.getEntitlementsByUserId(cc.userId, callContext)
@@ -1866,7 +2016,7 @@ trait APIMethods400 {
                 Future(Entitlement.entitlement.vend.addEntitlement(bank.id, cc.userId, CanCreateEntitlementAtOneBank.toString()))
             }
           } yield {
-            (JSONFactory220.createBankJSON(success), HttpCode.`201`(callContext))
+            (JSONFactory400.createBankJSON400(success), HttpCode.`201`(callContext))
           }
       }
     }
@@ -4061,8 +4211,8 @@ trait APIMethods400 {
       "createCounterpartyForAnyAccount",
       "POST",
       "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
-      "Create Counterparty (Explicit) for any account",
-      s"""Create Counterparty (Explicit) for any Account.
+      "Create Counterparty for any account (Explicit)",
+      s"""Create Counterparty for any Account. (Explicit)
          |
          |In OBP, there are two types of Counterparty.
          |
@@ -4220,6 +4370,56 @@ trait APIMethods400 {
 
           } yield {
             (JSONFactory220.createCounterpartyWithMetadataJSON(counterparty,counterpartyMetadata), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCounterpartyByNameForAnyAccount,
+      implementedInApiVersion,
+      nameOf(getCounterpartyByNameForAnyAccount),
+      "GET",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_NAME",
+      "Get Counterparty by name for any account (Explicit) ",
+      s"""
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      emptyObjectJson,
+      counterpartyWithMetadataJson,
+      List(
+        UserNotLoggedIn,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        BankNotFound,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        ViewNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCounterparty, apiTagAccount),
+      Some(List(canGetCounterpartyAtBank)))
+
+    lazy val getCounterpartyByNameForAnyAccount: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: counterpartyName :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+
+            (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(counterpartyName, bankId.value, accountId.value, viewId.value, callContext)
+
+            counterparty <- NewStyle.function.tryons(CounterpartyNotFound.replace(
+              "The BANK_ID / ACCOUNT_ID specified does not exist on this server.",
+              s"COUNTERPARTY_NAME(${counterpartyName}) for the BANK_ID(${bankId.value}) and ACCOUNT_ID(${accountId.value}) and VIEW_ID($viewId)"), 400,  cc.callContext) {
+              counterparty.head
+            }
+            
+            (counterpartyMetadata, callContext) <- NewStyle.function.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, counterparty.name, callContext)
+
+          } yield {
+            (JSONFactory220.createCounterpartyWithMetadataJSON(counterparty,counterpartyMetadata), HttpCode.`200`(callContext))
           }
       }
     }

@@ -486,6 +486,8 @@ trait Connector extends MdcLoggable {
   def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]]=
     Future{Failure(setUnimplementedError)}
 
+  def getBankSettlementAccounts(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccount]]] = Future{(Failure(setUnimplementedError), callContext)}
+
   def getBankAccountsHeldLegacy(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[List[AccountHeld]]= Failure(setUnimplementedError)
   def getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : OBPReturnType[Box[List[AccountHeld]]]= Future {(Failure(setUnimplementedError), callContext)}
 
@@ -2211,6 +2213,7 @@ trait Connector extends MdcLoggable {
                             posted: Date,
                             completed: Date,
                             amount: BigDecimal,
+                            currency: String,
                             description: String,
                             transactionRequestType: String,
                             chargePolicy: String,
