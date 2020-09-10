@@ -3,7 +3,7 @@ package code.api.v4_0_0
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanCreateCounterpartyAtBank}
+import code.api.util.ApiRole.{CanCreateCounterpartyAtBank, CanGetCounterpartyAtBank}
 import code.api.util.ErrorMessages
 import code.api.v2_2_0.CounterpartyWithMetadataJson
 import code.api.v4_0_0.OBPAPI4_0_0.{Implementations2_2_0, Implementations4_0_0}
@@ -27,6 +27,7 @@ class CounterpartyTest extends V400ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createCounterpartyForAnyAccount))
   object ApiEndpoint2 extends Tag(nameOf(Implementations2_2_0.getExplictCounterpartyById))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getCounterpartyByNameForAnyAccount))
 
 
   feature(s"$ApiEndpoint1") {
@@ -172,6 +173,87 @@ class CounterpartyTest extends V400ServerSetup {
     }
   }
 
+  feature(s"$ApiEndpoint3") {
+
+    scenario("Successful Case") {
+
+      Given("The user owner access and BankAccount")
+      val bankId = testBankId1
+      val accountId = testAccountId1
+      val viewId =ViewId(SYSTEM_OWNER_VIEW_ID)
+
+
+      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAtBank.toString)
+
+      When("We make the request Create counterparty for an account")
+      val requestPost = (v4_0_0_Request / "management" / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
+      val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
+
+      Then("We should get a 201 and check all the fields")
+      responsePost.code should equal(201)
+      val counterpartyWithMetadataJson = responsePost.body.extract[CounterpartyWithMetadataJson]
+      counterpartyWithMetadataJson.other_account_routing_address should equal(counterpartyPostJSON.other_account_routing_address)
+      counterpartyWithMetadataJson.other_account_secondary_routing_scheme should equal(counterpartyPostJSON.other_account_secondary_routing_scheme)
+
+      val counterpartyName = counterpartyWithMetadataJson.name
+      Then(s"we grant the $CanGetCounterpartyAtBank role")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCounterpartyAtBank.toString)
+      
+      
+      Then(s"we can test the `$ApiEndpoint3`")
+      val requestGet = (v4_0_0_Request /"management" / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" / counterpartyName ).GET <@ (user1)
+      val responseGet = makeGetRequest(requestGet)
+
+      Then("We should get a 200 and check all the fields")
+      responseGet.code should equal(200)
+
+      val counterpartyWithMetadataJsonGet = responseGet.body.extract[CounterpartyWithMetadataJson]
+
+      counterpartyWithMetadataJsonGet.other_account_routing_address should equal(counterpartyPostJSON.other_account_routing_address)
+
+      counterpartyWithMetadataJsonGet.name should equal(counterpartyName)
+    }
+
+    scenario(s"no role $CanGetCounterpartyAtBank") {
+
+      Given("The user owner access and BankAccount")
+      val bankId = testBankId1
+      val accountId = testAccountId1
+      val viewId =ViewId(SYSTEM_OWNER_VIEW_ID)
+
+
+      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAtBank.toString)
+
+      When("We make the request Create counterparty for an account")
+      val requestPost = (v4_0_0_Request / "management" / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
+      val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
+
+      Then("We should get a 201 and check all the fields")
+      responsePost.code should equal(201)
+      val counterpartyWithMetadataJson = responsePost.body.extract[CounterpartyWithMetadataJson]
+      counterpartyWithMetadataJson.other_account_routing_address should equal(counterpartyPostJSON.other_account_routing_address)
+      counterpartyWithMetadataJson.other_account_secondary_routing_scheme should equal(counterpartyPostJSON.other_account_secondary_routing_scheme)
+
+      val counterpartyName = counterpartyWithMetadataJson.name
+
+
+      Then(s"we can test the `$ApiEndpoint3`")
+      val requestGet = (v4_0_0_Request /"management" / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" / counterpartyName ).GET <@ (user1)
+      val responseGet = makeGetRequest(requestGet)
+
+      Then("We should get a 403 and check all the fields")
+      responseGet.code should equal(403)
+
+      responseGet.body.toString contains(s"${ErrorMessages.UserHasMissingRoles}")
+
+
+    }
+
+
+
+  }
 
   
 }
