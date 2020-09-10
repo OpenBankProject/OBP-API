@@ -184,6 +184,161 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      createSettlementAccount,
+      implementedInApiVersion,
+      nameOf(createSettlementAccount),
+      "POST",
+      "/banks/BANK_ID/settlement-accounts",
+      "Create Settlement Account",
+      s"""Create a new settlement account at a bank.
+         |
+         |The created settlement account id will be the concatenation of the payment system and the account currency.
+         |For examples: SEPA_SETTLEMENT_ACCOUNT_EUR, CARD_SETTLEMENT_ACCOUNT_USD
+         |
+         |If the POST body USER_ID *is* specified, the logged in user must have the Role CanCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
+         |
+         |If the POST body USER_ID is *not* specified, the account will be owned by the logged in User.
+         |
+         |Note: The Amount MUST be zero.
+         |""",
+      settlementAccountRequestJson,
+      settlementAccountResponseJson,
+      List(
+        InvalidJsonFormat,
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        BankNotFound,
+        InvalidAccountInitialBalance,
+        InitialBalanceMustBeZero,
+        InvalidISOCurrencyCode,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      List(apiTagBank),
+      Some(List(canCreateSettlementAccountAtOneBank))
+    )
+
+    lazy val createSettlementAccount: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "settlement-accounts" :: Nil JsonPost json -> _ => {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the ${prettyRender(Extraction.decompose(settlementAccountRequestJson))}"
+          for {
+            createAccountJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[SettlementAccountRequestJson]
+            }
+            loggedInUserId = cc.userId
+            userIdAccountOwner = if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id else loggedInUserId
+            (postedOrLoggedInUser,callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, cc.callContext)
+            _ <- Helper.booleanToFuture(s"$UserHasMissingRoles $canCreateSettlementAccountAtOneBank") {
+              hasEntitlement(bankId.value, loggedInUserId, canCreateSettlementAccountAtOneBank) || userIdAccountOwner == loggedInUserId
+            }
+            initialBalanceAsString = createAccountJson.balance.amount
+            accountLabel = createAccountJson.label
+            initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
+              BigDecimal(initialBalanceAsString)
+            }
+            _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero){0 == initialBalanceAsNumber}
+            currency = createAccountJson.balance.currency
+            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(currency)}
+
+            (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme") {
+              createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
+            }
+            alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
+              NewStyle.function.getAccountRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
+            ))
+            alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
+              case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
+            }
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})") {
+              alreadyExistingAccountRouting.isEmpty
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme") {
+              createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidPaymentSystemName Space characters are not allowed.") {
+              !createAccountJson.payment_system.contains(" ")
+            }
+            accountId = AccountId(createAccountJson.payment_system.toUpperCase + "_SETTLEMENT_ACCOUNT_" + currency.toUpperCase)
+            (bankAccount,callContext) <- NewStyle.function.createBankAccount(
+              bankId,
+              accountId,
+              "SETTLEMENT",
+              accountLabel,
+              currency,
+              initialBalanceAsNumber,
+              postedOrLoggedInUser.name,
+              createAccountJson.branch_id,
+              createAccountJson.account_routings.map(r => AccountRouting(r.scheme, r.address)),
+              callContext
+            )
+            accountId = bankAccount.accountId
+            (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, ProductCode("SETTLEMENT"), callContext)
+            (accountAttributes, callContext) <- NewStyle.function.createAccountAttributes(
+              bankId,
+              accountId,
+              ProductCode("SETTLEMENT"),
+              productAttributes,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            //1 Create or Update the `Owner` for the new account
+            //2 Add permission to the user
+            //3 Set the user as the account holder
+            BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
+            (JSONFactory400.createSettlementAccountJson(userIdAccountOwner, bankAccount, accountAttributes), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getSettlementAccounts,
+      implementedInApiVersion,
+      nameOf(getSettlementAccounts),
+      "GET",
+      "/banks/BANK_ID/settlement-accounts",
+      "Get Settlement accounts at Bank",
+      """Get settlement accounts on this API instance
+        |Returns a list of settlement accounts at this Bank
+        |
+        |Note: a settlement account is considered as a bank account.
+        |So you can update it and add account attributes to it using the regular account endpoints
+        |""",
+      emptyObjectJson,
+      settlementAccountsJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        BankNotFound,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagBank),
+      Some(List(canGetSettlementAccountAtOneBank))
+    )
+
+    lazy val getSettlementAccounts: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "settlement-accounts" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            _ <- Helper.booleanToFuture(s"$UserHasMissingRoles $canGetSettlementAccountAtOneBank") {
+              hasEntitlement(bankId.value, cc.userId, canGetSettlementAccountAtOneBank)
+            }
+            (accounts, callContext) <- NewStyle.function.getBankSettlementAccounts(bankId, cc.callContext)
+            settlementAccounts <- Future.sequence(accounts.map(account => {
+              NewStyle.function.getAccountAttributesByAccount(bankId, account.accountId, cc.callContext).map(accountAttributes =>
+                JSONFactory400.getSettlementAccountJson(account, accountAttributes._1)
+              )
+            }))
+          } yield {
+            (SettlementAccountsJson(settlementAccounts), HttpCode.`200`(callContext))
+          }
+
+      }
+    }
+
     val exchangeRates =
       APIUtil.getPropsValue("webui_api_explorer_url", "") +
         "/more?version=OBPv4.0.0&list-all-banks=false&core=&psd2=&obwg=#OBPv2_2_0-getCurrentFxRate"
