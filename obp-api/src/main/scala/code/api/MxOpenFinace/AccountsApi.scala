@@ -40,7 +40,7 @@ object APIMethods_AccountsApi extends RestHelper {
        s"""${mockedDataText(false)}
             Get Account by AccountId
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        ofReadAccountBasic,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
@@ -79,7 +79,7 @@ object APIMethods_AccountsApi extends RestHelper {
        s"""${mockedDataText(false)}
             Get Accounts
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        ofReadAccountBasic,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 

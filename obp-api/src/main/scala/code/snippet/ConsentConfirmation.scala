@@ -26,9 +26,13 @@
  */
 package code.snippet
 
+import java.util.Date
+
 import code.api.MxOpenFinace.MxOfUtil
+import code.api.util.APIUtil.OAuth.Consumer
 import code.api.util.{APIUtil, NewStyle}
 import code.consent.{Consent, Consents}
+import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
 import code.views.Views
@@ -36,13 +40,13 @@ import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
-import sh.ory.hydra.model.{AcceptConsentRequest, ConsentRequestSession, RejectRequest}
+import sh.ory.hydra.model.{AcceptConsentRequest, CompletedRequest, ConsentRequestSession, RejectRequest}
 
 import scala.jdk.CollectionConverters.{asScalaBufferConverter, mapAsJavaMapConverter, seqAsJavaListConverter}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountId, BankId, ViewId, ViewIdBankIdAccountId}
 import com.openbankproject.commons.util.Functions.Implicits._
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Full}
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{Duration, SECONDS}
@@ -94,22 +98,31 @@ class ConsentConfirmation extends MdcLoggable {
 
     val consentResponse = AuthUser.hydraAdmin.getConsentRequest(consentChallenge)
 
+    val DateTimeRegex = """(\d+-\d{2}-\d{2}).*(\d{2}:\d{2}:\d{2}).*""".r // style example: 2020-09-09T11:55:22Z
+    def getDateTime(paramName: String): Date = S.param(paramName) match {
+      case Full(DateTimeRegex(date, time)) => APIUtil.DateWithSecondsFormat.parse(s"${date}T${time}Z")
+      case Full(v) => throw new IllegalArgumentException(s"request parameter $paramName is not correct date time format: $v")
+      case _ => throw new IllegalArgumentException(s"request parameter $paramName should not be empty.")
+    }
+
     if (S.post_?) {
       // get values of submit form
       val consents = S.params("consent_scope")
       val bankId = S.param("bank_id")
       val accountIds = S.params("account_id")
-      val fromDate = APIUtil.parseObpStandardDate(S.param("from_date").orNull).orNull
-      val toDate = APIUtil.parseObpStandardDate(S.param("to_date").orNull).orNull
-      val expirationDate = APIUtil.parseObpStandardDate(S.param("expiration_date").orNull).orNull
-
+      val fromDate = getDateTime("from_date")
+      val toDate = getDateTime("to_date")
+      val expirationDate = getDateTime("expiration_date")
 
       val currentUser = AuthUser.getCurrentUser.openOrThrowException("User is not logged in, in order to confirm consent the user must be authenticated.")
 
       { // TO create consent
         val accountIdsOpt = if (accountIds.isEmpty) None else Some(accountIds)
-        val consent: Box[Consent] =
-          Consents.consentProvider.vend.saveUKConsent(currentUser, bankId, accountIdsOpt, None, consents, expirationDate, fromDate, toDate, Some("MXOpenFinance"), Some("0.0.1"))
+        val consent: Box[Consent] = {
+          val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(consentResponse.getClient.getClientId)
+          val consumerId = consumer.map(_.consumerId.get)
+          Consents.consentProvider.vend.saveUKConsent(currentUser, bankId, accountIdsOpt, consumerId, consents, expirationDate, fromDate, toDate, Some("MXOpenFinance"), Some("0.0.1"))
+        }
       }
 
       { // grant checked consents
