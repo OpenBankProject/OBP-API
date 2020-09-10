@@ -1613,7 +1613,7 @@ object Glossary {
         |
         |
         |
-        |<img src="https://static.openbankproject.com/images/sandbox/oauth2-authorize.png"></img>
+        |<img src="https://static.openbankproject.com/images/OBP-OAuth2-flow.png" width="885"></img>
         |
         |
         |
