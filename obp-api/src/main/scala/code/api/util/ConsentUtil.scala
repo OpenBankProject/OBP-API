@@ -521,8 +521,20 @@ object Consent {
 
 
   def checkUKConsent(user: User, calContext: Option[CallContext]): Box[Boolean] = {
+    val consumerIdOfLoggedInUser = calContext.flatMap(_.consumer.map(_.consumerId.get)).getOrElse("None")
+    def getConsumerIdFromJwt(c: MappedConsent): String = {
+      implicit val dateFormats = CustomJsonFormats.formats
+      val consent: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(c.jsonWebToken)
+        .map(parse(_).extract[ConsentJWT])
+      consent.map(_.aud).getOrElse("Empty")
+    }
     Consents.consentProvider.vend.getConsentsByUser(user.userId)
       .filter(_.mApiStandard == "MXOpenFinance")
+      // Filter by Consumer
+      .filter(getConsumerIdFromJwt(_) == consumerIdOfLoggedInUser)
+      // Filter by Status
+      .filter(_.status == ConsentStatus.AUTHORISED.toString)
+      // Optional filter by BANK_ID
       .sortWith(_.creationDateTime.getTime > _.creationDateTime.getTime).headOption match {
       case Some(c) if c.mStatus == ConsentStatus.AUTHORISED.toString =>
         System.currentTimeMillis match {
