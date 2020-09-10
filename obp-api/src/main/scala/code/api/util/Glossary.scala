@@ -1604,7 +1604,20 @@ object Glossary {
         |
         |For further information please see [here](https://www.ory.sh/hydra/docs/concepts/login#initiating-the-oauth-20--openid-connect-flow)
         |
+        |In this sandbox, this will cause the following flow:
         |
+        |1) The User is authorised using OAuth2 / OpenID Connect against the banks authentication system
+        |2) The User grants consent to the App on the bank's Consent page.
+        |3) The User grants access to one or more accounts that they own on the bank's Account Selection page
+        |4) The User is redirected back to the App where they can now see the Accounts they have selected.
+        |
+        |
+        |
+        |<img src="https://static.openbankproject.com/images/sandbox/oauth2-authorize.png"></img>
+        |
+        |
+        |
+        |An example App using this flow can be found [here](https://github.com/OpenBankProject/OBP-Hydra-OAuth2)
         |
         |
         |
