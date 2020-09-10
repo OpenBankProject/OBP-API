@@ -7,7 +7,7 @@ import code.accountholders.AccountHolders
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{bankJSON, banksJSON, branchJsonV300, _}
-import code.api.util.APIUtil._
+import code.api.util.APIUtil.{getGlossaryItems, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -2069,7 +2069,7 @@ trait APIMethods300 {
     }
 
 
-
+    val glossaryDocsRequireRole = APIUtil.getPropsAsBoolValue("glossary_requires_role", false)
     resourceDocs += ResourceDoc(
       getApiGlossary,
       implementedInApiVersion,
@@ -2086,9 +2086,23 @@ trait APIMethods300 {
       apiTagDocumentation :: Nil)
 
     lazy val getApiGlossary : OBPEndpoint = {
-      case "api" :: "glossary" :: Nil JsonGet req => _ => {
-        val json = JSONFactory300.createGlossaryItemsJsonV300(getGlossaryItems)
-        Full(successJsonResponse(Extraction.decompose(json)))
+      case "api" :: "glossary" ::  Nil JsonGet req => {
+        cc =>
+          for{
+          _ <- if (glossaryDocsRequireRole){
+              for {
+                (Full(u), callContext) <- authenticatedAccess(cc)
+                hasCanReadGlossaryRole <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadGlossary, callContext)
+                } yield {
+                  hasCanReadGlossaryRole
+                }
+            } else {
+              Future{Full()}
+            }
+            json = JSONFactory300.createGlossaryItemsJsonV300(getGlossaryItems)
+          } yield {
+            (json, HttpCode.`200`(cc))
+          }
       }
     }
   
