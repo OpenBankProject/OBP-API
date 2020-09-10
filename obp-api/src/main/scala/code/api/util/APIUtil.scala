@@ -120,7 +120,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val DateWithMsRollbackExampleString: String = "2017-09-19T02:31:05.000+0000"
   
   val DateWithMsForFilteringFromDateString: String = "0000-00-00T00:00:00.000Z"
-  val DateWithMsForFilteringEenDateString: String = "3049-01-01T00:00:00.000Z"
+  val DateWithMsForFilteringEndDateString: String = "3049-01-01T00:00:00.000Z"
   
   
   // Use a fixed date far into the future (rather than current date/time so that cache keys are more static)
@@ -1679,7 +1679,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       s"""
          |
          |* from_date=DATE => example value: $DateWithMsForFilteringFromDateString. NOTE! The default value is one year ago ($DefaultFromDateString).
-         |* to_date=DATE => example value: $DateWithMsForFilteringEenDateString. NOTE! The default value is now ($DefaultToDateString).
+         |* to_date=DATE => example value: $DateWithMsForFilteringEndDateString. NOTE! The default value is now ($DefaultToDateString).
          |
          |Date format parameter: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.
          |
