@@ -257,6 +257,12 @@ object ApiRole {
   case class CanCreateBank (requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateBank = CanCreateBank()
 
+  case class CanCreateSettlementAccountAtOneBank (requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateSettlementAccountAtOneBank = CanCreateSettlementAccountAtOneBank()
+
+  case class CanGetSettlementAccountAtOneBank (requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetSettlementAccountAtOneBank = CanGetSettlementAccountAtOneBank()
+
   case class CanReadMetrics (requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadMetrics = CanReadMetrics()
 

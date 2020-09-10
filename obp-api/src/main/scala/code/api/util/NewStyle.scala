@@ -267,6 +267,12 @@ object NewStyle {
         (unboxFullOrFail(i._1, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 404), i._2)
       }
 
+    def getBankSettlementAccounts(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[List[BankAccount]] = {
+      Connector.connector.vend.getBankSettlementAccounts(bankId: BankId, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext,s"$BankNotFound Current BankId is $bankId", 404 ), i._2)
+      }
+    }
+
     def getTransaction(bankId: BankId, accountId : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None) : OBPReturnType[Transaction] = {
       Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext) map {
         x => (unboxFullOrFail(x._1, callContext, TransactionNotFound, 404), x._2)

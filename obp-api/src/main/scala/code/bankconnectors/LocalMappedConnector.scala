@@ -572,7 +572,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       By(MappedBankAccount.theAccountId, accountId.value)
     ).map(bankAccount => (bankAccount, callContext))
   }
-  
+
   override def getBankAccountByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
     getBankAccountByRouting(None, "IBAN", iban, callContext)
   }
@@ -696,6 +696,17 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Future {
       getCoreBankAccountsLegacy(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext])
     }
+  }
+
+  override def getBankSettlementAccounts(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccount]]] = {
+    Future {
+      Full {
+        MappedBankAccount.findAll(
+          By(MappedBankAccount.bank, bankId.value),
+          By(MappedBankAccount.kind, "SETTLEMENT")
+        )
+      }
+    }.map(account => (account, callContext))
   }
 
   // localConnector/getBankAccountsHeld/bankIdAccountIds/{bankIdAccountIds}
