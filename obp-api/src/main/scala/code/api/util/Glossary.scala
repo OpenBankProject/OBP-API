@@ -1557,7 +1557,7 @@ object Glossary {
         |
         |### Authorization Server: API
         |
-        |The authorization server verifies the identity of the user then issues access tokens to the application. E.g. MITREid Connect
+        |The authorization server verifies the identity of the user then issues access tokens to the application. E.g. Hydra
         |
         |### Resource Server: API
         |
@@ -1578,8 +1578,6 @@ object Glossary {
         |* Resource Owner Password Credentials: used with trusted Applications, such as those owned by the service itself
         |
         |* Client Credentials: used with Applications API access
-        |
-        |OBP-API supports at the moment only Authorization Code
         |
         |### Step 1: Get your App key
         |
