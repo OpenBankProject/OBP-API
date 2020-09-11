@@ -102,8 +102,13 @@ object OAuth2Login extends RestHelper with MdcLoggable {
     def validateAccessToken(accessToken: String): Box[JWTClaimsSet] = {
       APIUtil.getPropsValue("oauth2.jwk_set.url") match {
         case Full(url) =>
-          val mitreIdUrl = url.toLowerCase().split(",").toList.head
-          JwtUtil.validateAccessToken(accessToken, mitreIdUrl)
+          val validationList = for (item <- url.toLowerCase().split(",").toList) yield {
+            JwtUtil.validateAccessToken(accessToken, item)
+          }
+          validationList.filter(_.isDefined).size > 0 match {
+            case true => validationList.filter(_.isDefined).head
+            case false => validationList.head
+          }
         case ParamFailure(a, b, c, apiFailure : APIFailure) =>
           ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) =>
