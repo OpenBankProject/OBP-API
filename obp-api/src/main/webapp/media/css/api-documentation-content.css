@@ -1,0 +1,56 @@
+.container #api_documentation_content h1 {
+    weight: lighter;
+    margin-top: 72px;
+    margin-bottom: 48px;
+}
+
+.container #api_documentation_content h3 {
+    weight: lighter;
+    margin-top:48px;
+    margin-bottom:32px;
+}
+
+.container #api_documentation_content p:nth-child(3){
+    margin-top: 32px;
+    margin-bottom: 24px;
+}
+.container #api_documentation_content p:nth-child(5){
+    margin-top: 32px;
+    margin-bottom: 32px;
+}
+.container #api_documentation_content p:nth-child(6){
+    margin-bottom: 24px;
+}
+.container #api_documentation_content p:nth-child(8){
+    margin-top: 32px;
+    margin-bottom: 24px;
+}
+.container #api_documentation_content p:last-child{
+    margin-bottom: 56px;
+}
+
+.container #api_documentation_content p{
+    font-size: 16px;
+    line-height: 24px;
+    font-weight:normal;
+    font-family: UniversNextforHSBC-Regular;
+    /*paragraph-height: 12px*/
+}
+
+
+.container #api_documentation_content li{
+    font-size: 16px;
+    line-height: 24px;
+    font-weight:normal;
+    margin: 8px 0;
+    font-family: UniversNextforHSBC-Regular;
+    /*paragraph-height: 12px*/
+}
+
+.container #api_documentation_content a{
+    font-family: UniversNextforHSBC-Regular;
+    font-size: 16px;
+    color: #333333;
+    line-height: 24px;
+    text-decoration:underline;
+}

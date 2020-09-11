@@ -9,43 +9,54 @@
 
 				<form class="login" action="/user_mgt/login" method="post">
 					<div class="form-group">
-						<input class="form-control" type="text" placeholder="Username" name="username" tabindex=1 autofocus autocomplete="off"/>
+						<p id="login-form-username">Username </p> 
+						<input class="form-control" id="username" type="text" name="username" tabindex="0" autofocus autocomplete="off" aria-label="Username" aria-describedby="login-form-username-error"/>
+						<div id = "login-username-error" class="hide">
+							<span data-lift="Msg?id=login-form-username-error"/>
+						</div>
 					</div>
 					<div class="form-group">
-						<input class="form-control" type="password" placeholder="Password"	name="password" tabindex=2 autocomplete="off"/>
-					</div>
-					<div class="row">
-						<div class="col-xs-6">
-							<a href="/user_mgt/sign_up" id="authorise-signup" class="btn btn-default" tabindex="4">Sign up</a>
-						</div>
-						<div class="col-xs-6">
-							<input class="btn btn-default pull-right authorise-button" id="authorise-login" type="submit" value="overridden by log.in at i18n" tabindex="3" />
+						<p id="login-form-password">Password</p>
+						<input class="form-control" id="password" type="password" name="password" tabindex="0" autocomplete="off" aria-label="Password" aria-describedby="login-form-password-error"/>
+						<div id = "login-password-error" class="hide">
+							<span data-lift="Msg?id=login-form-password-error"/>
 						</div>
 					</div>
-					<div class="row" style="text-align: right;">
-						<div class="col-xs-6"></div>
-						<div class="col-xs-6">
-							<a href="/user_mgt/lost_password" id="authorise-recover-password" tabindex="5">Recover password</a>
-						</div>
+<!--					<div class="form-group">-->
+<!--						<input class="form-control" id="brand" type="hidden" placeholder="brand" name="brand" tabindex="0" autofocus autocomplete="off"/>-->
+<!--					</div>-->
+					
+					<div id="oauth-authorise-recover-password">
+						<a href="/user_mgt/lost_password"  tabindex="0">Forgotten password?</a>
 					</div>
 					
+					<div class="row">
+						<input id ="authorise-submit-button" class="btn btn-danger pull-right" type="submit" value="Log on" tabindex="0" />
+					</div>
 
-					<div class="row"  data-lift="OpenIDConnectSnippet.showFirstButton">
-						<div class="col-xs-6"></div>
-						<div class="col-xs-6" data-lift="OpenidConnectInvoke.linkButtonFirstProvider">
-							<div class="authorise-button-oidc">
-								Log in with: <a id="open-id-connect-button-1" data-lift="OpenIDConnectSnippet.getFirstButtonText" class="btn btn-default">OIDC 1</a>
-							</div>
-						</div>
+
+
+					<div class ="login-or"> or </div>
+					<hr>
+					<div class="row">
+						<span id="login-Register-text">Don't have an account? </span>
+						<a href="/user_mgt/sign_up" id="authorise-signup" class="btn btn-default pull-right authorise-button" tabindex="0">Register</a>
 					</div>
-					<div class="row" data-lift="OpenIDConnectSnippet.showSecondButton">
-						<div class="col-xs-6"></div>
-						<div class="col-xs-6" data-lift="OpenidConnectInvoke.linkButtonSecondProvider">
-							<div class="authorise-button-oidc">
-								Log in with: <a id="open-id-connect-button-2" data-lift="OpenIDConnectSnippet.getSecondButtonText" class="btn btn-default">OIDC 2</a>
-							</div>
-						</div>
-					</div>
+
+<!--					<div class ="login-or"> or Login with OpenID : </div>-->
+<!--					<hr>-->
+<!--					<div data-lift="OpenIDConnectSnippet.showFirstButton">-->
+<!--						<div data-lift="OpenidConnectInvoke.linkButtonFirstProvider">-->
+<!--							<div class="authorise-button-oidc"><a id="open-id-connect-button-1" data-lift="OpenIDConnectSnippet.getFirstButtonText"  class="btn btn-danger">OIDC 1</a>-->
+<!--							</div>-->
+<!--						</div>-->
+<!--					</div>-->
+<!--					<div data-lift="OpenIDConnectSnippet.showSecondButton">-->
+<!--						<div data-lift="OpenidConnectInvoke.linkButtonSecondProvider">-->
+<!--							<div class="authorise-button-oidc"> <a id="open-id-connect-button-2" data-lift="OpenIDConnectSnippet.getSecondButtonText" class="btn btn-danger">OIDC 2</a>-->
+<!--							</div>-->
+<!--						</div>-->
+<!--					</div>-->
 					
 				</form>
 			</div>
