@@ -133,10 +133,13 @@ Berlin 13359, Germany
 		// hide all account checkboxes
 		$('input[name=account_id]').prop("checked", false).parent().parent().hide();
 		$('#bank_id').change(function(){
-			var current = $(this).val();
+			var bankId = $(this).val();
 			$('input[name=account_id]').prop("checked", false).parent().parent().hide();
-			if(current) {
-				$('input[name=account_id][bank_id='+current+']').parent().parent().show();
+			if(bankId) {
+				$('input[name=account_id]')
+						.filter(function() { // not use .filter('[bank_id='+bankId+']') reason: bankId may have special characters
+							return $(this).attr('bank_id') === bankId;
+						}).parent().parent().show();
 			}
 		});
 	});
