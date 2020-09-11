@@ -44,7 +44,7 @@ import sh.ory.hydra.model.{AcceptConsentRequest, CompletedRequest, ConsentReques
 
 import scala.jdk.CollectionConverters.{asScalaBufferConverter, mapAsJavaMapConverter, seqAsJavaListConverter}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{AccountId, BankId, ViewId, ViewIdBankIdAccountId}
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId, ViewIdBankIdAccountId}
 import com.openbankproject.commons.util.Functions.Implicits._
 import net.liftweb.common.{Box, Full}
 
@@ -172,6 +172,14 @@ class ConsentConfirmation extends MdcLoggable {
         "email_verified" -> true).asJava
 
       session.setIdToken(idTokenValues)
+      val accessToken = Map(
+        "bank_id" -> bankId.orNull,
+        "account_id" -> accountIds.asJava,
+        "transactionFromDateTime" -> fromDate,
+        "transactionToDateTime" -> toDate,
+        "expirationDateTime" -> expirationDate,
+        ).asJava
+      session.accessToken(accessToken)
       consentRequest.setSession(session)
 
       val acceptConsentResponse = AuthUser.hydraAdmin.acceptConsentRequest(consentChallenge, consentRequest)
