@@ -31,6 +31,7 @@ import java.net.URI
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, JwtUtil}
 import code.consumer.Consumers
+import code.consumer.Consumers.consumers
 import code.loginattempts.LoginAttempt
 import code.model.Consumer
 import code.model.dataAccess.AuthUser
@@ -119,21 +120,39 @@ object OAuth2Login extends RestHelper with MdcLoggable {
           Failure(Oauth2ThereIsNoUrlOfJwkSet)
       }
     }
+    
     def applyRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
+      validateAccessToken(value) match {
+        case Full(_) =>
+          val introspectOAuth2Token: OAuth2TokenIntrospection = AuthUser.hydraAdmin.introspectOAuth2Token(value, null)
+          if (introspectOAuth2Token.getActive) {
+            val user = Users.users.vend.getUserByUserName(introspectOAuth2Token.getSub)
+            val consumer = consumers.vend.getConsumerByConsumerKey(introspectOAuth2Token.getClientId)
+            LoginAttempt.userIsLocked(user.map(_.name).getOrElse("")) match {
+              case true => ((Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer))))
+              case false => (user, Some(cc.copy(consumer = consumer)))
+            }
+          } else {
+            (Failure(Oauth2IJwtCannotBeVerified), Some(cc))
+          }
+        case ParamFailure(a, b, c, apiFailure : APIFailure) =>
+          (ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc))
+        case Failure(msg, t, c) =>
+          (Failure(msg, t, c), Some(cc))
+        case _ =>
+          (Failure(Oauth2IJwtCannotBeVerified), Some(cc))
+      }
+      
       val introspectOAuth2Token: OAuth2TokenIntrospection = AuthUser.hydraAdmin.introspectOAuth2Token(value, null)
-      val username = introspectOAuth2Token.getSub
-      LoginAttempt.userIsLocked(username) match {
-        case true => (Failure(UsernameHasBeenLocked), Some(cc))
-        case false => (Users.users.vend.getUserByUserName(username), Some(cc))
+      val user = Users.users.vend.getUserByUserName(introspectOAuth2Token.getSub)
+      val consumer = consumers.vend.getConsumerByConsumerKey(introspectOAuth2Token.getClientId)
+      LoginAttempt.userIsLocked(user.map(_.name).getOrElse("")) match {
+        case true => ((Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer))))
+        case false => (user, Some(cc.copy(consumer = consumer)))
       }
     }
-    def applyRulesFuture(value: String, cc: CallContext): Future[(Box[User], Some[CallContext])] = {
-      val introspectOAuth2Token: OAuth2TokenIntrospection = AuthUser.hydraAdmin.introspectOAuth2Token(value, null)
-      val username = introspectOAuth2Token.getSub
-      LoginAttempt.userIsLocked(username) match {
-        case true => Future(Failure(UsernameHasBeenLocked), Some(cc))
-        case false => Future(Users.users.vend.getUserByUserName(username), Some(cc))
-      }
+    def applyRulesFuture(value: String, cc: CallContext): Future[(Box[User], Some[CallContext])] = Future {
+      applyRules(value, cc)
     }
   }
   
