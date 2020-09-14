@@ -564,7 +564,9 @@ object BankAccountX {
         else List(AccountRouting(counterparty.otherAccountSecondaryRoutingScheme, counterparty.otherAccountSecondaryRoutingAddress))
 
       Full(BankAccountCommons(
-        AccountId(""), "", 0, "EUR", "", "", "", BankId(""), new Date(), "",
+        AccountId(""), "", 0,
+        currency = counterparty.currency
+        , "", "", "", BankId(""), new Date(), "",
         accountRoutings = accountRouting1 ++ accountRouting2,
         List.empty, accountHolder = counterparty.name,
         Some(List(Attribute(
