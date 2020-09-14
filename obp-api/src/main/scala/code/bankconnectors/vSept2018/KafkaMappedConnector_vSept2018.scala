@@ -995,6 +995,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         OutboundCounterparty(
           name = "name",
           description = "description",
+          currency = "currency",
           createdByUserId = "createdByUserId",
           thisBankId = "thisBankId",
           thisAccountId = "thisAccountId",
@@ -1032,7 +1033,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           otherBranchRoutingAddress= "String", 
           isBeneficiary = false,
           description= "String",
-          otherAccountSecondaryRoutingScheme= "String", 
+          currency= "String",
+          otherAccountSecondaryRoutingScheme= "String",
           otherAccountSecondaryRoutingAddress= "String",
           bespoke =  List(CounterpartyBespoke(
                           key = "String",
@@ -1044,6 +1046,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   override def createCounterparty(
     name: String,
     description: String,
+    currency: String,
     createdByUserId: String,
     thisBankId: String,
     thisAccountId: String,
@@ -1066,6 +1069,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         counterparty = OutboundCounterparty(
         name: String,
         description: String,
+        currency: String,
         createdByUserId: String,
         thisBankId: String,
         thisAccountId: String,
@@ -1250,6 +1254,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           otherBranchRoutingAddress = "",
           isBeneficiary = true,
           description = "",
+          currency = "",
           otherAccountSecondaryRoutingScheme = "",
           otherAccountSecondaryRoutingAddress = "",
           bespoke =  List(
@@ -1329,7 +1334,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = (
-      InboundGetCounterparty(inboundAuthInfoExample, statusExample, Some(InternalCounterparty(createdByUserId = "String", name = "String", thisBankId = "String", thisAccountId = "String", thisViewId = "String", counterpartyId = "String", otherAccountRoutingScheme = "String", otherAccountRoutingAddress = "String", otherBankRoutingScheme = "String", otherBankRoutingAddress = "String", otherBranchRoutingScheme = "String", otherBranchRoutingAddress = "String", isBeneficiary = true, description = "String", otherAccountSecondaryRoutingScheme = "String", otherAccountSecondaryRoutingAddress = "String", bespoke = Nil)))
+      InboundGetCounterparty(inboundAuthInfoExample, statusExample, Some(InternalCounterparty(createdByUserId = "String", name = "String", thisBankId = "String", thisAccountId = "String", thisViewId = "String", counterpartyId = "String", otherAccountRoutingScheme = "String", otherAccountRoutingAddress = "String", otherBankRoutingScheme = "String", otherBankRoutingAddress = "String", otherBranchRoutingScheme = "String", otherBranchRoutingAddress = "String", isBeneficiary = true, description = "String", currency = "String", otherAccountSecondaryRoutingScheme = "String", otherAccountSecondaryRoutingAddress = "String", bespoke = Nil)))
     ),
     adapterImplementation = Some(AdapterImplementation("Payments", 1))
   )
@@ -1396,7 +1401,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = (
       InboundGetCounterparty(inboundAuthInfoExample, 
         statusExample, 
-        Some(InternalCounterparty(createdByUserId = "String", name = "String", thisBankId = "String", thisAccountId = "String", thisViewId = "String", counterpartyId = "String", otherAccountRoutingScheme = "String", otherAccountRoutingAddress = "String", otherBankRoutingScheme = "String", otherBankRoutingAddress = "String", otherBranchRoutingScheme = "String", otherBranchRoutingAddress = "String", isBeneficiary = true, description = "String", otherAccountSecondaryRoutingScheme = "String", otherAccountSecondaryRoutingAddress = "String", bespoke = Nil)))
+        Some(InternalCounterparty(createdByUserId = "String", name = "String", thisBankId = "String", thisAccountId = "String", thisViewId = "String", counterpartyId = "String", otherAccountRoutingScheme = "String", otherAccountRoutingAddress = "String", otherBankRoutingScheme = "String", otherBankRoutingAddress = "String", otherBranchRoutingScheme = "String", otherBranchRoutingAddress = "String", isBeneficiary = true, description = "String", currency = "String", otherAccountSecondaryRoutingScheme = "String", otherAccountSecondaryRoutingAddress = "String", bespoke = Nil)))
       ),
     adapterImplementation = Some(AdapterImplementation("Payments", 1))
   )

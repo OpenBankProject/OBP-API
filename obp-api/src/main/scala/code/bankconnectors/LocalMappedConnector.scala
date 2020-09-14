@@ -2585,6 +2585,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def createCounterparty(
                                    name: String,
                                    description: String,
+                                   currency: String,
                                    createdByUserId: String,
                                    thisBankId: String,
                                    thisAccountId: String,
@@ -2616,6 +2617,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       otherAccountSecondaryRoutingScheme = otherAccountSecondaryRoutingScheme,
       otherAccountSecondaryRoutingAddress = otherAccountSecondaryRoutingAddress,
       description = description,
+      currency = currency,
       bespoke = bespoke
     ).map(counterparty => (counterparty, callContext))
 

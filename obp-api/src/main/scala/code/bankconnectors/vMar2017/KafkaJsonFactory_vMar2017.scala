@@ -293,6 +293,7 @@ case class CounterpartyTrait2(counterparty: InboundCounterparty) extends Counter
   def otherBranchRoutingAddress: String = counterparty.otherBranchRoutingAddress
   def isBeneficiary: Boolean = counterparty.isBeneficiary
   def description: String = ""
+  def currency: String = ""
   def otherAccountSecondaryRoutingScheme: String = ""
   def otherAccountSecondaryRoutingAddress: String = ""
   def bespoke: List[CounterpartyBespoke] = Nil

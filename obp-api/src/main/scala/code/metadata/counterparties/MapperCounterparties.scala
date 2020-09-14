@@ -155,6 +155,7 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
                                   otherAccountSecondaryRoutingScheme: String,
                                   otherAccountSecondaryRoutingAddress: String,
                                   description: String,
+                                  currency: String,
                                   bespoke: List[CounterpartyBespoke]
                                  ): Box[CounterpartyTrait] = {
     
@@ -173,6 +174,7 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
       .mOtherBranchRoutingScheme(otherBranchRoutingScheme)
       .mIsBeneficiary(isBeneficiary)
       .mDescription(description)
+      .mCurrency(currency)
       .mOtherAccountSecondaryRoutingScheme(otherAccountSecondaryRoutingScheme)
       .mOtherAccountSecondaryRoutingAddress(otherAccountSecondaryRoutingAddress)
       .saveMe()
@@ -437,6 +439,7 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   object mOtherBranchRoutingAddress extends MappedString(this, 255)
   object mIsBeneficiary extends MappedBoolean(this)
   object mDescription extends MappedString(this, 36)
+  object mCurrency extends MappedString(this, 255)
   object mOtherAccountSecondaryRoutingScheme extends MappedString(this, 255)
   object mOtherAccountSecondaryRoutingAddress extends MappedString(this, 255)
   object mBespoke extends MappedOneToMany(MappedCounterpartyBespoke, MappedCounterpartyBespoke.mCounterparty, OrderBy(MappedCounterpartyBespoke.id, Ascending))
@@ -455,6 +458,7 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   override def otherBankRoutingAddress: String = mOtherBankRoutingAddress.get
   override def isBeneficiary: Boolean = mIsBeneficiary.get
   override def description: String = mDescription.get
+  override def currency: String = mCurrency.toString
   override def otherAccountSecondaryRoutingScheme: String = mOtherAccountSecondaryRoutingScheme.get
   override def otherAccountSecondaryRoutingAddress: String = mOtherAccountSecondaryRoutingAddress.get
   override def bespoke: List[CounterpartyBespoke] = 
