@@ -33,6 +33,7 @@ import code.api.util.{APIUtil, CallContext, JwtUtil}
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.model.Consumer
+import code.model.dataAccess.AuthUser
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
@@ -42,6 +43,7 @@ import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers
+import sh.ory.hydra.model.OAuth2TokenIntrospection
 
 import scala.concurrent.Future
 
@@ -72,7 +74,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         } else if (Yahoo.isIssuer(value)) {
           Yahoo.applyRules(value, cc)
         } else {
-          MITREId.applyRules(value, cc)
+          Hydra.applyRules(value, cc)
         }
       case false =>
         (Failure(Oauth2IsNotAllowed), Some(cc))
@@ -90,7 +92,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         } else if (Yahoo.isIssuer(value)) {
           Yahoo.applyRulesFuture(value, cc)
         } else {
-          MITREId.applyRulesFuture(value, cc)
+          Hydra.applyRulesFuture(value, cc)
         }
       case false =>
         Future((Failure(Oauth2IsNotAllowed), Some(cc)))
@@ -98,7 +100,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
   }
 
   
-  object MITREId {
+  object Hydra {
     def validateAccessToken(accessToken: String): Box[JWTClaimsSet] = {
       APIUtil.getPropsValue("oauth2.jwk_set.url") match {
         case Full(url) =>
@@ -118,43 +120,21 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       }
     }
     def applyRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
-      validateAccessToken(value) match {
-        case Full(_) =>
-          val username = JwtUtil.getSubject(value).getOrElse("")
-          LoginAttempt.userIsLocked(username) match {
-            case true => (Failure(UsernameHasBeenLocked), Some(cc))
-            case false => (Users.users.vend.getUserByUserName(username), Some(cc))
-          }
-        case ParamFailure(a, b, c, apiFailure : APIFailure) =>
-          (ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc))
-        case Failure(msg, t, c) =>
-          (Failure(msg, t, c), Some(cc))
-        case _ =>
-          (Failure(Oauth2IJwtCannotBeVerified), Some(cc))
+      val introspectOAuth2Token: OAuth2TokenIntrospection = AuthUser.hydraAdmin.introspectOAuth2Token(value, null)
+      val username = introspectOAuth2Token.getSub
+      LoginAttempt.userIsLocked(username) match {
+        case true => (Failure(UsernameHasBeenLocked), Some(cc))
+        case false => (Users.users.vend.getUserByUserName(username), Some(cc))
       }
     }
     def applyRulesFuture(value: String, cc: CallContext): Future[(Box[User], Some[CallContext])] = {
-      validateAccessToken(value) match {
-        case Full(_) =>
-          val username = JwtUtil.getSubject(value).getOrElse("")
-          for {
-            user <- Users.users.vend.getUserByUserNameFuture(username)
-            consumer <-  Future{IdentityProviderCommon.getOrCreateConsumer(value, user.map(_.userId))}
-          } yield {
-            LoginAttempt.userIsLocked(username) match {
-              case true => (Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer)))
-              case false => (user, Some(cc.copy(consumer = consumer)))
-            }
-          }
-        case ParamFailure(a, b, c, apiFailure : APIFailure) =>
-          Future((ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc)))
-        case Failure(msg, t, c) =>
-          Future((Failure(msg, t, c), Some(cc)))
-        case _ =>
-          Future((Failure(Oauth2IJwtCannotBeVerified), Some(cc)))
+      val introspectOAuth2Token: OAuth2TokenIntrospection = AuthUser.hydraAdmin.introspectOAuth2Token(value, null)
+      val username = introspectOAuth2Token.getSub
+      LoginAttempt.userIsLocked(username) match {
+        case true => Future(Failure(UsernameHasBeenLocked), Some(cc))
+        case false => Future(Users.users.vend.getUserByUserName(username), Some(cc))
       }
     }
-    
   }
   
   trait OAuth2Util {
