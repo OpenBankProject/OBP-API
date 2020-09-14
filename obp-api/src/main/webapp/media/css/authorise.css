@@ -26,7 +26,7 @@
 
 #authorise #authorise-submit input{
     border: 0;
-    background-color: #DB0011;
+    background-color: #53C4EF;
     color: #FFFFFF;
     float: right;
     height: 44px;
@@ -45,12 +45,12 @@
 }
 
 #authorise #authorise-submit input:hover{
-    background-color: #AF000D;
+    background-color: #1f97ef;
 }
 
 
 #authorise #authorise-submit input:active{
-    background-color: #83000A;
+    background-color: #0b3aef;
 }
 
 

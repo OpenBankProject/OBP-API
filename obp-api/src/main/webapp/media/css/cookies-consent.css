@@ -35,7 +35,7 @@
     color: #FFFFFF;
     text-align: center;
     line-height: 24px;
-    background-color: #DB0011;
+    background-color: #53C4EF;
     height:44px;
     width:169px;
     border: 0;
@@ -46,9 +46,9 @@
 }
 
 #cookies-consent-button:hover{
-    background-color: #AF000D;
+    background-color: #1f97ef;
 }
 
 #cookies-consent-button:active{
-    background-color: #83000A;
+    background-color: #0b3aef;
 }

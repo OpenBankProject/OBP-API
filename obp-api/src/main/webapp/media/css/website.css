@@ -135,7 +135,7 @@ header #lift__noticesContainer__ {
 	color: #FFFFFF;
 	text-align: center;
 	line-height: 24px;
-	background: #DB0011;
+	background: #53C4EF;
 	border-radius: 0;
 	padding-top: 9px;
 	padding-bottom: 11px;
@@ -145,10 +145,14 @@ header #lift__noticesContainer__ {
     border: 0;
 }
 .btn-danger:hover {
-	background: #AF000D;
+	background: #1f97ef;
 }
-.btn-danger:active {
-	background: #83000A;
+.btn-danger:focus{
+	background: #0b3aef;	
+}
+.btn-danger:active,
+.btn-danger:active:focus{
+	background: #0b3aef;
 }
 .btn-default {
 	border-radius: 0;
@@ -243,7 +247,7 @@ input[type="text"]{
 .select2-container--default .select2-results__option[aria-selected=true] {
 	background: #ffffff;
 	color: #333333;
-	border-left: 3px #DB0011 solid;
+	border-left: 3px #53C4EF solid;
 }
 
 .sr-only {

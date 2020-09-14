@@ -148,7 +148,7 @@
 
 #signup #signup-submit input {
     color: #FFF;
-    background-color: #DB0011;
+    background-color: #53C4EF;
     font-family: UniversNextforHSBC-Regular;
     font-size: 16px;
     color: #FFFFFF;
@@ -164,10 +164,10 @@
 }
 
 #signup #signup-submit input:hover{
-    background: #AF000D;
+    background: #1f97ef;
 }
 #signup #signup-submit input:active {
-    background: #83000A;
+    background: #0b3aef;
 }
 
 #signup-agree-terms.input{

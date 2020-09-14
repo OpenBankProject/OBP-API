@@ -39,7 +39,7 @@ nav .navbar-collapse.collapse {
 
 
 /*.navbar-default .navbar-nav > li > a:active{*/
-/*    border-bottom: 4px #DB0011 solid;*/
+/*    border-bottom: 4px #53C4EF solid;*/
 /*    padding-bottom: 26px;;*/
 /*}*/
 
@@ -70,11 +70,11 @@ nav .navbar-collapse.collapse {
 }
 
 .navbar-default .navbar-right .navbar-btn .login:hover {
-    background-color: #AF000D;
+    background-color: #1f97ef;
 }
 
 .navbar-default .navbar-right .navbar-btn .login:active {
-    background-color: #83000A;
+    background-color: #0b3aef;
 }
 
 .navbar-default .navbar-right .navbar-btn #loggedIn-username {
