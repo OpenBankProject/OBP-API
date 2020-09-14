@@ -197,6 +197,17 @@ trait APIMethods400 {
          |The created settlement account id will be the concatenation of the payment system and the account currency.
          |For examples: SEPA_SETTLEMENT_ACCOUNT_EUR, CARD_SETTLEMENT_ACCOUNT_USD
          |
+         |By default, when you create a new bank, two settlements accounts are created automatically: OBP_DEFAULT_INCOMING_ACCOUNT_ID and OBP_DEFAULT_OUTGOING_ACCOUNT_ID
+         |Those two accounts have EUR as default currency.
+         |
+         |If you want to create default settlement account for a specific currency, you can fill the `payment_system` field with the `DEFAULT` value.
+         |
+         |When a transaction is saved in OBP through the mapped connector, OBP-API look for the account to save the double-entry transaction.
+         |If no OBP account can be found from the counterparty, the double-entry transaction will be saved on a bank settlement account.
+         |- First, the mapped connector looks for a settlement account specific to the payment system and currency. E.g SEPA_SETTLEMENT_ACCOUNT_EUR.
+         |- If we don't find any specific settlement account with the payment system, we look for a default settlement account for the counterparty currency. E.g DEFAULT_SETTLEMENT_ACCOUNT_EUR.
+         |- Else, we select one of the two OBP default settlement accounts (OBP_DEFAULT_INCOMING_ACCOUNT_ID/OBP_DEFAULT_OUTGOING_ACCOUNT_ID) according to the transaction direction.
+         |
          |If the POST body USER_ID *is* specified, the logged in user must have the Role CanCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
          |
          |If the POST body USER_ID is *not* specified, the account will be owned by the logged in User.
