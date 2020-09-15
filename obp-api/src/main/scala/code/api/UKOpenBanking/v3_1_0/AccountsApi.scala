@@ -38,7 +38,7 @@ object APIMethods_AccountsApi extends RestHelper {
        "/accounts", 
        "Get Accounts",
        s"""""", 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -127,7 +127,7 @@ object APIMethods_AccountsApi extends RestHelper {
        "Get Accounts",
        s"""
 """, 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime": "2019-03-05T13:09:30.399Z",

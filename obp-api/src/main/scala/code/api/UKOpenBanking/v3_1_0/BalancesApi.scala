@@ -42,7 +42,7 @@ object APIMethods_BalancesApi extends RestHelper {
        "/accounts/ACCOUNT_ID/balances", 
        "Get Balances",
        s"""""", 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -142,7 +142,7 @@ object APIMethods_BalancesApi extends RestHelper {
        "/balances", 
        "Get Balances",
        s"""""", 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
