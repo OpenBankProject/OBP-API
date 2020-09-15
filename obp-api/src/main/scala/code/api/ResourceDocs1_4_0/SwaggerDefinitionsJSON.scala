@@ -16,7 +16,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, BankJson400, BanksJson400, ChallengeJsonV400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, LogoutLinkJson, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, SettlementAccountJson, SettlementAccountRequestJson, SettlementAccountResponseJson, SettlementAccountsJson, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, TransactionRequestBodySEPAJsonV400, TransactionRequestReasonJsonV400, TransactionRequestWithChargeJSON400, UserLockStatusJson, When}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, BankJson400, BanksJson400, ChallengeJsonV400, CounterpartiesJson400, CounterpartyJson400, CounterpartyWithMetadataJson400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, LogoutLinkJson, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, SettlementAccountJson, SettlementAccountRequestJson, SettlementAccountResponseJson, SettlementAccountsJson, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, TransactionRequestBodySEPAJsonV400, TransactionRequestReasonJsonV400, TransactionRequestWithChargeJSON400, UserLockStatusJson, When, PostCounterpartyJson400}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
@@ -2324,6 +2324,22 @@ object SwaggerDefinitionsJSON {
     bespoke =  List(postCounterpartyBespokeJson)
   )
 
+  val postCounterpartyJson400 = PostCounterpartyJson400(
+    name = "CounterpartyName",
+    description ="My landlord",
+    currency = currencyExample.value,
+    other_account_routing_scheme = counterpartyOtherAccountRoutingSchemeExample.value,
+    other_account_routing_address = counterpartyOtherAccountRoutingAddressExample.value,
+    other_account_secondary_routing_scheme = counterpartyOtherAccountSecondaryRoutingSchemeExample.value,
+    other_account_secondary_routing_address = counterpartyOtherAccountSecondaryRoutingAddressExample.value,
+    other_bank_routing_scheme = counterpartyOtherBankRoutingSchemeExample.value,
+    other_bank_routing_address = counterpartyOtherBankRoutingAddressExample.value,
+    other_branch_routing_scheme = counterpartyOtherBranchRoutingSchemeExample.value,
+    other_branch_routing_address = counterpartyOtherBranchRoutingAddressExample.value,
+    is_beneficiary = true,
+    bespoke =  List(postCounterpartyBespokeJson)
+  )
+
   val metricsJson = MetricsJson(
     metrics = List(metricJson)
   )
@@ -2454,6 +2470,27 @@ object SwaggerDefinitionsJSON {
     other_account_secondary_routing_address= counterpartyOtherAccountSecondaryRoutingAddressExample.value,
     bespoke = postCounterpartyJSON.bespoke
   )
+
+  val counterpartyJson400 = CounterpartyJson400(
+    name = postCounterpartyJson400.name,
+    description = postCounterpartyJson400.description,
+    currency = postCounterpartyJson400.currency,
+    created_by_user_id = ExampleValue.userIdExample.value,
+    this_bank_id = bankIdExample.value,
+    this_account_id =accountIdExample.value,
+    this_view_id = SYSTEM_OWNER_VIEW_ID,
+    counterparty_id = counterpartyIdExample.value,
+    other_bank_routing_scheme = postCounterpartyJson400.other_bank_routing_scheme,
+    other_bank_routing_address = postCounterpartyJson400.other_bank_routing_address,
+    other_branch_routing_scheme = postCounterpartyJson400.other_branch_routing_scheme,
+    other_branch_routing_address = postCounterpartyJson400.other_branch_routing_address,
+    other_account_routing_scheme = postCounterpartyJson400.other_account_routing_scheme,
+    other_account_routing_address = postCounterpartyJson400.other_account_routing_address,
+    is_beneficiary = true,
+    other_account_secondary_routing_scheme = counterpartyOtherAccountSecondaryRoutingSchemeExample.value,
+    other_account_secondary_routing_address= counterpartyOtherAccountSecondaryRoutingAddressExample.value,
+    bespoke = postCounterpartyJson400.bespoke
+  )
   
   val counterpartyMetadataJson = CounterpartyMetadataJson(
     public_alias = "String",
@@ -2487,8 +2524,34 @@ object SwaggerDefinitionsJSON {
     metadata = counterpartyMetadataJson
   )
 
+  val counterpartyWithMetadataJson400 = CounterpartyWithMetadataJson400(
+    name = postCounterpartyJson400.name,
+    description = postCounterpartyJson400.description,
+    currency = postCounterpartyJson400.currency,
+    created_by_user_id = ExampleValue.userIdExample.value,
+    this_bank_id = bankIdExample.value,
+    this_account_id =accountIdExample.value,
+    this_view_id = SYSTEM_OWNER_VIEW_ID,
+    counterparty_id = counterpartyIdExample.value,
+    other_bank_routing_scheme = postCounterpartyJson400.other_bank_routing_scheme,
+    other_bank_routing_address = postCounterpartyJson400.other_bank_routing_address,
+    other_branch_routing_scheme = postCounterpartyJson400.other_branch_routing_scheme,
+    other_branch_routing_address = postCounterpartyJson400.other_branch_routing_address,
+    other_account_routing_scheme = postCounterpartyJson400.other_account_routing_scheme,
+    other_account_routing_address = postCounterpartyJson400.other_account_routing_address,
+    is_beneficiary = true,
+    other_account_secondary_routing_scheme = counterpartyOtherAccountSecondaryRoutingSchemeExample.value,
+    other_account_secondary_routing_address= counterpartyOtherAccountSecondaryRoutingAddressExample.value,
+    bespoke = postCounterpartyJson400.bespoke,
+    metadata = counterpartyMetadataJson
+  )
+
   val counterpartiesJsonV220 = CounterpartiesJsonV220(
     counterparties = List(counterpartyJsonV220)
+  )
+
+  val counterpartiesJson400 = CounterpartiesJson400(
+    counterparties = List(counterpartyJson400)
   )
 
   val bankJSONV220 = BankJSONV220(

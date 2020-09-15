@@ -1334,6 +1334,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     def otherBranchRoutingAddress: String = counterparty.other_branch_routing_address
     def isBeneficiary : Boolean = counterparty.is_beneficiary
     def description: String = ""
+    def currency: String = ""
     def otherAccountSecondaryRoutingScheme: String = ""
     def otherAccountSecondaryRoutingAddress: String = ""
     def bespoke: List[CounterpartyBespoke] = Nil

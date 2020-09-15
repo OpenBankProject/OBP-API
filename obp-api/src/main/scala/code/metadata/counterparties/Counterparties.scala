@@ -54,6 +54,7 @@ trait Counterparties {
                           otherAccountSecondaryRoutingScheme: String,
                           otherAccountSecondaryRoutingAddress: String,
                           description: String,
+                          currency: String,
                           bespoke: List[CounterpartyBespoke]
                         ): Box[CounterpartyTrait]
 
@@ -114,6 +115,7 @@ class RemotedataCounterpartiesCaseClasses {
     otherAccountSecondaryRoutingScheme: String,
     otherAccountSecondaryRoutingAddress: String,
     description: String,
+    currency: String,
     bespoke: List[CounterpartyBespoke]
   )
 
