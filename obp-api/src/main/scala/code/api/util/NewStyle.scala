@@ -2284,6 +2284,7 @@ object NewStyle {
     def createCounterparty(
       name: String,
       description: String,
+      currency: String,
       createdByUserId: String,
       thisBankId: String,
       thisAccountId: String,
@@ -2303,6 +2304,7 @@ object NewStyle {
         unboxFullOrFail(Connector.connector.vend.createCounterparty(
           name: String,
           description: String,
+          currency: String,
           createdByUserId: String,
           thisBankId: String,
           thisAccountId: String,

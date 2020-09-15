@@ -1164,6 +1164,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           otherBranchRoutingAddress= "String", 
           isBeneficiary = false,
           description= "String",
+          currency= "String",
           otherAccountSecondaryRoutingScheme= "String", 
           otherAccountSecondaryRoutingAddress= "String",
           bespoke =  List(CounterpartyBespoke(
@@ -1175,6 +1176,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   override def createCounterparty(
     name: String,
     description: String,
+    currency: String,
     createdByUserId: String,
     thisBankId: String,
     thisAccountId: String,
@@ -1392,6 +1394,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           otherBranchRoutingAddress = "",
           isBeneficiary = true,
           description = "",
+          currency= "",
           otherAccountSecondaryRoutingScheme = "",
           otherAccountSecondaryRoutingAddress = "",
           bespoke =  List(
@@ -1463,7 +1466,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = (
-      InboundGetCounterparty(authInfoExample, statusExample, Some(InternalCounterparty(createdByUserId = "String", name = "String", thisBankId = "String", thisAccountId = "String", thisViewId = "String", counterpartyId = "String", otherAccountRoutingScheme = "String", otherAccountRoutingAddress = "String", otherBankRoutingScheme = "String", otherBankRoutingAddress = "String", otherBranchRoutingScheme = "String", otherBranchRoutingAddress = "String", isBeneficiary = true, description = "String", otherAccountSecondaryRoutingScheme = "String", otherAccountSecondaryRoutingAddress = "String", bespoke = Nil)))
+      InboundGetCounterparty(authInfoExample, statusExample, Some(InternalCounterparty(createdByUserId = "String", name = "String", thisBankId = "String", thisAccountId = "String", thisViewId = "String", counterpartyId = "String", otherAccountRoutingScheme = "String", otherAccountRoutingAddress = "String", otherBankRoutingScheme = "String", otherBankRoutingAddress = "String", otherBranchRoutingScheme = "String", otherBranchRoutingAddress = "String", isBeneficiary = true, description = "String", currency = "String", otherAccountSecondaryRoutingScheme = "String", otherAccountSecondaryRoutingAddress = "String", bespoke = Nil)))
     )
   )
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = saveConnectorMetric{
