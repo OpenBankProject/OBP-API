@@ -56,6 +56,7 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
                                   otherAccountSecondaryRoutingScheme: String,
                                   otherAccountSecondaryRoutingAddress: String,
                                   description: String,
+                                  currency: String,
                                   bespoke: List[CounterpartyBespoke]): Box[CounterpartyTrait] = getValueFromFuture(
     (actor ? cc.createCounterparty(createdByUserId, 
                                   thisBankId,
@@ -70,6 +71,7 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
                                   otherAccountSecondaryRoutingScheme,
                                   otherAccountSecondaryRoutingAddress,
                                   description,
+                                  currency,
                                   bespoke)).mapTo[Box[CounterpartyTrait]]
   )
 
