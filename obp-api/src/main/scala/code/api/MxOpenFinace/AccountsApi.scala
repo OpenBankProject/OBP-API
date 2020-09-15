@@ -5,14 +5,13 @@ import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_0_0_1._
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.{ApiTag, CallContext, NewStyle}
+import code.api.util.{APIUtil, ApiTag, CallContext, NewStyle}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import net.liftweb.common.Full
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json
 import net.liftweb.json._
 
 import scala.collection.immutable.Nil
@@ -81,7 +80,13 @@ object APIMethods_AccountsApi extends RestHelper {
             """,
        emptyObjectJson,
        ofReadAccountBasic,
-       List(UserNotLoggedIn, UnknownError),
+       List(
+         UserNotLoggedIn, 
+         ConsentNotFound,
+         ConsentNotBeforeIssue,
+         ConsentExpiredIssue, 
+         UnknownError
+       ),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Accounts") :: apiTagMXOpenFinance :: Nil
      )
@@ -89,13 +94,23 @@ object APIMethods_AccountsApi extends RestHelper {
      lazy val getAccounts : OBPEndpoint = {
        case "accounts" :: Nil JsonGet _ => {
          cc =>
+           val basicViewId = ViewId(Constant.READ_ACCOUNTS_BASIC_VIEW_ID)
            for {
              (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              _ <- NewStyle.function.checkUKConsent(u, callContext)
              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
              (accounts: List[BankAccount], callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
            } yield {
-             (createReadAccountsBasicJsonMXOFV10(accounts), callContext)
+             val allAccounts: List[Box[BankAccount]] = for (account: BankAccount <- accounts) yield {
+               APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(account.bankId, account.accountId), Full(u)) match {
+                 case Full(_) =>
+                   Full(account)
+                 case _ =>
+                   Empty
+               }
+             }
+             val accountsWithProperView = allAccounts.filter(_.isDefined).map(_.openOrThrowException(attemptedToOpenAnEmptyBox))
+             (createReadAccountsBasicJsonMXOFV10(accountsWithProperView), callContext)
            }
          }
        }
