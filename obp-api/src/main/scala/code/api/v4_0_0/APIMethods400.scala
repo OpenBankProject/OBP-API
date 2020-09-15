@@ -4507,7 +4507,7 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterparty, apiTagAccount),
-      Some(List(canCreateCounterpartyAtBank)))
+      Some(List(canCreateCounterparty, canCreateCounterpartyAtAnyBank)))
 
 
     lazy val createCounterpartyForAnyAccount: OBPEndpoint = {
@@ -4700,7 +4700,7 @@ trait APIMethods400 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterparty, apiTagAccount),
-      Some(List(canGetCounterpartyAtBank)))
+      Some(List(canGetCounterpartyAtAnyBank, canGetCounterparty)))
 
     lazy val getCounterpartyByNameForAnyAccount: OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: counterpartyName :: Nil JsonGet _ => {

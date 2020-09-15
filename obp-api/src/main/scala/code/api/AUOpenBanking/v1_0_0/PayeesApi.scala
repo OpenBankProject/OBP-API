@@ -38,7 +38,7 @@ object APIMethods_PayeesApi extends RestHelper {
             Obtain detailed information on a single payee
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : "",
   "meta" : { },
@@ -79,7 +79,7 @@ object APIMethods_PayeesApi extends RestHelper {
             Obtain a list of pre-registered payees
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "payees" : [ {

@@ -36,7 +36,7 @@ object APIMethods_PartysApi extends RestHelper {
        "Get Party",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -147,7 +147,7 @@ object APIMethods_PartysApi extends RestHelper {
        "Get Party",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
