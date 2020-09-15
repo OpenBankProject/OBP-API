@@ -60,7 +60,7 @@ The CBPII requests the ASPSP for a payment coverage check against either a bank 
     "iban" : "YY13RDHN98392489481620896668799742"
   }
 }"""),
-       json.parse(""""""),
+       emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("CBPII") :: apiTagMockedData :: Nil
