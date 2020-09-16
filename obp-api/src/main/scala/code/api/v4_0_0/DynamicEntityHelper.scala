@@ -308,13 +308,13 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
           case _ => false
         }
       )
-      if(descriptions.nonEmpty) {
-        descriptions
-          .map(field => s"""<li> ${field.name}: ${(field.value \ "description").asInstanceOf[JString].s}</li>""")
-          .mkString("**Property List:** \n<ul>", "\n", "</ul>")
-      } else {
-        ""
-      }
+    if(descriptions.nonEmpty) {
+      descriptions
+        .map(field => s"""* ${field.name}: ${(field.value \ "description").asInstanceOf[JString].s}""")
+        .mkString("**Property List:** \n", "\n", "")
+    } else {
+      ""
+    }
   }
 
   def toResponse(result: JObject, id: Option[String]): JObject = {
