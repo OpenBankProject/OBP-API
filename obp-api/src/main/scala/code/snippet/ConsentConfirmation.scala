@@ -125,15 +125,7 @@ class ConsentConfirmation extends MdcLoggable {
         }
       }
 
-      { // grant checked consents
-        val grantAccessIds: List[ViewIdBankIdAccountId] = for {
-          consent <- consents
-          accountId <- accountIds
-        } yield ViewIdBankIdAccountId(ViewId(consent), BankId(bankId.orNull), AccountId(accountId))
-        MxOfUtil.grantAccessToViews(currentUser, grantAccessIds)
-      }
-
-      { // revoke unchecked consents
+      { // revoke all consents for all accounts
 
         // AuthUser.hydraConsents is just the follow values, read from props
         //ViewId: six fixed
@@ -144,16 +136,28 @@ class ConsentConfirmation extends MdcLoggable {
         //"ReadTransactionsDebits"
         //"ReadTransactionsDetail"
 
-        // all not checked checkbox consents: all consents exclude checked consents
-        val notCheckedConsents = AuthUser.hydraConsents.diff(consents)
-
+        val bankIdAccountIdsFuture: Future[List[BankIdAccountId]] = for {
+          availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(currentUser)
+          (accounts, _) <- NewStyle.function.getCoreBankAccountsFuture(availablePrivateAccounts, None)
+        } yield {
+          accounts.map(account => BankIdAccountId(BankId(account.bankId), AccountId(account.id)))
+        }
+        // all the BankIdAccountId for current user
+        val bankIdAccountIds = Await.result(bankIdAccountIdsFuture, Duration(30, SECONDS))
         val revokeAccessIds: List[ViewIdBankIdAccountId] = for {
-          consent <- notCheckedConsents
-          accountId <- accountIds
-        } yield ViewIdBankIdAccountId(ViewId(consent), BankId(bankId.orNull), AccountId(accountId))
+          consent <- AuthUser.hydraConsents
+          bankIdAccountId <- bankIdAccountIds
+        } yield ViewIdBankIdAccountId(ViewId(consent), bankIdAccountId.bankId, bankIdAccountId.accountId)
         MxOfUtil.revokeAccessToViews(currentUser, revokeAccessIds)
       }
 
+      { // grant checked consents
+        val grantAccessIds: List[ViewIdBankIdAccountId] = for {
+          consent <- consents
+          accountId <- accountIds
+        } yield ViewIdBankIdAccountId(ViewId(consent), BankId(bankId.orNull), AccountId(accountId))
+        MxOfUtil.grantAccessToViews(currentUser, grantAccessIds)
+      }
 
       // inform hydra
         val consentRequest = new AcceptConsentRequest()
