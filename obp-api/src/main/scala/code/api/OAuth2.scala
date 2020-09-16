@@ -131,7 +131,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
           case false => (user, Some(cc.copy(consumer = consumer)))
         }
       } else {
-        (Failure(Oauth2IJwtCannotBeVerified), Some(cc))
+        (Failure(Oauth2IJwtCannotBeVerified), Some(cc.copy(consumer = Failure(Oauth2IJwtCannotBeVerified))))
       }
     }
     def applyRulesFuture(value: String, cc: CallContext): Future[(Box[User], Some[CallContext])] = Future {

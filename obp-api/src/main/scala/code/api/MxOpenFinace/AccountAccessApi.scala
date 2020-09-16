@@ -8,6 +8,7 @@ import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{ApiTag, ConsentJWT, JwtUtil, NewStyle}
 import code.consent.Consents
+import code.users.Users
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.common.Full
@@ -80,14 +81,18 @@ object APIMethods_AccountAccessApi extends RestHelper {
        case "account-access-consents" :: Nil JsonPost postJson -> _  => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(consumer), callContext) <- applicationAccess(cc)
+             userId = consumer.createdByUserId.get
+             user <- Users.users.vend.getUserByUserIdFuture(userId) map {
+               x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId($userId)")
+             }
              failMsg = s"$InvalidJsonFormat The Json body should be the $ConsentPostBodyMXOFV001 "
              consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                postJson.extract[ConsentPostBodyMXOFV001]
              }
              
              createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
-               u,
+               user,
                bankId = None,
                accountIds = None,
                consumerId = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")),

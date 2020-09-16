@@ -2629,6 +2629,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  def applicationAccess(cc: CallContext): Future[(Box[Consumer], Option[CallContext])] = {
+    getUserAndSessionContextFuture(cc) map { result =>
+      val consumer = if (result._2.isDefined) result._2.map(_.consumer).get else Empty
+      (
+        fullBoxOrException(consumer ~> APIFailureNewStyle(ApplicationNotIdentified, 401, Some(cc.toLight))),
+        result._2
+      )
+    }
+  }
+
   def filterMessage(obj: Failure): String = {
     logger.debug("Failure: " + obj)
 

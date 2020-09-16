@@ -175,6 +175,7 @@ object ErrorMessages {
   val Oauth2BadJOSEException = "OBP-20206: Bad JSON Object Signing and Encryption (JOSE) exception. The ID token is invalid or expired. "
   val Oauth2JOSEException = "OBP-20207: Bad JSON Object Signing and Encryption (JOSE) exception. An internal JOSE exception was encountered. "
   val Oauth2CannotMatchIssuerAndJwksUriException = "OBP-20208: Cannot match the issuer and JWKS URI at this server instance. "
+  val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
 
   // X.509
   val X509GeneralError = "OBP-20300: PEM Encoded Certificate issue."
