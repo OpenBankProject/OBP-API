@@ -1720,6 +1720,7 @@ trait Connector extends MdcLoggable {
   def createCounterparty(
                           name: String,
                           description: String,
+                          currency: String,
                           createdByUserId: String,
                           thisBankId: String,
                           thisAccountId: String,

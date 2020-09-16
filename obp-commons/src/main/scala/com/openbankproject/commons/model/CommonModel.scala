@@ -283,6 +283,7 @@ case class CounterpartyTraitCommons(
                                      createdByUserId :String,
                                      name :String,
                                      description :String,
+                                     currency: String,
                                      thisBankId :String,
                                      thisAccountId :String,
                                      thisViewId :String,

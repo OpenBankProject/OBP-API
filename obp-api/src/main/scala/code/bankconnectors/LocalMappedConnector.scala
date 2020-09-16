@@ -1194,8 +1194,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         saveHistoricalTransaction(fromAccount, toAccount, posted, completed, fromTransAmt, description, transactionRequestType, chargePolicy, callContext)
           .map(debitTransactionId => (fromAccount.bankId, fromAccount.accountId, debitTransactionId))
           .or {
-            val settlementAccount = BankAccountX(toAccount.bankId, AccountId(transactionRequestType), callContext)
-              .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
+            // If we don't find any corresponding obp account, we debit a bank settlement account
+            val settlementAccount = {
+              // We first look for a specific settlement account regarding the payment system (SEPA, ...) used and the currency
+              BankAccountX(toAccount.bankId, AccountId(transactionRequestType + "_SETTLEMENT_ACCOUNT_" + fromAccount.currency), callContext)
+                // If it doesn't exist, we look for a default settlement account regarding the currency
+                .or(BankAccountX(toAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + fromAccount.currency), callContext))
+                // If no specific settlement account exist for this currency, we use the default incoming account (EUR)
+                .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
+            }
             settlementAccount.flatMap(settlementAccount =>
               saveHistoricalTransaction(settlementAccount._1, toAccount, posted, completed, fromTransAmt, description, transactionRequestType, chargePolicy, callContext)
                 .map(debitTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, debitTransactionId))
@@ -1206,8 +1213,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         saveHistoricalTransaction(toAccount, fromAccount, posted, completed, toTransAmt, description, transactionRequestType, chargePolicy, callContext)
           .map(creditTransactionId => (toAccount.bankId, toAccount.accountId, creditTransactionId))
           .or {
-            val settlementAccount = BankAccountX(fromAccount.bankId, AccountId(transactionRequestType), callContext)
-              .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
+            // If we don't find any corresponding obp account, we credit a bank settlement account
+            val settlementAccount =
+              // We first look for a specific settlement account regarding the payment system (SEPA, ...) used and the currency
+              BankAccountX(fromAccount.bankId, AccountId(transactionRequestType + "_SETTLEMENT_ACCOUNT_" + toAccount.currency), callContext)
+                // If it doesn't exist, we look for a default settlement account regarding the currency
+                .or(BankAccountX(fromAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + toAccount.currency), callContext))
+                // If no specific settlement account exist for this currency, we use the default outgoing account (EUR)
+                .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
             settlementAccount.flatMap(settlementAccount =>
               saveHistoricalTransaction(settlementAccount._1, fromAccount, posted, completed, toTransAmt, description, transactionRequestType, chargePolicy, callContext)
                 .map(creditTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, creditTransactionId))
@@ -1317,8 +1330,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         saveTransaction(fromAccount, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
           .map(debitTransactionId => (fromAccount.bankId, fromAccount.accountId, debitTransactionId))
           .or {
-            val settlementAccount = BankAccountX(toAccount.bankId, AccountId(transactionRequestType.value), callContext)
-              .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
+            // If we don't find any corresponding obp account, we debit a bank settlement account
+            val settlementAccount =
+              // We first look for a specific settlement account regarding the payment system (SEPA, ...) used and the currency
+              BankAccountX(toAccount.bankId, AccountId(transactionRequestType + "_SETTLEMENT_ACCOUNT_" + fromAccount.currency), callContext)
+                // If it doesn't exist, we look for a default settlement account regarding the currency
+                .or(BankAccountX(toAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + fromAccount.currency), callContext))
+                // If no specific settlement account exist for this currency, we use the default incoming account (EUR)
+                .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
             settlementAccount.flatMap(settlementAccount =>
               saveTransaction(settlementAccount._1, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
                 .map(debitTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, debitTransactionId))
@@ -1329,8 +1348,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         saveTransaction(toAccount, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
           .map(creditTransactionId => (toAccount.bankId, toAccount.accountId, creditTransactionId))
           .or {
-            val settlementAccount = BankAccountX(fromAccount.bankId, AccountId(transactionRequestType.value), callContext)
-              .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
+            // If we don't find any corresponding obp account, we credit a bank settlement account
+            val settlementAccount =
+            // We first look for a specific settlement account regarding the payment system (SEPA, ...) used and the currency
+              BankAccountX(fromAccount.bankId, AccountId(transactionRequestType + "_SETTLEMENT_ACCOUNT_" + toAccount.currency), callContext)
+                // If it doesn't exist, we look for a default settlement account regarding the currency
+                .or(BankAccountX(fromAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + toAccount.currency), callContext))
+                // If no specific settlement account exist for this currency, we use the default outgoing account (EUR)
+                .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
             settlementAccount.flatMap(settlementAccount =>
               saveTransaction(settlementAccount._1, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
                 .map(creditTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, creditTransactionId))
@@ -2585,6 +2610,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def createCounterparty(
                                    name: String,
                                    description: String,
+                                   currency: String,
                                    createdByUserId: String,
                                    thisBankId: String,
                                    thisAccountId: String,
@@ -2616,6 +2642,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       otherAccountSecondaryRoutingScheme = otherAccountSecondaryRoutingScheme,
       otherAccountSecondaryRoutingAddress = otherAccountSecondaryRoutingAddress,
       description = description,
+      currency = currency,
       bespoke = bespoke
     ).map(counterparty => (counterparty, callContext))
 

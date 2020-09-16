@@ -38,7 +38,7 @@ object APIMethods_CustomerApi extends RestHelper {
             Obtain basic information on the customer that has authorised the current session
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "person" : {
@@ -133,7 +133,7 @@ object APIMethods_CustomerApi extends RestHelper {
             Obtain detailed information on the authorised customer within the current session.
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "person" : "",

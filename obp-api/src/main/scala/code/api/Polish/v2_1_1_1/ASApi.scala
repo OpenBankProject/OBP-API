@@ -1843,7 +1843,7 @@ Requests OAuth2 authorization code based One-time authorization code issued by E
   "state" : "state",
   "client_id" : "client_id"
 }"""),
-       json.parse(""""""),
+       emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AS") :: apiTagMockedData :: Nil

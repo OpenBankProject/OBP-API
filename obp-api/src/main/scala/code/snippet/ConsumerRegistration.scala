@@ -258,9 +258,10 @@ class ConsumerRegistration extends MdcLoggable {
               oAuth2Client.setClientSecret(x.secret.get)
               val allConsents = "openid" :: "offline" :: AuthUser.hydraConsents
               oAuth2Client.setScope(allConsents.mkString(" "))
-              oAuth2Client.setGrantTypes(("authorization_code" :: "refresh_token" :: Nil).asJava)
+              oAuth2Client.setGrantTypes(("authorization_code" :: "refresh_token" :: "implicit" :: Nil).asJava)
 
-              oAuth2Client.setResponseTypes(("code" :: "id_token" :: Nil).asJava)
+              oAuth2Client.setResponseTypes(("code" :: "id_token" :: "token" :: Nil).asJava)
+//              oAuth2Client.setAudience(("http://localhost:8081":: Nil).asJava)
               oAuth2Client.setRedirectUris(List(x.redirectURL.get).asJava)
               oAuth2Client.setTokenEndpointAuthMethod("client_secret_post")
               AuthUser.hydraAdmin.createOAuth2Client(oAuth2Client)

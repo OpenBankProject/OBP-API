@@ -52,6 +52,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       otherAccountSecondaryRoutingScheme ="IBAN",
       otherAccountSecondaryRoutingAddress ="DE89 3704 0044 0532 0130 00",
       description = "String",
+      currency = "String",
       bespoke = Nil
     ).openOrThrowException(attemptedToOpenAnEmptyBox)
   }

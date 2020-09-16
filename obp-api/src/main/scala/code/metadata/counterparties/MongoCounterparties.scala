@@ -127,6 +127,7 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
                                    otherAccountSecondaryRoutingScheme: String,
                                    otherAccountSecondaryRoutingAddress: String,
                                    description: String,
+                                   currency: String,
                                    bespoke: List[CounterpartyBespoke]
                                  ): Box[CounterpartyTrait] = Empty
 

@@ -36,7 +36,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
        "Get Direct Debits",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -137,7 +137,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
        "Get Direct Debits",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
