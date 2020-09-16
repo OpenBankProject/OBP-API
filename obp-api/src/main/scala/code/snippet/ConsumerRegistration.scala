@@ -27,17 +27,17 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import code.api.DirectLogin
-import code.api.util.ErrorMessages.{CreateConsumerError, CreateOAuth2ConsumerError}
+import code.api.util.ErrorMessages.CreateOAuth2ConsumerError
 import code.api.util.{APIUtil, ErrorMessages}
 import code.consumer.Consumers
 import code.model._
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, FieldError, Helpers}
-import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import org.apache.commons.lang3.StringUtils
 import sh.ory.hydra.model.OAuth2Client
 
@@ -258,10 +258,10 @@ class ConsumerRegistration extends MdcLoggable {
               oAuth2Client.setClientSecret(x.secret.get)
               val allConsents = "openid" :: "offline" :: AuthUser.hydraConsents
               oAuth2Client.setScope(allConsents.mkString(" "))
-              oAuth2Client.setGrantTypes(("authorization_code" :: "refresh_token" :: "implicit" :: Nil).asJava)
 
+              oAuth2Client.setGrantTypes(("authorization_code" :: "client_credentials" :: "refresh_token" :: "implicit" :: Nil).asJava)
               oAuth2Client.setResponseTypes(("code" :: "id_token" :: "token" :: Nil).asJava)
-//              oAuth2Client.setAudience(("http://localhost:8081":: Nil).asJava)
+
               oAuth2Client.setRedirectUris(List(x.redirectURL.get).asJava)
               oAuth2Client.setTokenEndpointAuthMethod("client_secret_post")
               AuthUser.hydraAdmin.createOAuth2Client(oAuth2Client)
