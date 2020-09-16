@@ -122,33 +122,16 @@ object OAuth2Login extends RestHelper with MdcLoggable {
     }
     
     def applyRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
-      validateAccessToken(value) match {
-        case Full(_) =>
-          val introspectOAuth2Token: OAuth2TokenIntrospection = AuthUser.hydraAdmin.introspectOAuth2Token(value, null)
-          if (introspectOAuth2Token.getActive) {
-            val user = Users.users.vend.getUserByUserName(introspectOAuth2Token.getSub)
-            val consumer = consumers.vend.getConsumerByConsumerKey(introspectOAuth2Token.getClientId)
-            LoginAttempt.userIsLocked(user.map(_.name).getOrElse("")) match {
-              case true => ((Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer))))
-              case false => (user, Some(cc.copy(consumer = consumer)))
-            }
-          } else {
-            (Failure(Oauth2IJwtCannotBeVerified), Some(cc))
-          }
-        case ParamFailure(a, b, c, apiFailure : APIFailure) =>
-          (ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc))
-        case Failure(msg, t, c) =>
-          (Failure(msg, t, c), Some(cc))
-        case _ =>
-          (Failure(Oauth2IJwtCannotBeVerified), Some(cc))
-      }
-      
       val introspectOAuth2Token: OAuth2TokenIntrospection = AuthUser.hydraAdmin.introspectOAuth2Token(value, null)
-      val user = Users.users.vend.getUserByUserName(introspectOAuth2Token.getSub)
-      val consumer = consumers.vend.getConsumerByConsumerKey(introspectOAuth2Token.getClientId)
-      LoginAttempt.userIsLocked(user.map(_.name).getOrElse("")) match {
-        case true => ((Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer))))
-        case false => (user, Some(cc.copy(consumer = consumer)))
+      if (introspectOAuth2Token.getActive) {
+        val user = Users.users.vend.getUserByUserName(introspectOAuth2Token.getSub)
+        val consumer = consumers.vend.getConsumerByConsumerKey(introspectOAuth2Token.getClientId)
+        LoginAttempt.userIsLocked(user.map(_.name).getOrElse("")) match {
+          case true => ((Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer))))
+          case false => (user, Some(cc.copy(consumer = consumer)))
+        }
+      } else {
+        (Failure(Oauth2IJwtCannotBeVerified), Some(cc))
       }
     }
     def applyRulesFuture(value: String, cc: CallContext): Future[(Box[User], Some[CallContext])] = Future {
