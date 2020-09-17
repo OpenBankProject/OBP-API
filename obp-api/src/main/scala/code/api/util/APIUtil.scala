@@ -2541,7 +2541,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       x => (x._1, x._2.map(_.copy(ipAddress = remoteIpAddress)))
     }  map {
       x => (x._1, x._2.map(_.copy(httpBody = body.toOption)))
-    } 
+    } map { // Inject logged in user into CallContext data
+      x => (x._1, x._2.map(_.copy(user = x._1)))
+    }
     
   }
 

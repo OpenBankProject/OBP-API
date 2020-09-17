@@ -126,9 +126,13 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       if (introspectOAuth2Token.getActive) {
         val user = Users.users.vend.getUserByUserName(introspectOAuth2Token.getSub)
         val consumer = consumers.vend.getConsumerByConsumerKey(introspectOAuth2Token.getClientId)
-        LoginAttempt.userIsLocked(user.map(_.name).getOrElse("")) match {
-          case true => ((Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer))))
-          case false => (user, Some(cc.copy(consumer = consumer)))
+        user match {
+          case Full(u) =>
+            LoginAttempt.userIsLocked(u.name) match {
+              case true => (Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer)))
+              case false => (Full(u), Some(cc.copy(consumer = consumer)))
+            }
+          case _ => (user, Some(cc.copy(consumer = consumer)))
         }
       } else {
         (Failure(Oauth2IJwtCannotBeVerified), Some(cc.copy(consumer = Failure(Oauth2IJwtCannotBeVerified))))

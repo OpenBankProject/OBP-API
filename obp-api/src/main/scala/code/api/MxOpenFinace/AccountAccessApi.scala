@@ -11,7 +11,8 @@ import code.consent.Consents
 import code.users.Users
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import net.liftweb.common.Full
+import com.openbankproject.commons.model.User
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
@@ -82,17 +83,21 @@ object APIMethods_AccountAccessApi extends RestHelper {
          cc =>
            for {
              (Full(consumer), callContext) <- applicationAccess(cc)
-             userId = consumer.createdByUserId.get
-             user <- Users.users.vend.getUserByUserIdFuture(userId) map {
-               x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId($userId)")
+             createdByUser <- callContext.map(_.user).getOrElse(Empty) match {
+               case Full(user) => 
+                 Future(user)
+               case _ =>
+                 val userId = consumer.createdByUserId.get
+                 Users.users.vend.getUserByUserIdFuture(userId) map {
+                   x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId($userId)")
+                 }
              }
              failMsg = s"$InvalidJsonFormat The Json body should be the $ConsentPostBodyMXOFV001 "
              consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                postJson.extract[ConsentPostBodyMXOFV001]
              }
-             
              createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
-               user,
+               createdByUser,
                bankId = None,
                accountIds = None,
                consumerId = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")),
