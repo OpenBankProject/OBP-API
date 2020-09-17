@@ -121,7 +121,7 @@ class ConsentConfirmation extends MdcLoggable {
         val consent: Box[Consent] = {
           val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(consentResponse.getClient.getClientId)
           val consumerId = consumer.map(_.consumerId.get)
-          Consents.consentProvider.vend.saveUKConsent(currentUser, bankId, accountIdsOpt, consumerId, consents, expirationDate, fromDate, toDate, Some("MXOpenFinance"), Some("0.0.1"))
+          Consents.consentProvider.vend.saveUKConsent(Some(currentUser), bankId, accountIdsOpt, consumerId, consents, expirationDate, fromDate, toDate, Some("MXOpenFinance"), Some("0.0.1"))
         }
       }
 

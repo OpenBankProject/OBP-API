@@ -34,7 +34,7 @@ trait ConsentProvider {
     combinedServiceIndicator: Boolean): Box[Consent]
 
   def saveUKConsent(
-    user: User,
+    user: Option[User],
     bankId: Option[String],//for UK Open Banking endpoints, there is no BankId there.
     accountIds: Option[List[String]],//for UK Open Banking endpoints, there is no accountIds there.
     consumerId: Option[String],

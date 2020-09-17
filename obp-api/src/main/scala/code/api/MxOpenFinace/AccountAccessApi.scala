@@ -82,15 +82,10 @@ object APIMethods_AccountAccessApi extends RestHelper {
        case "account-access-consents" :: Nil JsonPost postJson -> _  => {
          cc =>
            for {
-             (Full(consumer), callContext) <- applicationAccess(cc)
-             createdByUser <- callContext.map(_.user).getOrElse(Empty) match {
-               case Full(user) => 
-                 Future(user)
-               case _ =>
-                 val userId = consumer.createdByUserId.get
-                 Users.users.vend.getUserByUserIdFuture(userId) map {
-                   x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId($userId)")
-                 }
+             (_, callContext) <- applicationAccess(cc)
+             createdByUser: Option[User] <- callContext.map(_.user).getOrElse(Empty) match {
+               case Full(user) => Future(Some(user))
+               case _ => Future(None)
              }
              failMsg = s"$InvalidJsonFormat The Json body should be the $ConsentPostBodyMXOFV001 "
              consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {

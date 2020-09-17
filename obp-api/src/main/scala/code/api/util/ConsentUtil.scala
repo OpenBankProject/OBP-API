@@ -459,7 +459,7 @@ object Consent {
   }
   
   def createUKConsentJWT(
-    user: User,
+    user: Option[User],
     bankId: Option[String],
     accountIds: Option[List[String]],
     permissions: List[String],
@@ -471,7 +471,8 @@ object Consent {
     consumerId: Option[String]
   ): String = {
 
-    lazy val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
+    val createdByUserId = user.map(_.userId).getOrElse("None")
+    val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, createdByUserId)).map(_.consumerId.get).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     val validUntilTimeInSeconds = expirationDateTime.getTime() / 1000
     
@@ -499,7 +500,7 @@ object Consent {
     }
 
     val json = ConsentJWT(
-      createdByUserId = user.userId,
+      createdByUserId = createdByUserId,
       sub = APIUtil.generateUUID(),
       iss = Constant.HostName,
       aud = consumerId.getOrElse(currentConsumerId),

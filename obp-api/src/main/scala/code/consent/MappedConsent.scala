@@ -80,7 +80,7 @@ object MappedConsentProvider extends ConsentProvider {
   }
 
   override def saveUKConsent(
-    user: User,
+    user: Option[User],
     bankId: Option[String],//for UK Open Banking endpoints, there is no BankId there.
     accountIds: Option[List[String]],//for UK Open Banking endpoints, there is no accountIds there.
     consumerId: Option[String],
@@ -94,7 +94,7 @@ object MappedConsentProvider extends ConsentProvider {
     tryo {
       val consent = MappedConsent
         .create
-        .mUserId(user.userId)
+        .mUserId(user.map(_.userId).getOrElse(null))
         .mStatus(ConsentStatus.AUTHORISED.toString)
         .mExpirationDateTime(expirationDateTime)
         .mTransactionFromDateTime(transactionFromDateTime)
@@ -104,7 +104,7 @@ object MappedConsentProvider extends ConsentProvider {
         .mApiStandard(apiStandard.getOrElse(null))
         .saveMe()
       val jwt = Consent.createUKConsentJWT(
-        user: User,
+        user: Option[User],
         bankId: Option[String],
         accountIds: Option[List[String]],
         permissions: List[String],
