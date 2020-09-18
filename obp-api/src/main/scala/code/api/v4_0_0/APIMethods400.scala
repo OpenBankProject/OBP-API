@@ -2408,6 +2408,59 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
+      revokeGrantUserAccessToViews,
+      implementedInApiVersion,
+      "revokeGrantUserAccessToViews",
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access",
+      "Revoke/Grant User access to View",
+      s"""Revoke the User identified by USER_ID access to the view identified by json.
+         |
+         |${authenticationRequiredMessage(true)} and the user needs to be account holder.
+         |
+         |""",
+      postRevokeGrantAccountAccessJsonV400,
+      revokedJsonV400,
+      List(
+        $UserNotLoggedIn,
+        UserMissOwnerViewOrNotAccountHolder,
+        InvalidJsonFormat,
+        UserNotFoundById,
+        SystemViewNotFound,
+        ViewNotFound,
+        CannotRevokeAccountAccess,
+        CannotFindAccountAccess,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
+
+    lazy val revokeGrantUserAccessToViews : OBPEndpoint = {
+      //add access for specific user to a specific system view
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account-access" :: Nil JsonPut json -> _ => {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $PostAccountAccessJsonV400 "
+          for {
+            postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[PostRevokeGrantAccountAccessJsonV400]
+            }
+            _ <- NewStyle.function.canRevokeAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
+            (user, callContext) <- NewStyle.function.findByUserId(cc.loggedInUser.userId, cc.callContext)
+            revokeViews = for (viewId <- postJson.revoke_views) yield ViewIdBankIdAccountId(ViewId(viewId), bankId, accountId)
+            _ <- Future(Views.views.vend.revokeAccessToMultipleViews(revokeViews, user)) map {
+              unboxFullOrFail(_, callContext, s"Cannot revoke the views: ${postJson.grant_views.mkString(",")}")
+            }
+            grantViews = for (viewId <- postJson.grant_views) yield ViewIdBankIdAccountId(ViewId(viewId), bankId, accountId)
+            _ <- Future(Views.views.vend.grantAccessToMultipleViews(grantViews, user)) map {
+              unboxFullOrFail(_, callContext, s"Cannot grant the views: ${postJson.grant_views.mkString(",")}")
+            }
+          } yield {
+            (RevokedJsonV400(true), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
       createCustomerAttribute,
       implementedInApiVersion,
       nameOf(createCustomerAttribute),

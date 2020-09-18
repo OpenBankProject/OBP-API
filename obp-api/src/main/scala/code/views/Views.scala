@@ -43,6 +43,7 @@ trait Views {
   def grantAccessToCustomView(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
   def grantAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[View]
   def grantAccessToMultipleViews(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
+  def revokeAccessToMultipleViews(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
   def revokeAccess(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
   def revokeAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean]
   def revokeAllAccountAccesses(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
@@ -122,6 +123,7 @@ class RemotedataViewsCaseClasses {
   case class addPermission(viewUID: ViewIdBankIdAccountId, user: User)
   case class addSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User)
   case class addPermissions(views: List[ViewIdBankIdAccountId], user: User)
+  case class revokePermissions(views: List[ViewIdBankIdAccountId], user: User)
   case class revokePermission(viewUID: ViewIdBankIdAccountId, user: User)
   case class revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User)
   case class revokeAllAccountAccesses(bankId: BankId, accountId: AccountId, user: User)
