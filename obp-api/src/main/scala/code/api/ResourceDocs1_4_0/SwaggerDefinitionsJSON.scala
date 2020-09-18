@@ -16,7 +16,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, BankJson400, BanksJson400, ChallengeJsonV400, CounterpartiesJson400, CounterpartyJson400, CounterpartyWithMetadataJson400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, LogoutLinkJson, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, SettlementAccountJson, SettlementAccountRequestJson, SettlementAccountResponseJson, SettlementAccountsJson, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, TransactionRequestBodySEPAJsonV400, TransactionRequestReasonJsonV400, TransactionRequestWithChargeJSON400, UserLockStatusJson, When, PostCounterpartyJson400}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, BankJson400, BanksJson400, ChallengeJsonV400, CounterpartiesJson400, CounterpartyJson400, CounterpartyWithMetadataJson400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, LogoutLinkJson, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCounterpartyJson400, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostRevokeGrantAccountAccessJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, SettlementAccountJson, SettlementAccountRequestJson, SettlementAccountResponseJson, SettlementAccountsJson, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, TransactionRequestBodySEPAJsonV400, TransactionRequestReasonJsonV400, TransactionRequestWithChargeJSON400, UserLockStatusJson, When}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
@@ -3790,6 +3790,8 @@ object SwaggerDefinitionsJSON {
 
   val postAccountAccessJsonV400 = PostAccountAccessJsonV400(userIdExample.value, PostViewJsonV400(ExampleValue.viewIdExample.value, true))
   val revokedJsonV400 = RevokedJsonV400(true)
+
+  val postRevokeGrantAccountAccessJsonV400 = PostRevokeGrantAccountAccessJsonV400(List("ReadAccountsBasic"), List("ReadAccountsDetail"))
   
   val transactionRequestBodyRefundJsonV400 = TransactionRequestBodyRefundJsonV400(
     to = transactionRequestAccountJsonV140,

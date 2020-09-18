@@ -18,6 +18,10 @@ object RemotedataViews extends ObpActorInit with Views {
   def grantAccessToMultipleViews(views: List[ViewIdBankIdAccountId], user: User): Box[List[View]] = getValueFromFuture(
     (actor ? cc.addPermissions(views, user)).mapTo[Box[List[View]]]
   )
+  
+  def revokeAccessToMultipleViews(views: List[ViewIdBankIdAccountId], user: User): Box[List[View]] = getValueFromFuture(
+    (actor ? cc.revokePermissions(views, user)).mapTo[Box[List[View]]]
+  )
 
   def permission(account: BankIdAccountId, user: User): Box[Permission] = getValueFromFuture(
     (actor ? cc.permission(account, user)).mapTo[Box[Permission]]

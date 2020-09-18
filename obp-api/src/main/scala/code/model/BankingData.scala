@@ -563,9 +563,12 @@ object BankAccountX {
         if (counterparty.otherAccountSecondaryRoutingScheme.isEmpty) Nil
         else List(AccountRouting(counterparty.otherAccountSecondaryRoutingScheme, counterparty.otherAccountSecondaryRoutingAddress))
 
+      // Due to the new field in the database, old counterparty have void currency, so by default, we set it to EUR
+      val counterpartyCurrency = if (counterparty.currency.nonEmpty) counterparty.currency else "EUR"
+
       Full(BankAccountCommons(
         AccountId(""), "", 0,
-        currency = counterparty.currency
+        currency = counterpartyCurrency
         , "", "", "", BankId(""), new Date(), "",
         accountRoutings = accountRouting1 ++ accountRouting2,
         List.empty, accountHolder = counterparty.name,
