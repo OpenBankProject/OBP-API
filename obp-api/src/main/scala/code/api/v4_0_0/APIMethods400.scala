@@ -2414,9 +2414,9 @@ trait APIMethods400 {
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access",
       "Revoke/Grant User access to View",
-      s"""Revoke the User identified by USER_ID access to the view identified by json.
+      s"""Revoke/Grant the logged in User access to the views identified by json.
          |
-         |${authenticationRequiredMessage(true)} and the user needs to be account holder.
+         |${authenticationRequiredMessage(true)} and the user needs to be an account holder or has owner view access.
          |
          |""",
       postRevokeGrantAccountAccessJsonV400,
@@ -2446,9 +2446,8 @@ trait APIMethods400 {
             }
             _ <- NewStyle.function.canRevokeAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
             (user, callContext) <- NewStyle.function.findByUserId(cc.loggedInUser.userId, cc.callContext)
-            revokeViews = for (viewId <- postJson.revoke_views) yield ViewIdBankIdAccountId(ViewId(viewId), bankId, accountId)
-            _ <- Future(Views.views.vend.revokeAccessToMultipleViews(revokeViews, user)) map {
-              unboxFullOrFail(_, callContext, s"Cannot revoke the views: ${postJson.grant_views.mkString(",")}")
+           _ <- Future(Views.views.vend.revokeAccountAccessesByUser(bankId, accountId, user)) map {
+              unboxFullOrFail(_, callContext, s"Cannot revoke")
             }
             grantViews = for (viewId <- postJson.grant_views) yield ViewIdBankIdAccountId(ViewId(viewId), bankId, accountId)
             _ <- Future(Views.views.vend.grantAccessToMultipleViews(grantViews, user)) map {

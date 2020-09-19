@@ -283,6 +283,21 @@ object MapperViews extends Views with MdcLoggable {
 
   }
 
+  def revokeAccountAccessesByUser(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
+    canRevokeAccessToViewCommon(bankId, accountId, user) match {
+      case true =>
+        val permissions = AccountAccess.findAll(
+          By(AccountAccess.user_fk, user.userPrimaryKey.value),
+          By(AccountAccess.bank_id, bankId.value),
+          By(AccountAccess.account_id, accountId.value)
+        )
+        permissions.foreach(_.delete_!)
+        Full(true)
+      case false =>
+        Failure(CannotRevokeAccountAccess)
+    }
+  }
+
   def customView(viewId : ViewId, account: BankIdAccountId) : Box[View] = {
     val view = ViewDefinition.findCustomView(account.bankId.value, account.accountId.value, viewId.value)
     if(view.isDefined && view.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
