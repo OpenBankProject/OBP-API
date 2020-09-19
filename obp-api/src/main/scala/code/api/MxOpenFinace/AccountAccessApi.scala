@@ -93,7 +93,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
              }
              createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
                createdByUser,
-               bankId = None,
+               bankId = Option(consentJson.Data.BankId),
                accountIds = None,
                consumerId = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")),
                permissions = consentJson.Data.Permissions,
