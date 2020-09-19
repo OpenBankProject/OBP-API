@@ -519,6 +519,24 @@ object Consent {
     CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)
   }
 
+  private def checkConsumerIsActiveAndMatchedUK(consent: ConsentJWT, consumerIdOfLoggedInUser: Option[String]): Box[Boolean] = {
+    Consumers.consumers.vend.getConsumerByConsumerId(consent.aud) match {
+      case Full(consumerFromConsent) if consumerFromConsent.isActive.get == true => // Consumer is active
+        consumerIdOfLoggedInUser match {
+          case Some(consumerId) =>
+            if (consumerId == consumerFromConsent.consumerId.get)
+              Full(true) // This consent can be used by current application
+            else // This consent can NOT be used by current application
+              Failure(ErrorMessages.ConsentDoesNotMatchConsumer)
+          case None => Failure(ErrorMessages.ConsumerNotFound) // Consumer cannot be found by logged in user
+        }
+      case Full(consumerFromConsent) if consumerFromConsent.isActive.get == false => // Consumer is NOT active
+        Failure(ErrorMessages.ConsumerAtConsentDisabled + " aud: " + consent.aud)
+      case _ => // There is NO Consumer
+        Failure(ErrorMessages.ConsumerAtConsentCannotBeFound + " aud: " + consent.aud)
+    }
+  }
+
 
   def checkUKConsent(user: User, calContext: Option[CallContext]): Box[Boolean] = {
     val consumerIdOfLoggedInUser = calContext.flatMap(_.consumer.map(_.consumerId.get)).getOrElse("None")
@@ -543,13 +561,13 @@ object Consent {
           case currentTimeMillis if currentTimeMillis > c.expirationDateTime.getTime =>
             Failure(ErrorMessages.ConsentExpiredIssue)
           case _ =>
-            val consumerKeyOfLoggedInUser: Option[String] = calContext.flatMap(_.consumer.map(_.key.get))
+            val consumerIdOfLoggedInUser: Option[String] = calContext.flatMap(_.consumer.map(_.consumerId.get))
             implicit val dateFormats = CustomJsonFormats.formats
             val consent: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(c.jsonWebToken)
               .map(parse(_).extract[ConsentJWT])
-            checkConsumerIsActiveAndMatched(
+            checkConsumerIsActiveAndMatchedUK(
               consent.openOrThrowException("Parsing of the consent failed."), 
-              consumerKeyOfLoggedInUser
+              consumerIdOfLoggedInUser
             )
         }
       case Some(c) if c.mStatus != ConsentStatus.AUTHORISED.toString =>
