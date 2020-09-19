@@ -6,6 +6,7 @@ import code.api.Constant
 import code.api.util.CustomJsonFormats
 import code.model.{ModeratedBankAccountCore, ModeratedTransaction}
 import com.openbankproject.commons.model._
+import net.liftweb.common.Box
 import net.liftweb.json.JValue
 
 import scala.collection.immutable.List
@@ -216,24 +217,35 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
     )
     ReadAccountBasicMXOFV001(Meta = meta, Links = links, Data = DataAccountBasicMXOFV001(Account = List(accountBasic)))
   }
-  def createReadAccountsBasicJsonMXOFV10(accounts : List[BankAccount]): ReadAccountBasicMXOFV001 = {
+  def createReadAccountsBasicJsonMXOFV10(accounts : List[(BankAccount, View)],
+                                         moderatedAttributes: List[AccountAttribute]): ReadAccountBasicMXOFV001 = {
     val accountsBasic = accounts.map(account =>
       AccountBasicMXOFV001(
-        AccountId = account.accountId.value,
-        Status = "",
-        StatusUpdateDateTime = "",
-        Currency = account.currency,
-        AccountType = account.accountType,
-        AccountSubType = "",
-        AccountIndicator = "",
-        OnboardingType = None,
-        Nickname = Some(account.label),
-        OpeningDate = None,
-        MaturityDate = None,
-        Account = account.accountRoutings.headOption.map(e =>
-          AccountDetailMXOFV001(SchemeName = e.scheme, Identification = e.address, None)
-        ),
-        Servicer = None
+        AccountId = account._1.accountId.value,
+        Status = extractAttributeValue("Status", account._1.bankId, account._1.accountId, moderatedAttributes),
+        StatusUpdateDateTime = extractAttributeValue("StatusUpdateDateTime", account._1.bankId, account._1.accountId, moderatedAttributes),
+        Currency = account._1.currency,
+        AccountType = account._1.accountType,
+        AccountSubType = extractAttributeValue("AccountSubType", account._1.bankId, account._1.accountId, moderatedAttributes),
+        AccountIndicator = extractAttributeValue("AccountIndicator", account._1.bankId, account._1.accountId, moderatedAttributes),
+        OnboardingType = extractOptionalAttributeValue("OnboardingType", account._1.bankId, account._1.accountId, moderatedAttributes),
+        Nickname = Some(account._1.label),
+        OpeningDate = extractOptionalAttributeValue("OpeningDate", account._1.bankId, account._1.accountId, moderatedAttributes),
+        MaturityDate = extractOptionalAttributeValue("MaturityDate", account._1.bankId, account._1.accountId, moderatedAttributes),
+        Account = account._2.viewId.value match {
+          case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
+            account._1.accountRoutings.headOption.map(e =>
+              AccountDetailMXOFV001(SchemeName = e.scheme, Identification = e.address, None)
+            )
+          case _ =>
+            None
+        },
+        Servicer = account._2.viewId.value match {
+          case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
+            None
+          case _ =>
+            None
+        }
       )
     )
     val links = LinksMXOFV001(
