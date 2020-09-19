@@ -198,7 +198,12 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
       },
       Servicer = view.viewId.value match {
         case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
-          None
+          Some(
+            ServicerMXOFV001(
+              SchemeName = extractAttributeValue("Servicer_SchemeName", account.bankId, account.accountId, moderatedAttributes),
+              Identification = extractAttributeValue("Servicer_Identification", account.bankId, account.accountId, moderatedAttributes)
+            )
+          )
         case _ =>
           None
       }
@@ -242,7 +247,12 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
         },
         Servicer = account._2.viewId.value match {
           case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
-            None
+            Some(
+              ServicerMXOFV001(
+                SchemeName = extractAttributeValue("Servicer_SchemeName", account._1.bankId, account._1.accountId, moderatedAttributes),
+                Identification = extractAttributeValue("Servicer_Identification", account._1.bankId, account._1.accountId, moderatedAttributes)
+              )
+            )
           case _ =>
             None
         }
