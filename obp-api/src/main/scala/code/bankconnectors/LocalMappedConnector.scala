@@ -3110,6 +3110,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
   }
+  override def getTransactionAttributesByTransactionsCanBeSeenOnView(bankId: BankId,
+                                                                     transactionIds: List[TransactionId],
+                                                                     viewId: ViewId,
+                                                                     callContext: Option[CallContext]
+                                                                    ): OBPReturnType[Box[List[TransactionAttribute]]] = {
+    TransactionAttributeX.transactionAttributeProvider.vend.getTransactionsAttributesCanBeSeenOnView(
+      bankId,
+      transactionIds,
+      viewId) map {
+      (_, callContext)
+    }
+  }
 
   override def createOrUpdateCustomerAttribute(
                                                 bankId: BankId,

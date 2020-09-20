@@ -8,7 +8,7 @@ import code.api.{APIFailureNewStyle, Constant}
 import code.model._
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{AccountId, BankIdAccountId, ViewId}
+import com.openbankproject.commons.model.{AccountId, BankIdAccountId, TransactionAttribute, TransactionId, ViewId}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
@@ -195,8 +195,13 @@ object APIMethods_TransactionsApi extends RestHelper {
              (transactions, callContext) <- account.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(account.bankId,account.accountId), callContext, params) map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
+             (moderatedAttributes: List[TransactionAttribute], callContext) <- NewStyle.function.getModeratedAttributesByTransactions(
+               account.bankId,
+               transactions.map(_.id),
+               view.viewId,
+               callContext)
              } yield {
-              (JSONFactory_MX_OPEN_FINANCE_0_0_1.createGetTransactionsByAccountIdMXOFV10(transactions), callContext)
+              (JSONFactory_MX_OPEN_FINANCE_0_0_1.createGetTransactionsByAccountIdMXOFV10(account.bankId, transactions, moderatedAttributes, view), callContext)
            }
          }
        }

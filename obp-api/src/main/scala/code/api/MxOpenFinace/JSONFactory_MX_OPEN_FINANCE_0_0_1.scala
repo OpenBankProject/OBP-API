@@ -49,7 +49,7 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
     SourceCurrency: String,
     TargetCurrency: String,
     UnitCurrency: String,
-    ExchangeRate: Double,
+    ExchangeRate: String,
     ContractIdentification: String,
     QuotationDate: String,
     InstructedAmount: AmountMXOFV001
@@ -161,16 +161,28 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
     )
   )
 
-  private def extractOptionalAttributeValue(name: String, 
+  private def accountAttributeOptValue(name: String, 
                                             bankId: BankId, 
                                             accountId: AccountId, 
                                             list: List[AccountAttribute]): Option[String] =
     list.filter(e => e.name == name && e.bankId == bankId && e.accountId == accountId).headOption.map(_.value)
-  private def extractAttributeValue(name: String, 
+  private def accountAttributeValue(name: String, 
                                     bankId: BankId,
                                     accountId: AccountId, 
                                     list: List[AccountAttribute]): String =
-    extractOptionalAttributeValue(name, bankId, accountId, list).getOrElse("")
+    accountAttributeOptValue(name, bankId, accountId, list).getOrElse("")
+
+  private def transactionAttributeOptValue(name: String,
+                                           bankId: BankId,
+                                           transactionId: TransactionId,
+                                           list: List[TransactionAttribute]): Option[String] =
+    list.filter(e => e.name == name && e.bankId == bankId && e.transactionId == transactionId).headOption.map(_.value)
+
+  private def transactionAttributeValue(name: String,
+                                        bankId: BankId,
+                                        transactionId: TransactionId,
+                                        list: List[TransactionAttribute]): String =
+    transactionAttributeOptValue(name, bankId, transactionId, list).getOrElse(null)
   
   def createReadAccountBasicJsonMXOFV10(account : ModeratedBankAccountCore, 
                                         moderatedAttributes: List[AccountAttribute],
@@ -178,16 +190,16 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
     
     val accountBasic = AccountBasicMXOFV001(
       AccountId = account.accountId.value,
-      Status = extractAttributeValue("Status", account.bankId, account.accountId, moderatedAttributes),
-      StatusUpdateDateTime = extractAttributeValue("StatusUpdateDateTime", account.bankId, account.accountId, moderatedAttributes),
+      Status = accountAttributeValue("Status", account.bankId, account.accountId, moderatedAttributes),
+      StatusUpdateDateTime = accountAttributeValue("StatusUpdateDateTime", account.bankId, account.accountId, moderatedAttributes),
       Currency = account.currency.getOrElse(""),
       AccountType = account.accountType.getOrElse(""),
-      AccountSubType = extractAttributeValue("AccountSubType", account.bankId, account.accountId, moderatedAttributes),
-      AccountIndicator = extractAttributeValue("AccountIndicator", account.bankId, account.accountId, moderatedAttributes),
-      OnboardingType = extractOptionalAttributeValue("OnboardingType", account.bankId, account.accountId, moderatedAttributes),
+      AccountSubType = accountAttributeValue("AccountSubType", account.bankId, account.accountId, moderatedAttributes),
+      AccountIndicator = accountAttributeValue("AccountIndicator", account.bankId, account.accountId, moderatedAttributes),
+      OnboardingType = accountAttributeOptValue("OnboardingType", account.bankId, account.accountId, moderatedAttributes),
       Nickname = account.label,
-      OpeningDate = extractOptionalAttributeValue("OpeningDate", account.bankId, account.accountId, moderatedAttributes),
-      MaturityDate = extractOptionalAttributeValue("MaturityDate", account.bankId, account.accountId, moderatedAttributes),
+      OpeningDate = accountAttributeOptValue("OpeningDate", account.bankId, account.accountId, moderatedAttributes),
+      MaturityDate = accountAttributeOptValue("MaturityDate", account.bankId, account.accountId, moderatedAttributes),
       Account = view.viewId.value match {
         case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
           account.accountRoutings.headOption.map(e =>
@@ -200,8 +212,8 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
         case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
           Some(
             ServicerMXOFV001(
-              SchemeName = extractAttributeValue("Servicer_SchemeName", account.bankId, account.accountId, moderatedAttributes),
-              Identification = extractAttributeValue("Servicer_Identification", account.bankId, account.accountId, moderatedAttributes)
+              SchemeName = accountAttributeValue("Servicer_SchemeName", account.bankId, account.accountId, moderatedAttributes),
+              Identification = accountAttributeValue("Servicer_Identification", account.bankId, account.accountId, moderatedAttributes)
             )
           )
         case _ =>
@@ -227,16 +239,16 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
     val accountsBasic = accounts.map(account =>
       AccountBasicMXOFV001(
         AccountId = account._1.accountId.value,
-        Status = extractAttributeValue("Status", account._1.bankId, account._1.accountId, moderatedAttributes),
-        StatusUpdateDateTime = extractAttributeValue("StatusUpdateDateTime", account._1.bankId, account._1.accountId, moderatedAttributes),
+        Status = accountAttributeValue("Status", account._1.bankId, account._1.accountId, moderatedAttributes),
+        StatusUpdateDateTime = accountAttributeValue("StatusUpdateDateTime", account._1.bankId, account._1.accountId, moderatedAttributes),
         Currency = account._1.currency,
         AccountType = account._1.accountType,
-        AccountSubType = extractAttributeValue("AccountSubType", account._1.bankId, account._1.accountId, moderatedAttributes),
-        AccountIndicator = extractAttributeValue("AccountIndicator", account._1.bankId, account._1.accountId, moderatedAttributes),
-        OnboardingType = extractOptionalAttributeValue("OnboardingType", account._1.bankId, account._1.accountId, moderatedAttributes),
+        AccountSubType = accountAttributeValue("AccountSubType", account._1.bankId, account._1.accountId, moderatedAttributes),
+        AccountIndicator = accountAttributeValue("AccountIndicator", account._1.bankId, account._1.accountId, moderatedAttributes),
+        OnboardingType = accountAttributeOptValue("OnboardingType", account._1.bankId, account._1.accountId, moderatedAttributes),
         Nickname = Some(account._1.label),
-        OpeningDate = extractOptionalAttributeValue("OpeningDate", account._1.bankId, account._1.accountId, moderatedAttributes),
-        MaturityDate = extractOptionalAttributeValue("MaturityDate", account._1.bankId, account._1.accountId, moderatedAttributes),
+        OpeningDate = accountAttributeOptValue("OpeningDate", account._1.bankId, account._1.accountId, moderatedAttributes),
+        MaturityDate = accountAttributeOptValue("MaturityDate", account._1.bankId, account._1.accountId, moderatedAttributes),
         Account = account._2.viewId.value match {
           case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
             account._1.accountRoutings.headOption.map(e =>
@@ -249,8 +261,8 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
           case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
             Some(
               ServicerMXOFV001(
-                SchemeName = extractAttributeValue("Servicer_SchemeName", account._1.bankId, account._1.accountId, moderatedAttributes),
-                Identification = extractAttributeValue("Servicer_Identification", account._1.bankId, account._1.accountId, moderatedAttributes)
+                SchemeName = accountAttributeValue("Servicer_SchemeName", account._1.bankId, account._1.accountId, moderatedAttributes),
+                Identification = accountAttributeValue("Servicer_Identification", account._1.bankId, account._1.accountId, moderatedAttributes)
               )
             )
           case _ =>
@@ -273,7 +285,10 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
     ReadAccountBasicMXOFV001(Meta = meta, Links = links, Data = DataAccountBasicMXOFV001(Account = accountsBasic))
   }
 
-  def createGetTransactionsByAccountIdMXOFV10(moderatedTransactions : List[ModeratedTransaction]): ReadTransactionMXOFV001 = {
+  def createGetTransactionsByAccountIdMXOFV10(bankId: BankId,
+                                              moderatedTransactions : List[ModeratedTransaction],
+                                              attributes: List[TransactionAttribute],
+                                              view: View): ReadTransactionMXOFV001 = {
 
     val accountId = moderatedTransactions.map(_.bankAccount.map(_.accountId.value)).flatten.headOption.getOrElse("")
     
@@ -282,22 +297,45 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
         TransactionBasicMXOFV001(
         AccountId = accountId,
         TransactionId = moderatedTransaction.id.value,
-        TransactionReference = None,
-        TransferTracingCode = None,
+        TransactionReference = transactionAttributeOptValue("TransactionReference", bankId, moderatedTransaction.id, attributes),
+        TransferTracingCode = transactionAttributeOptValue("TransferTracingCode", bankId, moderatedTransaction.id, attributes),
         AccountIndicator = moderatedTransaction.bankAccount.map(_.accountType).flatten.getOrElse(null),
         Status = "BOOKED", // [ Booked, Pending, Cancelled ]
         BookingDateTime = moderatedTransaction.startDate.map(_.toString).getOrElse(null),
-        ValueDateTime = None,
+        ValueDateTime = transactionAttributeOptValue("ValueDateTime", bankId, moderatedTransaction.id, attributes),
         TransactionInformation = moderatedTransaction.description.getOrElse(null),
-        AddressLine = None,
+        AddressLine = transactionAttributeOptValue("AddressLine", bankId, moderatedTransaction.id, attributes),
         Amount = AmountMXOFV001(
           moderatedTransaction.amount.map(_.bigDecimal.toString).getOrElse(null),
           moderatedTransaction.currency.getOrElse(null),
         ),
-        CurrencyExchange = None,
-        BankTransactionCode = None,
-        CardInstrument = None,
-        SupplementaryData = None
+        CurrencyExchange = Some(CurrencyExchangeMXOFV001(
+          SourceCurrency = transactionAttributeValue("CurrencyExchange_SourceCurrency", bankId, moderatedTransaction.id, attributes),
+          TargetCurrency = transactionAttributeValue("CurrencyExchange_TargetCurrency", bankId, moderatedTransaction.id, attributes),
+          UnitCurrency = transactionAttributeValue("CurrencyExchange_UnitCurrency", bankId, moderatedTransaction.id, attributes),
+          ExchangeRate = transactionAttributeValue("CurrencyExchange_ExchangeRate", bankId, moderatedTransaction.id, attributes),
+          ContractIdentification = transactionAttributeValue("ContractIdentification", bankId, moderatedTransaction.id, attributes),
+          QuotationDate = transactionAttributeValue("CurrencyExchange_QuotationDate", bankId, moderatedTransaction.id, attributes),
+          InstructedAmount = AmountMXOFV001(
+            Amount = transactionAttributeValue("CurrencyExchange_InstructedAmount_Amount", bankId, moderatedTransaction.id, attributes), 
+            Currency = transactionAttributeValue("CurrencyExchange_InstructedAmount_Currency", bankId, moderatedTransaction.id, attributes), 
+          )
+        )),
+        BankTransactionCode = Some(
+          BankTransactionCodeMXOFV001(
+            Code = transactionAttributeValue("BankTransactionCode_Code", bankId, moderatedTransaction.id, attributes),
+            SubCode = transactionAttributeValue("BankTransactionCode_SubCode", bankId, moderatedTransaction.id, attributes),
+          )
+        ),
+        CardInstrument = Some(
+          CardInstrumentMXOFV001(
+            CardSchemeName = transactionAttributeValue("CardInstrument_CardSchemeName", bankId, moderatedTransaction.id, attributes),
+            AuthorisationType = transactionAttributeValue("CardInstrument_AuthorisationType", bankId, moderatedTransaction.id, attributes),
+            Name = transactionAttributeValue("CardInstrument_Name", bankId, moderatedTransaction.id, attributes),
+            Identification = transactionAttributeValue("CardInstrument_Identification", bankId, moderatedTransaction.id, attributes),
+          )
+        ),
+        SupplementaryData = None,
       )
     )
     
