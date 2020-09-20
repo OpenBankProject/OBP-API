@@ -180,8 +180,8 @@ object APIMethods_TransactionsApi extends RestHelper {
      lazy val getTransactionsByAccountId : OBPEndpoint = {
        case "accounts" :: accountId:: "transactions" :: Nil JsonGet _ => {
          cc =>
-           val detailViewId = ViewId(Constant.READ_TRANSACTIONS_BASIC_VIEW_ID)
-           val basicViewId = ViewId(Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID)
+           val detailViewId = ViewId(Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID)
+           val basicViewId = ViewId(Constant.READ_TRANSACTIONS_BASIC_VIEW_ID)
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- NewStyle.function.checkUKConsent(u, callContext)
