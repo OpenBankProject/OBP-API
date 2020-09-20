@@ -6,7 +6,6 @@ import code.api.Constant
 import code.api.util.CustomJsonFormats
 import code.model.{ModeratedBankAccountCore, ModeratedTransaction}
 import com.openbankproject.commons.model._
-import net.liftweb.common.Box
 import net.liftweb.json.JValue
 
 import scala.collection.immutable.List
@@ -70,6 +69,41 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
   case class SupplementaryDataMXOFV001(
     additionalProp1: AdditionalProp1MXOFV001
   )
+
+  case class BalanceMXOFV001(
+                              AccountIndicator: String,
+                              Type: String = "ClosingAvailable",
+                              Amount: AmountMXOFV001
+                            )
+
+  case class MerchantDetailsMXOFV001(
+                                      MerchantName: String,
+                                      MerchantCategoryCode: String
+                                    )
+
+  case class TransactionRecipientMXOFV001(
+                                           SchemeName: String,
+                                           Identification: String,
+                                           Name: String
+                                         )
+
+  case class RecipientAccountMXOFV001(
+                                       SchemeName: String,
+                                       Identification: String,
+                                       Name: String
+                                     )
+
+  case class TransactionSenderMXOFV001(
+                                        SchemeName: String,
+                                        Identification: String,
+                                        Name: String
+                                      )
+
+  case class SenderAccountMXOFV001(
+                                    SchemeName: String,
+                                    Identification: String,
+                                    Name: String
+                                  )
   
   case class TransactionBasicMXOFV001(
                                        AccountId: String,
@@ -85,6 +119,12 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
                                        Amount: AmountMXOFV001,
                                        CurrencyExchange: Option[CurrencyExchangeMXOFV001],
                                        BankTransactionCode: Option[BankTransactionCodeMXOFV001],
+                                       Balance: Option[BalanceMXOFV001],
+                                       MerchantDetails: Option[MerchantDetailsMXOFV001],
+                                       TransactionRecipient: Option[TransactionRecipientMXOFV001],
+                                       RecipientAccount: Option[RecipientAccountMXOFV001],
+                                       TransactionSender: Option[TransactionSenderMXOFV001],
+                                       SenderAccount: Option[SenderAccountMXOFV001],
                                        CardInstrument: Option[CardInstrumentMXOFV001],
                                        SupplementaryData: Option[SupplementaryDataMXOFV001]
   )
@@ -327,6 +367,74 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
             SubCode = transactionAttributeValue("BankTransactionCode_SubCode", bankId, moderatedTransaction.id, attributes),
           )
         ),
+        Balance = view.viewId.value match {
+          case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
+            Some(
+              BalanceMXOFV001(
+                AccountIndicator = transactionAttributeValue("Balance_AccountIndicator", bankId, moderatedTransaction.id, attributes),
+                Type = transactionAttributeValue("Balance_AccountIndicator", bankId, moderatedTransaction.id, attributes),
+                Amount = AmountMXOFV001(
+                  Amount = transactionAttributeValue("Balance_Amount_Amount", bankId, moderatedTransaction.id, attributes),
+                  Currency = transactionAttributeValue("Balance_Amount_Currency", bankId, moderatedTransaction.id, attributes),
+                )
+              )
+            )
+          case _ =>  None
+        }, 
+        MerchantDetails = view.viewId.value match {
+          case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
+            Some(
+              MerchantDetailsMXOFV001(
+                MerchantName = transactionAttributeValue("MerchantDetails_MerchantName", bankId, moderatedTransaction.id, attributes),
+                MerchantCategoryCode = transactionAttributeValue("MerchantDetails_MerchantCategoryCode", bankId, moderatedTransaction.id, attributes),
+              )
+            )
+          case _ =>  None
+        },
+        TransactionRecipient = view.viewId.value match {
+          case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID => 
+            Some(
+              TransactionRecipientMXOFV001(
+                SchemeName = transactionAttributeValue("TransactionRecipient_SchemeName", bankId, moderatedTransaction.id, attributes),
+                Identification = transactionAttributeValue("TransactionRecipient_Identification", bankId, moderatedTransaction.id, attributes),
+                Name = transactionAttributeValue("TransactionRecipient_Name", bankId, moderatedTransaction.id, attributes),
+              )
+            )
+          case _ =>  None
+        },
+        RecipientAccount = view.viewId.value match {
+          case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
+            Some(
+              RecipientAccountMXOFV001(
+                SchemeName = transactionAttributeValue("RecipientAccount_SchemeName", bankId, moderatedTransaction.id, attributes),
+                Identification = transactionAttributeValue("RecipientAccount_Identification", bankId, moderatedTransaction.id, attributes),
+                Name = transactionAttributeValue("RecipientAccount_Name", bankId, moderatedTransaction.id, attributes),
+              )
+            )
+          case _ =>  None
+        },
+        TransactionSender = view.viewId.value match {
+          case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
+            Some(
+              TransactionSenderMXOFV001(
+                SchemeName = transactionAttributeValue("TransactionSender_SchemeName", bankId, moderatedTransaction.id, attributes),
+                Identification = transactionAttributeValue("TransactionSender_Identification", bankId, moderatedTransaction.id, attributes),
+                Name = transactionAttributeValue("TransactionSender_Name", bankId, moderatedTransaction.id, attributes),
+              )
+            )
+          case _ =>  None
+        },
+        SenderAccount = view.viewId.value match {
+          case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
+            Some(
+              SenderAccountMXOFV001(
+                SchemeName = transactionAttributeValue("SenderAccount_SchemeName", bankId, moderatedTransaction.id, attributes),
+                Identification = transactionAttributeValue("SenderAccount_Identification", bankId, moderatedTransaction.id, attributes),
+                Name = transactionAttributeValue("SenderAccount_Name", bankId, moderatedTransaction.id, attributes),
+              )
+            )
+          case _ =>  None
+        },
         CardInstrument = Some(
           CardInstrumentMXOFV001(
             CardSchemeName = transactionAttributeValue("CardInstrument_CardSchemeName", bankId, moderatedTransaction.id, attributes),
