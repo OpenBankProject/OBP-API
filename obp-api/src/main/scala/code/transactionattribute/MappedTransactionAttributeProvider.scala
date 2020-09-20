@@ -39,7 +39,7 @@ object MappedTransactionAttributeProvider extends TransactionAttributeProvider {
     Future {
       val attributeDefinitions = AttributeDefinition.findAll(
         By(AttributeDefinition.BankId, bankId.value),
-        By(AttributeDefinition.Category, AttributeCategory.Account.toString)
+        By(AttributeDefinition.Category, AttributeCategory.Transaction.toString)
       ).filter(_.canBeSeenOnViews.exists(_ == viewId.value)) // Filter by view_id
       val transactionAttributes = MappedTransactionAttribute.findAll(
         By(MappedTransactionAttribute.mBankId, bankId.value),
