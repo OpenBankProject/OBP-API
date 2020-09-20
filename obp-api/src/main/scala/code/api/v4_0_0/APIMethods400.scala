@@ -2449,9 +2449,9 @@ trait APIMethods400 {
            _ <- Future(Views.views.vend.revokeAccountAccessesByUser(bankId, accountId, user)) map {
               unboxFullOrFail(_, callContext, s"Cannot revoke")
             }
-            grantViews = for (viewId <- postJson.grant_views) yield ViewIdBankIdAccountId(ViewId(viewId), bankId, accountId)
+            grantViews = for (viewId <- postJson.views) yield ViewIdBankIdAccountId(ViewId(viewId), bankId, accountId)
             _ <- Future(Views.views.vend.grantAccessToMultipleViews(grantViews, user)) map {
-              unboxFullOrFail(_, callContext, s"Cannot grant the views: ${postJson.grant_views.mkString(",")}")
+              unboxFullOrFail(_, callContext, s"Cannot grant the views: ${postJson.views.mkString(",")}")
             }
           } yield {
             (RevokedJsonV400(true), HttpCode.`201`(callContext))
