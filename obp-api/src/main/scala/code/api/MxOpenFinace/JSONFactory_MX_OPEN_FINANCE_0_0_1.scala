@@ -374,10 +374,10 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
             Some(
               BalanceMXOFV001(
                 AccountIndicator = transactionAttributeValue("Balance_AccountIndicator", bankId, moderatedTransaction.id, attributes),
-                Type = transactionAttributeValue("Balance_AccountIndicator", bankId, moderatedTransaction.id, attributes),
+                Type = transactionAttributeValue("Balance_Type", bankId, moderatedTransaction.id, attributes),
                 Amount = AmountMXOFV001(
-                  Amount = transactionAttributeValue("Balance_Amount_Amount", bankId, moderatedTransaction.id, attributes),
-                  Currency = transactionAttributeValue("Balance_Amount_Currency", bankId, moderatedTransaction.id, attributes),
+                  Amount = transactionAttributeValue("Balance_Amount", bankId, moderatedTransaction.id, attributes),
+                  Currency = transactionAttributeValue("Balance_Currency", bankId, moderatedTransaction.id, attributes),
                 )
               )
             )
@@ -397,9 +397,9 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
           case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID => 
             Some(
               TransactionRecipientMXOFV001(
-                SchemeName = transactionAttributeOptValue("TransactionRecipient_SchemeName", bankId, moderatedTransaction.id, attributes),
-                Identification = transactionAttributeOptValue("TransactionRecipient_Identification", bankId, moderatedTransaction.id, attributes),
-                Name = transactionAttributeValue("TransactionRecipient_Name", bankId, moderatedTransaction.id, attributes),
+                SchemeName = transactionAttributeOptValue("Recipient_SchemeName", bankId, moderatedTransaction.id, attributes),
+                Identification = transactionAttributeOptValue("Recipient_Identification", bankId, moderatedTransaction.id, attributes),
+                Name = transactionAttributeValue("Recipient_Name", bankId, moderatedTransaction.id, attributes),
               )
             )
           case _ =>  None
@@ -408,9 +408,9 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
           case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
             Some(
               RecipientAccountMXOFV001(
-                SchemeName = transactionAttributeOptValue("RecipientAccount_SchemeName", bankId, moderatedTransaction.id, attributes),
-                Identification = transactionAttributeValue("RecipientAccount_Identification", bankId, moderatedTransaction.id, attributes),
-                Name = transactionAttributeOptValue("RecipientAccount_Name", bankId, moderatedTransaction.id, attributes),
+                SchemeName = transactionAttributeOptValue("Account_SchemeName", bankId, moderatedTransaction.id, attributes),
+                Identification = transactionAttributeValue("Account_Identification", bankId, moderatedTransaction.id, attributes),
+                Name = transactionAttributeOptValue("Account_Name", bankId, moderatedTransaction.id, attributes),
               )
             )
           case _ =>  None
@@ -419,9 +419,9 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
           case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
             Some(
               TransactionSenderMXOFV001(
-                SchemeName = transactionAttributeOptValue("TransactionSender_SchemeName", bankId, moderatedTransaction.id, attributes),
-                Identification = transactionAttributeOptValue("TransactionSender_Identification", bankId, moderatedTransaction.id, attributes),
-                Name = transactionAttributeValue("TransactionSender_Name", bankId, moderatedTransaction.id, attributes),
+                SchemeName = transactionAttributeOptValue("Sender_SchemeName", bankId, moderatedTransaction.id, attributes),
+                Identification = transactionAttributeOptValue("Sender_Identification", bankId, moderatedTransaction.id, attributes),
+                Name = transactionAttributeValue("Sender_Name", bankId, moderatedTransaction.id, attributes),
               )
             )
           case _ =>  None
