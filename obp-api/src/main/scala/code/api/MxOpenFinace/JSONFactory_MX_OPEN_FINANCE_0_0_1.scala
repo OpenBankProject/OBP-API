@@ -47,11 +47,11 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
   case class CurrencyExchangeMXOFV001(
     SourceCurrency: String,
     TargetCurrency: String,
-    UnitCurrency: String,
+    UnitCurrency: Option[String],
     ExchangeRate: String,
-    ContractIdentification: String,
-    QuotationDate: String,
-    InstructedAmount: AmountMXOFV001
+    ContractIdentification: Option[String],
+    QuotationDate: Option[String],
+    InstructedAmount: Option[AmountMXOFV001]
   )
   case class BankTransactionCodeMXOFV001(
     Code: String,
@@ -77,32 +77,32 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
                             )
 
   case class MerchantDetailsMXOFV001(
-                                      MerchantName: String,
-                                      MerchantCategoryCode: String
+                                      MerchantName: Option[String],
+                                      MerchantCategoryCode: Option[String]
                                     )
 
   case class TransactionRecipientMXOFV001(
-                                           SchemeName: String,
-                                           Identification: String,
+                                           SchemeName: Option[String],
+                                           Identification: Option[String],
                                            Name: String
                                          )
 
   case class RecipientAccountMXOFV001(
-                                       SchemeName: String,
+                                       SchemeName: Option[String],
                                        Identification: String,
-                                       Name: String
+                                       Name: Option[String]
                                      )
 
   case class TransactionSenderMXOFV001(
-                                        SchemeName: String,
-                                        Identification: String,
+                                        SchemeName: Option[String],
+                                        Identification: Option[String],
                                         Name: String
                                       )
 
   case class SenderAccountMXOFV001(
-                                    SchemeName: String,
+                                    SchemeName: Option[String],
                                     Identification: String,
-                                    Name: String
+                                    Name: Option[String]
                                   )
   
   case class TransactionBasicMXOFV001(
@@ -353,13 +353,15 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
         CurrencyExchange = Some(CurrencyExchangeMXOFV001(
           SourceCurrency = transactionAttributeValue("CurrencyExchange_SourceCurrency", bankId, moderatedTransaction.id, attributes),
           TargetCurrency = transactionAttributeValue("CurrencyExchange_TargetCurrency", bankId, moderatedTransaction.id, attributes),
-          UnitCurrency = transactionAttributeValue("CurrencyExchange_UnitCurrency", bankId, moderatedTransaction.id, attributes),
+          UnitCurrency = transactionAttributeOptValue("CurrencyExchange_UnitCurrency", bankId, moderatedTransaction.id, attributes),
           ExchangeRate = transactionAttributeValue("CurrencyExchange_ExchangeRate", bankId, moderatedTransaction.id, attributes),
-          ContractIdentification = transactionAttributeValue("ContractIdentification", bankId, moderatedTransaction.id, attributes),
-          QuotationDate = transactionAttributeValue("CurrencyExchange_QuotationDate", bankId, moderatedTransaction.id, attributes),
-          InstructedAmount = AmountMXOFV001(
-            Amount = transactionAttributeValue("CurrencyExchange_InstructedAmount_Amount", bankId, moderatedTransaction.id, attributes), 
-            Currency = transactionAttributeValue("CurrencyExchange_InstructedAmount_Currency", bankId, moderatedTransaction.id, attributes), 
+          ContractIdentification = transactionAttributeOptValue("ContractIdentification", bankId, moderatedTransaction.id, attributes),
+          QuotationDate = transactionAttributeOptValue("CurrencyExchange_QuotationDate", bankId, moderatedTransaction.id, attributes),
+          InstructedAmount = Some(
+            AmountMXOFV001(
+              Amount = transactionAttributeValue("CurrencyExchange_InstructedAmount_Amount", bankId, moderatedTransaction.id, attributes), 
+              Currency = transactionAttributeValue("CurrencyExchange_InstructedAmount_Currency", bankId, moderatedTransaction.id, attributes), 
+            )
           )
         )),
         BankTransactionCode = Some(
@@ -386,8 +388,8 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
           case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
             Some(
               MerchantDetailsMXOFV001(
-                MerchantName = transactionAttributeValue("MerchantDetails_MerchantName", bankId, moderatedTransaction.id, attributes),
-                MerchantCategoryCode = transactionAttributeValue("MerchantDetails_MerchantCategoryCode", bankId, moderatedTransaction.id, attributes),
+                MerchantName = transactionAttributeOptValue("MerchantDetails_MerchantName", bankId, moderatedTransaction.id, attributes),
+                MerchantCategoryCode = transactionAttributeOptValue("MerchantDetails_MerchantCategoryCode", bankId, moderatedTransaction.id, attributes),
               )
             )
           case _ =>  None
@@ -396,8 +398,8 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
           case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID => 
             Some(
               TransactionRecipientMXOFV001(
-                SchemeName = transactionAttributeValue("TransactionRecipient_SchemeName", bankId, moderatedTransaction.id, attributes),
-                Identification = transactionAttributeValue("TransactionRecipient_Identification", bankId, moderatedTransaction.id, attributes),
+                SchemeName = transactionAttributeOptValue("TransactionRecipient_SchemeName", bankId, moderatedTransaction.id, attributes),
+                Identification = transactionAttributeOptValue("TransactionRecipient_Identification", bankId, moderatedTransaction.id, attributes),
                 Name = transactionAttributeValue("TransactionRecipient_Name", bankId, moderatedTransaction.id, attributes),
               )
             )
@@ -407,9 +409,9 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
           case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
             Some(
               RecipientAccountMXOFV001(
-                SchemeName = transactionAttributeValue("RecipientAccount_SchemeName", bankId, moderatedTransaction.id, attributes),
+                SchemeName = transactionAttributeOptValue("RecipientAccount_SchemeName", bankId, moderatedTransaction.id, attributes),
                 Identification = transactionAttributeValue("RecipientAccount_Identification", bankId, moderatedTransaction.id, attributes),
-                Name = transactionAttributeValue("RecipientAccount_Name", bankId, moderatedTransaction.id, attributes),
+                Name = transactionAttributeOptValue("RecipientAccount_Name", bankId, moderatedTransaction.id, attributes),
               )
             )
           case _ =>  None
@@ -418,8 +420,8 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
           case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
             Some(
               TransactionSenderMXOFV001(
-                SchemeName = transactionAttributeValue("TransactionSender_SchemeName", bankId, moderatedTransaction.id, attributes),
-                Identification = transactionAttributeValue("TransactionSender_Identification", bankId, moderatedTransaction.id, attributes),
+                SchemeName = transactionAttributeOptValue("TransactionSender_SchemeName", bankId, moderatedTransaction.id, attributes),
+                Identification = transactionAttributeOptValue("TransactionSender_Identification", bankId, moderatedTransaction.id, attributes),
                 Name = transactionAttributeValue("TransactionSender_Name", bankId, moderatedTransaction.id, attributes),
               )
             )
@@ -429,9 +431,9 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
           case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
             Some(
               SenderAccountMXOFV001(
-                SchemeName = transactionAttributeValue("SenderAccount_SchemeName", bankId, moderatedTransaction.id, attributes),
+                SchemeName = transactionAttributeOptValue("SenderAccount_SchemeName", bankId, moderatedTransaction.id, attributes),
                 Identification = transactionAttributeValue("SenderAccount_Identification", bankId, moderatedTransaction.id, attributes),
-                Name = transactionAttributeValue("SenderAccount_Name", bankId, moderatedTransaction.id, attributes),
+                Name = transactionAttributeOptValue("SenderAccount_Name", bankId, moderatedTransaction.id, attributes),
               )
             )
           case _ =>  None
