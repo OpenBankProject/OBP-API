@@ -3423,4 +3423,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       connectorToEndpoint.put(method, newInfos)
     })
   }
+
+  val glossaryDocsRequireRole = APIUtil.getPropsAsBoolValue("glossary_requires_role", false)
 }

@@ -31,7 +31,9 @@ package code.snippet
 import java.io.InputStream
 
 import code.api.util.APIUtil.{activeBrand, getRemoteIpAddress, getServerUrl}
-import code.api.util.{APIUtil, CustomJsonFormats, Glossary, PegdownOptions}
+import code.api.util.ApiRole.CanReadGlossary
+import code.api.util.{APIUtil, ApiRole, CustomJsonFormats, ErrorMessages, PegdownOptions}
+import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
 import net.liftweb.http.{LiftRules, S, SessionVar}
 import net.liftweb.util.Helpers._
@@ -213,7 +215,20 @@ class WebUI extends MdcLoggable{
   def apiDocumentation: CssSel = {
     val title = "Sandbox Introduction"
     val propsValue = getWebUiPropsValue("webui_sandbox_introduction", "")
-    val htmlDescription = PegdownOptions.convertPegdownToHtmlTweaked(propsValue)
+    val htmlDescription =  if (APIUtil.glossaryDocsRequireRole){
+      val userId = AuthUser.getCurrentResourceUserUserId
+      if (userId == ""){
+        s"<h1>${ErrorMessages.UserNotLoggedIn}</h1>"
+      } else{
+        if(APIUtil.hasEntitlement("", userId, ApiRole.canReadGlossary)) {
+          PegdownOptions.convertPegdownToHtmlTweaked(propsValue)
+        }else{
+          s"<h1>${ErrorMessages.UserHasMissingRoles}: ${CanReadGlossary}</h1>"
+        }
+      }
+    } else {
+      PegdownOptions.convertPegdownToHtmlTweaked(propsValue)
+    }
 
     "#api_documentation_content *" #> scala.xml.Unparsed(htmlDescription)
   }
