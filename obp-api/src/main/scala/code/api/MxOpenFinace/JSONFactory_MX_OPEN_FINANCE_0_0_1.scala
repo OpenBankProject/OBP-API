@@ -210,7 +210,7 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
                                     bankId: BankId,
                                     accountId: AccountId, 
                                     list: List[AccountAttribute]): String =
-    accountAttributeOptValue(name, bankId, accountId, list).getOrElse("")
+    accountAttributeOptValue(name, bankId, accountId, list).getOrElse(null)
 
   private def transactionAttributeOptValue(name: String,
                                            bankId: BankId,
