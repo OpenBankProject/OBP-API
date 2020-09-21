@@ -94,23 +94,30 @@ object APIMethods_AccountsApi extends RestHelper {
      lazy val getAccounts : OBPEndpoint = {
        case "accounts" :: Nil JsonGet _ => {
          cc =>
+           val detailViewId = ViewId(Constant.READ_ACCOUNTS_DETAIL_VIEW_ID)
            val basicViewId = ViewId(Constant.READ_ACCOUNTS_BASIC_VIEW_ID)
            for {
              (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              _ <- NewStyle.function.checkUKConsent(u, callContext)
              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
              (accounts: List[BankAccount], callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
+             (moderatedAttributes: List[AccountAttribute], callContext) <- NewStyle.function.getModeratedAccountAttributesByAccounts(
+               accounts.map(a => BankIdAccountId(a.bankId, a.accountId)),
+               basicViewId,
+               callContext: Option[CallContext])
            } yield {
-             val allAccounts: List[Box[BankAccount]] = for (account: BankAccount <- accounts) yield {
-               APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(account.bankId, account.accountId), Full(u)) match {
-                 case Full(_) =>
-                   Full(account)
+             val allAccounts: List[Box[(BankAccount, View)]] = for (account: BankAccount <- accounts) yield {
+               APIUtil.checkViewAccessAndReturnView(detailViewId, BankIdAccountId(account.bankId, account.accountId), Full(u)).or(
+                 APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(account.bankId, account.accountId), Full(u))
+               ) match {
+                 case Full(view) =>
+                   Full(account, view)
                  case _ =>
                    Empty
                }
              }
-             val accountsWithProperView = allAccounts.filter(_.isDefined).map(_.openOrThrowException(attemptedToOpenAnEmptyBox))
-             (createReadAccountsBasicJsonMXOFV10(accountsWithProperView), callContext)
+             val accountsWithProperView: List[(BankAccount, View)] = allAccounts.filter(_.isDefined).map(_.openOrThrowException(attemptedToOpenAnEmptyBox))
+             (createReadAccountsBasicJsonMXOFV10(accountsWithProperView, moderatedAttributes), callContext)
            }
          }
        }

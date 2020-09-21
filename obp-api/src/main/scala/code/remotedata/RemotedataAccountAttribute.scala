@@ -26,7 +26,10 @@ object RemotedataAccountAttribute extends ObpActorInit with AccountAttributeProv
   override def getAccountAttributesByAccountCanBeSeenOnView(bankId: BankId, 
                                                             accountId: AccountId, 
                                                             viewId: ViewId): Future[Box[List[AccountAttribute]]] = 
-    (actor ? cc.getAccountAttributesByAccountCanBeSeenOnView(bankId, accountId, viewId)).mapTo[Box[List[AccountAttribute]]]
+    (actor ? cc.getAccountAttributesByAccountCanBeSeenOnView(bankId, accountId, viewId)).mapTo[Box[List[AccountAttribute]]]  
+  override def getAccountAttributesByAccountsCanBeSeenOnView(accounts: List[BankIdAccountId],
+                                                             viewId: ViewId): Future[Box[List[AccountAttribute]]] = 
+    (actor ? cc.getAccountAttributesByAccountsCanBeSeenOnView(accounts, viewId)).mapTo[Box[List[AccountAttribute]]]
 
   override def getAccountAttributeById(productAttributeId: String): Future[Box[AccountAttribute]] = 
     (actor ? cc.getAccountAttributeById(productAttributeId)).mapTo[Box[AccountAttribute]]

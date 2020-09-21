@@ -4,7 +4,7 @@ import code.api.attributedefinition.AttributeDefinition
 import code.products.MappedProduct
 import code.util.{AttributeQueryTrait, MappedUUID, UUIDString}
 import com.openbankproject.commons.model.enums.{AccountAttributeType, AttributeCategory}
-import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankId, ProductAttribute, ProductCode, ViewId}
+import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankId, BankIdAccountId, ProductAttribute, ProductCode, ViewId}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -44,6 +44,30 @@ object MappedAccountAttributeProvider extends AccountAttributeProvider {
       val accountAttributes = MappedAccountAttribute.findAll(
         By(MappedAccountAttribute.mBankIdId, bankId.value),
         By(MappedAccountAttribute.mAccountId, accountId.value)
+      )
+      val filteredAccountAttributes = for {
+        definition <- attributeDefinitions
+        attribute <- accountAttributes
+        if definition.bankId.value == attribute.bankId.value && definition.name == attribute.name
+      } yield {
+        attribute
+      }
+      Full(filteredAccountAttributes)
+    }
+  }
+  override def getAccountAttributesByAccountsCanBeSeenOnView(accounts: List[BankIdAccountId],
+                                                             viewId: ViewId): Future[Box[List[AccountAttribute]]] = {
+    Future {
+      val attributeDefinitions = AttributeDefinition.findAll(
+        ByList(AttributeDefinition.BankId, accounts.map(_.bankId.value)),
+        By(AttributeDefinition.Category, AttributeCategory.Account.toString)
+      ).filter(_.canBeSeenOnViews.exists(_ == viewId.value)) // Filter by view_id
+      val accountAttributes = MappedAccountAttribute.findAll(
+        ByList(MappedAccountAttribute.mAccountId,accounts.map(_.accountId.value))
+      ).filter( item => 
+        accounts.exists( acc => 
+          (acc.bankId.value, acc.accountId.value) == (item.bankId.value, item.accountId.value)
+        )
       )
       val filteredAccountAttributes = for {
         definition <- attributeDefinitions

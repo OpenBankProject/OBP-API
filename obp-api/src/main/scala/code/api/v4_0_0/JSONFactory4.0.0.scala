@@ -208,7 +208,7 @@ case class StandingOrderJsonV400(standing_order_id: String,
                                  active: Boolean)
 case class PostViewJsonV400(view_id: String, is_system: Boolean)
 case class PostAccountAccessJsonV400(user_id: String, view: PostViewJsonV400)
-case class PostRevokeGrantAccountAccessJsonV400(grant_views: List[String], revoke_views: List[String])
+case class PostRevokeGrantAccountAccessJsonV400(views: List[String])
 case class RevokedJsonV400(revoked: Boolean)
 
 case class TransactionRequestBodySEPAJsonV400(

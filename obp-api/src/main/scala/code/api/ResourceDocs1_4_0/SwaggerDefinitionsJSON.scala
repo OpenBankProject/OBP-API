@@ -3791,7 +3791,7 @@ object SwaggerDefinitionsJSON {
   val postAccountAccessJsonV400 = PostAccountAccessJsonV400(userIdExample.value, PostViewJsonV400(ExampleValue.viewIdExample.value, true))
   val revokedJsonV400 = RevokedJsonV400(true)
 
-  val postRevokeGrantAccountAccessJsonV400 = PostRevokeGrantAccountAccessJsonV400(List("ReadAccountsBasic"), List("ReadAccountsDetail"))
+  val postRevokeGrantAccountAccessJsonV400 = PostRevokeGrantAccountAccessJsonV400(List("ReadAccountsBasic"))
   
   val transactionRequestBodyRefundJsonV400 = TransactionRequestBodyRefundJsonV400(
     to = transactionRequestAccountJsonV140,
