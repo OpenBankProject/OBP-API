@@ -10,6 +10,7 @@ import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.model.Consumer
+import code.model.dataAccess.AuthUser
 import code.users.Users
 import code.views.Views
 import com.nimbusds.jwt.JWTClaimsSet
@@ -20,6 +21,7 @@ import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, MappingException, compactRender, parse}
 import net.liftweb.mapper.By
+import sh.ory.hydra.model.OAuth2TokenIntrospection
 
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
@@ -540,27 +542,24 @@ object Consent {
 
 
   def checkUKConsent(user: User, calContext: Option[CallContext]): Box[Boolean] = {
-    val consumerIdOfLoggedInUser = calContext.flatMap(_.consumer.map(_.consumerId.get)).getOrElse("None")
-    def getConsumerIdFromJwt(c: MappedConsent): String = {
-      implicit val dateFormats = CustomJsonFormats.formats
-      val consent: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(c.jsonWebToken)
-        .map(parse(_).extract[ConsentJWT])
-      consent.map(_.aud).getOrElse("Empty")
+      val accessToken = calContext.flatMap(_.authReqHeaderField)
+        .map(_.replaceFirst("Bearer\\s+", ""))
+        .getOrElse(throw new RuntimeException("Not found http request header 'Authorization', it is mandatory."))
+    val introspectOAuth2Token: OAuth2TokenIntrospection = AuthUser.hydraAdmin.introspectOAuth2Token(accessToken, null)
+    if(!introspectOAuth2Token.getActive) {
+      return Failure(ErrorMessages.ConsentExpiredIssue)
     }
-    Consents.consentProvider.vend.getConsentsByUser(user.userId)
-      .filter(_.mApiStandard == "MXOpenFinance")
-      // Filter by Consumer
-      .filter(getConsumerIdFromJwt(_) == consumerIdOfLoggedInUser)
-      // Filter by Status
-      .filter(_.status == ConsentStatus.AUTHORISED.toString)
-      // Optional filter by BANK_ID
-      .sortWith(_.creationDateTime.getTime > _.creationDateTime.getTime).headOption match {
-      case Some(c) if c.mStatus == ConsentStatus.AUTHORISED.toString =>
+
+    val consentBox: Box[MappedConsent] = {
+      val accessExt = introspectOAuth2Token.getExt.asInstanceOf[java.util.Map[String, String]]
+      val consentId = accessExt.get("consent_id")
+      Consents.consentProvider.vend.getConsentByConsentId(consentId)
+    }
+    consentBox match {
+      case Full(c) if c.mStatus == ConsentStatus.AUTHORISED.toString =>
         System.currentTimeMillis match {
           case currentTimeMillis if currentTimeMillis < c.creationDateTime.getTime =>
             Failure(ErrorMessages.ConsentNotBeforeIssue)
-          case currentTimeMillis if currentTimeMillis > c.expirationDateTime.getTime =>
-            Failure(ErrorMessages.ConsentExpiredIssue)
           case _ =>
             val consumerIdOfLoggedInUser: Option[String] = calContext.flatMap(_.consumer.map(_.consumerId.get))
             implicit val dateFormats = CustomJsonFormats.formats
@@ -571,7 +570,7 @@ object Consent {
               consumerIdOfLoggedInUser
             )
         }
-      case Some(c) if c.mStatus != ConsentStatus.AUTHORISED.toString =>
+      case Full(c) if c.mStatus != ConsentStatus.AUTHORISED.toString =>
         Failure(s"${ErrorMessages.ConsentStatusIssue}${ConsentStatus.AUTHORISED.toString}.")
       case _ =>
         Failure(ErrorMessages.ConsentNotFound)
