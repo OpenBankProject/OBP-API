@@ -451,6 +451,20 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
       }
     }
 
+    def getCardInstrument(moderatedTransaction: ModeratedTransaction): Option[CardInstrumentMXOFV001] = {
+      val cardSchemeName = transactionAttributeValue("CardInstrument_CardSchemeName", bankId, moderatedTransaction.id, attributes)
+      val identification = transactionAttributeValue("CardInstrument_Identification", bankId, moderatedTransaction.id, attributes)
+      val authorisationType = transactionAttributeValue("CardInstrument_AuthorisationType", bankId, moderatedTransaction.id, attributes)
+      val name = transactionAttributeValue("CardInstrument_Name", bankId, moderatedTransaction.id, attributes)
+      val result = CardInstrumentMXOFV001(
+          CardSchemeName = cardSchemeName,
+          AuthorisationType = authorisationType,
+          Name = name,
+          Identification = identification,
+        )
+      if (cardSchemeName != null || identification != null || authorisationType != null || name != null) Some(result) else None
+    }
+
     val transactions = moderatedTransactions.map(
       moderatedTransaction =>
         TransactionBasicMXOFV001(
@@ -494,14 +508,7 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
         RecipientAccount = getRecipientAccount(moderatedTransaction),
         TransactionSender = getTransactionSender(moderatedTransaction),
         SenderAccount = getSenderAccount(moderatedTransaction),
-        CardInstrument = Some(
-          CardInstrumentMXOFV001(
-            CardSchemeName = transactionAttributeValue("CardInstrument_CardSchemeName", bankId, moderatedTransaction.id, attributes),
-            AuthorisationType = transactionAttributeValue("CardInstrument_AuthorisationType", bankId, moderatedTransaction.id, attributes),
-            Name = transactionAttributeValue("CardInstrument_Name", bankId, moderatedTransaction.id, attributes),
-            Identification = transactionAttributeValue("CardInstrument_Identification", bankId, moderatedTransaction.id, attributes),
-          )
-        ),
+        CardInstrument = getCardInstrument(moderatedTransaction),
         SupplementaryData = None,
       )
     )
