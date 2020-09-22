@@ -2070,7 +2070,6 @@ trait APIMethods300 {
     }
 
 
-    val glossaryDocsRequireRole = APIUtil.getPropsAsBoolValue("glossary_requires_role", false)
     resourceDocs += ResourceDoc(
       getApiGlossary,
       implementedInApiVersion,
