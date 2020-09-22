@@ -228,7 +228,33 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
   def createReadAccountBasicJsonMXOFV10(account : ModeratedBankAccountCore, 
                                         moderatedAttributes: List[AccountAttribute],
                                         view: View): ReadAccountBasicMXOFV001 = {
-    
+
+    def getServicer: Option[ServicerMXOFV001] = {
+      view.viewId.value match {
+        case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
+          val schemeName = accountAttributeValue("Servicer_SchemeName", account.bankId, account.accountId, moderatedAttributes)
+          val identification = accountAttributeValue("Servicer_Identification", account.bankId, account.accountId, moderatedAttributes)
+          val result = ServicerMXOFV001(
+            SchemeName = schemeName,
+            Identification = identification
+          )
+          if (schemeName != null || identification != null) Some(result) else None
+        case _ =>
+          None
+      }
+    }
+
+    def getAccountDetails: Option[AccountDetailMXOFV001] = {
+      view.viewId.value match {
+        case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
+          account.accountRoutings.headOption.map(e =>
+            AccountDetailMXOFV001(SchemeName = e.scheme, Identification = e.address, None)
+          )
+        case _ =>
+          None
+      }
+    }
+
     val accountBasic = AccountBasicMXOFV001(
       AccountId = account.accountId.value,
       Status = accountAttributeValue("Status", account.bankId, account.accountId, moderatedAttributes),
@@ -241,25 +267,8 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
       Nickname = account.label,
       OpeningDate = accountAttributeOptValue("OpeningDate", account.bankId, account.accountId, moderatedAttributes),
       MaturityDate = accountAttributeOptValue("MaturityDate", account.bankId, account.accountId, moderatedAttributes),
-      Account = view.viewId.value match {
-        case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
-          account.accountRoutings.headOption.map(e =>
-            AccountDetailMXOFV001(SchemeName = e.scheme, Identification = e.address, None)
-          )
-        case _ => 
-          None
-      },
-      Servicer = view.viewId.value match {
-        case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
-          Some(
-            ServicerMXOFV001(
-              SchemeName = accountAttributeValue("Servicer_SchemeName", account.bankId, account.accountId, moderatedAttributes),
-              Identification = accountAttributeValue("Servicer_Identification", account.bankId, account.accountId, moderatedAttributes)
-            )
-          )
-        case _ =>
-          None
-      }
+      Account = getAccountDetails,
+      Servicer = getServicer
     )
     val links = LinksMXOFV001(
       s"${Constant.HostName}/mx-open-finance/v0.0.1/accounts/" + account.accountId.value,
@@ -277,6 +286,35 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
   }
   def createReadAccountsBasicJsonMXOFV10(accounts : List[(BankAccount, View)],
                                          moderatedAttributes: List[AccountAttribute]): ReadAccountBasicMXOFV001 = {
+    def getServicer(account: (BankAccount, View)): Option[ServicerMXOFV001] = {
+      account._2.viewId.value match {
+        case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
+          val schemeName = accountAttributeValue("Servicer_SchemeName", account._1.bankId, account._1.accountId, moderatedAttributes)
+          val identification = accountAttributeValue("Servicer_Identification", account._1.bankId, account._1.accountId, moderatedAttributes)
+          val result = ServicerMXOFV001(
+              SchemeName = schemeName,
+              Identification = identification
+          )
+          if (schemeName != null || identification != null) Some(result) else None
+        case _ =>
+          None
+      }
+    }
+
+    def getAccountDetails(account: (BankAccount, View)): Option[AccountDetailMXOFV001] = {
+      account._2.viewId.value match {
+        case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
+          account._1.accountRoutings.headOption.map(e =>
+            AccountDetailMXOFV001(
+              SchemeName = e.scheme, 
+              Identification = e.address, 
+              Name = None)
+          )
+        case _ =>
+          None
+      }
+    }
+
     val accountsBasic = accounts.map(account =>
       AccountBasicMXOFV001(
         AccountId = account._1.accountId.value,
@@ -290,25 +328,8 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
         Nickname = Some(account._1.label),
         OpeningDate = accountAttributeOptValue("OpeningDate", account._1.bankId, account._1.accountId, moderatedAttributes),
         MaturityDate = accountAttributeOptValue("MaturityDate", account._1.bankId, account._1.accountId, moderatedAttributes),
-        Account = account._2.viewId.value match {
-          case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
-            account._1.accountRoutings.headOption.map(e =>
-              AccountDetailMXOFV001(SchemeName = e.scheme, Identification = e.address, None)
-            )
-          case _ =>
-            None
-        },
-        Servicer = account._2.viewId.value match {
-          case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
-            Some(
-              ServicerMXOFV001(
-                SchemeName = accountAttributeValue("Servicer_SchemeName", account._1.bankId, account._1.accountId, moderatedAttributes),
-                Identification = accountAttributeValue("Servicer_Identification", account._1.bankId, account._1.accountId, moderatedAttributes)
-              )
-            )
-          case _ =>
-            None
-        }
+        Account = getAccountDetails(account),
+        Servicer = getServicer(account)
       )
     )
     val links = LinksMXOFV001(
