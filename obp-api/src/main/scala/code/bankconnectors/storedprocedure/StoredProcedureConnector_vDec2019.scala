@@ -809,6 +809,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
      InBoundGetBankAccountsHeld(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data=List( AccountHeld(id="string",
+      label = labelExample.value,
       bankId=bankIdExample.value,
       number="string",
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,

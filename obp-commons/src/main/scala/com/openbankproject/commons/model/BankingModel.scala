@@ -339,6 +339,7 @@ case class AccountsBalances(
 
 case class AccountHeld(
   id: String,
+  label: String,
   bankId: String,
   number: String,
   accountRoutings: List[AccountRouting]
