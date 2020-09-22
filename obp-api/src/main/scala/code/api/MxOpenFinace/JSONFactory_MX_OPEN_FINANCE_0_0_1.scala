@@ -227,7 +227,33 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
   def createReadAccountBasicJsonMXOFV10(account : ModeratedBankAccountCore, 
                                         moderatedAttributes: List[AccountAttribute],
                                         view: View): ReadAccountBasicMXOFV001 = {
-    
+
+    def getServicer: Option[ServicerMXOFV001] = {
+      view.viewId.value match {
+        case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
+          val schemeName = accountAttributeValue("Servicer_SchemeName", account.bankId, account.accountId, moderatedAttributes)
+          val identification = accountAttributeValue("Servicer_Identification", account.bankId, account.accountId, moderatedAttributes)
+          val result = ServicerMXOFV001(
+            SchemeName = schemeName,
+            Identification = identification
+          )
+          if (schemeName != null || identification != null) Some(result) else None
+        case _ =>
+          None
+      }
+    }
+
+    def getAccountDetails: Option[AccountDetailMXOFV001] = {
+      view.viewId.value match {
+        case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
+          account.accountRoutings.headOption.map(e =>
+            AccountDetailMXOFV001(SchemeName = e.scheme, Identification = e.address, None)
+          )
+        case _ =>
+          None
+      }
+    }
+
     val accountBasic = AccountBasicMXOFV001(
       AccountId = account.accountId.value,
       Status = accountAttributeValue("Status", account.bankId, account.accountId, moderatedAttributes),
@@ -240,25 +266,8 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
       Nickname = account.label,
       OpeningDate = accountAttributeOptValue("OpeningDate", account.bankId, account.accountId, moderatedAttributes),
       MaturityDate = accountAttributeOptValue("MaturityDate", account.bankId, account.accountId, moderatedAttributes),
-      Account = view.viewId.value match {
-        case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
-          account.accountRoutings.headOption.map(e =>
-            AccountDetailMXOFV001(SchemeName = e.scheme, Identification = e.address, None)
-          )
-        case _ => 
-          None
-      },
-      Servicer = view.viewId.value match {
-        case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
-          Some(
-            ServicerMXOFV001(
-              SchemeName = accountAttributeValue("Servicer_SchemeName", account.bankId, account.accountId, moderatedAttributes),
-              Identification = accountAttributeValue("Servicer_Identification", account.bankId, account.accountId, moderatedAttributes)
-            )
-          )
-        case _ =>
-          None
-      }
+      Account = getAccountDetails,
+      Servicer = getServicer
     )
     val links = LinksMXOFV001(
       s"${Constant.HostName}/mx-open-finance/v0.0.1/accounts/" + account.accountId.value,
@@ -276,6 +285,35 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
   }
   def createReadAccountsBasicJsonMXOFV10(accounts : List[(BankAccount, View)],
                                          moderatedAttributes: List[AccountAttribute]): ReadAccountBasicMXOFV001 = {
+    def getServicer(account: (BankAccount, View)): Option[ServicerMXOFV001] = {
+      account._2.viewId.value match {
+        case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
+          val schemeName = accountAttributeValue("Servicer_SchemeName", account._1.bankId, account._1.accountId, moderatedAttributes)
+          val identification = accountAttributeValue("Servicer_Identification", account._1.bankId, account._1.accountId, moderatedAttributes)
+          val result = ServicerMXOFV001(
+              SchemeName = schemeName,
+              Identification = identification
+          )
+          if (schemeName != null || identification != null) Some(result) else None
+        case _ =>
+          None
+      }
+    }
+
+    def getAccountDetails(account: (BankAccount, View)): Option[AccountDetailMXOFV001] = {
+      account._2.viewId.value match {
+        case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
+          account._1.accountRoutings.headOption.map(e =>
+            AccountDetailMXOFV001(
+              SchemeName = e.scheme, 
+              Identification = e.address, 
+              Name = None)
+          )
+        case _ =>
+          None
+      }
+    }
+
     val accountsBasic = accounts.map(account =>
       AccountBasicMXOFV001(
         AccountId = account._1.accountId.value,
@@ -289,25 +327,8 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
         Nickname = Some(account._1.label),
         OpeningDate = accountAttributeOptValue("OpeningDate", account._1.bankId, account._1.accountId, moderatedAttributes),
         MaturityDate = accountAttributeOptValue("MaturityDate", account._1.bankId, account._1.accountId, moderatedAttributes),
-        Account = account._2.viewId.value match {
-          case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
-            account._1.accountRoutings.headOption.map(e =>
-              AccountDetailMXOFV001(SchemeName = e.scheme, Identification = e.address, None)
-            )
-          case _ =>
-            None
-        },
-        Servicer = account._2.viewId.value match {
-          case Constant.READ_ACCOUNTS_DETAIL_VIEW_ID =>
-            Some(
-              ServicerMXOFV001(
-                SchemeName = accountAttributeValue("Servicer_SchemeName", account._1.bankId, account._1.accountId, moderatedAttributes),
-                Identification = accountAttributeValue("Servicer_Identification", account._1.bankId, account._1.accountId, moderatedAttributes)
-              )
-            )
-          case _ =>
-            None
-        }
+        Account = getAccountDetails(account),
+        Servicer = getServicer(account)
       )
     )
     val links = LinksMXOFV001(
@@ -331,7 +352,105 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
                                               view: View): ReadTransactionMXOFV001 = {
 
     val accountId = moderatedTransactions.map(_.bankAccount.map(_.accountId.value)).flatten.headOption.getOrElse("")
-    
+
+    def getMerchantDetails(moderatedTransaction: ModeratedTransaction) = {
+      view.viewId.value match {
+        case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
+          val merchantName = transactionAttributeOptValue("MerchantDetails_MerchantName", bankId, moderatedTransaction.id, attributes)
+          val merchantCategoryCode = transactionAttributeOptValue("MerchantDetails_MerchantCategoryCode", bankId, moderatedTransaction.id, attributes)
+          val result = MerchantDetailsMXOFV001(
+              MerchantName = merchantName,
+              MerchantCategoryCode = merchantCategoryCode
+            )
+          if (merchantName.isDefined || merchantCategoryCode.isDefined) Some(result) else None
+        case _ => None
+      }
+    }
+
+    def getBalance(moderatedTransaction: ModeratedTransaction) = {
+      view.viewId.value match {
+        case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
+          val accountIndicator = transactionAttributeValue("Balance_AccountIndicator", bankId, moderatedTransaction.id, attributes)
+          val `type` = transactionAttributeValue("Balance_Type", bankId, moderatedTransaction.id, attributes)
+          val amount = transactionAttributeValue("Balance_Amount", bankId, moderatedTransaction.id, attributes)
+          val currency = transactionAttributeValue("Balance_Currency", bankId, moderatedTransaction.id, attributes)
+          val result = BalanceMXOFV001(
+              AccountIndicator = accountIndicator,
+              Type = `type`,
+              Amount = AmountMXOFV001(
+                Amount = amount,
+                Currency = currency,
+              )
+            )
+          if (accountIndicator != null || `type` != null || amount != null || currency != null) Some(result) else None
+        case _ => None
+      }
+    }
+
+    def getTransactionRecipient(moderatedTransaction: ModeratedTransaction) = {
+      view.viewId.value match {
+        case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
+          val schemeName = transactionAttributeOptValue("Recipient_SchemeName", bankId, moderatedTransaction.id, attributes)
+          val identification = transactionAttributeOptValue("Recipient_Identification", bankId, moderatedTransaction.id, attributes)
+          val name = transactionAttributeValue("Recipient_Name", bankId, moderatedTransaction.id, attributes)
+          val result = TransactionRecipientMXOFV001(
+            SchemeName = schemeName,
+            Identification = identification,
+            Name = name
+            )
+          if (schemeName.isDefined || identification.isDefined || name != null) Some(result) else None
+        case _ => None
+      }
+    }
+
+    def getRecipientAccount(moderatedTransaction: ModeratedTransaction) = {
+      view.viewId.value match {
+        case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
+          val schemeName = transactionAttributeOptValue("RecipientAccount_SchemeName", bankId, moderatedTransaction.id, attributes)
+          val identification = transactionAttributeValue("RecipientAccount_Identification", bankId, moderatedTransaction.id, attributes)
+          val name = transactionAttributeOptValue("RecipientAccount_Name", bankId, moderatedTransaction.id, attributes)
+          val result =  RecipientAccountMXOFV001(
+             SchemeName = schemeName,
+             Identification = identification,
+             Name = name
+            )
+          if (schemeName.isDefined || identification != null || name.isDefined) Some(result) else None
+        case _ => None
+      }
+    }
+
+    def getTransactionSender(moderatedTransaction: ModeratedTransaction) = {
+      view.viewId.value match {
+        case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
+          val schemeName = transactionAttributeOptValue("Sender_SchemeName", bankId, moderatedTransaction.id, attributes)
+          val identification = transactionAttributeOptValue("Sender_Identification", bankId, moderatedTransaction.id, attributes)
+          val name = transactionAttributeValue("Sender_Name", bankId, moderatedTransaction.id, attributes)
+          val result = TransactionSenderMXOFV001(
+            SchemeName = schemeName,
+            Identification = identification,
+            Name = name
+          )
+          if (schemeName.isDefined || identification.isDefined || name != null) Some(result) else None
+        case _ => None
+      }
+    }
+
+    def getSenderAccount(moderatedTransaction: ModeratedTransaction) = {
+      view.viewId.value match {
+        case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
+          val schemeName = transactionAttributeOptValue("SenderAccount_SchemeName", bankId, moderatedTransaction.id, attributes)
+          val identification = transactionAttributeValue("SenderAccount_Identification", bankId, moderatedTransaction.id, attributes)
+          val name = transactionAttributeOptValue("SenderAccount_Name", bankId, moderatedTransaction.id, attributes)
+          val result = SenderAccountMXOFV001(
+            SchemeName = schemeName,
+            Identification = identification,
+            Name = name
+            )
+          if (schemeName.isDefined || identification != null || name.isDefined) Some(result) else None
+        case _ => None
+      }
+    }
+
     val transactions = moderatedTransactions.map(
       moderatedTransaction =>
         TransactionBasicMXOFV001(
@@ -369,74 +488,12 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
             SubCode = transactionAttributeValue("BankTransactionCode_SubCode", bankId, moderatedTransaction.id, attributes),
           )
         ),
-        Balance = view.viewId.value match {
-          case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
-            Some(
-              BalanceMXOFV001(
-                AccountIndicator = transactionAttributeValue("Balance_AccountIndicator", bankId, moderatedTransaction.id, attributes),
-                Type = transactionAttributeValue("Balance_Type", bankId, moderatedTransaction.id, attributes),
-                Amount = AmountMXOFV001(
-                  Amount = transactionAttributeValue("Balance_Amount", bankId, moderatedTransaction.id, attributes),
-                  Currency = transactionAttributeValue("Balance_Currency", bankId, moderatedTransaction.id, attributes),
-                )
-              )
-            )
-          case _ =>  None
-        }, 
-        MerchantDetails = view.viewId.value match {
-          case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
-            Some(
-              MerchantDetailsMXOFV001(
-                MerchantName = transactionAttributeOptValue("MerchantDetails_MerchantName", bankId, moderatedTransaction.id, attributes),
-                MerchantCategoryCode = transactionAttributeOptValue("MerchantDetails_MerchantCategoryCode", bankId, moderatedTransaction.id, attributes),
-              )
-            )
-          case _ =>  None
-        },
-        TransactionRecipient = view.viewId.value match {
-          case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID => 
-            Some(
-              TransactionRecipientMXOFV001(
-                SchemeName = transactionAttributeOptValue("Recipient_SchemeName", bankId, moderatedTransaction.id, attributes),
-                Identification = transactionAttributeOptValue("Recipient_Identification", bankId, moderatedTransaction.id, attributes),
-                Name = transactionAttributeValue("Recipient_Name", bankId, moderatedTransaction.id, attributes),
-              )
-            )
-          case _ =>  None
-        },
-        RecipientAccount = view.viewId.value match {
-          case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
-            Some(
-              RecipientAccountMXOFV001(
-                SchemeName = transactionAttributeOptValue("Account_SchemeName", bankId, moderatedTransaction.id, attributes),
-                Identification = transactionAttributeValue("Account_Identification", bankId, moderatedTransaction.id, attributes),
-                Name = transactionAttributeOptValue("Account_Name", bankId, moderatedTransaction.id, attributes),
-              )
-            )
-          case _ =>  None
-        },
-        TransactionSender = view.viewId.value match {
-          case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
-            Some(
-              TransactionSenderMXOFV001(
-                SchemeName = transactionAttributeOptValue("Sender_SchemeName", bankId, moderatedTransaction.id, attributes),
-                Identification = transactionAttributeOptValue("Sender_Identification", bankId, moderatedTransaction.id, attributes),
-                Name = transactionAttributeValue("Sender_Name", bankId, moderatedTransaction.id, attributes),
-              )
-            )
-          case _ =>  None
-        },
-        SenderAccount = view.viewId.value match {
-          case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
-            Some(
-              SenderAccountMXOFV001(
-                SchemeName = transactionAttributeOptValue("SenderAccount_SchemeName", bankId, moderatedTransaction.id, attributes),
-                Identification = transactionAttributeValue("SenderAccount_Identification", bankId, moderatedTransaction.id, attributes),
-                Name = transactionAttributeOptValue("SenderAccount_Name", bankId, moderatedTransaction.id, attributes),
-              )
-            )
-          case _ =>  None
-        },
+        Balance = getBalance(moderatedTransaction), 
+        MerchantDetails = getMerchantDetails(moderatedTransaction),
+        TransactionRecipient = getTransactionRecipient(moderatedTransaction),
+        RecipientAccount = getRecipientAccount(moderatedTransaction),
+        TransactionSender = getTransactionSender(moderatedTransaction),
+        SenderAccount = getSenderAccount(moderatedTransaction),
         CardInstrument = Some(
           CardInstrumentMXOFV001(
             CardSchemeName = transactionAttributeValue("CardInstrument_CardSchemeName", bankId, moderatedTransaction.id, attributes),
