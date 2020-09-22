@@ -357,7 +357,7 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
       view.viewId.value match {
         case Constant.READ_TRANSACTIONS_DETAIL_VIEW_ID =>
           val merchantName = transactionAttributeOptValue("MerchantDetails_MerchantName", bankId, moderatedTransaction.id, attributes)
-          val merchantCategoryCode = transactionAttributeOptValue("MerchantDetails_MerchantCategoryCode", bankId, moderatedTransaction.id, attributes)
+          val merchantCategoryCode = transactionAttributeOptValue("MerchantDetails_CategoryCode", bankId, moderatedTransaction.id, attributes)
           val result = MerchantDetailsMXOFV001(
               MerchantName = merchantName,
               MerchantCategoryCode = merchantCategoryCode
@@ -452,10 +452,10 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
     }
 
     def getCardInstrument(moderatedTransaction: ModeratedTransaction): Option[CardInstrumentMXOFV001] = {
-      val cardSchemeName = transactionAttributeValue("CardInstrument_CardSchemeName", bankId, moderatedTransaction.id, attributes)
-      val identification = transactionAttributeValue("CardInstrument_Identification", bankId, moderatedTransaction.id, attributes)
-      val authorisationType = transactionAttributeValue("CardInstrument_AuthorisationType", bankId, moderatedTransaction.id, attributes)
-      val name = transactionAttributeValue("CardInstrument_Name", bankId, moderatedTransaction.id, attributes)
+      val cardSchemeName = transactionAttributeValue("Card_SchemeName", bankId, moderatedTransaction.id, attributes)
+      val identification = transactionAttributeValue("Card_Identification", bankId, moderatedTransaction.id, attributes)
+      val authorisationType = transactionAttributeValue("Card_AuthorisationType", bankId, moderatedTransaction.id, attributes)
+      val name = transactionAttributeValue("Card_Name", bankId, moderatedTransaction.id, attributes)
       val result = CardInstrumentMXOFV001(
           CardSchemeName = cardSchemeName,
           AuthorisationType = authorisationType,
@@ -466,7 +466,7 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
     }
 
     def getInstructedAmount(moderatedTransaction: ModeratedTransaction): Option[AmountMXOFV001] = {
-      val amount = transactionAttributeValue("CurrencyExchange_InstructedAmount_Amount", bankId, moderatedTransaction.id, attributes)
+      val amount = transactionAttributeValue("CurrencyExchange_InstructedAmount", bankId, moderatedTransaction.id, attributes)
       val currency = transactionAttributeValue("CurrencyExchange_InstructedAmount_Currency", bankId, moderatedTransaction.id, attributes)
       val result = AmountMXOFV001(
           Amount = amount,
@@ -476,8 +476,8 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
     }
 
     def getBankTransactionCode(moderatedTransaction: ModeratedTransaction) = {
-      val code = transactionAttributeValue("BankTransactionCode_Code", bankId, moderatedTransaction.id, attributes)
-      val subCode = transactionAttributeValue("BankTransactionCode_SubCode", bankId, moderatedTransaction.id, attributes)
+      val code = transactionAttributeValue("Code", bankId, moderatedTransaction.id, attributes)
+      val subCode = transactionAttributeValue("SubCode", bankId, moderatedTransaction.id, attributes)
       val result = BankTransactionCodeMXOFV001(
           Code = code,
           SubCode = subCode,
@@ -507,7 +507,7 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
           TargetCurrency = transactionAttributeValue("CurrencyExchange_TargetCurrency", bankId, moderatedTransaction.id, attributes),
           UnitCurrency = transactionAttributeOptValue("CurrencyExchange_UnitCurrency", bankId, moderatedTransaction.id, attributes),
           ExchangeRate = transactionAttributeValue("CurrencyExchange_ExchangeRate", bankId, moderatedTransaction.id, attributes),
-          ContractIdentification = transactionAttributeOptValue("ContractIdentification", bankId, moderatedTransaction.id, attributes),
+          ContractIdentification = transactionAttributeOptValue("CurrencyExchange_ContractIdentification", bankId, moderatedTransaction.id, attributes),
           QuotationDate = transactionAttributeOptValue("CurrencyExchange_QuotationDate", bankId, moderatedTransaction.id, attributes),
           InstructedAmount = getInstructedAmount(moderatedTransaction)
         )),
