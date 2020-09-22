@@ -465,6 +465,26 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
       if (cardSchemeName != null || identification != null || authorisationType != null || name != null) Some(result) else None
     }
 
+    def getInstructedAmount(moderatedTransaction: ModeratedTransaction): Option[AmountMXOFV001] = {
+      val amount = transactionAttributeValue("CurrencyExchange_InstructedAmount_Amount", bankId, moderatedTransaction.id, attributes)
+      val currency = transactionAttributeValue("CurrencyExchange_InstructedAmount_Currency", bankId, moderatedTransaction.id, attributes)
+      val result = AmountMXOFV001(
+          Amount = amount,
+          Currency = currency,
+      )
+      if (amount != null || currency != null) Some(result) else None
+    }
+
+    def getBankTransactionCode(moderatedTransaction: ModeratedTransaction) = {
+      val code = transactionAttributeValue("BankTransactionCode_Code", bankId, moderatedTransaction.id, attributes)
+      val subCode = transactionAttributeValue("BankTransactionCode_SubCode", bankId, moderatedTransaction.id, attributes)
+      val result = BankTransactionCodeMXOFV001(
+          Code = code,
+          SubCode = subCode,
+        )
+      if (code != null || subCode != null) Some(result) else None
+    }
+
     val transactions = moderatedTransactions.map(
       moderatedTransaction =>
         TransactionBasicMXOFV001(
@@ -489,19 +509,9 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
           ExchangeRate = transactionAttributeValue("CurrencyExchange_ExchangeRate", bankId, moderatedTransaction.id, attributes),
           ContractIdentification = transactionAttributeOptValue("ContractIdentification", bankId, moderatedTransaction.id, attributes),
           QuotationDate = transactionAttributeOptValue("CurrencyExchange_QuotationDate", bankId, moderatedTransaction.id, attributes),
-          InstructedAmount = Some(
-            AmountMXOFV001(
-              Amount = transactionAttributeValue("CurrencyExchange_InstructedAmount_Amount", bankId, moderatedTransaction.id, attributes), 
-              Currency = transactionAttributeValue("CurrencyExchange_InstructedAmount_Currency", bankId, moderatedTransaction.id, attributes), 
-            )
-          )
+          InstructedAmount = getInstructedAmount(moderatedTransaction)
         )),
-        BankTransactionCode = Some(
-          BankTransactionCodeMXOFV001(
-            Code = transactionAttributeValue("BankTransactionCode_Code", bankId, moderatedTransaction.id, attributes),
-            SubCode = transactionAttributeValue("BankTransactionCode_SubCode", bankId, moderatedTransaction.id, attributes),
-          )
-        ),
+        BankTransactionCode = getBankTransactionCode(moderatedTransaction),
         Balance = getBalance(moderatedTransaction), 
         MerchantDetails = getMerchantDetails(moderatedTransaction),
         TransactionRecipient = getTransactionRecipient(moderatedTransaction),
