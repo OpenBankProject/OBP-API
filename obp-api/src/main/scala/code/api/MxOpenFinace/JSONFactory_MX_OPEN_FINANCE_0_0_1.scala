@@ -454,7 +454,7 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
     def getCardInstrument(moderatedTransaction: ModeratedTransaction): Option[CardInstrumentMXOFV001] = {
       val cardSchemeName = transactionAttributeValue("Card_SchemeName", bankId, moderatedTransaction.id, attributes)
       val identification = transactionAttributeValue("Card_Identification", bankId, moderatedTransaction.id, attributes)
-      val authorisationType = transactionAttributeValue("Card_AuthorisationType", bankId, moderatedTransaction.id, attributes)
+      val authorisationType = transactionAttributeValue("Card_AuthorizationType", bankId, moderatedTransaction.id, attributes)
       val name = transactionAttributeValue("Card_Name", bankId, moderatedTransaction.id, attributes)
       val result = CardInstrumentMXOFV001(
           CardSchemeName = cardSchemeName,
