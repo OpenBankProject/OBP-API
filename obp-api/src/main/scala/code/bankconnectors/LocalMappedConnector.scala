@@ -91,7 +91,7 @@ import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.math.{BigDecimal, BigInt}
-import scala.util.Random
+import scala.util.{Random, Try}
 
 object LocalMappedConnector extends Connector with MdcLoggable {
 
@@ -1183,40 +1183,67 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         .fallbackTo(NewStyle.function.getBank(toAccount.bankId, callContext))
 
       debitRate <- Future (fx.exchangeRate(currency, fromAccount.currency, Some(bankIdExchangeRate.bankId.value)))
-      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${currency} to ${fromAccount.currency}) is not supported."){debitRate.isDefined}
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($currency to ${fromAccount.currency}) is not supported."){debitRate.isDefined}
       creditRate <- Future (fx.exchangeRate(currency, toAccount.currency, Some(bankIdExchangeRate.bankId.value)))
-      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${currency} to ${toAccount.currency}) is not supported."){creditRate.isDefined}
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($currency to ${toAccount.currency}) is not supported."){creditRate.isDefined}
 
       fromTransAmt = -fx.convert(amount, debitRate) //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, creditRate)
 
       debitTransactionBox <- Future(
         saveHistoricalTransaction(fromAccount, toAccount, posted, completed, fromTransAmt, description, transactionRequestType, chargePolicy, callContext)
-          .map(debitTransactionId => (fromAccount.bankId, fromAccount.accountId, debitTransactionId))
+          .map(debitTransactionId => (fromAccount.bankId, fromAccount.accountId, debitTransactionId, false))
           .or {
-            val settlementAccount = BankAccountX(toAccount.bankId, AccountId(transactionRequestType), callContext)
-              .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
-            settlementAccount.flatMap(settlementAccount =>
-              saveHistoricalTransaction(settlementAccount._1, toAccount, posted, completed, fromTransAmt, description, transactionRequestType, chargePolicy, callContext)
-                .map(debitTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, debitTransactionId))
-            )
+            // If we don't find any corresponding obp account, we debit a bank settlement account
+            val settlementAccount = {
+              // We first look for a specific settlement account regarding the payment system (SEPA, ...) used and the currency
+              BankAccountX(toAccount.bankId, AccountId(transactionRequestType + "_SETTLEMENT_ACCOUNT_" + fromAccount.currency), callContext)
+                // If it doesn't exist, we look for a default settlement account regarding the currency
+                .or(BankAccountX(toAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + fromAccount.currency), callContext))
+                // If no specific settlement account exist for this currency, we use the default incoming account (EUR)
+                .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
+            }
+            settlementAccount.flatMap(settlementAccount => {
+              val fromTransAmtSettlementAccount: BigDecimal = {
+              // In the case we selected the default settlement account INCOMING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
+                if (settlementAccount._1.accountId.value == INCOMING_ACCOUNT_ID && settlementAccount._1.currency != fromAccount.currency) {
+                  val rate = fx.exchangeRate(currency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value))
+                  Try(-fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
+                } else fromTransAmt
+              }
+              saveHistoricalTransaction(settlementAccount._1, toAccount, posted, completed, fromTransAmtSettlementAccount, description, transactionRequestType, chargePolicy, callContext)
+                  .map(debitTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, debitTransactionId, true))
+            })
           }
       )
       creditTransactionBox <- Future(
         saveHistoricalTransaction(toAccount, fromAccount, posted, completed, toTransAmt, description, transactionRequestType, chargePolicy, callContext)
-          .map(creditTransactionId => (toAccount.bankId, toAccount.accountId, creditTransactionId))
+          .map(creditTransactionId => (toAccount.bankId, toAccount.accountId, creditTransactionId, false))
           .or {
-            val settlementAccount = BankAccountX(fromAccount.bankId, AccountId(transactionRequestType), callContext)
-              .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
-            settlementAccount.flatMap(settlementAccount =>
-              saveHistoricalTransaction(settlementAccount._1, fromAccount, posted, completed, toTransAmt, description, transactionRequestType, chargePolicy, callContext)
-                .map(creditTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, creditTransactionId))
-            )
+            // If we don't find any corresponding obp account, we credit a bank settlement account
+            val settlementAccount =
+              // We first look for a specific settlement account regarding the payment system (SEPA, ...) used and the currency
+              BankAccountX(fromAccount.bankId, AccountId(transactionRequestType + "_SETTLEMENT_ACCOUNT_" + toAccount.currency), callContext)
+                // If it doesn't exist, we look for a default settlement account regarding the currency
+                .or(BankAccountX(fromAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + toAccount.currency), callContext))
+                // If no specific settlement account exist for this currency, we use the default outgoing account (EUR)
+                .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
+            settlementAccount.flatMap(settlementAccount => {
+              val toTransAmtSettlementAccount: BigDecimal = {
+                // In the case we selected the default settlement account OUTGOING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
+                if (settlementAccount._1.accountId.value == OUTGOING_ACCOUNT_ID && settlementAccount._1.currency != toAccount.currency) {
+                  val rate = fx.exchangeRate(currency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value))
+                  Try(fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
+                } else toTransAmt
+              }
+              saveHistoricalTransaction(settlementAccount._1, fromAccount, posted, completed, toTransAmtSettlementAccount, description, transactionRequestType, chargePolicy, callContext)
+                .map(creditTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, creditTransactionId, true))
+            })
           }
       )
 
-      debitTransaction = debitTransactionBox.openOrThrowException("Error while opening debitTransaction")
-      creditTransaction = creditTransactionBox.openOrThrowException("Error while opening creditTransaction")
+      debitTransaction = debitTransactionBox.openOrThrowException(s"Error while opening debitTransaction. This error can happen when no settlement can be found, please check that $INCOMING_ACCOUNT_ID exists at bank ${toAccount.bankId.value}")
+      creditTransaction = creditTransactionBox.openOrThrowException(s"Error while opening creditTransaction. This error can happen when no settlement can be found, please check that $OUTGOING_ACCOUNT_ID exists at bank ${fromAccount.bankId.value}")
 
       _ <- NewStyle.function.saveDoubleEntryBookTransaction(
         DoubleEntryTransaction(
@@ -1231,7 +1258,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           creditTransactionId = creditTransaction._3
         ), callContext)
     } yield {
-      (debitTransactionBox.map(_._3), callContext)
+      val transactionId: Box[TransactionId] = (debitTransaction._4, creditTransaction._4) match {
+        // If the debit transaction is on a settlement account and the credit transaction is on an OBP account, we return the credit transaction id
+        case (true, false) => creditTransactionBox.map(_._3)
+        // In all the other cases, we return the debit transaction id
+        case _ => debitTransactionBox.map(_._3)
+      }
+      (transactionId, callContext)
+      // In the future, we should return the both transactions as the API response
     }
   }
 
@@ -1306,40 +1340,66 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
       transactionCurrency = transactionRequestCommonBody.value.currency
       debitRate <- Future (fx.exchangeRate(transactionCurrency, fromAccount.currency, Some(bankIdExchangeRate.bankId.value)))
-      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${transactionCurrency} to ${fromAccount.currency}) is not supported."){debitRate.isDefined}
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${fromAccount.currency}) is not supported."){debitRate.isDefined}
       creditRate <- Future (fx.exchangeRate(transactionCurrency, toAccount.currency, Some(bankIdExchangeRate.bankId.value)))
-      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${transactionCurrency} to ${toAccount.currency}) is not supported."){creditRate.isDefined}
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${toAccount.currency}) is not supported."){creditRate.isDefined}
 
       fromTransAmt = -fx.convert(amount, debitRate) //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, creditRate)
 
       debitTransactionBox <- Future {
         saveTransaction(fromAccount, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
-          .map(debitTransactionId => (fromAccount.bankId, fromAccount.accountId, debitTransactionId))
+          .map(debitTransactionId => (fromAccount.bankId, fromAccount.accountId, debitTransactionId, false))
           .or {
-            val settlementAccount = BankAccountX(toAccount.bankId, AccountId(transactionRequestType.value), callContext)
-              .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
-            settlementAccount.flatMap(settlementAccount =>
-              saveTransaction(settlementAccount._1, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
-                .map(debitTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, debitTransactionId))
-            )
+            // If we don't find any corresponding obp account, we debit a bank settlement account
+            val settlementAccount =
+              // We first look for a specific settlement account regarding the payment system (SEPA, ...) used and the currency
+              BankAccountX(toAccount.bankId, AccountId(transactionRequestType + "_SETTLEMENT_ACCOUNT_" + fromAccount.currency), callContext)
+                // If it doesn't exist, we look for a default settlement account regarding the currency
+                .or(BankAccountX(toAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + fromAccount.currency), callContext))
+                // If no specific settlement account exist for this currency, we use the default incoming account (EUR)
+                .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
+            settlementAccount.flatMap(settlementAccount => {
+              val fromTransAmtSettlementAccount = {
+                // In the case we selected the default settlement account INCOMING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
+                if (settlementAccount._1.accountId.value == INCOMING_ACCOUNT_ID && settlementAccount._1.currency != fromAccount.currency) {
+                  val rate = fx.exchangeRate(transactionCurrency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value))
+                  Try(-fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
+                } else fromTransAmt
+              }
+              saveTransaction(settlementAccount._1, toAccount, transactionRequestCommonBody, fromTransAmtSettlementAccount, description, transactionRequestType, chargePolicy)
+                .map(debitTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, debitTransactionId, true))
+            })
           }
       }
       creditTransactionBox <- Future {
         saveTransaction(toAccount, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
-          .map(creditTransactionId => (toAccount.bankId, toAccount.accountId, creditTransactionId))
+          .map(creditTransactionId => (toAccount.bankId, toAccount.accountId, creditTransactionId, false))
           .or {
-            val settlementAccount = BankAccountX(fromAccount.bankId, AccountId(transactionRequestType.value), callContext)
-              .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
-            settlementAccount.flatMap(settlementAccount =>
-              saveTransaction(settlementAccount._1, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
-                .map(creditTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, creditTransactionId))
-            )
+            // If we don't find any corresponding obp account, we credit a bank settlement account
+            val settlementAccount =
+            // We first look for a specific settlement account regarding the payment system (SEPA, ...) used and the currency
+              BankAccountX(fromAccount.bankId, AccountId(transactionRequestType + "_SETTLEMENT_ACCOUNT_" + toAccount.currency), callContext)
+                // If it doesn't exist, we look for a default settlement account regarding the currency
+                .or(BankAccountX(fromAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + toAccount.currency), callContext))
+                // If no specific settlement account exist for this currency, we use the default outgoing account (EUR)
+                .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
+            settlementAccount.flatMap(settlementAccount => {
+              val toTransAmtSettlementAccount = {
+                // In the case we selected the default settlement account OUTGOING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
+                if (settlementAccount._1.accountId.value == OUTGOING_ACCOUNT_ID && settlementAccount._1.currency != toAccount.currency) {
+                  val rate = fx.exchangeRate(transactionCurrency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value))
+                  Try(fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
+                } else toTransAmt
+              }
+              saveTransaction(settlementAccount._1, fromAccount, transactionRequestCommonBody, toTransAmtSettlementAccount, description, transactionRequestType, chargePolicy)
+                .map(creditTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, creditTransactionId, true))
+            })
           }
       }
 
-      debitTransaction = debitTransactionBox.openOrThrowException("Error while opening debitTransaction")
-      creditTransaction = creditTransactionBox.openOrThrowException("Error while opening creditTransaction")
+      debitTransaction = debitTransactionBox.openOrThrowException(s"Error while opening debitTransaction. This error can happen when no settlement can be found, please check that $INCOMING_ACCOUNT_ID exists at bank ${toAccount.bankId.value}")
+      creditTransaction = creditTransactionBox.openOrThrowException(s"Error while opening creditTransaction. This error can happen when no settlement can be found, please check that $OUTGOING_ACCOUNT_ID exists at bank ${fromAccount.bankId.value}")
 
       _ <- NewStyle.function.saveDoubleEntryBookTransaction(
         DoubleEntryTransaction(
@@ -1353,7 +1413,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           creditTransactionAccountId = creditTransaction._2,
           creditTransactionId = creditTransaction._3
         ), callContext)
-    } yield (debitTransactionBox.map(_._3), callContext)
+    } yield {
+      val transactionId: Box[TransactionId] = (debitTransaction._4, creditTransaction._4) match {
+        // If the debit transaction is on a settlement account and the credit transaction is on an OBP account, we return the credit transaction id
+        case (true, false) => creditTransactionBox.map(_._3)
+        // In all the other cases, we return the debit transaction id
+        case _ => debitTransactionBox.map(_._3)
+      }
+      (transactionId, callContext)
+      // In the future, we should return the both transactions as the API response
+    }
 
   /**
     * Saves a transaction with @amount, @toAccount and @transactionRequestType for @fromAccount and @toCounterparty. <br>
@@ -2585,6 +2654,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def createCounterparty(
                                    name: String,
                                    description: String,
+                                   currency: String,
                                    createdByUserId: String,
                                    thisBankId: String,
                                    thisAccountId: String,
@@ -2616,6 +2686,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       otherAccountSecondaryRoutingScheme = otherAccountSecondaryRoutingScheme,
       otherAccountSecondaryRoutingAddress = otherAccountSecondaryRoutingAddress,
       description = description,
+      currency = currency,
       bespoke = bespoke
     ).map(counterparty => (counterparty, callContext))
 

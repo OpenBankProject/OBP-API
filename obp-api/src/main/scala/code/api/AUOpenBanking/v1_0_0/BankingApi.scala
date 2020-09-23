@@ -56,7 +56,7 @@ object APIMethods_BankingApi extends RestHelper {
             Obtain detailed information on a single account
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : "",
   "meta" : { },
@@ -97,7 +97,7 @@ object APIMethods_BankingApi extends RestHelper {
             Obtain detailed information on a single payee
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : "",
   "meta" : { },
@@ -138,7 +138,7 @@ object APIMethods_BankingApi extends RestHelper {
             Obtain detailed information on a single product offered openly to the market
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : "",
   "meta" : { },
@@ -179,7 +179,7 @@ object APIMethods_BankingApi extends RestHelper {
             Obtain detailed information on a transaction for a specific account
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : "",
   "meta" : { },
@@ -234,7 +234,7 @@ Some general notes that apply to all end points that retrieve transactions:
 - For transaction amounts it should be assumed that a negative value indicates a reduction of the available balance on the account while a positive value indicates an increase in the available balance on the account
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "transactions" : [ {
@@ -369,7 +369,7 @@ Some general notes that apply to all end points that retrieve transactions:
             Obtain a list of accounts
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "accounts" : [ {
@@ -435,7 +435,7 @@ Some general notes that apply to all end points that retrieve transactions:
             Obtain the balance for a single specified account
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "accountId" : "accountId",
@@ -485,7 +485,7 @@ Some general notes that apply to all end points that retrieve transactions:
             Obtain balances for multiple, filtered accounts
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "balances" : [ {
@@ -720,7 +720,7 @@ Some general notes that apply to all end points that retrieve transactions:
             Obtain direct debit authorisations for a specific account
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "directDebitAuthorisations" : [ {
@@ -823,7 +823,7 @@ Some general notes that apply to all end points that retrieve transactions:
             Obtain direct debit authorisations for multiple, filtered accounts
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "directDebitAuthorisations" : [ {
@@ -1034,7 +1034,7 @@ Some general notes that apply to all end points that retrieve transactions:
             Obtain a list of pre-registered payees
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "payees" : [ {
@@ -1159,7 +1159,7 @@ It is expected that data consumers needing this data will call relatively freque
 In addition, the concept of effective date and time has also been included. This allows for a product to be marked for obsolescence, or introduction, from a certain time without the need for an update to show that a product has been changed. The inclusion of these dates also removes the need to represent deleted products in the payload. Products that are no long offered can be marked not effective for a few weeks before they are then removed from the product set as an option entirely.
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "products" : [ {
@@ -1294,7 +1294,7 @@ In addition, the concept of effective date and time has also been included. This
             Obtain scheduled, outgoing payments for a specific account
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "scheduledPayments" : [ {
@@ -1913,7 +1913,7 @@ In addition, the concept of effective date and time has also been included. This
             Obtain scheduled payments for multiple, filtered accounts that are the source of funds for the payments
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "scheduledPayments" : [ {

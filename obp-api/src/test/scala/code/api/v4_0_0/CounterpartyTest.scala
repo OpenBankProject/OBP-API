@@ -3,7 +3,7 @@ package code.api.v4_0_0
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanCreateCounterpartyAtBank, CanGetCounterpartyAtBank}
+import code.api.util.ApiRole.{CanCreateCounterpartyAtAnyBank, CanGetCounterpartyAtAnyBank}
 import code.api.util.ErrorMessages
 import code.api.v2_2_0.CounterpartyWithMetadataJson
 import code.api.v4_0_0.OBPAPI4_0_0.{Implementations2_2_0, Implementations4_0_0}
@@ -26,7 +26,7 @@ class CounterpartyTest extends V400ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createCounterpartyForAnyAccount))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations2_2_0.getExplictCounterpartyById))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getExplictCounterpartyById))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getCounterpartyByNameForAnyAccount))
 
 
@@ -40,8 +40,8 @@ class CounterpartyTest extends V400ServerSetup {
       val viewId =ViewId(SYSTEM_OWNER_VIEW_ID)
 
 
-      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAtBank.toString)
+      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJson400.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAtAnyBank.toString)
       
       When("We make the request Create counterparty for an account")
       val requestPost = (v4_0_0_Request / "management" / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
@@ -49,7 +49,7 @@ class CounterpartyTest extends V400ServerSetup {
 
       Then("We should get a 201 and check all the fields")
       responsePost.code should equal(201)
-      val counterpartyWithMetadataJson = responsePost.body.extract[CounterpartyWithMetadataJson]
+      val counterpartyWithMetadataJson = responsePost.body.extract[CounterpartyWithMetadataJson400]
       counterpartyWithMetadataJson.other_account_routing_address should equal(counterpartyPostJSON.other_account_routing_address)
       counterpartyWithMetadataJson.other_account_secondary_routing_scheme should equal(counterpartyPostJSON.other_account_secondary_routing_scheme)
 
@@ -63,7 +63,7 @@ class CounterpartyTest extends V400ServerSetup {
       Then("We should get a 200 and check all the fields")
       responseGet.code should equal(200)
 
-      val counterpartyWithMetadataJsonGet = responseGet.body.extract[CounterpartyWithMetadataJson]
+      val counterpartyWithMetadataJsonGet = responseGet.body.extract[CounterpartyWithMetadataJson400]
 
       counterpartyWithMetadataJsonGet.other_account_routing_address should equal(counterpartyPostJSON.other_account_routing_address)
 
@@ -81,8 +81,8 @@ class CounterpartyTest extends V400ServerSetup {
 
 
       //This will use a non exiting obp account, and it should also work 
-      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_scheme = "xx")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAtBank.toString)
+      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJson400.copy(other_bank_routing_scheme = "xx")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAtAnyBank.toString)
 
       When("We make the request Create counterparty for an account")
       val requestPost = (v4_0_0_Request / "management" / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
@@ -90,7 +90,7 @@ class CounterpartyTest extends V400ServerSetup {
 
       Then("We should get a 201 and check all the fields")
       responsePost.code should equal(201)
-      val counterpartyWithMetadataJson = responsePost.body.extract[CounterpartyWithMetadataJson]
+      val counterpartyWithMetadataJson = responsePost.body.extract[CounterpartyWithMetadataJson400]
       counterpartyWithMetadataJson.other_account_routing_address should equal(counterpartyPostJSON.other_account_routing_address)
       counterpartyWithMetadataJson.other_account_secondary_routing_scheme should equal(counterpartyPostJSON.other_account_secondary_routing_scheme)
 
@@ -104,7 +104,7 @@ class CounterpartyTest extends V400ServerSetup {
       Then("We should get a 200 and check all the fields")
       responseGet.code should equal(200)
 
-      val counterpartyWithMetadataJsonGet = responseGet.body.extract[CounterpartyWithMetadataJson]
+      val counterpartyWithMetadataJsonGet = responseGet.body.extract[CounterpartyWithMetadataJson400]
 
       counterpartyWithMetadataJsonGet.other_account_routing_address should equal(counterpartyPostJSON.other_account_routing_address)
 
@@ -113,21 +113,21 @@ class CounterpartyTest extends V400ServerSetup {
 
     }
 
-    scenario(s"Error - No Role $CanCreateCounterpartyAtBank") {
+    scenario(s"Error - No Role $CanCreateCounterpartyAtAnyBank") {
       Given("The user, but no role")
 
       val bankId = testBankId1
       val accountId = testAccountId1
       val viewId =ViewId(SYSTEM_OWNER_VIEW_ID)
 
-      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
+      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJson400.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
 
       val requestPost = (v4_0_0_Request / "management" /"banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
       Then("We should get a 403")
       responsePost.code should equal(403)
 
-      responsePost.body.extract[ErrorMessage].message contains (CanCreateCounterpartyAtBank.toString()) should be (true)
+      responsePost.body.extract[ErrorMessage].message contains (CanCreateCounterpartyAtAnyBank.toString()) should be (true)
     }
     
     scenario("No BankAccount in Database") {
@@ -138,9 +138,9 @@ class CounterpartyTest extends V400ServerSetup {
       val accountId = AccountId("notExistingAccountId")
       val viewId =ViewId(SYSTEM_OWNER_VIEW_ID)
 
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAtBank.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAtAnyBank.toString)
 
-      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
+      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJson400.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
 
       val requestPost = (v4_0_0_Request / "management" /"banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
@@ -156,8 +156,8 @@ class CounterpartyTest extends V400ServerSetup {
       val accountId = testAccountId1
       val viewId =ViewId(SYSTEM_OWNER_VIEW_ID)
 
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAtBank.toString)
-      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAtAnyBank.toString)
+      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJson400.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
 
       When("We make the request Create counterparty for an account")
       val requestPost = (v4_0_0_Request /"management" / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
@@ -183,8 +183,8 @@ class CounterpartyTest extends V400ServerSetup {
       val viewId =ViewId(SYSTEM_OWNER_VIEW_ID)
 
 
-      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAtBank.toString)
+      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJson400.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAtAnyBank.toString)
 
       When("We make the request Create counterparty for an account")
       val requestPost = (v4_0_0_Request / "management" / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
@@ -197,8 +197,8 @@ class CounterpartyTest extends V400ServerSetup {
       counterpartyWithMetadataJson.other_account_secondary_routing_scheme should equal(counterpartyPostJSON.other_account_secondary_routing_scheme)
 
       val counterpartyName = counterpartyWithMetadataJson.name
-      Then(s"we grant the $CanGetCounterpartyAtBank role")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCounterpartyAtBank.toString)
+      Then(s"we grant the $CanGetCounterpartyAtAnyBank role")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCounterpartyAtAnyBank.toString)
       
       
       Then(s"we can test the `$ApiEndpoint3`")
@@ -208,14 +208,14 @@ class CounterpartyTest extends V400ServerSetup {
       Then("We should get a 200 and check all the fields")
       responseGet.code should equal(200)
 
-      val counterpartyWithMetadataJsonGet = responseGet.body.extract[CounterpartyWithMetadataJson]
+      val counterpartyWithMetadataJsonGet = responseGet.body.extract[CounterpartyWithMetadataJson400]
 
       counterpartyWithMetadataJsonGet.other_account_routing_address should equal(counterpartyPostJSON.other_account_routing_address)
 
       counterpartyWithMetadataJsonGet.name should equal(counterpartyName)
     }
 
-    scenario(s"no role $CanGetCounterpartyAtBank") {
+    scenario(s"no role $CanGetCounterpartyAtAnyBank") {
 
       Given("The user owner access and BankAccount")
       val bankId = testBankId1
@@ -223,8 +223,8 @@ class CounterpartyTest extends V400ServerSetup {
       val viewId =ViewId(SYSTEM_OWNER_VIEW_ID)
 
 
-      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAtBank.toString)
+      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJson400.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAtAnyBank.toString)
 
       When("We make the request Create counterparty for an account")
       val requestPost = (v4_0_0_Request / "management" / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
@@ -232,7 +232,7 @@ class CounterpartyTest extends V400ServerSetup {
 
       Then("We should get a 201 and check all the fields")
       responsePost.code should equal(201)
-      val counterpartyWithMetadataJson = responsePost.body.extract[CounterpartyWithMetadataJson]
+      val counterpartyWithMetadataJson = responsePost.body.extract[CounterpartyWithMetadataJson400]
       counterpartyWithMetadataJson.other_account_routing_address should equal(counterpartyPostJSON.other_account_routing_address)
       counterpartyWithMetadataJson.other_account_secondary_routing_scheme should equal(counterpartyPostJSON.other_account_secondary_routing_scheme)
 

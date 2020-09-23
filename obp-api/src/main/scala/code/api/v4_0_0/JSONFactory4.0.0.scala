@@ -35,7 +35,8 @@ import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
 import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSONV121}
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
-import code.api.v2_1_0.{IbanJson, ResourceUserJSON}
+import code.api.v2_1_0.{IbanJson, JSONFactory210, PostCounterpartyBespokeJson, ResourceUserJSON}
+import code.api.v2_2_0.CounterpartyMetadataJson
 import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
 import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, ViewBasicV300}
 import code.api.v3_1_0.AccountAttributeResponseJson
@@ -360,6 +361,70 @@ case class SettlementAccountsJson(
                                   settlement_accounts: List[SettlementAccountJson]
                                  )
 
+case class CounterpartyWithMetadataJson400(
+                                         name: String,
+                                         description: String,
+                                         currency: String,
+                                         created_by_user_id: String,
+                                         this_bank_id: String,
+                                         this_account_id: String,
+                                         this_view_id: String,
+                                         counterparty_id: String,
+                                         other_bank_routing_scheme: String,
+                                         other_bank_routing_address: String,
+                                         other_branch_routing_scheme: String,
+                                         other_branch_routing_address: String,
+                                         other_account_routing_scheme: String,
+                                         other_account_routing_address: String,
+                                         other_account_secondary_routing_scheme: String,
+                                         other_account_secondary_routing_address: String,
+                                         is_beneficiary: Boolean,
+                                         bespoke:List[PostCounterpartyBespokeJson],
+                                         metadata: CounterpartyMetadataJson
+                                       )
+
+case class PostCounterpartyJson400(
+                                    name: String,
+                                    description: String,
+                                    currency: String,
+                                    other_account_routing_scheme: String,
+                                    other_account_routing_address: String,
+                                    other_account_secondary_routing_scheme: String,
+                                    other_account_secondary_routing_address: String,
+                                    other_bank_routing_scheme: String,
+                                    other_bank_routing_address: String,
+                                    other_branch_routing_scheme: String,
+                                    other_branch_routing_address: String,
+                                    is_beneficiary: Boolean,
+                                    bespoke: List[PostCounterpartyBespokeJson]
+                                  )
+
+case class CounterpartyJson400(
+                                 name: String,
+                                 description: String,
+                                 currency: String,
+                                 created_by_user_id: String,
+                                 this_bank_id: String,
+                                 this_account_id: String,
+                                 this_view_id: String,
+                                 counterparty_id: String,
+                                 other_bank_routing_scheme: String,
+                                 other_bank_routing_address: String,
+                                 other_branch_routing_scheme: String,
+                                 other_branch_routing_address: String,
+                                 other_account_routing_scheme: String,
+                                 other_account_routing_address: String,
+                                 other_account_secondary_routing_scheme: String,
+                                 other_account_secondary_routing_address: String,
+                                 is_beneficiary: Boolean,
+                                 bespoke:List[PostCounterpartyBespokeJson]
+                               )
+
+case class CounterpartiesJson400(
+                                   counterparties: List[CounterpartyJson400]
+                                 )
+
+
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
@@ -649,6 +714,65 @@ object JSONFactory400 {
       userLock.typeOfLock,
       userLock.lastLockDate)
   }
+
+  def createCounterpartyWithMetadataJson400(counterparty: CounterpartyTrait, counterpartyMetadata: CounterpartyMetadata): CounterpartyWithMetadataJson400 = {
+    CounterpartyWithMetadataJson400(
+      name = counterparty.name,
+      description = counterparty.description,
+      currency = counterparty.currency,
+      created_by_user_id = counterparty.createdByUserId,
+      this_bank_id = counterparty.thisBankId,
+      this_account_id = counterparty.thisAccountId,
+      this_view_id = counterparty.thisViewId,
+      counterparty_id = counterparty.counterpartyId,
+      other_bank_routing_scheme = counterparty.otherBankRoutingScheme,
+      other_bank_routing_address = counterparty.otherBankRoutingAddress,
+      other_account_routing_scheme = counterparty.otherAccountRoutingScheme,
+      other_account_routing_address = counterparty.otherAccountRoutingAddress,
+      other_account_secondary_routing_scheme = counterparty.otherAccountSecondaryRoutingScheme,
+      other_account_secondary_routing_address = counterparty.otherAccountSecondaryRoutingAddress,
+      other_branch_routing_scheme = counterparty.otherBranchRoutingScheme,
+      other_branch_routing_address =counterparty.otherBranchRoutingAddress,
+      is_beneficiary = counterparty.isBeneficiary,
+      bespoke = counterparty.bespoke.map(bespoke =>PostCounterpartyBespokeJson(bespoke.key,bespoke.value)),
+      metadata=CounterpartyMetadataJson(
+        public_alias = counterpartyMetadata.getPublicAlias,
+        more_info = counterpartyMetadata.getMoreInfo,
+        url = counterpartyMetadata.getUrl,
+        image_url = counterpartyMetadata.getImageURL,
+        open_corporates_url = counterpartyMetadata.getOpenCorporatesURL,
+        corporate_location = JSONFactory210.createLocationJSON(counterpartyMetadata.getCorporateLocation),
+        physical_location = JSONFactory210.createLocationJSON(counterpartyMetadata.getPhysicalLocation),
+        private_alias = counterpartyMetadata.getPrivateAlias
+      )
+    )
+  }
+
+  def createCounterpartyJson400(counterparty: CounterpartyTrait): CounterpartyJson400 = {
+    CounterpartyJson400(
+      name = counterparty.name,
+      description = counterparty.description,
+      currency = counterparty.currency,
+      created_by_user_id = counterparty.createdByUserId,
+      this_bank_id = counterparty.thisBankId,
+      this_account_id = counterparty.thisAccountId,
+      this_view_id = counterparty.thisViewId,
+      counterparty_id = counterparty.counterpartyId,
+      other_bank_routing_scheme = counterparty.otherBankRoutingScheme,
+      other_bank_routing_address = counterparty.otherBankRoutingAddress,
+      other_account_routing_scheme = counterparty.otherAccountRoutingScheme,
+      other_account_routing_address = counterparty.otherAccountRoutingAddress,
+      other_account_secondary_routing_scheme = counterparty.otherAccountSecondaryRoutingScheme,
+      other_account_secondary_routing_address = counterparty.otherAccountSecondaryRoutingAddress,
+      other_branch_routing_scheme = counterparty.otherBranchRoutingScheme,
+      other_branch_routing_address =counterparty.otherBranchRoutingAddress,
+      is_beneficiary = counterparty.isBeneficiary,
+      bespoke = counterparty.bespoke.map(bespoke =>PostCounterpartyBespokeJson(bespoke.key,bespoke.value))
+    )
+  }
+
+  def createCounterpartiesJson400(counterparties: List[CounterpartyTrait]): CounterpartiesJson400 =
+    CounterpartiesJson400(counterparties.map(createCounterpartyJson400))
   
 }
 

@@ -73,7 +73,7 @@ for scheduled payments of the last business day before the scheduled execution d
 DELETE command will tell the TPP whether the * access method was rejected * access method was successful, 
 or * access method is generally applicable, but further authorisation processes are needed.
 """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "challengeData" : {
     "otpMaxLength" : 0,
@@ -139,7 +139,7 @@ or * access method is generally applicable, but further authorisation processes 
        s"""${mockedDataText(false)}
 This method returns the SCA status of a payment initiation's authorisation sub-resource.
 """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }"""),
@@ -332,7 +332,7 @@ Retrieve a list of all created cancellation authorisation sub-resources.
        s"""${mockedDataText(false)}
 This method returns the SCA status of a payment initiation's authorisation sub-resource.
 """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }"""),
@@ -374,7 +374,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        "Payment initiation status request",
        s"""${mockedDataText(false)}
 Check the transaction status of a payment initiation.""",
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
                       "transactionStatus": "ACCP"
                      }"""),
@@ -658,7 +658,7 @@ This applies in the following scenarios:
     executing the cancellation.
   * The signing basket needs to be authorised yet.
 """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
                       "challengeData": {
                         "scaStatus": "received",
@@ -749,7 +749,7 @@ This applies in the following scenarios:
     executing the cancellation.
   * The signing basket needs to be authorised yet.
 """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
                       "scaStatus":"received",
                       "authorisationId":"8a49b79b-b400-4e6b-b88d-637c3a71479d",
