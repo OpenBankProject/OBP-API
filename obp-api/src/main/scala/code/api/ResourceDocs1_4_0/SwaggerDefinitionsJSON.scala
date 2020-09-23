@@ -16,7 +16,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, ChallengeJsonV400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, TransactionRequestBodySEPAJsonV400, TransactionRequestReasonJsonV400, TransactionRequestWithChargeJSON400, UserLockStatusJson, When}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, ChallengeJsonV400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, LogoutLinkJson, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, TransactionRequestBodySEPAJsonV400, TransactionRequestReasonJsonV400, TransactionRequestWithChargeJSON400, UserLockStatusJson, When}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
@@ -2816,6 +2816,8 @@ object SwaggerDefinitionsJSON {
   
   val accountsIdsJsonV300 = AccountsIdsJsonV300(accounts = List(accountIdJson))
 
+  val logoutLinkV400 = LogoutLinkJson(link="127.0.0.1:8080/user_mgt/logout")
+
   val adapterInfoJsonV300 = AdapterInfoJsonV300(
     name = "String",
     version = "String",
@@ -2853,7 +2855,13 @@ object SwaggerDefinitionsJSON {
     this_account = thisAccountJsonV300,
     other_account = otherAccountJsonV300,
     details = transactionDetailsJSON,
-    metadata = transactionMetadataJSON
+    metadata = transactionMetadataJSON,
+    transaction_attributes = List(TransactionAttributeResponseJson(
+      transaction_attribute_id = transactionAttributeIdExample.value,
+      name = transactionAttributeNameExample.value,
+      `type` = transactionAttributeTypeExample.value,
+      value = transactionAttributeValueExample.value
+    ))
   )
   
   val transactionsJsonV300 = TransactionsJsonV300(
@@ -2871,7 +2879,13 @@ object SwaggerDefinitionsJSON {
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     this_account = thisAccountJsonV300,
     other_account = coreCounterpartyJsonV300,
-    details = coreTransactionDetailsJSON
+    details = coreTransactionDetailsJSON,
+    transaction_attributes = List(TransactionAttributeResponseJson(
+      transaction_attribute_id = transactionAttributeIdExample.value,
+      name = transactionAttributeNameExample.value,
+      `type` = transactionAttributeTypeExample.value,
+      value = transactionAttributeValueExample.value
+    ))
   )
   
   val coreCounterpartiesJsonV300 =  CoreCounterpartiesJsonV300(
@@ -3484,8 +3498,7 @@ object SwaggerDefinitionsJSON {
     `type`= accountTypeExample.value,
     balance = amountOfMoneyJsonV121,
     account_routings = List(accountRoutingJsonV121),
-    views_basic = List(viewBasicV300),
-    account_attributes = List(accountAttributeResponseJson)
+    views_basic = List(viewBasicV300)
   )  
   val moderatedCoreAccountJsonV400 = ModeratedCoreAccountJsonV400(
     id = accountIdExample.value,
@@ -3497,7 +3510,6 @@ object SwaggerDefinitionsJSON {
     balance = amountOfMoneyJsonV121,
     account_routings = List(accountRoutingJsonV121),
     views_basic = List(viewBasicV300),
-    account_attributes = List(accountAttributeResponseJson),
     tags = List(accountTagJSON)
   )
 

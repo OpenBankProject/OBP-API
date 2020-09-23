@@ -533,23 +533,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     var httpCode : Int = 500
 
     var parameters = getAllParameters
-
-    val alreadyUsedNonceF = alreadyUsedNonceFuture(parameters)
-    val validToken2F = {
-      if (requestType == "protectedResource") {
-        validToken2Future(parameters.get(TokenName).get)
-      } else {
-        Future{true}
-      }
-    }
-    val validTokenF = {
-      if (requestType == "authorizationToken") {
-        validTokenFuture(parameters.get(TokenName).get, parameters.get(VerifierName).get)
-      } else {
-        Future{true}
-      }
-    }
-    val registeredApplicationF = APIUtil.registeredApplicationFuture(parameters.get("oauth_consumer_key").get)
+    
     val sRequest = S.request
     val urlParams: Map[String, List[String]] = sRequest.map(_.params).getOrElse(Map.empty)
     val sUri = S.uri
@@ -557,10 +541,18 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     // Please note that after this point S.request for instance cannot be used directly
     // If you need it later assign it to some variable and pass it
     for {
-      alreadyUsedNonce <- alreadyUsedNonceF
-      validToken2 <- validToken2F
-      validToken <- validTokenF
-      registeredApplication <- registeredApplicationF
+      alreadyUsedNonce <- alreadyUsedNonceFuture(parameters)
+      validToken2 <- requestType match {
+        case value if value == "protectedResource" => 
+          validToken2Future(parameters.get(TokenName).get)
+        case _ => Future{true}
+      }
+      validToken <- requestType match {
+        case value if value == "authorizationToken" => 
+          validTokenFuture(parameters.get(TokenName).get, parameters.get(VerifierName).get)
+        case _ => Future{true}
+      }
+      registeredApplication <- APIUtil.registeredApplicationFuture(parameters.get("oauth_consumer_key").get)
 
     } yield {
       //are all the necessary OAuth parameters present?
@@ -629,7 +621,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
         httpCode = 200
 
       if(message.nonEmpty)
-        logger.error("error message : " + message)
+        logger.error("OBP oauth1.0.scala says : " + message)
 
       (httpCode, message, parameters)
     }

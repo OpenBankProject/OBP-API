@@ -386,6 +386,9 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
     checkFormat(fields.size == 1, s"$DynamicEntityInstanceValidateFail The Json root object should have a single entity, but current entityNames: ${fields.map(_.name).mkString(",  ")}")
 
     val JField(entityName, metadataJson) = fields.head
+    val namePattern = "[-_A-Za-z0-9]+".r.pattern
+    // validate entity name
+    checkFormat(namePattern.matcher(entityName).matches(), s"$DynamicEntityInstanceValidateFail The entity name should contains characters [-_A-Za-z0-9], but current entity name: $entityName")
 
     // validate entityName corresponding value is json object
     val metadataStr = compactRender(metadataJson)
@@ -428,6 +431,9 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
     // validate all properties have a type and example
     allFields.foreach(field => {
       val JField(fieldName, value) = field
+      // validate filed name
+      checkFormat(namePattern.matcher(fieldName).matches(), s"$DynamicEntityInstanceValidateFail The field name should contains characters [-_A-Za-z0-9], the wrong field name: $fieldName")
+
       checkFormat(value.isInstanceOf[JObject], s"$DynamicEntityInstanceValidateFail The property of $fieldName's type should be json object")
 
       // 'type' exists and value should be one of allowed type

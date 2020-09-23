@@ -3,7 +3,7 @@ package code.obp.grpc
 import java.util.logging.Logger
 
 import code.api.util.{APIUtil, CallContext, NewStyle}
-import code.api.v3_0_0.CoreTransactionsJsonV300
+import code.api.v3_0_0.{CoreTransactionsJsonV300, ModeratedTransactionCoreWithAttributes}
 import code.api.v4_0_0.{BankJson400, BanksJson400, JSONFactory400, OBPAPI4_0_0}
 import code.obp.grpc.api.BanksJson400Grpc.{BankJson400Grpc, BankRoutingJsonV121Grpc}
 import code.obp.grpc.api._
@@ -131,7 +131,7 @@ class HelloWorldServer(executionContext: ExecutionContext) { self =>
         (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
         view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
         (Full(transactionsCore), callContext) <- bankAccount.getModeratedTransactionsCore(bank, Full(user), view, BankIdAccountId(bankId, accountId), Nil, callContext)
-        obpCoreTransactions: CoreTransactionsJsonV300 = code.api.v3_0_0.JSONFactory300.createCoreTransactionsJSON(transactionsCore)
+        obpCoreTransactions: CoreTransactionsJsonV300 = code.api.v3_0_0.JSONFactory300.createCoreTransactionsJSON(transactionsCore.map(ModeratedTransactionCoreWithAttributes(_)))
       } yield {
         val jValue = Extraction.decompose(obpCoreTransactions)
         val coreTransactionsJsonV300Grpc = jValue.extract[CoreTransactionsJsonV300Grpc]

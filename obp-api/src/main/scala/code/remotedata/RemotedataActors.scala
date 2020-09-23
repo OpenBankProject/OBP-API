@@ -47,7 +47,7 @@ object RemotedataActors extends MdcLoggable {
       ActorProps[RemotedataSanityCheckActor]          -> RemotedataSanityCheck.actorName,
       ActorProps[RemotedataEntitlementsActor]         -> RemotedataEntitlements.actorName,
       ActorProps[RemotedataScopesActor]               -> RemotedataScopes.actorName,
-      ActorProps[RemotedataExpectedChallengeAnswerActor] -> RemotedataExpectedChallengeAnswerProvider.actorName,
+      ActorProps[RemotedataChallengesActor]           -> RemotedataChallenges.actorName,
       ActorProps[RemotedataCounterpartyBespokesActor] -> RemotedataCounterpartyBespokes.actorName,
       ActorProps[RemotedataTaxResidenceActor]         -> RemotedataTaxResidence.actorName,
       ActorProps[RemotedataCustomerAddressActor]      -> RemotedataCustomerAddress.actorName,

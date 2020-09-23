@@ -5,7 +5,7 @@ package code.transactionattribute
 import code.api.util.APIUtil
 import code.remotedata.RemotedataTransactionAttribute
 import com.openbankproject.commons.model.enums.TransactionAttributeType
-import com.openbankproject.commons.model.{BankId, TransactionAttribute, TransactionId}
+import com.openbankproject.commons.model.{BankId, TransactionAttribute, TransactionId, ViewId}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
@@ -41,6 +41,9 @@ trait TransactionAttributeProvider {
   def getTransactionAttributesFromProvider(transactionId: TransactionId): Future[Box[List[TransactionAttribute]]]
   def getTransactionAttributes(bankId: BankId,
                                     transactionId: TransactionId): Future[Box[List[TransactionAttribute]]]
+  def getTransactionAttributesCanBeSeenOnView(bankId: BankId,
+                                              transactionId: TransactionId,
+                                              viewId: ViewId): Future[Box[List[TransactionAttribute]]]
 
   def getTransactionAttributeById(transactionAttributeId: String): Future[Box[TransactionAttribute]]
 
@@ -65,6 +68,9 @@ class RemotedataTransactionAttributeCaseClasses {
   case class getTransactionAttributesFromProvider(transactionId: TransactionId)
   case class getTransactionAttributes(bankId: BankId,
                                            transactionId: TransactionId)
+  case class getTransactionAttributesCanBeSeenOnView(bankId: BankId,
+                                                     transactionId: TransactionId,
+                                                     viewId:ViewId)
 
   case class getTransactionAttributeById(transactionAttributeId: String)
   

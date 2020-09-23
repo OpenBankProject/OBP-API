@@ -9,6 +9,7 @@ import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.accountapplication.AccountApplicationX
 import code.accountattribute.AccountAttributeX
 import code.accountholders.{AccountHolders, MapperAccountHolders}
+import code.api.Constant.{INCOMING_ACCOUNT_ID, OUTGOING_ACCOUNT_ID}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionDI}
 import code.api.cache.Caching
@@ -53,7 +54,7 @@ import code.products.MappedProduct
 import code.standingorders.{StandingOrderTrait, StandingOrders}
 import code.taxresidence.TaxResidenceX
 import code.transaction.MappedTransaction
-import code.transactionChallenge.ExpectedChallengeAnswer
+import code.transactionChallenge.{Challenges, MappedExpectedChallengeAnswer}
 import code.transactionattribute.TransactionAttributeX
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
@@ -69,8 +70,9 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, ProductCollectionItemsTree}
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
-import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, DirectDebitTrait, FXRate, Product, ProductAttribute, ProductCollectionItem, TaxResidence, _}
+import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, DirectDebitTrait, FXRate, Product, ProductAttribute, ProductCollectionItem, TaxResidence, TransactionRequestCommonBodyJSON, _}
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
@@ -162,13 +164,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                transactionRequestId: String,
                                scaMethod: Option[SCA],
                                callContext: Option[CallContext]): OBPReturnType[Box[String]] = Future {
-    createChallengeInternal(bankId: BankId,
-      accountId: AccountId,
+    val challenge = createChallengeInternal(
       userId: String,
-      transactionRequestType: TransactionRequestType,
       transactionRequestId: String,
       scaMethod: Option[SCA],
+      None, //there are only for new version, set the empty here.
+      None,//there are only for new version, set the empty here.
+      None,//there are only for new version, set the empty here.
       callContext: Option[CallContext])
+    (challenge._1.map(_.challengeId),challenge._2)
   }
 
   /**
@@ -189,13 +193,40 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val challenges = for {
       userId <- userIds
     } yield {
-      val (challengeId, _) = createChallengeInternal(
-        bankId,
-        accountId,
+      val (challenge, _) = createChallengeInternal(
         userId,
-        transactionRequestType: TransactionRequestType,
         transactionRequestId,
         scaMethod,
+        None, //there are only for new version, set the empty here.
+        None,//there are only for new version, set the empty here.
+        None,//there are only for new version, set the empty here.
+        callContext
+      )
+      challenge.map(_.challengeId).toList
+    }
+    (Full(challenges.flatten), callContext)
+  }
+
+  override def createChallengesC2(
+    userIds: List[String],
+    challengeType: ChallengeType.Value,
+    transactionRequestId: Option[String],
+    scaMethod: Option[SCA],
+    scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
+    consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
+    authenticationMethodId: Option[String],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[ChallengeTrait]]] = Future {
+    val challenges = for {
+      userId <- userIds
+    } yield {
+      val (challengeId, _) = createChallengeInternal(
+        userId,
+        transactionRequestId.getOrElse(""),
+        scaMethod,
+        scaStatus,
+        consentId,
+        authenticationMethodId,
         callContext
       )
       challengeId.toList
@@ -203,24 +234,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (Full(challenges.flatten), callContext)
   }
 
-  private def createChallengeInternal(bankId: BankId,
-                                      accountId: AccountId,
-                                      userId: String,
-                                      transactionRequestType: TransactionRequestType,
-                                      transactionRequestId: String,
-                                      scaMethod: Option[SCA],
-                                      callContext: Option[CallContext]) = {
+  private def createChallengeInternal(
+    userId: String,
+    transactionRequestId: String,
+    scaMethod: Option[SCA],
+    scaStatus: Option[SCAStatus], //Only use for BerlinGroup Now
+    consentId: Option[String],    // Note: consentId and transactionRequestId are exclusive here.
+    authenticationMethodId: Option[String],      
+    callContext: Option[CallContext]
+  ) = {
     def createHashedPassword(challengeAnswer: String) = {
       val challengeId = APIUtil.generateUUID()
       val salt = BCrypt.gensalt()
       val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
-      ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(
+      (Challenges.ChallengeProvider.vend.saveChallenge(
         challengeId,
         transactionRequestId,
         salt,
         challengeAnswerHashed,
-        userId)
-      (Full(challengeId), callContext)
+        userId,
+        scaMethod,
+        scaStatus,
+        consentId,
+        authenticationMethodId), callContext)
     }
 
     scaMethod match {
@@ -237,8 +273,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             Mailer.sendMail(From("challenge@tesobe.com"), Subject("Challenge"), params: _*)
         }
         hashedPassword
-      case Some(StrongCustomerAuthentication.SMS) =>
+      case Some(StrongCustomerAuthentication.SMS) | Some(StrongCustomerAuthentication.SMS_OTP) =>
         val challengeAnswer = Random.nextInt(99999999).toString()
+        logger.debug(s"${scaMethod.toString} challengeAnswer is $challengeAnswer")
         val hashedPassword = createHashedPassword(challengeAnswer)
         val sendingResult: Seq[Box[Boolean]] = APIUtil.getPhoneNumbersByUserId(userId) map {
           tuple =>
@@ -263,16 +300,36 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         val errorMessage = sendingResult.filter(_.isInstanceOf[Failure]).map(_.asInstanceOf[Failure].msg)
 
         if (sendingResult.forall(_ == Full(true))) hashedPassword else (Failure(errorMessage.toSet.mkString(" <- ")), callContext)
-      case None => // All versions which precede v4.0.0 i.e. to keep backward compatibility 
+      case _ => // All versions which precede v4.0.0 i.e. to keep backward compatibility 
         createHashedPassword("123")
     }
   }
 
 
+  override def validateChallenge(
+    transactionRequestId: Option[String],
+    consentId: Option[String],
+    challengeId: String,
+    hashOfSuppliedAnswer: String,
+    callContext: Option[CallContext]
+  ) = Future {
+    Future {
+      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+      (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
+    }
+  }
+  
+  override def getChallengesByTransactionRequestId(transactionRequestId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] =
+    Future {(Challenges.ChallengeProvider.vend.getChallengesByTransactionRequestId(transactionRequestId), callContext)}
+
+
+  override def getChallenge(challengeId: String, callContext:  Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = 
+    Future {(Challenges.ChallengeProvider.vend.getChallenge(challengeId), callContext)}
+
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = 
     Future { 
       val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
-      (ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswer(challengeId, hashOfSuppliedAnswer, userId), callContext)
+      (Full(Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId).isDefined), callContext)
     } 
   
   
@@ -509,7 +566,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getBankAccountLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
     getBankAccountCommon(bankId, accountId, callContext)
   }
-
+  
+  override def getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
+    MappedBankAccount.find(
+      By(MappedBankAccount.theAccountId, accountId.value)
+    ).map(bankAccount => (bankAccount, callContext))
+  }
+  
   override def getBankAccountByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
     getBankAccountByRouting(None, "IBAN", iban, callContext)
   }
@@ -524,6 +587,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         BankAccountRouting
           .find(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
           .flatMap(accountRouting => getBankAccountCommon(accountRouting.bankId, accountRouting.accountId, callContext))
+    }
+  }
+
+  override def getAccountRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccountRouting, Option[CallContext])] = {
+    bankId match {
+      case Some(bankId) =>
+        BankAccountRouting
+          .find(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+          .map(accountRouting => (accountRouting, callContext))
+      case None =>
+        BankAccountRouting
+          .find(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+          .map(accountRouting => (accountRouting, callContext))
     }
   }
 
@@ -1012,6 +1088,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def makePaymentv210(fromAccount: BankAccount,
                                toAccount: BankAccount,
+                               transactionRequestId: TransactionRequestId,
                                transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                amount: BigDecimal,
                                description: String,
@@ -1027,14 +1104,145 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
       fromTransAmt = -amount //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, rate)
-      sentTransactionId <- Future {
+      debitTransactionBox <- Future {
         saveTransaction(fromAccount, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
+          .map(debitTransactionId => (fromAccount.bankId, fromAccount.accountId, debitTransactionId))
+          .or {
+            val settlementAccount = BankAccountX(toAccount.bankId, AccountId(transactionRequestType.value), callContext)
+              .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
+            settlementAccount.flatMap(settlementAccount =>
+              saveTransaction(settlementAccount._1, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
+                .map(debitTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, debitTransactionId))
+            )
+          }
       }
-      _sentTransactionId <- Future {
+      creditTransactionBox <- Future {
         saveTransaction(toAccount, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
+          .map(creditTransactionId => (toAccount.bankId, toAccount.accountId, creditTransactionId))
+          .or {
+            val settlementAccount = BankAccountX(fromAccount.bankId, AccountId(transactionRequestType.value), callContext)
+              .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
+            settlementAccount.flatMap(settlementAccount =>
+              saveTransaction(settlementAccount._1, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
+                .map(creditTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, creditTransactionId))
+            )
+          }
       }
+
+      debitTransaction = debitTransactionBox.openOrThrowException("Error while opening debitTransaction")
+      creditTransaction = creditTransactionBox.openOrThrowException("Error while opening creditTransaction")
+
+      _ <- NewStyle.function.saveDoubleEntryBookTransaction(
+        DoubleEntryTransaction(
+          transactionRequestBankId = Some(fromAccount.bankId),
+          transactionRequestAccountId = Some(fromAccount.accountId),
+          transactionRequestId = Some(transactionRequestId),
+          debitTransactionBankId = debitTransaction._1,
+          debitTransactionAccountId = debitTransaction._2,
+          debitTransactionId = debitTransaction._3,
+          creditTransactionBankId = creditTransaction._1,
+          creditTransactionAccountId = creditTransaction._2,
+          creditTransactionId = creditTransaction._3
+        ), callContext)
     } yield {
-      (sentTransactionId, callContext)
+      (debitTransactionBox.map(_._3), callContext)
+    }
+  }
+
+  override def saveDoubleEntryBookTransaction(doubleEntryTransaction: DoubleEntryTransaction,
+                                              callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]] = {
+  Future(
+    tryo(DoubleEntryBookTransaction.create
+      .TransactionRequestBankId(doubleEntryTransaction.transactionRequestBankId.map(_.value).getOrElse(""))
+      .TransactionRequestAccountId(doubleEntryTransaction.transactionRequestAccountId.map(_.value).getOrElse(""))
+      .TransactionRequestId(doubleEntryTransaction.transactionRequestId.map(_.value).getOrElse(""))
+      .DebitTransactionBankId(doubleEntryTransaction.debitTransactionBankId.value)
+      .DebitTransactionAccountId(doubleEntryTransaction.debitTransactionAccountId.value)
+      .DebitTransactionId(doubleEntryTransaction.debitTransactionId.value)
+      .CreditTransactionBankId(doubleEntryTransaction.creditTransactionBankId.value)
+      .CreditTransactionAccountId(doubleEntryTransaction.creditTransactionAccountId.value)
+      .CreditTransactionId(doubleEntryTransaction.creditTransactionId.value)
+      .saveMe())
+  ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
+  }
+
+  override def makePaymentV400(transactionRequest: TransactionRequest,
+                               reasons: Option[List[TransactionRequestReason]],
+                               callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = Future {
+    val fromCurrency = transactionRequest.body.value.currency
+    val toCurrency = transactionRequest.body.value.currency
+    for {
+      //def exchangeRate --> do not return any exception, but it may return NONO there.
+      rate <- Future (fx.exchangeRate(fromCurrency, toCurrency, Some(transactionRequest.from.bank_id)))
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${fromCurrency} to ${toCurrency}) is not supported." ){
+        rate.isDefined
+      }
+      amount = BigDecimal(transactionRequest.body.value.amount)
+      description = transactionRequest.body.description
+      transactionRequestType = TransactionRequestType(transactionRequest.`type`)
+      chargePolicy = transactionRequest.charge_policy
+      fromTransAmt = -amount //from fromAccount balance should decrease
+      toTransAmt = fx.convert(amount, rate)
+      fromBankId = BankId(transactionRequest.from.bank_id)
+      fromAccountId = AccountId(transactionRequest.from.account_id)
+      fromAccount = Connector.connector.vend.getBankAccountOld(fromBankId, fromAccountId).openOrThrowException(s"$BankAccountNotFound Current Bank_Id(${fromBankId}), Account_Id(${fromAccountId}) ")
+      // toBankId = BankId(transactionRequest.from.bank_id)
+      toAccountId = AccountId(transactionRequest.from.account_id)
+      toAccountRoutingScheme = transactionRequest.other_account_routing_scheme
+      toAccountRoutingAddress = transactionRequest.other_account_routing_address
+      toAccount <-
+        Connector.connector.vend.getBankAccountByRouting(None, toAccountRoutingScheme, toAccountRoutingAddress, None) match {
+          case Full(bankAccount) => Future.successful(bankAccount._1)
+          case _: EmptyBox =>
+            NewStyle.function.getCounterpartyByIban(toAccountRoutingAddress, callContext).flatMap(counterparty =>
+              NewStyle.function.getBankAccountFromCounterparty(counterparty._1, isOutgoingAccount = true, callContext)
+            )
+        }
+      transactionRequestCommonBody = TransactionRequestCommonBodyJSONCommons(AmountOfMoneyJsonV121(transactionRequest.body.value.amount, fromCurrency), transactionRequest.body.description)
+
+
+      debitTransactionBox <- Future {
+        saveTransaction(fromAccount, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
+          .map(debitTransactionId => (fromAccount.bankId, fromAccount.accountId, debitTransactionId))
+          .or {
+            val settlementAccount = BankAccountX(toAccount.bankId, AccountId(transactionRequestType.value), callContext)
+              .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
+            settlementAccount.flatMap(settlementAccount =>
+              saveTransaction(settlementAccount._1, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
+                .map(debitTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, debitTransactionId))
+            )
+          }
+      }
+      creditTransactionBox <- Future {
+        saveTransaction(toAccount, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
+          .map(creditTransactionId => (toAccount.bankId, toAccount.accountId, creditTransactionId))
+          .or {
+            val settlementAccount = BankAccountX(fromAccount.bankId, AccountId(transactionRequestType.value), callContext)
+              .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
+            settlementAccount.flatMap(settlementAccount =>
+              saveTransaction(settlementAccount._1, fromAccount, transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
+                .map(creditTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, creditTransactionId))
+            )
+          }
+      }
+
+      debitTransaction = debitTransactionBox.openOrThrowException("Error while opening debitTransaction")
+      creditTransaction = creditTransactionBox.openOrThrowException("Error while opening creditTransaction")
+
+      _ <- NewStyle.function.saveDoubleEntryBookTransaction(
+        DoubleEntryTransaction(
+          transactionRequestBankId = Some(fromAccount.bankId),
+          transactionRequestAccountId = Some(fromAccount.accountId),
+          transactionRequestId = Some(transactionRequest.id),
+          debitTransactionBankId = debitTransaction._1,
+          debitTransactionAccountId = debitTransaction._2,
+          debitTransactionId = debitTransaction._3,
+          creditTransactionBankId = creditTransaction._1,
+          creditTransactionAccountId = creditTransaction._2,
+          creditTransactionId = creditTransaction._3
+        ), callContext)
+    } yield {
+      (debitTransactionBox.map(_._3), callContext)
     }
   }
 
@@ -1055,29 +1263,49 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       
       fromTransAmt = -amount //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, rate)
-      (sentTransactionId, callContext) <- saveHistoricalTransaction(
-        fromAccount: BankAccount,
-        toAccount: BankAccount,
-        posted: Date,
-        completed: Date,
-        amount = fromTransAmt,
-        description: String,
-        transactionRequestType: String,
-        chargePolicy: String,
-        callContext: Option[CallContext]
+
+      debitTransactionBox <- Future(
+        saveHistoricalTransaction(fromAccount, toAccount, posted, completed, fromTransAmt, description, transactionRequestType, chargePolicy, callContext)
+          .map(debitTransactionId => (fromAccount.bankId, fromAccount.accountId, debitTransactionId))
+          .or {
+            val settlementAccount = BankAccountX(toAccount.bankId, AccountId(transactionRequestType), callContext)
+              .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
+            settlementAccount.flatMap(settlementAccount =>
+              saveHistoricalTransaction(settlementAccount._1, toAccount, posted, completed, fromTransAmt, description, transactionRequestType, chargePolicy, callContext)
+                .map(debitTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, debitTransactionId))
+            )
+          }
       )
-      (_sentTransactionId, callContext) <- saveHistoricalTransaction(
-        toAccount: BankAccount,
-        fromAccount: BankAccount,
-        posted: Date,
-        completed: Date,
-        amount = toTransAmt,
-        description: String,
-        transactionRequestType: String,
-        chargePolicy: String,
-        callContext: Option[CallContext])
+      creditTransactionBox <- Future(
+        saveHistoricalTransaction(toAccount, fromAccount, posted, completed, toTransAmt, description, transactionRequestType, chargePolicy, callContext)
+          .map(creditTransactionId => (toAccount.bankId, toAccount.accountId, creditTransactionId))
+          .or {
+            val settlementAccount = BankAccountX(fromAccount.bankId, AccountId(transactionRequestType), callContext)
+              .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
+            settlementAccount.flatMap(settlementAccount =>
+              saveHistoricalTransaction(settlementAccount._1, fromAccount, posted, completed, toTransAmt, description, transactionRequestType, chargePolicy, callContext)
+                .map(creditTransactionId => (settlementAccount._1.bankId, settlementAccount._1.accountId, creditTransactionId))
+            )
+          }
+      )
+
+      debitTransaction = debitTransactionBox.openOrThrowException("Error while opening debitTransaction")
+      creditTransaction = creditTransactionBox.openOrThrowException("Error while opening creditTransaction")
+
+      _ <- NewStyle.function.saveDoubleEntryBookTransaction(
+        DoubleEntryTransaction(
+          transactionRequestBankId = None,
+          transactionRequestAccountId = None,
+          transactionRequestId = None,
+          debitTransactionBankId = debitTransaction._1,
+          debitTransactionAccountId = debitTransaction._2,
+          debitTransactionId = debitTransaction._3,
+          creditTransactionBankId = creditTransaction._1,
+          creditTransactionAccountId = creditTransaction._2,
+          creditTransactionId = creditTransaction._3
+        ), callContext)
     } yield {
-      (sentTransactionId, callContext)
+      (debitTransactionBox.map(_._3), callContext)
     }
   }
 
@@ -1092,8 +1320,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                          transactionRequestType: String,
                                          chargePolicy: String,
                                          callContext: Option[CallContext]
-                                       ): Future[(Box[TransactionId], Option[CallContext])] = Future {
-    (
+                                       ): Box[TransactionId] =
       for {
         currency <- Full(fromAccount.currency)
         //update the balance of the fromAccount for which a transaction is being created
@@ -1129,8 +1356,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           .saveMe) ?~! s"$CreateTransactionsException, exception happened when create new mappedTransaction"
       } yield {
         mappedTransaction.theTransactionId
-      }, callContext)
-  }
+      }
 
   /**
     * Saves a transaction with @amount, @toAccount and @transactionRequestType for @fromAccount and @toCounterparty. <br>
@@ -2290,9 +2516,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                    national_identifier: String,
                                    bankRoutingScheme: String,
                                    bankRoutingAddress: String
-                                 ): Box[Bank] =
+                                 ): Box[Bank] = {
   //check the bank existence and update or insert data
-    getMappedBank(BankId(bankId)) match {
+    val bank = getMappedBank(BankId(bankId)) match {
       case Full(mappedBank) =>
         tryo {
           mappedBank
@@ -2322,6 +2548,42 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .saveMe()
         } ?~! ErrorMessages.UpdateBankError
     }
+
+    // Insert the default settlement accounts if they doesn't exist
+    MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, INCOMING_ACCOUNT_ID)) match {
+      case Full(_) =>
+        logger.debug(s"BankAccount(${bankId}, $INCOMING_ACCOUNT_ID) is found.")
+      case _ =>
+        MappedBankAccount.create
+          .bank(bankId)
+          .theAccountId(INCOMING_ACCOUNT_ID)
+          .accountCurrency("EUR")
+          .kind("SETTLEMENT")
+          .holder(fullBankName)
+          .accountName("Default incoming settlement account")
+          .accountLabel("Settlement account: Do not delete!")
+          .saveMe()
+        logger.debug(s"creating BankAccount(${bankId}, $INCOMING_ACCOUNT_ID).")
+    }
+
+    MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, OUTGOING_ACCOUNT_ID)) match {
+      case Full(_) =>
+        logger.debug(s"BankAccount(${bankId}, $OUTGOING_ACCOUNT_ID) is found.")
+      case _ =>
+        MappedBankAccount.create
+          .bank(bankId)
+          .theAccountId(OUTGOING_ACCOUNT_ID)
+          .accountCurrency("EUR")
+          .kind("SETTLEMENT")
+          .holder(fullBankName)
+          .accountName("Default outgoing settlement account")
+          .accountLabel("Settlement account: Do not delete!")
+          .saveMe()
+        logger.debug(s"creating BankAccount(${bankId}, $OUTGOING_ACCOUNT_ID).")
+    }
+
+    bank
+  }
 
   override def createCounterparty(
                                    name: String,
@@ -2758,6 +3020,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
   }
+  override def getAccountAttributesByAccountCanBeSeenOnView(bankId: BankId, 
+                                                            accountId: AccountId,
+                                                            viewId: ViewId, 
+                                                            callContext: Option[CallContext]
+                                                           ): OBPReturnType[Box[List[AccountAttribute]]] = {
+    AccountAttributeX.accountAttributeProvider.vend.getAccountAttributesByAccountCanBeSeenOnView(
+      bankId: BankId,
+      accountId: AccountId,
+      viewId) map {
+      (_, callContext)
+    }
+  }
 
   override def createOrUpdateCustomerAttribute(
                                                 bankId: BankId,
@@ -2897,6 +3171,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     TransactionAttributeX.transactionAttributeProvider.vend.getTransactionAttributes(
       bankId: BankId,
       transactionId: TransactionId) map {
+      (_, callContext)
+    }
+  }
+  override def getTransactionAttributesCanBeSeenOnView(bankId: BankId,
+                                                       transactionId: TransactionId,
+                                                       viewId: ViewId,
+                                                       callContext: Option[CallContext]
+                                       ): OBPReturnType[Box[List[TransactionAttribute]]] = {
+    TransactionAttributeX.transactionAttributeProvider.vend.getTransactionAttributesCanBeSeenOnView(
+      bankId: BankId,
+      transactionId: TransactionId,
+      viewId) map {
       (_, callContext)
     }
   }
@@ -3563,6 +3849,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
               toAccount,
+              transactionRequest.id,
               transactionRequestCommonBody,
               BigDecimal(transactionRequestCommonBody.value.amount),
               transactionRequestCommonBody.description,
@@ -3675,16 +3962,24 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (transactionRequest, callContext) <- status match {
         case TransactionRequestStatus.COMPLETED =>
           for {
-            (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
-              fromAccount,
-              toAccount,
-              transactionRequestCommonBody,
-              BigDecimal(transactionRequestCommonBody.value.amount),
-              transactionRequestCommonBody.description,
-              transactionRequestType,
-              chargePolicy,
-              callContext
-            )
+            (createdTransactionId, callContext) <- transactionRequestType match {
+              case TransactionRequestType("SEPA") =>
+                Connector.connector.vend.makePaymentV400(transactionRequest, reasons, callContext)map { i =>
+                  (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForMakePayment ",400), i._2)
+                }
+              case _ =>
+                NewStyle.function.makePaymentv210(
+                  fromAccount,
+                  toAccount,
+                  transactionRequest.id,
+                  transactionRequestCommonBody,
+                  BigDecimal(transactionRequestCommonBody.value.amount),
+                  transactionRequestCommonBody.description,
+                  transactionRequestType,
+                  chargePolicy,
+                  callContext
+                )
+            }
             //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
             transactionRequest <- Future(transactionRequest.copy(challenge = null))
 
@@ -3700,54 +3995,54 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             (transactionRequest, callContext)
           }
         case TransactionRequestStatus.INITIATED =>
-          // return the lists of users, who need to be answered the challenges
-          def getUsersForChallenges(bankId: BankId,
-                                    accountId: AccountId) = {
-            Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None) map {
-              _._1.map {
-                x => {
-                  if (x.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt > 1) {
-                    for (
-                      permission <- Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
-                    ) yield {
-                      permission.views.exists(_.canAddTransactionRequestToAnyAccount == true) match {
-                        case true => Some(permission.user)
-                        case _ => None
+          //If it is BerlinGroup standard, there is no need the challenges, it has its own `Start the authorisation process for a payment initiation` endpoint
+          if(transactionRequestType.value ==TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString) {
+            Future(transactionRequest, callContext)
+          } else {
+            // return the lists of users, who need to be answered the challenges
+            def getUsersForChallenges(bankId: BankId,
+                                      accountId: AccountId) = {
+              Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None) map {
+                _._1.map {
+                  x => {
+                    if (x.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt > 1) {
+                      for (
+                        permission <- Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
+                      ) yield {
+                        permission.views.exists(_.canAddTransactionRequestToAnyAccount == true) match {
+                          case true => Some(permission.user)
+                          case _ => None
+                        }
                       }
-                    }
-                  } else List(Some(initiator))
-                }.flatten.distinct
+                    } else List(Some(initiator))
+                  }.flatten.distinct
+                }
               }
             }
-          }
-
-          for {
-            //if challenge necessary, create a new one
-            users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId)
-            //now we support multiple challenges. We can support multiple people to answer the challenges.
-            //So here we return the challengeIds. 
-            // how to decide where to create challenges
-            // in OBP side:
-            //   1st: connector == mapped
-            //   2rd: connector == star && no records in `methodrouting` table.
-            
-            (challengeIds, callContext) <- Connector.connector.vend.createChallenges(
-              fromAccount.bankId,
-              fromAccount.accountId,
-              users.toList.flatten.map(_.userId),
-              transactionRequestType: TransactionRequestType,
-              transactionRequest.id.value,
-              scaMethod,
-              callContext
-            ) map { i =>
-              (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
+  
+            for {
+              //if challenge necessary, create a new one
+              users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId)
+              //now we support multiple challenges. We can support multiple people to answer the challenges.
+              //So here we return the challengeIds. 
+              (challengeIds, callContext) <- Connector.connector.vend.createChallenges(
+                fromAccount.bankId,
+                fromAccount.accountId,
+                users.toList.flatten.map(_.userId),
+                transactionRequestType: TransactionRequestType,
+                transactionRequest.id.value,
+                scaMethod,
+                callContext
+              ) map { i =>
+                (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
+              }
+              //TODO, this challengeIds are only for mapped connector now. we only return the first challengeId in the request yet.
+              newChallenge = TransactionRequestChallenge(challengeIds.headOption.getOrElse(""), allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
+              _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
+              transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
+            } yield {
+              (transactionRequest, callContext)
             }
-            //TODO, this challengeIds are only for mapped connector now. we only return the first challengeId in the request yet.
-            newChallenge = TransactionRequestChallenge(challengeIds.headOption.getOrElse(""), allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
-            _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
-            transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
-          } yield {
-            (transactionRequest, callContext)
           }
         case _ => Future(transactionRequest, callContext)
       }
@@ -3936,6 +4231,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
               toAccount,
+              transactionRequest.id,
               transactionRequestCommonBody = sandboxBody,
               BigDecimal(sandboxBody.value.amount),
               sandboxBody.description,
@@ -3964,6 +4260,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
               toAccount,
+              transactionRequest.id,
               transactionRequestCommonBody = counterpartyBody,
               BigDecimal(counterpartyBody.value.amount),
               counterpartyBody.description,
@@ -3992,6 +4289,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
               toAccount,
+              transactionRequest.id,
               transactionRequestCommonBody = sepaBody,
               BigDecimal(sepaBody.value.amount),
               sepaBody.description,
@@ -4012,6 +4310,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           (transactionId, callContext) <- NewStyle.function.makePaymentv210(
             fromAccount,
             fromAccount,
+            transactionRequest.id,
             transactionRequestCommonBody = freeformBody,
             BigDecimal(freeformBody.value.amount),
             freeformBody.description,
@@ -4032,6 +4331,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
             fromAccount,
             toAccount,
+            transactionRequest.id,
             TransactionRequestCommonBodyJSONCommons(
               toSepaCreditTransfers.instructedAmount,
               ""
@@ -4199,18 +4499,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       trtc
     }
     Full(res)
-  }
-  
-  override def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEndpointT]] = Future {
-    (DynamicEndpointProvider.connectorMethodProvider.vend.create(swaggerString), callContext)
-  }
-
-  override  def getDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEndpointT]] = Future {
-    (DynamicEndpointProvider.connectorMethodProvider.vend.get(dynamicEndpointId), callContext)
-  }
-  
-  override def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
-    (DynamicEndpointProvider.connectorMethodProvider.vend.getAll(), callContext)
   }
 
   override def deleteCustomerAttribute(customerAttributeId: String, callContext: Option[CallContext] ): OBPReturnType[Box[Boolean]] = {

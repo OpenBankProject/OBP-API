@@ -345,3 +345,55 @@ select
 	null is_deleted
 where
 	1 = 0
+
+-- In case when we can create a account at OBP-API side but we get it from CBS(core banking system)
+-- via this view we expose such created bank to CBS in order to be able to list they
+-- We don't want to end up with scenario where you create account with success code 201 but you cannot get it
+create view v_account as
+select
+	kind kind,
+	holder holder,
+	bank bank_id,
+	theaccountid account_id,
+	accountcurrency account_currency,
+	accountnumber account_number,
+	updatedat updated_at,
+	createdat created_at,
+	mbranchid branch_id,
+	accountiban account_iban,
+	accountbalance account_balance,
+	accountname account_name,
+	accountlabel account_label,
+	accountlastupdate account_last_update,
+	maccountroutingscheme account_routing_scheme,
+	maccountroutingaddress account_routing_address,
+	accountrulescheme1 account_rule_scheme_1,
+	accountrulevalue1 account_rule_value_1,
+	accountrulescheme2 account_rule_scheme_2,
+	accountrulevalue2 account_rule_value_2
+from
+	mappedbankaccount
+union
+select
+	null kind,
+	null holder,
+	null bank_id,
+	null account_id,
+	null account_currency,
+	null account_number,
+	null updated_at,
+	null created_at,
+	null branch_id,
+	null account_iban,
+	null account_balance,
+	null account_name,
+	null account_label,
+	null account_last_update,
+	null account_routing_scheme,
+	null account_routing_address,
+	null account_rule_scheme_1,
+	null account_rule_value_1,
+	null account_rule_scheme_2,
+	null account_rule_value_2
+where
+	1 = 0

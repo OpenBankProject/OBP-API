@@ -6,7 +6,7 @@ import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.bankconnectors.Connector
 import code.cards.MappedPhysicalCard
-import code.model.dataAccess.{MappedBankAccount, MappedBankAccountData}
+import code.model.dataAccess.{BankAccountRouting, MappedBankAccount, MappedBankAccountData}
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.MappedAccountWebhook
 import com.openbankproject.commons.model.{AccountId, BankId}
@@ -29,6 +29,7 @@ object DeleteAccountCascade {
         deleteAccountWebhooks(bankId, accountId) ::
         deleteBankAccountData(bankId, accountId) ::
         deleteCards(accountId) ::
+        deleteAccountRoutings(bankId, accountId) ::
         deleteAccount(bankId, accountId) ::
         Nil
     doneTasks.forall(_ == true)
@@ -90,6 +91,12 @@ object DeleteAccountCascade {
     AccountAccess.bulkDelete_!!(
       By(AccountAccess.bank_id, bankId.value),
       By(AccountAccess.account_id, accountId.value)
+    )
+  }
+  private def deleteAccountRoutings(bankId: BankId, accountId: AccountId): Boolean = {
+    BankAccountRouting.bulkDelete_!!(
+      By(BankAccountRouting.BankId, bankId.value),
+      By(BankAccountRouting.AccountId, accountId.value)
     )
   }
 

@@ -1034,10 +1034,13 @@ trait APIMethods210 {
       "GET",
       "/users",
       "Get all Users",
-      """Get all users
+      s"""Get all users
         |
         |Login is required.
         |CanGetAnyUser entitlement is required,
+        |
+        |${urlParametersDocument(false, false)}
+        |* locked_status (if null ignore)
         |
       """.stripMargin,
       emptyObjectJson,

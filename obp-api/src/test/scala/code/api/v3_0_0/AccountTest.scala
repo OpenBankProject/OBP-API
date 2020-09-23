@@ -68,7 +68,6 @@ class AccountTest extends V300ServerSetup {
       Then("We should get a 200 and check the response body")
       httpResponse.code should equal(200)
       val newModeratedCoreAccountJsonV300 = httpResponse.body.extract[NewModeratedCoreAccountJsonV300]
-      newModeratedCoreAccountJsonV300.account_attributes.length == 0 should be (true)
       newModeratedCoreAccountJsonV300.views_basic.length >= 1 should be (true)
 
     }

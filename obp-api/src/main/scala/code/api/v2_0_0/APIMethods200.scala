@@ -916,20 +916,13 @@ trait APIMethods200 {
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions",
       "Get Transactions for Account (Core)",
-      """Returns transactions list (Core info) of the account specified by ACCOUNT_ID.
+      s"""Returns transactions list (Core info) of the account specified by ACCOUNT_ID.
         |
         |Authentication is required.
         |
-        |Possible custom headers for pagination:
+        |${urlParametersDocument(true, true)}
         |
-        |* obp_sort_by=CRITERIA ==> default value: "completed" field
-        |* obp_sort_direction=ASC/DESC ==> default value: DESC
-        |* obp_limit=NUMBER ==> default value: 50
-        |* obp_offset=NUMBER ==> default value: 0
-        |* obp_from_date=DATE => default value: date of the oldest transaction registered (format below)
-        |* obp_to_date=DATE => default value: date of the newest transaction registered (format below)
-        |
-        |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.""",
+        |""",
       emptyObjectJson,
       coreTransactionsJSON,
       List(BankAccountNotFound, UnknownError),
@@ -1029,17 +1022,16 @@ trait APIMethods200 {
     )
 
     lazy val getPermissionsForBankAccount : OBPEndpoint = {
-      //get access
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
-            (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound // Check bank exists.
-            account <- BankAccountX(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
-            permissions <- account permissions u
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            permissions <- NewStyle.function.permissions(account, u)
           } yield {
             val permissionsJSON = JSONFactory121.createPermissionsJSON(permissions.sortBy(_.user.emailAddress))
-            successJsonResponse(Extraction.decompose(permissionsJSON))
+            (permissionsJSON, HttpCode.`200`(callContext))
           }
       }
     }

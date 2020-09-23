@@ -28,6 +28,8 @@ object PegdownOptions {
       .replaceAll("&amp;;", "&")
       .replaceAll("&lsquo;", "'")
       .replaceAll("&hellip;", "...")
+        //not support make text bold that not at beginning of a line, so here manual convert to it to <strong> tag
+      .replaceAll("""\*\*(.+?)\*\*""", "<strong>$1</strong>")
   }
   // convertPegdownToHtmlTweaked not support insert image, so here manual convert to html img tag
   private def convertImgTag(markdown: String) = markdown.stripMargin.replaceAll("""!\[(.*)\]\((.*) =(.*?)x(.*?)\)""", """<img alt="$1" src="$2" width="$3" height="$4" />""")

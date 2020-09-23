@@ -184,10 +184,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |* Geo Location
         |* License the data under this endpoint is released under
         |
-        |
-        |
-        |Pagination:
-        |By default, 50 records are returned.
+        ${urlParametersDocument(false, false)}
         |
         |You can use the url query parameters *limit* and *offset* for pagination
         |
@@ -242,11 +239,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
          |* License the data under this endpoint is released under
          |
          |
-         |Pagination:
-         |By default, 50 records are returned.
-         |
-         |You can use the url query parameters *limit* and *offset* for pagination
-         |
+         |${urlParametersDocument(false,false)}         
          |
          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,

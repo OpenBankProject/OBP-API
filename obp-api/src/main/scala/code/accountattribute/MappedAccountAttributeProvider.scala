@@ -1,9 +1,10 @@
 package code.accountattribute
 
+import code.api.attributedefinition.AttributeDefinition
 import code.products.MappedProduct
 import code.util.{AttributeQueryTrait, MappedUUID, UUIDString}
-import com.openbankproject.commons.model.enums.AccountAttributeType
-import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankId, ProductAttribute, ProductCode}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, AttributeCategory}
+import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankId, ProductAttribute, ProductCode, ViewId}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -30,6 +31,28 @@ object MappedAccountAttributeProvider extends AccountAttributeProvider {
         By(MappedAccountAttribute.mBankIdId, bankId.value),
         By(MappedAccountAttribute.mAccountId, accountId.value)
       )
+    }
+  }
+  override def getAccountAttributesByAccountCanBeSeenOnView(bankId: BankId,
+                                                            accountId: AccountId,
+                                                            viewId: ViewId): Future[Box[List[AccountAttribute]]] = {
+    Future {
+      val attributeDefinitions = AttributeDefinition.findAll(
+        By(AttributeDefinition.BankId, bankId.value),
+        By(AttributeDefinition.Category, AttributeCategory.Account.toString)
+      ).filter(_.canBeSeenOnViews.exists(_ == viewId.value)) // Filter by view_id
+      val accountAttributes = MappedAccountAttribute.findAll(
+        By(MappedAccountAttribute.mBankIdId, bankId.value),
+        By(MappedAccountAttribute.mAccountId, accountId.value)
+      )
+      val filteredAccountAttributes = for {
+        definition <- attributeDefinitions
+        attribute <- accountAttributes
+        if definition.bankId.value == attribute.bankId.value && definition.name == attribute.name
+      } yield {
+        attribute
+      }
+      Full(filteredAccountAttributes)
     }
   }
 

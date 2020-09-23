@@ -59,8 +59,8 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
       val accountId2 = AccountId("__acc2__")
 
       var amt = BigDecimal("12.50")
-      var fromCurrency = "AED"
-      var toCurrency = "AED"
+      var fromCurrency = if(transactionRequestTypeInput == SEPA.toString) "EUR" else "AED"
+      var toCurrency = if(transactionRequestTypeInput == SEPA.toString) "EUR" else "AED"
 
       def setCurrencyAndAmt(fromCurrency: String, toCurrency: String, amt: String) = {
         this.fromCurrency = fromCurrency
@@ -771,8 +771,8 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         val helper = defaultSetup(SEPA.toString)
 
         And("We set the special conditions for different currencies")
-        val fromCurrency = "AED"
-        val toCurrency = "INR"
+        val fromCurrency = "EUR"
+        val toCurrency = "EUR"
         val amt = "10"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
@@ -809,8 +809,8 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(SEPA.toString)
         And("We set the special conditions for different currencies")
-        val fromCurrency = "AED"
-        val toCurrency = "AED"
+        val fromCurrency = "EUR"
+        val toCurrency = "EUR"
         val amt = "50000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
@@ -856,8 +856,8 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         val helper = defaultSetup(SEPA.toString)
 
         And("We set the special conditions for different currencies")
-        val fromCurrency = "AED"
-        val toCurrency = "INR"
+        val fromCurrency = "EUR"
+        val toCurrency = "EUR"
         val amt = "50000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
