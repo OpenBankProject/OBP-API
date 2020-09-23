@@ -5,7 +5,7 @@
 }
 
 #authorise h1 {
-    font-family: UniversNextforHSBC-Light;
+    font-family: Roboto-Light;
     font-size: 28px;
     color: #333333;
     line-height: 36px;
@@ -18,7 +18,7 @@
 #login-form-password{
     margin-bottom: 8px;
     margin-top: 32px;
-    font-family: UniversNextforHSBC-Regular;
+    font-family: Roboto-Regular;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
@@ -31,7 +31,7 @@
     float: right;
     height: 44px;
     width: 92px;
-    font-family: UniversNextforHSBC-Regular;
+    font-family: Roboto-Regular;
     font-size: 16px;
     text-align: center;
     line-height: 24px;
@@ -73,7 +73,7 @@
 }
 #authorise #authorise-recover-password a,
 #authorise #oauth-authorise-recover-password a{
-    font-family: UniversNextforHSBC-Regular;
+    font-family: Roboto-Regular;
     font-size: 14px;
     color: #333333;
     letter-spacing: 0;
@@ -84,7 +84,7 @@
 #authorise .login-or {
     margin-top: 30px;
     float: left;
-    font-family: UniversNextforHSBC-Regular;
+    font-family: Roboto-Regular;
     font-size: 18px;
     color: #929292;
     letter-spacing: 0;
@@ -102,7 +102,7 @@
     color: red;
 }
 #authorise #thanks-h1 {
-    font-family: UniversNextforHSBC-Light;
+    font-family: Roboto-Light;
     font-size: 28px;
     color: #333333;
     letter-spacing: 0;
@@ -110,7 +110,7 @@
 }
 
 #authorise #thanks-detail{
-    font-family: UniversNextforHSBC-Regular;
+    font-family: Roboto-Regular;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
@@ -139,7 +139,7 @@
 
 #authorise #login-form-username-error,
 #authorise #login-form-password-error{
-    font-family: UniversNextforHSBC-Regular;
+    font-family: Roboto-Regular;
     font-size: 14px;
     color: #333333;
     line-height: 20px;

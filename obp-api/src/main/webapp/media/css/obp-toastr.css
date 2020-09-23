@@ -26,7 +26,7 @@
 #toast-container .toast-title {
     float: left;
     font-weight: bold;
-    font-family: UniversNextforHSBC-Medium;
+    font-family: Roboto-Medium;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
@@ -43,7 +43,7 @@
 }
 
 #toast-container .toast-message {
-    font-family: UniversNextforHSBC-Regular;
+    font-family: Roboto-Regular;
     font-size: 16px;
     color: #333333;
     line-height: 24px;

@@ -1,20 +1,8 @@
 @import url(/media/css/responsive.css);
 @import url(/media/css/fonts.css);
 
-@font-face {
-    font-family: UniversNextForHSBC-Light;
-    src: url(/media/font/UniversNextforHSBC-Light.otf),
-         url(/media/font/UniversNextforHSBC-Light.woff) format('woff');
-}
-
-@font-face {
-    font-family: UniversNextForHSBC-Regular;
-    src: url(/media/font/UniversNextforHSBC-Regular.otf),
-         url(/media/font/UniversNextforHSBC-Regular.woff) format('woff');
-}
-
 body {
-    font-family: "UniversNextForHSBC-Light";
+    font-family: "Roboto-Light";
 }
 
 header #header-decoration,

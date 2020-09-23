@@ -33,7 +33,7 @@
     font-size: 16px;
     line-height: 24px;
     font-weight:normal;
-    font-family: UniversNextforHSBC-Regular;
+    font-family: Roboto-Regular;
     /*paragraph-height: 12px*/
 }
 
@@ -43,12 +43,12 @@
     line-height: 24px;
     font-weight:normal;
     margin: 8px 0;
-    font-family: UniversNextforHSBC-Regular;
+    font-family: Roboto-Regular;
     /*paragraph-height: 12px*/
 }
 
 .container #api_documentation_content a{
-    font-family: UniversNextforHSBC-Regular;
+    font-family: Roboto-Regular;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
