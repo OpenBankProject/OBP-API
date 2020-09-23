@@ -260,7 +260,7 @@ class ConsumerRegistration extends MdcLoggable {
               oAuth2Client.setScope(allConsents.mkString(" "))
 
               oAuth2Client.setGrantTypes(("authorization_code" :: "client_credentials" :: "refresh_token" :: "implicit" :: Nil).asJava)
-              oAuth2Client.setResponseTypes(("code" :: "id_token" :: "token" :: Nil).asJava)
+              oAuth2Client.setResponseTypes(("code" :: "id_token" :: "token" :: "code token" :: "code id_token" :: "code token id_token" :: Nil).asJava)
               oAuth2Client.setPostLogoutRedirectUris(List(x.redirectURL.get).asJava)
 
               oAuth2Client.setRedirectUris(List(x.redirectURL.get).asJava)
