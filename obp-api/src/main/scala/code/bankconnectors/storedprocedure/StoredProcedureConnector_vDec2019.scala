@@ -887,6 +887,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       data= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -930,6 +931,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       data= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -973,6 +975,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       data= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -1018,6 +1021,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       data=List( CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -3101,6 +3105,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       toCounterparty= CounterpartyTraitCommons(createdByUserId="string",
       name=counterpartyNameExample.value,
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -3192,6 +3197,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       toCounterparty= CounterpartyTraitCommons(createdByUserId="string",
       name=counterpartyNameExample.value,
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -3401,6 +3407,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
      OutBoundCreateCounterparty(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       name="string",
       description="string",
+      currency=currencyExample.value,
       createdByUserId="string",
       thisBankId="string",
       thisAccountId="string",
@@ -3423,6 +3430,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       data= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -3442,9 +3450,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createCounterparty(name: String, description: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, bespoke: List[CounterpartyBespoke], callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])] = {
+  override def createCounterparty(name: String, description: String, currency: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, bespoke: List[CounterpartyBespoke], callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{InBoundCreateCounterparty => InBound, OutBoundCreateCounterparty => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, name, description, createdByUserId, thisBankId, thisAccountId, thisViewId, otherAccountRoutingScheme, otherAccountRoutingAddress, otherAccountSecondaryRoutingScheme, otherAccountSecondaryRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress, otherBranchRoutingScheme, otherBranchRoutingAddress, isBeneficiary, bespoke)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, name, description, currency, createdByUserId, thisBankId, thisAccountId, thisViewId, otherAccountRoutingScheme, otherAccountRoutingAddress, otherAccountSecondaryRoutingScheme, otherAccountSecondaryRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress, otherBranchRoutingScheme, otherBranchRoutingAddress, isBeneficiary, bespoke)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_counterparty", req, callContext)
         response.map(convertToTuple[CounterpartyTraitCommons](callContext))        
   }
@@ -5912,6 +5920,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       posted=toDate(postedDateExample),
       completed=toDate(completedDateExample),
       amount=BigDecimal(amountExample.value),
+      currency=currencyExample.value,
       description="string",
       transactionRequestType=transactionRequestTypeExample.value,
       chargePolicy="string")
@@ -5924,9 +5933,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def makeHistoricalPayment(fromAccount: BankAccount, toAccount: BankAccount, posted: Date, completed: Date, amount: BigDecimal, description: String, transactionRequestType: String, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
+  override def makeHistoricalPayment(fromAccount: BankAccount, toAccount: BankAccount, posted: Date, completed: Date, amount: BigDecimal, currency: String, description: String, transactionRequestType: String, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
         import com.openbankproject.commons.dto.{InBoundMakeHistoricalPayment => InBound, OutBoundMakeHistoricalPayment => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccount, toAccount, posted, completed, amount, description, transactionRequestType, chargePolicy)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccount, toAccount, posted, completed, amount, currency, description, transactionRequestType, chargePolicy)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_make_historical_payment", req, callContext)
         response.map(convertToTuple[TransactionId](callContext))        
   }

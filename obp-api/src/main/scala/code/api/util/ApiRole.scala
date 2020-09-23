@@ -239,9 +239,18 @@ object ApiRole {
   case class CanCreateAtmAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateAtmAtAnyBank = CanCreateAtmAtAnyBank()
 
-  case class CanCreateCounterpartyAtBank(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canCreateCounterpartyAtBank = CanCreateCounterpartyAtBank()
+  case class CanCreateCounterparty(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateCounterparty = CanCreateCounterparty()
+  
+  case class CanCreateCounterpartyAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateCounterpartyAtAnyBank = CanCreateCounterpartyAtAnyBank()
+  
+  case class CanGetCounterparty(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCounterparty = CanGetCounterparty()
 
+  case class CanGetCounterpartyAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetCounterpartyAtAnyBank = CanGetCounterpartyAtAnyBank()
+  
   case class CanCreateProduct(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateProduct = CanCreateProduct()
 
@@ -256,6 +265,12 @@ object ApiRole {
 
   case class CanCreateBank (requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateBank = CanCreateBank()
+
+  case class CanCreateSettlementAccountAtOneBank (requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateSettlementAccountAtOneBank = CanCreateSettlementAccountAtOneBank()
+
+  case class CanGetSettlementAccountAtOneBank (requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetSettlementAccountAtOneBank = CanGetSettlementAccountAtOneBank()
 
   case class CanReadMetrics (requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadMetrics = CanReadMetrics()
@@ -512,6 +527,9 @@ object ApiRole {
 
   case class CanReadResourceDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadResourceDoc = CanReadResourceDoc()
+  
+  case class CanReadGlossary(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canReadGlossary = CanReadGlossary()
 
   case class CanCreateCustomerAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCustomerAttributeDefinitionAtOneBank = CanCreateCustomerAttributeDefinitionAtOneBank()

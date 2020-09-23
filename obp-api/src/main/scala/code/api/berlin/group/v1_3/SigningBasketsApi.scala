@@ -162,8 +162,8 @@ The undlerying transactions are not affected by this deletion.
 Remark: The signing basket as such is not deletable after a first (partial) authorisation has been applied. 
 Nevertheless, single transactions might be cancelled on an individual basis on the XS2A interface.
 """,
-       json.parse(""""""),
-       json.parse(""""""),
+       emptyObjectJson,
+       emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Signing Baskets") :: apiTagMockedData :: Nil
@@ -189,7 +189,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
        "Returns the content of an signing basket object.",
        s"""${mockedDataText(true)}
 Returns the content of an signing basket object.""",
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "transactionStatus" : "ACCP",
   "payments" : "",
@@ -227,7 +227,7 @@ Read a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
 """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "authorisationIds" : ""
 }"""),
@@ -259,7 +259,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        s"""${mockedDataText(true)}
 This method returns the SCA status of a signing basket's authorisation sub-resource.
 """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }"""),
@@ -291,7 +291,7 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
        s"""${mockedDataText(true)}
 Returns the status of a signing basket object. 
 """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "transactionStatus" : "RCVD"
 }"""),
@@ -354,7 +354,7 @@ This applies in the following scenarios:
     executing the cancellation.
   * The signing basket needs to be authorised yet.
 """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "challengeData" : {
     "otpMaxLength" : 0,
@@ -467,7 +467,7 @@ There are the following request types on this access path:
     therefore many optional elements are not present. 
     Maybe in a later version the access path will change.
 """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),

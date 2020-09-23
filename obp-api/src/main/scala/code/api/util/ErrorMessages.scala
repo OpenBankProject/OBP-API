@@ -312,6 +312,7 @@ object ErrorMessages {
   val InvalidCustomerBankId = "OBP-30113: Invalid Bank Id. The Customer does not belong to this Bank"
   val InvalidAccountRoutings = "OBP-30114: Invalid Account Routings."
   val AccountRoutingAlreadyExist = "OBP-30115: Account Routing already exist."
+  val InvalidPaymentSystemName = "OBP-30116: Invalid payment system name. The payment system name should only contain 0-9/a-z/A-Z/'-'/'.'/'_', the length should be smaller than 200."
 
 
   val EntitlementIsBankRole = "OBP-30205: This entitlement is a Bank Role. Please set bank_id to a valid bank id."

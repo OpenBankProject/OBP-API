@@ -3,6 +3,8 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+10/09/2020    95cd5329      Added props: glossary_requires_role. default is false. If set it as `true`, then OBP will 
+                            check the authentication and CanReadGlossary Role for the endpoint: `Get API Glossary`.
 12/08/2020    51621aa1      Added props: webui_legal_notice_html_text. If we set the props, the content will be showed as the legal notice on the registration page 
 11/08/2020    5319a5f8      WARNING: Added new account routing system. 
                             - Impacted endpoints: Create Account, Create Account (POST) and Update Account.

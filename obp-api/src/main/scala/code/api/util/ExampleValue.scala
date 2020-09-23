@@ -250,6 +250,8 @@ object ExampleValue {
   
   lazy val currencyExample = balanceCurrencyExample
 
+  lazy val paymentSystemExample = ConnectorField("SEPA", "A payment system can be SEPA, CARD, SWIFT ....")
+
   lazy val owner1Example = ConnectorField("SusanSmith", "A username that is the owner of the account.")
   glossaryItems += makeGlossaryItem("Account.owner", owner1Example)
 

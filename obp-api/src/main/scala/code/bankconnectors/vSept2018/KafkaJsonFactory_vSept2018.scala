@@ -257,6 +257,7 @@ case class InternalGetTransactionRequests(
 case class OutboundCounterparty(
   name: String,
   description: String,
+  currency: String,
   createdByUserId: String,
   thisBankId: String,
   thisAccountId: String,
@@ -311,6 +312,7 @@ case class InternalCounterparty(
                                  otherBranchRoutingAddress: String,
                                  isBeneficiary: Boolean,
                                  description: String,
+                                 currency: String,
                                  otherAccountSecondaryRoutingScheme: String,
                                  otherAccountSecondaryRoutingAddress: String,
                                  bespoke: List[CounterpartyBespoke]) extends CounterpartyTrait

@@ -38,7 +38,7 @@ object APIMethods_DiscoveryApi extends RestHelper {
             Obtain a list of scheduled outages for the implementation
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "outages" : [ {
@@ -103,7 +103,7 @@ object APIMethods_DiscoveryApi extends RestHelper {
             Obtain a health check status for the implementation
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "updateTime" : "updateTime",

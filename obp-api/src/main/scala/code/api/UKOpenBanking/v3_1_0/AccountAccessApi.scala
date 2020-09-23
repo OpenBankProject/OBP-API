@@ -37,7 +37,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
        "Create Account Access Consents",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -110,8 +110,8 @@ object APIMethods_AccountAccessApi extends RestHelper {
        "Delete Account Access Consents",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
-       json.parse(""""""),
+       emptyObjectJson,
+       emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Account Access") :: apiTagMockedData :: Nil
@@ -137,7 +137,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
        "Get Account Access Consents",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },

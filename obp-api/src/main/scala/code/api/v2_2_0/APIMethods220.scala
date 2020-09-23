@@ -1151,6 +1151,7 @@ trait APIMethods220 {
             (counterparty, callContext) <- NewStyle.function.createCounterparty(
               name=postJson.name,
               description=postJson.description,
+              currency = "",
               createdByUserId=u.userId,
               thisBankId=bankId.value,
               thisAccountId=accountId.value,

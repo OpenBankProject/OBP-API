@@ -43,7 +43,7 @@ object APIMethods_AccountsApi extends RestHelper {
             Obtain detailed information on a single account
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : "",
   "meta" : { },
@@ -84,7 +84,7 @@ object APIMethods_AccountsApi extends RestHelper {
             Obtain detailed information on a transaction for a specific account
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : "",
   "meta" : { },
@@ -139,7 +139,7 @@ Some general notes that apply to all end points that retrieve transactions:
 - For transaction amounts it should be assumed that a negative value indicates a reduction of the available balance on the account while a positive value indicates an increase in the available balance on the account
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "transactions" : [ {
@@ -274,7 +274,7 @@ Some general notes that apply to all end points that retrieve transactions:
 //            Obtain a list of accounts
 //
 //            """,
-//       json.parse(""""""),
+//       emptyObjectJson,
 //       json.parse("""{
 //  "data" : {
 //    "accounts" : [ {
@@ -373,7 +373,7 @@ Some general notes that apply to all end points that retrieve transactions:
 //            Obtain the balance for a single specified account
 //
 //            """,
-//       json.parse(""""""),
+//       emptyObjectJson,
 //       json.parse("""{
 //  "data" : {
 //    "accountId" : "accountId",
@@ -442,7 +442,7 @@ Some general notes that apply to all end points that retrieve transactions:
             Obtain balances for multiple, filtered accounts
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "data" : {
     "balances" : [ {

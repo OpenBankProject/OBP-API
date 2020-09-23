@@ -46,6 +46,7 @@ trait CounterpartyTrait {
   def otherBranchRoutingScheme: String
   def otherBranchRoutingAddress: String
   def isBeneficiary : Boolean
+  def currency: String
   def bespoke: List[CounterpartyBespoke]
 }
 

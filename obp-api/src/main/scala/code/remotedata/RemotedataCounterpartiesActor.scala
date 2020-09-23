@@ -39,6 +39,7 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
       otherAccountSecondaryRoutingScheme: String,
       otherAccountSecondaryRoutingAddress: String,
       description: String,
+      currency: String,
       bespoke: List[CounterpartyBespoke]
     ) =>
       logger.debug(s"createCounterparty($createdByUserId, $thisBankId, $thisAccountId, $thisViewId, $name, " + 
@@ -60,6 +61,7 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
         otherAccountSecondaryRoutingScheme: String,
         otherAccountSecondaryRoutingAddress: String,
         description: String,
+        currency: String,
         bespoke: List[CounterpartyBespoke]
       ))
 
