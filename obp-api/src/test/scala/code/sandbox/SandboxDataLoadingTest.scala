@@ -454,8 +454,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
   val standardProducts = product1AtBank1 :: product2AtBank1 :: Nil
 
 
-  val user1 = SandboxUserImport(email = "user1@example.com", password = "TESOBE520berlin123!", user_name = "User 1")
-  val user2 = SandboxUserImport(email = "user2@example.com", password = "TESOBE520berlin123!", user_name = "User 2")
+  val user1 = SandboxUserImport(email = "user1@example.com", password = "TESOBE520berlin123!", user_name = "user.name_1")
+  val user2 = SandboxUserImport(email = "user2@example.com", password = "TESOBE520berlin123!", user_name = "user.name_2")
 
   val standardUsers = user1 :: user2 :: Nil
 
@@ -778,11 +778,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     }
 
     //emails of the user we will eventually create to show multiple users with different ids are possible
-    val secondUserName = "user-two"
+    val secondUserName = "user_two"
 
     val user1Json = Extraction.decompose(user1)
 
-    val differentUsername = "user-one"
+    val differentUsername = "user_one"
     differentUsername should not equal(user1.user_name)
     val userWithSameUsernameAsUser1 = user1Json
 
