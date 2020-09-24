@@ -414,7 +414,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         TransactionRequestsNotEnabled,
         UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2))
 
     lazy val getTransactionRequestTypes: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -460,7 +460,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "user does not have access to owner view",
         UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPsd2))
 
     lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
@@ -525,7 +525,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         TransactionRequestsNotEnabled,
         UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPsd2))
 
     lazy val createTransactionRequest: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -593,7 +593,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "Couldn't create Transaction",
         UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPsd2))
 
     lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::

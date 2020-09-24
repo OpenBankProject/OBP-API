@@ -707,7 +707,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: apiTagPSD2PIIS :: apiTagNewStyle :: Nil)
+      apiTagAccount :: apiTagPSD2PIIS :: apiTagPsd2 :: apiTagNewStyle :: Nil)
 
     lazy val checkFundsAvailable : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "funds-available" :: Nil JsonGet req => {
@@ -3261,7 +3261,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, PSD2, notOBWG),
-      List(apiTagApi, apiTagPSD2AIS))
+      List(apiTagApi, apiTagPSD2AIS, apiTagPsd2))
 
     lazy val getServerJWK: OBPEndpoint = {
       case "certs" :: Nil JsonGet _ => {
@@ -3453,7 +3453,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      apiTagConsent :: apiTagPSD2AIS :: apiTagNewStyle :: Nil)
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil)
 
     resourceDocs += ResourceDoc(
       createConsentSms,
@@ -3534,7 +3534,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      apiTagConsent :: apiTagPSD2AIS ::apiTagNewStyle :: Nil)
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 ::apiTagNewStyle :: Nil)
 
     lazy val createConsentEmail = createConsent
     lazy val createConsentSms = createConsent
@@ -3688,7 +3688,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      apiTagConsent :: apiTagPSD2AIS :: apiTagNewStyle :: Nil)
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil)
 
     lazy val answerConsentChallenge : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "consents"  :: consentId :: "challenge" :: Nil JsonPost json -> _  => {
@@ -3734,7 +3734,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, PSD2, notOBWG),
-      List(apiTagConsent, apiTagPSD2AIS, apiTagNewStyle))
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle))
 
     lazy val getConsents: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "my" :: "consents" :: Nil JsonGet _ => {
@@ -3774,7 +3774,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, PSD2, notOBWG),
-      List(apiTagConsent, apiTagPSD2AIS, apiTagNewStyle))
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle))
 
     lazy val revokeConsent: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "my" :: "consents" :: consentId :: "revoke" :: Nil JsonGet _ => {
@@ -5963,7 +5963,7 @@ trait APIMethods310 {
       accountBalancesV310Json,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
     )
 
     lazy val getBankAccountsBalances : OBPEndpoint = {

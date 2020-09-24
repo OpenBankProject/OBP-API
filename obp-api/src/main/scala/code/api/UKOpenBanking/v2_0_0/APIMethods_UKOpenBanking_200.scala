@@ -82,7 +82,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
       SwaggerDefinitionsJSON.transactionsJsonUKV200,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagUKOpenBanking, apiTagTransaction, apiTagPrivateData))
+      List(apiTagUKOpenBanking, apiTagTransaction, apiTagPrivateData, apiTagPsd2))
   
     lazy val getAccountTransactions : OBPEndpoint = {
       //get private accounts for all banks
