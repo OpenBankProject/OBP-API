@@ -81,6 +81,7 @@ object SwaggerDefinitionsJSON {
 
   val accountHeld = AccountHeld(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
+    label = "My Account",
     bankId = "gh.29.uk",
     number = "String",
     accountRoutings = List(accountRouting)
@@ -2979,6 +2980,7 @@ object SwaggerDefinitionsJSON {
   
   val accountHeldJson  = AccountHeldJson(
     id = "12314",
+    label = "My Account",
     bank_id=  "123",
     number = "123",
     account_routings = List(accountRoutingJsonV121)

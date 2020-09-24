@@ -265,6 +265,7 @@ case class CoreAccountJson(
 
 case class AccountHeldJson(
   id: String,
+  label: String,
   bank_id: String,
   number: String,
   account_routings: List[AccountRoutingJsonV121]
@@ -830,6 +831,7 @@ object JSONFactory300{
     CoreAccountsHeldJsonV300(accountsHeld.map(
       account => AccountHeldJson(
         account.id,
+        account.label,
         account.bankId,
         account.number,
         account.accountRoutings.map(accountRounting =>AccountRoutingJsonV121(accountRounting.scheme, accountRounting.address))

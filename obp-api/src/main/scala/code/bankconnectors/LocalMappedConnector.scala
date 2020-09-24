@@ -721,6 +721,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         .map(account =>
           AccountHeld(
             account.accountId.value,
+            account.label,
             account.bankId.value,
             stringOrNull(account.number),
             account.accountRoutings))

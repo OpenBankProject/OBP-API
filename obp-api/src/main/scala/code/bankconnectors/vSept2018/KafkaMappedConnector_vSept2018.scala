@@ -565,6 +565,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         statusExample,
         List(AccountHeld(
           accountIdExample.value,
+          label = labelExample.value,
           bankIdExample.value,
           number = accountNumberExample.value,
           accountRoutings =List(accountRoutingExample)
