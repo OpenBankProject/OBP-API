@@ -113,6 +113,24 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
   }
   
   /**
+   * Regex to validate a username
+   * 
+   * ^(?=.{8,100}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$
+   * └─────┬────┘└───┬──┘└─────┬─────┘└─────┬─────┘ └───┬───┘
+   *       │         │         │            │           no _ or . at the end
+   *       │         │         │            │
+   *       │         │         │            allowed characters
+   *       │         │         │
+   *       │         │         no __ or _. or ._ or .. inside
+   *       │         │
+   *       │         no _ or . at the beginning
+   *       │
+   *       username is 8-100 characters long
+   *       
+   */
+  private val usernameRegex = """^(?=.{8,100}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$""".r
+
+  /**
     * The username field for the User.
     */
   lazy val username: userName = new userName()
@@ -123,9 +141,16 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
         case e if e.trim.isEmpty   => List(FieldError(this, Text(msg))) // issue 179
         case _                     => Nil
       }
+    def isUsernamelValid(msg: => String)(e: String) = e match {
+      case null                                             => List(FieldError(this, Text(msg)))
+      case e if e.trim.isEmpty                              => List(FieldError(this, Text(msg)))
+      case e if usernameRegex.findFirstMatchIn(e).isDefined => Nil
+      case _                                                => List(FieldError(this, Text(msg)))
+    }
     override def displayName = S.?("Username")
     override def dbIndexed_? = true
-    override def validations = isEmpty(Helper.i18n("Please.enter.your.username")) _ :: 
+    override def validations = isEmpty(Helper.i18n("Please.enter.your.username")) _ ::
+                               isUsernamelValid(Helper.i18n("invalid.username")) _ ::
                                valUnique(Helper.i18n("unique.username")) _ ::
                                valUniqueExternally(Helper.i18n("unique.username")) _ :: 
                                super.validations
