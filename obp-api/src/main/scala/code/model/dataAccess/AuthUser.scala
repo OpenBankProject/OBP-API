@@ -141,7 +141,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
         case e if e.trim.isEmpty   => List(FieldError(this, Text(msg))) // issue 179
         case _                     => Nil
       }
-    def isUsernamelValid(msg: => String)(e: String) = e match {
+    def usernameIsValid(msg: => String)(e: String) = e match {
       case null                                             => List(FieldError(this, Text(msg)))
       case e if e.trim.isEmpty                              => List(FieldError(this, Text(msg)))
       case e if usernameRegex.findFirstMatchIn(e).isDefined => Nil
@@ -150,7 +150,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
     override def displayName = S.?("Username")
     override def dbIndexed_? = true
     override def validations = isEmpty(Helper.i18n("Please.enter.your.username")) _ ::
-                               isUsernamelValid(Helper.i18n("invalid.username")) _ ::
+                               usernameIsValid(Helper.i18n("invalid.username")) _ ::
                                valUnique(Helper.i18n("unique.username")) _ ::
                                valUniqueExternally(Helper.i18n("unique.username")) _ :: 
                                super.validations
