@@ -59,7 +59,6 @@ object APIMethods_DiscoveryApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Common") ::ApiTag("Discovery") :: apiTagMockedData :: Nil
      )
 
@@ -118,7 +117,6 @@ object APIMethods_DiscoveryApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Common") ::ApiTag("Discovery") :: apiTagMockedData :: Nil
      )
 

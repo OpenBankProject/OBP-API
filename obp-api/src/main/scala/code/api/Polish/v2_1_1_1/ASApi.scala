@@ -927,7 +927,6 @@ Requests OAuth2 authorization code""",
   "aspspRedirectUri" : "aspspRedirectUri"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AS") :: apiTagMockedData :: Nil
      )
 
@@ -1845,7 +1844,6 @@ Requests OAuth2 authorization code based One-time authorization code issued by E
 }"""),
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AS") :: apiTagMockedData :: Nil
      )
 
@@ -2822,7 +2820,6 @@ Requests OAuth2 access token value""",
   "expires_in" : "expires_in"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AS") :: apiTagMockedData :: Nil
      )
 

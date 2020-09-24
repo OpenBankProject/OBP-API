@@ -56,7 +56,6 @@ Confirming the availability on the payers account of the amount necessary to exe
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("CAF") :: apiTagMockedData :: Nil
      )
 

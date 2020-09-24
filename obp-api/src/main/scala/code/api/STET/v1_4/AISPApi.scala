@@ -101,7 +101,6 @@ The ASPSP answers by providing a list of balances on this account.
                     |}
                     |""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AISP") :: apiTagMockedData :: Nil
      )
 
@@ -191,7 +190,6 @@ The TPP sends a request to the ASPSP for retrieving the list of the PSU payment 
                     |  }
                     |}""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AISP") :: apiTagMockedData :: Nil
      )
 
@@ -284,7 +282,6 @@ The AISP requests the ASPSP on one of the PSU's accounts. It may specify some se
                     |  }
                     |}""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AISP") :: apiTagMockedData :: Nil
      )
 
@@ -361,7 +358,6 @@ The PSU specifies to the AISP which of his/her accounts will be accessible and w
 }"""),
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AISP") :: apiTagMockedData :: Nil
      )
 
@@ -404,7 +400,6 @@ The AISP asks for the identity of the PSU. The ASPSP answers with the identity, 
        emptyObjectJson,
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AISP") :: apiTagMockedData :: Nil
      )
 
@@ -447,7 +442,6 @@ The AISP asks for the trusted beneficiaries list. The ASPSP answers with a list 
        emptyObjectJson,
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AISP") :: apiTagMockedData :: Nil
      )
 

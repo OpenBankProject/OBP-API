@@ -253,7 +253,6 @@ object APIMethods_PISApi extends RestHelper {
   "bundleStatus" : "inProgress"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -315,7 +314,6 @@ object APIMethods_PISApi extends RestHelper {
   } ]
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -369,7 +367,6 @@ object APIMethods_PISApi extends RestHelper {
   "recurringPaymentDetailedStatus" : "recurringPaymentDetailedStatus"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -433,7 +430,6 @@ object APIMethods_PISApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -497,7 +493,6 @@ object APIMethods_PISApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -561,7 +556,6 @@ object APIMethods_PISApi extends RestHelper {
   "bundleStatus" : "inProgress"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -647,7 +641,6 @@ object APIMethods_PISApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -697,7 +690,6 @@ object APIMethods_PISApi extends RestHelper {
 }"""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -738,7 +730,6 @@ object APIMethods_PISApi extends RestHelper {
   "recurringPaymentDetailedStatus" : "recurringPaymentDetailedStatus"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -811,7 +802,6 @@ object APIMethods_PISApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -958,7 +948,6 @@ object APIMethods_PISApi extends RestHelper {
   "recurringPaymentDetailedStatus" : "recurringPaymentDetailedStatus"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -1036,7 +1025,6 @@ object APIMethods_PISApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 

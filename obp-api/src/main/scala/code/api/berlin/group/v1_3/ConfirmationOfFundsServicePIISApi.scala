@@ -62,7 +62,6 @@ in the header. This field is contained but commented out in this specification. 
           "fundsAvailable" : true
          }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Confirmation of Funds Service (PIIS)") :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
      )
 

@@ -209,10 +209,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     // so if you want the new generated endpoints shown timely, set this value to a small number, or set to a big number
     val getResourceDocsTTL : Int = APIUtil.getPropsValue(s"resourceDocsObp.cache.ttl.seconds", "5").toInt
 
-    private def getResourceDocsObpCached(showCore: Option[Boolean],
-                                         showPSD2: Option[Boolean],
-                                         showOBWG: Option[Boolean],
-                                         requestedApiVersion : ApiVersion,
+    private def getResourceDocsObpCached(requestedApiVersion : ApiVersion,
                                          resourceDocTags: Option[List[ResourceDocTag]],
                                          partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       /**
@@ -224,12 +221,12 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL second) {
-          logger.debug(s"Generating OBP Resource Docs showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersion")
+          logger.debug(s"Generating OBP Resource Docs requestedApiVersion is $requestedApiVersion")
           val obpResourceDocJson = for {
             resourceDocs <- getResourceDocsList(requestedApiVersion)
           } yield {
             // Filter
-            val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
+            val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, resourceDocTags, partialFunctionNames)
             // Format the data as json
             val innerJson = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
             // Return
@@ -320,7 +317,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       emptyObjectJson,
       emptyObjectJson,
       UnknownError :: Nil,
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDocumentation))
 
 
@@ -379,7 +375,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       emptyObjectJson,
       emptyObjectJson, //exampleResourceDocsJson
       UnknownError :: Nil,
-      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagDocumentation, apiTagApi)
     )
 
@@ -400,12 +395,12 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             else 
               Full()//If set resource_docs_requires_role=false, just return the response directly..
 
-            (showCore, showPSD2, showOBWG, tags, partialFunctions, languageParam) <- Full(ResourceDocsAPIMethodsUtil.getParams())
+            (tags, partialFunctions, languageParam) <- Full(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- tryo {ApiVersionUtils.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
             json <- languageParam match {
               case Some(ZH) => getChineseVersionResourceDocs
-              case _ => getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags, partialFunctions)
+              case _ => getResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
             }
           } yield {
             json
@@ -449,7 +444,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       emptyObjectJson,
       emptyObjectJson,
       UnknownError :: Nil,
-      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagDocumentation, apiTagApi)
     )
 
@@ -458,10 +452,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "swagger" :: Nil JsonGet _ => {
         cc =>{
           for {
-            (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions, languageParam) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
+            (resourceDocTags, partialFunctions, languageParam) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- tryo(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported Current Version is $requestedApiVersionString")
-            json <- getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG, requestedApiVersionString, resourceDocTags, partialFunctions)
+            json <- getResourceDocsSwaggerCached(requestedApiVersionString, resourceDocTags, partialFunctions)
           } yield {
             json
           }
@@ -477,7 +471,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
 
 
-    private def getResourceDocsSwaggerCached(showCore: Option[Boolean],showPSD2: Option[Boolean],showOBWG: Option[Boolean], requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
+    private def getResourceDocsSwaggerCached(requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
 
       // build swagger and remove not used definitions
       def buildSwagger(resourceDoc: SwaggerJSONFactory.SwaggerResourceDoc, definitions: json.JValue) = {
@@ -517,7 +511,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL millisecond) {
-          logger.debug(s"Generating Swagger showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersionString")
+          logger.debug(s"Generating Swagger requestedApiVersion is $requestedApiVersionString")
           val jsonOut = for {
             requestedApiVersion <- Full(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
@@ -525,7 +519,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           } yield {
             // Filter
             val rdFiltered = ResourceDocsAPIMethodsUtil
-              .filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
+              .filterResourceDocs(rd, resourceDocTags, partialFunctionNames)
               .map {
                 /**
                  * dynamic endpoints related structure is not STABLE structure, no need be parsed to a static structure.
@@ -604,7 +598,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         emptyObjectJson,
         emptyObjectJson,
         UnknownError :: Nil,
-        Catalogs(notCore, notPSD2, notOBWG),
         List(apiTagDocumentation))
     }
 
@@ -643,23 +636,7 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
     case _ => Empty
   }
 
-  def getParams() : (Option[Boolean], Option[Boolean], Option[Boolean], Option[List[ResourceDocTag]], Option[List[String]], Option[LanguageParam] ) = {
-
-    val showCore: Option[Boolean] = for {
-      x <- S.param("core")
-      y <- stringToOptBoolean(x)
-    } yield y
-
-    val showPSD2: Option[Boolean] = for {
-      x <- S.param("psd2")
-      y <- stringToOptBoolean(x)
-    } yield y
-
-    val showOBWG: Option[Boolean] = for {
-      x <- S.param("obwg")
-      y <- stringToOptBoolean(x)
-    } yield y
-
+  def getParams() : (Option[List[ResourceDocTag]], Option[List[String]], Option[LanguageParam] ) = {
 
     val rawTagsParam = S.param("tags")
 
@@ -714,7 +691,7 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
     } yield y
     logger.info(s"languageParam is $languageParam")
 
-    (showCore, showPSD2, showOBWG, tags, partialFunctionNames, languageParam)
+    (tags, partialFunctionNames, languageParam)
   }
 
 
@@ -723,14 +700,10 @@ Filter Resource Docs based on the query parameters, else return the full list.
 We don't assume a default catalog (as API Explorer does)
 so the caller must specify any required filtering by catalog explicitly.
  */
-  def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : List[ResourceDoc] = {
+  def filterResourceDocs(allResources: List[ResourceDoc], resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : List[ResourceDoc] = {
 
     // Filter (include, exclude or ignore)
-    val filteredResources1 : List[ResourceDoc] = showCore match {
-      case Some(true) => allResources.filter(x => x.catalogs.core == true)
-      case Some(false) => allResources.filter(x => x.catalogs.core == false)
-      case _ => allResources
-    }
+    val filteredResources1 : List[ResourceDoc] =  allResources
 
     // Check if we have partialFunctionNames as the paramters, and if so filter by them
     val filteredResources2 : List[ResourceDoc] = partialFunctionNames match {
@@ -748,11 +721,7 @@ so the caller must specify any required filtering by catalog explicitly.
       case None => filteredResources1
     }
 
-    val filteredResources3 : List[ResourceDoc] = showOBWG match {
-      case Some(true) => filteredResources2.filter(x => x.catalogs.obwg == true)
-      case Some(false) => filteredResources2.filter(x => x.catalogs.obwg == false)
-      case _ => filteredResources2
-    }
+    val filteredResources3 : List[ResourceDoc] = filteredResources2
 
 
     // Check if we have tags, and if so filter by them
@@ -774,18 +743,7 @@ so the caller must specify any required filtering by catalog explicitly.
 
 
     //Because the PDS2 will only use one Tag, so it should be the last tag ifwe support the multiple filter parameters.
-    val filteredResources5: List[ResourceDoc] = showPSD2 match {
-      case Some(true) => filteredResources4
-        .filter(x => x.catalogs.psd2 == true)
-        .map(it => {
-          val psd2Tags = Set(apiTagPSD2AIS, apiTagPSD2PIIS, apiTagPSD2PIS)
-          // if the tags contains psd2 tag, just only keep one psd2 tag
-          val psd2Tag = it.tags.find(psd2Tags.contains(_)).toList
-          it.copy(tags = psd2Tag)
-        })
-      case Some(false) => filteredResources4.filter(x => x.catalogs.psd2 == false)
-      case _ => filteredResources4
-    }
+    val filteredResources5: List[ResourceDoc] = filteredResources4
 
     val resourcesToUse = filteredResources5.toSet.toList
 

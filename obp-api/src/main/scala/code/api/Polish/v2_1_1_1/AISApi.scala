@@ -49,7 +49,6 @@ Removes consent""",
 }"""),
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -107,7 +106,6 @@ User identification based on access token""",
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -191,7 +189,6 @@ User identification based on access token""",
   } ]
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -254,7 +251,6 @@ User identification based on access token""",
   "holds" : [ "", "" ]
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -348,7 +344,6 @@ User identification based on access token""",
   "tppName" : "tppName"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -437,7 +432,6 @@ User identification based on access token""",
   "transactions" : [ "", "" ]
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -486,7 +480,6 @@ User identification based on access token""",
   "transactions" : [ "", "" ]
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -535,7 +528,6 @@ User identification based on access token""",
   "transactions" : [ "", "" ]
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -584,7 +576,6 @@ User identification based on access token""",
   "transactions" : [ "", "" ]
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -633,7 +624,6 @@ User identification based on access token""",
   "transactions" : [ "", "" ]
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
