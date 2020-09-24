@@ -179,7 +179,7 @@ trait APIMethods200 {
       coreAccountsJSON,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPrivateData))
+      List(apiTagAccount, apiTagPrivateData, apiTagPsd2))
 
 
     apiRelations += ApiRelation(corePrivateAccountsAllBanks, getCoreAccountById, "detail")
@@ -310,7 +310,7 @@ trait APIMethods200 {
       coreAccountsJSON,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagNewStyle))
+      List(apiTagAccount, apiTagPrivateData, apiTagPsd2, apiTagNewStyle))
 
     apiRelations += ApiRelation(corePrivateAccountsAtOneBank, createAccount, "new")
     apiRelations += ApiRelation(corePrivateAccountsAtOneBank, corePrivateAccountsAtOneBank, "self")
@@ -383,7 +383,7 @@ trait APIMethods200 {
       basicAccountsJSON,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagNewStyle)
+      List(apiTagAccount, apiTagNewStyle, apiTagPsd2)
     )
 
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
@@ -884,7 +884,7 @@ trait APIMethods200 {
       moderatedCoreAccountJSON,
       List(BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
-      apiTagAccount ::  Nil)
+      apiTagAccount :: apiTagPsd2 ::  Nil)
 
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
@@ -927,7 +927,7 @@ trait APIMethods200 {
       coreTransactionsJSON,
       List(BankAccountNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransaction, apiTagAccount))
+      List(apiTagTransaction, apiTagAccount, apiTagPsd2))
     
     //Note: we already have the method: getTransactionsForBankAccount in V121.
     //The only difference here is "Core implies 'owner' view" 
@@ -1193,7 +1193,7 @@ trait APIMethods200 {
       transactionTypesJsonV200,
       List(BankNotFound, UnknownError),
       Catalogs(Core, PSD2, notOBWG),
-      List(apiTagBank, apiTagPSD2AIS)
+      List(apiTagBank, apiTagPSD2AIS, apiTagPsd2)
     )
 
     lazy val getTransactionTypes : OBPEndpoint = {
@@ -1284,7 +1284,7 @@ trait APIMethods200 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest),
+      List(apiTagTransactionRequest, apiTagPsd2),
       Some(List(canCreateAnyTransactionRequest)))
 
     lazy val createTransactionRequest: OBPEndpoint = {
@@ -1360,7 +1360,7 @@ trait APIMethods200 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPsd2))
 
     lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -1448,7 +1448,7 @@ trait APIMethods200 {
       transactionRequestWithChargesJson,
       List(UserNotLoggedIn, BankNotFound, AccountNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPsd2))
 
     lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {

@@ -176,7 +176,7 @@ trait APIMethods121 {
       banksJSON,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: Nil)
+      apiTagBank :: apiTagPsd2 :: Nil)
 
     lazy val getBanks : OBPEndpoint = {
       //get banks
@@ -212,7 +212,7 @@ trait APIMethods121 {
       bankJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: Nil)
+      apiTagBank :: apiTagPsd2 :: Nil)
 
 
     lazy val bankById : OBPEndpoint = {
@@ -245,7 +245,7 @@ trait APIMethods121 {
       accountJSON,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: Nil)
+      apiTagAccount :: apiTagPsd2 :: Nil)
 
     //TODO double check with `lazy val privateAccountsAllBanks :`, they are the same now.
     lazy val getPrivateAccountsAllBanks : OBPEndpoint = {
@@ -279,7 +279,7 @@ trait APIMethods121 {
       accountJSON,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: Nil)
+      apiTagAccount :: apiTagPsd2 :: Nil)
 
     lazy val privateAccountsAllBanks : OBPEndpoint = {
       //get private accounts for all banks
@@ -379,7 +379,7 @@ trait APIMethods121 {
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount))
+      List(apiTagAccount, apiTagPsd2))
 
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for a single bank
@@ -993,7 +993,7 @@ trait APIMethods121 {
         UnknownError
       ),
       Catalogs(notCore, PSD2, OBWG),
-      List(apiTagCounterparty, apiTagAccount))
+      List(apiTagCounterparty, apiTagAccount, apiTagPsd2))
 
     lazy val getOtherAccountsForBankAccount : OBPEndpoint = {
       //get other accounts for one account
@@ -2164,7 +2164,7 @@ trait APIMethods121 {
       transactionsJSON,
       List(BankAccountNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransaction, apiTagAccount))
+      List(apiTagTransaction, apiTagAccount, apiTagPsd2))
   
   
   
@@ -2231,7 +2231,7 @@ trait APIMethods121 {
       transactionJSON,
       List(BankAccountNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransaction))
+      List(apiTagTransaction, apiTagPsd2))
 
     lazy val getTransactionByIdForBankAccount : OBPEndpoint = {
       //get transaction by id

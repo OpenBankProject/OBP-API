@@ -396,7 +396,7 @@ trait APIMethods300 {
       newModeratedCoreAccountJsonV300,
       List(BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
-      apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: Nil)
+      apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: apiTagPsd2 :: Nil)
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => {
@@ -432,7 +432,7 @@ trait APIMethods300 {
       coreAccountsJsonV300,
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagNewStyle)
+      List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagPsd2, apiTagNewStyle)
     )
 
 
@@ -649,7 +649,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransaction, apiTagPSD2AIS, apiTagAccount, apiTagNewStyle)
+      List(apiTagTransaction, apiTagPSD2AIS, apiTagAccount, apiTagPsd2, apiTagNewStyle)
     )
 
     lazy val getCoreTransactionsForBankAccount : OBPEndpoint = {
@@ -1672,7 +1672,7 @@ trait APIMethods300 {
       coreAccountsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount,apiTagPSD2AIS, apiTagNewStyle)
+      List(apiTagAccount,apiTagPSD2AIS, apiTagNewStyle, apiTagPsd2)
     )
   
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
@@ -1712,7 +1712,7 @@ trait APIMethods300 {
       accountsIdsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagNewStyle)
+      List(apiTagAccount, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle)
     )
   
     lazy val getPrivateAccountIdsbyBankId : OBPEndpoint = {
@@ -2125,7 +2125,7 @@ trait APIMethods300 {
       coreAccountsHeldJsonV300,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagNewStyle)
+      List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagPsd2, apiTagNewStyle)
     )
   
     lazy val getAccountsHeld : OBPEndpoint = {
@@ -2405,7 +2405,7 @@ trait APIMethods300 {
       banksJSON,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: apiTagPSD2AIS:: apiTagNewStyle :: Nil)
+      apiTagBank :: apiTagPSD2AIS:: apiTagPsd2 :: apiTagNewStyle :: Nil)
 
     //The Json Body is totally the same as V121, just use new style endpoint.
     lazy val getBanks : OBPEndpoint = {
@@ -2436,7 +2436,7 @@ trait APIMethods300 {
       bankJson400,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
     )
 
     lazy val bankById : OBPEndpoint = {

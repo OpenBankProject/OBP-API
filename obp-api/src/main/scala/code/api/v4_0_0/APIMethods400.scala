@@ -170,7 +170,7 @@ trait APIMethods400 {
       banksJSON400,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
     )
 
     lazy val getBanks: OBPEndpoint = {
@@ -327,7 +327,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagBank),
+      List(apiTagBank, apiTagPsd2),
       Some(List(canGetSettlementAccountAtOneBank))
     )
 
@@ -451,7 +451,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     // ACCOUNT_OTP. (we no longer create a resource doc for the general case)
     staticResourceDocs += ResourceDoc(
@@ -488,7 +488,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     // COUNTERPARTY
     staticResourceDocs += ResourceDoc(
@@ -527,7 +527,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
 
     val lowAmount = AmountOfMoneyJsonV121("EUR", "12.50")
@@ -570,7 +570,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     staticResourceDocs += ResourceDoc(
       createTransactionRequestRefund,
@@ -604,7 +604,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     // FREE_FORM.
     staticResourceDocs += ResourceDoc(
@@ -964,7 +964,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -1845,7 +1845,7 @@ trait APIMethods400 {
       moderatedCoreAccountJsonV400,
       List($UserNotLoggedIn, $BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
-      apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: Nil
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 ::  apiTagNewStyle :: Nil
     )
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
@@ -2899,7 +2899,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     lazy val getTransactionRequest: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: TransactionRequestId(requestId) :: Nil JsonGet _ => {
@@ -4603,7 +4603,7 @@ trait APIMethods400 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagAccount))
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount))
 
     lazy val getExplictCounterpartiesForAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
@@ -4652,7 +4652,7 @@ trait APIMethods400 {
       counterpartyWithMetadataJson400,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData)
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagCounterpartyMetaData)
     )
 
     lazy val getExplictCounterpartyById : OBPEndpoint = {
