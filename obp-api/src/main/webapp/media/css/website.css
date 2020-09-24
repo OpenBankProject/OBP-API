@@ -14,6 +14,8 @@
 @import url(/media/css/footer.css);
 @import url(/media/css/api-documentation-content.css);
 @import url(/media/css/obp-toastr.css);
+@import url(/media/css/responsive.css);
+@import url(/media/css/fonts.css);
 
 html {
 	font-family: "Roboto-Regular";
@@ -272,4 +274,131 @@ input[type="text"]{
 	white-space: normal;
 	-webkit-clip-path: none;
 	clip-path: none;
+}
+
+body {
+	font-family: "Roboto-Light";
+}
+
+header #header-decoration,
+.navbar-default,
+#main-links,
+#authorise,
+#signup,
+#recover-password,
+#register-consumer,
+#create-account,
+.navbar-default .navbar-toggle:hover,
+.navbar-default .navbar-toggle:focus,
+#vendor-support,
+#main-links {
+	background-color: #ffffff;
+	border: 0;
+}
+
+#logo-right-xs {
+	max-width: 43%;
+	min-width: 43%;
+	padding: 6%;
+	padding-top: 6%;
+	padding-right: 6%;
+	padding-bottom: 6%;
+	padding-left: 6%;
+	padding-right: 10%;
+}
+
+#vendor-support {
+	padding: 0px 0px;
+	color: white;
+	background-color: #333333;
+	text-align: center;
+}
+
+#vendor-support h2 {
+	font-size: 24px;
+}
+
+.vendor-support-item {
+	display: inline-block;
+	margin: 30px 10px;
+}
+
+.vendor-support-item a {
+	color: white;
+}
+
+.row {
+	margin-right: 0px;
+	margin-left: 0px;
+}
+
+.col-lg-1, .col-lg-10, .col-lg-11, .col-lg-12, .col-lg-2, .col-lg-3, .col-lg-4,
+.col-lg-5, .col-lg-6, .col-lg-7, .col-lg-8, .col-lg-9, .col-md-1, .col-md-10, .col-md-11, .col-md-12,
+.col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6, .col-md-7, .col-md-8, .col-md-9, .col-sm-1, .col-sm-10,
+.col-sm-11, .col-sm-12, .col-sm-2, .col-sm-3, .col-sm-4, .col-sm-5, .col-sm-6, .col-sm-7, .col-sm-8, .col-sm-9,
+.col-xs-1, .col-xs-10, .col-xs-11, .col-xs-12, .col-xs-2, .col-xs-3, .col-xs-4, .col-xs-5, .col-xs-6, .col-xs-7,
+.col-xs-8, .col-xs-9 {
+	position: relative;
+	min-height: 1px;
+	padding-right: 16px;
+	padding-left: 16px;
+}
+
+@media (min-width: 960px){
+	.col-md-5 {
+		width: 41.66666667%;
+	}
+	.col-md-1, .col-md-10, .col-md-11, .col-md-12, .col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6, .col-md-7, .col-md-8, .col-md-9 {
+		float: left;
+	}
+}
+.btn-default.focus,
+.btn-default:focus,
+.btn-default.active.focus,
+.btn-default.active:focus,
+.btn-default.active:hover,
+.btn-default:active.focus,
+.btn-default:active:focus,
+.btn-default:active:hover{
+	border-radius: 0;
+	outline: 0;
+}
+
+.btn-default:hover{
+	background-color: #F3F3F3;
+	border: 1px solid #333333;
+	border-radius: 0;
+	outline: 0;
+}
+.btn-default:active{
+	background-color: #EDEDED;
+	border: 1px solid #333333;
+	outline: 0;
+}
+
+.btn-danger.focus,
+.btn-danger:focus,
+.btn-danger.active.focus,
+.btn-danger.active:focus,
+.btn-danger.active:hover,
+.btn-danger:active.focus,
+.btn-danger:active:focus,
+.btn-danger:active:hover{
+	border-radius: 0;
+	outline: 0;
+}
+
+.btn-danger:hover{
+	border-radius: 0;
+	outline: 0;
+}
+
+.btn-danger:active{
+	border-radius: 0;
+	outline: 0;
+}
+
+input{
+	border-radius: 0;
+	outline:  0;
 }
