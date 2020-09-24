@@ -90,7 +90,6 @@ trait APIMethods220 {
         BankAccountNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagView, apiTagAccount, apiTagNewStyle))
 
     lazy val getViewsForBankAccount : OBPEndpoint = {
@@ -143,7 +142,6 @@ trait APIMethods220 {
         BankAccountNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
     lazy val createViewForBankAccount : OBPEndpoint = {
@@ -195,7 +193,6 @@ trait APIMethods220 {
         BankAccountNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
 
@@ -256,7 +253,6 @@ trait APIMethods220 {
       emptyObjectJson,
       fXRateJSON,
       List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagFx, apiTagNewStyle))
 
     val getCurrentFxRateIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getCurrentFxRateIsPublic", false)
@@ -307,7 +303,6 @@ trait APIMethods220 {
         UserNoPermissionAccessView,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagAccount, apiTagPsd2))
 
     lazy val getExplictCounterpartiesForAccount : OBPEndpoint = {
@@ -357,7 +352,6 @@ trait APIMethods220 {
       emptyObjectJson,
       counterpartyWithMetadataJson,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData, apiTagPsd2)
     )
   
@@ -397,7 +391,6 @@ trait APIMethods220 {
       emptyObjectJson,
       messageDocsJson,
       List(UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
       List(apiTagDocumentation, apiTagApi)
     )
 
@@ -435,7 +428,6 @@ trait APIMethods220 {
         InsufficientAuthorisationToCreateBank,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank),
       Some(List(canCreateBank))
     )
@@ -498,7 +490,6 @@ trait APIMethods220 {
         InsufficientAuthorisationToCreateBranch,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBranch, apiTagOpenData),
       Some(List(canCreateBranch,canCreateBranchAtAnyBank))
     )
@@ -549,7 +540,6 @@ trait APIMethods220 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagATM),
       Some(List(canCreateAtm,canCreateAtmAtAnyBank))
     )
@@ -603,7 +593,6 @@ trait APIMethods220 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagProduct),
       Some(List(canCreateProduct, canCreateProductAtAnyBank))
     )
@@ -681,7 +670,6 @@ trait APIMethods220 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagFx),
       Some(List(canCreateFxRate, canCreateFxRateAtAnyBank))
     )
@@ -754,7 +742,6 @@ trait APIMethods220 {
         AccountIdAlreadyExists,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount,apiTagOnboarding),
       Some(List(canCreateAccount))
     )
@@ -851,7 +838,6 @@ trait APIMethods220 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, OBWG),
       apiTagApi :: apiTagNewStyle :: Nil,
       Some(List(canGetConfig)))
 
@@ -910,7 +896,6 @@ trait APIMethods220 {
         InvalidDateFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetric, apiTagApi),
       Some(List(canGetConnectorMetrics)))
 
@@ -968,7 +953,6 @@ trait APIMethods220 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer),
       Some(List(canCreateConsumer)))
 
@@ -1097,7 +1081,6 @@ trait APIMethods220 {
         CounterpartyAlreadyExists,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterparty, apiTagAccount))
   
   
@@ -1200,7 +1183,6 @@ trait APIMethods220 {
         AccountNotFound,
         ViewNotFound
       ),
-      Catalogs(Core, notPSD2, OBWG),
       List(apiTagAccount, apiTagCustomer, apiTagView)
     )
 

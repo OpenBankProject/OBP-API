@@ -1097,17 +1097,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
    */
 
-
-
-  case class Catalogs(core: Boolean = false, psd2: Boolean = false, obwg: Boolean = false)
-
-  val Core = true
-  val PSD2 = true
-  val OBWG = true
-  val notCore = false
-  val notPSD2 = false
-  val notOBWG = false
-
   case class BaseErrorResponseBody(
     //code: String,//maybe used, for now, 400,204,200...are handled in RestHelper class
     //TODO, this should be a case class name, but for now, the InvalidNumber are just String, not the case class.
@@ -1185,7 +1174,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           exampleRequestBody: scala.Product, // An example of the request body, any type of: case class, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
                           successResponseBody: scala.Product, // A successful response body, any type of: case class, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
                           var errorResponseBodies: List[String], // Possible error responses
-                          catalogs: Catalogs,
                           tags: List[ResourceDocTag],
                           var roles: Option[List[ApiRole]] = None,
                           isFeatured: Boolean = false,
@@ -3048,7 +3036,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       messageDoc.exampleOutboundMessage,
       messageDoc.exampleInboundMessage,
       errorResponseBodies = List(InvalidJsonFormat),
-      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagBank)
     )
   }

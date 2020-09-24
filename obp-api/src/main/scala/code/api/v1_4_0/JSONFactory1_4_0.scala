@@ -328,9 +328,6 @@ object JSONFactory1_4_0 {
                              example_request_body: scala.Product,
                              success_response_body: scala.Product,
                              error_response_bodies: List[String],
-                             is_core: Boolean,
-                             is_psd2: Boolean,
-                             is_obwg: Boolean,
                              tags: List[String],
                              typed_request_body: JValue, //JSON Schema --> https://spacetelescope.github.io/understanding-json-schema/index.html
                              typed_success_response_body: JValue, //JSON Schema --> https://spacetelescope.github.io/understanding-json-schema/index.html
@@ -365,9 +362,6 @@ object JSONFactory1_4_0 {
       success_response_body = rd.successResponseBody,
       error_response_bodies = rd.errorResponseBodies,
       implemented_by = ImplementedByJson(rd.implementedInApiVersion.fullyQualifiedVersion, rd.partialFunctionName), // was rd.implementedInApiVersion.noV
-      is_core = rd.catalogs.core,
-      is_psd2 = rd.catalogs.psd2,
-      is_obwg = rd.catalogs.obwg,
       tags = rd.tags.map(i => i.tag),
       typed_request_body = createTypedBody(rd.exampleRequestBody),
       typed_success_response_body = createTypedBody(rd.successResponseBody),

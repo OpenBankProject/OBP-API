@@ -152,7 +152,6 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("International Standing Orders") :: apiTagMockedData :: Nil
      )
 
@@ -389,7 +388,6 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("International Standing Orders") :: apiTagMockedData :: Nil
      )
 
@@ -626,7 +624,6 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("International Standing Orders") :: apiTagMockedData :: Nil
      )
 
@@ -863,7 +860,6 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("International Standing Orders") :: apiTagMockedData :: Nil
      )
 

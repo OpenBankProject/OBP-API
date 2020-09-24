@@ -95,7 +95,6 @@ or * access method is generally applicable, but further authorisation processes 
   "transactionStatus" : "ACCP"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
@@ -144,7 +143,6 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
   "scaStatus" : "psuAuthenticated"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -197,7 +195,6 @@ Returns the content of a payment object""",
                       "creditorName":"70charname"
                     }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM ::Nil
      )
 
@@ -257,7 +254,6 @@ This function returns an array of hyperlinks to all generated authorisation sub-
                        }
                      ]"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -296,7 +292,6 @@ Retrieve a list of all created cancellation authorisation sub-resources.
   "cancellationIds" : ["faa3657e-13f0-4feb-a6c3-34bf21a9ae8e]"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -337,7 +332,6 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
   "scaStatus" : "psuAuthenticated"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -379,7 +373,6 @@ Check the transaction status of a payment initiation.""",
                       "transactionStatus": "ACCP"
                      }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -532,7 +525,6 @@ $additionalInstructions
                         }
                     }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -670,7 +662,6 @@ This applies in the following scenarios:
                       }
                     }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -759,7 +750,6 @@ This applies in the following scenarios:
                       }
                     }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -856,7 +846,6 @@ There are the following request types on this access path:
                       }
                     }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -956,7 +945,6 @@ There are the following request types on this access path:
                         }
                     }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 

@@ -63,7 +63,6 @@ object APIMethods_AccountAccessApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Account Access") :: apiTagMockedData :: Nil
      )
 
@@ -113,7 +112,6 @@ object APIMethods_AccountAccessApi extends RestHelper {
        emptyObjectJson,
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Account Access") :: apiTagMockedData :: Nil
      )
 
@@ -163,7 +161,6 @@ object APIMethods_AccountAccessApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Account Access") :: apiTagMockedData :: Nil
      )
 

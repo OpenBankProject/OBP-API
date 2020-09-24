@@ -1,6 +1,6 @@
 package code.api.v4_0_0
 
-import code.api.util.APIUtil.{Catalogs, EmptyBody, ResourceDoc, authenticationRequiredMessage, generateUUID, notCore, notOBWG, notPSD2}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, authenticationRequiredMessage, generateUUID}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
 import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
@@ -129,7 +129,6 @@ object DynamicEntityHelper {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
       Some(List(dynamicEntityInfo.canGetRole))
     )
@@ -156,7 +155,6 @@ object DynamicEntityHelper {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
       Some(List(dynamicEntityInfo.canGetRole))
     )
@@ -186,7 +184,6 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
       Some(List(dynamicEntityInfo.canCreateRole))
       )
@@ -216,7 +213,6 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
       Some(List(dynamicEntityInfo.canUpdateRole))
     )
@@ -243,7 +239,6 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
       Some(List(dynamicEntityInfo.canDeleteRole))
     )
