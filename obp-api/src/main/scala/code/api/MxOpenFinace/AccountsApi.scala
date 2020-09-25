@@ -99,6 +99,7 @@ object APIMethods_AccountsApi extends RestHelper {
            for {
              (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              _ <- NewStyle.function.checkUKConsent(u, callContext)
+             _ <- passesPsd2Aisp(callContext)
              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
              (accounts: List[BankAccount], callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
              (moderatedAttributes: List[AccountAttribute], callContext) <- NewStyle.function.getModeratedAccountAttributesByAccounts(

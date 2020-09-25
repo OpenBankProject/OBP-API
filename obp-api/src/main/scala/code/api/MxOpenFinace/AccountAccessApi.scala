@@ -83,6 +83,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
          cc =>
            for {
              (_, callContext) <- applicationAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
              createdByUser: Option[User] <- callContext.map(_.user).getOrElse(Empty) match {
                case Full(user) => Future(Some(user))
                case _ => Future(None)

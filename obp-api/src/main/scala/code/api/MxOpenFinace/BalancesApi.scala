@@ -52,6 +52,7 @@ object APIMethods_BalancesApi extends RestHelper {
            for {
              (Full(user), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              _ <- NewStyle.function.checkUKConsent(user, callContext)
+             _ <- passesPsd2Aisp(callContext)
              (account, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
              view: View <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, AccountId(accountId)), Full(user), callContext)
              moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), callContext)
