@@ -47,7 +47,6 @@ object APIMethods_AccountAccessApi extends RestHelper {
             """,
        json.parse("""{
               "Data" : {
-                "BankId" : "YourBanId",
                 "ExpirationDateTime" : "2000-01-23T06:44:05.618Z",
                 "Permissions" : ["ReadAccountsBasic", "ReadAccountsDetail", "ReadBalances", "ReadTransactionsBasic", "ReadTransactionsDebits", "ReadTransactionsDetail"],
                 "TransactionToDateTime" : "2000-01-23T06:44:05.618Z",
@@ -92,10 +91,9 @@ object APIMethods_AccountAccessApi extends RestHelper {
              consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                postJson.extract[ConsentPostBodyMXOFV001]
              }
-             (_, callContext) <- NewStyle.function.getBank(BankId(consentJson.Data.BankId), callContext)
              createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
                createdByUser,
-               bankId = Option(consentJson.Data.BankId),
+               bankId = None,
                accountIds = None,
                consumerId = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")),
                permissions = consentJson.Data.Permissions,

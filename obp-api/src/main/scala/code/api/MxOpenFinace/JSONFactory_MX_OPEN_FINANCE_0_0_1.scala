@@ -135,8 +135,7 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
     TransactionToDateTime: String,
     ExpirationDateTime: String,
     Permissions: List[String],
-    TransactionFromDateTime: String,
-    BankId: String
+    TransactionFromDateTime: String
   )
   case class ConsentPostBodyMXOFV001(
     Data: ConsentPostBodyDataMXOFV001
