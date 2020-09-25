@@ -11,7 +11,7 @@ import code.consent.Consents
 import code.users.Users
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.User
+import com.openbankproject.commons.model.{BankId, User}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
@@ -47,9 +47,10 @@ object APIMethods_AccountAccessApi extends RestHelper {
             """,
        json.parse("""{
               "Data" : {
-                "TransactionToDateTime" : "2000-01-23T06:44:05.618Z",
+                "BankId" : "YourBanId",
                 "ExpirationDateTime" : "2000-01-23T06:44:05.618Z",
                 "Permissions" : ["ReadAccountsBasic", "ReadAccountsDetail", "ReadBalances", "ReadTransactionsBasic", "ReadTransactionsDebits", "ReadTransactionsDetail"],
+                "TransactionToDateTime" : "2000-01-23T06:44:05.618Z",
                 "TransactionFromDateTime" : "2000-01-23T06:44:05.618Z"
               }
 }"""),
@@ -91,6 +92,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
              consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                postJson.extract[ConsentPostBodyMXOFV001]
              }
+             (_, callContext) <- NewStyle.function.getBank(BankId(consentJson.Data.BankId), callContext)
              createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
                createdByUser,
                bankId = Option(consentJson.Data.BankId),
