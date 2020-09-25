@@ -41,6 +41,7 @@ import code.api.builder.OBP_APIBuilder
 import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.sandbox.SandboxApiCalls
+import code.api.util.ApiRole.valueOf
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
 import code.api.util.RateLimitingJson.CallLimit
@@ -54,6 +55,7 @@ import code.methodrouting.MethodRoutingProvider
 import code.metrics._
 import code.model._
 import code.model.dataAccess.AuthUser
+import code.model.dataAccess.AuthUser.{getResourceUserByUsername, logger}
 import code.ratelimiting.{RateLimiting, RateLimitingDI}
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
@@ -3427,4 +3429,23 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   val glossaryDocsRequireRole = APIUtil.getPropsAsBoolValue("glossary_requires_role", false)
+  
+  def grantDefaultEntitlementsToNewUser(userId: String) ={
+    /**
+     * 
+     * The props are following:
+     * entitlement_list_1=[CanGetConfig, CanCreateAccount]
+     * new_user_entitlement_list=entitlement_list_1
+     * 
+     * defaultEntitlements will get the role from new_user_entitlement_list--> entitlement_list_1--> [CanGetConfig, CanCreateAccount]
+     */
+    val defaultEntitlements = APIUtil.getPropsValue(APIUtil.getPropsValue("new_user_entitlement_list","")).getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+
+   try{
+      defaultEntitlements.map(ApiRole.valueOf(_).toString()).map(Entitlement.entitlement.vend.addEntitlement("", userId, _))
+    } catch {
+      case e: Throwable => logger.error(s"Please check props `new_user_entitlement_list`, ${e.getMessage}. your props value is ($defaultEntitlements)") 
+    }
+
+  }
 }
