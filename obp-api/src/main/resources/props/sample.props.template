@@ -870,3 +870,6 @@ outboundAdapterCallContext.generalContext
 #hydra_client_id=auth-code-client
 #hydra_client_scope=openid,offline
 # ------------------------------ Hydra oauth2 props end ------------------------------
+
+## Mirror request headers to responce
+# mirror_request_headers_to_response=x-fapi-interaction-id
