@@ -4,12 +4,14 @@ import java.util.Date
 
 import scala.util.Random
 import code.api.util.{Consent, ErrorMessages}
+import code.consent.ConsentStatus.ConsentStatus
 import code.util.MappedUUID
 import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.{MappedString, _}
 import net.liftweb.util.Helpers.{now, tryo}
 import org.mindrot.jbcrypt.BCrypt
+
 import scala.collection.immutable.List
 
 object MappedConsentProvider extends ConsentProvider {
@@ -17,6 +19,22 @@ object MappedConsentProvider extends ConsentProvider {
     MappedConsent.find(
       By(MappedConsent.mConsentId, consentId)
     )
+  }
+  override def updateConsentStatus(consentId: String, status: ConsentStatus): Box[MappedConsent] = {
+    MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
+      case Full(consent) =>
+        tryo(consent
+          .mStatus(status.toString)
+          .mLastActionDate(now) //maybe not right, but for the create we use the `now`, we need to update it later.
+          .saveMe()
+        )
+      case Empty =>
+        Empty ?~! ErrorMessages.ConsentNotFound
+      case Failure(msg, _, _) =>
+        Failure(msg)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
   }
   override def getConsentsByUser(userId: String): List[MappedConsent] = {
     MappedConsent.findAll(By(MappedConsent.mUserId, userId))

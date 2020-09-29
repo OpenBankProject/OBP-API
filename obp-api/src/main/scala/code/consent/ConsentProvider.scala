@@ -5,6 +5,8 @@ import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 import java.util.Date
 
+import code.consent.ConsentStatus.ConsentStatus
+
 import scala.collection.immutable.List
 
 object Consents extends SimpleInjector {
@@ -14,6 +16,7 @@ object Consents extends SimpleInjector {
 
 trait ConsentProvider {
   def getConsentByConsentId(consentId: String): Box[MappedConsent]
+  def updateConsentStatus(consentId: String, status: ConsentStatus): Box[MappedConsent]
   def getConsentsByUser(userId: String): List[MappedConsent]
   def createConsent(user: User, challenge: String): Box[MappedConsent]
   def setJsonWebToken(consentId: String, jwt: String): Box[MappedConsent]

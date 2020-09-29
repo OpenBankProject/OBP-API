@@ -550,12 +550,12 @@ object Consent {
       return Failure(ErrorMessages.ConsentExpiredIssue)
     }
 
-    val consentBox: Box[MappedConsent] = {
+    val boxedConsent: Box[MappedConsent] = {
       val accessExt = introspectOAuth2Token.getExt.asInstanceOf[java.util.Map[String, String]]
       val consentId = accessExt.get("consent_id")
       Consents.consentProvider.vend.getConsentByConsentId(consentId)
     }
-    consentBox match {
+    boxedConsent match {
       case Full(c) if c.mStatus == ConsentStatus.AUTHORISED.toString =>
         System.currentTimeMillis match {
           case currentTimeMillis if currentTimeMillis < c.creationDateTime.getTime =>
