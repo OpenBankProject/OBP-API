@@ -26,11 +26,13 @@ import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_1_0.{CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310}
+import code.api.v3_1_0.{ConsentChallengeJsonV310, ConsentJsonV310, CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310, PostConsentChallengeJsonV310}
 import com.openbankproject.commons.model.ListResult
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
 import code.bankconnectors.Connector
+import code.consent.ConsentStatus.ConsentStatus
+import code.consent.{ConsentStatus, Consents}
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
@@ -4772,6 +4774,59 @@ trait APIMethods400 {
 
           } yield {
             (JSONFactory400.createCounterpartyWithMetadataJson400(counterparty,counterpartyMetadata), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateConsentStatus,
+      implementedInApiVersion,
+      nameOf(updateConsentStatus),
+      "PUT",
+      "/banks/BANK_ID/consents/CONSENT_ID",
+      "Update Consent Status",
+      s"""
+         |
+         |
+         |This endpoint is used to update the Status of Consent.
+         |
+         |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted.mkString(", ") }.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      PutConsentStatusJsonV400(status = "AUTHORISED"),
+      ConsentChallengeJsonV310(
+        consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
+        status = "AUTHORISED"
+      ),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InvalidJsonFormat,
+        InvalidConnectorResponse,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      apiTagConsent :: apiTagPSD2AIS :: apiTagNewStyle :: Nil)
+
+    lazy val updateConsentStatus : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "consents"  :: consentId :: Nil JsonPut json -> _  => {
+        cc =>
+          for {
+            (_, callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutConsentStatusJsonV400 "
+            consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutConsentStatusJsonV400]
+            }
+            status = ConsentStatus.withName(consentJson.status)
+            consent <- Future(Consents.consentProvider.vend.updateConsentStatus(consentId, status)) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+          } yield {
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`200`(callContext))
           }
       }
     }

@@ -425,6 +425,8 @@ case class CounterpartiesJson400(
                                    counterparties: List[CounterpartyJson400]
                                  )
 
+case class PutConsentStatusJsonV400(status: String)
+
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
