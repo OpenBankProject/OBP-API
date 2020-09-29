@@ -136,7 +136,7 @@ object Consent {
         Failure(ErrorMessages.ConsumerAtConsentCannotBeFound + " aud: " + consent.aud)
     }
   }
-  
+
   private def checkConsent(consent: ConsentJWT, consentIdAsJwt: String, calContext: CallContext): Box[Boolean] = {
     Consents.consentProvider.vend.getConsentByConsentId(consent.jti) match {
       case Full(c) if c.mStatus == ConsentStatus.ACCEPTED.toString =>
@@ -546,20 +546,22 @@ object Consent {
         .map(parse(_).extract[ConsentJWT])
       consent.map(_.aud).getOrElse("Empty")
     }
+
+    val currentTime = System.currentTimeMillis
     Consents.consentProvider.vend.getConsentsByUser(user.userId)
       .filter(_.mApiStandard == "MXOpenFinance")
       // Filter by Consumer
       .filter(getConsumerIdFromJwt(_) == consumerIdOfLoggedInUser)
       // Filter by Status
       .filter(_.status == ConsentStatus.AUTHORISED.toString)
+      // Filter not expired Consents
+      .filter(_.expirationDateTime.getTime > currentTime)
       // Optional filter by BANK_ID
       .sortWith(_.creationDateTime.getTime > _.creationDateTime.getTime).headOption match {
-      case Some(c) if c.mStatus == ConsentStatus.AUTHORISED.toString =>
-        System.currentTimeMillis match {
+      case Some(c) =>
+        currentTime match {
           case currentTimeMillis if currentTimeMillis < c.creationDateTime.getTime =>
             Failure(ErrorMessages.ConsentNotBeforeIssue)
-          case currentTimeMillis if currentTimeMillis > c.expirationDateTime.getTime =>
-            Failure(ErrorMessages.ConsentExpiredIssue)
           case _ =>
             val consumerIdOfLoggedInUser: Option[String] = calContext.flatMap(_.consumer.map(_.consumerId.get))
             implicit val dateFormats = CustomJsonFormats.formats
@@ -570,8 +572,6 @@ object Consent {
               consumerIdOfLoggedInUser
             )
         }
-      case Some(c) if c.mStatus != ConsentStatus.AUTHORISED.toString =>
-        Failure(s"${ErrorMessages.ConsentStatusIssue}${ConsentStatus.AUTHORISED.toString}.")
       case _ =>
         Failure(ErrorMessages.ConsentNotFound)
     }
