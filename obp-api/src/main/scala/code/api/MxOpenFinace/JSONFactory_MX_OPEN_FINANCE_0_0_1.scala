@@ -129,7 +129,11 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
                                        SupplementaryData: Option[SupplementaryDataMXOFV001]
   )
 
-  case class ReadTransactionMXOFV001(Data: List[TransactionBasicMXOFV001], Links: LinksMXOFV001, Meta: MetaMXOFV001)
+  case class TransactionMXOFV001(
+    Transaction:List[TransactionBasicMXOFV001]
+  )
+  
+  case class ReadTransactionMXOFV001(Data: TransactionMXOFV001, Links: LinksMXOFV001, Meta: MetaMXOFV001)
 
   case class ConsentPostBodyDataMXOFV001(
     TransactionToDateTime: String,
@@ -536,7 +540,7 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
       FirstAvailableDateTime = new Date(),
       LastAvailableDateTime = new Date()
     )
-    ReadTransactionMXOFV001(transactions, Meta = meta, Links = links)
+    ReadTransactionMXOFV001(TransactionMXOFV001(transactions), Meta = meta, Links = links)
   }
 
 
