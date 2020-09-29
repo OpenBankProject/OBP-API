@@ -73,6 +73,7 @@ object Migration extends MdcLoggable {
       populateNameAndAppTypeFieldsAtConsumerTable()
       populateAzpAndSubFieldsAtConsumerTable()
       populateTableBankAccountRouting()
+      populateSettlementBankAccounts()
     }
     
     private def dummyScript(): Boolean = {
@@ -202,6 +203,12 @@ object Migration extends MdcLoggable {
       val name = nameOf(populateTableBankAccountRouting)
       runOnce(name) {
         MigrationOfAccountRoutings.populate(name)
+      }
+    }
+    private def populateSettlementBankAccounts(): Boolean = {
+      val name = nameOf(populateSettlementBankAccounts)
+      runOnce(name) {
+        MigrationOfSettlementAccounts.populate(name)
       }
     }
     
