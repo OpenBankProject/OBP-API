@@ -539,7 +539,41 @@ import net.liftweb.util.Helpers._
         generateValidationEmailBodies(user, resetLink) :::
         (bccEmail.toList.map(BCC(_))) :_* )
   }
+  
+   private def grantDefaultEntitlementsToAuthUser(user: TheUserType) = {
+     tryo{getResourceUserByUsername(user.username.get).head.userId} match {
+       case Full(userId)=>APIUtil.grantDefaultEntitlementsToNewUser(userId)
+       case _ => logger.error("Can not getResourceUserByUsername here, so it breaks the grantDefaultEntitlementsToNewUser process.")
+     }
+   }
+  
+  override def validateUser(id: String): NodeSeq = findUserByUniqueId(id) match {
+    case Full(user) if !user.validated_? =>
+      user.setValidated(true).resetUniqueId().save
+      grantDefaultEntitlementsToAuthUser(user)
+      logUserIn(user, () => {
+        S.notice(S.?("account.validated"))
+        S.redirectTo(homePage)
+      })
 
+    case _ => S.error(S.?("invalid.validation.link")); S.redirectTo(homePage)
+  }
+  
+  override def actionsAfterSignup(theUser: TheUserType, func: () => Nothing): Nothing = {
+    theUser.setValidated(skipEmailValidation).resetUniqueId()
+    theUser.save
+    if (!skipEmailValidation) {
+      sendValidationEmail(theUser)
+      S.notice(S.?("sign.up.message"))
+      func()
+    } else {
+      grantDefaultEntitlementsToAuthUser(theUser)
+      logUserIn(theUser, () => {
+        S.notice(S.?("welcome"))
+        func()
+      })
+    }
+  }
   /**
    * Set this to redirect to a certain page after a failed login
    */

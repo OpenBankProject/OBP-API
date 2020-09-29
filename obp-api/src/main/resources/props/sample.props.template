@@ -870,3 +870,10 @@ outboundAdapterCallContext.generalContext
 #hydra_client_id=auth-code-client
 #hydra_client_scope=openid,offline
 # ------------------------------ Hydra oauth2 props end ------------------------------
+
+# ------------------------------ default entitlements ------------------------------
+## the default entitlements list, you can added the roles here.
+#entitlement_list_1=[] 
+# when new User is validated, grant the following role list to that user.
+#new_user_entitlement_list=entitlement_list_1
+# ------------------------------ default entitlements end ------------------------------
