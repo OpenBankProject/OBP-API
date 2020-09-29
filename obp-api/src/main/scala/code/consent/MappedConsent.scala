@@ -113,7 +113,7 @@ object MappedConsentProvider extends ConsentProvider {
       val consent = MappedConsent
         .create
         .mUserId(user.map(_.userId).getOrElse(null))
-        .mStatus(ConsentStatus.AUTHORISED.toString)
+        .mStatus(ConsentStatus.AWAITINGAUTHORISATION.toString)
         .mExpirationDateTime(expirationDateTime)
         .mTransactionFromDateTime(transactionFromDateTime)
         .mTransactionToDateTime(transactionToDateTime)
