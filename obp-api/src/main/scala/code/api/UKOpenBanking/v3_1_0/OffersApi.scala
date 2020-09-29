@@ -92,7 +92,6 @@ object APIMethods_OffersApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Offers") :: apiTagMockedData :: Nil
      )
 
@@ -225,7 +224,6 @@ object APIMethods_OffersApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Offers") :: apiTagMockedData :: Nil
      )
 

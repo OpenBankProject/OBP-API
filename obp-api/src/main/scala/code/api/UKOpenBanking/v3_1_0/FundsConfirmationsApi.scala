@@ -66,7 +66,6 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Funds Confirmations") :: apiTagMockedData :: Nil
      )
 
@@ -141,7 +140,6 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Funds Confirmations") :: apiTagMockedData :: Nil
      )
 
@@ -191,7 +189,6 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
        emptyObjectJson,
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Funds Confirmations") :: apiTagMockedData :: Nil
      )
 
@@ -243,7 +240,6 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Funds Confirmations") :: apiTagMockedData :: Nil
      )
 

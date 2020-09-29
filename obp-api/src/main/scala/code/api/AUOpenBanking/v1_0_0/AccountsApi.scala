@@ -52,7 +52,6 @@ object APIMethods_AccountsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -93,7 +92,6 @@ object APIMethods_AccountsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -195,7 +193,6 @@ Some general notes that apply to all end points that retrieve transactions:
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -312,7 +309,7 @@ Some general notes that apply to all end points that retrieve transactions:
 //  }
 //}"""),
 //       List(UserNotLoggedIn, UnknownError),
-//       Catalogs(notCore, notPSD2, notOBWG), 
+//      
 //       ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
 //     )
 //
@@ -396,7 +393,7 @@ Some general notes that apply to all end points that retrieve transactions:
 //  }
 //}"""),
 //       List(UserNotLoggedIn, UnknownError),
-//       Catalogs(notCore, notPSD2, notOBWG), 
+//      
 //       ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
 //     )
 //
@@ -488,7 +485,6 @@ Some general notes that apply to all end points that retrieve transactions:
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -608,7 +604,6 @@ Some general notes that apply to all end points that retrieve transactions:
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 

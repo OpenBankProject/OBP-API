@@ -340,7 +340,6 @@ object APIBuilderModel
       emptyObjectJson,
       templatesJson,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       apiTagApiBuilder :: Nil
     )"""
   val getTemplateResourceCode: Term.ApplyInfix = q"""
@@ -355,7 +354,6 @@ object APIBuilderModel
       emptyObjectJson, 
       templateJson,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG), 
       apiTagApiBuilder :: Nil
     )"""
   val createTemplateResourceCode: Term.ApplyInfix = q"""
@@ -370,7 +368,6 @@ object APIBuilderModel
       createTemplateJson, 
       templateJson,
       List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG), 
       apiTagApiBuilder :: Nil
     )"""
   val deleteTemplateResourceCode: Term.ApplyInfix = q"""
@@ -385,7 +382,6 @@ object APIBuilderModel
       emptyObjectJson, 
       emptyObjectJson.copy("true"),
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG), 
       apiTagApiBuilder :: Nil
     )"""
   

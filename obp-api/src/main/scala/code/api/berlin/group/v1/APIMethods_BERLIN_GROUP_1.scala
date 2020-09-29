@@ -58,8 +58,7 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
         name = "Main Account"
       ))),
       List(UserNotLoggedIn,UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData))
+      List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData, apiTagPsd2))
 
 
     apiRelations += ApiRelation(getAccountList, getAccountList, "self")
@@ -106,8 +105,7 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
       emptyObjectJson,
       SwaggerDefinitionsJSON.accountBalances,
       List(UserNotLoggedIn, ViewNotFound, UserNoPermissionAccessView, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData))
+      List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData, apiTagPsd2))
   
     lazy val getAccountBalances : OBPEndpoint = {
       //get private accounts for all banks
@@ -147,8 +145,7 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
       emptyObjectJson,
       SwaggerDefinitionsJSON.transactionsJsonV1,
       List(UserNotLoggedIn,UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagBerlinGroup, apiTagTransaction, apiTagPrivateData))
+      List(apiTagBerlinGroup, apiTagTransaction, apiTagPrivateData, apiTagPsd2))
   
     lazy val getTransactionList : OBPEndpoint = {
       //get private accounts for all banks
