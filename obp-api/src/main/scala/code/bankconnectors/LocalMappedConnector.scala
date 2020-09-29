@@ -4107,7 +4107,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               //TODO, this challengeIds are only for mapped connector now. we only return the first challengeId in the request yet.
               newChallenge = TransactionRequestChallenge(challengeIds.headOption.getOrElse(""), allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
               _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
-              transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
+              (newTransactionRequestStatus, callContext) <- NewStyle.function.notifyTransactionRequest(fromAccount, toAccount, transactionRequest, callContext)
+              _ <- Future(saveTransactionRequestStatusImpl(transactionRequest.id, newTransactionRequestStatus.toString).openOrThrowException(attemptedToOpenAnEmptyBox))
+              transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge, status = newTransactionRequestStatus.toString))
             } yield {
               (transactionRequest, callContext)
             }
@@ -4133,6 +4135,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         .save()
     }
   }
+
+  override def notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestStatus.Value]] =
+    Future((Full(TransactionRequestStatus.withName(transactionRequest.status)), callContext))
 
   override def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {
     //put connector agnostic logic here if necessary
