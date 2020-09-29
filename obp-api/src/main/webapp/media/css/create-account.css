@@ -1,0 +1,30 @@
+#create-account{
+    background-color: #53C4EF;
+    padding: 20px 10px;
+    color: white;
+    margin: 30px auto;
+}
+
+
+
+#create-account a,
+#create-account #create-account-explanation,
+#create-account form{
+    max-width: 600px;
+    margin: 0 auto;
+    color: #333333;
+}
+
+
+#create-account #create-account-explanation {
+    margin-bottom: 20px;
+    color: #333333;
+    font-size: 22px;
+}
+
+#create-account #create-account-id span,
+#create-account #create-account-bank-id span,
+#create-account #create-account-initial-balance span,
+#create-account #create-account-currency span {
+    font-weight: bold;
+}

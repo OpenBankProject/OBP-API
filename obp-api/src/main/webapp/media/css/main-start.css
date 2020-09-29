@@ -1,0 +1,44 @@
+#main-start{
+    margin: 0;
+    margin-top: 56px;
+    text-align: center;
+    background-color: #F3F3F3;
+}
+#main-start h2 {
+    text-align: left;
+    font-size: 28px;
+    letter-spacing: 0;
+    margin-bottom: 32px;
+}
+#main-start .btn-default{
+    margin-right:20px;
+    background-color: #F3F3F3;
+}
+
+#main-start .btn-default:hover{
+    background-color: #EDEDED;
+    border: 1px solid #333333;
+}
+#main-start .btn-default:active{
+    background-color: #EDEDED;
+    border: 1px solid #333333;
+}
+
+#main-start #main-start_building {
+    padding: 64px 0;
+}
+#main-start #main-start_building .btn-default a{
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    color: #333333;
+    text-align: center;
+    line-height: 24px;
+    text-decoration: none;
+}
+#main-start #main-start_building .btn-default a:hover{
+    text-decoration: none;
+}
+
+#main-start #for-banks {
+    padding: 64px 0;
+}
