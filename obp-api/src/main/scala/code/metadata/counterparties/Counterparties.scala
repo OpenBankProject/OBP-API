@@ -36,6 +36,8 @@ trait Counterparties {
 
   def getCounterpartyByIban(iban : String): Box[CounterpartyTrait]
 
+  def getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId): Box[CounterpartyTrait]
+
   def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]]
 
   def createCounterparty(
@@ -96,6 +98,8 @@ class RemotedataCounterpartiesCaseClasses {
   case class getCounterparty(counterpartyId: String)
 
   case class getCounterpartyByIban(iban: String)
+
+  case class getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId)
 
   case class getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId)
 
