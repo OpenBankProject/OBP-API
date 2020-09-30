@@ -1913,7 +1913,6 @@ trait APIMethods400 {
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount),
     )
     lazy val getAccountByAccountRouting : OBPEndpoint = {
