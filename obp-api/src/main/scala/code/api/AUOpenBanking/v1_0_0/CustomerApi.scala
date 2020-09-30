@@ -74,7 +74,6 @@ object APIMethods_CustomerApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Common") ::ApiTag("Customer") :: apiTagMockedData :: Nil
      )
 
@@ -146,7 +145,6 @@ object APIMethods_CustomerApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Common") ::ApiTag("Customer") :: apiTagMockedData :: Nil
      )
 

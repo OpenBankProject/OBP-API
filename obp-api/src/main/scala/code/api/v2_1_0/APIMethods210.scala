@@ -101,7 +101,6 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagSandbox, apiTagApi),
       Some(List(canCreateSandbox)))
 
@@ -140,7 +139,6 @@ trait APIMethods210 {
       emptyObjectJson,
       transactionRequestTypesJSON,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionRequest, apiTagBank))
 
 
@@ -260,8 +258,7 @@ trait APIMethods210 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2))
 
     // COUNTERPARTY
     resourceDocs += ResourceDoc(
@@ -301,8 +298,7 @@ trait APIMethods210 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2))
 
 
     val lowAmount  = AmountOfMoneyJsonV121("EUR", "12.50")
@@ -346,8 +342,7 @@ trait APIMethods210 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2))
 
 
     // FREE_FORM.
@@ -382,7 +377,6 @@ trait APIMethods210 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagTransactionRequest, apiTagPSD2PIS),
       Some(List(canCreateAnyTransactionRequest)))
 
@@ -599,8 +593,7 @@ trait APIMethods210 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2))
 
     lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -710,8 +703,7 @@ trait APIMethods210 {
         UserNoOwnerView,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPsd2))
 
     lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
@@ -751,7 +743,6 @@ trait APIMethods210 {
       emptyObjectJson,
       availableRolesJSON,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagNewStyle))
 
     lazy val getRoles: OBPEndpoint = {
@@ -790,7 +781,6 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canGetEntitlementsForAnyUserAtOneBank, canGetEntitlementsForAnyUserAtAnyBank)))
 
@@ -844,7 +834,6 @@ trait APIMethods210 {
         InvalidConsumerId,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer, apiTagApi),
       Some(List(canGetConsumers)))
 
@@ -882,7 +871,6 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer, apiTagApi),
       Some(List(canGetConsumers)))
 
@@ -920,7 +908,6 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer, apiTagApi),
       Some(List(canEnableConsumers,canDisableConsumers)))
 
@@ -967,7 +954,6 @@ trait APIMethods210 {
         AllowedValuesAre,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCard),
       Some(List(canCreateCardsForBank)))
 
@@ -1050,7 +1036,6 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser),
       Some(List(canGetAnyUser)))
 
@@ -1100,7 +1085,6 @@ trait APIMethods210 {
         InsufficientAuthorisationToCreateTransactionType,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagBank),
       Some(List(canCreateTransactionType))
     )
@@ -1143,7 +1127,6 @@ trait APIMethods210 {
       emptyObjectJson,
       atmJson,
       List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagATM)
     )
 
@@ -1193,7 +1176,6 @@ trait APIMethods210 {
         BranchNotFoundByBranchId,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBranch)
     )
 
@@ -1245,7 +1227,6 @@ trait APIMethods210 {
         ProductNotFoundByProductCode,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagProduct)
     )
 
@@ -1297,7 +1278,6 @@ trait APIMethods210 {
         ProductNotFoundByProductCode,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagProduct)
     )
 
@@ -1357,7 +1337,6 @@ trait APIMethods210 {
         CreateConsumerError,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagPerson),
       Some(List(canCreateCustomer,canCreateUserCustomerLink,canCreateCustomerAtAnyBank,canCreateUserCustomerLinkAtAnyBank)))
 
@@ -1432,7 +1411,6 @@ trait APIMethods210 {
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagUser))
 
     lazy val getCustomersForUser : OBPEndpoint = {
@@ -1470,7 +1448,6 @@ trait APIMethods210 {
         CustomerNotFoundByCustomerId,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer)
     )
 
@@ -1512,7 +1489,6 @@ trait APIMethods210 {
         UserHasMissingRoles, 
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBranch),
       Some(List(canUpdateBranch)))
 
@@ -1556,7 +1532,6 @@ trait APIMethods210 {
         InsufficientAuthorisationToCreateBranch, 
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBranch, apiTagOpenData),
       Some(List(canCreateBranch)))
 
@@ -1598,7 +1573,6 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer, apiTagApi),
       Some(List(canUpdateConsumerRedirectUrl))
     )
@@ -1697,7 +1671,6 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetric, apiTagApi),
       Some(List(canReadMetrics)))
 

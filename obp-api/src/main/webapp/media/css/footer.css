@@ -1,0 +1,36 @@
+footer {
+    padding: 24px 0px;
+    color: #FFFFFF;
+    background-color: #333333;
+    text-align: left;
+    line-height: 20px;
+}
+footer a,span,
+footer a:hover,
+footer a:focus,
+span:hover  {
+    font-family: Roboto-Regular;
+    font-size: 14px;
+    color: #FFFFFF;
+    letter-spacing: 0;
+    line-height: 20px;
+}
+footer #copyright {
+    margin-top: 24px;
+}
+footer #copyright a,span{
+    color: #D7D8D6;
+}
+footer #footer-div div:first-child a {
+    margin-right: 40px;
+}
+
+footer #footer-div ul,
+footer #footer-div li {
+    margin:0;
+    padding: 0;
+}
+footer #footer-div li {
+    display: inline-block;
+    margin-right: 40px;
+}

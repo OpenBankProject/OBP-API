@@ -1,0 +1,35 @@
+#main-showcases {
+    padding: 72px 0 56px;
+    color: white;
+    background-color: #333333;
+    text-align: center;
+}
+#main-showcases h2 {
+    color: #ffffff;
+}
+
+#main-showcases h3 {
+    color: #ffffff;
+}
+
+.main-showcases-item {
+    display: inline-block;
+    margin: 30px 40px;
+    width: 300px;
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    
+}
+.main-showcases-item a,
+#main-showcases p
+{
+    color: white;
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    line-height: 24px;
+}
+.main-showcases-item a,
+.main-showcases-item a:hover {
+    text-decoration: underline;
+}
+

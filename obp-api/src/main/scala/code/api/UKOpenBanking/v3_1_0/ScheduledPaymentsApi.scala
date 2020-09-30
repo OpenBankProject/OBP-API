@@ -94,7 +94,6 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -231,7 +230,6 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Scheduled Payments") :: apiTagMockedData :: Nil
      )
 

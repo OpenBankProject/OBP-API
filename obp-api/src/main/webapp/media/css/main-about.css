@@ -1,0 +1,39 @@
+#main-about {
+    background-size: cover;
+    height: 420px;
+    background-repeat: no-repeat;
+}
+
+#main-about h1 {
+    text-align: left;
+    padding-top: 32px;
+    padding-left: 32px;
+    padding-right: 32px;
+}
+#main-about p {
+    padding: 16px 32px 32px;
+    font-size: 22px;
+    color: #333333;
+    line-height: 31px;
+}
+#main-about #main-about-box {
+    background-color: white;
+    margin-top: 72px;
+    padding-bottom: 32px;
+}
+#main-about #main-about-text a {
+    text-decoration: underline;
+    color: white;
+}
+#main-about #main-about-buttons .api-explorer-link {
+    margin-right: 20px;
+    margin-left: 0px;
+}
+
+#main-about h2 {
+    font-size: 28px;
+}
+
+#main-about #main-about-buttons {
+    margin: 0px 0 0 30px;
+}

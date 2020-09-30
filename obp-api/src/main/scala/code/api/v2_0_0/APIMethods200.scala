@@ -143,7 +143,6 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
 
@@ -178,8 +177,7 @@ trait APIMethods200 {
       emptyObjectJson,
       coreAccountsJSON,
       List(UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPrivateData))
+      List(apiTagAccount, apiTagPrivateData, apiTagPsd2))
 
 
     apiRelations += ApiRelation(corePrivateAccountsAllBanks, getCoreAccountById, "detail")
@@ -222,7 +220,6 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(UserNotLoggedIn, CannotGetAccounts, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountPublic, apiTagAccount, apiTagPublicData))
 
 
@@ -263,7 +260,6 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(BankNotFound, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle)
     )
 
@@ -309,8 +305,7 @@ trait APIMethods200 {
       emptyObjectJson,
       coreAccountsJSON,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagNewStyle))
+      List(apiTagAccount, apiTagPrivateData, apiTagPsd2, apiTagNewStyle))
 
     apiRelations += ApiRelation(corePrivateAccountsAtOneBank, createAccount, "new")
     apiRelations += ApiRelation(corePrivateAccountsAtOneBank, corePrivateAccountsAtOneBank, "self")
@@ -382,8 +377,7 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagNewStyle)
+      List(apiTagAccount, apiTagNewStyle, apiTagPsd2)
     )
 
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
@@ -421,7 +415,6 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountPublic, apiTagAccount, apiTagPublicData, apiTagNewStyle))
 
     lazy val publicAccountsAtOneBank : OBPEndpoint = {
@@ -453,7 +446,6 @@ trait APIMethods200 {
       emptyObjectJson,
       kycDocumentsJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagKyc, apiTagCustomer),
       Some(List(canGetAnyKycDocuments))
     )
@@ -490,7 +482,6 @@ trait APIMethods200 {
       emptyObjectJson,
       kycMediasJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
-    Catalogs(notCore, notPSD2, notOBWG),
     List(apiTagKyc, apiTagCustomer),
     Some(List(canGetAnyKycMedia)))
 
@@ -523,7 +514,6 @@ trait APIMethods200 {
       emptyObjectJson,
       kycChecksJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagKyc, apiTagCustomer),
       Some(List(canGetAnyKycChecks))
     )
@@ -556,7 +546,6 @@ trait APIMethods200 {
       emptyObjectJson,
       kycStatusesJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagKyc, apiTagCustomer),
       Some(List(canGetAnyKycStatuses))
     )
@@ -590,7 +579,6 @@ trait APIMethods200 {
       emptyObjectJson,
       socialMediasJSON,
       List(UserNotLoggedIn, UserHasMissingRoles, CustomerNotFoundByCustomerId, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer),
       Some(List(canGetSocialMediaHandles)))
 
@@ -625,7 +613,6 @@ trait APIMethods200 {
       postKycDocumentJSON,
       kycDocumentJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId,"Server error: could not add KycDocument", UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagKyc, apiTagCustomer),
       Some(List(canAddKycDocument))
     )
@@ -677,7 +664,6 @@ trait APIMethods200 {
       postKycMediaJSON,
       kycMediaJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagKyc, apiTagCustomer),
       Some(List(canAddKycMedia))
     )
@@ -727,7 +713,6 @@ trait APIMethods200 {
       postKycCheckJSON,
       kycCheckJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagKyc, apiTagCustomer),
       Some(List(canAddKycCheck))
     )
@@ -778,7 +763,6 @@ trait APIMethods200 {
       postKycStatusJSON,
       kycStatusJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat,UnknownError, BankNotFound ,ServerAddDataError ,CustomerNotFoundByCustomerId),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagKyc, apiTagCustomer),
       Some(List(canAddKycStatus))
     )
@@ -828,7 +812,6 @@ trait APIMethods200 {
         UserHasMissingRoles,
         CustomerNotFoundByCustomerId,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer),
       Some(List(canAddSocialMediaHandle))
     )
@@ -883,8 +866,7 @@ trait APIMethods200 {
       emptyObjectJson,
       moderatedCoreAccountJSON,
       List(BankAccountNotFound,UnknownError),
-      Catalogs(Core, PSD2, notOBWG),
-      apiTagAccount ::  Nil)
+      apiTagAccount :: apiTagPsd2 ::  Nil)
 
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
@@ -926,8 +908,7 @@ trait APIMethods200 {
       emptyObjectJson,
       coreTransactionsJSON,
       List(BankAccountNotFound, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransaction, apiTagAccount))
+      List(apiTagTransaction, apiTagAccount, apiTagPsd2))
     
     //Note: we already have the method: getTransactionsForBankAccount in V121.
     //The only difference here is "Core implies 'owner' view" 
@@ -979,7 +960,6 @@ trait APIMethods200 {
       emptyObjectJson,
       moderatedAccountJSON,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
     lazy val accountById : OBPEndpoint = {
@@ -1017,7 +997,6 @@ trait APIMethods200 {
       emptyObjectJson,
       permissionsJSON,
       List(UserNotLoggedIn, BankNotFound, AccountNotFound ,UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagEntitlement)
     )
 
@@ -1052,7 +1031,6 @@ trait APIMethods200 {
       emptyObjectJson,
       viewsJSONV121,
       List(UserNotLoggedIn,BankNotFound, AccountNotFound,UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagView, apiTagAccount, apiTagUser))
 
     lazy val getPermissionForUserForBankAccount : OBPEndpoint = {
@@ -1108,7 +1086,6 @@ trait APIMethods200 {
         InvalidAccountBalanceCurrency,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount),
       Some(List(canCreateAccount))
     )
@@ -1192,8 +1169,7 @@ trait APIMethods200 {
       emptyObjectJson,
       transactionTypesJsonV200,
       List(BankNotFound, UnknownError),
-      Catalogs(Core, PSD2, notOBWG),
-      List(apiTagBank, apiTagPSD2AIS)
+      List(apiTagBank, apiTagPSD2AIS, apiTagPsd2)
     )
 
     lazy val getTransactionTypes : OBPEndpoint = {
@@ -1283,8 +1259,7 @@ trait APIMethods200 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest),
+      List(apiTagTransactionRequest, apiTagPsd2),
       Some(List(canCreateAnyTransactionRequest)))
 
     lazy val createTransactionRequest: OBPEndpoint = {
@@ -1359,8 +1334,7 @@ trait APIMethods200 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPsd2))
 
     lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -1447,8 +1421,7 @@ trait APIMethods200 {
       emptyObjectJson,
       transactionRequestWithChargesJson,
       List(UserNotLoggedIn, BankNotFound, AccountNotFound, UserNoPermissionAccessView, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPsd2))
 
     lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
@@ -1495,7 +1468,6 @@ trait APIMethods200 {
       createUserJson,
       userJsonV200,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidStrongPasswordFormat ,"Error occurred during user creation.", "User with the same username already exists." , UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagOnboarding))
 
     lazy val createUser: OBPEndpoint = {
@@ -1571,7 +1543,6 @@ trait APIMethods200 {
         MeetingsNotSupported,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
@@ -1629,7 +1600,6 @@ trait APIMethods200 {
         BankNotFound,
         MeetingsNotSupported,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
@@ -1687,7 +1657,6 @@ trait APIMethods200 {
         MeetingsNotSupported,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
@@ -1743,7 +1712,6 @@ trait APIMethods200 {
         CreateUserCustomerLinksError,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagPerson),
       Some(List(canCreateCustomer,canCreateUserCustomerLink)))
 
@@ -1816,7 +1784,6 @@ trait APIMethods200 {
       emptyObjectJson,
       userJsonV200,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser))
 
 
@@ -1851,7 +1818,6 @@ trait APIMethods200 {
       emptyObjectJson,
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser),
       Some(List(canGetAnyUser)))
 
@@ -1906,7 +1872,6 @@ trait APIMethods200 {
         CreateUserCustomerLinksError,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagUser),
       Some(List(canCreateUserCustomerLink,canCreateUserCustomerLinkAtAnyBank)))
 
@@ -1970,7 +1935,6 @@ trait APIMethods200 {
         EntitlementAlreadyExists,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canCreateEntitlementAtOneBank,canCreateEntitlementAtAnyBank)))
 
@@ -2017,7 +1981,6 @@ trait APIMethods200 {
       emptyObjectJson,
       entitlementJSONs,
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canGetEntitlementsForAnyUserAtAnyBank)))
 
@@ -2063,7 +2026,6 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       List(UserNotLoggedIn, UserHasMissingRoles, EntitlementNotFound, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagUser, apiTagEntitlement))
 
 
@@ -2098,7 +2060,6 @@ trait APIMethods200 {
       emptyObjectJson,
       entitlementJSONs,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagNewStyle))
 
 
@@ -2194,7 +2155,6 @@ trait APIMethods200 {
         emptyObjectJson,
         emptyObjectJson, //TODO what is output here?
         List(UserNotLoggedIn, BankNotFound, UserHasMissingRoles, UnknownError),
-        Catalogs(notCore, notPSD2, notOBWG),
         List(apiTagSearchWarehouse),
         Some(List(canSearchWarehouse)))
 
@@ -2281,7 +2241,6 @@ trait APIMethods200 {
         emptyObjectJson,
         emptyObjectJson,
         List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-        Catalogs(notCore, notPSD2, notOBWG),
         List(apiTagMetric, apiTagApi),
         Some(List(canSearchMetrics)))
 
@@ -2312,7 +2271,6 @@ trait APIMethods200 {
       emptyObjectJson,
       customersJsonV140,
       List(UserNotLoggedIn, UserCustomerLinksNotFoundForUser, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
     lazy val getCustomers : OBPEndpoint = {

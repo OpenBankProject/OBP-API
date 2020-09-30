@@ -133,7 +133,6 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Domestic Payments") :: apiTagMockedData :: Nil
      )
 
@@ -331,7 +330,6 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Domestic Payments") :: apiTagMockedData :: Nil
      )
 
@@ -529,7 +527,6 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Domestic Payments") :: apiTagMockedData :: Nil
      )
 
@@ -666,7 +663,6 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Domestic Payments") :: apiTagMockedData :: Nil
      )
 
@@ -792,7 +788,6 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Domestic Payments") :: apiTagMockedData :: Nil
      )
 

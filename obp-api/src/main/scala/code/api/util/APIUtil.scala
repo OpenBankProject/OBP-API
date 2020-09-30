@@ -41,6 +41,7 @@ import code.api.builder.OBP_APIBuilder
 import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.sandbox.SandboxApiCalls
+import code.api.util.ApiRole.valueOf
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
 import code.api.util.RateLimitingJson.CallLimit
@@ -54,6 +55,7 @@ import code.methodrouting.MethodRoutingProvider
 import code.metrics._
 import code.model._
 import code.model.dataAccess.AuthUser
+import code.model.dataAccess.AuthUser.{getResourceUserByUsername, logger}
 import code.ratelimiting.{RateLimiting, RateLimitingDI}
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
@@ -1117,17 +1119,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
    */
 
-
-
-  case class Catalogs(core: Boolean = false, psd2: Boolean = false, obwg: Boolean = false)
-
-  val Core = true
-  val PSD2 = true
-  val OBWG = true
-  val notCore = false
-  val notPSD2 = false
-  val notOBWG = false
-
   case class BaseErrorResponseBody(
     //code: String,//maybe used, for now, 400,204,200...are handled in RestHelper class
     //TODO, this should be a case class name, but for now, the InvalidNumber are just String, not the case class.
@@ -1205,7 +1196,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           exampleRequestBody: scala.Product, // An example of the request body, any type of: case class, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
                           successResponseBody: scala.Product, // A successful response body, any type of: case class, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
                           var errorResponseBodies: List[String], // Possible error responses
-                          catalogs: Catalogs,
                           tags: List[ResourceDocTag],
                           var roles: Option[List[ApiRole]] = None,
                           isFeatured: Boolean = false,
@@ -3070,7 +3060,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       messageDoc.exampleOutboundMessage,
       messageDoc.exampleInboundMessage,
       errorResponseBodies = List(InvalidJsonFormat),
-      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagBank)
     )
   }
@@ -3447,4 +3436,23 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   val glossaryDocsRequireRole = APIUtil.getPropsAsBoolValue("glossary_requires_role", false)
+  
+  def grantDefaultEntitlementsToNewUser(userId: String) ={
+    /**
+     * 
+     * The props are following:
+     * entitlement_list_1=[CanGetConfig, CanCreateAccount]
+     * new_user_entitlement_list=entitlement_list_1
+     * 
+     * defaultEntitlements will get the role from new_user_entitlement_list--> entitlement_list_1--> [CanGetConfig, CanCreateAccount]
+     */
+    val defaultEntitlements = APIUtil.getPropsValue(APIUtil.getPropsValue("new_user_entitlement_list","")).getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+
+   try{
+      defaultEntitlements.map(ApiRole.valueOf(_).toString()).map(Entitlement.entitlement.vend.addEntitlement("", userId, _))
+    } catch {
+      case e: Throwable => logger.error(s"Please check props `new_user_entitlement_list`, ${e.getMessage}. your props value is ($defaultEntitlements)") 
+    }
+
+  }
 }

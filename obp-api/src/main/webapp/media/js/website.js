@@ -1,4 +1,88 @@
+//This function to make sure in the big screen, to close the left_side_small_screen div, then we can show the api_list 
+var flag = true;
+$(window).resize(function() {
+	if(screen.width < 759 && !flag){
+		flag = true
+	}
+	if(screen.width >= 759 && flag){
+		closeNav()
+		flag =false
+	}
+});
+
+function checkclick(){
+	if($("#agree").is(':checked') ){
+		$("#agree").attr("checked","unchecked");
+		$("#checkimg").css("background-image","none");
+	} else{
+		$("#agree").attr("checked","checked");
+		$("#checkimg").css("background-image","url(/media/images/icons/status_yes_thick_00847F.svg)");
+		$("#checkimg").css("background-size","18px");
+		$("#checkimg").css("background-repeat","no-repeat");
+	}
+}
+function openNav() {
+	$("#obp-sidebar").css("display","block");
+	logOnButton = $("#small-nav-log-on-button").text().indexOf("Log on")
+	if (logOnButton < 0){
+		$("#register-link").css("display","none")
+	}
+	
+}
+
+function closeNav() {
+	$("#obp-sidebar").css("display","none");
+}
+
+function mouseClick(element) {
+	// Check to see if the button is pressed
+	var pressed = (element.getAttribute("aria-expanded") === "true");
+	// Change aria-pressed to the opposite state
+	element.setAttribute("aria-expanded", !pressed);
+}
+
+function mouseClickMainMaq(element) {
+	
+	// Check to see if the button is pressed
+	var pressed = (element.firstElementChild.getAttribute("aria-expanded") === "true");
+	// Change aria-pressed to the opposite state
+	if(pressed){
+		element.firstElementChild.children[3].setAttribute("src","/media/images/icons/chevron_down_thick.svg")
+	}else{
+		element.firstElementChild.children[3].setAttribute("src","/media/images/icons/chevron_up_thick.svg")
+	}
+}
+
+
+function EnterKeyPressed(element) {
+	// Check to see if space or enter were pressed
+	if (event.key === "Enter" ) {
+		// Check to see if the button is pressed
+		var pressed = (element.getAttribute("aria-expanded") === "false");
+		// Change aria-pressed to the opposite state
+		console.log( !pressed)
+		element.setAttribute("aria-expanded", !pressed);
+	}
+}
+
 $(document).ready(function() {
+
+	$(".main-support-item .support-platform-link").text("chat.openbankproject.com");
+	
+	
+	var htmlTitle = $(document).find("title").text();
+
+	if (htmlTitle.indexOf("Get API") > -1){
+		$("#get-api-key-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px")
+	}else if(htmlTitle.indexOf("INTRODUCTION") >-1){
+		$("#sandbox-introduction-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px")
+	}else{
+		;
+	}
+	
+    $('.js-example-basic-single').select2();
+	$("#select2-appType-container").attr("aria-labelledby","appTypeLabel")
+    
 	//fallback for html5 placeholder
 	if ( !("placeholder" in document.createElement("input")) ) {
 		$("input[placeholder], textarea[placeholder]").each(function() {
@@ -27,6 +111,7 @@ $(document).ready(function() {
 		});
 	}
 
+	var agreeTermsCheckbox= $("#signup #signup-agree-terms #check_border")
 	// Enforce check of Terms and Conditions (if existing) on signup form
 	// $('#signup form').submit(function() {
 	// 	var agreeTerms = $('#signup #signup-agree-terms input');
@@ -47,8 +132,8 @@ $(document).ready(function() {
 		if (agreePrivacyPolicy.length > 0) {
 			if (!agreePrivacyPolicy.prop('checked')) {
 				var msg = 'Please agree to the Privacy Policy';
-				$('#signup #signup-error #error').html(msg);
-				$('#signup #signup-error').removeClass('hide');
+				$('#signup #signup-general-error #error').html(msg);
+				$('#signup #signup-general-error').removeClass('hide');
 				return false;
 			}
 		}
@@ -56,46 +141,51 @@ $(document).ready(function() {
 	});
 
 	// Show sign up errors - FIXME: Change backend to (not) show errors
-	var signupErrorFirstname = $('#signup #signup-error #authuser_firstName');
+	var signupError = $('#signup #signup-error #authuser_firstName');
 	var txtFirstName = $('#signup #txtFirstName');
-	if (signupErrorFirstname.length > 0 && signupErrorFirstname.html().length > 0) {
-		signupErrorFirstname.parent().removeClass('hide');
-		txtFirstName.addClass("error-border")
+	if (signupError.length > 0 && signupError.html().length > 0) {
+		signupError.parent().removeClass('hide');
+		txtFirstName.css("border","1px solid #A8000B").css("background","#F9F2F3")
+		agreeTermsCheckbox.css("border","1px solid #A8000B").css("background","#F9F2F3")
 	}
-	var signupErrorLastname = $('#signup #signup-error #authuser_lastName');
+	var signupError = $('#signup #signup-error #authuser_lastName');
 	var txtLastName = $('#signup #txtLastName');
-	if (signupErrorLastname.length > 0 && signupErrorLastname.html().length > 0) {
-		signupErrorLastname.parent().removeClass('hide');
-		txtLastName.addClass("error-border")
+	if (signupError.length > 0 && signupError.html().length > 0) {
+		signupError.parent().removeClass('hide');
+		txtLastName.css("border","1px solid #A8000B").css("background","#F9F2F3")
+		agreeTermsCheckbox.css("border","1px solid #A8000B").css("background","#F9F2F3")
 	}
 	var signupError = $('#signup #signup-error #authuser_email');
 	var txtEmail = $('#signup #txtEmail');
 	if (signupError.length > 0 && signupError.html().length > 0) {
 		signupError.parent().removeClass('hide');
-		txtEmail.addClass("error-border")
+		txtEmail.css("border","1px solid #A8000B").css("background","#F9F2F3")
+		agreeTermsCheckbox.css("border","1px solid #A8000B").css("background","#F9F2F3")
 	}
-	var signupErrorAuthuserName = $('#signup #signup-error #authuser_username');
+	var signupError = $('#signup #signup-error #authuser_username');
 	var txtUsername = $('#signup #txtUsername');
-	if (signupErrorAuthuserName.length > 0 && signupErrorAuthuserName.html().length > 0) {
-		signupErrorAuthuserName.parent().removeClass('hide');
-		txtUsername.addClass("error-border")
+	if (signupError.length > 0 && signupError.html().length > 0) {
+		signupError.parent().removeClass('hide');
+		txtUsername.css("border","1px solid #A8000B").css("background","#F9F2F3")
+		agreeTermsCheckbox.css("border","1px solid #A8000B").css("background","#F9F2F3")
 	}
-	var signupErrorPassword = $('#signup #signup-error #authuser_password');
+	var signupError = $('#signup #signup-error #authuser_password');
 	var signupErrorRepeat = $('#signup #signup-error #authuser_password_repeat');
 	var textPassword = $('#signup #textPassword');
 	var textPasswordRepeat = $('#signup #textPasswordRepeat');
-	if (signupErrorPassword.length > 0 && signupErrorPassword.html().length > 0) {
-		signupErrorPassword.parent().removeClass('hide');
+	if (signupError.length > 0 && signupError.html().length > 0) {
+		signupError.parent().removeClass('hide');
 		signupErrorRepeat.parent().removeClass('hide');
-		textPassword.addClass("error-border")
-		textPasswordRepeat.addClass("error-border")
+		textPassword.css("border","1px solid #A8000B").css("background","#F9F2F3")
+		textPasswordRepeat.css("border","1px solid #A8000B").css("background","#F9F2F3")
+		agreeTermsCheckbox.css("border","1px solid #A8000B").css("background","#F9F2F3")
 	}
 
 	var loginUsernameError = $('#authorise #login-form-username-error');
 	var loginUsernameForm = $('#authorise #username');
 	if (loginUsernameError.length > 0 && loginUsernameError.html().length > 0) {
 		loginUsernameError.parent().removeClass('hide');
-		loginUsernameForm.addClass("error-border")
+		loginUsernameForm.css("border","1px solid #A8000B").css("background","#F9F2F3")
 	} else{
 		loginUsernameError.parent().addClass('hide');
 		loginUsernameForm.css("border","").css("background","")
@@ -105,7 +195,7 @@ $(document).ready(function() {
 	var loginPasswordForm = $('#authorise #password');
 	if (loginPasswordError.length > 0 && loginPasswordError.html().length > 0) {
 		loginPasswordError.parent().removeClass('hide');
-		loginPasswordForm.addClass("error-border")
+		loginPasswordForm.css("border","1px solid #A8000B").css("background","#F9F2F3")
 	}else{
 		loginPasswordError.parent().addClass('hide');
 		loginPasswordForm.css("border","").css("background","")
@@ -115,36 +205,40 @@ $(document).ready(function() {
 	var consumerRegistrationAppnameForm = $('#register-consumer-input #appName');
 	if (consumerRegistrationAppnameError.length > 0 && consumerRegistrationAppnameError.html().length > 0) {
 		consumerRegistrationAppnameError.parent().removeClass('hide');
-		consumerRegistrationAppnameForm.addClass("error-border")
+		consumerRegistrationAppnameForm.css("border","1px solid #A8000B").css("background","#F9F2F3")
 	}else{
 		consumerRegistrationAppnameError.parent().addClass('hide');
+		consumerRegistrationAppnameForm.css("border","").css("background","")
 	}
 
 	var consumerRegistrationAppDeveloperError = $('#register-consumer-input #consumer-registration-app-developer-error');
 	var consumerRegistrationAppDeveloperForm = $('#register-consumer-input #appDev');
 	if (consumerRegistrationAppDeveloperError.length > 0 && consumerRegistrationAppDeveloperError.html().length > 0) {
 		consumerRegistrationAppDeveloperError.parent().removeClass('hide');
-		consumerRegistrationAppDeveloperForm.addClass("error-border")
+		consumerRegistrationAppDeveloperForm.css("border","1px solid #A8000B").css("background","#F9F2F3")
 	}else{
 		consumerRegistrationAppDeveloperError.parent().addClass('hide');
+		consumerRegistrationAppDeveloperForm.css("border","").css("background","")
 	}
 
 	var consumerRegistrationAppDescError = $('#register-consumer-input #consumer-registration-app-description-error');
 	var consumerRegistrationAppDescForm = $('#register-consumer-input #appDesc');
 	if (consumerRegistrationAppDescError.length > 0 && consumerRegistrationAppDescError.html().length > 0) {
 		consumerRegistrationAppDescError.parent().removeClass('hide');
-		consumerRegistrationAppDescForm.addClass("error-border")
+		consumerRegistrationAppDescForm.css("border","1px solid #A8000B").css("background","#F9F2F3")
 	}else{
 		consumerRegistrationAppDescError.parent().addClass('hide');
+		consumerRegistrationAppDescForm.css("border","").css("background","")
 	}
 
 	var consumerRegistrationAppRedirectUrlError = $('#register-consumer-input #consumer-registration-app-description-error');
 	var consumerRegistrationAppRedirectUrlForm = $('#register-consumer-input #appDesc');
 	if (consumerRegistrationAppRedirectUrlError.length > 0 && consumerRegistrationAppRedirectUrlError.html().length > 0) {
 		consumerRegistrationAppRedirectUrlError.parent().removeClass('hide');
-		consumerRegistrationAppRedirectUrlForm.addClass("error-border")
+		consumerRegistrationAppRedirectUrlForm.css("border","1px solid #A8000B").css("background","#F9F2F3")
 	}else{
 		consumerRegistrationAppRedirectUrlError.parent().addClass('hide');
+		consumerRegistrationAppRedirectUrlForm.css("border","").css("background","")
 	}
 
 	var registerConsumerError = $('#register-consumer-input #register-consumer-errors');
@@ -153,4 +247,6 @@ $(document).ready(function() {
 	}else{
 		registerConsumerError.parent().addClass('hide');
 	}
+	
+	showIndicatorCookiePage('cookies-consent');
 });

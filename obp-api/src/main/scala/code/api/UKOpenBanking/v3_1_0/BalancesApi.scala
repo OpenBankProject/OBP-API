@@ -108,7 +108,6 @@ object APIMethods_BalancesApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Balances") :: apiTagMockedData :: Nil
      )
 
@@ -208,7 +207,6 @@ object APIMethods_BalancesApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Balances") :: apiTagMockedData :: Nil
      )
 

@@ -271,7 +271,6 @@ object APIMethods_TransactionsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Statements") ::ApiTag("Transactions") :: apiTagMockedData :: Nil
      )
 
@@ -745,7 +744,6 @@ object APIMethods_TransactionsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Transactions") :: apiTagMockedData :: Nil
      )
 
@@ -1012,7 +1010,6 @@ object APIMethods_TransactionsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Transactions") :: apiTagMockedData :: Nil
      )
 

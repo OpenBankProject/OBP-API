@@ -103,7 +103,6 @@ trait APIMethods400 {
       emptyObjectJson,
       adapterInfoJsonV300,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
       List(apiTagApi, apiTagNewStyle),
       Some(List(canGetDatabaseInfo)))
 
@@ -134,7 +133,6 @@ trait APIMethods400 {
       emptyObjectJson,
       logoutLinkV400,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle))
 
     lazy val getLogoutLink: OBPEndpoint = {
@@ -169,8 +167,7 @@ trait APIMethods400 {
       emptyObjectJson,
       banksJSON400,
       List(UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
     )
 
     lazy val getBanks: OBPEndpoint = {
@@ -226,7 +223,6 @@ trait APIMethods400 {
         InvalidISOCurrencyCode,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank),
       Some(List(canCreateSettlementAccountAtOneBank))
     )
@@ -326,8 +322,7 @@ trait APIMethods400 {
         BankNotFound,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagBank),
+      List(apiTagBank, apiTagPsd2),
       Some(List(canGetSettlementAccountAtOneBank))
     )
 
@@ -450,8 +445,7 @@ trait APIMethods400 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     // ACCOUNT_OTP. (we no longer create a resource doc for the general case)
     staticResourceDocs += ResourceDoc(
@@ -487,8 +481,7 @@ trait APIMethods400 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     // COUNTERPARTY
     staticResourceDocs += ResourceDoc(
@@ -526,8 +519,7 @@ trait APIMethods400 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
 
     val lowAmount = AmountOfMoneyJsonV121("EUR", "12.50")
@@ -569,8 +561,7 @@ trait APIMethods400 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     staticResourceDocs += ResourceDoc(
       createTransactionRequestRefund,
@@ -603,8 +594,7 @@ trait APIMethods400 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     // FREE_FORM.
     staticResourceDocs += ResourceDoc(
@@ -636,7 +626,6 @@ trait APIMethods400 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle),
       Some(List(canCreateAnyTransactionRequest)))
 
@@ -842,7 +831,7 @@ trait APIMethods400 {
                     json.extract[TransactionRequestBodySEPAJsonV400]
                   }
                   toIban = transDetailsSEPAJson.to.iban
-                  (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIban(toIban, cc.callContext)
+                  (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIbanAndBankAccountId(toIban, fromAccount.bankId, fromAccount.accountId, cc.callContext)
                   toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
                   _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
                     toCounterparty.isBeneficiary
@@ -963,8 +952,7 @@ trait APIMethods400 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -1087,7 +1075,6 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEntities))
     )
@@ -1139,7 +1126,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canCreateDynamicEntity)))
 
@@ -1190,7 +1176,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canUpdateDynamicEntity)))
 
@@ -1233,7 +1218,6 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteDynamicEntity)))
 
@@ -1372,7 +1356,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagApi, apiTagNewStyle),
       Some(List(canCreateResetPasswordUrl)))
 
@@ -1425,7 +1408,6 @@ trait APIMethods400 {
         InvalidAccountBalanceCurrency,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount,apiTagOnboarding),
       Some(List(canCreateAccount))
     ).disableAutoValidateRoles()  // this means disabled auto roles validation, will manually do the roles validation .
@@ -1541,7 +1523,6 @@ trait APIMethods400 {
       emptyObjectJson,
       apiInfoJson400,
       List(UnknownError, "no connector set"),
-      Catalogs(Core, notPSD2, OBWG),
       apiTagApi :: apiTagNewStyle :: Nil)
 
     lazy val root : OBPEndpoint = {
@@ -1566,7 +1547,6 @@ trait APIMethods400 {
       emptyObjectJson,
       emptyObjectJson,
       List($UserNotLoggedIn, UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagApi, apiTagNewStyle),
       Some(List(canGetCallContext)))
 
@@ -1595,7 +1575,6 @@ trait APIMethods400 {
       EmptyBody,
       userLockStatusJson,
       List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canLockUser)))
 
@@ -1629,7 +1608,6 @@ trait APIMethods400 {
       emptyObjectJson,
       entitlementJSONs,
       List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canGetEntitlementsForAnyUserAtAnyBank)))
 
@@ -1667,7 +1645,6 @@ trait APIMethods400 {
       emptyObjectJson,
       entitlementJSONs,
       List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canGetEntitlementsForOneBank,canGetEntitlementsForAnyBank)))
 
@@ -1708,7 +1685,6 @@ trait APIMethods400 {
         NoViewPermission,
         $UserNoPermissionAccessView,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountMetadata, apiTagAccount))
 
     lazy val addTagForViewOnAccount : OBPEndpoint = {
@@ -1753,7 +1729,6 @@ trait APIMethods400 {
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountMetadata, apiTagAccount))
 
     lazy val deleteTagForViewOnAccount : OBPEndpoint = {
@@ -1796,7 +1771,6 @@ trait APIMethods400 {
         $UserNoPermissionAccessView,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountMetadata, apiTagAccount))
 
     lazy val getTagsForViewOnAccount : OBPEndpoint = {
@@ -1844,8 +1818,7 @@ trait APIMethods400 {
       emptyObjectJson,
       moderatedCoreAccountJsonV400,
       List($UserNotLoggedIn, $BankAccountNotFound,UnknownError),
-      Catalogs(Core, PSD2, notOBWG),
-      apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: Nil
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 ::  apiTagNewStyle :: Nil
     )
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
@@ -1895,7 +1868,6 @@ trait APIMethods400 {
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  apiTagNewStyle :: Nil
     )
     lazy val getPrivateAccountByIdFull : OBPEndpoint = {
@@ -1940,7 +1912,6 @@ trait APIMethods400 {
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc ,apiTagNewStyle))
 
     lazy val getCustomersByCustomerPhoneNumber : OBPEndpoint = {
@@ -1981,7 +1952,6 @@ trait APIMethods400 {
         InsufficientAuthorisationToCreateBank,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank),
       Some(List(canCreateBank))
     )
@@ -2059,7 +2029,6 @@ trait APIMethods400 {
         CounterpartyNotFoundByCounterpartyId,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDirectDebit, apiTagAccount, apiTagNewStyle))
 
     lazy val createDirectDebit : OBPEndpoint = {
@@ -2118,7 +2087,6 @@ trait APIMethods400 {
         CounterpartyNotFoundByCounterpartyId,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDirectDebit, apiTagAccount, apiTagNewStyle),
       Some(List(canCreateDirectDebitAtOneBank))
     )
@@ -2180,7 +2148,6 @@ trait APIMethods400 {
         $UserNoPermissionAccessView,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagStandingOrder, apiTagAccount, apiTagNewStyle))
 
     lazy val createStandingOrder : OBPEndpoint = {
@@ -2254,7 +2221,6 @@ trait APIMethods400 {
         UserNotFoundByUserId,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagStandingOrder, apiTagAccount, apiTagNewStyle),
       Some(List(canCreateStandingOrderAtOneBank))
     )
@@ -2324,7 +2290,6 @@ trait APIMethods400 {
         CannotGrantAccountAccess,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
 
     lazy val grantUserAccessToView : OBPEndpoint = {
@@ -2379,7 +2344,6 @@ trait APIMethods400 {
         CannotFindAccountAccess,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
 
     lazy val revokeUserAccessToView : OBPEndpoint = {
@@ -2430,7 +2394,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canCreateCustomerAttributeAtOneBank)))
 
@@ -2485,7 +2448,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canUpdateCustomerAttributeAtOneBank))
     )
@@ -2544,7 +2506,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetCustomerAttributesAtOneBank))
     )
@@ -2586,7 +2547,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetCustomerAttributeAtOneBank))
     )
@@ -2632,7 +2592,6 @@ trait APIMethods400 {
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetCustomer))
     )
@@ -2685,7 +2644,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
       Some(List(canCreateTransactionAttributeAtOneBank)))
 
@@ -2740,7 +2698,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
       Some(List(canUpdateTransactionAttributeAtOneBank))
     )
@@ -2796,7 +2753,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
       Some(List(canGetTransactionAttributesAtOneBank))
     )
@@ -2838,7 +2794,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
       Some(List(canGetTransactionAttributeAtOneBank))
     )
@@ -2898,8 +2853,7 @@ trait APIMethods400 {
         GetTransactionRequestsException,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     lazy val getTransactionRequest: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: TransactionRequestId(requestId) :: Nil JsonGet _ => {
@@ -2943,7 +2897,6 @@ trait APIMethods400 {
       emptyObjectJson,
       basicAccountsJSON,
       List($UserNotLoggedIn, $BankNotFound, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle)
     )
 
@@ -3009,7 +2962,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer),
       Some(List(canCreateConsumer)))
 
@@ -3073,7 +3025,6 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canDeleteCustomerAttributeAtOneBank)))
 
@@ -3114,7 +3065,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canCreateDynamicEndpoint)))
 
@@ -3164,7 +3114,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEndpoint)))
 
@@ -3204,7 +3153,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEndpoints)))
 
@@ -3241,7 +3189,6 @@ trait APIMethods400 {
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteDynamicEndpoint)))
 
@@ -3306,7 +3253,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canCreateCustomerAttributeDefinitionAtOneBank)))
 
@@ -3371,7 +3317,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagNewStyle),
       Some(List(canCreateAccountAttributeDefinitionAtOneBank)))
 
@@ -3435,7 +3380,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagNewStyle),
       Some(List(canCreateProductAttributeDefinitionAtOneBank)))
 
@@ -3498,7 +3442,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
       Some(List(canCreateTransactionAttributeDefinitionAtOneBank)))
 
@@ -3563,7 +3506,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCard, apiTagNewStyle),
       Some(List(canCreateCardAttributeDefinitionAtOneBank)))
 
@@ -3623,7 +3565,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
       Some(List(canDeleteTransactionAttributeDefinitionAtOneBank)))
 
@@ -3662,7 +3603,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canDeleteCustomerAttributeDefinitionAtOneBank)))
 
@@ -3701,7 +3641,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagNewStyle),
       Some(List(canDeleteAccountAttributeDefinitionAtOneBank)))
 
@@ -3740,7 +3679,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagNewStyle),
       Some(List(canDeleteProductAttributeDefinitionAtOneBank)))
 
@@ -3779,7 +3717,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCard, apiTagNewStyle),
       Some(List(canDeleteCardAttributeDefinitionAtOneBank)))
 
@@ -3818,7 +3755,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagNewStyle),
       Some(List(canGetProductAttributeDefinitionAtOneBank)))
 
@@ -3856,7 +3792,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetCustomerAttributeDefinitionAtOneBank)))
 
@@ -3894,7 +3829,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagNewStyle),
       Some(List(canGetAccountAttributeDefinitionAtOneBank)))
 
@@ -3932,7 +3866,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
       Some(List(canGetTransactionAttributeDefinitionAtOneBank)))
 
@@ -3971,7 +3904,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCard, apiTagNewStyle),
       Some(List(canGetCardAttributeDefinitionAtOneBank)))
 
@@ -4010,7 +3942,6 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canDeleteUserCustomerLink)))
 
@@ -4048,7 +3979,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetUserCustomerLink)))
 
@@ -4085,7 +4015,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetUserCustomerLink)))
 
@@ -4125,7 +4054,6 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteTransactionCascade)))
 
@@ -4164,7 +4092,6 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteAccountCascade)))
 
@@ -4201,7 +4128,6 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteProductCascade)))
 
@@ -4320,7 +4246,6 @@ trait APIMethods400 {
         CounterpartyAlreadyExists,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterparty, apiTagAccount))
 
 
@@ -4505,7 +4430,6 @@ trait APIMethods400 {
         CounterpartyAlreadyExists,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterparty, apiTagAccount),
       Some(List(canCreateCounterparty, canCreateCounterpartyAtAnyBank)))
 
@@ -4602,8 +4526,7 @@ trait APIMethods400 {
         UserNoPermissionAccessView,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagAccount))
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount))
 
     lazy val getExplictCounterpartiesForAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
@@ -4651,8 +4574,7 @@ trait APIMethods400 {
       emptyObjectJson,
       counterpartyWithMetadataJson400,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData)
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagCounterpartyMetaData)
     )
 
     lazy val getExplictCounterpartyById : OBPEndpoint = {
@@ -4698,7 +4620,6 @@ trait APIMethods400 {
         ViewNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterparty, apiTagAccount),
       Some(List(canGetCounterpartyAtAnyBank, canGetCounterparty)))
 
