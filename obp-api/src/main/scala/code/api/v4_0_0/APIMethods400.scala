@@ -4815,12 +4815,16 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "consents"  :: consentId :: Nil JsonPut json -> _  => {
         cc =>
           for {
-            (_, callContext) <- authenticatedAccess(cc)
+            (Full(user), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PutConsentStatusJsonV400 "
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PutConsentStatusJsonV400]
             }
+            consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+            _ <- Helper.booleanToFuture(ConsentDoesNotMatchUser) {consent.userId == user.userId}
             status = ConsentStatus.withName(consentJson.status)
             consent <- Future(Consents.consentProvider.vend.updateConsentStatus(consentId, status)) map {
               i => connectorEmptyResponse(i, callContext)
