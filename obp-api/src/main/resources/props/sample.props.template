@@ -878,5 +878,5 @@ outboundAdapterCallContext.generalContext
 #new_user_entitlement_list=entitlement_list_1
 # ------------------------------ default entitlements end ------------------------------
 
-## Mirror request headers to responce
-# mirror_request_headers_to_response=x-fapi-interaction-id
+## Mirror request headers to response
+# mirror_request_headers_to_response=x-fapi-interaction-id,x-jws-signature
