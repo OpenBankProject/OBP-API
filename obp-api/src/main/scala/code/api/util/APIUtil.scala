@@ -374,7 +374,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   private def getHeadersNewStyle(cc: Option[CallContextLight]) = {
     CustomResponseHeaders(
-      getGatewayLoginHeader(cc).list ::: getRateLimitHeadersNewStyle(cc).list
+      getGatewayLoginHeader(cc).list ::: getRateLimitHeadersNewStyle(cc).list ::: getRequestHeadersToMirror(cc).list
     )
   }
 
@@ -393,6 +393,26 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  /**
+   * 
+    */
+  def getRequestHeadersToMirror(callContext: Option[CallContextLight]): CustomResponseHeaders = {
+    val mirrorRequestHeadersToResponse: List[String] = 
+      getPropsValue("mirror_request_headers_to_response", "").split(",").toList.map(_.trim)
+    callContext match {
+      case Some(cc) =>
+       cc.requestHeaders match {
+         case Nil => CustomResponseHeaders(Nil)
+         case _   => 
+           val headers = cc.requestHeaders
+             .filter(item => mirrorRequestHeadersToResponse.contains(item.name))
+             .map(item => (item.name, item.values.head))
+           CustomResponseHeaders(headers)
+       }
+      case None =>
+        CustomResponseHeaders(Nil)
+    }
+  }
   /**
     *
     * @param jwt is a JWT value extracted from GatewayLogin Authorization Header.
