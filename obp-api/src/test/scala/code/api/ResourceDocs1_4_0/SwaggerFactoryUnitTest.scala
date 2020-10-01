@@ -6,6 +6,7 @@ import code.api.v2_1_0.OBPAPI2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
+import code.api.v4_0_0.OBPAPI4_0_0
 import code.util.Helper.MdcLoggable
 
 import scala.collection.mutable.ArrayBuffer
@@ -52,7 +53,7 @@ class SwaggerFactoryUnitTest extends V140ServerSetup with MdcLoggable {
   }
   feature("Test all V300, V220 and V210, exampleRequestBodies and successResponseBodies and all the case classes in SwaggerDefinitionsJSON") {
     scenario("Test all the case classes") {
-      val resourceDocList: ArrayBuffer[ResourceDoc] = OBPAPI3_1_0.allResourceDocs ++ OBPAPI3_0_0.allResourceDocs ++ OBPAPI2_2_0.allResourceDocs ++ OBPAPI2_1_0.allResourceDocs
+      val resourceDocList: ArrayBuffer[ResourceDoc] = OBPAPI4_0_0.allResourceDocs ++ OBPAPI3_1_0.allResourceDocs ++ OBPAPI3_0_0.allResourceDocs ++ OBPAPI2_2_0.allResourceDocs ++ OBPAPI2_1_0.allResourceDocs
 
       //Translate every entity(JSON Case Class) in a list to appropriate swagger format
       val listOfExampleRequestBodyDefinition =
