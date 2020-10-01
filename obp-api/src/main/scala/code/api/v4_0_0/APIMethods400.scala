@@ -4824,7 +4824,7 @@ trait APIMethods400 {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
               i => connectorEmptyResponse(i, callContext)
             }
-            _ <- Helper.booleanToFuture(ConsentDoesNotMatchUser) {consent.userId == user.userId}
+            _ <- Helper.booleanToFuture(ConsentDoesNotMatchUser) {consent.userId == user.userId || consent.userId == null}
             status = ConsentStatus.withName(consentJson.status)
             consent <- Future(Consents.consentProvider.vend.updateConsentStatus(consentId, status)) map {
               i => connectorEmptyResponse(i, callContext)
