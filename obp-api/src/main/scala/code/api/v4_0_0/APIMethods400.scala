@@ -4779,6 +4779,65 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
+      addConsentUser,
+      implementedInApiVersion,
+      nameOf(addConsentUser),
+      "PUT",
+      "/banks/BANK_ID/consents/CONSENT_ID/user-update-request",
+      "Add User to a Consent",
+      s"""
+         |
+         |
+         |This endpoint is used to add the User of Consent.
+         |
+         |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted.mkString(", ") }.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      PutConsentUserJsonV400(user_id = "ed7a7c01-db37-45cc-ba12-0ae8891c195c"),
+      ConsentChallengeJsonV310(
+        consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
+        status = "AUTHORISED"
+      ),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InvalidJsonFormat,
+        InvalidConnectorResponse,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      apiTagConsent :: apiTagPSD2AIS :: apiTagNewStyle :: Nil)
+
+    lazy val addConsentUser : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "consents"  :: consentId :: Nil JsonPut json -> _  => {
+        cc =>
+          for {
+            (_, callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutConsentUserJsonV400 "
+            putJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutConsentUserJsonV400]
+            }
+            user <- Users.users.vend.getUserByUserIdFuture(putJson.user_id) map {
+              x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId(${putJson.user_id})")
+            }
+            consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+            _ <- Helper.booleanToFuture(ConsentUserAlreadyAdded) { consent.userId != null }
+            consent <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, user)) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+          } yield {
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
       updateConsentStatus,
       implementedInApiVersion,
       nameOf(updateConsentStatus),

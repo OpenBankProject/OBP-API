@@ -426,6 +426,7 @@ case class CounterpartiesJson400(
                                  )
 
 case class PutConsentStatusJsonV400(status: String)
+case class PutConsentUserJsonV400(user_id: String)
 
 
 object JSONFactory400 {

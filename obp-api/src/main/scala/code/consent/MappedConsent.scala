@@ -3,7 +3,7 @@ package code.consent
 import java.util.Date
 
 import scala.util.Random
-import code.api.util.{Consent, ErrorMessages}
+import code.api.util.{APIUtil, Consent, ErrorMessages}
 import code.consent.ConsentStatus.ConsentStatus
 import code.util.MappedUUID
 import com.openbankproject.commons.model.User
@@ -11,6 +11,7 @@ import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.{MappedString, _}
 import net.liftweb.util.Helpers.{now, tryo}
 import org.mindrot.jbcrypt.BCrypt
+import org.scalameta.logger
 
 import scala.collection.immutable.List
 
@@ -25,6 +26,22 @@ object MappedConsentProvider extends ConsentProvider {
       case Full(consent) =>
         tryo(consent
           .mStatus(status.toString)
+          .mLastActionDate(now) //maybe not right, but for the create we use the `now`, we need to update it later.
+          .saveMe()
+        )
+      case Empty =>
+        Empty ?~! ErrorMessages.ConsentNotFound
+      case Failure(msg, _, _) =>
+        Failure(msg)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+  }
+  override def updateConsentUser(consentId: String, user: User): Box[MappedConsent] = {
+    MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
+      case Full(consent) =>
+        tryo(consent
+          .mUserId(user.userId)
           .mLastActionDate(now) //maybe not right, but for the create we use the `now`, we need to update it later.
           .saveMe()
         )
@@ -168,12 +185,22 @@ object MappedConsentProvider extends ConsentProvider {
     } 
   }  
   override def checkAnswer(consentId: String, challengeAnswer: String): Box[MappedConsent] = {
+    def isAnswerCorrect(expectedAnswerHashed: String, answer: String, salt: String) = {
+      val challengeAnswerHashed = BCrypt.hashpw(answer, salt).substring(0, 44)
+      val scaEnabled = APIUtil.getPropsAsBoolValue("consent.sca.enabled", true)
+      if(scaEnabled) {
+        expectedAnswerHashed == challengeAnswerHashed
+      } else {
+        true
+      }
+    }
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
       case Full(consent) =>
         consent.status match {
           case value if value == ConsentStatus.INITIATED.toString =>
-            val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, consent.mSalt.get).substring(0, 44)
-            val status = if (consent.challenge == challengeAnswerHashed) ConsentStatus.ACCEPTED.toString else ConsentStatus.REJECTED.toString
+            val status = 
+              if (isAnswerCorrect(consent.challenge, challengeAnswer, consent.mSalt.get)) ConsentStatus.ACCEPTED.toString 
+              else ConsentStatus.REJECTED.toString
             tryo(consent.mStatus(status).saveMe())
           case _ =>
             Full(consent)

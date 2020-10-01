@@ -17,6 +17,7 @@ object Consents extends SimpleInjector {
 trait ConsentProvider {
   def getConsentByConsentId(consentId: String): Box[MappedConsent]
   def updateConsentStatus(consentId: String, status: ConsentStatus): Box[MappedConsent]
+  def updateConsentUser(consentId: String, user: User): Box[MappedConsent]
   def getConsentsByUser(userId: String): List[MappedConsent]
   def createConsent(user: User, challenge: String): Box[MappedConsent]
   def setJsonWebToken(consentId: String, jwt: String): Box[MappedConsent]
