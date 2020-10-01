@@ -1209,7 +1209,7 @@ trait APIMethods300 {
          |* Geo Location
          |* License the data under this endpoint is released under.
          |
-        |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
+        |${authenticationRequiredMessage(!getBranchesIsPublic)}""".stripMargin,
       emptyObjectJson,
       branchJsonV300,
       List(
@@ -1270,7 +1270,7 @@ trait APIMethods300 {
          |
          |note: withinMetersOf, nearLatitude and nearLongitude either all empty or all have value.
          |
-        |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
+        |${authenticationRequiredMessage(!getBranchesIsPublic)}""".stripMargin,
       emptyObjectJson,
       branchesJsonV300,
       List(
@@ -1391,7 +1391,7 @@ trait APIMethods300 {
          |
          |
          |
-          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
+          |${authenticationRequiredMessage(!getAtmsIsPublic)}""".stripMargin,
       emptyObjectJson,
       atmJsonV300,
       List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
@@ -1432,7 +1432,7 @@ trait APIMethods300 {
           |
           |You can use the url query parameters *limit* and *offset* for pagination
          |
-         |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
+         |${authenticationRequiredMessage(!getAtmsIsPublic)}""".stripMargin,
       emptyObjectJson,
       atmJsonV300,
       List(
@@ -1639,7 +1639,7 @@ trait APIMethods300 {
          |
          |${accountTypeFilterText("/banks/BANK_ID/accounts/private")}
          |
-         |${authenticationRequiredMessage(true)}""",
+         |${authenticationRequiredMessage(true)}""".stripMargin,
       emptyObjectJson,
       coreAccountsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
@@ -1678,7 +1678,7 @@ trait APIMethods300 {
          |
          |${accountTypeFilterText("/banks/BANK_ID/accounts/account_ids/private")}
          |
-         |${authenticationRequiredMessage(true)}""",
+         |${authenticationRequiredMessage(true)}""".stripMargin,
       emptyObjectJson,
       accountsIdsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
@@ -2080,11 +2080,12 @@ trait APIMethods300 {
         |
         |${accountTypeFilterText("/banks/BANK_ID/accounts-held")}
         |
-        |${authenticationRequiredMessage(true)}
-      """,
+        |
+        |
+        """.stripMargin,
       emptyObjectJson,
       coreAccountsHeldJsonV300,
-      List(UnknownError),
+      List(UserNotLoggedIn, UnknownError),
       List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagPsd2, apiTagNewStyle)
     )
   

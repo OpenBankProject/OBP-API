@@ -442,7 +442,7 @@ trait APIMethods200 {
       s"""Get KYC (know your customer) documents for a customer specified by CUSTOMER_ID
         |Get a list of documents that affirm the identity of the customer
         |Passport, driving licence etc.
-        |${authenticationRequiredMessage(false)}""",
+        |${authenticationRequiredMessage(false)}""".stripMargin,
       emptyObjectJson,
       kycDocumentsJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
@@ -478,7 +478,7 @@ trait APIMethods200 {
       "Get KYC Media for a customer",
       s"""Get KYC media (scans, pictures, videos) that affirms the identity of the customer.
         |
-        |${authenticationRequiredMessage(true)}""",
+        |${authenticationRequiredMessage(true)}""".stripMargin,
       emptyObjectJson,
       kycMediasJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
@@ -510,7 +510,7 @@ trait APIMethods200 {
       "Get Customer KYC Checks",
       s"""Get KYC checks for the Customer specified by CUSTOMER_ID.
         |
-        |${authenticationRequiredMessage(true)}""",
+        |${authenticationRequiredMessage(true)}""".stripMargin,
       emptyObjectJson,
       kycChecksJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
@@ -542,7 +542,7 @@ trait APIMethods200 {
       "Get Customer KYC statuses",
       s"""Get the KYC statuses for a customer specified by CUSTOMER_ID over time.
         |
-        |${authenticationRequiredMessage(true)}""",
+        |${authenticationRequiredMessage(true)}""".stripMargin,
       emptyObjectJson,
       kycStatusesJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
@@ -575,7 +575,7 @@ trait APIMethods200 {
       "Get Customer Social Media Handles",
       s"""Get social media handles for a customer specified by CUSTOMER_ID.
         |
-        |${authenticationRequiredMessage(true)}""",
+        |${authenticationRequiredMessage(true)}""".stripMargin,
       emptyObjectJson,
       socialMediasJSON,
       List(UserNotLoggedIn, UserHasMissingRoles, CustomerNotFoundByCustomerId, UnknownError),
@@ -1165,7 +1165,7 @@ trait APIMethods200 {
           |  * description : A longer description
           |  * charge : The charge to the customer for each one of these
           |
-          |${authenticationRequiredMessage(!getTransactionTypesIsPublic)}""",
+          |${authenticationRequiredMessage(!getTransactionTypesIsPublic)}""".stripMargin,
       emptyObjectJson,
       transactionTypesJsonV200,
       List(BankNotFound, UnknownError),

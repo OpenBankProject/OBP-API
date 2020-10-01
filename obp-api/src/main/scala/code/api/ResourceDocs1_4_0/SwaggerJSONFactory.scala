@@ -461,7 +461,7 @@ object SwaggerJSONFactory extends MdcLoggable {
           OperationObjectJson(
             tags = rd.tags.map(_.tag),
             summary = rd.summary,
-            description = PegdownOptions.convertPegdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
+            description = PegdownOptions.convertPegdownToHtmlTweaked(rd.description.stripMargin).replaceAll("\n", ""),
             operationId =
               rd.partialFunctionName match {
                 //No longer need this special case since all transaction request Resource Docs have explicit URL

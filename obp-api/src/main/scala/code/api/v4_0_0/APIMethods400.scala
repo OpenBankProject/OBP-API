@@ -210,7 +210,7 @@ trait APIMethods400 {
          |If the POST body USER_ID is *not* specified, the account will be owned by the logged in User.
          |
          |Note: The Amount MUST be zero.
-         |""",
+         |""".stripMargin,
       settlementAccountRequestJson,
       settlementAccountResponseJson,
       List(
