@@ -4803,9 +4803,11 @@ trait APIMethods400 {
       ),
       List(
         UserNotLoggedIn,
+        UserNotFoundByUserId,
         BankNotFound,
+        ConsentUserAlreadyAdded,
         InvalidJsonFormat,
-        InvalidConnectorResponse,
+        ConsentNotFound,
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
