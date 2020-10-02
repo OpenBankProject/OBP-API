@@ -2,7 +2,6 @@ package code.consent
 
 import java.util.Date
 
-import scala.util.Random
 import code.api.util.{Consent, ErrorMessages}
 import code.consent.ConsentStatus.ConsentStatus
 import code.util.MappedUUID
@@ -13,6 +12,7 @@ import net.liftweb.util.Helpers.{now, tryo}
 import org.mindrot.jbcrypt.BCrypt
 
 import scala.collection.immutable.List
+import scala.util.Random
 
 object MappedConsentProvider extends ConsentProvider {
   override def getConsentByConsentId(consentId: String): Box[MappedConsent] = {

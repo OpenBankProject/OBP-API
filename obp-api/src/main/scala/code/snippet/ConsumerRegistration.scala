@@ -27,7 +27,6 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import code.api.DirectLogin
-import code.api.util.ErrorMessages.CreateOAuth2ConsumerError
 import code.api.util.{APIUtil, ErrorMessages}
 import code.consumer.Consumers
 import code.model._
@@ -39,10 +38,8 @@ import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, FieldError, Helpers}
 import org.apache.commons.lang3.StringUtils
-import sh.ory.hydra.model.OAuth2Client
 
 import scala.collection.immutable.ListMap
-import scala.jdk.CollectionConverters.seqAsJavaListConverter
 
 
 class ConsumerRegistration extends MdcLoggable {
@@ -119,7 +116,7 @@ class ConsumerRegistration extends MdcLoggable {
       "#directlogin-endpoint a [href]" #> urlDirectLoginEndpoint &
       "#post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
       "#post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl & {
-        if(AuthUser.createHydraClient) {
+        if(AuthUser.mirrorConsumerInHydra) {
           "#hydra-client-info-title *" #>"OAuth2" &
           "#admin_url *" #> AuthUser.hydraAdminUrl &
             "#client_id *" #> {consumer.key.get} &
@@ -232,11 +229,9 @@ class ConsumerRegistration extends MdcLoggable {
       devEmailVar.set(devEmailVar.is)
       redirectionURLVar.set(redirectionURLVar.is)
 
-      val urlRegex = """^(http|https)://(www.)?\S+?(:\d{2,6})?\S*$""".r
-
       if(submitButtonDefenseFlag.isEmpty) {
         showErrorsForDescription("The 'Register' button random name has been modified !")
-      } else if(AuthUser.createHydraClient && (StringUtils.isBlank(redirectionURLVar.is) || urlRegex.findFirstIn(redirectionURLVar.is).isEmpty)) {
+      } else if(AuthUser.mirrorConsumerInHydra && (StringUtils.isBlank(redirectionURLVar.is) || Consumer.redirectURLRegex.findFirstIn(redirectionURLVar.is).isEmpty)) {
         showErrorsForDescription("The 'Redirect URL' should be a valid url !")
       } else{
         val consumer = Consumers.consumers.vend.createConsumer(
@@ -251,29 +246,6 @@ class ConsumerRegistration extends MdcLoggable {
           Some(AuthUser.getCurrentResourceUserUserId))
         logger.debug("consumer: " + consumer)
         consumer match {
-          case Full(x) if AuthUser.createHydraClient =>
-            try {
-              val oAuth2Client = new OAuth2Client()
-              oAuth2Client.setClientId(x.key.get)
-              oAuth2Client.setClientSecret(x.secret.get)
-              val allConsents = "openid" :: "offline" :: AuthUser.hydraConsents
-              oAuth2Client.setScope(allConsents.mkString(" "))
-
-              oAuth2Client.setGrantTypes(("authorization_code" :: "client_credentials" :: "refresh_token" :: "implicit" :: Nil).asJava)
-              oAuth2Client.setResponseTypes(("code" :: "id_token" :: "token" :: "code token" :: "code id_token" :: "code token id_token" :: Nil).asJava)
-              oAuth2Client.setPostLogoutRedirectUris(List(x.redirectURL.get).asJava)
-
-              oAuth2Client.setRedirectUris(List(x.redirectURL.get).asJava)
-              oAuth2Client.setTokenEndpointAuthMethod("client_secret_post")
-              AuthUser.hydraAdmin.createOAuth2Client(oAuth2Client)
-
-              showRegistrationResults(x)
-            } catch {
-              case e: Exception =>
-                logger.error(s"Create hydra client fail", e)
-                Consumers.consumers.vend.deleteConsumer(x)
-                showValidationErrors(CreateOAuth2ConsumerError :: Nil)
-            }
           case Full(x) => showRegistrationResults(x)
           case Failure(msg, _, _) => showValidationErrors(msg.split(";").toList)
           case _ => showUnknownErrors(List(ErrorMessages.UnknownError))
