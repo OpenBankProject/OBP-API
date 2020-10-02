@@ -659,6 +659,8 @@ class Boot extends MdcLoggable {
       logger.info(comment)
     }
 
+    ApiWarnings.logWarningsRegardingProperties()
+
     //see the notes for this method:
     createDefaultBankAndDefaultAccountsIfNotExisting()
 
