@@ -186,7 +186,7 @@ object MappedConsentProvider extends ConsentProvider {
   override def checkAnswer(consentId: String, challengeAnswer: String): Box[MappedConsent] = {
     def isAnswerCorrect(expectedAnswerHashed: String, answer: String, salt: String) = {
       val challengeAnswerHashed = BCrypt.hashpw(answer, salt).substring(0, 44)
-      val scaEnabled = APIUtil.getPropsAsBoolValue("consent.sca.enabled", true)
+      val scaEnabled = APIUtil.getPropsAsBoolValue("consents.sca.enabled", true)
       if(scaEnabled) {
         expectedAnswerHashed == challengeAnswerHashed
       } else {
