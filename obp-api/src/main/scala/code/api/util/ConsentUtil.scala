@@ -138,7 +138,7 @@ object Consent {
         Failure(ErrorMessages.ConsumerAtConsentCannotBeFound + " aud: " + consent.aud)
     }
   }
-  
+
   private def checkConsent(consent: ConsentJWT, consentIdAsJwt: String, calContext: CallContext): Box[Boolean] = {
     Consents.consentProvider.vend.getConsentByConsentId(consent.jti) match {
       case Full(c) if c.mStatus == ConsentStatus.ACCEPTED.toString =>
@@ -555,6 +555,7 @@ object Consent {
       val consentId = accessExt.get("consent_id")
       Consents.consentProvider.vend.getConsentByConsentId(consentId)
     }
+
     boxedConsent match {
       case Full(c) if c.mStatus == ConsentStatus.AUTHORISED.toString =>
         System.currentTimeMillis match {

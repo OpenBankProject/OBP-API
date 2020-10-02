@@ -28,6 +28,7 @@ package bootstrap.liftweb
 
 import java.io.{File, FileInputStream}
 import java.util.{Locale, TimeZone}
+import java.util.stream.Collectors
 
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
@@ -47,12 +48,13 @@ import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.atms.MappedAtm
-import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.bankconnectors.storedprocedure.StoredProceduresMockedData
+import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.branches.MappedBranch
 import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.MappedConsent
+import code.consumer.Consumers
 import code.context.{MappedUserAuthContext, MappedUserAuthContextUpdate}
 import code.crm.MappedCrmEvent
 import code.customer.internalMapping.MappedCustomerIdMapping
@@ -114,8 +116,8 @@ import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
 import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
-import com.openbankproject.commons.util.{ApiVersion, Functions}
 import com.openbankproject.commons.util.Functions.Implicits._
+import com.openbankproject.commons.util.{ApiVersion, Functions}
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
@@ -659,6 +661,23 @@ class Boot extends MdcLoggable {
 
     //see the notes for this method:
     createDefaultBankAndDefaultAccountsIfNotExisting()
+
+    if(AuthUser.mirrorConsumerInHydra) {
+      createHydraClients()
+    }
+  }
+  // create Hydra client if exists active consumer but missing Hydra client
+  def createHydraClients() = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    // exists hydra clients id
+    val oAuth2ClientIds = AuthUser.hydraAdmin.listOAuth2Clients(Long.MaxValue, 0L).stream()
+      .map[String](_.getClientId)
+      .collect(Collectors.toSet())
+
+    Consumers.consumers.vend.getConsumersFuture().foreach{ consumers =>
+      consumers.filter(consumer => consumer.isActive.get && !oAuth2ClientIds.contains(consumer.key.get))
+        .foreach(Consumer.createHydraClient)
+    }
   }
 
   def schemifyAll() = {
