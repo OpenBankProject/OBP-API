@@ -390,7 +390,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     val regex = """/([A-Z_]+)(?=(/|\z))""".r
     val findMatches: Iterator[Regex.Match] = regex.findAllMatchIn(str)
     //urlParameters can be: List(BANK_ID,ACCOUNT_ID, ...)
-    val urlParameters: List[String] = findMatches.map(_.group(1)).toList
+    val urlParameters: List[String] = findMatches.map(_.group(1)).toList.sorted
     if (urlParameters.length == 0) { //for some endpoints, there is not parameters in the URL, so it can be empty 
       ""
     } else {
@@ -409,7 +409,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     val exampleFieldValue = getExampleFieldValue(parameter)
     s"""
        |
-       |[${parameter}](/glossary#$glossaryItemTitle):$exampleFieldValue
+       |[${parameter}](/glossary#$glossaryItemTitle): $exampleFieldValue
        |
        |""".stripMargin
   }
@@ -418,7 +418,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
     val jsonBodyJValue = decompose(jsonBody)
 
-    val jsonBodyFields: Set[String] =JsonUtils.collectFieldNames(jsonBodyJValue).keySet
+    val jsonBodyFields =JsonUtils.collectFieldNames(jsonBodyJValue).keySet.toList.sorted
 
     val jsonFieldsDescription = jsonBodyFields.map(prepareDescription)
 

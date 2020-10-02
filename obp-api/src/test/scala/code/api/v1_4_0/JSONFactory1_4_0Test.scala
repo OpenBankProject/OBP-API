@@ -48,7 +48,7 @@ class JSONFactory1_4_0Test  extends V140ServerSetup with DefaultUsers {
 
     scenario("prepareDescription should work well, extract the parameters from URL") {
       val description = JSONFactory1_4_0.prepareDescription("BANK_ID")
-      description.contains("[BANK_ID](/glossary#Bank.bank_id):gh.29.uk") should be (true)
+      description.contains("[BANK_ID](/glossary#Bank.bank_id): gh.29.uk") should be (true)
     }
     
     scenario("PrepareUrlParameterDescription should work well, extract the parameters from URL") {
