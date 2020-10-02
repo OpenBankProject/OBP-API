@@ -433,21 +433,29 @@ object JSONFactory1_4_0 extends MdcLoggable{
     // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
     // We return html rather than markdown to the consumer so they don't have to bother with these questions.
 
-    //1st: prepare the description from URL 
-    val urlParametersDescription: String = prepareUrlParameterDescription(rd.requestUrl)
-
-    //2rd: get the fields description from the post json body:
-    val exampleRequestBodyFieldsDescription =  
-      if (rd.requestVerb=="POST" ){
-        prepareJsonFieldDescription(rd.exampleRequestBody)
-      } else {
+    //Here area some endpoints, which should not be added the description:
+    // 1st: Dynamic entity endpoint, 
+    // 2rd: Dynamic endpoint endpoints,
+    // 3rd: all the user created endpoints,
+    val fieldsDescription = 
+      if(rd.tags.toString.contains("Dynamic-Entity") ||rd.roles.toString.contains("DynamicEnti")|| rd.roles.toString.contains("DynamicEndpoint")){
         ""
+      } else{
+        //1st: prepare the description from URL 
+        val urlParametersDescription: String = prepareUrlParameterDescription(rd.requestUrl)
+        //2rd: get the fields description from the post json body:
+        val exampleRequestBodyFieldsDescription =
+          if (rd.requestVerb=="POST" ){
+            prepareJsonFieldDescription(rd.exampleRequestBody)
+          } else {
+            ""
+          }
+        //3rd: get the fields description from the response body:
+        val responseFieldsDescription = prepareJsonFieldDescription(rd.successResponseBody)
+        urlParametersDescription ++ exampleRequestBodyFieldsDescription ++ responseFieldsDescription
       }
-
-    //3rd: get the fields description from the response body:
-    val responseFieldsDescription = prepareJsonFieldDescription(rd.successResponseBody)
     
-    val description = rd.description.stripMargin.trim ++ urlParametersDescription ++ exampleRequestBodyFieldsDescription ++ responseFieldsDescription
+    val description = rd.description.stripMargin.trim ++ fieldsDescription
     
     ResourceDocJson(
       operation_id = s"${rd.implementedInApiVersion.fullyQualifiedVersion}-${rd.partialFunctionName.toString}",
