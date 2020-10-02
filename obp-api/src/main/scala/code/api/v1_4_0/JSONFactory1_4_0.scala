@@ -365,7 +365,6 @@ object JSONFactory1_4_0 extends MdcLoggable{
   def getExampleFieldValue(parameter: String): String = {
     val exampleValueFieldName = APIUtil.firstCharToLowerCase(StringHelpers.camelify(parameter.toLowerCase).capitalize)+"Example"
     try {
-//      logger.error(s"getExampleFieldValue: there is all $exampleValueFieldName variable in ExampleValue object")
       ReflectUtils.getValueByFieldName(ExampleValue, exampleValueFieldName).asInstanceOf[ConnectorField].value
     } catch {
       case ex: Throwable => //The ExampleValue are not totally finished, lots of fields are missing here. so we first hide them. and show them in the log
