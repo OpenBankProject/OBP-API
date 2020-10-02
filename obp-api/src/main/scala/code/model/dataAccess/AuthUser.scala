@@ -50,7 +50,6 @@ import scala.xml.{NodeSeq, Text}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import org.apache.commons.lang3.StringUtils
-import org.apache.logging.log4j.core.util.UuidUtil
 import sh.ory.hydra.{ApiClient, Configuration}
 import sh.ory.hydra.api.{AdminApi, PublicApi}
 import sh.ory.hydra.model.AcceptLoginRequest
@@ -1177,7 +1176,7 @@ def restoreSomeSessions(): Unit = {
 
   val loginWithHydra = APIUtil.getPropsAsBoolValue("login_with_hydra", false)
 
-  val createHydraClient = APIUtil.getPropsAsBoolValue("mirror_consumer_in_hydra", false)
+  val mirrorConsumerInHydra = APIUtil.getPropsAsBoolValue("mirror_consumer_in_hydra", false)
 
   lazy val hydraPublicUrl = APIUtil.getPropsValue("hydra_public_url")
     .openOrThrowException("If props login_with_hydra is true, hydra_public_url value should not be blank")
@@ -1206,11 +1205,5 @@ def restoreSomeSessions(): Unit = {
       apiClient.setBasePath(hydraPublicUrl)
 
       new PublicApi(apiClient)
-  }
-
-  override def logout: Nothing = {
-    // TODO do logout logic for hydra way.
-    println("do logout")
-    super.logout
   }
 }
