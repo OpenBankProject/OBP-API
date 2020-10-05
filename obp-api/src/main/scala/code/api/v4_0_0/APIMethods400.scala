@@ -1135,7 +1135,15 @@ trait APIMethods400 {
           val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None)
           for {
             Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, cc.callContext)
+            //granted the CURD roles to the loggedIn User
+            curdRoles = List(
+              DynamicEntityInfo.canCreateRole(result.entityName), 
+              DynamicEntityInfo.canUpdateRole(result.entityName), 
+              DynamicEntityInfo.canGetRole(result.entityName),
+              DynamicEntityInfo.canDeleteRole(result.entityName)
+            )     
           } yield {
+            curdRoles.map(role => Entitlement.entitlement.vend.addEntitlement("", cc.userId, role.toString()))
             val commonsData: DynamicEntityCommons = result
             (commonsData.jValue, HttpCode.`201`(cc.callContext))
           }
