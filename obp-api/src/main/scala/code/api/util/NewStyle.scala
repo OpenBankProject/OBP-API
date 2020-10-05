@@ -2271,18 +2271,19 @@ object NewStyle {
       val dynamicEndpoint: OBPReturnType[DynamicEndpointT] = this.getDynamicEndpoint(dynamicEndpointId, callContext)
         for {
           (entity, _) <- dynamicEndpoint
-          deleteSuccess = DynamicEndpointProvider.connectorMethodProvider.vend.delete(dynamicEndpointId)
-
-          deleteEndpointResult: Box[Boolean] = if(deleteSuccess) {
+          deleteEndpointResult: Box[Boolean] = {
             val roles = DynamicEndpointHelper.getRoles(dynamicEndpointId).map(_.toString())
+            roles.foreach(ApiRole.removeDynamicApiRole(_))
             val rolesDeleteResult: Box[Boolean] = Entitlement.entitlement.vend.deleteEntitlements(roles)
-
               Box !! (rolesDeleteResult == Full(true))
-          } else {
-            Box !! false
+            } 
+          deleteSuccess = if(deleteEndpointResult.isDefined && deleteEndpointResult.head) {
+            tryo {DynamicEndpointProvider.connectorMethodProvider.vend.delete(dynamicEndpointId)}
+          }else{
+            Full(false)
           }
         } yield {
-          deleteEndpointResult
+          deleteSuccess
         }
     }
 
