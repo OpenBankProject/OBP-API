@@ -1944,6 +1944,101 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getFirehoseAccountsAtOneBank,
+      implementedInApiVersion,
+      nameOf(getFirehoseAccountsAtOneBank),
+      "GET",
+      "/banks/BANK_ID/firehose/accounts/views/VIEW_ID",
+      "Get Firehose Accounts at Bank",
+      s"""
+         |Get Accounts which have a firehose view assigned to them.
+         |
+         |This endpoint allows bulk access to accounts.
+         |
+         |Requires the CanUseFirehoseAtAnyBank Role
+         |
+         |To be shown on the list, each Account must have a firehose View linked to it.
+         |
+         |A firehose view has is_firehose = true
+         |
+         |For VIEW_ID try 'owner'
+         |
+         |optional request parameters for filter with attributes
+         |URL params example:
+         |  /banks/some-bank-id/firehose/accounts/views/owner?manager=John&count=8
+         |
+         |to invalid Browser cache, add timestamp query parameter as follow, the parameter name must be `_timestamp_`
+         |URL params example:
+         |  `/banks/some-bank-id/firehose/accounts/views/owner?manager=John&count=8&_timestamp_=1596762180358`
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      emptyObjectJson,
+      moderatedFirehoseAccountsJsonV400,
+      List(UserNotLoggedIn,UnknownError),
+      List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
+      Some(List(canUseAccountFirehoseAtAnyBank))
+    )
+
+    lazy val getFirehoseAccountsAtOneBank : OBPEndpoint = {
+      //get private accounts for all banks
+      case "banks" :: BankId(bankId):: "firehose" :: "accounts"  :: "views" :: ViewId(viewId):: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  ) {
+              canUseAccountFirehose(u)
+            }
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(BankId(""), AccountId("")), Some(u), callContext)
+            availableBankIdAccountIdList <- Future {
+              Views.views.vend.getAllFirehoseAccounts(bank.bankId).map(a => BankIdAccountId(a.bankId,a.accountId))
+            }
+            params = req.params.filterNot(_._1 == "_timestamp_") // ignore `_timestamp_` parameter, it is for invalid Browser caching
+            availableBankIdAccountIdList2 <- if(params.isEmpty) {
+              Future.successful(availableBankIdAccountIdList)
+            } else {
+              AccountAttributeX.accountAttributeProvider.vend
+                .getAccountIdsByParams(bankId, params)
+                .map { boxedAccountIds =>
+                  val accountIds = boxedAccountIds.getOrElse(Nil)
+                  availableBankIdAccountIdList.filter(availableBankIdAccountId => accountIds.contains(availableBankIdAccountId.accountId.value))
+                }
+            }
+            moderatedAccounts: List[ModeratedBankAccount] = for {
+              //Here is a new for-loop to get the moderated accouts for the firehose user, according to the viewId.
+              //1 each accountId-> find a proper bankAccount object.
+              //2 each bankAccount object find the proper view.
+              //3 use view and user to moderate the bankaccount object.
+              bankIdAccountId <- availableBankIdAccountIdList2
+              bankAccount <- Connector.connector.vend.getBankAccountOld(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
+              moderatedAccount <- bankAccount.moderatedBankAccount(view, bankIdAccountId, Full(u), callContext) //Error handling is in lower method
+            } yield {
+              moderatedAccount
+            }
+            // if there are accountAttribute query parameter, link to corresponding accountAttributes.
+            (accountAttributes: Option[List[AccountAttribute]], callContext) <- if(moderatedAccounts.nonEmpty && params.nonEmpty) {
+              val futures: List[OBPReturnType[List[AccountAttribute]]] = availableBankIdAccountIdList2.map { bankIdAccount =>
+                val BankIdAccountId(bId, accountId) = bankIdAccount
+                NewStyle.function.getAccountAttributesByAccount(
+                  bId,
+                  accountId,
+                  callContext: Option[CallContext])
+              }
+              Future.reduceLeft(futures){ (r, t) => // combine to one future
+                r.copy(_1 = t._1 ::: t._1)
+              } map (it => (Some(it._1), it._2)) // convert list to Option[List[AccountAttribute]]
+            } else {
+              Future.successful(None, callContext)
+            }
+          } yield {
+            (JSONFactory400.createFirehoseCoreBankAccountJSON(moderatedAccounts, accountAttributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
 
     staticResourceDocs += ResourceDoc(
       getCustomersByCustomerPhoneNumber,
