@@ -2077,6 +2077,17 @@ object NewStyle {
         }
       }
     }
+
+    def getDynamicEntitiesByUserId(userId: String): List[DynamicEntityT] = {
+      import scala.concurrent.duration._
+
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL second) {
+          DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntitiesByUserId(userId: String)
+        }
+      }
+    }
     
     def makeHistoricalPayment(
       fromAccount: BankAccount,

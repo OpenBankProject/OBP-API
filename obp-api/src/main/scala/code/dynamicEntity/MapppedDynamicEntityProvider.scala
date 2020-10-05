@@ -22,6 +22,10 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
     DynamicEntity.findAll()
   }
 
+  override def getDynamicEntitiesByUserId(userId: String): List[DynamicEntity] = {
+    DynamicEntity.findAll(By(DynamicEntity.UserId, userId))
+  }
+
   override def createOrUpdate(dynamicEntity: DynamicEntityT): Box[DynamicEntityT] = {
 
     //to find exists dynamicEntity, if dynamicEntityId supplied, query by dynamicEntityId, or use entityName and dynamicEntityId to do query
@@ -39,6 +43,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
         entityToPersist
           .EntityName(dynamicEntity.entityName)
           .MetadataJson(dynamicEntity.metadataJson)
+          .UserId(dynamicEntity.userId)
           .saveMe()
       } catch {
         case e =>
@@ -60,7 +65,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
 
 }
 
-class DynamicEntity extends DynamicEntityT with LongKeyedMapper[DynamicEntity] with IdPK with CustomJsonFormats{
+class DynamicEntity extends DynamicEntityT with LongKeyedMapper[DynamicEntity] with IdPK with CreatedUpdated with CustomJsonFormats{
 
   override def getSingleton = DynamicEntity
 
@@ -68,10 +73,12 @@ class DynamicEntity extends DynamicEntityT with LongKeyedMapper[DynamicEntity] w
   object EntityName extends MappedString(this, 255)
 
   object MetadataJson extends MappedText(this)
+  object UserId extends MappedString(this, 255)
 
   override def dynamicEntityId: Option[String] = Option(DynamicEntityId.get)
   override def entityName: String = EntityName.get
   override def metadataJson: String = MetadataJson.get
+  override def userId: String = UserId.get
 }
 
 object DynamicEntity extends DynamicEntity with LongKeyedMetaMapper[DynamicEntity] {

@@ -2015,7 +2015,7 @@ object ExampleValue {
     )
   )
 
-  lazy val dynamicEntityResponseBodyExample = dynamicEntityRequestBodyExample.copy(dynamicEntityId = Some("dynamic-entity-id"))
+  lazy val dynamicEntityResponseBodyExample = dynamicEntityRequestBodyExample.copy(dynamicEntityId = Some("dynamic-entity-id"), userId =Some(ExampleValue.userIdExample.value))
 
   private val dynamicEndpointSwagger =
     """{

@@ -52,6 +52,7 @@ object ErrorMessages {
 
   val DynamicEndpointExists = "OBP-09008: DynamicEndpoint already exists."
   val DynamicEndpointNotFoundByDynamicEndpointId = "OBP-09009: DynamicEndpoint not found. Please specify a valid value for DYNAMIC_ENDPOINT_ID."
+  val InvalidMyDynamicEntityUser = "OBP-09010: DynamicEntity can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Entity` endpoint"
 
 
   // General messages (OBP-10XXX)
