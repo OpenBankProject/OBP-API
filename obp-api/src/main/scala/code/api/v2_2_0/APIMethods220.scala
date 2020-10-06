@@ -1174,7 +1174,7 @@ trait APIMethods220 {
           |* User: username, user_id, email
           |* View: view_id
           |
-         |${authenticationRequiredMessage(true)}""",
+         |${authenticationRequiredMessage(true)}""".stripMargin,
       emptyObjectJson,
       customerViewsJsonV220,
       List(

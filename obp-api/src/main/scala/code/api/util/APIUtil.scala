@@ -3455,4 +3455,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
 
   }
+
+  def firstCharToLowerCase(str: String): String = {
+    if (str == null || str.length == 0) return ""
+    if (str.length == 1) return str.toLowerCase
+    str.substring(0, 1).toLowerCase + str.substring(1)
+  }
 }

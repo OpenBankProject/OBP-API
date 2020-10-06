@@ -185,7 +185,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |
         |You can use the url query parameters *limit* and *offset* for pagination
         |
-        |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
+        |${authenticationRequiredMessage(!getBranchesIsPublic)}""".stripMargin,
       emptyObjectJson,
       branchesJson,
       List(
@@ -237,7 +237,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
          |
          |${urlParametersDocument(false,false)}         
          |
-         |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
+         |${authenticationRequiredMessage(!getAtmsIsPublic)}""".stripMargin,
       emptyObjectJson,
       atmsJson,
       List(
@@ -295,7 +295,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |* Description
         |* Terms and Conditions
         |* License the data under this endpoint is released under
-        |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+        |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       emptyObjectJson,
       productsJson,
       List(

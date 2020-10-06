@@ -17,6 +17,7 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.reflect.FieldUtils
 
 import scala.collection.mutable
+import scala.reflect.ClassTag
 
 object ReflectUtils {
   private[this] val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -756,4 +757,17 @@ object ReflectUtils {
   def toSiblingOption[T, D <% T: TypeTag]: Option[T] => Option[D] = (option: Option[T]) => option.map(toOther[D](_))
 
   def toSiblingsOption[T, D <% T: TypeTag]: Option[List[T]] => Option[List[D]] = (optionItems: Option[List[T]]) => optionItems.map(toOthers[D](_))
+
+  /**
+   * get the value by the field name, see the usage :
+   * eg: val value = ReflectUtils.getValueByFieldName(ExampleValue,"bankIdExample").asInstanceOf[ConnectorField].value
+   */
+  def getValueByFieldName[T: TypeTag : ClassTag](obj: T, memberName: String): Any = {
+    val symbol = typeOf[T].member(TermName(memberName)).asMethod
+
+    val m = runtimeMirror(obj.getClass.getClassLoader)
+    val im = m.reflect(obj)
+
+    im.reflectMethod(symbol).apply()
+  }
 }

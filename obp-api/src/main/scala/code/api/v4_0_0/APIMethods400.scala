@@ -82,7 +82,7 @@ trait APIMethods400 {
 
     private val staticResourceDocs = ArrayBuffer[ResourceDoc]()
     // createDynamicEntityDoc and updateDynamicEntityDoc are dynamic, So here dynamic create resourceDocs
-    def resourceDocs = staticResourceDocs ++ ArrayBuffer[ResourceDoc](createDynamicEntityDoc, updateDynamicEntityDoc)
+    def resourceDocs = staticResourceDocs ++ ArrayBuffer[ResourceDoc](createDynamicEntityDoc, updateDynamicEntityDoc, updateMyDynamicEntityDoc)
 
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(staticResourceDocs, apiRelations)
@@ -210,7 +210,7 @@ trait APIMethods400 {
          |If the POST body USER_ID is *not* specified, the account will be owned by the logged in User.
          |
          |Note: The Amount MUST be zero.
-         |""",
+         |""".stripMargin,
       settlementAccountRequestJson,
       settlementAccountResponseJson,
       List(
@@ -1132,10 +1132,18 @@ trait APIMethods400 {
     lazy val createDynamicEntity: OBPEndpoint = {
       case "management" :: "dynamic-entities" :: Nil JsonPost json -> _ => {
         cc =>
-          val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None)
+          val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None, cc.userId)
           for {
             Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, cc.callContext)
+            //granted the CURD roles to the loggedIn User
+            curdRoles = List(
+              DynamicEntityInfo.canCreateRole(result.entityName), 
+              DynamicEntityInfo.canUpdateRole(result.entityName), 
+              DynamicEntityInfo.canGetRole(result.entityName),
+              DynamicEntityInfo.canDeleteRole(result.entityName)
+            )     
           } yield {
+            curdRoles.map(role => Entitlement.entitlement.vend.addEntitlement("", cc.userId, role.toString()))
             val commonsData: DynamicEntityCommons = result
             (commonsData.jValue, HttpCode.`201`(cc.callContext))
           }
@@ -1192,7 +1200,7 @@ trait APIMethods400 {
             }
 
             jsonObject = json.asInstanceOf[JObject]
-            dynamicEntity = DynamicEntityCommons(jsonObject, Some(dynamicEntityId))
+            dynamicEntity = DynamicEntityCommons(jsonObject, Some(dynamicEntityId), cc.userId)
             Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, cc.callContext)
           } yield {
             val commonsData: DynamicEntityCommons = result
@@ -1227,6 +1235,138 @@ trait APIMethods400 {
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, cc.callContext)
+            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
+            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
+              resultList.arr.isEmpty
+            }
+            deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
+          } yield {
+            (deleted, HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMyDynamicEntities,
+      implementedInApiVersion,
+      nameOf(getMyDynamicEntities),
+      "GET",
+      "/my/dynamic-entities",
+      "Get My Dynamic Entities",
+      s"""Get all my Dynamic Entities.""",
+      EmptyBody,
+      ListResult(
+        "dynamic_entities",
+        List(dynamicEntityResponseBodyExample)
+      ),
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle)
+    )
+
+    lazy val getMyDynamicEntities: OBPEndpoint = {
+      case "my" :: "dynamic-entities" :: Nil JsonGet req => {
+        cc =>
+          for {
+            dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByUserId(cc.userId))
+          } yield {
+            val listCommons: List[DynamicEntityCommons] = dynamicEntities
+            val jObjects = listCommons.map(_.jValue)
+            (ListResult("dynamic_entities", jObjects), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    private def updateMyDynamicEntityDoc = ResourceDoc(
+      updateMyDynamicEntity,
+      implementedInApiVersion,
+      nameOf(updateMyDynamicEntity),
+      "PUT",
+      "/my/dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Update My Dynamic Entity",
+      s"""Update my DynamicEntity.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Update one of my DynamicEntity, after update finished, the corresponding CURD endpoints will be changed.
+         |
+         |Current support filed types as follow:
+         |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
+         |
+         |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
+         |
+         |Value of reference type is corresponding ids, please look at the following examples.
+         |Current supporting reference types and corresponding examples as follow:
+         |```
+         |${ReferenceType.referenceTypeAndExample.mkString("\n")}
+         |```
+         |""",
+      dynamicEntityRequestBodyExample,
+      dynamicEntityResponseBodyExample,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle)
+    )
+
+    lazy val updateMyDynamicEntity: OBPEndpoint = {
+      case "my" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
+            (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
+            _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser) {
+              entity.userId.equals(cc.userId)
+            }
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, cc.callContext)
+            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
+            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
+              resultList.arr.isEmpty
+            }
+            jsonObject = json.asInstanceOf[JObject]
+            dynamicEntity = DynamicEntityCommons(jsonObject, Some(dynamicEntityId), cc.userId)
+            Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, cc.callContext)
+          } yield {
+            val commonsData: DynamicEntityCommons = result
+            (commonsData.jValue, HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteMyDynamicEntity,
+      implementedInApiVersion,
+      nameOf(deleteMyDynamicEntity),
+      "DELETE",
+      "/my/dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Delete My Dynamic Entity",
+      s"""Delete my DynamicEntity specified by DYNAMIC_ENTITY_ID.
+         |
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle)
+    )
+
+    lazy val deleteMyDynamicEntity: OBPEndpoint = {
+      case "my" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
+            (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
+            _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser) {
+              entity.userId.equals(cc.userId)
+            }
             (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
@@ -3234,6 +3374,8 @@ trait APIMethods400 {
             }
             (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(postedJson.swaggerString, cc.callContext)
           } yield {
+            val roles = DynamicEndpointHelper.getRoles(dynamicEndpoint.dynamicEndpointId.getOrElse(""))
+            roles.map(role => Entitlement.entitlement.vend.addEntitlement("", cc.userId, role.toString()))
             val swaggerJson = parse(dynamicEndpoint.swaggerString)
             val responseJson: JObject = ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
             (responseJson, HttpCode.`201`(callContext))
