@@ -4814,7 +4814,7 @@ trait APIMethods400 {
       apiTagConsent :: apiTagPSD2AIS :: apiTagNewStyle :: Nil)
 
     lazy val addConsentUser : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "consents"  :: consentId :: Nil JsonPut json -> _  => {
+      case "banks" :: BankId(bankId) :: "consents"  :: consentId :: "add-user" :: Nil JsonPut json -> _  => {
         cc =>
           for {
             (_, callContext) <- authenticatedAccess(cc)
@@ -4886,11 +4886,16 @@ trait APIMethods400 {
               i => connectorEmptyResponse(i, callContext)
             }
             status = ConsentStatus.withName(consentJson.status)
-            consent <- Future(Consents.consentProvider.vend.updateConsentStatus(consentId, status)) map {
-              i => connectorEmptyResponse(i, callContext)
+            (consent, code) <- APIUtil.getPropsAsBoolValue("consents.sca.enabled", true) match {
+              case true =>
+                Future(consent, HttpCode.`202`(callContext))
+              case false =>
+                Future(Consents.consentProvider.vend.updateConsentStatus(consentId, status)) map {
+                  i => connectorEmptyResponse(i, callContext)
+                } map ((_, HttpCode.`200`(callContext)))
             }
           } yield {
-            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`200`(callContext))
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), code)
           }
       }
     }
