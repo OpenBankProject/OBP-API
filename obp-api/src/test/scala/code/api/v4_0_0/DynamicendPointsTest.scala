@@ -9,6 +9,7 @@ import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.json.JArray
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
@@ -305,7 +306,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
 
       val id = responseWithRole.body.\\("dynamic_endpoint_id").values.get("dynamic_endpoint_id").head.toString
 
-      val request400 = (v4_0_0_Request / "my" / "dynamic-endpoints" /id).GET<@ (user1)
+      val request400 = (v4_0_0_Request / "my" / "dynamic-endpoints").GET<@ (user1)
       val response400 = makeGetRequest(request400)
       response400.code should be (200)
       response400.body.toString contains("dynamic_endpoint_id") should be (true)
@@ -316,27 +317,29 @@ class DynamicEndpointsTest extends V400ServerSetup {
 
       {
         // we use the wrong user2 to get the dynamic-endpoints
-        val request400 = (v4_0_0_Request / "my" / "dynamic-endpoints" /id).GET<@ (user2)
+        val request400 = (v4_0_0_Request / "my" / "dynamic-endpoints").GET<@ (user2)
         val response400 = makeGetRequest(request400)
-        Then("We should get a 404")
-        response400.code should equal(404)
-        response400.body.extract[ErrorMessage].message should startWith (InvalidMyDynamicEndpointUser)
+        Then("We should get a 200")
+        response400.code should equal(200)
+        val json = response400.body \ "dynamic_endpoints"
+        val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
+        dynamicEntitiesGetJson.values should have size 0
         
       }
 
       {
         val requestDelete = (v4_0_0_Request / "my" / "dynamic-endpoints" /id).DELETE<@ (user2)
         val responseDelete = makeDeleteRequest(requestDelete)
-        Then("We should get a 404")
-        responseDelete.code should equal(404)
+        Then("We should get a 400")
+        responseDelete.code should equal(400)
         responseDelete.body.extract[ErrorMessage].message should startWith (InvalidMyDynamicEndpointUser)
       }
       val requestDelete = (v4_0_0_Request / "my" / "dynamic-endpoints" /id).DELETE<@ (user1)
       val responseDelete = makeDeleteRequest(requestDelete)
       responseDelete.code should be (204)
 
-      val responseGetAgain = makeGetRequest(request400)
-      responseGetAgain.code should be (404)
+      val responseDeleteAgain = makeDeleteRequest(requestDelete)
+      responseDeleteAgain.code should be (404)
     }
   }
 }
