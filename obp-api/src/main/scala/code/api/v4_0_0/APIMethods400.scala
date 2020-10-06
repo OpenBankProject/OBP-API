@@ -4814,7 +4814,7 @@ trait APIMethods400 {
       apiTagConsent :: apiTagPSD2AIS :: apiTagNewStyle :: Nil)
 
     lazy val addConsentUser : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "consents"  :: consentId :: "add-user" :: Nil JsonPut json -> _  => {
+      case "banks" :: BankId(bankId) :: "consents"  :: consentId :: "user-update-request" :: Nil JsonPut json -> _  => {
         cc =>
           for {
             (_, callContext) <- authenticatedAccess(cc)
