@@ -3375,14 +3375,11 @@ trait APIMethods400 {
       "DELETE",
       "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
       " Delete Dynamic Endpoint",
-      s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.
-         |
-         |""",
+      s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.""".stripMargin,
       EmptyBody,
       EmptyBody,
       List(
         $UserNotLoggedIn,
-        UserHasMissingRoles,
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
@@ -3407,11 +3404,7 @@ trait APIMethods400 {
       "GET",
       "/my/dynamic-endpoints",
       "Get My Dynamic Endpoints",
-      s"""
-         |
-         |Get My Dynamic Endpoints.
-         |
-         |""".stripMargin,
+      s"""Get My Dynamic Endpoints.""".stripMargin,
       EmptyBody,
       ListResult(
         "dynamic_endpoints",
