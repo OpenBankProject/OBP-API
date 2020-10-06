@@ -437,7 +437,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     // 2rd: Dynamic endpoint endpoints,
     // 3rd: all the user created endpoints,
     val fieldsDescription = 
-      if(rd.tags.toString.contains("Dynamic-Entity") ||rd.roles.toString.contains("DynamicEnti")|| rd.roles.toString.contains("DynamicEndpoint")){
+      if(rd.tags.toString.contains("Dynamic-Entity") || rd.tags.toString.contains("Dynamic-Endpoint") ||rd.roles.toString.contains("DynamicEntit")|| rd.roles.toString.contains("DynamicEndpoint") ){
         ""
       } else{
         //1st: prepare the description from URL 
