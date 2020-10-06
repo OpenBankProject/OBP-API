@@ -3073,7 +3073,7 @@ object ExampleValue {
       |  }
       |}""".stripMargin
   lazy val dynamicEndpointRequestBodyExample: JObject = json.parse(dynamicEndpointSwagger).asInstanceOf[JObject]
-  lazy val dynamicEndpointResponseBodyExample: JObject = ("dynamic_endpoint_id", "dynamic-endpoint-id") ~ ("swagger_string", dynamicEndpointRequestBodyExample)
+  lazy val dynamicEndpointResponseBodyExample: JObject = ("user_id", ExampleValue.userIdExample.value) ~ ("dynamic_endpoint_id", "dynamic-endpoint-id") ~ ("swagger_string", dynamicEndpointRequestBodyExample)
 
   lazy val dynamicEndpointRequestBodyEmptyExample: JObject = "swagger" -> "2.0"
   lazy val dynamicEndpointResponseBodyEmptyExample: JObject = dynamicEndpointResponseBodyExample.transformField {

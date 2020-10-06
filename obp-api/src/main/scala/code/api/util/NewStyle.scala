@@ -2255,8 +2255,8 @@ object NewStyle {
       getConnectorByName(connectorName).flatMap(_.implementedMethods.get(methodName))
     }
 
-    def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
-      (DynamicEndpointProvider.connectorMethodProvider.vend.create(swaggerString), callContext)
+    def createDynamicEndpoint(userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
+      (DynamicEndpointProvider.connectorMethodProvider.vend.create(userId, swaggerString), callContext)
     } map {
       i => (connectorEmptyResponse(i._1, callContext), i._2)
     }
@@ -2271,6 +2271,10 @@ object NewStyle {
 
     def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
       (DynamicEndpointProvider.connectorMethodProvider.vend.getAll(), callContext)
+    }
+
+    def getDynamicEndpointsByUserId(userId: String, callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
+      (DynamicEndpointProvider.connectorMethodProvider.vend.getDynamicEndpointsByUserId(userId), callContext)
     }
     /**
      * delete one DynamicEndpoint and corresponding entitlement and dynamic entitlement

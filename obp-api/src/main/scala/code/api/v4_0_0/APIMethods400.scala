@@ -3277,12 +3277,12 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(errorMsg) {
               duplicatedUrl.isEmpty
             }
-            (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(postedJson.swaggerString, cc.callContext)
+            (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(cc.userId, postedJson.swaggerString, cc.callContext)
           } yield {
             val roles = DynamicEndpointHelper.getRoles(dynamicEndpoint.dynamicEndpointId.getOrElse(""))
             roles.map(role => Entitlement.entitlement.vend.addEntitlement("", cc.userId, role.toString()))
             val swaggerJson = parse(dynamicEndpoint.swaggerString)
-            val responseJson: JObject = ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+            val responseJson: JObject = ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
             (responseJson, HttpCode.`201`(callContext))
           }
       }
@@ -3321,7 +3321,7 @@ trait APIMethods400 {
             (dynamicEndpoint, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
           } yield {
             val swaggerJson = parse(dynamicEndpoint.swaggerString)
-            val responseJson: JObject = ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+            val responseJson: JObject = ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
             (responseJson, HttpCode.`200`(callContext))
           }
       }
@@ -3361,7 +3361,7 @@ trait APIMethods400 {
           } yield {
             val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint=>
               val swaggerJson = parse(dynamicEndpoint.swaggerString)
-               ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+              ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
             }
             (ListResult("dynamic_endpoints", resultList), HttpCode.`200`(cc.callContext))
           }
@@ -3400,6 +3400,79 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getMyDynamicEndpoints,
+      implementedInApiVersion,
+      nameOf(getMyDynamicEndpoints),
+      "GET",
+      "/my/dynamic-endpoints",
+      "Get My Dynamic Endpoints",
+      s"""
+         |
+         |Get My Dynamic Endpoints.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ListResult(
+        "dynamic_endpoints",
+        List(dynamicEndpointResponseBodyExample)
+      ),
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle)
+    )
+
+    lazy val getMyDynamicEndpoints: OBPEndpoint = {
+      case "my" :: "dynamic-endpoints" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (dynamicEndpoints, _) <- NewStyle.function.getDynamicEndpointsByUserId(cc.userId, cc.callContext)
+          } yield {
+            val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint=>
+              val swaggerJson = parse(dynamicEndpoint.swaggerString)
+              ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+            }
+            (ListResult("dynamic_endpoints", resultList), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteMyDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(deleteMyDynamicEndpoint),
+      "DELETE",
+      "/my/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
+      "Delete My Dynamic Endpoint",
+      s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        UnknownError
+      ),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+    )
+
+    lazy val deleteMyDynamicEndpoint : OBPEndpoint = {
+      case "my" :: "dynamic-endpoints" :: dynamicEndpointId ::  Nil JsonDelete _ => {
+        cc =>
+          for {
+            (dynamicEndpoint, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
+            _ <- Helper.booleanToFuture(InvalidMyDynamicEndpointUser) {
+              dynamicEndpoint.userId.equals(cc.userId)
+            }
+            deleted <- NewStyle.function.deleteDynamicEndpoint(dynamicEndpointId, cc.callContext)
+            
+          } yield {
+            (deleted, HttpCode.`204`(cc.callContext))
+          }
+      }
+    }
 
     lazy val dynamicEndpoint: OBPEndpoint = {
       case DynamicReq(url, json, method, params, pathParams, role, mockResponse) => { cc =>
