@@ -674,7 +674,7 @@ featured_apis=elasticSearchWarehouseV300
 # new_style_only=false
 # ----------------------------------------------
 
-# -- Calls Limit --------------------------------------
+# -- Rate Limiting -----------------------------------
 # Define how many calls per hour a consumer can make
 # In case isn't defined default value is "false"
 # use_consumer_limits=false
