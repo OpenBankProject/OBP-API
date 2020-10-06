@@ -16,7 +16,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, BankAccountRoutingJson, BankJson400, BanksJson400, ChallengeJsonV400, CounterpartiesJson400, CounterpartyJson400, CounterpartyWithMetadataJson400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, LogoutLinkJson, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCounterpartyJson400, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, SettlementAccountJson, SettlementAccountRequestJson, SettlementAccountResponseJson, SettlementAccountsJson, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, TransactionRequestBodySEPAJsonV400, TransactionRequestReasonJsonV400, TransactionRequestWithChargeJSON400, UserLockStatusJson, When}
+import code.api.v4_0_0.{APIInfoJson400, AccountTagJSON, AccountTagsJSON, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, BankAccountRoutingJson, BankJson400, BanksJson400, ChallengeJsonV400, CounterpartiesJson400, CounterpartyJson400, CounterpartyWithMetadataJson400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, EnergySource400, HostedAt400, HostedBy400, LogoutLinkJson, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, ModeratedFirehoseAccountJsonV400, ModeratedFirehoseAccountsJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostCounterpartyJson400, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, RefundJson, RevokedJsonV400, SettlementAccountJson, SettlementAccountRequestJson, SettlementAccountResponseJson, SettlementAccountsJson, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionRequestBodyRefundJsonV400, TransactionRequestBodySEPAJsonV400, TransactionRequestReasonJsonV400, TransactionRequestWithChargeJSON400, UserLockStatusJson, When}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
@@ -3018,6 +3018,20 @@ object SwaggerDefinitionsJSON {
   
   val moderatedCoreAccountsJsonV300 = ModeratedCoreAccountsJsonV300(List(moderatedCoreAccountJsonV300))
 
+  val moderatedFirehoseAccountJsonV400 = ModeratedFirehoseAccountJsonV400(
+    id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
+    bank_id= "String",
+    label= "String",
+    number= "String",
+    owners =  List(userJSONV121),
+    product_code = "String",
+    balance = amountOfMoneyJsonV121,
+    account_routings = List(accountRoutingJsonV121),
+    account_rules = List(accountRuleJsonV300)
+  )
+
+  val moderatedFirehoseAccountsJsonV400 = ModeratedFirehoseAccountsJsonV400(List(moderatedFirehoseAccountJsonV400))
+
   val aggregateMetricsJSONV300 = AggregateMetricJSON(
     count = 7076,
     average_response_time = 65.21,
@@ -3328,19 +3342,6 @@ object SwaggerDefinitionsJSON {
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
     value = "2012-04-23"
-  )
-
-  val moderatedCoreAccountJsonV310 = ModeratedCoreAccountJsonV310(
-    id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
-    bank_id= "String",
-    label= "String",
-    number= "String",
-    owners =  List(userJSONV121),
-    `type`= "String",
-    balance = amountOfMoneyJsonV121,
-    account_routings = List(accountRoutingJsonV121),
-    account_rules = List(accountRuleJsonV300),
-    account_attributes = List(accountAttributeResponseJson)
   )
 
   val moderatedAccountJSON310 = ModeratedAccountJSON310(
