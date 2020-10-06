@@ -1075,7 +1075,7 @@ trait APIMethods210 {
           |  * description : A longer description
           |  * charge : The charge to the customer for each one of these
           |
-          |${authenticationRequiredMessage(getTransactionTypesIsPublic)}""",
+          |${authenticationRequiredMessage(getTransactionTypesIsPublic)}""".stripMargin,
       transactionTypeJsonV200,
       transactionType,
       List(
@@ -1123,7 +1123,7 @@ trait APIMethods210 {
           |* Geo Location
           |* License the data under this endpoint is released under
           |
-          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
+          |${authenticationRequiredMessage(!getAtmsIsPublic)}""".stripMargin,
       emptyObjectJson,
       atmJson,
       List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
@@ -1168,7 +1168,7 @@ trait APIMethods210 {
           |* Geo Location
           |* License the data under this endpoint is released under
           |
-        |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
+        |${authenticationRequiredMessage(!getBranchesIsPublic)}""".stripMargin,
       emptyObjectJson,
       branchJson,
       List(
@@ -1219,7 +1219,7 @@ trait APIMethods210 {
           |* Description
           |* Terms and Conditions
           |* License the data under this endpoint is released under
-          |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+          |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       emptyObjectJson,
       productJsonV210,
       List(
@@ -1269,7 +1269,7 @@ trait APIMethods210 {
           |* Description
           |* Terms and Conditions
           |* License the data under this endpoint is released under
-          |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+          |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       emptyObjectJson,
       productsJsonV210,
       List(
@@ -1437,7 +1437,7 @@ trait APIMethods210 {
       s"""Returns a list of Customers at the Bank that are linked to the currently authenticated User.
         |
         |
-        |${authenticationRequiredMessage(true)}""",
+        |${authenticationRequiredMessage(true)}""".stripMargin,
       emptyObjectJson,
       customerJSONs,
       List(

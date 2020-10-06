@@ -2544,7 +2544,7 @@ trait APIMethods310 {
          |* Terms and Conditions
          |* License the data under this endpoint is released under
          |
-         |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+         |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       emptyObjectJson,
       productJsonV310,
       List(
@@ -2600,7 +2600,7 @@ trait APIMethods310 {
          |
          |
          |
-         |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+         |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       emptyObjectJson,
       childProductTreeJsonV310,
       List(
@@ -2661,7 +2661,7 @@ trait APIMethods310 {
          |Can filter with attributes name and values.
          |URL params example: /banks/some-bank-id/products?manager=John&count=8
          |
-         |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+         |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       emptyObjectJson,
       productsJsonV310,
       List(
@@ -4933,9 +4933,9 @@ trait APIMethods310 {
       "GET",
       "/management/banks/BANK_ID/cards",
       "Get Cards for the specified bank",
-      """Should be able to filter on the following fields
+      s"""Should be able to filter on the following fields
         |
-        |eg:/management/banks/BANK_ID/cards?customer_id=66214b8e-259e-44ad-8868-3eb47be70646$account_id=8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0
+        |eg:/management/banks/BANK_ID/cards?customer_id=66214b8e-259e-44ad-8868-3eb47be70646&account_id=8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0
         |
         |1 customer_id should be valid customer_id, otherwise, it will return an empty card list.  
         |

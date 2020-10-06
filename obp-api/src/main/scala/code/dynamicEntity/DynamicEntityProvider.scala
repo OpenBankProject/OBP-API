@@ -33,7 +33,8 @@ trait DynamicEntityT {
 
   //---------util methods
 
-  private lazy val definition: JObject = parse(metadataJson).asInstanceOf[JObject]
+  lazy val userIdJobject: JObject = ("userId" -> userId)
+  private lazy val definition: JObject = parse(metadataJson).asInstanceOf[JObject] merge userIdJobject
   //convert metadataJson to JValue, so the final json field metadataJson have no escaped " to \", have good readable
   lazy val jValue = dynamicEntityId match {
     case Some(id) => {
@@ -105,6 +106,12 @@ trait DynamicEntityT {
       case list => Some(list.mkString("; "))
     }
   }
+
+  /**
+   * The user who created the DynamicEntity
+   * @return
+   */
+  def userId: String
 }
 
 object ReferenceType {
@@ -337,7 +344,8 @@ object ReferenceType {
 
 case class DynamicEntityCommons(entityName: String,
                                 metadataJson: String,
-                                dynamicEntityId: Option[String] = None
+                                dynamicEntityId: Option[String] = None,
+                                userId: String 
                                ) extends DynamicEntityT with JsonFieldReName
 
 object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommons] {
@@ -373,7 +381,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
    * @param dynamicEntityId
    * @return object of DynamicEntityCommons
    */
-  def apply(jsonObject: JObject, dynamicEntityId: Option[String]): DynamicEntityCommons = {
+  def apply(jsonObject: JObject, dynamicEntityId: Option[String], userId: String): DynamicEntityCommons = {
 
     def checkFormat(requirement: Boolean, message: String) = {
       if (!requirement) throw new IllegalArgumentException(message)
@@ -489,7 +497,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       }
     })
 
-    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId)
+    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId)
   }
 
   private def allowedFieldType: List[String] = DynamicEntityFieldType.values.map(_.toString) ++: ReferenceType.referenceTypeNames
@@ -499,7 +507,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
  * example case classes, as an example schema of DynamicEntity, for request body example usage
  * @param FooBar
  */
-case class DynamicEntityFooBar(FooBar: DynamicEntityDefinition, dynamicEntityId: Option[String] = None)
+case class DynamicEntityFooBar(FooBar: DynamicEntityDefinition, dynamicEntityId: Option[String] = None, userId: Option[String] = None)
 case class DynamicEntityDefinition(description: String, required: List[String],properties: DynamicEntityFullBarFields)
 case class DynamicEntityFullBarFields(name: DynamicEntityStringTypeExample, number: DynamicEntityIntTypeExample)
 case class DynamicEntityStringTypeExample(`type`: DynamicEntityFieldType, minLength: Int, maxLength: Int, example: String, description: String)
@@ -513,6 +521,8 @@ trait DynamicEntityProvider {
   def getByEntityName(entityName: String): Box[DynamicEntityT]
 
   def getDynamicEntities(): List[DynamicEntityT]
+  
+  def getDynamicEntitiesByUserId(userId: String): List[DynamicEntity]
 
   def createOrUpdate(dynamicEntity: DynamicEntityT): Box[DynamicEntityT]
 

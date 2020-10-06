@@ -576,5 +576,12 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
       returnValue should be (ExpectResult)
     }
   }
+
+  feature("test APIUtil.firstCharToLowerCase method") {
+    APIUtil.firstCharToLowerCase("ABC") should be ("aBC")
+    APIUtil.firstCharToLowerCase("") should be ("")
+    APIUtil.firstCharToLowerCase(null) should be ("")
+    APIUtil.firstCharToLowerCase("aaaa") should be ("aaaa")
+  }
   
 }
