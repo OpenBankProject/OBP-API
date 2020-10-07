@@ -2006,6 +2006,7 @@ object ExampleValue {
 
   lazy val dynamicEntityRequestBodyExample = DynamicEntityFooBar(
     DynamicEntityDefinition(
+      Some(ExampleValue.bankIdExample.value),
       "description of this entity, can be markdown text.",
       List("name"),
       DynamicEntityFullBarFields(

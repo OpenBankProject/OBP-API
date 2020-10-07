@@ -30,7 +30,26 @@ trait DynamicEntityT {
   def entityName: String
   def metadataJson: String
 
+  /**
+   * The user who created the DynamicEntity
+   * @return
+   */
+  def userId: String
 
+  /**
+   * Add Option(bank_id) to Dynamic Entity.
+   * Then we should treat the two cases very separately.
+   *
+   * bank_id is NULL
+   * These are the current "system" Dynamic Entities
+   *
+   * new Role CanGetAnySystemDynamicEntityInstance (bank_ID IS NULL) = Need this
+   *
+   * bank_id is NOT NULL
+   * These will be the new Bank level Dynamic Entities
+   *
+   */
+  def bankId: Option[String]
   //---------util methods
 
   lazy val userIdJobject: JObject = ("userId" -> userId)
@@ -106,12 +125,6 @@ trait DynamicEntityT {
       case list => Some(list.mkString("; "))
     }
   }
-
-  /**
-   * The user who created the DynamicEntity
-   * @return
-   */
-  def userId: String
 }
 
 object ReferenceType {
@@ -345,7 +358,8 @@ object ReferenceType {
 case class DynamicEntityCommons(entityName: String,
                                 metadataJson: String,
                                 dynamicEntityId: Option[String] = None,
-                                userId: String 
+                                userId: String,
+                                bankId: Option[String] 
                                ) extends DynamicEntityT with JsonFieldReName
 
 object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommons] {
@@ -356,6 +370,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
    * @param jsonObject the follow schema json:
    * {{{
    *   {
+   *     "BankId": "gh.29.uk",
    *     "FooBar": {
    *         "description": "description of this entity, can be markdown text.",
    *         "required": [
@@ -391,9 +406,12 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
 
     // validate whether json is object and have a single field, currently support one entity definition
     checkFormat(fields.nonEmpty, s"$DynamicEntityInstanceValidateFail The Json root object should have a single entity, but current have none.")
-    checkFormat(fields.size == 1, s"$DynamicEntityInstanceValidateFail The Json root object should have a single entity, but current entityNames: ${fields.map(_.name).mkString(",  ")}")
+    checkFormat(fields.size <= 2, s"$DynamicEntityInstanceValidateFail The Json root object should at most two fields: entity and BankId, but current entityNames: ${fields.map(_.name).mkString(",  ")}")
 
-    val JField(entityName, metadataJson) = fields.head
+    val bankId: Option[String] = fields.filter(_.name=="BankId").map(_.value.asInstanceOf[JString].values).headOption
+    
+    val JField(entityName, metadataJson) = fields.filter(_.name!="BankId").head
+    
     val namePattern = "[-_A-Za-z0-9]+".r.pattern
     // validate entity name
     checkFormat(namePattern.matcher(entityName).matches(), s"$DynamicEntityInstanceValidateFail The entity name should contains characters [-_A-Za-z0-9], but current entity name: $entityName")
@@ -497,7 +515,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       }
     })
 
-    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId)
+    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId)
   }
 
   private def allowedFieldType: List[String] = DynamicEntityFieldType.values.map(_.toString) ++: ReferenceType.referenceTypeNames
@@ -508,7 +526,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
  * @param FooBar
  */
 case class DynamicEntityFooBar(FooBar: DynamicEntityDefinition, dynamicEntityId: Option[String] = None, userId: Option[String] = None)
-case class DynamicEntityDefinition(description: String, required: List[String],properties: DynamicEntityFullBarFields)
+case class DynamicEntityDefinition(bankId: Option[String], description: String, required: List[String],properties: DynamicEntityFullBarFields)
 case class DynamicEntityFullBarFields(name: DynamicEntityStringTypeExample, number: DynamicEntityIntTypeExample)
 case class DynamicEntityStringTypeExample(`type`: DynamicEntityFieldType, minLength: Int, maxLength: Int, example: String, description: String)
 case class DynamicEntityIntTypeExample(`type`: DynamicEntityFieldType, example: Int, description: String)

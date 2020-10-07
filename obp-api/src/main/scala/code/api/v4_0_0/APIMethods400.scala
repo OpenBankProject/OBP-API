@@ -1117,6 +1117,9 @@ trait APIMethods400 {
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
+         | Note: BankId filed is optional, 
+         |          if you add it, the entity will be the Bank level.
+         |          if you omit it, the entity will be the System level.  
          |""",
       dynamicEntityRequestBodyExample,
       dynamicEntityResponseBodyExample,
