@@ -630,12 +630,6 @@ class Boot extends MdcLoggable {
       val owner = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined
       val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).isDefined
       val accountant = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).isDefined
-      val readAccountBasic = Views.views.vend.getOrCreateSystemView(READ_ACCOUNTS_BASIC_VIEW_ID).isDefined
-      val readAccountDetail = Views.views.vend.getOrCreateSystemView(READ_ACCOUNTS_DETAIL_VIEW_ID).isDefined
-      val readAccountBalance = Views.views.vend.getOrCreateSystemView(READ_BALANCES_VIEW_ID).isDefined
-      val readAccountTransactionBasic = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_BASIC_VIEW_ID).isDefined
-      val readAccountTransactionDebits = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_DEBITS_VIEW_ID).isDefined
-      val readAccountTransactionDetails = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_DETAIL_VIEW_ID).isDefined
       // Only create Firehose view if they are enabled at instance.
       val accountFirehose = if (ApiPropsWithAlias.allowAccountFirehose)
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
@@ -647,6 +641,21 @@ class Boot extends MdcLoggable {
            |System view ${SYSTEM_AUDITOR_VIEW_ID} exists/created at the instance: ${auditor}
            |System view ${SYSTEM_ACCOUNTANT_VIEW_ID} exists/created at the instance: ${accountant}
            |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${accountFirehose}
+           |""".stripMargin
+      logger.info(comment)
+    }
+
+    if (APIUtil.getPropsAsBoolValue("create_open_finance_system_views_at_boot", false)){
+      // Create system views
+      val readAccountBasic = Views.views.vend.getOrCreateSystemView(READ_ACCOUNTS_BASIC_VIEW_ID).isDefined
+      val readAccountDetail = Views.views.vend.getOrCreateSystemView(READ_ACCOUNTS_DETAIL_VIEW_ID).isDefined
+      val readAccountBalance = Views.views.vend.getOrCreateSystemView(READ_BALANCES_VIEW_ID).isDefined
+      val readAccountTransactionBasic = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_BASIC_VIEW_ID).isDefined
+      val readAccountTransactionDebits = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_DEBITS_VIEW_ID).isDefined
+      val readAccountTransactionDetails = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_DETAIL_VIEW_ID).isDefined
+
+      val comment: String =
+        s"""
            |System view ${READ_ACCOUNTS_BASIC_VIEW_ID} exists/created at the instance: ${readAccountBasic}
            |System view ${READ_ACCOUNTS_DETAIL_VIEW_ID} exists/created at the instance: ${readAccountDetail}
            |System view ${READ_BALANCES_VIEW_ID} exists/created at the instance: ${readAccountBalance}
