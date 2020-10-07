@@ -1492,6 +1492,7 @@ trait APIMethods200 {
               {
                 userCreated.saveMe()
                 if (userCreated.saved_?) {
+                  AuthUser.grantDefaultEntitlementsToAuthUser(userCreated)
                   val json = JSONFactory200.createUserJSONfromAuthUser(userCreated)
                   successJsonResponse(Extraction.decompose(json), 201)
                 }

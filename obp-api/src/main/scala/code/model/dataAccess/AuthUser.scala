@@ -581,7 +581,7 @@ import net.liftweb.util.Helpers._
         (bccEmail.toList.map(BCC(_))) :_* )
   }
   
-   private def grantDefaultEntitlementsToAuthUser(user: TheUserType) = {
+   def grantDefaultEntitlementsToAuthUser(user: TheUserType) = {
      tryo{getResourceUserByUsername(user.username.get).head.userId} match {
        case Full(userId)=>APIUtil.grantDefaultEntitlementsToNewUser(userId)
        case _ => logger.error("Can not getResourceUserByUsername here, so it breaks the grantDefaultEntitlementsToNewUser process.")
