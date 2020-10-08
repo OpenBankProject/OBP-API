@@ -416,3 +416,16 @@
         display: none;
     }
 }
+
+/*when micro-soft black-on-white mode */
+@media screen and (-ms-high-contrast: active), (-ms-high-contrast: black-on-white) {
+    #main-faq img{
+        background-color: #000000;
+    }
+}
+/*when micro-soft white-on-black mode。*/
+@media screen and (-ms-high-contrast: white-on-black) {
+    #main-faq img {
+        background-color: #FFFFFF;
+    }
+}
