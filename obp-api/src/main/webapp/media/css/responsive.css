@@ -26,6 +26,14 @@
         width: 120px;
     }
 }
+@media only screen and (max-width: 415px) {
+    #main-support #main-support_place_holder{
+        display: block;
+    }
+    #main-support .col-xs-1{
+        display: none;
+    }
+}
 @media only screen and (max-width: 759px){
     #cookies-consent-font,
     #cookies-consent-button {
