@@ -104,6 +104,8 @@ nav .navbar-collapse.collapse {
     background-image: url(/media/images/Path.png);
     background-repeat:no-repeat;
     background-size: 18px 18px;
+    border:0;
+    background-color: #FFFFFF;
 }
 #small-screen-navbar #small-nav-logo{
     width: 74px;
@@ -175,7 +177,8 @@ nav .navbar-collapse.collapse {
     background-image: url(/media/images/cross-icon.jpg);
     background-repeat:no-repeat;
     background-size: 18px 18px;
-
+    border:0;
+    background-color: #FFFFFF;
 }
 
 #obp-sidebar{
