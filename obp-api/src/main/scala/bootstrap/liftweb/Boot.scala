@@ -643,27 +643,26 @@ class Boot extends MdcLoggable {
            |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${accountFirehose}
            |""".stripMargin
       logger.info(comment)
-    }
 
-    if (APIUtil.getPropsAsBoolValue("create_open_finance_system_views_at_boot", false)){
-      // Create system views
-      val readAccountBasic = Views.views.vend.getOrCreateSystemView(READ_ACCOUNTS_BASIC_VIEW_ID).isDefined
-      val readAccountDetail = Views.views.vend.getOrCreateSystemView(READ_ACCOUNTS_DETAIL_VIEW_ID).isDefined
-      val readAccountBalance = Views.views.vend.getOrCreateSystemView(READ_BALANCES_VIEW_ID).isDefined
-      val readAccountTransactionBasic = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_BASIC_VIEW_ID).isDefined
-      val readAccountTransactionDebits = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_DEBITS_VIEW_ID).isDefined
-      val readAccountTransactionDetails = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_DETAIL_VIEW_ID).isDefined
-
-      val comment: String =
-        s"""
-           |System view ${READ_ACCOUNTS_BASIC_VIEW_ID} exists/created at the instance: ${readAccountBasic}
-           |System view ${READ_ACCOUNTS_DETAIL_VIEW_ID} exists/created at the instance: ${readAccountDetail}
-           |System view ${READ_BALANCES_VIEW_ID} exists/created at the instance: ${readAccountBalance}
-           |System view ${READ_TRANSACTIONS_BASIC_VIEW_ID} exists/created at the instance: ${readAccountTransactionBasic}
-           |System view ${READ_TRANSACTIONS_DEBITS_VIEW_ID} exists/created at the instance: ${readAccountTransactionDebits}
-           |System view ${READ_TRANSACTIONS_DETAIL_VIEW_ID} exists/created at the instance: ${readAccountTransactionDetails}
-           |""".stripMargin
-      logger.info(comment)
+      APIUtil.getPropsValue("ViewSetUKOpenBanking") match {
+        case Full(value) =>
+          val viewSetUKOpenBanking = value.split(",").map(_.trim).toList
+          val viewsUKOpenBanking = List(
+            READ_ACCOUNTS_BASIC_VIEW_ID, READ_ACCOUNTS_DETAIL_VIEW_ID,
+            READ_BALANCES_VIEW_ID, READ_TRANSACTIONS_BASIC_VIEW_ID,
+            READ_TRANSACTIONS_DEBITS_VIEW_ID, READ_TRANSACTIONS_DETAIL_VIEW_ID
+          )
+          for {
+            systemView <- viewSetUKOpenBanking
+            if viewsUKOpenBanking.exists(_ == systemView)
+          } {
+            Views.views.vend.getOrCreateSystemView(systemView)
+            val comment = s"System view ${systemView} exists/created at the instance"
+            logger.info(comment)
+          }
+        case _ => // Do nothing
+      }
+      
     }
 
     //see the notes for this method:
