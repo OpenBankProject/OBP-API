@@ -65,6 +65,8 @@ import net.liftweb.json.{compactRender, _}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json._
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.{List, Nil}
@@ -1412,26 +1414,9 @@ trait APIMethods400 {
     }
 
     lazy val genericEndpoint: OBPEndpoint = {
-//      case EntityName(entityName) :: Nil JsonGet req => { cc =>
-//        val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
-//        for {
-//          (Full(u), callContext) <- authenticatedAccess(cc)
-//          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
-//          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
-//          resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
-//        } yield {
-//          import net.liftweb.json.JsonDSL._
-//
-//          val jValue: JObject = listName -> filterDynamicObjects(resultList, req)
-//          (jValue, HttpCode.`200`(Some(cc)))
-//        }
-//      }
-        // Forbar
-        // banks/bank_id/Foobar difference: 
-        // If it has the BankId, then can not return any data.
-        // if one entity has bankId, need to see if it is the same as in the URL.
       case EntityName(bankId, entityName, id, dynamicEntityInfo) JsonGet req => { cc =>
         val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
+        val sigleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId) is wrong. ") {
@@ -1440,7 +1425,6 @@ trait APIMethods400 {
             else //If it is the system entity, we just return true.
               true
           }
-          
           (_, callContext ) <- 
             if(dynamicEntityInfo.bankId.isDefined) { //if it is the bank level entity, we need to check the bankId
               NewStyle.function.getBank(BankId(bankId), callContext) 
@@ -1449,49 +1433,69 @@ trait APIMethods400 {
             }
           
           _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, dynamicEntityInfo.bankId), callContext)
-          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, dynamicEntityInfo.bankId, Some(cc))
-          resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
+          (box, _) <- if(id==""){
+              NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, dynamicEntityInfo.bankId, Some(cc))
+            } else{
+              NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), dynamicEntityInfo.bankId, Some(cc))
+            }
+          
+          _<- if(id==""){
+            Future{""}
+          } else{
+            Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {box.isDefined}
+          }
         } yield {
-          import net.liftweb.json.JsonDSL._
-          import net.liftweb.json._
-          val bankIdJobject: JObject = ("bank_id" -> dynamicEntityInfo.bankId.getOrElse(""))
-          val result: JObject = (listName -> filterDynamicObjects(resultList, req))
-          val jValue = bankIdJobject merge result
+          val jValue = if(id=="") {
+            val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
+            val bankIdJobject: JObject = ("bank_id" -> dynamicEntityInfo.bankId.getOrElse(""))
+            val result: JObject = (listName -> filterDynamicObjects(resultList, req))
+            bankIdJobject merge result
+          }else{
+            val sigleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
+            val bankIdJobject: JObject = ("bank_id" -> dynamicEntityInfo.bankId.getOrElse(""))
+            val result: JObject = (sigleName -> sigleObject)
+            bankIdJobject merge result
+          }
           (jValue, HttpCode.`200`(Some(cc)))
         }
       }
-//      case EntityName(bankId, entityName, id) JsonGet req => {cc =>
+        
+//      case EntityName(bankId, entityName, id, dynamicEntityInfo) JsonPost json -> _ => {cc =>
 //        for {
 //          (Full(u), callContext) <- authenticatedAccess(cc)
+//          _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId) is wrong. ") {
+//            if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
+//              bankId.equals(dynamicEntityInfo.bankId.get)
+//            else //If it is the system entity, we just return true.
+//              true
+//          }
 //          (_, callContext ) <- if(bankId == "") {
 //            Future{("", callContext)}
 //          } else {
 //            NewStyle.function.getBank(BankId(bankId), callContext)
 //          }
-//          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
-//          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
-//          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
-//            box.isDefined
-//          }
-//          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-//        } yield {
-//          (entity, HttpCode.`200`(Some(cc)))
-//        }
-//      }
-//      case EntityName(entityName, bankId) :: Nil JsonPost json -> _ => {cc =>
-//        for {
-//          (Full(u), callContext) <- authenticatedAccess(cc)
-//          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canCreateRole(entityName), callContext)
+//          _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canCreateRole(entityName, dynamicEntityInfo.bankId), callContext)
 //          (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, Some(cc))
 //          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
 //        } yield {
 //          (entity, HttpCode.`201`(Some(cc)))
 //        }
 //      }
-//      case EntityName(entityName, id) JsonPut json -> _ => { cc =>
+//      case EntityName(bankId, entityName, id, dynamicEntityInfo) JsonPut json -> _ => { cc =>
 //        for {
 //          (Full(u), callContext) <- authenticatedAccess(cc)
-//          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canUpdateRole(entityName), callContext)
+//          _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId) is wrong. ") {
+//            if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
+//              bankId.equals(dynamicEntityInfo.bankId.get)
+//            else //If it is the system entity, we just return true.
+//              true
+//          }
+//          (_, callContext ) <- if(bankId == "") {
+//            Future{("", callContext)}
+//          } else {
+//            NewStyle.function.getBank(BankId(bankId), callContext)
+//          }
+//          _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canUpdateRole(entityName, dynamicEntityInfo.bankId), callContext)
 //          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
 //          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
 //            box.isDefined
@@ -1502,10 +1506,21 @@ trait APIMethods400 {
 //          (entity, HttpCode.`200`(Some(cc)))
 //        }
 //      }
-//      case EntityName(entityName, id) JsonDelete req => { cc =>
+//      case EntityName(bankId, entityName, id, dynamicEntityInfo) JsonDelete req => { cc =>
 //        for {
 //          (Full(u), callContext) <- authenticatedAccess(cc)
-//          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canDeleteRole(entityName), callContext)
+//          _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId) is wrong. ") {
+//            if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
+//              bankId.equals(dynamicEntityInfo.bankId.get)
+//            else //If it is the system entity, we just return true.
+//              true
+//          }
+//          (_, callContext ) <- if(bankId == "") {
+//            Future{("", callContext)}
+//          } else {
+//            NewStyle.function.getBank(BankId(bankId), callContext)
+//          }
+//          _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canDeleteRole(entityName, dynamicEntityInfo.bankId), callContext)
 //          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
 //          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
 //            box.isDefined

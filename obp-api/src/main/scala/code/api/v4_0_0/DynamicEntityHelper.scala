@@ -4,7 +4,7 @@ import code.api.util.APIUtil.{EmptyBody, ResourceDoc, authenticationRequiredMess
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
 import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{APIUtil, ApiRole, ApiTag, NewStyle}
+import code.api.util.{APIUtil, ApiRole, ApiTag, ExampleValue, NewStyle}
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonDSL._
@@ -290,6 +290,8 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
   val idName = StringUtils.uncapitalize(entityName) + "Id"
 
   val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
+  
+  val sigleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
 
   val jsonTypeMap: Map[String, Class[_]] = DynamicEntityFieldType.nameToValue.mapValues(_.jValueType)
 
@@ -357,9 +359,17 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
     val exampleFields = fields.map(field => JField(field.name, extractExample(field.value)))
     JObject(exampleFields)
   }
-  def getSingleExample: JObject = JObject(JField(idName, JString(generateUUID())) :: getSingleExampleWithoutId.obj)
+  val bankIdJObject: JObject = ("bank-id" -> ExampleValue.bankIdExample.value)
+  
+  def getSingleExample: JObject = {
+    val SingleObject: JObject = (sigleName -> (JObject(JField(idName, JString(generateUUID())) :: getSingleExampleWithoutId.obj)))
+    bankIdJObject merge SingleObject
+  } 
 
-  def getExampleList: JObject =   listName -> JArray(List(getSingleExample))
+  def getExampleList: JObject =  {
+    val objectList: JObject = (listName -> JArray(List(getSingleExample)))
+    bankIdJObject merge objectList 
+  } 
 
   val canCreateRole: ApiRole = DynamicEntityInfo.canCreateRole(entityName, bankId)
   val canUpdateRole: ApiRole = DynamicEntityInfo.canUpdateRole(entityName, bankId)
