@@ -2040,13 +2040,13 @@ object NewStyle {
         entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(dynamicEntityId)
         deleteEntityResult <- DynamicEntityProvider.connectorMethodProvider.vend.delete(entity)
         deleteEntitleMentResult <- if(deleteEntityResult) {
-          Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName)
+          Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName, entity.bankId)
         } else {
           Box !! false
         }
       } yield {
         if(deleteEntitleMentResult) {
-          DynamicEntityInfo.roleNames(entity.entityName).foreach(ApiRole.removeDynamicApiRole(_))
+          DynamicEntityInfo.roleNames(entity.entityName, entity.bankId).foreach(ApiRole.removeDynamicApiRole(_))
         }
         deleteEntitleMentResult
       }

@@ -17,11 +17,20 @@ import scala.collection.mutable.ArrayBuffer
 
 
 object EntityName {
-
-  def unapply(entityName: String): Option[String] = DynamicEntityHelper.definitionsMap.keySet.find(entityName ==)
-
-  def unapply(url: List[String]): Option[(String, String)] = url match {
-    case entityName :: id :: Nil => DynamicEntityHelper.definitionsMap.keySet.find(entityName ==).map((_, id))
+//                                         BankId, entityName, id, DynamicEntityInfo
+  def unapply(url: List[String]): Option[(String, String, String, DynamicEntityInfo)] = url match {
+    //no bank:
+    //eg: /FooBar21
+    case entityName ::  Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => ("", entityName, "", definitionMap._2))
+    //eg: /FooBar21/FOO_BAR21_ID
+    case entityName :: id :: Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => ("", entityName, id, definitionMap._2))
+      
+    //contains Bank:
+    //eg: /Banks/BANK_ID/FooBar21
+    case banks :: bankId :: entityName :: Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => (bankId, entityName, "", definitionMap._2))
+    //eg: /Banks/BANK_ID/FooBar21/FOO_BAR21_ID
+    case banks :: bankId :: entityName :: id :: Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => (bankId,entityName, id, definitionMap._2))
+      
     case _ => None
   }
 
@@ -31,7 +40,7 @@ object DynamicEntityHelper {
 
   def definitionsMap: Map[String, DynamicEntityInfo] = NewStyle.function.getDynamicEntities().map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId))).toMap
 
-  def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities().flatMap(dEntity => DynamicEntityInfo.roleNames(dEntity.entityName))
+  def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities().flatMap(dEntity => DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId))
 
   def doc: ArrayBuffer[ResourceDoc] = {
     val addPrefix = APIUtil.getPropsAsBoolValue("dynamic_entities_have_prefix", true)
@@ -352,20 +361,22 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
 
   def getExampleList: JObject =   listName -> JArray(List(getSingleExample))
 
-  val canCreateRole: ApiRole = DynamicEntityInfo.canCreateRole(entityName)
-  val canUpdateRole: ApiRole = DynamicEntityInfo.canUpdateRole(entityName)
-  val canGetRole: ApiRole = DynamicEntityInfo.canGetRole(entityName)
-  val canDeleteRole: ApiRole = DynamicEntityInfo.canDeleteRole(entityName)
+  val canCreateRole: ApiRole = DynamicEntityInfo.canCreateRole(entityName, bankId)
+  val canUpdateRole: ApiRole = DynamicEntityInfo.canUpdateRole(entityName, bankId)
+  val canGetRole: ApiRole = DynamicEntityInfo.canGetRole(entityName, bankId)
+  val canDeleteRole: ApiRole = DynamicEntityInfo.canDeleteRole(entityName, bankId)
 }
 
 object DynamicEntityInfo {
-  def canCreateRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanCreateDynamicEntity_" + entityName)
-  def canUpdateRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanUpdateDynamicEntity_" + entityName)
-  def canGetRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanGetDynamicEntity_" + entityName)
-  def canDeleteRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanDeleteDynamicEntity_" + entityName)
+  def canCreateRole(entityName: String, bankId:Option[String]): ApiRole = getOrCreateDynamicApiRole("CanCreateDynamicEntity_" + entityName, bankId.isDefined)
+  def canUpdateRole(entityName: String, bankId:Option[String]): ApiRole = getOrCreateDynamicApiRole("CanUpdateDynamicEntity_" + entityName, bankId.isDefined)
+  def canGetRole(entityName: String, bankId:Option[String]): ApiRole = getOrCreateDynamicApiRole("CanGetDynamicEntity_" + entityName, bankId.isDefined)
+  def canDeleteRole(entityName: String, bankId:Option[String]): ApiRole = getOrCreateDynamicApiRole("CanDeleteDynamicEntity_" + entityName, bankId.isDefined)
 
-  def roleNames(entityName: String): List[String] = List(
-      canCreateRole(entityName), canUpdateRole(entityName),
-      canGetRole(entityName), canDeleteRole(entityName)
-    ).map(_.toString())
+  def roleNames(entityName: String, bankId:Option[String]): List[String] = List(
+    canCreateRole(entityName, bankId), 
+    canUpdateRole(entityName, bankId),
+    canGetRole(entityName, bankId), 
+    canDeleteRole(entityName, bankId)
+  ).map(_.toString())
 }
