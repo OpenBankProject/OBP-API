@@ -644,13 +644,13 @@ class Boot extends MdcLoggable {
            |""".stripMargin
       logger.info(comment)
 
-      APIUtil.getPropsValue("ViewSetUKOpenBanking") match {
+      APIUtil.getPropsValue("additional_system_views") match {
         case Full(value) =>
           val viewSetUKOpenBanking = value.split(",").map(_.trim).toList
           val viewsUKOpenBanking = List(
-            READ_ACCOUNTS_BASIC_VIEW_ID, READ_ACCOUNTS_DETAIL_VIEW_ID,
-            READ_BALANCES_VIEW_ID, READ_TRANSACTIONS_BASIC_VIEW_ID,
-            READ_TRANSACTIONS_DEBITS_VIEW_ID, READ_TRANSACTIONS_DETAIL_VIEW_ID
+            SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID, SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID,
+            SYSTEM_READ_BALANCES_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID,
+            SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID, SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID
           )
           for {
             systemView <- viewSetUKOpenBanking

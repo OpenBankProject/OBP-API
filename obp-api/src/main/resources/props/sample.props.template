@@ -801,16 +801,17 @@ database_messages_scheduler_interval=3600
 # When you set this props, need to make sure this port is available.  
 # grpc.server.port = 50051
 
-# Create System Views At Boot
+# Create System Views At Boot -----------------------------------------------
 # In case is not defined default value is true
-#create_system_views_at_boot=true
-#ViewSetUKOpenBanking=ReadAccountsBasic,\
-                      ReadAccountsDetail,\
-                      ReadBalances,\
-                      ReadTransactionsBasic,\
-                      ReadTransactionsDebits,\
-                      ReadTransactionsDetail
-                      
+# create_system_views_at_boot=true
+# additional_system_views=
+# Possible values for additional_system_views are: ReadAccountsBasic,\
+                                                    ReadAccountsDetail,\
+                                                    ReadBalances,\
+                                                    ReadTransactionsBasic,\
+                                                    ReadTransactionsDebits,\
+                                                    ReadTransactionsDetail
+# -----------------------------------------------------------------------------
                       
 
 
