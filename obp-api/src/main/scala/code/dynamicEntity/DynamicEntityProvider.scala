@@ -408,9 +408,9 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
     checkFormat(fields.nonEmpty, s"$DynamicEntityInstanceValidateFail The Json root object should have a single entity, but current have none.")
     checkFormat(fields.size <= 2, s"$DynamicEntityInstanceValidateFail The Json root object should at most two fields: entity and BankId, but current entityNames: ${fields.map(_.name).mkString(",  ")}")
 
-    val bankId: Option[String] = fields.filter(_.name=="BankId").map(_.value.asInstanceOf[JString].values).headOption
+    val bankId: Option[String] = fields.filter(_.name=="bankId").map(_.value.asInstanceOf[JString].values).headOption
     
-    val JField(entityName, metadataJson) = fields.filter(_.name!="BankId").head
+    val JField(entityName, metadataJson) = fields.filter(_.name!="bankId").head
     
     val namePattern = "[-_A-Za-z0-9]+".r.pattern
     // validate entity name
@@ -525,8 +525,8 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
  * example case classes, as an example schema of DynamicEntity, for request body example usage
  * @param FooBar
  */
-case class DynamicEntityFooBar(FooBar: DynamicEntityDefinition, dynamicEntityId: Option[String] = None, userId: Option[String] = None)
-case class DynamicEntityDefinition(bankId: Option[String], description: String, required: List[String],properties: DynamicEntityFullBarFields)
+case class DynamicEntityFooBar(bankId: Option[String], FooBar: DynamicEntityDefinition, dynamicEntityId: Option[String] = None, userId: Option[String] = None)
+case class DynamicEntityDefinition(description: String, required: List[String],properties: DynamicEntityFullBarFields)
 case class DynamicEntityFullBarFields(name: DynamicEntityStringTypeExample, number: DynamicEntityIntTypeExample)
 case class DynamicEntityStringTypeExample(`type`: DynamicEntityFieldType, minLength: Int, maxLength: Int, example: String, description: String)
 case class DynamicEntityIntTypeExample(`type`: DynamicEntityFieldType, example: Int, description: String)

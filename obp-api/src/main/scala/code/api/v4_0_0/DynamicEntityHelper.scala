@@ -291,7 +291,7 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
 
   val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
   
-  val sigleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
+  val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
 
   val jsonTypeMap: Map[String, Class[_]] = DynamicEntityFieldType.nameToValue.mapValues(_.jValueType)
 
@@ -361,15 +361,19 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
   }
   val bankIdJObject: JObject = ("bank-id" -> ExampleValue.bankIdExample.value)
   
-  def getSingleExample: JObject = {
-    val SingleObject: JObject = (sigleName -> (JObject(JField(idName, JString(generateUUID())) :: getSingleExampleWithoutId.obj)))
+  def getSingleExample: JObject = if (bankId.isDefined){
+    val SingleObject: JObject = (singleName -> (JObject(JField(idName, JString(generateUUID())) :: getSingleExampleWithoutId.obj)))
     bankIdJObject merge SingleObject
-  } 
+  } else{
+    (singleName -> (JObject(JField(idName, JString(generateUUID())) :: getSingleExampleWithoutId.obj)))
+  }
 
-  def getExampleList: JObject =  {
+  def getExampleList: JObject =  if (bankId.isDefined){
     val objectList: JObject = (listName -> JArray(List(getSingleExample)))
     bankIdJObject merge objectList 
-  } 
+  } else{
+    (listName -> JArray(List(getSingleExample)))
+  }
 
   val canCreateRole: ApiRole = DynamicEntityInfo.canCreateRole(entityName, bankId)
   val canUpdateRole: ApiRole = DynamicEntityInfo.canUpdateRole(entityName, bankId)
