@@ -29,7 +29,7 @@ object EntityName {
 
 object DynamicEntityHelper {
 
-  def definitionsMap: Map[String, DynamicEntityInfo] = NewStyle.function.getDynamicEntities().map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName))).toMap
+  def definitionsMap: Map[String, DynamicEntityInfo] = NewStyle.function.getDynamicEntities().map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId))).toMap
 
   def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities().flatMap(dEntity => DynamicEntityInfo.roleNames(dEntity.entityName))
 
@@ -96,6 +96,8 @@ object DynamicEntityHelper {
 
     val idNameInUrl = StringHelpers.snakify(dynamicEntityInfo.idName).toUpperCase()
     val listName = dynamicEntityInfo.listName
+    val bankId = dynamicEntityInfo.bankId
+    val resourceDocUrl = if(bankId.isDefined)  s"/banks/BANK_ID/$entityName" else  s"/$entityName"
 
     val endPoint = APIUtil.dynamicEndpointStub
     val implementedInApiVersion = ApiVersion.v4_0_0
@@ -107,7 +109,7 @@ object DynamicEntityHelper {
       implementedInApiVersion,
       s"get${entityName}List",
       "GET",
-      s"/$entityName",
+      s"$resourceDocUrl",
       s"Get $splitName List",
       s"""Get $splitName List.
          |${dynamicEntityInfo.description}
@@ -137,7 +139,7 @@ object DynamicEntityHelper {
       implementedInApiVersion,
       s"getSingle$entityName",
       "GET",
-      s"/$entityName/$idNameInUrl",
+      s"$resourceDocUrl/$idNameInUrl",
       s"Get $splitName by id",
       s"""Get $splitName by id.
          |${dynamicEntityInfo.description}
@@ -164,7 +166,7 @@ object DynamicEntityHelper {
       implementedInApiVersion,
       s"create$entityName",
       "POST",
-      s"/$entityName",
+      s"$resourceDocUrl",
       s"Create new $splitName",
       s"""Create new $splitName.
          |${dynamicEntityInfo.description}
@@ -193,7 +195,7 @@ object DynamicEntityHelper {
       implementedInApiVersion,
       s"update$entityName",
       "PUT",
-      s"/$entityName/$idNameInUrl",
+      s"$resourceDocUrl/$idNameInUrl",
       s"Update exists $splitName",
       s"""Update exists $splitName.
          |${dynamicEntityInfo.description}
@@ -222,7 +224,7 @@ object DynamicEntityHelper {
       implementedInApiVersion,
       s"delete$entityName",
       "DELETE",
-      s"/$entityName/$idNameInUrl",
+      s"$resourceDocUrl/$idNameInUrl",
       s"Delete $splitName by id",
       s"""Delete $splitName by id
          |
@@ -270,7 +272,7 @@ object DynamicEntityHelper {
       |""".stripMargin
 
 }
-case class DynamicEntityInfo(definition: String, entityName: String) {
+case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String]) {
 
   import net.liftweb.json
 
