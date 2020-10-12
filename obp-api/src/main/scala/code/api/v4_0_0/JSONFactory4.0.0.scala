@@ -458,6 +458,13 @@ case class BankAccountRoutingJson(
                                  account_routing: AccountRoutingJsonV121
                                  )
 
+case class ChallengeAnswerJson400 (
+                                 id: String,
+                                 answer: String,
+                                 reason_code: Option[String] = None,
+                                 additional_information: Option[String] = None
+                               )
+
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
