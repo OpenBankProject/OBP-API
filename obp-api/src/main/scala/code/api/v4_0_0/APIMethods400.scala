@@ -572,6 +572,17 @@ trait APIMethods400 {
       "Create Transaction Request (REFUND)",
       s"""
          |
+         |Either the `from` or the `to` field must be filled. Those fields refers to the information about the party that will be refunded.
+         |
+         |In case the `from` object is used, it means that the refund comes from the part that sent you a transaction.
+         |In the `from` object, you have two choices :
+         |- Use `bank_id` and `account_id` fields if the other account is registered on the OBP-API
+         |- Use the `counterparty_id` field in case the counterparty account is out of the OBP-API
+         |
+         |In case the `to` object is used, it means you send a request to a counterparty to ask for a refund on a previous transaction you sent.
+         |(This case is not managed by the OBP-API and require an external adapter)
+         |
+         |
          |$transactionRequestGeneralText
          |
        """.stripMargin,
@@ -694,11 +705,43 @@ trait APIMethods400 {
                     json.extract[TransactionRequestBodyRefundJsonV400]
                   }
 
+                  // TODO : create transaction request attributes to store those data somewhere else than in the description
                   transactionId = TransactionId(transactionRequestBodyRefundJson.refund.transaction_id)
-                  toBankId = BankId(transactionRequestBodyRefundJson.to.bank_id)
-                  toAccountId = AccountId(transactionRequestBodyRefundJson.to.account_id)
-                  (transaction, callContext) <- NewStyle.function.getTransaction(fromAccount.bankId, fromAccount.accountId, transactionId, cc.callContext)
-                  (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(toBankId, toAccountId, cc.callContext)
+                  refundReasonCode = transactionRequestBodyRefundJson.refund.reason_code
+
+                  (fromAccount, toAccount, transaction, callContext) <- transactionRequestBodyRefundJson.to match {
+                    case Some(refundRequestTo) if refundRequestTo.account_id.isDefined && refundRequestTo.bank_id.isDefined =>
+                      val toBankId = BankId(refundRequestTo.bank_id.get)
+                      val toAccountId = AccountId(refundRequestTo.account_id.get)
+                      for {
+                        (transaction, callContext) <- NewStyle.function.getTransaction(fromAccount.bankId, fromAccount.accountId, transactionId, cc.callContext)
+                        (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(toBankId, toAccountId, cc.callContext)
+                      } yield (fromAccount, toAccount, transaction, callContext)
+
+                    case Some(refundRequestTo) if refundRequestTo.counterparty_id.isDefined =>
+                      val toCounterpartyId = CounterpartyId(refundRequestTo.counterparty_id.get)
+                      for {
+                        (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(toCounterpartyId, cc.callContext)
+                        toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, isOutgoingAccount = true, callContext)
+                        _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
+                          toCounterparty.isBeneficiary
+                        }
+                        (transaction, callContext) <- NewStyle.function.getTransaction(fromAccount.bankId, fromAccount.accountId, transactionId, cc.callContext)
+                      } yield (fromAccount, toAccount, transaction, callContext)
+
+                    case None if transactionRequestBodyRefundJson.from.isDefined =>
+                      val fromCounterpartyId = CounterpartyId(transactionRequestBodyRefundJson.from.get.counterparty_id)
+                      val toAccount = fromAccount
+                      for {
+                        (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(fromCounterpartyId, cc.callContext)
+                        fromAccount <- NewStyle.function.getBankAccountFromCounterparty(fromCounterparty, isOutgoingAccount = false, callContext)
+                        _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
+                          fromCounterparty.isBeneficiary
+                        }
+                        (transaction, callContext) <- NewStyle.function.getTransaction(toAccount.bankId, toAccount.accountId, transactionId, cc.callContext)
+                      } yield (fromAccount, toAccount, transaction, callContext)
+                  }
+
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
                     write(transactionRequestBodyRefundJson)(Serialization.formats(NoTypeHints))
                   }
@@ -711,8 +754,8 @@ trait APIMethods400 {
 //                    !((transaction.description.toString contains(" Refund to ")) && (transaction.description.toString contains(" and transaction_id(")))
 //                  }
 
-                  //we add the extro info (counterparty name + transaction_id) for this special Refund endpoint.
-                  newDescription = s"${transactionRequestBodyRefundJson.description} - Refund for transaction_id: (${transactionId.value}) to ${transaction.otherAccount.counterpartyName}"
+                  //we add the extra info (counterparty name + transaction_id + reason_code) for this special Refund endpoint.
+                  newDescription = s"${transactionRequestBodyRefundJson.description} - Refund for transaction_id: (${transactionId.value}) to ${transaction.otherAccount.counterpartyName} - Reason code : ${refundReasonCode}"
 
                   //This is the refund endpoint, the original fromAccount is the `toAccount` which will receive money.
                   refundToAccount = fromAccount
