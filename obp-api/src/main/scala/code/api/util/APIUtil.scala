@@ -2314,6 +2314,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         t => logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight)))))
       )
       in.onFail {
+        case Failure(null, e, _) =>
+          e.foreach(logger.error("", _))
+          val errorResponse = getFilteredOrFullErrorMessage(e)
+          Full(reply.apply(errorResponse))
         case Failure(msg, _, _) =>
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
@@ -2364,7 +2368,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
         case Failure(null, e, _) =>
           e.foreach(logger.error("", _))
-          val errorResponse: JsonResponse = errorJsonResponse(UnknownError)
+          val errorResponse = getFilteredOrFullErrorMessage(e)
           Full(reply.apply(errorResponse))
         case Failure(msg, e, _) =>
           e.foreach(logger.error("", _))
@@ -2381,6 +2385,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           Full(reply.apply(errorResponse))
       }
     })
+  }
+
+  private def getFilteredOrFullErrorMessage[T](e: Box[Throwable]): JsonResponse = {
+    getPropsAsBoolValue("display_internal_errors", false) match {
+      case true => // Show all error in a chain
+        errorJsonResponse(
+          AnUnspecifiedOrInternalErrorOccurred +
+            e.map(error => " -> " + error.getCause() + " -> " + error.getStackTrace().mkString(";")).getOrElse("")
+        )
+      case false => // Do not display internal errors
+        errorJsonResponse(AnUnspecifiedOrInternalErrorOccurred)
+    }
   }
 
   implicit def scalaFutureToJsonResponse[T](scf: OBPReturnType[T])(implicit m: Manifest[T]): JsonResponse = {

@@ -92,7 +92,7 @@ in the header. This field is contained but commented out in this specification. 
 
 
              //From change from requestAccount Currency to currentBankAccount Currency
-             rate = fx.exchangeRate(requestAccountCurrency, currentAccountCurrency)
+             rate = fx.exchangeRate(requestAccountCurrency, currentAccountCurrency, Some(bankAccount.bankId.value))
 
              _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${requestAccountCurrency} to ${currentAccountCurrency}) is not supported.") {
                rate.isDefined
