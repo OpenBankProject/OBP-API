@@ -3462,7 +3462,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
      * 
      * defaultEntitlements will get the role from new_user_entitlement_list--> entitlement_list_1--> [CanGetConfig, CanCreateAccount]
      */
-    val defaultEntitlements = APIUtil.getPropsValue(APIUtil.getPropsValue("new_user_entitlement_list","")).getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+    val defaultEntitlements = APIUtil.getPropsValue(APIUtil.getPropsValue("new_user_entitlement_list","")).getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty).map(_.trim)
 
    try{
       defaultEntitlements.map(ApiRole.valueOf(_).toString()).map(Entitlement.entitlement.vend.addEntitlement("", userId, _))

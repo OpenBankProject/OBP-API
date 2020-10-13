@@ -533,7 +533,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                 case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoint) =>
                   doc.copy(successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample)
 
-                case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoints) =>
+                case doc if (doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoints) || 
+                  doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getMyDynamicEndpoints)
+                  )=>
                   doc.copy(successResponseBody = ListResult(
                     "dynamic_endpoints",
                     List(ExampleValue.dynamicEndpointResponseBodyEmptyExample)

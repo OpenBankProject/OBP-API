@@ -22,6 +22,10 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
     DynamicEntity.findAll()
   }
 
+  override def getDynamicEntitiesByBankId(bankId: String): List[DynamicEntity] = {
+    DynamicEntity.findAll(By(DynamicEntity.BankId, bankId))
+  }
+  
   override def getDynamicEntitiesByUserId(userId: String): List[DynamicEntity] = {
     DynamicEntity.findAll(By(DynamicEntity.UserId, userId))
   }
@@ -44,6 +48,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           .EntityName(dynamicEntity.entityName)
           .MetadataJson(dynamicEntity.metadataJson)
           .UserId(dynamicEntity.userId)
+          .BankId(dynamicEntity.bankId.getOrElse(null))
           .saveMe()
       } catch {
         case e =>
@@ -74,11 +79,13 @@ class DynamicEntity extends DynamicEntityT with LongKeyedMapper[DynamicEntity] w
 
   object MetadataJson extends MappedText(this)
   object UserId extends MappedString(this, 255)
+  object BankId extends MappedString(this, 255)
 
   override def dynamicEntityId: Option[String] = Option(DynamicEntityId.get)
   override def entityName: String = EntityName.get
   override def metadataJson: String = MetadataJson.get
   override def userId: String = UserId.get
+  override def bankId: Option[String] = if (BankId.get == null || BankId.get.isEmpty) None else Some(BankId.get)
 }
 
 object DynamicEntity extends DynamicEntity with LongKeyedMetaMapper[DynamicEntity] {

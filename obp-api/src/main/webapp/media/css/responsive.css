@@ -26,6 +26,14 @@
         width: 120px;
     }
 }
+@media only screen and (max-width: 415px) {
+    #main-support #main-support_place_holder{
+        display: block;
+    }
+    #main-support .col-xs-1{
+        display: none;
+    }
+}
 @media only screen and (max-width: 759px){
     #cookies-consent-font,
     #cookies-consent-button {
@@ -100,8 +108,12 @@
         margin-left: 7.2px;
     }
     #main-faq .row .main-faq-right {
-        padding-left: 16px;
-        padding-right: 60px;
+        padding-left: 0px;
+        padding-right: 0px;
+    }
+    #main-faq .row .main-faq-left {
+        padding-right: 0px;
+        padding-left: 0px;
     }
     #for-banks .api-manager-link {
         margin-top: 0;
@@ -174,10 +186,19 @@
         width: 100%;
     }
     #main-faq .main-faq-right .main-faq-button.collapsed img {
-        right: 69px;
+        right: 10px;
     }
     #main-faq .main-faq-right .main-faq-button img {
-        right: 69px;
+        right: 10px;
+    }
+    #main-faq .main-faq-left .main-faq-button.collapsed img {
+        right: 10px;
+    }
+    #main-faq .main-faq-left .main-faq-button img {
+        right: 10px;
+    }
+    #main-faq button {
+        padding-right: 20px;
     }
 }
 
@@ -414,5 +435,18 @@
     }
     #small-screen-navbar{
         display: none;
+    }
+}
+
+/*when micro-soft black-on-white mode */
+@media screen and (-ms-high-contrast: active), (-ms-high-contrast: black-on-white) {
+    #main-faq img{
+        background-color: #000000;
+    }
+}
+/*when micro-soft white-on-black mode。*/
+@media screen and (-ms-high-contrast: white-on-black) {
+    #main-faq img {
+        background-color: #FFFFFF;
     }
 }

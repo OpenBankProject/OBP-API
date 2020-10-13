@@ -56,7 +56,7 @@ Berlin 13359, Germany
 		<input id="cookies-consent-button" class="btn btn-default" type="button" value="Accept and close" onclick="removeByIdAndSaveIndicatorCookie('cookies-consent')"/>
 	</div>
 
-	<div id="toast-container" class="toast-top-right" aria-live="polite" role="alert"></div>
+	<div id="toast-container" class="toast-top-right" aria-live="polite" role="alert" aria-atomic="true"></div>
 	<div class="container">
 		<header>
 			<div id="header-decoration"></div>
@@ -157,7 +157,7 @@ Berlin 13359, Germany
 			</div>
 		</nav>
 		<div id="small-screen-navbar">
-			<div tabindex="0" role="button" aria-label="Open menu" id="small-nav-collapse" onclick="openNav()"></div>
+			<button tabindex="0" id="small-nav-collapse" onclick="openNav()"></button>
 			<div id="small-nav-logo"><a href="/" aria-label="Home Page"></a></div>
 			<div id="small-nav-log-on-button" data-lift="Nav.item?name=Login"> 
 				<a data-lift="Login.loggedOut" href="#" class="btn btn-danger login">Log on</a>
@@ -165,7 +165,7 @@ Berlin 13359, Germany
 		</div>
 		<div id="obp-sidebar" class="sidebar">
 			<div id="small-screen-navbar">
-				<div tabindex="0" role="button" aria-label="Close menu" id="small-nav-cross" onclick="closeNav()"></div>
+				<button tabindex="0" id="small-nav-cross" onclick="closeNav()"></button>
 				<div id="small-nav-logo"><a href="/" aria-label="Home Page"></a></div>
 				<div id="small-nav-log-on-button" data-lift="Nav.item?name=Login">
 					<a data-lift="Login.loggedOut" href="#" class="btn btn-danger login">Log on</a>

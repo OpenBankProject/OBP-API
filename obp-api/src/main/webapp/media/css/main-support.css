@@ -27,3 +27,6 @@
 .main-support-item a:hover {
     text-decoration: underline;
 }
+#main-support #main-support_place_holder{
+    display: none;
+}

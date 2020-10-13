@@ -2040,13 +2040,13 @@ object NewStyle {
         entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(dynamicEntityId)
         deleteEntityResult <- DynamicEntityProvider.connectorMethodProvider.vend.delete(entity)
         deleteEntitleMentResult <- if(deleteEntityResult) {
-          Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName)
+          Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName, entity.bankId)
         } else {
           Box !! false
         }
       } yield {
         if(deleteEntitleMentResult) {
-          DynamicEntityInfo.roleNames(entity.entityName).foreach(ApiRole.removeDynamicApiRole(_))
+          DynamicEntityInfo.roleNames(entity.entityName, entity.bankId).foreach(ApiRole.removeDynamicApiRole(_))
         }
         deleteEntitleMentResult
       }
@@ -2074,6 +2074,17 @@ object NewStyle {
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL second) {
           DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities()
+        }
+      }
+    }
+    
+    def getDynamicEntitiesByBankId(bankId: String): List[DynamicEntityT] = {
+      import scala.concurrent.duration._
+
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL second) {
+          DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntitiesByBankId(bankId)
         }
       }
     }
@@ -2120,6 +2131,7 @@ object NewStyle {
                                entityName: String,
                                requestBody: Option[JObject],
                                entityId: Option[String],
+                               bankId: Option[String],
                                callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
       import DynamicEntityOperation._
       val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
@@ -2158,11 +2170,11 @@ object NewStyle {
       }
 
       dynamicInstance match {
-        case empty @None => Connector.connector.vend.dynamicEntityProcess(operation, entityName, empty, entityId, callContext)
+        case empty @None => Connector.connector.vend.dynamicEntityProcess(operation, entityName, empty, entityId, bankId, callContext)
         case v @Some(body) =>
           val dynamicEntity: DynamicEntityT = dynamicEntityBox.openOrThrowException(DynamicEntityNotExists)
           dynamicEntity.validateEntityJson(body, callContext).flatMap {
-            case None => Connector.connector.vend.dynamicEntityProcess(operation, entityName, v, entityId, callContext)
+            case None => Connector.connector.vend.dynamicEntityProcess(operation, entityName, v, entityId, bankId, callContext)
             case Some(errorMsg) => Helper.booleanToFuture(s"$DynamicEntityInstanceValidateFail details: $errorMsg")(false)
               .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
           }
@@ -2255,8 +2267,8 @@ object NewStyle {
       getConnectorByName(connectorName).flatMap(_.implementedMethods.get(methodName))
     }
 
-    def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
-      (DynamicEndpointProvider.connectorMethodProvider.vend.create(swaggerString), callContext)
+    def createDynamicEndpoint(userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
+      (DynamicEndpointProvider.connectorMethodProvider.vend.create(userId, swaggerString), callContext)
     } map {
       i => (connectorEmptyResponse(i._1, callContext), i._2)
     }
@@ -2271,6 +2283,10 @@ object NewStyle {
 
     def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
       (DynamicEndpointProvider.connectorMethodProvider.vend.getAll(), callContext)
+    }
+
+    def getDynamicEndpointsByUserId(userId: String, callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
+      (DynamicEndpointProvider.connectorMethodProvider.vend.getDynamicEndpointsByUserId(userId), callContext)
     }
     /**
      * delete one DynamicEndpoint and corresponding entitlement and dynamic entitlement
