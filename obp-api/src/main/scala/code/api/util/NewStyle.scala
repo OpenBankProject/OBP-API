@@ -788,7 +788,7 @@ object NewStyle {
       }
     }
 
-    def notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[TransactionRequestStatus.Value] = {
+    def notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[TransactionRequestStatusValue] = {
       Connector.connector.vend.notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$TransactionRequestStatusNotInitiated Can't notify TransactionRequestId(${transactionRequest.id}) ", 400), i._2)
       }

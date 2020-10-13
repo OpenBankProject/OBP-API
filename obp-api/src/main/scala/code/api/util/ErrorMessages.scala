@@ -416,7 +416,7 @@ object ErrorMessages {
   val InvalidPhoneNumber = "OBP-40017: Invalid Phone Number. Please specify a valid value for PHONE_NUMBER. Eg:+9722398746 "
   val TransactionRequestsNotEnabled = "OBP-40018: Sorry, Transaction Requests are not enabled in this API instance."
   val NextChallengePending = s"OBP-40019: Cannot create transaction due to transaction request is in status: ${NEXT_CHALLENGE_PENDING}."
-  val TransactionRequestStatusNotInitiatedOrPending = s"OBP-40020: Transaction Request Status is not ${INITIATED} or ${NEXT_CHALLENGE_PENDING}."
+  val TransactionRequestStatusNotInitiatedOrPendingOrForwarded = s"OBP-40020: Transaction Request Status is not ${INITIATED} or ${NEXT_CHALLENGE_PENDING} or ${FORWARDED}."
   val InvalidChallengeTransactionRequestId = "OBP-40021: Invalid Challenge PaymentId or TRANSACTION_REQUEST_ID. "
   val InvalidChallengeChallengeId = "OBP-40022: Invalid ChallengeId. "
 
@@ -480,6 +480,7 @@ object ErrorMessages {
   val AdapterUnknownError = "OBP-60013: Adapter Unknown Error. "
   val AdapterTimeOurError = "OBP-60014: Adapter Timeout Error. "
   val AdapterFunctionNotImplemented = "OBP-60015: Adapter Function Not Implemented."
+  val SaveTransactionRequestDescriptionException = "OBP-60016: Save Transaction Request Description Exception. "
 
   // MethodRouting Exceptions (OBP-7XXXX)
   val InvalidBankIdRegex = "OBP-70001: Incorrect regex for bankIdPattern."

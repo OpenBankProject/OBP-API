@@ -161,7 +161,7 @@ case class OutBoundNotifyTransactionRequest(outboundAdapterCallContext: Outbound
                                             transactionRequest: TransactionRequest) extends TopicTrait
 
 case class InBoundNotifyTransactionRequest(inboundAdapterCallContext: InboundAdapterCallContext,
-                                           status: Status, data: TransactionRequestStatus.Value) extends InBoundTrait[TransactionRequestStatus.Value]
+                                           status: Status, data: TransactionRequestStatusValue) extends InBoundTrait[TransactionRequestStatusValue]
 
 case class OutBoundMakePaymentV400(outboundAdapterCallContext: OutboundAdapterCallContext,
                                    transactionRequest: TransactionRequest,

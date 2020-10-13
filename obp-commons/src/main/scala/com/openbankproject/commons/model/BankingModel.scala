@@ -96,6 +96,10 @@ case class TransactionRequestType(value : String) {
   override def toString = value
 }
 
+case class TransactionRequestStatusValue(value : String) {
+  override def toString = value
+}
+
 //Note: change case class -> trait, for kafka extends it
 trait TransactionRequestStatus{
   def transactionRequestId : String
