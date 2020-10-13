@@ -1095,6 +1095,41 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getBankLevelDynamicEntities,
+      implementedInApiVersion,
+      nameOf(getBankLevelDynamicEntities),
+      "GET",
+      "/banks/BANK_ID/management/dynamic-entities",
+      "Get Bank Level Dynamic Entities",
+      s"""Get all the bank level Dynamic Entities.""",
+      EmptyBody,
+      ListResult(
+        "dynamic_entities",
+        List(dynamicEntityResponseBodyExample)
+      ),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
+      Some(List(canGetBankLevelDynamicEntities))
+    )
+
+    lazy val getBankLevelDynamicEntities: OBPEndpoint = {
+      case "banks" :: bankId :: "management" :: "dynamic-entities" :: Nil JsonGet req => {
+        cc =>
+          for {
+            dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByBankId(bankId))
+          } yield {
+            val listCommons: List[DynamicEntityCommons] = dynamicEntities
+            val jObjects = listCommons.map(_.jValue)
+            (ListResult("dynamic_entities", jObjects), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
     private def createDynamicEntityDoc = ResourceDoc(
       createDynamicEntity,
       implementedInApiVersion,

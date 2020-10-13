@@ -22,6 +22,10 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
     DynamicEntity.findAll()
   }
 
+  override def getDynamicEntitiesByBankId(bankId: String): List[DynamicEntity] = {
+    DynamicEntity.findAll(By(DynamicEntity.BankId, bankId))
+  }
+  
   override def getDynamicEntitiesByUserId(userId: String): List[DynamicEntity] = {
     DynamicEntity.findAll(By(DynamicEntity.UserId, userId))
   }

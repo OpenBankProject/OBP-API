@@ -542,6 +542,8 @@ trait DynamicEntityProvider {
   
   def getDynamicEntitiesByUserId(userId: String): List[DynamicEntity]
 
+  def getDynamicEntitiesByBankId(bankId: String): List[DynamicEntity]
+
   def createOrUpdate(dynamicEntity: DynamicEntityT): Box[DynamicEntityT]
 
   def delete(dynamicEntity: DynamicEntityT):Box[Boolean]
