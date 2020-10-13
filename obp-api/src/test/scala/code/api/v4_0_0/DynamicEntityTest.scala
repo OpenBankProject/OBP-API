@@ -54,6 +54,7 @@ class DynamicEntityTest extends V400ServerSetup {
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getMyDynamicEntities))
   object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.updateMyDynamicEntity))
   object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.deleteMyDynamicEntity))
+  object ApiEndpoint8 extends Tag(nameOf(Implementations4_0_0.getBankLevelDynamicEntities))
 
   val rightEntity = parse(
     """
@@ -211,7 +212,7 @@ class DynamicEntityTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateDynamicEntity)
     }
 
-    scenario("We will call the endpoint with the proper Role " + canCreateDynamicEntity , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    scenario("We will call the endpoint with the proper Role " + canCreateDynamicEntity , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint8, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateDynamicEntity.toString)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@(user1)
@@ -461,5 +462,97 @@ class DynamicEntityTest extends V400ServerSetup {
     }
   }
 
+  feature("Add a DynamicEntity v4.0.4- and test all the getBankLevelDynamicEntities endpoints") {
+    scenario("We will call the endpoint with the proper Role " + canCreateDynamicEntity , ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateDynamicEntity.toString)
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@(user1)
+      val entityWithBankId = parse(
+        s"""
+          |{
+          |    "bankId": "${testBankId1.value}",
+          |    "FooBar": {
+          |       "description": "description of this entity, can be markdown text.",
+          |        "required": [
+          |            "name"
+          |        ],
+          |        "properties": {
+          |            "name": {
+          |                "type": "string",
+          |                "maxLength": 20,
+          |                "minLength": 3,
+          |                "example": "James Brown",
+          |                "description":"description of **name** field, can be markdown text."
+          |            },
+          |            "number": {
+          |                "type": "integer",
+          |                "example": 69876172
+          |            }
+          |        }
+          |    }
+          |}
+          |""".stripMargin)
+      
+      val response = makePostRequest(request, write(entityWithBankId))
+      Then("We should get a 201")
+      response.code should equal(201)
+
+      val responseJson = response.body
+      val dynamicEntityId = (responseJson \ "dynamicEntityId").asInstanceOf[JString].s
+      val dynamicBankId = (responseJson \ "bankId").asInstanceOf[JString].s
+
+      val dynamicEntityUserIdJObject: JObject = "userId" -> resourceUser1.userId
+      val dynamicEntityIdJObject: JObject = "dynamicEntityId" -> dynamicEntityId
+
+      val expectCreateResponseJson: JValue = entityWithBankId merge dynamicEntityUserIdJObject merge dynamicEntityIdJObject
+
+
+      responseJson shouldEqual expectCreateResponseJson
+
+      When(s"We make a $ApiEndpoint8 request without the role" )
+      val requestGet = (v4_0_0_Request /"management" / "banks" /testBankId1.value/ "dynamic-entities").GET <@(user1)
+      val responseGet = makeGetRequest(requestGet)
+      Then("We should get a 403")
+      responseGet.code should equal(403)
+      And("error should be " + UserHasMissingRoles + CanGetBankLevelDynamicEntities)
+      responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetBankLevelDynamicEntities)
+      
+      {
+        Then("We grant the role and call it again")
+        Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanGetBankLevelDynamicEntities.toString)
+        val requestGet = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").GET <@ (user1)
+        val responseGet = makeGetRequest(requestGet)
+        responseGet.code should equal(200)
+        val json = responseGet.body \ "dynamic_entities"
+        val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
+
+        dynamicEntitiesGetJson.values should have size 1
+      }
+      
+      {
+        // we try the different bank id.
+        
+        val requestGet = (v4_0_0_Request /"management" / "banks" /testBankId2.value/ "dynamic-entities").GET <@(user1)
+        val responseGet = makeGetRequest(requestGet)
+        Then("We should get a 403")
+        responseGet.code should equal(403)
+        And("error should be " + UserHasMissingRoles + CanGetBankLevelDynamicEntities)
+        responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetBankLevelDynamicEntities)
+
+        {
+          Entitlement.entitlement.vend.addEntitlement(testBankId2.value, resourceUser1.userId, CanGetBankLevelDynamicEntities.toString)
+          val responseGet = makeGetRequest(requestGet)
+          Then("We should get a 200")
+          responseGet.code should equal(200)
+          val json = responseGet.body \ "dynamic_entities"
+          val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
+
+          dynamicEntitiesGetJson.values should have size 0
+        }
+        
+      }
+      
+    }
+  }
 
 }

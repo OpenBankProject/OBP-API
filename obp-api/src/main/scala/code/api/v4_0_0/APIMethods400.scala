@@ -1100,7 +1100,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getBankLevelDynamicEntities),
       "GET",
-      "/banks/BANK_ID/management/dynamic-entities",
+      "/management/banks/BANK_ID/dynamic-entities",
       "Get Bank Level Dynamic Entities",
       s"""Get all the bank level Dynamic Entities.""",
       EmptyBody,
@@ -1118,7 +1118,7 @@ trait APIMethods400 {
     )
 
     lazy val getBankLevelDynamicEntities: OBPEndpoint = {
-      case "banks" :: bankId :: "management" :: "dynamic-entities" :: Nil JsonGet req => {
+      case "management" :: "banks" :: bankId :: "dynamic-entities" :: Nil JsonGet req => {
         cc =>
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByBankId(bankId))
