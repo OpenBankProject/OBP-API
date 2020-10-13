@@ -188,8 +188,8 @@ object ExampleValue {
 
   lazy val hashOfSuppliedAnswerExample = ConnectorField(HashUtil.Sha256Hash("123"), s"Sha256 hash value of the ChallengeAnswer.challengeId")
   glossaryItems += makeGlossaryItem("ChallengeAnswer.hashOfSuppliedAnswer", hashOfSuppliedAnswerExample)
-  
-  
+
+
   lazy val gitCommitExample = ConnectorField("59623811dd8a41f6ffe67be46954eee11913dc28", "Identifies the code running on the OBP-API (Connector) or Adapter.")
 
   lazy val subExample = ConnectorField(s"${userNameExample.value}","An identifier for the user, unique among all OBP-API users and never reused")
@@ -247,7 +247,10 @@ object ExampleValue {
   glossaryItems += makeGlossaryItem("Transaction Requests.id", transactionRequestIdExample)
   
   lazy val transactionRequestCounterpartyIdExample = counterpartyIdExample
-  
+
+  lazy val transactionRequestRefundReasonCodeExample = ConnectorField("CUST", "Defines the reason code of a transaction refund request (e.g. a SEPA Credit Transfer Scheme reason code).")
+  glossaryItems += makeGlossaryItem("Transaction Requests.Transaction Request Refund Reason Code", transactionRequestRefundReasonCodeExample)
+
   lazy val currencyExample = balanceCurrencyExample
 
   lazy val paymentSystemExample = ConnectorField("SEPA", "A payment system can be SEPA, CARD, SWIFT ....")

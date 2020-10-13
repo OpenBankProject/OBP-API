@@ -567,9 +567,9 @@ object BankAccountX {
       val counterpartyCurrency = if (counterparty.currency.nonEmpty) counterparty.currency else "EUR"
 
       Full(BankAccountCommons(
-        AccountId(""), "", 0,
+        AccountId(counterparty.otherAccountSecondaryRoutingAddress), "", 0,
         currency = counterpartyCurrency
-        , "", "", "", BankId(""), new Date(), "",
+        , "", "", "", BankId(counterparty.otherBankRoutingAddress), new Date(), "",
         accountRoutings = accountRouting1 ++ accountRouting2,
         List.empty, accountHolder = counterparty.name,
         Some(List(Attribute(
