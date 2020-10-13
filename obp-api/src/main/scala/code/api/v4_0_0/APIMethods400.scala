@@ -1282,7 +1282,7 @@ trait APIMethods400 {
             }
             deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
           } yield {
-            (deleted, HttpCode.`200`(cc.callContext))
+            (deleted, HttpCode.`204`(cc.callContext))
           }
       }
     }
@@ -1592,7 +1592,7 @@ trait APIMethods400 {
           (box, _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id),dynamicEntityInfo.bankId, Some(cc))
           deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
         } yield {
-          (deleteResult, HttpCode.`200`(Some(cc)))
+          (deleteResult, HttpCode.`204`(Some(cc)))
         }
       }
     }
