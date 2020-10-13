@@ -23,6 +23,7 @@ function checkclick(){
 }
 function openNav() {
 	$("#obp-sidebar").css("display","block");
+	$("#main").css("display","none");
 	logOnButton = $("#small-nav-log-on-button").text().indexOf("Log on")
 	if (logOnButton < 0){
 		$("#register-link").css("display","none")
@@ -32,6 +33,7 @@ function openNav() {
 
 function closeNav() {
 	$("#obp-sidebar").css("display","none");
+	$("#main").css("display","block");
 }
 
 function mouseClick(element) {
@@ -74,14 +76,17 @@ $(document).ready(function() {
 
 	if (htmlTitle.indexOf("Get API") > -1){
 		$("#get-api-key-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px")
+		$("#obp-sidebar #sideba-api-key-div").css("border-left","4px #53C4EF solid")
 	}else if(htmlTitle.indexOf("INTRODUCTION") >-1){
 		$("#sandbox-introduction-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px")
+		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #53C4EF solid")
 	}else{
 		;
 	}
 	
     $('.js-example-basic-single').select2();
-	$("#select2-appType-container").attr("aria-labelledby","appTypeLabel")
+	$("#select2-appType-container").attr("aria-labelledby","appTypeLabel");
+	$("#appType").removeAttr("tabindex").removeAttr("aria-hidden");
     
 	//fallback for html5 placeholder
 	if ( !("placeholder" in document.createElement("input")) ) {
