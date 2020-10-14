@@ -82,7 +82,10 @@ class ConsumerRegistration extends MdcLoggable {
     def register = {
       "form" #> {
           "#appType" #> SHtml.select(appTypes, Empty, appType(_)) &
-          "#appName" #> SHtml.text(nameVar.is, nameVar(_)) & 
+          "#appName" #> SHtml.text(nameVar.is, nameVar(_)) &
+          "#redirect_url_label" #> {
+            if (AuthUser.mirrorConsumerInHydra) "Redirect URL" else "Redirect URL (Optional)"
+          } &
           "#appRedirectUrl" #> SHtml.text(redirectionURLVar, redirectionURLVar(_)) &
           "#appDev" #> SHtml.text(devEmailVar, devEmailVar(_)) &
           "#appDesc" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &

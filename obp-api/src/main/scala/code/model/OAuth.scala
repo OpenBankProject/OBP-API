@@ -674,8 +674,13 @@ object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consu
       </table>
     </lift:crud.all>
 
-
-  val redirectURLRegex = """^(http|https)://(www.)?\S+?(:\d{2,6})?\S*$""".r
+  /**
+   * match the flow style, it can be http, https, or Private-Use URI Scheme Redirection for app:
+   * http://some.domain.com/path
+   * https://some.domain.com/path
+   * com.example.app:/oauth2redirect/example-provider
+   */
+  val redirectURLRegex = """^([.\w]+:|(http|https):/)/(www.)?\S+?(:\d{2,6})?\S*$""".r
 
   /**
    * create Hydra client, if redirectURL is not valid url, return None
@@ -699,7 +704,11 @@ object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consu
     oAuth2Client.setPostLogoutRedirectUris(List(redirectUrl).asJava)
 
     oAuth2Client.setRedirectUris(List(redirectUrl).asJava)
-    oAuth2Client.setTokenEndpointAuthMethod("client_secret_post")
+    if("web".equalsIgnoreCase(consumer.appType.get)) {
+      oAuth2Client.setTokenEndpointAuthMethod("client_secret_post")
+    } else {
+      oAuth2Client.setTokenEndpointAuthMethod("none")
+    }
     Some(hydraAdmin.createOAuth2Client(oAuth2Client))
   }
 }
