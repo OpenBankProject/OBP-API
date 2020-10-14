@@ -86,11 +86,11 @@ $(document).ready(function() {
 	var htmlTitle = $(document).find("title").text();
 
 	if (htmlTitle.indexOf("Get API") > -1){
-		$("#get-api-key-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px")
-		$("#obp-sidebar #sideba-api-key-div").css("border-left","4px #53C4EF solid")
+		$("#get-api-key-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px");
+		$("#obp-sidebar #sideba-api-key-div").css("border-left","4px #53C4EF solid").css("font-weight", "bold");
 	}else if(htmlTitle.indexOf("INTRODUCTION") >-1){
-		$("#sandbox-introduction-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px")
-		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #53C4EF solid")
+		$("#sandbox-introduction-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px");
+		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #53C4EF solid").css("font-weight", "bold");
 	}else{
 		;
 	}
