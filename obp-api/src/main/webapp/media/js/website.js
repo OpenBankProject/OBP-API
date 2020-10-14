@@ -69,6 +69,17 @@ function EnterKeyPressed(element) {
 
 $(document).ready(function() {
 
+	//if the small-nav-log-on-button do not contains any value, just set it to none
+	if($("#small-nav-log-on-button").text().length < 15){
+		$("#small-nav-log-on-button").css("width","24px");
+		$("#small-screen-navbar #small-nav-log-on-button").css("width","24px");
+	}
+	//if the small-nav-log-on-button do not contains any value, just set it to none
+	if($("#small-nav-log-on-button").text().length > 15){
+		$("#small-nav-log-on-button").css("width","63px");
+		$("#small-screen-navbar #small-nav-log-on-button").css("width","63px");
+	}
+	
 	$(".main-support-item .support-platform-link").text("chat.openbankproject.com");
 	
 	
