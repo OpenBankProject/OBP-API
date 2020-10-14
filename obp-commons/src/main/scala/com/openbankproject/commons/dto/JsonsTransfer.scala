@@ -1318,4 +1318,9 @@ case class OutBoundValidateChallenge(
 
 case class InBoundValidateChallenge(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
 
+
+case class OutBoundGetChallenge(outboundAdapterCallContext: OutboundAdapterCallContext, challengeId: String) extends TopicTrait
+case class InBoundGetChallenge(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
+
+
 // --------------------- some special connector methods corresponding InBound and OutBound -- end --

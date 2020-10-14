@@ -1,4 +1,4 @@
--- auto generated MS sql server procedures script, create on 2020-10-14T13:24:56Z
+-- auto generated MS sql server procedures script, create on 2020-10-14T13:37:05Z
 
 -- drop procedure obp_get_adapter_info
 DROP PROCEDURE IF EXISTS obp_get_adapter_info;
@@ -964,6 +964,132 @@ this is example of parameter @outbound_json
        "consentId":"no-example-provided",
        "challengeId":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
        "hashOfSuppliedAnswer":"a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
+     }'
+*/
+
+-- return example value
+	SELECT @inbound_json = (
+		SELECT
+     N'{
+       "inboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       },
+       "status":{
+         "errorCode":"",
+         "backendMessages":[
+           {
+             "source":"String",
+             "status":"String",
+             "errorCode":"",
+             "text":"String"
+           }
+         ]
+       },
+       "data":{
+         "challengeId":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
+         "transactionRequestId":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1",
+         "expectedAnswer":"string",
+         "expectedUserId":"string",
+         "salt":"string",
+         "successful":true,
+         "challengeType":"no-example-provided",
+         "consentId":"no-example-provided",
+         "scaMethod":"SMS",
+         "scaStatus":"received",
+         "authenticationMethodId":"string"
+       }
+     }'
+	);
+GO
+
+ 
+ 
+
+
+-- drop procedure obp_get_challenge
+DROP PROCEDURE IF EXISTS obp_get_challenge;
+GO
+-- create procedure obp_get_challenge
+CREATE PROCEDURE obp_get_challenge
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
+   AS
+	  SET nocount on
+
+-- replace the follow example to real logic
+/*
+this is example of parameter @outbound_json
+     N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ],
+         "outboundAdapterAuthInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"Owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         }
+       },
+       "challengeId":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0"
      }'
 */
 
