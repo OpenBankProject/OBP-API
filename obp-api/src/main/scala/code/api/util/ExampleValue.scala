@@ -356,13 +356,13 @@ object ExampleValue {
   lazy val maximumResponseTimeExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("maximum_response_time", maximumResponseTimeExample)
 
-  lazy val cancelledExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val cancelledExample = ConnectorField("true","no-description-provided")
   glossaryItems += makeGlossaryItem("cancelled", cancelledExample)
 
   lazy val entitlementRequestsExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("entitlement_requests", entitlementRequestsExample)
 
-  lazy val newBalanceExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val newBalanceExample = ConnectorField("20","no-description-provided")
   glossaryItems += makeGlossaryItem("new_balance", newBalanceExample)
 
   lazy val nExample = ConnectorField("no-example-provided","no-description-provided")
@@ -371,10 +371,10 @@ object ExampleValue {
   lazy val scopesExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("scopes", scopesExample)
 
-  lazy val effectiveDateExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val effectiveDateExample = ConnectorField("2020-01-27","no-description-provided")
   glossaryItems += makeGlossaryItem("effective_date", effectiveDateExample)
 
-  lazy val dateOfApplicationExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val dateOfApplicationExample = ConnectorField("2020-01-27","no-description-provided")
   glossaryItems += makeGlossaryItem("date_of_application", dateOfApplicationExample)
 
   lazy val useTypeExample = ConnectorField("no-example-provided","no-description-provided")
@@ -383,7 +383,7 @@ object ExampleValue {
   lazy val cardsExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("cards", cardsExample)
 
-  lazy val orderDateExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val orderDateExample = ConnectorField("2020-01-27","no-description-provided")
   glossaryItems += makeGlossaryItem("order_date", orderDateExample)
 
   lazy val canAddCommentExample = ConnectorField("no-example-provided","no-description-provided")
@@ -422,7 +422,7 @@ object ExampleValue {
   lazy val otherAccountExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("other_account", otherAccountExample)
 
-  lazy val balanceExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val balanceExample = ConnectorField("10","no-description-provided")
   glossaryItems += makeGlossaryItem("balance", balanceExample)
 
   lazy val portsExample = ConnectorField("no-example-provided","no-description-provided")
@@ -476,7 +476,7 @@ object ExampleValue {
   lazy val corporateLocationExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("corporate_location", corporateLocationExample)
 
-  lazy val enabledExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val enabledExample = ConnectorField("true","no-description-provided")
   glossaryItems += makeGlossaryItem("enabled", enabledExample)
 
   lazy val durationExample = ConnectorField("no-example-provided","no-description-provided")
@@ -518,7 +518,7 @@ object ExampleValue {
   lazy val atmsExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("atms", atmsExample)
 
-  lazy val overallBalanceDateExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val overallBalanceDateExample = ConnectorField("2020-01-27","no-description-provided")
   glossaryItems += makeGlossaryItem("overall_balance_date", overallBalanceDateExample)
 
   lazy val canDeletePhysicalLocationExample = ConnectorField("no-example-provided","no-description-provided")
@@ -551,7 +551,7 @@ object ExampleValue {
   lazy val creatorExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("creator", creatorExample)
 
-  lazy val activeExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val activeExample = ConnectorField("true","no-description-provided")
   glossaryItems += makeGlossaryItem("active", activeExample)
 
   lazy val canSeeOtherAccountMetadataExample = ConnectorField("no-example-provided","no-description-provided")
@@ -563,7 +563,7 @@ object ExampleValue {
   lazy val lobbyExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("lobby", lobbyExample)
 
-  lazy val conversionValueExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val conversionValueExample = ConnectorField("100","no-description-provided")
   glossaryItems += makeGlossaryItem("conversion_value", conversionValueExample)
 
   lazy val transactionRequestsWithChargesExample = ConnectorField("no-example-provided","no-description-provided")
@@ -695,7 +695,7 @@ object ExampleValue {
   lazy val canSeeTransactionFinishDateExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("can_see_transaction_finish_date", canSeeTransactionFinishDateExample)
 
-  lazy val satisfiedExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val satisfiedExample = ConnectorField("true","no-description-provided")
   glossaryItems += makeGlossaryItem("satisfied", satisfiedExample)
 
   lazy val canSeeOtherAccountIbanExample = ConnectorField("no-example-provided","no-description-provided")
@@ -767,7 +767,7 @@ object ExampleValue {
   lazy val branchesExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("branches", branchesExample)
 
-  lazy val overallBalanceExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val overallBalanceExample = ConnectorField("10","no-description-provided")
   glossaryItems += makeGlossaryItem("overall_balance", overallBalanceExample)
 
   lazy val ttlInSecondsExample = ConnectorField("no-example-provided","no-description-provided")
@@ -806,7 +806,7 @@ object ExampleValue {
   lazy val categoryExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("category", categoryExample)
 
-  lazy val onHotListExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val onHotListExample = ConnectorField("false","no-description-provided")
   glossaryItems += makeGlossaryItem("on_hot_list", onHotListExample)
 
   lazy val temporaryCreditDocumentationExample = ConnectorField("no-example-provided","no-description-provided")
@@ -896,7 +896,7 @@ object ExampleValue {
   lazy val generateAuditorsViewExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("generate_auditors_view", generateAuditorsViewExample)
 
-  lazy val longitudeExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val longitudeExample = ConnectorField("-77.0364","no-description-provided")
   glossaryItems += makeGlossaryItem("longitude", longitudeExample)
 
   lazy val familyExample = ConnectorField("no-example-provided","no-description-provided")
@@ -1244,7 +1244,7 @@ object ExampleValue {
   lazy val isFirehoseExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("is_firehose", isFirehoseExample)
 
-  lazy val okExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val okExample = ConnectorField("true","no-description-provided")
   glossaryItems += makeGlossaryItem("ok", okExample)
 
   lazy val bankRoutingExample = ConnectorField("no-example-provided","no-description-provided")
@@ -1262,13 +1262,13 @@ object ExampleValue {
   lazy val debtoraccountExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("debtoraccount", debtoraccountExample)
 
-  lazy val latitudeExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val latitudeExample = ConnectorField("38.8951","no-description-provided")
   glossaryItems += makeGlossaryItem("latitude", latitudeExample)
 
   lazy val dependentEndpointsExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("dependent_endpoints", dependentEndpointsExample)
 
-  lazy val hasDepositCapabilityExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val hasDepositCapabilityExample = ConnectorField("true","no-description-provided")
   glossaryItems += makeGlossaryItem("has_deposit_capability", hasDepositCapabilityExample)
 
   lazy val toCounterpartyExample = ConnectorField("no-example-provided","no-description-provided")
@@ -1355,7 +1355,7 @@ object ExampleValue {
   lazy val hostedByExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("hosted_by", hostedByExample)
 
-  lazy val whenExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val whenExample = ConnectorField("2020-01-27","no-description-provided")
   glossaryItems += makeGlossaryItem("when", whenExample)
 
   lazy val userAuthContextUpdateIdExample = ConnectorField("no-example-provided","no-description-provided")
@@ -1544,7 +1544,7 @@ object ExampleValue {
   lazy val orderExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("order", orderExample)
 
-  lazy val postedExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val postedExample = ConnectorField("2020-01-27","no-description-provided")
   glossaryItems += makeGlossaryItem("posted", postedExample)
 
   lazy val logoExample = ConnectorField("no-example-provided","no-description-provided")
@@ -1592,7 +1592,7 @@ object ExampleValue {
   lazy val versionExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("version", versionExample)
 
-  lazy val collectedExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val collectedExample = ConnectorField("2020-01-27","no-description-provided")
   glossaryItems += makeGlossaryItem("collected", collectedExample)
 
   lazy val canAddPublicAliasExample = ConnectorField("no-example-provided","no-description-provided")
@@ -1688,7 +1688,7 @@ object ExampleValue {
   lazy val openCorporatesUrlExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("open_corporates_url", openCorporatesUrlExample)
 
-  lazy val inverseConversionValueExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val inverseConversionValueExample = ConnectorField("50d","no-description-provided")
   glossaryItems += makeGlossaryItem("inverse_conversion_value", inverseConversionValueExample)
 
   lazy val methodRoutingsExample = ConnectorField("no-example-provided","no-description-provided")
@@ -1766,7 +1766,7 @@ object ExampleValue {
   lazy val saturdayExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("saturday", saturdayExample)
 
-  lazy val completedExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val completedExample = ConnectorField("2020-01-27","no-description-provided")
   glossaryItems += makeGlossaryItem("completed", completedExample)
 
   lazy val domainExample = ConnectorField("no-example-provided","no-description-provided")
@@ -1829,7 +1829,7 @@ object ExampleValue {
   lazy val branchRoutingsExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("branch_routings", branchRoutingsExample)
 
-  lazy val validFromExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val validFromExample = ConnectorField("2020-01-27","no-description-provided")
   glossaryItems += makeGlossaryItem("valid_from", validFromExample)
 
   lazy val canDeleteImageExample = ConnectorField("no-example-provided","no-description-provided")
@@ -1862,7 +1862,7 @@ object ExampleValue {
   lazy val isPublicExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("is_public", isPublicExample)
 
-  lazy val isAccessibleExample = ConnectorField("no-example-provided","no-description-provided")
+  lazy val isAccessibleExample = ConnectorField("true","no-description-provided")
   glossaryItems += makeGlossaryItem("is_accessible", isAccessibleExample)
 
   lazy val entitlementIdExample = ConnectorField("no-example-provided","no-description-provided")
