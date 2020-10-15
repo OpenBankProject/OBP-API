@@ -224,6 +224,9 @@ object CodeGenerateUtils {
         case (Some(v), "Array") if(args.head =:= typeOf[Date]) => s"""$v.split("[,;]").map(parseDate).flatMap(_.toSeq)"""
         case (Some(v), "List")  if(args.head =:= typeOf[Date]) => s"""$v.split("[,;]").map(parseDate).flatMap(_.toSeq).toList"""
         case (Some(v), "Seq")   if(args.head =:= typeOf[Date]) => s"""$v.split("[,;]").map(parseDate).flatMap(_.toSeq).toSeq"""
+        case (_, collName) if ReflectUtils.isObpType(args.head) =>
+          val itemExpression = createDocExample(args.head, fieldName, parentFieldName, parentType)
+          s"$collName($itemExpression)"
         case (None, _) => {
           val singleValue = createDocExample(args.head, fieldName.map(_.replaceFirst("s$", "")))// if fieldName endsWith s, remove s
           s"""$typeName($singleValue)"""
@@ -239,7 +242,7 @@ object CodeGenerateUtils {
         val value = if (pre <:< ru.typeOf[EnumValue]) {
           s"${pre.typeSymbol.fullName}.example"
         } else {
-          createDocExample(symbol.info, Some(valName), fieldName, Some(tp))
+            createDocExample(symbol.info, Some(valName), fieldName, Some(tp))
         }
         val valueName = symbol.name.toString.replaceFirst("^type$", "`type`")
         s"""$str,
