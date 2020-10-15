@@ -95,7 +95,7 @@ nav .navbar-collapse.collapse {
     text-align:center
 }
 #small-screen-navbar #small-nav-collapse{
-    width: 18px;
+    width: 24px;
     height: 18px;
     margin-top: 26px;
     margin-bottom: 26px;
@@ -198,11 +198,13 @@ nav .navbar-collapse.collapse {
 }
 
 #obp-sidebar #register-link-nav{
-    margin-top: 150px;
+    position: absolute;
     background: #F3F3F3;
     padding: 13px 16px;
     border-top:1px solid #D7D8D6;
     border-bottom:1px solid #D7D8D6;
+    bottom: 0;
+    width: 100%;
 }
 #obp-sidebar #technical-faqs-anchor-nav{
     border-bottom:1px solid #D7D8D6;

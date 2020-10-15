@@ -23,6 +23,7 @@ function checkclick(){
 }
 function openNav() {
 	$("#obp-sidebar").css("display","block");
+	$("#main").css("display","none");
 	logOnButton = $("#small-nav-log-on-button").text().indexOf("Log on")
 	if (logOnButton < 0){
 		$("#register-link").css("display","none")
@@ -32,6 +33,7 @@ function openNav() {
 
 function closeNav() {
 	$("#obp-sidebar").css("display","none");
+	$("#main").css("display","block");
 }
 
 function mouseClick(element) {
@@ -67,21 +69,35 @@ function EnterKeyPressed(element) {
 
 $(document).ready(function() {
 
+	//if the small-nav-log-on-button do not contains any value, just set it to none
+	if($("#small-nav-log-on-button").text().length < 15){
+		$("#small-nav-log-on-button").css("width","24px");
+		$("#small-screen-navbar #small-nav-log-on-button").css("width","24px");
+	}
+	//if the small-nav-log-on-button do not contains any value, just set it to none
+	if($("#small-nav-log-on-button").text().length > 15){
+		$("#small-nav-log-on-button").css("width","63px");
+		$("#small-screen-navbar #small-nav-log-on-button").css("width","63px");
+	}
+	
 	$(".main-support-item .support-platform-link").text("chat.openbankproject.com");
 	
 	
 	var htmlTitle = $(document).find("title").text();
 
 	if (htmlTitle.indexOf("Get API") > -1){
-		$("#get-api-key-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px")
+		$("#get-api-key-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px");
+		$("#obp-sidebar #sideba-api-key-div").css("border-left","4px #53C4EF solid").css("font-weight", "bold");
 	}else if(htmlTitle.indexOf("INTRODUCTION") >-1){
-		$("#sandbox-introduction-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px")
+		$("#sandbox-introduction-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px");
+		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #53C4EF solid").css("font-weight", "bold");
 	}else{
 		;
 	}
 	
     $('.js-example-basic-single').select2();
-	$("#select2-appType-container").attr("aria-labelledby","appTypeLabel")
+	$("#select2-appType-container").attr("aria-labelledby","appTypeLabel");
+	$("#appType").removeAttr("tabindex").removeAttr("aria-hidden");
     
 	//fallback for html5 placeholder
 	if ( !("placeholder" in document.createElement("input")) ) {

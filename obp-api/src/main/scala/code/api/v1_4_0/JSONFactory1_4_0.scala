@@ -409,20 +409,22 @@ object JSONFactory1_4_0 extends MdcLoggable{
     val exampleFieldValue = getExampleFieldValue(parameter)
     s"""
        |
-       |[${parameter}](/glossary#$glossaryItemTitle): $exampleFieldValue
+       |* [${parameter}](/glossary#$glossaryItemTitle): $exampleFieldValue
        |
        |""".stripMargin
   }
 
-  def prepareJsonFieldDescription(jsonBody: scala.Product): String = {
+  def prepareJsonFieldDescription(jsonBody: scala.Product, jsonType: String): String = {
 
     val jsonBodyJValue = decompose(jsonBody)
 
     val jsonBodyFields =JsonUtils.collectFieldNames(jsonBodyJValue).keySet.toList.sorted
 
     val jsonFieldsDescription = jsonBodyFields.map(prepareDescription)
+    
+    val jsonTitleType = if (jsonType.contains("request")) "\n\n\n**JSON request body fields:**\n\n" else  "\n\n\n**JSON response body fields:**\n\n"
 
-    jsonFieldsDescription.mkString("\n**JSON response body fields:**","","\n")
+    jsonFieldsDescription.mkString(jsonTitleType,"","\n")
   }
 
   def createResourceDocJson(rd: ResourceDoc) : ResourceDocJson = {
@@ -449,12 +451,12 @@ object JSONFactory1_4_0 extends MdcLoggable{
         //2rd: get the fields description from the post json body:
         val exampleRequestBodyFieldsDescription =
           if (rd.requestVerb=="POST" ){
-            prepareJsonFieldDescription(rd.exampleRequestBody)
+            prepareJsonFieldDescription(rd.exampleRequestBody,"request")
           } else {
             ""
           }
         //3rd: get the fields description from the response body:
-        val responseFieldsDescription = prepareJsonFieldDescription(rd.successResponseBody)
+        val responseFieldsDescription = prepareJsonFieldDescription(rd.successResponseBody,"response")
         urlParametersDescription ++ exampleRequestBodyFieldsDescription ++ responseFieldsDescription
       }
     

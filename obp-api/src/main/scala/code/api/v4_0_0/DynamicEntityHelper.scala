@@ -319,7 +319,7 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
     if(descriptions.nonEmpty) {
       descriptions
         .map(field => s"""* ${field.name}: ${(field.value \ "description").asInstanceOf[JString].s}""")
-        .mkString("**Property List:** \n", "\n", "")
+        .mkString("**Property List:** \n\n", "\n", "")
     } else {
       ""
     }
