@@ -29,27 +29,23 @@ class PegdownOptionsTest extends FlatSpec with Matchers {
         |[BANK_ID](/glossary#Bank.bank_id):gh.29.uk
         |
         |""".stripMargin
-      """Get basic information about the Adapter listening on behalf of this bank.
+    val descriptionString2 ="""Get basic information about the Adapter listening on behalf of this bank.
         |
         |Authentication is Optional
         |
         |      **URL Parameters:**
         |
-        |[BANK_ID](/glossary#Bank.bank_id):gh.29.uk
+        |* [BANK_ID](/glossary#Bank.bank_id):gh.29.uk
         |
         |""".stripMargin
     val descriptionHtml= convertPegdownToHtmlTweaked(descriptionString)
+    val descriptionHtml2= convertPegdownToHtmlTweaked(descriptionString2)
     
     val descriptionApiExplorer = stringToNodeSeq(descriptionHtml)
-
-//    println("obp-api string: ")
-//    println(descriptionString)
-//    println("obp-api html: ")
+    val descriptionApiExplorer2 = stringToNodeSeq(descriptionHtml2)
+      
 //    println(descriptionHtml)
-//    println("api-explorer html:")
-//    println(descriptionApiExplorer)
-
-    println(convertPegdownToHtmlTweaked(descriptionString))
+//    println(descriptionHtml2)
 
     val html ="""<h3>
                 |    Description</h3>\\nThe PISP sent a Payment/Transfer Request through a POST command.
@@ -235,5 +231,47 @@ class PegdownOptionsTest extends FlatSpec with Matchers {
 //    println(markdown)
     stringToNodeSeq(markdown)
   }
+
+  "description string" should "test the markdown * -> html <li> tag" taggedAs FunctionsTag in {
+
+    // This string is from Foobar Property List: format
+    val descriptionString = """Update exists Foo Bar33.
+
+Description of this entity, can be markdown text.
+
+
+**Property List:**
+
+* name: * description of **name** field, can be markdown text.
+* number: * description of **number** field, can be markdown text.
+
+
+
+Authentication is Mandatory""".stripMargin
+    val descriptionHtml= convertPegdownToHtmlTweaked(descriptionString)
+    val descriptionApiExplorer = stringToNodeSeq(descriptionHtml)
+
+    descriptionHtml contains("<li>name: * description of <strong>name</strong> field, can be markdown text.</li>") should be (true)
+
+
+    //This string is from obp JSON response body fields: format
+    val descriptionString2 ="""Get basic information about the Adapter listening on behalf of this bank.
+                              |
+                              |Authentication is Optional
+                              |
+                              |      **URL Parameters:**
+                              |
+                              |* [BANK_ID](/glossary#Bank.bank_id):gh.29.uk
+                              |
+                              |""".stripMargin
+    val descriptionHtml2= convertPegdownToHtmlTweaked(descriptionString2)
+
+    descriptionHtml2 contains("<li><a href=\"/glossary#Bank.bank_id\">BANK_ID</a>:gh.29.uk</li>") should be (true)
+    
+  }
+  
+  
+  
+  
  
 }
