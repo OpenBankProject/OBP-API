@@ -1688,7 +1688,7 @@ object ExampleValue {
   lazy val openCorporatesUrlExample = ConnectorField("no-example-provided","no-description-provided")
   glossaryItems += makeGlossaryItem("open_corporates_url", openCorporatesUrlExample)
 
-  lazy val inverseConversionValueExample = ConnectorField("50d","no-description-provided")
+  lazy val inverseConversionValueExample = ConnectorField("50","no-description-provided")
   glossaryItems += makeGlossaryItem("inverse_conversion_value", inverseConversionValueExample)
 
   lazy val methodRoutingsExample = ConnectorField("no-example-provided","no-description-provided")
