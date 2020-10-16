@@ -45,7 +45,11 @@ object ClassScanUtils {
     */
   def findTypes(predict: ClassInfo => Boolean): List[String] = finder.getClasses()
     .filter(predict)
-    .map(_.name.replaceFirst("\\$$", "")) //some case class name ends with $, it added by scalac, should remove from class name
+    .map(it => {
+      val name = it.name
+      if(name.endsWith("$")) name.substring(0, name.length - 1)
+      else name
+    }) //some companion type name ends with $, it added by scalac, should remove from class name
     .toList
 
   /**
