@@ -397,3 +397,27 @@ select
 	null account_rule_value_2
 where
 	1 = 0
+
+
+create view v_bankaccountrouting as
+select
+	updatedat updated_at,
+	createdat created_at,
+	bankid bank_id,
+	accountid account_id,
+	accountroutingscheme account_routhing_scheme,
+	accountroutingaddress account_routing_address
+from
+	bankaccountrouting
+union
+select
+	null updated_at,
+	null created_at,
+	null bank_id,
+	null account_id,
+	null account_routhing_scheme,
+	null account_routing_address
+from
+	bankaccountrouting
+where
+	1 = 0;
