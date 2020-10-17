@@ -99,7 +99,7 @@
         padding: 0;
     }
     #main-about {
-        background-image: url("/media/images/about-background-768.png") !important;
+        background-image: url("/media/images/about-background-768.png");
     }
     #main-about-box {
         width: 100%;
@@ -249,7 +249,7 @@
         padding: 0;
     }
     #main-about {
-        background-image: url("/media/images/about-background-768.png") !important;
+        background-image: url("/media/images/about-background-768.png");
         height: 100%;
         height: 420px;
     }
@@ -357,7 +357,7 @@
         padding: 0;
     }
     #main-about {
-        background-image: url("/media/images/about-background-992.png") !important;
+        background-image: url("/media/images/about-background-992.png");
         height: 450px;
     }
     #main-about-box {
@@ -427,7 +427,7 @@
         padding: 0;
     }
     #main-about {
-        background-image: url("/media/images/about-background.jpg") !important;
+        background-image: url("/media/images/about-background.jpg");
         height: 420px;
     }
     #main-about-box {
