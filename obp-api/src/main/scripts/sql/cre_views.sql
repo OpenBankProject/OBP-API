@@ -399,7 +399,7 @@ where
 	1 = 0
 
 
-create view v_bankaccountrouting as
+create view v_account_routing as
 select
 	updatedat updated_at,
 	createdat created_at,
