@@ -306,7 +306,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def validateChallenge(
+  override def validateChallengeAnswerC2(
     transactionRequestId: Option[String],
     consentId: Option[String],
     challengeId: String,
