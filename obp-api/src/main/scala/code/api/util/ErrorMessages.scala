@@ -179,6 +179,7 @@ object ErrorMessages {
   val Oauth2BadJOSEException = "OBP-20206: Bad JSON Object Signing and Encryption (JOSE) exception. The ID token is invalid or expired. "
   val Oauth2JOSEException = "OBP-20207: Bad JSON Object Signing and Encryption (JOSE) exception. An internal JOSE exception was encountered. "
   val Oauth2CannotMatchIssuerAndJwksUriException = "OBP-20208: Cannot match the issuer and JWKS URI at this server instance. "
+  val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
 
   // X.509
   val X509GeneralError = "OBP-20300: PEM Encoded Certificate issue."
@@ -230,6 +231,8 @@ object ErrorMessages {
   val NoViewPermission = "OBP-30022: The current view does not have the permission: "
   val UpdateConsumerError = "OBP-30023: Cannot update Consumer "
   val CreateConsumerError = "OBP-30024: Could not create Consumer "
+  val CreateOAuth2ConsumerError = "OBP-30077: Could not create OAuth2 Consumer."
+
   val CreateUserCustomerLinksError = "OBP-30025: Could not create user_customer_links "
   val ConsumerKeyAlreadyExists = "OBP-30026: Consumer Key already exists. Please specify a different value."
   val NoExistingAccountHolders = "OBP-30027: Account Holders not found. The BANK_ID / ACCOUNT_ID specified for account holder does not exist on this server"
@@ -388,6 +391,10 @@ object ErrorMessages {
   val ConsumerAtConsentCannotBeFound = "OBP-35018: The Consumer specified in this consent cannot be found."
   val ConsumerValidationMethodForConsentNotDefined = "OBP-35019: Consumer validation method for consent is not defined at this instance."
   val ConsentMaxTTL = "OBP-35020: You exceeded max value of time to live of consents."
+  val ConsentViewNotFund = "OBP-35021: Consent Views not found by CONSENT_ID."
+  val ConsumerNotFound = "OBP-35022: The Consumer cannot be found by logged in user."
+  val ConsentDoesNotMatchUser = "OBP-35023: The Consent does not match a valid User."
+  val ConsentUserAlreadyAdded = "OBP-35024: The Consent's User is already added."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "

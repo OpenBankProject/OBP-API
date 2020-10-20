@@ -3,13 +3,15 @@ package code.consent
 import java.util.Date
 
 import scala.util.Random
-import code.api.util.ErrorMessages
+import code.api.util.{Consent, ErrorMessages}
 import code.util.MappedUUID
 import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.{MappedString, _}
 import net.liftweb.util.Helpers.{now, tryo}
 import org.mindrot.jbcrypt.BCrypt
+
+import scala.collection.immutable.List
 
 object MappedConsentProvider extends ConsentProvider {
   override def getConsentByConsentId(consentId: String): Box[MappedConsent] = {
@@ -77,6 +79,46 @@ object MappedConsentProvider extends ConsentProvider {
         Failure(ErrorMessages.UnknownError)
     }
   }
+
+  override def saveUKConsent(
+    user: Option[User],
+    bankId: Option[String],//for UK Open Banking endpoints, there is no BankId there.
+    accountIds: Option[List[String]],//for UK Open Banking endpoints, there is no accountIds there.
+    consumerId: Option[String],
+    permissions: List[String],
+    expirationDateTime: Date,
+    transactionFromDateTime: Date,
+    transactionToDateTime: Date,
+    apiStandard: Option[String],
+    apiVersion: Option[String]
+  ) ={
+    tryo {
+      val consent = MappedConsent
+        .create
+        .mUserId(user.map(_.userId).getOrElse(null))
+        .mStatus(ConsentStatus.AWAITINGAUTHORISATION.toString)
+        .mExpirationDateTime(expirationDateTime)
+        .mTransactionFromDateTime(transactionFromDateTime)
+        .mTransactionToDateTime(transactionToDateTime)
+        .mStatusUpdateDateTime(now)
+        .mApiVersion(apiVersion.getOrElse(null))
+        .mApiStandard(apiStandard.getOrElse(null))
+        .saveMe()
+      val jwt = Consent.createUKConsentJWT(
+        user: Option[User],
+        bankId: Option[String],
+        accountIds: Option[List[String]],
+        permissions: List[String],
+        expirationDateTime: Date,
+        transactionFromDateTime: Date,
+        transactionToDateTime: Date,
+        secret = consent.secret,
+        consentId = consent.consentId,
+        consumerId: Option[String]
+      )
+      setJsonWebToken(consent.consentId, jwt).head
+    }
+  }
   
   override def setJsonWebToken(consentId: String, jwt: String): Box[MappedConsent] = {
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
@@ -134,10 +176,11 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
 
   def getSingleton = MappedConsent
 
+  //the following are the obp consent.
   object mConsentId extends MappedUUID(this)
   object mUserId extends MappedString(this, 36)
   object mSecret extends MappedUUID(this)
-  object mStatus extends MappedString(this, 20)
+  object mStatus extends MappedString(this, 40)
   object mChallenge extends MappedString(this, 50)  {
     override def defaultValue = Random.nextInt(99999999).toString()
   }
@@ -146,12 +189,21 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   }
   object mJsonWebToken extends MappedText(this)
 
-  //The following are added for BerlinGroup
+  object mApiStandard extends MappedString(this, 50)
+  object mApiVersion extends MappedString(this, 50)
+
+  //The following are added for BerlinGroup.
   object mRecurringIndicator extends MappedBoolean(this)
   object mValidUntil extends MappedDate(this)
   object mFrequencyPerDay extends MappedInt(this)
   object mCombinedServiceIndicator extends MappedBoolean(this)
   object mLastActionDate extends MappedDate(this)
+
+  //The following are added for UK OpenBanking.
+  object mExpirationDateTime extends MappedDateTime(this)
+  object mTransactionFromDateTime extends MappedDateTime(this)
+  object mTransactionToDateTime extends MappedDateTime(this)
+  object mStatusUpdateDateTime extends MappedDateTime(this)
 
   override def consentId: String = mConsentId.get
   override def userId: String = mUserId.get
@@ -162,11 +214,20 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   override def challenge: String = mChallenge.get
   override def jsonWebToken: String = mJsonWebToken.get
 
+  override def apiStandard: String = mApiStandard.get
+  override def apiVersion: String = mApiVersion.get
+
   override def recurringIndicator: Boolean = mRecurringIndicator.get
   override def validUntil = mValidUntil.get
   override def frequencyPerDay = mFrequencyPerDay.get
   override def combinedServiceIndicator = mCombinedServiceIndicator.get
   override def lastActionDate = mLastActionDate.get
+
+  override def expirationDateTime = mExpirationDateTime.get
+  override def transactionFromDateTime= mTransactionFromDateTime.get
+  override def transactionToDateTime= mTransactionToDateTime.get
+  override def creationDateTime= createdAt.get
+  override def statusUpdateDateTime= mStatusUpdateDateTime.get
 
 }
 
