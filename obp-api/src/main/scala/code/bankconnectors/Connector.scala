@@ -392,7 +392,7 @@ trait Connector extends MdcLoggable {
   // Validates an answer for a challenge and returns if the answer is correct or not
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Full(true), callContext)}
   
-  def validateChallenge(
+  def validateChallengeAnswerC2(
     transactionRequestId: Option[String],
     consentId: Option[String],
     challengeId: String,

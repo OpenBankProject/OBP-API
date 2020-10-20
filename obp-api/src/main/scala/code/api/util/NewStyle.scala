@@ -863,7 +863,7 @@ object NewStyle {
       }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && consentId.isEmpty ){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId) ")}
       }else{
-        Connector.connector.vend.validateChallenge(
+        Connector.connector.vend.validateChallengeAnswerC2(
           transactionRequestId: Option[String],
           consentId: Option[String],
           challengeId: String,
