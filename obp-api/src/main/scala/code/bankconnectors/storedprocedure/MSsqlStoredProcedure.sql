@@ -1,4 +1,4 @@
--- auto generated MS sql server procedures script, create on 2020-10-14T13:37:05Z
+-- auto generated MS sql server procedures script, create on 2020-10-20T07:53:55Z
 
 -- drop procedure obp_get_adapter_info
 DROP PROCEDURE IF EXISTS obp_get_adapter_info;
@@ -884,11 +884,11 @@ GO
  
 
 
--- drop procedure obp_validate_challenge
-DROP PROCEDURE IF EXISTS obp_validate_challenge;
+-- drop procedure obp_validate_challenge_answer_c2
+DROP PROCEDURE IF EXISTS obp_validate_challenge_answer_c2;
 GO
--- create procedure obp_validate_challenge
-CREATE PROCEDURE obp_validate_challenge
+-- create procedure obp_validate_challenge_answer_c2
+CREATE PROCEDURE obp_validate_challenge_answer_c2
    @outbound_json NVARCHAR(MAX),
    @inbound_json NVARCHAR(MAX) OUT
    AS
