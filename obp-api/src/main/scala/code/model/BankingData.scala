@@ -568,8 +568,9 @@ object BankAccountX {
 
       Full(BankAccountCommons(
         AccountId(counterparty.otherAccountSecondaryRoutingAddress), "", 0,
-        currency = counterpartyCurrency
-        , "", "", "", BankId(counterparty.otherBankRoutingAddress), new Date(), "",
+        currency = counterpartyCurrency,
+        name = counterparty.name,
+        "", "", BankId(counterparty.otherBankRoutingAddress), new Date(), "",
         accountRoutings = accountRouting1 ++ accountRouting2,
         List.empty, accountHolder = counterparty.name,
         Some(List(Attribute(
