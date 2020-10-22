@@ -850,7 +850,7 @@ object NewStyle {
        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
       }
 
-    def validateChallenge(
+    def validateChallengeAnswerC2(
       challengeType: ChallengeType.Value,
       transactionRequestId: Option[String], 
       consentId: Option[String], 

@@ -601,22 +601,22 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       )
   }
 
-  def createStartPaymentCancellationAuthorisationsJson(authorizations: List[Authorisation],
+  def createStartPaymentCancellationAuthorisationsJson(challenges: List[ChallengeTrait],
                                                        paymentService: String,
                                                        paymentProduct: String,
                                                        paymentId: String): List[StartPaymentAuthorisationJson] = {
-    authorizations.map(createStartPaymentCancellationAuthorisationJson(_, paymentService, paymentProduct, paymentId))
+    challenges.map(createStartPaymentCancellationAuthorisationJson(_, paymentService, paymentProduct, paymentId))
   }
-  def createStartPaymentCancellationAuthorisationJson(authorization: Authorisation,
+  def createStartPaymentCancellationAuthorisationJson(challenge: ChallengeTrait,
                                                       paymentService: String,
                                                       paymentProduct: String,
                                                       paymentId: String
                                                      ) = {
       StartPaymentAuthorisationJson(
-        scaStatus = authorization.scaStatus,
-        authorisationId = authorization.authorisationId,
+        scaStatus = challenge.scaStatus.map(_.toString).getOrElse(""),
+        authorisationId = challenge.challengeId,
         psuMessage = "Please check your SMS at a mobile device.",
-        _links = ScaStatusJsonV13(s"/v1.3/${paymentService}/${paymentProduct}/${paymentId}/cancellation-authorisations/${authorization.authorisationId}")
+        _links = ScaStatusJsonV13(s"/v1.3/${paymentService}/${paymentProduct}/${paymentId}/cancellation-authorisations/${challenge.challengeId}")
       )
   }
 }
