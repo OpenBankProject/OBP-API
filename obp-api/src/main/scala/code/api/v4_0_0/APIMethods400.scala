@@ -1122,7 +1122,7 @@ trait APIMethods400 {
          |
          |Create one DynamicEntity, after created success, the corresponding CURD endpoints will be generated automatically
          |
-         |Current support filed types as follow:
+         |Current support field types as follow:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
          |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
@@ -1173,7 +1173,7 @@ trait APIMethods400 {
          |
          |Update one DynamicEntity, after update finished, the corresponding CURD endpoints will be changed.
          |
-         |Current support filed types as follow:
+         |Current support field types as follow:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
          |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
@@ -2496,7 +2496,7 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[CustomerAttributeJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${CustomerAttributeType.DOUBLE}(12.1234), ${CustomerAttributeType.STRING}(TAX_NUMBER), ${CustomerAttributeType.INTEGER}(123) and ${CustomerAttributeType.DATE_WITH_DAY}(2012-04-23)"
             customerAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               CustomerAttributeType.withName(postedData.`type`)
@@ -2552,7 +2552,7 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[CustomerAttributeJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${CustomerAttributeType.DOUBLE}(12.1234), ${CustomerAttributeType.STRING}(TAX_NUMBER), ${CustomerAttributeType.INTEGER}(123) and ${CustomerAttributeType.DATE_WITH_DAY}(2012-04-23)"
             customerAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               CustomerAttributeType.withName(postedData.`type`)
@@ -2752,7 +2752,7 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[TransactionAttributeJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${TransactionAttributeType.DOUBLE}(12.1234), ${TransactionAttributeType.STRING}(TAX_NUMBER), ${TransactionAttributeType.INTEGER} (123)and ${TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)"
             transactionAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               TransactionAttributeType.withName(postedData.`type`)
@@ -2808,7 +2808,7 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[TransactionAttributeJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${TransactionAttributeType.DOUBLE}(12.1234), ${TransactionAttributeType.STRING}(TAX_NUMBER), ${TransactionAttributeType.INTEGER} (123)and ${TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)"
             transactionAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               TransactionAttributeType.withName(postedData.`type`)
@@ -3372,12 +3372,12 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[AttributeDefinitionJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
             attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeType.withName(postedData.`type`)
             }
-            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Category` field can only accept the following field: " +
               s"${AttributeCategory.Customer}"
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
@@ -3437,12 +3437,12 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[AttributeDefinitionJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
             attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeType.withName(postedData.`type`)
             }
-            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Category` field can only accept the following field: " +
               s"${AttributeCategory.Account}"
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
@@ -3501,12 +3501,12 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[AttributeDefinitionJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
             attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeType.withName(postedData.`type`)
             }
-            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Category` field can only accept the following field: " +
               s"${AttributeCategory.Product}"
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
@@ -3564,12 +3564,12 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[AttributeDefinitionJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
             attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeType.withName(postedData.`type`)
             }
-            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Category` field can only accept the following field: " +
               s"${AttributeCategory.Transaction}"
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
@@ -3629,12 +3629,12 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[AttributeDefinitionJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
             attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeType.withName(postedData.`type`)
             }
-            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Category` field can only accept the following field: " +
               s"${AttributeCategory.Card}"
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)

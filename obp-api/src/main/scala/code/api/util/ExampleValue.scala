@@ -138,7 +138,7 @@ object ExampleValue {
   lazy val counterpartyIdExample = ConnectorField("9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"The Counterparty ID used in URLs. This SHOULD NOT be a name of a Counterparty.")
   glossaryItems += makeGlossaryItem("Counterparty.counterpartyId", counterpartyIdExample)
   
-  lazy val otherAccountProviderExample = ConnectorField("", s"")//TODO, not sure what is this filed for?
+  lazy val otherAccountProviderExample = ConnectorField("", s"")//TODO, not sure what is this field for?
   glossaryItems += makeGlossaryItem("Transaction.otherAccountProvider", otherAccountProviderExample)
   
   lazy val isBeneficiaryExample = ConnectorField("true", s"This is a boolean. True if the originAccount can send money to the Counterparty")
