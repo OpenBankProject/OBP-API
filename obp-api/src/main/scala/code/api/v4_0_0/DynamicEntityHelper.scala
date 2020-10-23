@@ -197,8 +197,8 @@ object DynamicEntityHelper {
       s"update$entityName",
       "PUT",
       s"/$entityName/$idNameInUrl",
-      s"Update exists $splitName",
-      s"""Update exists $splitName.
+      s"Update $splitName",
+      s"""Update $splitName.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
