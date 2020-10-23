@@ -1223,7 +1223,7 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostCustomerJsonV310]
             }
-            _ <- Helper.booleanToFuture(failMsg =  InvalidJsonContent + s" The filed dependants(${postedData.dependants}) not equal the length(${postedData.dob_of_dependants.length }) of dob_of_dependants array" ) {
+            _ <- Helper.booleanToFuture(failMsg =  InvalidJsonContent + s" The field dependants(${postedData.dependants}) not equal the length(${postedData.dob_of_dependants.length }) of dob_of_dependants array" ) {
               postedData.dependants == postedData.dob_of_dependants.length 
             }
             (customer, callContext) <- NewStyle.function.createCustomer(
@@ -1925,7 +1925,7 @@ trait APIMethods310 {
         cc =>
           for {
             (_, callContext) <- anonymousAccess(cc)
-            connectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")
+            connectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props field `connector` not set")
             starConnectorProps = APIUtil.getPropsValue("starConnector_supported_types").openOr("notfound")
             obpApiLoopback <- connectorVersion.contains("kafka") ||  (connectorVersion.contains("star") && starConnectorProps.contains("kafka")) match {
               case false => throw new IllegalStateException(s"${NotImplemented}for connector ${connectorVersion}")
@@ -2043,7 +2043,7 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[ProductAttributeJson]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)"
             productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               ProductAttributeType.withName(postedData.`type`)
@@ -2139,7 +2139,7 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[ProductAttributeJson]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)"
             productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               ProductAttributeType.withName(postedData.`type`)
@@ -2762,7 +2762,7 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[AccountAttributeJson]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${AccountAttributeType.DOUBLE}(2012-04-23), ${AccountAttributeType.STRING}(TAX_NUMBER), ${AccountAttributeType.INTEGER}(123) and ${AccountAttributeType.DATE_WITH_DAY}(2012-04-23)"
             accountAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               AccountAttributeType.withName(postedData.`type`)
@@ -2834,7 +2834,7 @@ trait APIMethods310 {
               json.extract[AccountAttributeJson]
             }
             
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${AccountAttributeType.DOUBLE}(2012-04-23), ${AccountAttributeType.STRING}(TAX_NUMBER), ${AccountAttributeType.INTEGER}(123) and ${AccountAttributeType.DATE_WITH_DAY}(2012-04-23)"
             accountAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               AccountAttributeType.withName(postedData.`type`)
@@ -5086,7 +5086,7 @@ trait APIMethods310 {
               json.extract[CardAttributeJson]
             }
             
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${CardAttributeType.DOUBLE}(12.1234), ${CardAttributeType.STRING}(TAX_NUMBER), ${CardAttributeType.INTEGER}(123) and ${CardAttributeType.DATE_WITH_DAY}(2012-04-23)"
             createCardAttribute <- NewStyle.function.tryons(failMsg, 400, callContext) {
               CardAttributeType.withName(postedData.`type`)
@@ -5158,7 +5158,7 @@ trait APIMethods310 {
               json.extract[CardAttributeJson]
             }
 
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${CardAttributeType.DOUBLE}(12.1234), ${CardAttributeType.STRING}(TAX_NUMBER), ${CardAttributeType.INTEGER}(123) and ${CardAttributeType.DATE_WITH_DAY}(2012-04-23)"
             createCardAttribute <- NewStyle.function.tryons(failMsg, 400, callContext) {
               CardAttributeType.withName(postedData.`type`)

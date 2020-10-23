@@ -957,7 +957,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       HTTPParam("connector_name", connectorName),
       HTTPParam("customer_id", customerId),
       HTTPParam("locked_status", lockedStatus)
-    ).filter(_.values.head != ""))//Here filter the filed when value = "". 
+    ).filter(_.values.head != ""))//Here filter the field when value = "".
   }
   
   def createHttpParamsByUrlFuture(httpRequestUrl: String) = Future {
