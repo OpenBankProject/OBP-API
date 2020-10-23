@@ -1000,7 +1000,7 @@ trait APIMethods210 {
             (card, callContext) <- NewStyle.function.createPhysicalCard(
               bankCardNumber=postJson.bank_card_number,
               nameOnCard=postJson.name_on_card,
-              cardType = "",// this filed is introduced from V310
+              cardType = "",// this field is introduced from V310
               issueNumber=postJson.issue_number,
               serialNumber=postJson.serial_number,
               validFrom=postJson.valid_from_date,
@@ -1017,7 +1017,7 @@ trait APIMethods210 {
               pinResets= postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
               collected= Option(CardCollectionInfo(postJson.collected)),
               posted= Option(CardPostedInfo(postJson.posted)),
-              customerId = "",// this filed is introduced from V310
+              customerId = "",// this field is introduced from V310
               callContext
             )
             

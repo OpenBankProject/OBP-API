@@ -431,7 +431,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
     // validate all properties have a type and example
     allFields.foreach(field => {
       val JField(fieldName, value) = field
-      // validate filed name
+      // validate field name
       checkFormat(namePattern.matcher(fieldName).matches(), s"$DynamicEntityInstanceValidateFail The field name should contains characters [-_A-Za-z0-9], the wrong field name: $fieldName")
 
       checkFormat(value.isInstanceOf[JObject], s"$DynamicEntityInstanceValidateFail The property of $fieldName's type should be json object")

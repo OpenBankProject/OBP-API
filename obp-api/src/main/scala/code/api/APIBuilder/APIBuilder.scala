@@ -76,7 +76,7 @@ object APIBuilder
   val deleteSingleApiDescription: String = (deleteSingleApiJValue \ "description").asInstanceOf[JString].values 
   val getApiDescriptionFromJsonFile: String = getApiDescription + "(From Json File)"
   
-  //TODO, for now this is only in description, could be a single filed later.
+  //TODO, for now this is only in description, could be a single field later.
   val getMultipleApiAuthentication:Boolean = getApiDescriptionFromJsonFile.contains("Authentication is Mandatory")
   val getSingleApiAuthentication:Boolean = getSingleApiDescription.contains("Authentication is Mandatory")
   val createSingleApiAuthentication:Boolean = createSingleApiDescription.contains("Authentication is Mandatory")

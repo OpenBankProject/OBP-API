@@ -430,7 +430,7 @@ object JSONFactory1_4_0 {
         case List(i: Boolean, _*)          => "\""  + key + """": {"type": "array","items": {"type": "boolean"}}"""
         case Some(List(i: Boolean, _*))    => "\""  + key + """": {"type": "array","items": {"type": "boolean"}}"""
           
-        //String --> Some field calleds `date`, we will treat the filed as a `date` object.
+        //String --> Some field calleds `date`, we will treat the field as a `date` object.
         //String --> But for some are not, eg: `date_of_birth` and `future_date` in V300Custom  
         case i: String if(key.contains("date")&& i.length != "20181230".length)  => "\""  + key + """": {"type": "string","format": "date-time"}"""
         case Some(i: String) if(key.contains("date")&& i.length != "20181230".length)  => "\""  + key + """": {"type": "string","format": "date-time"}"""

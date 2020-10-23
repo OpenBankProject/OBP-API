@@ -464,7 +464,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     = {
       /**
         * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-        * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+        * is just a temporary value field with UUID values in order to prevent any ambiguity.
         * The real value will be assigned by Macro during compile time at this line of a code:
         * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
         */
@@ -510,7 +510,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     = {
       /**
         * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-        * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+        * is just a temporary value field with UUID values in order to prevent any ambiguity.
         * The real value will be assigned by Macro during compile time at this line of a code:
         * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
         */
@@ -3954,7 +3954,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             _ <- Future {
               saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId)
             }
-            //update transaction_id filed for varibale 'transactionRequest'
+            //update transaction_id field for varibale 'transactionRequest'
             transactionRequest <- Future(transactionRequest.copy(transaction_ids = createdTransactionId.value))
 
           } yield {
@@ -4077,7 +4077,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             _ <- Future {
               saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId)
             }
-            //update transaction_id filed for varibale 'transactionRequest'
+            //update transaction_id field for varibale 'transactionRequest'
             transactionRequest <- Future(transactionRequest.copy(transaction_ids = createdTransactionId.value))
 
           } yield {
@@ -4566,7 +4566,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getCurrentFxRateCached(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * is just a temporary value field with UUID values in order to prevent any ambiguity.
       * The real value will be assigned by Macro during compile time at this line of a code:
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */

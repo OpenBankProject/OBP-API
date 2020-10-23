@@ -155,7 +155,7 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
     import com.openbankproject.commons.ExecutionContext.Implicits.global
     implicit val formats = CustomJsonFormats.formats
     for{
-      connectorVersion <- Future {APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")}
+      connectorVersion <- Future {APIUtil.getPropsValue("connector").openOrThrowException("connector props field `connector` not set")}
       startTime = Helpers.now
       req = ObpApiLoopback(connectorVersion, gitCommit, "")
       obpApiLoopbackRespons <- (actor ? req)
