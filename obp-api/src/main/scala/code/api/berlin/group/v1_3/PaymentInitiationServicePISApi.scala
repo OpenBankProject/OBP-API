@@ -1,7 +1,7 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
 import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentJson, UpdatePaymentPsuDataJson}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, CancelPaymentResponseLinks, LinkHrefJson, PostConsentJson, UpdatePaymentPsuDataJson}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -74,56 +74,66 @@ DELETE command will tell the TPP whether the * access method was rejected * acce
 or * access method is generally applicable, but further authorisation processes are needed.
 """,
        emptyObjectJson,
-       json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : [ "data", "data" ]
-  },
-  "scaMethods" : "",
-  "_links" : {
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithAuthenticationMethodSelection" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuIdentification" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisation" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "transactionStatus" : "ACCP"
-}"""),
+       CancelPaymentResponseJson(
+         "ACTC",
+         _links = CancelPaymentResponseLinks(
+           self = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"),
+           status = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/1234-wertiq-983/status"),
+           startAuthorisation = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/cancellation-authorisations/1234-wertiq-983/status")
+         )
+       ),
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val cancelPayment : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentId :: Nil JsonDelete _ => {
+       case paymentService :: paymentProduct :: paymentId :: Nil JsonDelete _ => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : "data"
-  },
-  "scaMethods" : "",
-  "_links" : {
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithAuthenticationMethodSelection" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuIdentification" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisation" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "transactionStatus" : "ACCP"
-}"""), callContext)
+             _ <- passesPsd2Pisp(callContext)
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
+             }
+             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+
+             transactionRequestBody <- NewStyle.function.tryons(s"${UnknownError} No data for Payment Body ",400, callContext) {
+               transactionRequest.body.to_sepa_credit_transfers.get
+             }
+             fromAccountIban = transactionRequestBody.debtorAccount.iban
+             toAccountIban = transactionRequestBody.creditorAccount.iban
+             (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
+             (toAccount, callContext) <- NewStyle.function.getBankAccountByIban(toAccountIban, callContext)
+             negativeAmount = - transactionRequest.body.value.amount.toDouble
+             currency = transactionRequest.body.value.currency
+             (createdTransactionRequest,callContext) <- transactionRequestTypes match {
+               case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
+                 for {
+                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(
+                     u,
+                     ViewId("Owner"),//This is the default 
+                     fromAccount,
+                     toAccount,
+                     TransactionRequestType(transactionRequestTypes.toString),
+                     TransactionRequestCommonBodyJSONCommons(
+                       AmountOfMoneyJsonV121(negativeAmount.toString, currency),
+                       ""
+                     ),
+                     "",
+                     "",
+                     None,
+                     None,
+                     None,
+                     callContext
+                   ) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
+                 } yield (createdTransactionRequest, callContext)
+               }
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createCancellationTransactionRequestJson(createdTransactionRequest), HttpCode.`202`(callContext))
            }
          }
        }

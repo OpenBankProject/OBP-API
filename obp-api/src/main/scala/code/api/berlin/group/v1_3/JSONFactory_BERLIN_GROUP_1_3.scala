@@ -242,11 +242,20 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     self: LinkHrefJson,
     status: LinkHrefJson,
     scaStatus: LinkHrefJson
+  )  
+  case class CancelPaymentResponseLinks(
+                                         self: LinkHrefJson,
+                                         status: LinkHrefJson,
+                                         startAuthorisation: LinkHrefJson
   )
   case class InitiatePaymentResponseJson(
     transactionStatus: String,
     paymentId: String,
     _links: InitiatePaymentResponseLinks
+  )
+  case class CancelPaymentResponseJson(
+    transactionStatus: String,
+    _links: CancelPaymentResponseLinks
   )
   case class CheckAvailabilityOfFundsJson(
     instructedAmount: AmountOfMoneyJsonV121,
@@ -584,6 +593,17 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         self = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/$paymentId"),
         status = LinkHrefJson(s"/v1.3/payments/$paymentId/status"),
         scaStatus = LinkHrefJson(s"/v1.3/payments/$paymentId/authorisations/${paymentId}")
+      )
+    )
+  }
+  def createCancellationTransactionRequestJson(transactionRequest : TransactionRequest) : CancelPaymentResponseJson = {
+    val paymentId = transactionRequest.id.value
+    CancelPaymentResponseJson(
+      "ACTC",
+      _links = CancelPaymentResponseLinks(
+        self = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/$paymentId"),
+        status = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/$paymentId/status"),
+        startAuthorisation = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/cancellation-authorisations/${paymentId}")
       )
     )
   }
