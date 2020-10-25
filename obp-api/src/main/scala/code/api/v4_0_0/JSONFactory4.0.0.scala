@@ -280,6 +280,7 @@ case class ConsumerJson(consumer_id: String,
                         app_name: String,
                         app_type: String,
                         description: String,
+                        client_certificate: String,
                         developer_email: String,
                         redirect_url: String,
                         created_by_user_id: String,
@@ -689,7 +690,8 @@ object JSONFactory400 {
       created_by_user_id =c.createdByUserId.get,
       created_by_user =resourceUserJSON,
       enabled=c.isActive.get,
-      created=c.createdAt.get
+      created=c.createdAt.get,
+      client_certificate=c.clientCertificate.get
     )
   }
 

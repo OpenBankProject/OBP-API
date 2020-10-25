@@ -49,7 +49,7 @@ import sh.ory.hydra.model.OAuth2Client
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
-import scala.jdk.CollectionConverters.seqAsJavaListConverter
+import scala.jdk.CollectionConverters.{mapAsJavaMapConverter, seqAsJavaListConverter}
 
 sealed trait AppType
 object AppType {
@@ -127,7 +127,8 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
                               description: Option[String],
                               developerEmail: Option[String],
                               redirectURL: Option[String],
-                              createdByUserId: Option[String]): Box[Consumer] = {
+                              createdByUserId: Option[String],
+                              clientCertificate: Option[String] = None): Box[Consumer] = {
     tryo {
       val c = Consumer.create
       key match {
@@ -174,6 +175,9 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
         case Some(v) => c.createdByUserId(v)
         case None =>
       }
+
+      clientCertificate.filter(StringUtils.isNotBlank).foreach(c.clientCertificate(_))
+
       if(c.validate.isEmpty) {
         val consumer = c.saveMe()
         if(AuthUser.mirrorConsumerInHydra) Consumer.createHydraClient(consumer)
@@ -547,7 +551,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   object perMonthCallLimit extends MappedLong(this) {
     override def defaultValue = -1
   }
-
+  object clientCertificate extends MappedString(this, 4000)
 }
 
 /**
@@ -704,6 +708,12 @@ object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consu
     oAuth2Client.setPostLogoutRedirectUris(List(redirectUrl).asJava)
 
     oAuth2Client.setRedirectUris(List(redirectUrl).asJava)
+    // if set client certificate supplied, set it to client meta.
+    if(consumer.clientCertificate != null && StringUtils.isNotBlank(consumer.clientCertificate.get)) {
+      val clientMeta = Map("client_certificate" -> consumer.clientCertificate.get).asJava
+      oAuth2Client.setMetadata(clientMeta)
+    }
+
     if("web".equalsIgnoreCase(consumer.appType.get)) {
       oAuth2Client.setTokenEndpointAuthMethod("client_secret_post")
     } else {

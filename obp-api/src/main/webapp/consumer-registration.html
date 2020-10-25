@@ -79,6 +79,15 @@ Berlin 13359, Germany
 							</div>
 						</div>
 					</div>
+					<div class="col-xs-12 col-sm-6">
+						<div class="form-group">
+							<label for="appClientCertificate">Client certificate, content of crt file (Optional)</label>
+							<textarea rows="4" name="app-description" id="appClientCertificate" class="form-control"></textarea>
+							<div id = "consumer-registration-app-client-certificate-error-div" class="hide alert alert-danger">
+								<span data-lift="Msg?id=consumer-registration-app-client-certificate-error"/>
+							</div>
+						</div>
+					</div>
 				</div>
 				<input type="submit" value="Register consumer" class="btn btn-default" />
 				<div id = "register-consumer-errors-div" class="hide alert alert-danger">
@@ -118,6 +127,12 @@ Berlin 13359, Germany
 			<div class="row">
 				<div class="col-xs-12 col-sm-4">App Description</div>
 				<div class="col-xs-12 col-sm-8"><span id="app-description">ABCDEF</span></div>
+			</div>
+			<div class="row">
+				<div class="col-xs-12 col-sm-4">Client certificate</div>
+				<div class="col-xs-12 col-sm-8">
+					<span id="app-client-certificate" style="overflow-wrap: anywhere">ABCDEF</span>
+				</div>
 			</div>
 			<div class="row">
 				<div class="col-xs-12 col-sm-4">Consumer Key</div>

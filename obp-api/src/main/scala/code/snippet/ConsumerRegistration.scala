@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import code.api.DirectLogin
-import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.{APIUtil, ErrorMessages, X509}
 import code.consumer.Consumers
 import code.model._
 import code.model.dataAccess.AuthUser
@@ -40,6 +40,7 @@ import net.liftweb.util.{CssSel, FieldError, Helpers}
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.ListMap
+import scala.xml.{Text, Unparsed}
 
 
 class ConsumerRegistration extends MdcLoggable {
@@ -49,6 +50,7 @@ class ConsumerRegistration extends MdcLoggable {
   private object authenticationURLVar extends RequestVar("")
   private object appTypeVar extends RequestVar[AppType](AppType.Web)
   private object descriptionVar extends RequestVar("")
+  private object clientCertificateVar extends RequestVar("")
   private object devEmailVar extends RequestVar("")
   private object appType extends RequestVar("Web")
   private object submitButtonDefenseFlag extends RequestVar("")
@@ -89,6 +91,7 @@ class ConsumerRegistration extends MdcLoggable {
           "#appRedirectUrl" #> SHtml.text(redirectionURLVar, redirectionURLVar(_)) &
           "#appDev" #> SHtml.text(devEmailVar, devEmailVar(_)) &
           "#appDesc" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
+          "#appClientCertificate" #> SHtml.textarea(clientCertificateVar, clientCertificateVar (_)) &
           "#appUserAuthenticationUrl" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_)) &
           "type=submit" #> SHtml.submit(s"$registrationConsumerButtonValue", () => submitButtonDefense)
       } &
@@ -108,8 +111,12 @@ class ConsumerRegistration extends MdcLoggable {
       "#app-name *" #> consumer.name.get &
       "#app-redirect-url *" #> consumer.redirectURL &
       "#app-user-authentication-url *" #> consumer.userAuthenticationURL &
-      "#app-type *" #> consumer.appType.get.toString &
+      "#app-type *" #> consumer.appType.get &
       "#app-description *" #> consumer.description.get &
+      "#app-client-certificate *" #> {
+        if (StringUtils.isBlank(consumer.clientCertificate.get)) Text("None")
+        else Unparsed(consumer.clientCertificate.get)
+      } &
       "#app-developer *" #> consumer.developerEmail.get &
       "#auth-key *" #> consumer.key.get &
       "#secret-key *" #> consumer.secret.get &
@@ -190,6 +197,7 @@ class ConsumerRegistration extends MdcLoggable {
     def showValidationErrors(errors : List[String]): CssSel = {
       errors.filter(errorMessage => (errorMessage.contains("name") || errorMessage.contains("Name")) ).map(errorMessage => S.error("consumer-registration-app-name-error", errorMessage))
       errors.filter(errorMessage => (errorMessage.contains("description") || errorMessage.contains("Description"))).map(errorMessage => S.error("consumer-registration-app-description-error", errorMessage))
+      errors.filter(errorMessage => (errorMessage.contains("certificate") || errorMessage.contains("Description"))).map(errorMessage => S.error("consumer-registration-app-client-certificate-error", errorMessage))
       errors.filter(errorMessage => (errorMessage.contains("email")|| errorMessage.contains("Email"))).map(errorMessage => S.error("consumer-registration-app-developer-error", errorMessage))
       errors.filter(errorMessage => (errorMessage.contains("redirect")|| errorMessage.contains("Redirect"))).map(errorMessage => S.error("consumer-registration-app-redirect-url-error", errorMessage))
       //Here show not field related errors to the general part.
@@ -224,11 +232,14 @@ class ConsumerRegistration extends MdcLoggable {
 
       def withNameOpt(s: String): Option[AppType] = Some(AppType.valueOf(s))
 
+      val clientCertificate = clientCertificateVar.is
+
       val appTypeSelected = withNameOpt(appType.is)
       logger.debug("appTypeSelected: " + appTypeSelected)
       nameVar.set(nameVar.is)
       appTypeVar.set(appTypeSelected.get)
       descriptionVar.set(descriptionVar.is)
+      clientCertificateVar.set(clientCertificate)
       devEmailVar.set(devEmailVar.is)
       redirectionURLVar.set(redirectionURLVar.is)
 
@@ -236,6 +247,8 @@ class ConsumerRegistration extends MdcLoggable {
         showErrorsForDescription("The 'Register' button random name has been modified !")
       } else if(AuthUser.mirrorConsumerInHydra && (StringUtils.isBlank(redirectionURLVar.is) || Consumer.redirectURLRegex.findFirstIn(redirectionURLVar.is).isEmpty)) {
         showErrorsForDescription("The 'Redirect URL' should be a valid url !")
+      } else if (StringUtils.isNotBlank(clientCertificate) && X509.validate(clientCertificate) != Full(true)) {
+        showErrorsForDescription("The 'client certificate' should be a valid certificate, pleas copy whole crt file content !")
       } else{
         val consumer = Consumers.consumers.vend.createConsumer(
           Some(Helpers.randomString(40).toLowerCase),
@@ -246,7 +259,8 @@ class ConsumerRegistration extends MdcLoggable {
           Some(descriptionVar.is),
           Some(devEmailVar.is),
           Some(redirectionURLVar.is),
-          Some(AuthUser.getCurrentResourceUserUserId))
+          Some(AuthUser.getCurrentResourceUserUserId),
+          Some(clientCertificate))
         logger.debug("consumer: " + consumer)
         consumer match {
           case Full(x) => showRegistrationResults(x)

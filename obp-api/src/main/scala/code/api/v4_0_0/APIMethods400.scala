@@ -3045,7 +3045,10 @@ trait APIMethods400 {
         "redirecturl",
         "createdby",
         true,
-        new Date()
+        new Date(),
+        """-----BEGIN CERTIFICATE-----
+          |client_certificate_content
+          |-----END CERTIFICATE-----""".stripMargin
       ),
       ConsumerPostJSON(
         "Some app name",
@@ -3055,7 +3058,10 @@ trait APIMethods400 {
         "Some redirect url",
         "Created by UUID",
         true,
-        new Date()
+        new Date(),
+        """-----BEGIN CERTIFICATE-----
+          |client_certificate_content
+          |-----END CERTIFICATE-----""".stripMargin
       ),
       List(
         UserNotLoggedIn,
@@ -3087,6 +3093,7 @@ trait APIMethods400 {
               developerEmail = Some(postedJson.developer_email),
               redirectURL = Some(postedJson.redirect_url),
               createdByUserId = Some(u.userId),
+              clientCertificate = Some(postedJson.clientCertificate),
               callContext
             )
             user <- Users.users.vend.getUserByUserIdFuture(u.userId)

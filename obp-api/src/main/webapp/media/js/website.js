@@ -138,6 +138,15 @@ $(document).ready(function() {
 		consumerRegistrationAppDescError.parent().addClass('hide');
 	}
 
+	var consumerRegistrationAppClientCertificateError = $('#register-consumer-input #consumer-registration-app-client-certificate-error');
+	var consumerRegistrationAppClientCertificateForm = $('#register-consumer-input #appClientCertificate');
+	if (consumerRegistrationAppClientCertificateError.length > 0 && consumerRegistrationAppClientCertificateError.html().length > 0) {
+		consumerRegistrationAppClientCertificateError.parent().removeClass('hide');
+		consumerRegistrationAppClientCertificateForm.addClass("error-border")
+	} else{
+		consumerRegistrationAppClientCertificateError.parent().addClass('hide');
+	}
+
 	var consumerRegistrationAppRedirectUrlError = $('#register-consumer-input #consumer-registration-app-description-error');
 	var consumerRegistrationAppRedirectUrlForm = $('#register-consumer-input #appDesc');
 	if (consumerRegistrationAppRedirectUrlError.length > 0 && consumerRegistrationAppRedirectUrlError.html().length > 0) {
