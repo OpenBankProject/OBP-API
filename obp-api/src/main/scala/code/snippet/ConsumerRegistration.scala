@@ -102,7 +102,12 @@ class ConsumerRegistration extends MdcLoggable {
     def showResults(consumer : Consumer) = {
       val urlOAuthEndpoint = APIUtil.getPropsValue("hostname", "") + "/oauth/initiate"
       val urlDirectLoginEndpoint = APIUtil.getPropsValue("hostname", "") + "/my/logins/direct"
-
+      var jwkPrivateKey: String = ""
+      if(HydraUtil.mirrorConsumerInHydra) {
+        val(privateKey, publicKey) = HydraUtil.createJwk
+        jwkPrivateKey = privateKey
+        HydraUtil.createHydraClient(consumer, publicKey)
+      }
       val registerConsumerSuccessMessageWebpage = getWebUiPropsValue(
         "webui_register_consumer_success_message_webpage", 
         "Thanks for registering your consumer with the Open Bank Project API! Here is your developer information. Please save it in a secure location.")
@@ -145,10 +150,8 @@ class ConsumerRegistration extends MdcLoggable {
                     }
                   }
               }
-            }
-//          & "#base_url *" #> S.getRequestHeader("Referer")
-//              .map(StringUtils.substringBeforeLast(_, S.uri))
-//              .getOrElse("")
+            } &
+            "#jwk_private_key" #> Unparsed(jwkPrivateKey)
         } else {
           "#hydra-client-info-title *" #> "" &
             "#hydra-client-info *" #> ""
@@ -264,7 +267,8 @@ class ConsumerRegistration extends MdcLoggable {
           Some(clientCertificate))
         logger.debug("consumer: " + consumer)
         consumer match {
-          case Full(x) => showRegistrationResults(x)
+          case Full(x) =>
+            showRegistrationResults(x)
           case Failure(msg, _, _) => showValidationErrors(msg.split(";").toList)
           case _ => showUnknownErrors(List(ErrorMessages.UnknownError))
         }

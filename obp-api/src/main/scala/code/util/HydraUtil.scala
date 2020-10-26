@@ -1,13 +1,18 @@
 package code.util
 
+import java.util.UUID
+
 import code.api.util.APIUtil
 import code.model.Consumer
 import code.model.Consumer.redirectURLRegex
-import code.model.dataAccess.AuthUser
+import com.nimbusds.jose.{Algorithm, JWSAlgorithm}
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator
+import com.nimbusds.jose.jwk.{Curve, ECKey, KeyUse}
 import org.apache.commons.lang3.StringUtils
-import sh.ory.hydra.{ApiClient, Configuration}
+import org.codehaus.jackson.map.ObjectMapper
 import sh.ory.hydra.api.{AdminApi, PublicApi}
 import sh.ory.hydra.model.OAuth2Client
+import sh.ory.hydra.{ApiClient, Configuration}
 
 import scala.collection.immutable.List
 import scala.jdk.CollectionConverters.{mapAsJavaMapConverter, seqAsJavaListConverter}
@@ -53,7 +58,7 @@ object HydraUtil {
    * @param consumer
    * @return created Hydra client or None
    */
-  def createHydraClient(consumer: Consumer): Option[OAuth2Client] = {
+  def createHydraClient(consumer: Consumer, jwkPublicKey: String = null): Option[OAuth2Client] = {
     val redirectUrl = consumer.redirectURL.get
     if (StringUtils.isBlank(redirectUrl) || redirectURLRegex.findFirstIn(redirectUrl).isEmpty) {
       return None
@@ -74,9 +79,30 @@ object HydraUtil {
       val clientMeta = Map("client_certificate" -> consumer.clientCertificate.get).asJava
       oAuth2Client.setMetadata(clientMeta)
     }
-
-    oAuth2Client.setTokenEndpointAuthMethod("client_secret_post")
-
+    if(StringUtils.isBlank(jwkPublicKey)) {
+      oAuth2Client.setTokenEndpointAuthMethod("client_secret_post")
+    } else {
+      oAuth2Client.setTokenEndpointAuthMethod("private_key_jwt")
+      val jwks = s"""{"keys": [$jwkPublicKey]}"""
+      val jwksMap = new ObjectMapper().readValue(jwks, classOf[java.util.Map[String, _]])
+      oAuth2Client.setJwks(jwksMap)
+      oAuth2Client.setTokenEndpointAuthSigningAlg(JWSAlgorithm.ES256.getName)
+    }
     Some(hydraAdmin.createOAuth2Client(oAuth2Client))
+  }
+
+
+  /**
+   * create jwk
+   * @return private key json string to public key
+   */
+  def createJwk: (String, String) = {
+    val jwk:ECKey = new ECKeyGenerator(Curve.P_256)
+      .keyUse(KeyUse.SIGNATURE) // indicate the intended use of the key
+      .keyID(UUID.randomUUID().toString()) // give the key a unique ID
+      .algorithm(new Algorithm("ES256"))
+      .generate()
+
+    jwk.toJSONString -> jwk.toPublicJWK().toJSONString
   }
 }

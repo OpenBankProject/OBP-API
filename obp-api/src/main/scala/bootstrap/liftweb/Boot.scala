@@ -678,7 +678,7 @@ class Boot extends MdcLoggable {
 
     Consumers.consumers.vend.getConsumersFuture().foreach{ consumers =>
       consumers.filter(consumer => consumer.isActive.get && !oAuth2ClientIds.contains(consumer.key.get))
-        .foreach(HydraUtil.createHydraClient)
+        .foreach(HydraUtil.createHydraClient(_))
     }
   }
 

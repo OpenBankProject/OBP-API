@@ -177,9 +177,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
       clientCertificate.filter(StringUtils.isNotBlank).foreach(c.clientCertificate(_))
 
       if(c.validate.isEmpty) {
-        val consumer = c.saveMe()
-        if(mirrorConsumerInHydra) createHydraClient(consumer)
-        consumer
+        c.saveMe()
       }
       else
         throw new Error(c.validate.map(_.msg.toString()).mkString(";"))
