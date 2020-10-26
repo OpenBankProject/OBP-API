@@ -22,6 +22,12 @@ function checkclick(){
 	}
 }
 function openNav() {
+	$("#small-screen-navbar #small-nav-collapse").attr("aria-hidden","true");
+	$("#small-screen-navbar #small-nav-logo").attr("aria-hidden","true");
+	$("#small-screen-navbar #small-nav-log-on-button").attr("aria-hidden","true");
+	$("#obp-sidebar #small-nav-cross").attr("aria-hidden","false");
+	$("#obp-sidebar #small-nav-logo").attr("aria-hidden","false");
+	$("#obp-sidebar #small-nav-log-on-button").attr("aria-hidden","false");
 	$("#obp-sidebar").css("display","block");
 	$("#main").css("display","none");
 	logOnButton = $("#small-nav-log-on-button").text().indexOf("Log on")
@@ -33,6 +39,13 @@ function openNav() {
 
 function closeNav() {
 	$("#obp-sidebar").css("display","none");
+	$("#small-nav-collapse").attr("aria-hidden","false");
+	$("#small-screen-navbar #small-nav-collapse").attr("aria-hidden","false");
+	$("#small-screen-navbar #small-nav-logo").attr("aria-hidden","false");
+	$("#small-screen-navbar #small-nav-log-on-button").attr("aria-hidden","false");
+	$("#obp-sidebar #small-nav-cross").attr("aria-hidden","true");
+	$("#obp-sidebar #small-nav-logo").attr("aria-hidden","true");
+	$("#obp-sidebar #small-nav-log-on-button").attr("aria-hidden","true");
 	$("#main").css("display","block");
 }
 
