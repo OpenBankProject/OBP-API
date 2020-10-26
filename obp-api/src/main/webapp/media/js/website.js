@@ -1,10 +1,10 @@
 //This function to make sure in the big screen, to close the left_side_small_screen div, then we can show the api_list 
 var flag = true;
 $(window).resize(function() {
-	if(screen.width < 759 && !flag){
+	if(screen.width < 959 && !flag){
 		flag = true
 	}
-	if(screen.width >= 759 && flag){
+	if(screen.width >= 959 && flag){
 		closeNav()
 		flag =false
 	}

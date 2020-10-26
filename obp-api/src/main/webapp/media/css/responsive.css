@@ -233,7 +233,6 @@
         line-height: 27px;
         font-weight: lighter;
     }
-    .container #navbar,
     .container #main-apis-hr,
     .container #main-get-started,
     .container #main-apis,
@@ -297,9 +296,6 @@
     #main-apis .btn-secondary {
         margin-left: 0;
     }
-    #small-screen-navbar{
-        display: none;
-    }
 
     #main-get-started .main-get-started-item{
         display: none;
@@ -312,6 +308,12 @@
     }
     #main-faq .main-faq-button img {
         right: 39px;
+    }
+    .container .navbar{
+        display: none;
+    }
+    #small-screen-navbar {
+        display: block;
     }
 }
 
