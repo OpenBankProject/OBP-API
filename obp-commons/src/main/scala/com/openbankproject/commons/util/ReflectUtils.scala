@@ -667,7 +667,15 @@ object ReflectUtils {
 
     val paramNames = constructor.paramLists(0).map(_.name.toString)
     val mirrorObj = mirror.reflect(t)
-    val methodSymbols = paramNames.map(name => mirrorObj.symbol.info.decl(ru.TermName(name)).asMethod)
+    val info = mirrorObj.symbol.info
+    val methodSymbols = paramNames.map(name => {
+      val nameSymbol = info.decl(ru.TermName(name))
+      if(nameSymbol.isMethod) {
+        nameSymbol.asMethod
+      } else {
+        info.member(ru.TermName("attributes")).asMethod
+      }
+    })
     val methodMirrors: Seq[ru.MethodMirror] = methodSymbols.map(mirrorObj.reflectMethod(_))
     val seq = methodMirrors.map(_())
 
