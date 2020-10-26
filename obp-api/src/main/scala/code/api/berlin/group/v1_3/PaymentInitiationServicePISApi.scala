@@ -8,6 +8,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{ApiRole, ApiTag, NewStyle}
+import code.bankconnectors.Connector
 import code.consent.ConsentStatus
 import code.database.authorisation.Authorisations
 import code.fx.fx
@@ -27,6 +28,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus}
+import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 
 import scala.concurrent.Future
 
@@ -111,25 +113,31 @@ or * access method is generally applicable, but further authorisation processes 
              currency = transactionRequest.body.value.currency
              (createdTransactionRequest,callContext) <- transactionRequestTypes match {
                case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
-                 for {
-                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(
-                     u,
-                     ViewId("Owner"),//This is the default 
-                     fromAccount,
-                     toAccount,
-                     TransactionRequestType(transactionRequestTypes.toString),
-                     TransactionRequestCommonBodyJSONCommons(
-                       AmountOfMoneyJsonV121(negativeAmount.toString, currency),
-                       ""
-                     ),
-                     "",
-                     "",
-                     None,
-                     None,
-                     None,
-                     callContext
-                   ) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
-                 } yield (createdTransactionRequest, callContext)
+                 transactionRequest.status.toUpperCase() match {
+                   case "COMPLETED" =>
+                     for {
+                       (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(
+                         u,
+                         ViewId("Owner"),//This is the default 
+                         fromAccount,
+                         toAccount,
+                         TransactionRequestType(transactionRequestTypes.toString),
+                         TransactionRequestCommonBodyJSONCommons(
+                           AmountOfMoneyJsonV121(negativeAmount.toString, currency),
+                           ""
+                         ),
+                         "",
+                         "",
+                         None,
+                         None,
+                         None,
+                         callContext
+                       )
+                     } yield (createdTransactionRequest, callContext)
+                   case "INITIATED" =>
+                     Connector.connector.vend.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString)
+                     NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+                 }
                }
              }
            } yield {
