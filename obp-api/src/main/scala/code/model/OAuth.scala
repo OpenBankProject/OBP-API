@@ -31,12 +31,12 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.DbFunction
 import code.consumer.{Consumers, ConsumersProvider}
 import code.model.AppType.{Mobile, Web}
-import code.model.dataAccess.AuthUser.hydraAdmin
-import code.model.dataAccess.{AuthUser, ResourceUser}
+import code.model.dataAccess.ResourceUser
 import code.nonce.NoncesProvider
 import code.token.TokensProvider
 import code.users.Users
 import code.util.Helper.MdcLoggable
+import code.util.HydraUtil._
 import com.github.dwickern.macros.NameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.common._
@@ -45,11 +45,9 @@ import net.liftweb.mapper.{LongKeyedMetaMapper, _}
 import net.liftweb.util.Helpers.{now, _}
 import net.liftweb.util.{FieldError, Helpers}
 import org.apache.commons.lang3.StringUtils
-import sh.ory.hydra.model.OAuth2Client
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
-import scala.jdk.CollectionConverters.{mapAsJavaMapConverter, seqAsJavaListConverter}
 
 sealed trait AppType
 object AppType {
@@ -180,7 +178,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
 
       if(c.validate.isEmpty) {
         val consumer = c.saveMe()
-        if(AuthUser.mirrorConsumerInHydra) Consumer.createHydraClient(consumer)
+        if(mirrorConsumerInHydra) createHydraClient(consumer)
         consumer
       }
       else
@@ -189,7 +187,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
   }
 
   def deleteConsumer(consumer: Consumer): Boolean = {
-    if(AuthUser.mirrorConsumerInHydra) AuthUser.hydraAdmin.deleteOAuth2Client(consumer.key.get)
+    if(mirrorConsumerInHydra) hydraAdmin.deleteOAuth2Client(consumer.key.get)
     Consumer.delete_!(consumer)
   }
 
@@ -248,12 +246,12 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
         }
         val updatedConsumer = c.saveMe()
 
-        if(AuthUser.mirrorConsumerInHydra && Option(originIsActive) != isActive) {
+        if(mirrorConsumerInHydra && Option(originIsActive) != isActive) {
           // if disable consumer, delete hydra client, else if enable consumer, create hydra client
           if (isActive == Some(false)) {
-            AuthUser.hydraAdmin.deleteOAuth2Client(c.key.get)
+            hydraAdmin.deleteOAuth2Client(c.key.get)
           } else if(isActive == Some(true)) {
-            Consumer.createHydraClient(updatedConsumer)
+            createHydraClient(updatedConsumer)
           }
         }
 
@@ -405,7 +403,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
             case None =>
           }
           val createdConsumer = c.saveMe()
-          if(AuthUser.mirrorConsumerInHydra) Consumer.createHydraClient(createdConsumer)
+          if(mirrorConsumerInHydra) createHydraClient(createdConsumer)
           createdConsumer
         }
     }
@@ -685,42 +683,6 @@ object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consu
    * com.example.app:/oauth2redirect/example-provider
    */
   val redirectURLRegex = """^([.\w]+:|(http|https):/)/(www.)?\S+?(:\d{2,6})?\S*$""".r
-
-  /**
-   * create Hydra client, if redirectURL is not valid url, return None
-   *
-   * @param consumer
-   * @return created Hydra client or None
-   */
-  def createHydraClient(consumer: Consumer): Option[OAuth2Client] = {
-    val redirectUrl = consumer.redirectURL.get
-    if (StringUtils.isBlank(redirectUrl) || redirectURLRegex.findFirstIn(redirectUrl).isEmpty) {
-      return None
-    }
-    val oAuth2Client = new OAuth2Client()
-    oAuth2Client.setClientId(consumer.key.get)
-    oAuth2Client.setClientSecret(consumer.secret.get)
-    val allConsents = "openid" :: "offline" :: AuthUser.hydraConsents
-    oAuth2Client.setScope(allConsents.mkString(" "))
-
-    oAuth2Client.setGrantTypes(("authorization_code" :: "client_credentials" :: "refresh_token" :: "implicit" :: Nil).asJava)
-    oAuth2Client.setResponseTypes(("code" :: "id_token" :: "token" :: "code token" :: "code id_token" :: "code token id_token" :: Nil).asJava)
-    oAuth2Client.setPostLogoutRedirectUris(List(redirectUrl).asJava)
-
-    oAuth2Client.setRedirectUris(List(redirectUrl).asJava)
-    // if set client certificate supplied, set it to client meta.
-    if(consumer.clientCertificate != null && StringUtils.isNotBlank(consumer.clientCertificate.get)) {
-      val clientMeta = Map("client_certificate" -> consumer.clientCertificate.get).asJava
-      oAuth2Client.setMetadata(clientMeta)
-    }
-
-    if("web".equalsIgnoreCase(consumer.appType.get)) {
-      oAuth2Client.setTokenEndpointAuthMethod("client_secret_post")
-    } else {
-      oAuth2Client.setTokenEndpointAuthMethod("none")
-    }
-    Some(hydraAdmin.createOAuth2Client(oAuth2Client))
-  }
 }
 
 object MappedNonceProvider extends NoncesProvider {

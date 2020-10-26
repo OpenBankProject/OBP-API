@@ -10,8 +10,8 @@ import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.model.Consumer
-import code.model.dataAccess.AuthUser
 import code.users.Users
+import code.util.HydraUtil
 import code.views.Views
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -545,7 +545,7 @@ object Consent {
       val accessToken = calContext.flatMap(_.authReqHeaderField)
         .map(_.replaceFirst("Bearer\\s+", ""))
         .getOrElse(throw new RuntimeException("Not found http request header 'Authorization', it is mandatory."))
-    val introspectOAuth2Token: OAuth2TokenIntrospection = AuthUser.hydraAdmin.introspectOAuth2Token(accessToken, null)
+    val introspectOAuth2Token: OAuth2TokenIntrospection = HydraUtil.hydraAdmin.introspectOAuth2Token(accessToken, null)
     if(!introspectOAuth2Token.getActive) {
       return Failure(ErrorMessages.ConsentExpiredIssue)
     }

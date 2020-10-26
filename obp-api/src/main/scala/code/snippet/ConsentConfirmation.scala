@@ -29,18 +29,18 @@ package code.snippet
 import java.util.Date
 
 import code.api.MxOpenFinace.MxOfUtil
-import code.api.util.APIUtil.OAuth.Consumer
 import code.api.util.{APIUtil, NewStyle}
 import code.consent.{Consent, Consents}
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
+import code.util.HydraUtil
 import code.views.Views
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
-import sh.ory.hydra.model.{AcceptConsentRequest, CompletedRequest, ConsentRequestSession, RejectRequest}
+import sh.ory.hydra.model.{AcceptConsentRequest, ConsentRequestSession, RejectRequest}
 
 import scala.jdk.CollectionConverters.{asScalaBufferConverter, mapAsJavaMapConverter, seqAsJavaListConverter}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -91,12 +91,12 @@ class ConsentConfirmation extends MdcLoggable {
       val rejectRequest = new RejectRequest()
       rejectRequest.setError("access_denied")
       rejectRequest.setErrorDescription("The resource owner denied the request")
-      val rejectResponse = AuthUser.hydraAdmin.rejectConsentRequest(consentChallenge, rejectRequest)
+      val rejectResponse = HydraUtil.hydraAdmin.rejectConsentRequest(consentChallenge, rejectRequest)
       AuthUser.logUserOut()
       return S.redirectTo(rejectResponse.getRedirectTo)
     }
 
-    val consentResponse = AuthUser.hydraAdmin.getConsentRequest(consentChallenge)
+    val consentResponse = HydraUtil.hydraAdmin.getConsentRequest(consentChallenge)
 
     val DateTimeRegex = """(\d+-\d{2}-\d{2}).*(\d{2}:\d{2}:\d{2}).*""".r // style example: 2020-09-09T11:55:22Z
     def getDateTime(paramName: String): Date = S.param(paramName) match {
@@ -145,7 +145,7 @@ class ConsentConfirmation extends MdcLoggable {
         // all the BankIdAccountId for current user
         val bankIdAccountIds = Await.result(bankIdAccountIdsFuture, Duration(30, SECONDS))
         val revokeAccessIds: List[ViewIdBankIdAccountId] = for {
-          consent <- AuthUser.hydraConsents
+          consent <- HydraUtil.hydraConsents
           bankIdAccountId <- bankIdAccountIds
         } yield ViewIdBankIdAccountId(ViewId(consent), bankIdAccountId.bankId, bankIdAccountId.accountId)
         MxOfUtil.revokeAccessToViews(currentUser, revokeAccessIds)
@@ -186,7 +186,7 @@ class ConsentConfirmation extends MdcLoggable {
       session.accessToken(accessToken)
       consentRequest.setSession(session)
 
-      val acceptConsentResponse = AuthUser.hydraAdmin.acceptConsentRequest(consentChallenge, consentRequest)
+      val acceptConsentResponse = HydraUtil.hydraAdmin.acceptConsentRequest(consentChallenge, consentRequest)
       S.redirectTo(acceptConsentResponse.getRedirectTo)
     } else {
       if (consentResponse.getSkip) {
@@ -195,7 +195,7 @@ class ConsentConfirmation extends MdcLoggable {
         requestBody.setGrantAccessTokenAudience(consentResponse.getRequestedAccessTokenAudience)
         val requestSession = new ConsentRequestSession()
         requestBody.setSession(requestSession)
-        val skipResponse = AuthUser.hydraAdmin.acceptConsentRequest(consentChallenge, requestBody)
+        val skipResponse = HydraUtil.hydraAdmin.acceptConsentRequest(consentChallenge, requestBody)
         S.redirectTo(skipResponse.getRedirectTo)
       } else {
         val currentUser = AuthUser.getCurrentUser.openOrThrowException("User is not login, do confirm consent must be authenticated user.")

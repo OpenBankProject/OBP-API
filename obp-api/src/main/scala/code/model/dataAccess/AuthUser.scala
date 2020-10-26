@@ -50,8 +50,7 @@ import scala.xml.{NodeSeq, Text}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import org.apache.commons.lang3.StringUtils
-import sh.ory.hydra.{ApiClient, Configuration}
-import sh.ory.hydra.api.{AdminApi, PublicApi}
+import code.util.HydraUtil._
 import sh.ory.hydra.model.AcceptLoginRequest
 
 /**
@@ -1172,38 +1171,5 @@ def restoreSomeSessions(): Unit = {
     }
 
     innerSignup
-  }
-
-  val loginWithHydra = APIUtil.getPropsAsBoolValue("login_with_hydra", false)
-
-  val mirrorConsumerInHydra = APIUtil.getPropsAsBoolValue("mirror_consumer_in_hydra", false)
-
-  lazy val hydraPublicUrl = APIUtil.getPropsValue("hydra_public_url")
-    .openOrThrowException("If props login_with_hydra is true, hydra_public_url value should not be blank")
-    .replaceFirst("/$", "")
-
-  lazy val hydraAdminUrl = APIUtil.getPropsValue("hydra_admin_url")
-    .openOrThrowException("If props login_with_hydra is true, hydra_admin_url value should not be blank")
-    .replaceFirst("/$", "")
-
-  lazy val hydraConsents = APIUtil.getPropsValue("hydra_consents")
-    .openOrThrowException("If props login_with_hydra is true, hydra_client_scope value should not be blank")
-    .trim.split("""\s*,\s*""").toList
-
-  lazy val hydraAdmin = {
-    val hydraAdminUrl = APIUtil.getPropsValue("hydra_admin_url")
-      .openOrThrowException("If props login_with_hydra is true, hydra_admin_url value should not be blank")
-    val defaultClient = Configuration.getDefaultApiClient
-    defaultClient.setBasePath(hydraAdminUrl)
-    new AdminApi(defaultClient)
-  }
-
- lazy val hydraPublic = {
-      val hydraPublicUrl = APIUtil.getPropsValue("hydra_public_url")
-        .openOrThrowException("If props login_with_hydra is true, hydra_public_url value should not be blank")
-      val apiClient = new ApiClient
-      apiClient.setBasePath(hydraPublicUrl)
-
-      new PublicApi(apiClient)
   }
 }

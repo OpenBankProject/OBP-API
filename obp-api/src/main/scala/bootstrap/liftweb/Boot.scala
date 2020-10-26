@@ -109,7 +109,7 @@ import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
-import code.util.Helper
+import code.util.{Helper, HydraUtil}
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
@@ -664,7 +664,7 @@ class Boot extends MdcLoggable {
     //see the notes for this method:
     createDefaultBankAndDefaultAccountsIfNotExisting()
 
-    if(AuthUser.mirrorConsumerInHydra) {
+    if(HydraUtil.mirrorConsumerInHydra) {
       createHydraClients()
     }
   }
@@ -672,13 +672,13 @@ class Boot extends MdcLoggable {
   def createHydraClients() = {
     import scala.concurrent.ExecutionContext.Implicits.global
     // exists hydra clients id
-    val oAuth2ClientIds = AuthUser.hydraAdmin.listOAuth2Clients(Long.MaxValue, 0L).stream()
+    val oAuth2ClientIds = HydraUtil.hydraAdmin.listOAuth2Clients(Long.MaxValue, 0L).stream()
       .map[String](_.getClientId)
       .collect(Collectors.toSet())
 
     Consumers.consumers.vend.getConsumersFuture().foreach{ consumers =>
       consumers.filter(consumer => consumer.isActive.get && !oAuth2ClientIds.contains(consumer.key.get))
-        .foreach(Consumer.createHydraClient)
+        .foreach(HydraUtil.createHydraClient)
     }
   }
 

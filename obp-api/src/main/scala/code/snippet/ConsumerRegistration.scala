@@ -32,6 +32,7 @@ import code.consumer.Consumers
 import code.model._
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
+import code.util.HydraUtil
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.http.{RequestVar, S, SHtml}
@@ -86,7 +87,7 @@ class ConsumerRegistration extends MdcLoggable {
           "#appType" #> SHtml.select(appTypes, Empty, appType(_)) &
           "#appName" #> SHtml.text(nameVar.is, nameVar(_)) &
           "#redirect_url_label" #> {
-            if (AuthUser.mirrorConsumerInHydra) "Redirect URL" else "Redirect URL (Optional)"
+            if (HydraUtil.mirrorConsumerInHydra) "Redirect URL" else "Redirect URL (Optional)"
           } &
           "#appRedirectUrl" #> SHtml.text(redirectionURLVar, redirectionURLVar(_)) &
           "#appDev" #> SHtml.text(devEmailVar, devEmailVar(_)) &
@@ -126,15 +127,15 @@ class ConsumerRegistration extends MdcLoggable {
       "#directlogin-endpoint a [href]" #> urlDirectLoginEndpoint &
       "#post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
       "#post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl & {
-        if(AuthUser.mirrorConsumerInHydra) {
+        if(HydraUtil.mirrorConsumerInHydra) {
           "#hydra-client-info-title *" #>"OAuth2" &
-          "#admin_url *" #> AuthUser.hydraAdminUrl &
+          "#admin_url *" #> HydraUtil.hydraAdminUrl &
             "#client_id *" #> {consumer.key.get} &
             "#client_secret *" #> consumer.secret.get &
             "#redirect_uri *" #> consumer.redirectURL.get &
             "#client_scope" #> {
-              val lastIndex = AuthUser.hydraConsents.length - 1
-              AuthUser.hydraConsents.zipWithIndex.map { kv =>
+              val lastIndex = HydraUtil.hydraConsents.length - 1
+              HydraUtil.hydraConsents.zipWithIndex.map { kv =>
                   ".client-scope-value *" #> {
                     val (scope, index) = kv
                     if(index == lastIndex) {
@@ -245,7 +246,7 @@ class ConsumerRegistration extends MdcLoggable {
 
       if(submitButtonDefenseFlag.isEmpty) {
         showErrorsForDescription("The 'Register' button random name has been modified !")
-      } else if(AuthUser.mirrorConsumerInHydra && (StringUtils.isBlank(redirectionURLVar.is) || Consumer.redirectURLRegex.findFirstIn(redirectionURLVar.is).isEmpty)) {
+      } else if(HydraUtil.mirrorConsumerInHydra && (StringUtils.isBlank(redirectionURLVar.is) || Consumer.redirectURLRegex.findFirstIn(redirectionURLVar.is).isEmpty)) {
         showErrorsForDescription("The 'Redirect URL' should be a valid url !")
       } else if (StringUtils.isNotBlank(clientCertificate) && X509.validate(clientCertificate) != Full(true)) {
         showErrorsForDescription("The 'client certificate' should be a valid certificate, pleas copy whole crt file content !")

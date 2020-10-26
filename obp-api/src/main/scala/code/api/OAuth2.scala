@@ -34,8 +34,7 @@ import code.consumer.Consumers
 import code.consumer.Consumers.consumers
 import code.loginattempts.LoginAttempt
 import code.model.Consumer
-import code.model.dataAccess.AuthUser
-import code.model.dataAccess.AuthUser.hydraAdmin
+import code.util.HydraUtil._
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
@@ -125,7 +124,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
     }
     
     def applyRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
-      val introspectOAuth2Token: OAuth2TokenIntrospection = AuthUser.hydraAdmin.introspectOAuth2Token(value, null);
+      val introspectOAuth2Token: OAuth2TokenIntrospection = hydraAdmin.introspectOAuth2Token(value, null);
       var consumer: Box[Consumer] = consumers.vend.getConsumerByConsumerKey(introspectOAuth2Token.getClientId)
 
       // check access token binding with client certificate
