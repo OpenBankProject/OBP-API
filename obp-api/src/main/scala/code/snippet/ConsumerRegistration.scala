@@ -161,7 +161,7 @@ class ConsumerRegistration extends MdcLoggable {
       errors.filter(errorMessage => (errorMessage.contains("description") || errorMessage.contains("Description"))).map(errorMessage => S.error("consumer-registration-app-description-error", errorMessage))
       errors.filter(errorMessage => (errorMessage.contains("email")|| errorMessage.contains("Email"))).map(errorMessage => S.error("consumer-registration-app-developer-error", errorMessage))
       errors.filter(errorMessage => (errorMessage.contains("redirect")|| errorMessage.contains("Redirect"))).map(errorMessage => S.error("consumer-registration-app-redirect-url-error", errorMessage))
-      //Here show not filed related errors to the general part.
+      //Here show not field related errors to the general part.
       val unknownErrors: Seq[String] = errors
         .filterNot(errorMessage => (errorMessage.contains("name") || errorMessage.contains("Name")))
         .filterNot(errorMessage => (errorMessage.contains("description") || errorMessage.contains("Description")))
