@@ -1219,7 +1219,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Create one DynamicEntity, after created success, the corresponding CURD endpoints will be generated automatically
+         |Create one DynamicEntity, after created success, the corresponding CRUD endpoints will be generated automatically
          |
          |Current support field types as follow:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
@@ -1252,7 +1252,7 @@ trait APIMethods400 {
           val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None, cc.userId)
           for {
             Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, cc.callContext)
-            //granted the CURD roles to the loggedIn User
+            //granted the CRUD roles to the loggedIn User
             curdRoles = List(
               DynamicEntityInfo.canCreateRole(result.entityName, dynamicEntity.bankId), 
               DynamicEntityInfo.canUpdateRole(result.entityName, dynamicEntity.bankId), 
@@ -1280,7 +1280,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Update one DynamicEntity, after update finished, the corresponding CURD endpoints will be changed.
+         |Update one DynamicEntity, after update finished, the corresponding CRUD endpoints will be changed.
          |
          |Current support field types as follow:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
@@ -1409,7 +1409,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Update one of my DynamicEntity, after update finished, the corresponding CURD endpoints will be changed.
+         |Update one of my DynamicEntity, after update finished, the corresponding CRUD endpoints will be changed.
          |
          |Current support filed types as follow:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
