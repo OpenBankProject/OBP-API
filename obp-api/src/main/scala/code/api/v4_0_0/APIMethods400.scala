@@ -1120,7 +1120,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Create one DynamicEntity, after created success, the corresponding CURD endpoints will be generated automatically
+         |Create one DynamicEntity, after created success, the corresponding CRUD endpoints will be generated automatically
          |
          |Current support field types as follow:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
@@ -1171,7 +1171,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Update one DynamicEntity, after update finished, the corresponding CURD endpoints will be changed.
+         |Update one DynamicEntity, after update finished, the corresponding CRUD endpoints will be changed.
          |
          |Current support field types as follow:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
