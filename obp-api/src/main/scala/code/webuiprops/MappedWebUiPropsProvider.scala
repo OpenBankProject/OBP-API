@@ -11,7 +11,7 @@ import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper._
 
 /**
-  * props name start with "webui_" can set in to db, this module just support the webui_ props CURD
+  * props name start with "webui_" can set in to db, this module just support the webui_ props CRUD
   */
 object MappedWebUiPropsProvider extends WebUiPropsProvider {
   // default webUiProps value cached seconds
