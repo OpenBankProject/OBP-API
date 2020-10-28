@@ -684,7 +684,7 @@ trait APIMethods121 {
         UnknownError,
         "user does not have owner access"
       ),
-      List(apiTagView, apiTagAccount)
+      List(apiTagView, apiTagAccount, apiTagNewStyle)
     )
   
     lazy val deleteViewForBankAccount: OBPEndpoint = {
@@ -841,7 +841,7 @@ trait APIMethods121 {
         "could not save the privilege",
         "user does not have access to owner view on account"
         ),
-      List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
+      List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagNewStyle))
 
     lazy val addPermissionForUserForBankAccountForOneView : OBPEndpoint = {
       //add access for specific user to a specific view
@@ -2213,7 +2213,7 @@ trait APIMethods121 {
         NoViewPermission,
         ViewNotFound,
         UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val getTransactionNarrative : OBPEndpoint = {
       //get narrative
@@ -2255,7 +2255,7 @@ trait APIMethods121 {
         NoViewPermission,
         ViewNotFound,
         UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val addTransactionNarrative : OBPEndpoint = {
       //add narrative
@@ -2293,7 +2293,7 @@ trait APIMethods121 {
            NoViewPermission,
            ViewNotFound,
            UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val updateTransactionNarrative : OBPEndpoint = {
       //update narrative
@@ -2331,7 +2331,7 @@ trait APIMethods121 {
         BankAccountNotFound,
         NoViewPermission,
         UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val deleteTransactionNarrative : OBPEndpoint = {
       //delete narrative
@@ -2369,7 +2369,7 @@ trait APIMethods121 {
         NoViewPermission,
         ViewNotFound,
         UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val getCommentsForViewOnTransaction : OBPEndpoint = {
       //get comments
@@ -2409,7 +2409,7 @@ trait APIMethods121 {
         NoViewPermission,
         ViewNotFound,
         UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val addCommentForViewOnTransaction : OBPEndpoint = {
       //add comment
@@ -2452,7 +2452,7 @@ trait APIMethods121 {
         ViewNotFound,
         UserNotLoggedIn,
         UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val deleteCommentForViewOnTransaction : OBPEndpoint = {
       //delete comment
@@ -2489,7 +2489,7 @@ trait APIMethods121 {
         ViewNotFound,
         UnknownError
       ),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val getTagsForViewOnTransaction : OBPEndpoint = {
       //get tags
@@ -2529,7 +2529,7 @@ trait APIMethods121 {
         NoViewPermission,
         ViewNotFound,
         UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val addTagForViewOnTransaction : OBPEndpoint = {
       //add a tag
@@ -2570,7 +2570,7 @@ trait APIMethods121 {
       List(NoViewPermission,
            ViewNotFound,
            UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val deleteTagForViewOnTransaction : OBPEndpoint = {
       //delete a tag
@@ -2608,7 +2608,7 @@ trait APIMethods121 {
         NoViewPermission,
         ViewNotFound,
         UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val getImagesForViewOnTransaction : OBPEndpoint = {
       //get images
@@ -2648,7 +2648,7 @@ trait APIMethods121 {
         ViewNotFound,
         InvalidUrl,
         UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction)
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle)
     )
 
     lazy val addImageForViewOnTransaction : OBPEndpoint = {
@@ -2694,7 +2694,7 @@ trait APIMethods121 {
         "Deleting images not permitted for this view",
         "Deleting images not permitted for the current user",
         UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val deleteImageForViewOnTransaction : OBPEndpoint = {
       //delete an image
@@ -2731,7 +2731,7 @@ trait APIMethods121 {
            NoViewPermission,
            ViewNotFound,
            UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val getWhereTagForViewOnTransaction : OBPEndpoint = {
       //get where tag
@@ -2773,7 +2773,7 @@ trait APIMethods121 {
         NoViewPermission,
         "Coordinates not possible",
         UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val addWhereTagForViewOnTransaction : OBPEndpoint = {
       //add where tag
@@ -2819,7 +2819,7 @@ trait APIMethods121 {
         NoViewPermission,
         "Coordinates not possible",
         UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val updateWhereTagForViewOnTransaction : OBPEndpoint = {
       //update where tag
@@ -2866,7 +2866,7 @@ trait APIMethods121 {
         "there is no tag to delete",
         "Delete not completed",
         UnknownError),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val deleteWhereTagForViewOnTransaction : OBPEndpoint = {
       //delete where tag
