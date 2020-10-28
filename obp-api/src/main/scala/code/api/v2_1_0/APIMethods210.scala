@@ -1448,7 +1448,7 @@ trait APIMethods210 {
         CustomerNotFoundByCustomerId,
         UnknownError
       ),
-      List(apiTagCustomer)
+      List(apiTagCustomer, apiTagNewStyle)
     )
 
     lazy val getCustomersForCurrentUserAtBank : OBPEndpoint = {
@@ -1671,7 +1671,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagMetric, apiTagApi),
+      List(apiTagMetric, apiTagApi, apiTagNewStyle),
       Some(List(canReadMetrics)))
 
     lazy val getMetrics : OBPEndpoint = {
