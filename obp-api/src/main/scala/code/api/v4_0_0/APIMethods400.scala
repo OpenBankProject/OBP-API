@@ -225,7 +225,7 @@ trait APIMethods400 {
         InvalidISOCurrencyCode,
         UnknownError
       ),
-      List(apiTagBank),
+      List(apiTagBank, apiTagNewStyle),
       Some(List(canCreateSettlementAccountAtOneBank))
     )
 
@@ -324,7 +324,7 @@ trait APIMethods400 {
         BankNotFound,
         UnknownError
       ),
-      List(apiTagBank, apiTagPsd2),
+      List(apiTagBank, apiTagPsd2, apiTagNewStyle),
       Some(List(canGetSettlementAccountAtOneBank))
     )
 
@@ -1746,7 +1746,7 @@ trait APIMethods400 {
         InvalidAccountBalanceCurrency,
         UnknownError
       ),
-      List(apiTagAccount,apiTagOnboarding),
+      List(apiTagAccount,apiTagOnboarding, apiTagNewStyle),
       Some(List(canCreateAccount))
     ).disableAutoValidateRoles()  // this means disabled auto roles validation, will manually do the roles validation .
 
@@ -2023,7 +2023,7 @@ trait APIMethods400 {
         NoViewPermission,
         $UserNoPermissionAccessView,
         UnknownError),
-      List(apiTagAccountMetadata, apiTagAccount))
+      List(apiTagAccountMetadata, apiTagAccount, apiTagNewStyle))
 
     lazy val addTagForViewOnAccount : OBPEndpoint = {
       //add a tag
@@ -2067,7 +2067,7 @@ trait APIMethods400 {
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
         UnknownError),
-      List(apiTagAccountMetadata, apiTagAccount))
+      List(apiTagAccountMetadata, apiTagAccount, apiTagNewStyle))
 
     lazy val deleteTagForViewOnAccount : OBPEndpoint = {
       //delete a tag
@@ -2109,7 +2109,7 @@ trait APIMethods400 {
         $UserNoPermissionAccessView,
         UnknownError
       ),
-      List(apiTagAccountMetadata, apiTagAccount))
+      List(apiTagAccountMetadata, apiTagAccount, apiTagNewStyle))
 
     lazy val getTagsForViewOnAccount : OBPEndpoint = {
       //get tags
@@ -2251,7 +2251,7 @@ trait APIMethods400 {
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
         UnknownError),
-      List(apiTagAccount),
+      List(apiTagAccount, apiTagNewStyle),
     )
     lazy val getAccountByAccountRouting : OBPEndpoint = {
       case "management" :: "accounts" :: "account-routing-query" :: Nil JsonPost json -> _ => {
@@ -2440,7 +2440,7 @@ trait APIMethods400 {
         InsufficientAuthorisationToCreateBank,
         UnknownError
       ),
-      List(apiTagBank),
+      List(apiTagBank, apiTagNewStyle),
       Some(List(canCreateBank))
     )
 
@@ -2778,7 +2778,7 @@ trait APIMethods400 {
         CannotGrantAccountAccess,
         UnknownError
       ),
-      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
+      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagNewStyle))
 
     lazy val grantUserAccessToView : OBPEndpoint = {
       //add access for specific user to a specific system view
@@ -2832,7 +2832,7 @@ trait APIMethods400 {
         CannotFindAccountAccess,
         UnknownError
       ),
-      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
+      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagNewStyle))
 
     lazy val revokeUserAccessToView : OBPEndpoint = {
       //add access for specific user to a specific system view
@@ -3450,7 +3450,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagConsumer),
+      List(apiTagConsumer, apiTagNewStyle),
       Some(List(canCreateConsumer)))
 
 
@@ -4802,7 +4802,7 @@ trait APIMethods400 {
         CounterpartyAlreadyExists,
         UnknownError
       ),
-      List(apiTagCounterparty, apiTagAccount))
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle))
 
 
     lazy val createCounterparty: OBPEndpoint = {
@@ -4986,7 +4986,7 @@ trait APIMethods400 {
         CounterpartyAlreadyExists,
         UnknownError
       ),
-      List(apiTagCounterparty, apiTagAccount),
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle),
       Some(List(canCreateCounterparty, canCreateCounterpartyAtAnyBank)))
 
 
@@ -5082,7 +5082,7 @@ trait APIMethods400 {
         UserNoPermissionAccessView,
         UnknownError
       ),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount))
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount, apiTagNewStyle))
 
     lazy val getExplictCounterpartiesForAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
@@ -5130,7 +5130,7 @@ trait APIMethods400 {
       emptyObjectJson,
       counterpartyWithMetadataJson400,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagCounterpartyMetaData)
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagCounterpartyMetaData, apiTagNewStyle)
     )
 
     lazy val getExplictCounterpartyById : OBPEndpoint = {
@@ -5176,7 +5176,7 @@ trait APIMethods400 {
         ViewNotFound,
         UnknownError
       ),
-      List(apiTagCounterparty, apiTagAccount),
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle),
       Some(List(canGetCounterpartyAtAnyBank, canGetCounterparty)))
 
     lazy val getCounterpartyByNameForAnyAccount: OBPEndpoint = {
