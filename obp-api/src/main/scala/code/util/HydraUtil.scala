@@ -87,6 +87,7 @@ object HydraUtil {
       val jwksMap = new ObjectMapper().readValue(jwks, classOf[java.util.Map[String, _]])
       oAuth2Client.setJwks(jwksMap)
       oAuth2Client.setTokenEndpointAuthSigningAlg(JWSAlgorithm.ES256.getName)
+      oAuth2Client.setRequestObjectSigningAlg(JWSAlgorithm.ES256.getName)
     }
     Some(hydraAdmin.createOAuth2Client(oAuth2Client))
   }
