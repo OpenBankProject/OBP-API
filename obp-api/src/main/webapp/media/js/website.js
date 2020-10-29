@@ -147,12 +147,21 @@ $(document).ready(function() {
 		consumerRegistrationAppClientCertificateError.parent().addClass('hide');
 	}
 
+	var consumerRegistrationAppRequestUriError = $('#register-consumer-input #consumer-registration-app-request_uri-error');
+	var consumerRegistrationAppRequestUriForm = $('#register-consumer-input #request_uri');
+	if (consumerRegistrationAppRequestUriError.length > 0 && consumerRegistrationAppRequestUriError.html().length > 0) {
+		consumerRegistrationAppRequestUriError.parent().removeClass('hide');
+		consumerRegistrationAppRequestUriForm.addClass("error-border")
+	} else{
+		consumerRegistrationAppRequestUriError.parent().addClass('hide');
+	}
+
 	var consumerRegistrationAppRedirectUrlError = $('#register-consumer-input #consumer-registration-app-description-error');
 	var consumerRegistrationAppRedirectUrlForm = $('#register-consumer-input #appDesc');
 	if (consumerRegistrationAppRedirectUrlError.length > 0 && consumerRegistrationAppRedirectUrlError.html().length > 0) {
 		consumerRegistrationAppRedirectUrlError.parent().removeClass('hide');
 		consumerRegistrationAppRedirectUrlForm.addClass("error-border")
-	}else{
+	} else{
 		consumerRegistrationAppRedirectUrlError.parent().addClass('hide');
 	}
 

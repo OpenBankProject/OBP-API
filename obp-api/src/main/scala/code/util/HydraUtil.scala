@@ -58,7 +58,7 @@ object HydraUtil {
    * @param consumer
    * @return created Hydra client or None
    */
-  def createHydraClient(consumer: Consumer, jwkPublicKey: String = null): Option[OAuth2Client] = {
+  def createHydraClient(consumer: Consumer, jwkPublicKey: String = null, requestUri: String = null): Option[OAuth2Client] = {
     val redirectUrl = consumer.redirectURL.get
     if (StringUtils.isBlank(redirectUrl) || redirectURLRegex.findFirstIn(redirectUrl).isEmpty) {
       return None
@@ -88,6 +88,9 @@ object HydraUtil {
       oAuth2Client.setJwks(jwksMap)
       oAuth2Client.setTokenEndpointAuthSigningAlg(JWSAlgorithm.ES256.getName)
       oAuth2Client.setRequestObjectSigningAlg(JWSAlgorithm.ES256.getName)
+    }
+    if(StringUtils.isNotBlank(requestUri)) {
+      oAuth2Client.setRequestUris(List(requestUri).asJava)
     }
     Some(hydraAdmin.createOAuth2Client(oAuth2Client))
   }

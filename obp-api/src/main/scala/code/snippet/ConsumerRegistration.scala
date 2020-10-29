@@ -48,6 +48,7 @@ class ConsumerRegistration extends MdcLoggable {
 
   private object nameVar extends RequestVar("")
   private object redirectionURLVar extends RequestVar("")
+  private object requestUriVar extends RequestVar("")
   private object authenticationURLVar extends RequestVar("")
   private object appTypeVar extends RequestVar[AppType](AppType.Web)
   private object descriptionVar extends RequestVar("")
@@ -90,6 +91,7 @@ class ConsumerRegistration extends MdcLoggable {
             if (HydraUtil.mirrorConsumerInHydra) "Redirect URL" else "Redirect URL (Optional)"
           } &
           "#appRedirectUrl" #> SHtml.text(redirectionURLVar, redirectionURLVar(_)) &
+          "#request_uri" #> SHtml.text(requestUriVar, requestUriVar(_)) &
           "#appDev" #> SHtml.text(devEmailVar, devEmailVar(_)) &
           "#appDesc" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
           "#appClientCertificate" #> SHtml.textarea(clientCertificateVar, clientCertificateVar (_)) &
@@ -106,7 +108,7 @@ class ConsumerRegistration extends MdcLoggable {
       if(HydraUtil.mirrorConsumerInHydra) {
         val(privateKey, publicKey) = HydraUtil.createJwk
         jwkPrivateKey = privateKey
-        HydraUtil.createHydraClient(consumer, publicKey)
+        HydraUtil.createHydraClient(consumer, publicKey, requestUriVar.is)
       }
       val registerConsumerSuccessMessageWebpage = getWebUiPropsValue(
         "webui_register_consumer_success_message_webpage", 
@@ -137,6 +139,11 @@ class ConsumerRegistration extends MdcLoggable {
           "#admin_url *" #> HydraUtil.hydraAdminUrl &
             "#client_id *" #> {consumer.key.get} &
             "#redirect_uri *" #> consumer.redirectURL.get &
+            {
+                val requestUri = requestUriVar.is
+                if(StringUtils.isBlank(requestUri)) "#oauth2_request_uri *" #> ""
+                else "#request_uri_value" #> requestUri
+            } &
             "#client_scope" #> {
               val lastIndex = HydraUtil.hydraConsents.length - 1
               HydraUtil.hydraConsents.zipWithIndex.map { kv =>
@@ -200,9 +207,10 @@ class ConsumerRegistration extends MdcLoggable {
     def showValidationErrors(errors : List[String]): CssSel = {
       errors.filter(errorMessage => (errorMessage.contains("name") || errorMessage.contains("Name")) ).map(errorMessage => S.error("consumer-registration-app-name-error", errorMessage))
       errors.filter(errorMessage => (errorMessage.contains("description") || errorMessage.contains("Description"))).map(errorMessage => S.error("consumer-registration-app-description-error", errorMessage))
-      errors.filter(errorMessage => (errorMessage.contains("certificate") || errorMessage.contains("Description"))).map(errorMessage => S.error("consumer-registration-app-client-certificate-error", errorMessage))
+      errors.filter(errorMessage => errorMessage.contains("certificate")).map(errorMessage => S.error("consumer-registration-app-client-certificate-error", errorMessage))
       errors.filter(errorMessage => (errorMessage.contains("email")|| errorMessage.contains("Email"))).map(errorMessage => S.error("consumer-registration-app-developer-error", errorMessage))
       errors.filter(errorMessage => (errorMessage.contains("redirect")|| errorMessage.contains("Redirect"))).map(errorMessage => S.error("consumer-registration-app-redirect-url-error", errorMessage))
+      errors.filter(errorMessage => errorMessage.contains("request_uri")).map(errorMessage => S.error("consumer-registration-app-request_uri-error", errorMessage))
       //Here show not field related errors to the general part.
       val unknownErrors: Seq[String] = errors
         .filterNot(errorMessage => (errorMessage.contains("name") || errorMessage.contains("Name")))
@@ -245,11 +253,14 @@ class ConsumerRegistration extends MdcLoggable {
       clientCertificateVar.set(clientCertificate)
       devEmailVar.set(devEmailVar.is)
       redirectionURLVar.set(redirectionURLVar.is)
+      requestUriVar.set(requestUriVar.is)
 
       if(submitButtonDefenseFlag.isEmpty) {
         showErrorsForDescription("The 'Register' button random name has been modified !")
       } else if(HydraUtil.mirrorConsumerInHydra && (StringUtils.isBlank(redirectionURLVar.is) || Consumer.redirectURLRegex.findFirstIn(redirectionURLVar.is).isEmpty)) {
         showErrorsForDescription("The 'Redirect URL' should be a valid url !")
+      } else if(HydraUtil.mirrorConsumerInHydra && (StringUtils.isNotBlank(requestUriVar.is) && !requestUriVar.is.matches("""^https?://(www.)?\S+?(:\d{2,6})?\S*$"""))) {
+        showErrorsForDescription("The 'request_uri' should be a valid url !")
       } else if (StringUtils.isNotBlank(clientCertificate) && X509.validate(clientCertificate) != Full(true)) {
         showErrorsForDescription("The 'client certificate' should be a valid certificate, pleas copy whole crt file content !")
       } else{

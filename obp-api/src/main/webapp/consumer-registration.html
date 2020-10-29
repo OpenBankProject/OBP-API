@@ -63,6 +63,15 @@ Berlin 13359, Germany
 							</div>
 						</div>
 						<div class="form-group">
+							<label for="request_uri" id="request_uri_label">
+								<a href="https://tools.ietf.org/id/draft-lodderstedt-oauth-rar-03.html#security-considerations" target="_blank">The request_uri authorization request</a> parameter (Optional)
+							</label>
+							<input type="url" name="app-request_uri" id="request_uri" class="form-control">
+							<div id = "consumer-registration-app-request_uri-error-div" class="hide">
+								<span data-lift="Msg?id=consumer-registration-app-request_uri-error"/>
+							</div>
+						</div>
+						<div class="form-group">
 							<label for="appDev">Developer email</label>
 							<input type="text" name="app-developer" id="appDev" class="form-control">
 							<div id = "consumer-registration-app-developer-error-div" class="hide alert alert-danger">
@@ -170,11 +179,14 @@ Berlin 13359, Germany
 			<div class="row">
 				<div class="col-xs-12 col-sm-4" id="hydra-client-info-title">OAuth2</div>
 				<div class="col-xs-12 col-sm-8">
-					<span id="hydra-client-info">
+					<span id="hydra-client-info" style="overflow-wrap: anywhere">
 						  oauth2.client_id=<span id="client_id">auth-code-client</span><br>
 						  oauth2.redirect_uri=<span id="redirect_uri">http://127.0.0.1:8081/main.html</span><br>
+						  <span id="oauth2_request_uri">
+							  oauth2.request_uri=<span id="request_uri_value">http://127.0.0.1:8081/request_object.json</span><br>
+						  </span>
 						  oauth2.client_scope=<span id="client_scope"><span class="client-scope-value">ReadAccountsBasic</span><br></span><br>
-						  oauth2.jwk_private_key=<span id="jwk_private_key" style="word-wrap: anywhere"></span><br>
+						  oauth2.jwk_private_key=<span id="jwk_private_key">content of jwk key</span><br>
 					</span>
 				</div>
 			</div>
