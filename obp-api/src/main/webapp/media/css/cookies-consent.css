@@ -24,7 +24,7 @@
 }
 
 #cookies-consent-button:focus{
-    outline: solid 2px -webkit-focus-ring-color;
+    outline: solid 2px #66afe9;
 }    
 #cookies-consent-button{
     position: absolute;
