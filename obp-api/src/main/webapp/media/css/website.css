@@ -198,9 +198,9 @@ input[type="text"]{
 	outline: 0;
 }
 
-	.select2-container--default .select2-selection--single:focus {
-		outline: solid 2px #66afe9;
-	}
+.select2-container--default .select2-selection--single:focus {
+	outline: solid 2px #66afe9;
+}
 
 .select2-container--open .select2-selection--single {
 	background: url(../images/dropdown-up-icon.jpg) no-repeat right 8px top 5px;
