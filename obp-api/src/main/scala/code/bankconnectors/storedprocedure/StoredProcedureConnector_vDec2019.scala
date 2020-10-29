@@ -75,7 +75,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-10-19T13:38:47Z
+// ---------- created on 2020-10-29T08:56:39Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -344,6 +344,42 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionRequestId, consentId, challengeId, hashOfSuppliedAnswer)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_validate_challenge_answer_c2", req, callContext)
         response.map(convertToTuple[ChallengeCommons](callContext))        
+  }
+          
+  messageDocs += getChallengesByTransactionRequestIdDoc
+  def getChallengesByTransactionRequestIdDoc = MessageDoc(
+    process = "obp.getChallengesByTransactionRequestId",
+    messageFormat = messageFormat,
+    description = "Get Challenges By Transaction Request Id",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetChallengesByTransactionRequestId(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      transactionRequestId=transactionRequestIdExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundGetChallengesByTransactionRequestId(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=List( ChallengeCommons(challengeId=challengeIdExample.value,
+      transactionRequestId=transactionRequestIdExample.value,
+      expectedAnswer="string",
+      expectedUserId="string",
+      salt="string",
+      successful=true,
+      challengeType=challengeTypeExample.value,
+      consentId=Some(consentIdExample.value),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
+      authenticationMethodId=Some("string"))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getChallengesByTransactionRequestId(transactionRequestId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = {
+        import com.openbankproject.commons.dto.{InBoundGetChallengesByTransactionRequestId => InBound, OutBoundGetChallengesByTransactionRequestId => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionRequestId)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_challenges_by_transaction_request_id", req, callContext)
+        response.map(convertToTuple[List[ChallengeCommons]](callContext))        
   }
           
   messageDocs += getChallengeDoc
@@ -6045,8 +6081,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-10-19T13:38:47Z
-//---------------- dynamic end ---------------------please don't modify this line        
+// ---------- created on 2020-10-29T08:56:39Z
+//---------------- dynamic end ---------------------please don't modify this line         
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 
