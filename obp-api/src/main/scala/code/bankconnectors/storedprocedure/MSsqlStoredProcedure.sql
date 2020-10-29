@@ -4,7 +4,8 @@
 DROP PROCEDURE IF EXISTS obp_get_adapter_info;
 GO
 -- create procedure obp_get_adapter_info
-CREATE PROCEDURE obp_get_adapter_info
+CREATE PROCEDURE obp_get_a
+dapter_info
    @outbound_json NVARCHAR(MAX),
    @inbound_json NVARCHAR(MAX) OUT
    AS
