@@ -137,6 +137,8 @@ or * access method is generally applicable, but further authorisation processes 
                    case "INITIATED" =>
                      Connector.connector.vend.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString)
                      NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+                   case CANCELLED.toString =>
+                     NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
                  }
                }
              }
