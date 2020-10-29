@@ -1308,7 +1308,7 @@ case class OutBoundCreateChallengesC2(
 
 case class InBoundCreateChallengesC2(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ChallengeCommons]) extends InBoundTrait[List[ChallengeCommons]]
 
-case class OutBoundValidateChallenge(
+case class OutBoundValidateChallengeAnswerC2(
   outboundAdapterCallContext: OutboundAdapterCallContext,
   transactionRequestId: Option[String],
   consentId: Option[String],
@@ -1316,11 +1316,14 @@ case class OutBoundValidateChallenge(
   hashOfSuppliedAnswer: String
 ) extends TopicTrait
 
-case class InBoundValidateChallenge(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
+case class InBoundValidateChallengeAnswerC2(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
 
 
 case class OutBoundGetChallenge(outboundAdapterCallContext: OutboundAdapterCallContext, challengeId: String) extends TopicTrait
 case class InBoundGetChallenge(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
+
+case class OutBoundGetChallengesByTransactionRequestId(outboundAdapterCallContext: OutboundAdapterCallContext, transactionRequestId: String) extends TopicTrait
+case class InBoundGetChallengesByTransactionRequestId(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ChallengeCommons]) extends InBoundTrait[List[ChallengeCommons]]
 
 
 // --------------------- some special connector methods corresponding InBound and OutBound -- end --

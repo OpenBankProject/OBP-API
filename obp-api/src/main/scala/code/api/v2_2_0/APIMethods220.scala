@@ -303,7 +303,7 @@ trait APIMethods220 {
         UserNoPermissionAccessView,
         UnknownError
       ),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagAccount, apiTagPsd2))
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagAccount, apiTagPsd2, apiTagNewStyle))
 
     lazy val getExplictCounterpartiesForAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
@@ -352,7 +352,7 @@ trait APIMethods220 {
       emptyObjectJson,
       counterpartyWithMetadataJson,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData, apiTagPsd2)
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData, apiTagPsd2, apiTagNewStyle)
     )
   
     lazy val getExplictCounterpartyById : OBPEndpoint = {
@@ -742,7 +742,7 @@ trait APIMethods220 {
         AccountIdAlreadyExists,
         UnknownError
       ),
-      List(apiTagAccount,apiTagOnboarding),
+      List(apiTagAccount,apiTagOnboarding, apiTagNewStyle),
       Some(List(canCreateAccount))
     )
 

@@ -94,6 +94,7 @@ object NewStyle {
     (nameOf(Implementations2_0_0.getPermissionsForBankAccount), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_1_0.getRoles), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations2_1_0.getCustomersForCurrentUserAtBank), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations2_1_0.getMetrics), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getViewsForBankAccount), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getCurrentFxRate), ApiVersion.v2_2_0.toString),
@@ -850,7 +851,7 @@ object NewStyle {
        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
       }
 
-    def validateChallenge(
+    def validateChallengeAnswerC2(
       challengeType: ChallengeType.Value,
       transactionRequestId: Option[String], 
       consentId: Option[String], 
@@ -863,7 +864,7 @@ object NewStyle {
       }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && consentId.isEmpty ){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId) ")}
       }else{
-        Connector.connector.vend.validateChallenge(
+        Connector.connector.vend.validateChallengeAnswerC2(
           transactionRequestId: Option[String],
           consentId: Option[String],
           challengeId: String,

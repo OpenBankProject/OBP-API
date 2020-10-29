@@ -225,7 +225,7 @@ trait APIMethods400 {
         InvalidISOCurrencyCode,
         UnknownError
       ),
-      List(apiTagBank),
+      List(apiTagBank, apiTagNewStyle),
       Some(List(canCreateSettlementAccountAtOneBank))
     )
 
@@ -324,7 +324,7 @@ trait APIMethods400 {
         BankNotFound,
         UnknownError
       ),
-      List(apiTagBank, apiTagPsd2),
+      List(apiTagBank, apiTagPsd2, apiTagNewStyle),
       Some(List(canGetSettlementAccountAtOneBank))
     )
 
@@ -1219,9 +1219,9 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Create one DynamicEntity, after created success, the corresponding CURD endpoints will be generated automatically
+         |Create one DynamicEntity, after created success, the corresponding CRUD endpoints will be generated automatically
          |
-         |Current support filed types as follow:
+         |Current support field types as follow:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
          |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
@@ -1252,7 +1252,7 @@ trait APIMethods400 {
           val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None, cc.userId)
           for {
             Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, cc.callContext)
-            //granted the CURD roles to the loggedIn User
+            //granted the CRUD roles to the loggedIn User
             curdRoles = List(
               DynamicEntityInfo.canCreateRole(result.entityName, dynamicEntity.bankId), 
               DynamicEntityInfo.canUpdateRole(result.entityName, dynamicEntity.bankId), 
@@ -1280,9 +1280,9 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Update one DynamicEntity, after update finished, the corresponding CURD endpoints will be changed.
+         |Update one DynamicEntity, after update finished, the corresponding CRUD endpoints will be changed.
          |
-         |Current support filed types as follow:
+         |Current support field types as follow:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
          |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
@@ -1409,7 +1409,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Update one of my DynamicEntity, after update finished, the corresponding CURD endpoints will be changed.
+         |Update one of my DynamicEntity, after update finished, the corresponding CRUD endpoints will be changed.
          |
          |Current support filed types as follow:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
@@ -1746,7 +1746,7 @@ trait APIMethods400 {
         InvalidAccountBalanceCurrency,
         UnknownError
       ),
-      List(apiTagAccount,apiTagOnboarding),
+      List(apiTagAccount,apiTagOnboarding, apiTagNewStyle),
       Some(List(canCreateAccount))
     ).disableAutoValidateRoles()  // this means disabled auto roles validation, will manually do the roles validation .
 
@@ -2023,7 +2023,7 @@ trait APIMethods400 {
         NoViewPermission,
         $UserNoPermissionAccessView,
         UnknownError),
-      List(apiTagAccountMetadata, apiTagAccount))
+      List(apiTagAccountMetadata, apiTagAccount, apiTagNewStyle))
 
     lazy val addTagForViewOnAccount : OBPEndpoint = {
       //add a tag
@@ -2067,7 +2067,7 @@ trait APIMethods400 {
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
         UnknownError),
-      List(apiTagAccountMetadata, apiTagAccount))
+      List(apiTagAccountMetadata, apiTagAccount, apiTagNewStyle))
 
     lazy val deleteTagForViewOnAccount : OBPEndpoint = {
       //delete a tag
@@ -2109,7 +2109,7 @@ trait APIMethods400 {
         $UserNoPermissionAccessView,
         UnknownError
       ),
-      List(apiTagAccountMetadata, apiTagAccount))
+      List(apiTagAccountMetadata, apiTagAccount, apiTagNewStyle))
 
     lazy val getTagsForViewOnAccount : OBPEndpoint = {
       //get tags
@@ -2251,7 +2251,7 @@ trait APIMethods400 {
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
         UnknownError),
-      List(apiTagAccount),
+      List(apiTagAccount, apiTagNewStyle),
     )
     lazy val getAccountByAccountRouting : OBPEndpoint = {
       case "management" :: "accounts" :: "account-routing-query" :: Nil JsonPost json -> _ => {
@@ -2440,7 +2440,7 @@ trait APIMethods400 {
         InsufficientAuthorisationToCreateBank,
         UnknownError
       ),
-      List(apiTagBank),
+      List(apiTagBank, apiTagNewStyle),
       Some(List(canCreateBank))
     )
 
@@ -2778,7 +2778,7 @@ trait APIMethods400 {
         CannotGrantAccountAccess,
         UnknownError
       ),
-      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
+      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagNewStyle))
 
     lazy val grantUserAccessToView : OBPEndpoint = {
       //add access for specific user to a specific system view
@@ -2832,7 +2832,7 @@ trait APIMethods400 {
         CannotFindAccountAccess,
         UnknownError
       ),
-      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
+      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagNewStyle))
 
     lazy val revokeUserAccessToView : OBPEndpoint = {
       //add access for specific user to a specific system view
@@ -2893,7 +2893,7 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[CustomerAttributeJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${CustomerAttributeType.DOUBLE}(12.1234), ${CustomerAttributeType.STRING}(TAX_NUMBER), ${CustomerAttributeType.INTEGER}(123) and ${CustomerAttributeType.DATE_WITH_DAY}(2012-04-23)"
             customerAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               CustomerAttributeType.withName(postedData.`type`)
@@ -2948,7 +2948,7 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[CustomerAttributeJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${CustomerAttributeType.DOUBLE}(12.1234), ${CustomerAttributeType.STRING}(TAX_NUMBER), ${CustomerAttributeType.INTEGER}(123) and ${CustomerAttributeType.DATE_WITH_DAY}(2012-04-23)"
             customerAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               CustomerAttributeType.withName(postedData.`type`)
@@ -3144,7 +3144,7 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[TransactionAttributeJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${TransactionAttributeType.DOUBLE}(12.1234), ${TransactionAttributeType.STRING}(TAX_NUMBER), ${TransactionAttributeType.INTEGER} (123)and ${TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)"
             transactionAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               TransactionAttributeType.withName(postedData.`type`)
@@ -3199,7 +3199,7 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[TransactionAttributeJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${TransactionAttributeType.DOUBLE}(12.1234), ${TransactionAttributeType.STRING}(TAX_NUMBER), ${TransactionAttributeType.INTEGER} (123)and ${TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)"
             transactionAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               TransactionAttributeType.withName(postedData.`type`)
@@ -3450,7 +3450,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagConsumer),
+      List(apiTagConsumer, apiTagNewStyle),
       Some(List(canCreateConsumer)))
 
 
@@ -3820,12 +3820,12 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[AttributeDefinitionJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
             attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeType.withName(postedData.`type`)
             }
-            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Category` field can only accept the following field: " +
               s"${AttributeCategory.Customer}"
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
@@ -3884,12 +3884,12 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[AttributeDefinitionJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
             attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeType.withName(postedData.`type`)
             }
-            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Category` field can only accept the following field: " +
               s"${AttributeCategory.Account}"
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
@@ -3947,12 +3947,12 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[AttributeDefinitionJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
             attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeType.withName(postedData.`type`)
             }
-            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Category` field can only accept the following field: " +
               s"${AttributeCategory.Product}"
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
@@ -4009,12 +4009,12 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[AttributeDefinitionJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
             attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeType.withName(postedData.`type`)
             }
-            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Category` field can only accept the following field: " +
               s"${AttributeCategory.Transaction}"
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
@@ -4073,12 +4073,12 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               json.extract[AttributeDefinitionJsonV400]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
             attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeType.withName(postedData.`type`)
             }
-            failMsg = s"$InvalidJsonFormat The `Category` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Category` field can only accept the following field: " +
               s"${AttributeCategory.Card}"
             category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               AttributeCategory.withName(postedData.category)
@@ -4802,7 +4802,7 @@ trait APIMethods400 {
         CounterpartyAlreadyExists,
         UnknownError
       ),
-      List(apiTagCounterparty, apiTagAccount))
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle))
 
 
     lazy val createCounterparty: OBPEndpoint = {
@@ -4986,7 +4986,7 @@ trait APIMethods400 {
         CounterpartyAlreadyExists,
         UnknownError
       ),
-      List(apiTagCounterparty, apiTagAccount),
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle),
       Some(List(canCreateCounterparty, canCreateCounterpartyAtAnyBank)))
 
 
@@ -5082,7 +5082,7 @@ trait APIMethods400 {
         UserNoPermissionAccessView,
         UnknownError
       ),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount))
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount, apiTagNewStyle))
 
     lazy val getExplictCounterpartiesForAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
@@ -5130,7 +5130,7 @@ trait APIMethods400 {
       emptyObjectJson,
       counterpartyWithMetadataJson400,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagCounterpartyMetaData)
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagCounterpartyMetaData, apiTagNewStyle)
     )
 
     lazy val getExplictCounterpartyById : OBPEndpoint = {
@@ -5176,7 +5176,7 @@ trait APIMethods400 {
         ViewNotFound,
         UnknownError
       ),
-      List(apiTagCounterparty, apiTagAccount),
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle),
       Some(List(canGetCounterpartyAtAnyBank, canGetCounterparty)))
 
     lazy val getCounterpartyByNameForAnyAccount: OBPEndpoint = {

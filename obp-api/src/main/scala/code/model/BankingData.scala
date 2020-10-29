@@ -175,7 +175,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * Note: There are two types of account-owners in OBP: the OBP users and the customers(in a real bank, these should from Main Frame)
     *
     * This will return all the OBP users who have the link in code.accountholder.MapperAccountHolders.
-    * This field is tricky, it belongs to Trait `BankAccount` directly, not a filed in `MappedBankAccount`
+    * This field is tricky, it belongs to Trait `BankAccount` directly, not a field in `MappedBankAccount`
     * So this method always need to call the Model `MapperAccountHolders` and get the data there.
     * Note:
     *  We need manually create records for`MapperAccountHolders`, then we can get the data back.
@@ -568,8 +568,9 @@ object BankAccountX {
 
       Full(BankAccountCommons(
         AccountId(counterparty.otherAccountSecondaryRoutingAddress), "", 0,
-        currency = counterpartyCurrency
-        , "", "", "", BankId(counterparty.otherBankRoutingAddress), new Date(), "",
+        currency = counterpartyCurrency,
+        name = counterparty.name,
+        "", "", BankId(counterparty.otherBankRoutingAddress), new Date(), "",
         accountRoutings = accountRouting1 ++ accountRouting2,
         List.empty, accountHolder = counterparty.name,
         Some(List(Attribute(

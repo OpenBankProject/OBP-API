@@ -1,13 +1,14 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
 import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentJson, UpdatePaymentPsuDataJson}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, CancelPaymentResponseLinks, LinkHrefJson, PostConsentJson, UpdatePaymentPsuDataJson}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{ApiRole, ApiTag, NewStyle}
+import code.bankconnectors.Connector
 import code.consent.ConsentStatus
 import code.database.authorisation.Authorisations
 import code.fx.fx
@@ -27,6 +28,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus}
+import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 
 import scala.concurrent.Future
 
@@ -74,56 +76,74 @@ DELETE command will tell the TPP whether the * access method was rejected * acce
 or * access method is generally applicable, but further authorisation processes are needed.
 """,
        emptyObjectJson,
-       json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : [ "data", "data" ]
-  },
-  "scaMethods" : "",
-  "_links" : {
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithAuthenticationMethodSelection" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuIdentification" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisation" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "transactionStatus" : "ACCP"
-}"""),
+       CancelPaymentResponseJson(
+         "ACTC",
+         _links = CancelPaymentResponseLinks(
+           self = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"),
+           status = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/1234-wertiq-983/status"),
+           startAuthorisation = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/cancellation-authorisations/1234-wertiq-983/status")
+         )
+       ),
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val cancelPayment : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentId :: Nil JsonDelete _ => {
+       case paymentService :: paymentProduct :: paymentId :: Nil JsonDelete _ => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : "data"
-  },
-  "scaMethods" : "",
-  "_links" : {
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithAuthenticationMethodSelection" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuIdentification" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisation" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "transactionStatus" : "ACCP"
-}"""), callContext)
+             _ <- passesPsd2Pisp(callContext)
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
+             }
+             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+
+             transactionRequestBody <- NewStyle.function.tryons(s"${UnknownError} No data for Payment Body ",400, callContext) {
+               transactionRequest.body.to_sepa_credit_transfers.get
+             }
+             fromAccountIban = transactionRequestBody.debtorAccount.iban
+             toAccountIban = transactionRequestBody.creditorAccount.iban
+             (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
+             (toAccount, callContext) <- NewStyle.function.getBankAccountByIban(toAccountIban, callContext)
+             negativeAmount = - transactionRequest.body.value.amount.toDouble
+             currency = transactionRequest.body.value.currency
+             (createdTransactionRequest,callContext) <- transactionRequestTypes match {
+               case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
+                 transactionRequest.status.toUpperCase() match {
+                   case "COMPLETED" =>
+                     for {
+                       (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(
+                         u,
+                         ViewId("Owner"),//This is the default 
+                         fromAccount,
+                         toAccount,
+                         TransactionRequestType(transactionRequestTypes.toString),
+                         TransactionRequestCommonBodyJSONCommons(
+                           AmountOfMoneyJsonV121(negativeAmount.toString, currency),
+                           ""
+                         ),
+                         "",
+                         "",
+                         None,
+                         None,
+                         None,
+                         callContext
+                       )
+                     } yield (createdTransactionRequest, callContext)
+                   case "INITIATED" =>
+                     Connector.connector.vend.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString)
+                     NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+                   case "CANCELLED" =>
+                     NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+                 }
+               }
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createCancellationTransactionRequestJson(createdTransactionRequest), HttpCode.`202`(callContext))
            }
          }
        }
@@ -159,14 +179,9 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-             authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
-               paymentId,
-               cancellationId
-             )) map {
-               unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current CANCELLATION_ID($cancellationId)")
-             }
+             (challenge, callContext) <- NewStyle.function.getChallenge(cancellationId, callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(authorisation.scaStatus), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(challenge.scaStatus.map(_.toString).getOrElse("received")), HttpCode.`200`(callContext))
            }
          }
        }
@@ -307,12 +322,9 @@ Retrieve a list of all created cancellation authorisation sub-resources.
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
-             authorisations <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByPaymentId(paymentId)) map {
-               connectorEmptyResponse(_, callContext)
-             }
+             (challenges, callContext) <-  NewStyle.function.getChallengesByTransactionRequestId(paymentId, callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.CancellationJsonV13(
-               authorisations.map(_.authorisationId)), callContext)
+             (JSONFactory_BERLIN_GROUP_1_3.CancellationJsonV13(challenges.map(_.challengeId)), callContext)
            }
          }
        }
@@ -757,7 +769,7 @@ This applies in the following scenarios:
        case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (_, callContext) <- authenticatedAccess(cc)
+             (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
@@ -766,19 +778,23 @@ This applies in the following scenarios:
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-             authorisation <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
-               paymentId,
-               "",
-               AuthenticationType.SMS_OTP.toString,
-               "",
-               ScaStatus.received.toString,
-               "12345" // TODO Implement SMS sending
-             )) map {
-               unboxFullOrFail(_, callContext, s"$UnknownError ")
+             (challenges, callContext) <- NewStyle.function.createChallengesC2(
+               List(u.userId),
+               ChallengeType.BERLINGROUP_PAYMENT,
+               Some(paymentId),
+               getScaMethodAtInstance(SEPA_CREDIT_TRANSFERS.toString).toOption,
+               Some(StrongCustomerAuthenticationStatus.received),
+               None,
+               None,
+               callContext
+             )
+             //NOTE: in OBP it support multiple challenges, but in Berlin Group it has only one challenge. The following guard is to make sure it return the 1st challenge properly.
+             challenge <- NewStyle.function.tryons(InvalidConnectorResponseForCreateChallenge,400, callContext) {
+               challenges.head
              }
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentCancellationAuthorisationJson(
-               authorisation,
+               challenge,
                paymentService,
                paymentProduct,
                paymentId
@@ -836,7 +852,7 @@ There are the following request types on this access path:
     therefore many optional elements are not present. 
     Maybe in a later version the access path will change.
 """,
-       json.parse("""{"scaAuthenticationData":"12345"}"""),
+       json.parse("""{"scaAuthenticationData":"123"}"""),
        json.parse("""{
                       "scaStatus":"finalised",
                       "authorisationId":"4f4a8b7f-9968-4183-92ab-ca512b396bfc",
@@ -867,15 +883,17 @@ There are the following request types on this access path:
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-             authorisation <- Future(Authorisations.authorisationProvider.vend.checkAnswer(
-               paymentId,
-               cancellationId, 
-               updatePaymentPsuDataJson.scaAuthenticationData))map {
-               i => connectorEmptyResponse(i, callContext)
-             }
+             (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
+               ChallengeType.BERLINGROUP_PAYMENT,
+               Some(paymentId),
+               None,
+               cancellationId,
+               updatePaymentPsuDataJson.scaAuthenticationData,
+               callContext
+             )
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentCancellationAuthorisationJson(
-               authorisation,
+               challenge,
                paymentService,
                paymentProduct,
                paymentId
@@ -967,7 +985,7 @@ There are the following request types on this access path:
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
 
-             (challenge, callContext) <- NewStyle.function.validateChallenge(
+             (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
                ChallengeType.BERLINGROUP_PAYMENT,
                Some(paymentId),
                None,

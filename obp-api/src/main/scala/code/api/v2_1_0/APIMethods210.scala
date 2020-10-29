@@ -986,7 +986,7 @@ trait APIMethods210 {
             (card, callContext) <- NewStyle.function.createPhysicalCard(
               bankCardNumber=postJson.bank_card_number,
               nameOnCard=postJson.name_on_card,
-              cardType = "",// this filed is introduced from V310
+              cardType = "",// this field is introduced from V310
               issueNumber=postJson.issue_number,
               serialNumber=postJson.serial_number,
               validFrom=postJson.valid_from_date,
@@ -1003,7 +1003,7 @@ trait APIMethods210 {
               pinResets= postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
               collected= Option(CardCollectionInfo(postJson.collected)),
               posted= Option(CardPostedInfo(postJson.posted)),
-              customerId = "",// this filed is introduced from V310
+              customerId = "",// this field is introduced from V310
               callContext
             )
             
@@ -1448,7 +1448,7 @@ trait APIMethods210 {
         CustomerNotFoundByCustomerId,
         UnknownError
       ),
-      List(apiTagCustomer)
+      List(apiTagCustomer, apiTagNewStyle)
     )
 
     lazy val getCustomersForCurrentUserAtBank : OBPEndpoint = {
@@ -1671,22 +1671,22 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagMetric, apiTagApi),
+      List(apiTagMetric, apiTagApi, apiTagNewStyle),
       Some(List(canReadMetrics)))
 
     lazy val getMetrics : OBPEndpoint = {
       case "management" :: "metrics" :: Nil JsonGet _ => {
         cc => {
           for {
-            u <- cc.user ?~! UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadMetrics), UserHasMissingRoles + CanReadMetrics )
-            httpParams <- createHttpParamsByUrl(cc.url)
-            obpQueryParams <- createQueriesByHttpParams(httpParams)
-            metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics(obpQueryParams))
-            
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadMetrics, callContext)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
+            }
+            metrics <- Future(APIMetrics.apiMetrics.vend.getAllMetrics(obpQueryParams)) 
           } yield {
-            val json = JSONFactory210.createMetricsJson(metrics)
-            successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
+            (JSONFactory210.createMetricsJson(metrics), HttpCode.`200`(callContext))
           }
         }
       }
