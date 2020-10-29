@@ -53,4 +53,5 @@
     color: #333333;
     line-height: 24px;
     text-decoration:underline;
+    word-break:break-all;
 }

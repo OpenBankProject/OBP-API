@@ -102,7 +102,9 @@
     margin-bottom: 32px;
     text-align: justify;
 }
-
+#signup #signup-submit :focus{
+    outline: solid 2px #66afe9;
+}
 #signup #signup-error{
     text-align: justify;
     color: white;

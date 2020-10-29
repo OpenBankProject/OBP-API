@@ -540,7 +540,7 @@ import net.liftweb.util.Helpers._
   }
 
   override def lostPasswordXhtml = {
-    <div id="recover-password">
+    <div id="recover-password" tabindex="-1">
           <h1>Recover Password</h1>
           <div id="recover-password-explanation">Enter your email address or username and we'll email you a link to reset your password</div>
           <form action={S.uri} method="post">
@@ -659,7 +659,7 @@ import net.liftweb.util.Helpers._
   def signupFormTitle = getWebUiPropsValue("webui_signup_form_title_text", S.?("sign.up"))
   
   override def signupXhtml (user:AuthUser) =  {
-    <div id="signup">
+    <div id="signup" tabindex="-1">
       <form method="post" action={S.uri}>
           <h1>{signupFormTitle}</h1>
           {legalNoticeDiv}

@@ -1,10 +1,10 @@
 //This function to make sure in the big screen, to close the left_side_small_screen div, then we can show the api_list 
 var flag = true;
 $(window).resize(function() {
-	if(screen.width < 759 && !flag){
+	if(screen.width < 959 && !flag){
 		flag = true
 	}
-	if(screen.width >= 759 && flag){
+	if(screen.width >= 959 && flag){
 		closeNav()
 		flag =false
 	}
@@ -22,6 +22,12 @@ function checkclick(){
 	}
 }
 function openNav() {
+	$("#small-screen-navbar #small-nav-collapse").attr("aria-hidden","true");
+	$("#small-screen-navbar #small-nav-logo").attr("aria-hidden","true");
+	$("#small-screen-navbar #small-nav-log-on-button").attr("aria-hidden","true");
+	$("#obp-sidebar #small-nav-cross").attr("aria-hidden","false");
+	$("#obp-sidebar #small-nav-logo").attr("aria-hidden","false");
+	$("#obp-sidebar #small-nav-log-on-button").attr("aria-hidden","false");
 	$("#obp-sidebar").css("display","block");
 	$("#main").css("display","none");
 	logOnButton = $("#small-nav-log-on-button").text().indexOf("Log on")
@@ -33,6 +39,13 @@ function openNav() {
 
 function closeNav() {
 	$("#obp-sidebar").css("display","none");
+	$("#small-nav-collapse").attr("aria-hidden","false");
+	$("#small-screen-navbar #small-nav-collapse").attr("aria-hidden","false");
+	$("#small-screen-navbar #small-nav-logo").attr("aria-hidden","false");
+	$("#small-screen-navbar #small-nav-log-on-button").attr("aria-hidden","false");
+	$("#obp-sidebar #small-nav-cross").attr("aria-hidden","true");
+	$("#obp-sidebar #small-nav-logo").attr("aria-hidden","true");
+	$("#obp-sidebar #small-nav-log-on-button").attr("aria-hidden","true");
 	$("#main").css("display","block");
 }
 
@@ -86,11 +99,65 @@ $(document).ready(function() {
 	var htmlTitle = $(document).find("title").text();
 
 	if (htmlTitle.indexOf("Get API") > -1){
+		$("#get-api-key-link").css("border-bottom","4px #DB0011 solid").css("padding-bottom","26px") ;
+		$("#obp-sidebar #sideba-api-key-div").css("border-left","4px #DB0011 solid").css("font-weight", "bold") ;
+		$('#index-page').css("display","none");
+		$('#consumer-registration-page').css("display","block");
+		$('#introduction-page').css("display","none");
+		$('#logon-page').css("display","none");
+		$('#lost-password-page').css("display","none");
+		$('#sign-up-page').css("display","none");
 		$("#get-api-key-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px");
 		$("#obp-sidebar #sideba-api-key-div").css("border-left","4px #53C4EF solid").css("font-weight", "bold");
 	}else if(htmlTitle.indexOf("INTRODUCTION") >-1){
-		$("#sandbox-introduction-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px");
-		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #53C4EF solid").css("font-weight", "bold");
+		$("#sandbox-introduction-link").css("border-bottom","4px #DB0011 solid").css("padding-bottom","26px");
+		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #DB0011 solid").css("font-weight", "bold")
+		$('#index-page').css("display","none");
+		$('#consumer-registration-page').css("display","none");
+		$('#introduction-page').css("display","block");
+		$('#logon-page').css("display","none");
+		$('#lost-password-page').css("display","none");
+		$('#sign-up-page').css("display","none");
+        $("#sandbox-introduction-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px");
+        $("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #53C4EF solid").css("font-weight", "bold");
+    }else if(htmlTitle.indexOf("Home") >-1){
+		$("#sandbox-introduction-link").css("border-bottom","4px #DB0011 solid").css("padding-bottom","26px") ;
+		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #DB0011 solid").css("font-weight", "bold");
+		$('#index-page').css("display","block");
+		$('#consumer-registration-page').css("display","none");
+		$('#introduction-page').css("display","none");
+		$('#logon-page').css("display","none");
+		$('#lost-password-page').css("display","none");
+		$('#sign-up-page').css("display","none");
+	}else if(htmlTitle.indexOf("Login") >-1){
+		$("#sandbox-introduction-link").css("border-bottom","4px #DB0011 solid").css("padding-bottom","26px");
+		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #DB0011 solid").css("font-weight", "bold");
+		$("#sandbox-introduction-link").css("border-bottom","4px #DB0011 solid").css("padding-bottom","26px") ;
+		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #DB0011 solid").css("font-weight", "bold");
+		$('#index-page').css("display","none");
+		$('#consumer-registration-page').css("display","none");
+		$('#introduction-page').css("display","none");
+		$('#logon-page').css("display","block");
+		$('#lost-password-page').css("display","none");
+		$('#sign-up-page').css("display","none");
+	}else if(htmlTitle.indexOf("Lost Password") >-1){
+		$("#sandbox-introduction-link").css("border-bottom","4px #DB0011 solid").css("padding-bottom","26px");
+		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #DB0011 solid").css("font-weight", "bold");
+		$('#index-page').css("display","none");
+		$('#consumer-registration-page').css("display","none");
+		$('#introduction-page').css("display","none");
+		$('#logon-page').css("display","none");
+		$('#lost-password-page').css("display","block");
+		$('#sign-up-page').css("display","none");
+	}else if(htmlTitle.indexOf("Sign Up") >-1){
+		$("#sandbox-introduction-link").css("border-bottom","4px #DB0011 solid").css("padding-bottom","26px");
+		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #DB0011 solid").css("font-weight", "bold");
+		$('#index-page').css("display","none");
+		$('#consumer-registration-page').css("display","none");
+		$('#introduction-page').css("display","none");
+		$('#logon-page').css("display","none");
+		$('#lost-password-page').css("display","none");
+		$('#sign-up-page').css("display","block");
 	}else{
 		;
 	}
