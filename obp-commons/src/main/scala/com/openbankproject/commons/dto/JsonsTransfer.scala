@@ -1322,5 +1322,8 @@ case class InBoundValidateChallengeAnswerC2(inboundAdapterCallContext: InboundAd
 case class OutBoundGetChallenge(outboundAdapterCallContext: OutboundAdapterCallContext, challengeId: String) extends TopicTrait
 case class InBoundGetChallenge(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
 
+case class OutBoundGetChallengesByTransactionRequestId(outboundAdapterCallContext: OutboundAdapterCallContext, transactionRequestId: String) extends TopicTrait
+case class InBoundGetChallengesByTransactionRequestId(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ChallengeCommons]) extends InBoundTrait[List[ChallengeCommons]]
+
 
 // --------------------- some special connector methods corresponding InBound and OutBound -- end --
