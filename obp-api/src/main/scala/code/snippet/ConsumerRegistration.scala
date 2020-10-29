@@ -91,11 +91,16 @@ class ConsumerRegistration extends MdcLoggable {
             if (HydraUtil.mirrorConsumerInHydra) "Redirect URL" else "Redirect URL (Optional)"
           } &
           "#appRedirectUrl" #> SHtml.text(redirectionURLVar, redirectionURLVar(_)) &
-          "#request_uri" #> SHtml.text(requestUriVar, requestUriVar(_)) &
           "#appDev" #> SHtml.text(devEmailVar, devEmailVar(_)) &
           "#appDesc" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
-          "#appClientCertificate" #> SHtml.textarea(clientCertificateVar, clientCertificateVar (_)) &
-          "#appUserAuthenticationUrl" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_)) &
+          "#appUserAuthenticationUrl" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_)) & {
+            if(HydraUtil.mirrorConsumerInHydra) {
+              "#request_uri" #> SHtml.text(requestUriVar, requestUriVar(_)) &
+                "#appClientCertificate" #> SHtml.textarea(clientCertificateVar, clientCertificateVar (_))
+            } else {
+              ".oauth2_field" #> ""
+            }
+          } &
           "type=submit" #> SHtml.submit(s"$registrationConsumerButtonValue", () => submitButtonDefense)
       } &
       "#register-consumer-success" #> ""

@@ -62,15 +62,18 @@ Berlin 13359, Germany
 								<span data-lift="Msg?id=consumer-registration-app-redirect-url-error"/>
 							</div>
 						</div>
-						<div class="form-group">
-							<label for="request_uri" id="request_uri_label">
-								<a href="https://tools.ietf.org/id/draft-lodderstedt-oauth-rar-03.html#security-considerations" target="_blank">The request_uri authorization request</a> parameter (Optional)
-							</label>
-							<input type="url" name="app-request_uri" id="request_uri" class="form-control">
-							<div id = "consumer-registration-app-request_uri-error-div" class="hide">
-								<span data-lift="Msg?id=consumer-registration-app-request_uri-error"/>
+						<span class="oauth2_field">
+							<div class="form-group">
+								<label for="request_uri" id="request_uri_label">
+									<a href="https://tools.ietf.org/id/draft-lodderstedt-oauth-rar-03.html#security-considerations" target="_blank">The request_uri authorization request</a> parameter (Optional)
+								</label>
+								<input type="url" name="app-request_uri" id="request_uri" class="form-control">
+								<div id = "consumer-registration-app-request_uri-error-div" class="hide">
+									<span data-lift="Msg?id=consumer-registration-app-request_uri-error"/>
+								</div>
 							</div>
-						</div>
+						</span>
+
 						<div class="form-group">
 							<label for="appDev">Developer email</label>
 							<input type="text" name="app-developer" id="appDev" class="form-control">
@@ -88,15 +91,18 @@ Berlin 13359, Germany
 							</div>
 						</div>
 					</div>
-					<div class="col-xs-12 col-sm-6">
-						<div class="form-group">
-							<label for="appClientCertificate">Client certificate, content of crt file (Optional)</label>
-							<textarea rows="4" name="app-description" id="appClientCertificate" class="form-control"></textarea>
-							<div id = "consumer-registration-app-client-certificate-error-div" class="hide alert alert-danger">
-								<span data-lift="Msg?id=consumer-registration-app-client-certificate-error"/>
+					<span class="oauth2_field">
+						<div class="col-xs-12 col-sm-6">
+							<div class="form-group">
+								<label for="appClientCertificate">Client certificate, content of crt file (Optional)</label>
+								<textarea rows="4" name="app-description" id="appClientCertificate" class="form-control"></textarea>
+								<div id = "consumer-registration-app-client-certificate-error-div" class="hide alert alert-danger">
+									<span data-lift="Msg?id=consumer-registration-app-client-certificate-error"/>
+								</div>
 							</div>
 						</div>
-					</div>
+					</span>
+
 				</div>
 				<input type="submit" value="Register consumer" class="btn btn-default" />
 				<div id = "register-consumer-errors-div" class="hide alert alert-danger">
