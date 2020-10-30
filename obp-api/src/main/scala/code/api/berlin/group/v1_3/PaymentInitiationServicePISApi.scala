@@ -181,7 +181,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              (challenge, callContext) <- NewStyle.function.getChallenge(cancellationId, callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(challenge.scaStatus.map(_.toString).getOrElse("received")), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(challenge.scaStatus.map(_.toString).getOrElse("None")), HttpCode.`200`(callContext))
            }
          }
        }
@@ -364,9 +364,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
              
            } yield {
              (json.parse(
-               s"""{
-                "scaStatus" : "${challenge.scaStatus.getOrElse("received")}"
-              }"""), callContext)
+               s"""{"scaStatus" : "${challenge.scaStatus.getOrElse("None")}"}"""), callContext)
            }
          }
        }
