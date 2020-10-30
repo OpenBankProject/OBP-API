@@ -896,23 +896,23 @@ trait APIMethods220 {
         InvalidDateFormat,
         UnknownError
       ),
-      List(apiTagMetric, apiTagApi),
+      List(apiTagMetric, apiTagApi, apiTagNewStyle),
       Some(List(canGetConnectorMetrics)))
 
     lazy val getConnectorMetrics : OBPEndpoint = {
       case "management" :: "connector" :: "metrics" :: Nil JsonGet _ => {
-        cc => {
+        cc => 
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canGetConnectorMetrics), s"$UserHasMissingRoles+$CanGetConnectorMetrics entitlement required")
-            httpParams <- createHttpParamsByUrl(cc.url)
-            obpQueryParams <- createQueriesByHttpParams(httpParams)
-            metrics <- Full(ConnectorMetricsProvider.metrics.vend.getAllConnectorMetrics(obpQueryParams))
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetConnectorMetrics, callContext)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
+            }
+            metrics <- Future(ConnectorMetricsProvider.metrics.vend.getAllConnectorMetrics(obpQueryParams))
           } yield {
-            val json = JSONFactory220.createConnectorMetricsJson(metrics)
-            successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
+            (JSONFactory220.createConnectorMetricsJson(metrics), HttpCode.`200`(callContext))
           }
-        }
       }
     }
 
