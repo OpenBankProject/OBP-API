@@ -3477,4 +3477,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     if (str.length == 1) return str.toLowerCase
     str.substring(0, 1).toLowerCase + str.substring(1)
   }
+ 
+  val currentYear = Calendar.getInstance.get(Calendar.YEAR).toString
 }

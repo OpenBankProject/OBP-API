@@ -255,8 +255,7 @@ class WebUI extends MdcLoggable{
   }
   
   def currentYearText: CssSel = {
-    import java.util.Calendar
-    val year = Calendar.getInstance.get(Calendar.YEAR).toString
+    val year = APIUtil.currentYear
     "#copyright-year *" #> scala.xml.Unparsed(year)
   }
 
