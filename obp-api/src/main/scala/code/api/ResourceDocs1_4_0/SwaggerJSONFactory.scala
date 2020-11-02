@@ -5,7 +5,7 @@ import java.util.{Date, Objects}
 import code.api.util.APIUtil.{EmptyBody, JArrayBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.ErrorMessages._
 import code.api.util._
-import com.openbankproject.commons.util.{ApiVersion, EnumValue, JsonAble, OBPEnumeration, ReflectUtils}
+import com.openbankproject.commons.util.{ApiVersion, EnumValue, JsonAble, JsonUtils, OBPEnumeration, ReflectUtils, ScannedApiVersion}
 import net.liftweb
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
@@ -21,7 +21,6 @@ import net.liftweb.util.StringHelpers
 import scala.collection.mutable.ListBuffer
 import com.openbankproject.commons.model.ListResult
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.util.JsonUtils
 import net.liftweb.common.{EmptyBox, Full}
 import net.liftweb.json
 
@@ -264,8 +263,15 @@ object SwaggerJSONFactory extends MdcLoggable {
 
     implicit val formats = CustomJsonFormats.formats
 
-    val infoTitle = "Open Bank Project API"
-    val infoDescription = s"An Open Source API for Banks. (c) TESOBE GmbH. 2011 - ${APIUtil.currentYear}. Licensed under the AGPL and commercial licences."
+    val (infoTitle, infoDescription) = 
+      requestedApiVersion match {
+          case obpStandardVersion  if(ApiVersion.standardVersions.contains(requestedApiVersion)) =>("Open Bank Project API", s"An Open Source API for Banks. (c) TESOBE GmbH. 2011 - ${APIUtil.currentYear}. Licensed under the AGPL and commercial licences.")
+          case _  =>(
+            s"${requestedApiVersion.asInstanceOf[ScannedApiVersion].apiStandard} ${requestedApiVersion.asInstanceOf[ScannedApiVersion].urlPrefix.split("-").map(_.capitalize).mkString(" ")}",
+            s"An Open Source API for Banks. (c) TESOBE GmbH. 2011 - ${APIUtil.currentYear}. Licenses: Unknown"
+          )
+      }
+    
     val infoContact = InfoContactJson("TESOBE GmbH. / Open Bank Project", "https://openbankproject.com" ,"contact@tesobe.com")
     val infoApiVersion = requestedApiVersion
     val info = InfoJson(infoTitle, infoDescription, infoContact, infoApiVersion.toString)
