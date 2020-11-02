@@ -391,7 +391,7 @@ trait APIMethods220 {
       emptyObjectJson,
       messageDocsJson,
       List(UnknownError),
-      List(apiTagDocumentation, apiTagApi)
+      List(apiTagDocumentation, apiTagApi, apiTagNewStyle)
     )
 
     lazy val getMessageDocs: OBPEndpoint = {
@@ -399,11 +399,13 @@ trait APIMethods220 {
         cc => {
           for {
             //kafka_vJune2017 --> vJune2017 : get the valid version for search the connector object.
-            connectorObject <- tryo{Connector.getConnectorInstance(connector)} ?~! s"$InvalidConnector Current Input is $connector. It should be eg: kafka_vJune2017, kafka_vSept2018..."
-            messageDocs <- Full{connectorObject.messageDocs.toList} 
+            connectorObject <- Future(tryo{Connector.getConnectorInstance(connector)}) map { i =>
+              val msg = "$InvalidConnector Current Input is $connector. It should be eg: kafka_vJune2017, kafka_vSept2018..."
+              unboxFullOrFail(i, cc.callContext, msg)
+            }
           } yield {
-            val json = JSONFactory220.createMessageDocsJson(messageDocs)
-            successJsonResponse(Extraction.decompose(json)(CustomJsonFormats.formats))
+            val json = JSONFactory220.createMessageDocsJson(connectorObject.messageDocs.toList)
+            (json, HttpCode.`200`(cc.callContext))
           }
         }
       }
