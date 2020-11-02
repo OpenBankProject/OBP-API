@@ -268,7 +268,7 @@ object SwaggerJSONFactory extends MdcLoggable {
           case obpStandardVersion  if(ApiVersion.standardVersions.contains(requestedApiVersion)) =>("Open Bank Project API", s"An Open Source API for Banks. (c) TESOBE GmbH. 2011 - ${APIUtil.currentYear}. Licensed under the AGPL and commercial licences.")
           case _  =>(
             s"${requestedApiVersion.asInstanceOf[ScannedApiVersion].apiStandard} ${requestedApiVersion.asInstanceOf[ScannedApiVersion].urlPrefix.split("-").map(_.capitalize).mkString(" ")}",
-            s"An Open Source API for Banks. (c) TESOBE GmbH. 2011 - ${APIUtil.currentYear}. Licenses: Unknown"
+            s"License: Unknown"
           )
       }
     
