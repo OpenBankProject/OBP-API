@@ -247,7 +247,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
   "data" : {
     "accountIds" : [ "accountIds", "accountIds" ]
   },
-  "meta" : { }
+    "meta" : " ",
 }"""),
        json.parse("""{
   "data" : {
