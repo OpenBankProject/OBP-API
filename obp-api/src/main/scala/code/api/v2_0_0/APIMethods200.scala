@@ -42,6 +42,8 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.ApiVersion
+
+import scala.concurrent.Future
 // Makes JValue assignment to Nil work
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
@@ -1169,25 +1171,22 @@ trait APIMethods200 {
       emptyObjectJson,
       transactionTypesJsonV200,
       List(BankNotFound, UnknownError),
-      List(apiTagBank, apiTagPSD2AIS, apiTagPsd2)
+      List(apiTagBank, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle)
     )
 
     lazy val getTransactionTypes : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "transaction-types" :: Nil JsonGet _ => {
         cc => {
           for {
-          // Get Transaction Types from the active provider
-            _ <- if(getTransactionTypesIsPublic)
-              Box(Some(1))
-            else
-              cc.user ?~! "User must be logged in to retrieve Transaction Types data"
-            (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            transactionTypes <- TransactionType.TransactionTypeProvider.vend.getTransactionTypesForBank(bank.bankId) // ~> APIFailure("No transation types available. License may not be set.", 204)
+            // Get Transaction Types from the active provider
+            (_, callContext) <- getTransactionTypesIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            transactionTypes <- Future(TransactionType.TransactionTypeProvider.vend.getTransactionTypesForBank(bank.bankId)) map { connectorEmptyResponse(_, callContext) } // ~> APIFailure("No transation types available. License may not be set.", 204)
           } yield {
-            // Format the data as json
-            val json = JSONFactory200.createTransactionTypeJSON(transactionTypes)
-            // Return
-            successJsonResponse(Extraction.decompose(json))
+            (JSONFactory200.createTransactionTypeJSON(transactionTypes), HttpCode.`200`(callContext))
           }
         }
       }
