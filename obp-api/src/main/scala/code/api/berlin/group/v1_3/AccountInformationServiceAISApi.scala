@@ -489,7 +489,7 @@ This account-id then can be retrieved by the
   }]
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: Nil
      )
 
      lazy val getCardAccountBalances : OBPEndpoint = {
@@ -834,7 +834,7 @@ of the "Read Transaction List" call within the _links subfield.
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: Nil
      )
 
      lazy val getTransactionDetails : OBPEndpoint = {
@@ -1053,7 +1053,7 @@ respectively the OAuth2 access token.
   "status" : { }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)") :: Nil
      )
 
      lazy val readCardAccount : OBPEndpoint = {

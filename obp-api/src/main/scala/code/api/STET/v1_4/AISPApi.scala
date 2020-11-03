@@ -101,7 +101,7 @@ The ASPSP answers by providing a list of balances on this account.
                     |}
                     |""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
-       ApiTag("AISP") :: apiTagMockedData :: Nil
+       ApiTag("AISP") :: Nil
      )
 
      lazy val accountsBalancesGet : OBPEndpoint = {
@@ -190,7 +190,7 @@ The TPP sends a request to the ASPSP for retrieving the list of the PSU payment 
                     |  }
                     |}""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
-       ApiTag("AISP") :: apiTagMockedData :: Nil
+       ApiTag("AISP") :: Nil
      )
 
      lazy val accountsGet : OBPEndpoint = {
@@ -282,7 +282,7 @@ The AISP requests the ASPSP on one of the PSU's accounts. It may specify some se
                     |  }
                     |}""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
-       ApiTag("AISP") :: apiTagMockedData :: Nil
+       ApiTag("AISP") :: Nil
      )
 
      lazy val accountsTransactionsGet : OBPEndpoint = {
