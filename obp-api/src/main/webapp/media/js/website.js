@@ -99,8 +99,6 @@ $(document).ready(function() {
 	var htmlTitle = $(document).find("title").text();
 
 	if (htmlTitle.indexOf("Get API") > -1){
-		$("#get-api-key-link").css("border-bottom","4px #DB0011 solid").css("padding-bottom","26px") ;
-		$("#obp-sidebar #sideba-api-key-div").css("border-left","4px #DB0011 solid").css("font-weight", "bold") ;
 		$('#index-page').css("display","none");
 		$('#consumer-registration-page').css("display","block");
 		$('#introduction-page').css("display","none");
@@ -110,8 +108,6 @@ $(document).ready(function() {
 		$("#get-api-key-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px");
 		$("#obp-sidebar #sideba-api-key-div").css("border-left","4px #53C4EF solid").css("font-weight", "bold");
 	}else if(htmlTitle.indexOf("INTRODUCTION") >-1){
-		$("#sandbox-introduction-link").css("border-bottom","4px #DB0011 solid").css("padding-bottom","26px");
-		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #DB0011 solid").css("font-weight", "bold")
 		$('#index-page').css("display","none");
 		$('#consumer-registration-page').css("display","none");
 		$('#introduction-page').css("display","block");
@@ -121,8 +117,6 @@ $(document).ready(function() {
         $("#sandbox-introduction-link").css("border-bottom","4px #53C4EF solid").css("padding-bottom","26px");
         $("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #53C4EF solid").css("font-weight", "bold");
     }else if(htmlTitle.indexOf("Home") >-1){
-		$("#sandbox-introduction-link").css("border-bottom","4px #DB0011 solid").css("padding-bottom","26px") ;
-		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #DB0011 solid").css("font-weight", "bold");
 		$('#index-page').css("display","block");
 		$('#consumer-registration-page').css("display","none");
 		$('#introduction-page').css("display","none");
@@ -130,10 +124,6 @@ $(document).ready(function() {
 		$('#lost-password-page').css("display","none");
 		$('#sign-up-page').css("display","none");
 	}else if(htmlTitle.indexOf("Login") >-1){
-		$("#sandbox-introduction-link").css("border-bottom","4px #DB0011 solid").css("padding-bottom","26px");
-		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #DB0011 solid").css("font-weight", "bold");
-		$("#sandbox-introduction-link").css("border-bottom","4px #DB0011 solid").css("padding-bottom","26px") ;
-		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #DB0011 solid").css("font-weight", "bold");
 		$('#index-page').css("display","none");
 		$('#consumer-registration-page').css("display","none");
 		$('#introduction-page').css("display","none");
@@ -141,8 +131,6 @@ $(document).ready(function() {
 		$('#lost-password-page').css("display","none");
 		$('#sign-up-page').css("display","none");
 	}else if(htmlTitle.indexOf("Lost Password") >-1){
-		$("#sandbox-introduction-link").css("border-bottom","4px #DB0011 solid").css("padding-bottom","26px");
-		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #DB0011 solid").css("font-weight", "bold");
 		$('#index-page').css("display","none");
 		$('#consumer-registration-page').css("display","none");
 		$('#introduction-page').css("display","none");
@@ -150,8 +138,6 @@ $(document).ready(function() {
 		$('#lost-password-page').css("display","block");
 		$('#sign-up-page').css("display","none");
 	}else if(htmlTitle.indexOf("Sign Up") >-1){
-		$("#sandbox-introduction-link").css("border-bottom","4px #DB0011 solid").css("padding-bottom","26px");
-		$("#obp-sidebar #sandbox-introduction-link").parent().css("border-left","4px #DB0011 solid").css("font-weight", "bold");
 		$('#index-page').css("display","none");
 		$('#consumer-registration-page').css("display","none");
 		$('#introduction-page').css("display","none");
