@@ -343,6 +343,8 @@ object ErrorMessages {
   val EntitlementRequestCannotBeAdded = "OBP-30217: Entitlement Request cannot be added."
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
   val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
+  val EntitlementCannotBeDeleted = "OBP-30219: EntitlementId cannot be deleted."
+  
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
   val SystemViewNotFound = "OBP-30252: System view not found. Please specify a valid value for VIEW_ID"

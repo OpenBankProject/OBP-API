@@ -4,7 +4,7 @@ import java.util.{Calendar, Date}
 
 import code.api.Constant._
 import code.TransactionTypes.TransactionType
-import code.api.APIFailure
+import code.api.{APIFailure, APIFailureNewStyle}
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -2026,20 +2026,25 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       List(UserNotLoggedIn, UserHasMissingRoles, EntitlementNotFound, UnknownError),
-      List(apiTagRole, apiTagUser, apiTagEntitlement))
+      List(apiTagRole, apiTagUser, apiTagEntitlement, apiTagNewStyle))
 
 
     lazy val deleteEntitlement: OBPEndpoint = {
       case "users" :: userId :: "entitlement" :: entitlementId :: Nil JsonDelete _ => {
         cc =>
             for {
-              u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
-              _ <- booleanToBox(hasEntitlement("", u.userId, canDeleteEntitlementAtAnyBank), UserHasMissingRoles + CanDeleteEntitlementAtAnyBank)
-              entitlement <- tryo{Entitlement.entitlement.vend.getEntitlementById(entitlementId)} ?~ EntitlementNotFound
-              _ <- entitlement.filter(_.userId == userId) ?~ UserDoesNotHaveEntitlement
-              _ <- Entitlement.entitlement.vend.deleteEntitlement(entitlement)
-            }
-            yield noContentJsonResponse
+              (Full(u), callContext) <- authenticatedAccess(cc)
+              _ <- Helper.booleanToFuture(s"$UserHasMissingRoles $canDeleteEntitlementAtAnyBank") {
+                hasEntitlement("", u.userId, canDeleteEntitlementAtAnyBank)
+              }
+              entitlement <- Future(Entitlement.entitlement.vend.getEntitlementById(entitlementId)) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementNotFound, 404, callContext.map(_.toLight)))
+              } map { unboxFull(_) }
+              _ <- Helper.booleanToFuture(UserDoesNotHaveEntitlement) { entitlement.userId == userId }
+              deleted <- Future(Entitlement.entitlement.vend.deleteEntitlement(Some(entitlement))) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementCannotBeDeleted, 404, callContext.map(_.toLight)))
+              } map { unboxFull(_) }
+            } yield (deleted, HttpCode.`204`(cc.callContext))
       }
     }
 
