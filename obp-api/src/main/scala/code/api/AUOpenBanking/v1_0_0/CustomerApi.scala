@@ -68,7 +68,7 @@ object APIMethods_CustomerApi extends RestHelper {
     },
     "customerUType" : "person"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -112,7 +112,7 @@ object APIMethods_CustomerApi extends RestHelper {
     },
     "customerUType" : "person"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -139,7 +139,7 @@ object APIMethods_CustomerApi extends RestHelper {
     "organisation" : "",
     "customerUType" : "person"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -160,7 +160,7 @@ object APIMethods_CustomerApi extends RestHelper {
     "organisation" : "",
     "customerUType" : "person"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }

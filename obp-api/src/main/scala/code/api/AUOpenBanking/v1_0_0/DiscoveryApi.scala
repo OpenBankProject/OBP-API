@@ -53,7 +53,7 @@ object APIMethods_DiscoveryApi extends RestHelper {
       "explanation" : "explanation"
     } ]
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -82,7 +82,7 @@ object APIMethods_DiscoveryApi extends RestHelper {
       "explanation" : "explanation"
     } ]
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -111,7 +111,7 @@ object APIMethods_DiscoveryApi extends RestHelper {
     "detectionTime" : "detectionTime",
     "status" : "OK"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -134,7 +134,7 @@ object APIMethods_DiscoveryApi extends RestHelper {
     "detectionTime" : "detectionTime",
     "status" : "OK"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }

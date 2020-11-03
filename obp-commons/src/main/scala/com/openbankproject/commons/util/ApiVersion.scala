@@ -101,7 +101,8 @@ object ApiVersion {
   val v3_1_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v3.1.0`.toString)
   val v4_0_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v4.0.0`.toString)
 
-  private val standardVersions = v1_2_1 :: v1_3_0 :: v1_4_0 :: v2_0_0 :: v2_1_0 :: v2_2_0 :: v3_0_0 :: v3_1_0 :: v4_0_0 :: Nil
+  //This is OBP standard version:
+  val standardVersions = v1_2_1 :: v1_3_0 :: v1_4_0 :: v2_0_0 :: v2_1_0 :: v2_2_0 :: v3_0_0 :: v3_1_0 :: v4_0_0 :: apiBuilder :: Nil
 
   /**
    * the ApiPathZero value must be got by obp-api project, so here is a workaround, let obp-api project modify this value

@@ -46,7 +46,7 @@ object APIMethods_AccountsApi extends RestHelper {
        emptyObjectJson,
        json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -63,7 +63,7 @@ object APIMethods_AccountsApi extends RestHelper {
              } yield {
             (json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -86,7 +86,7 @@ object APIMethods_AccountsApi extends RestHelper {
        emptyObjectJson,
        json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -103,7 +103,7 @@ object APIMethods_AccountsApi extends RestHelper {
              } yield {
             (json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -387,7 +387,7 @@ Some general notes that apply to all end points that retrieve transactions:
 //    "currency" : "currency",
 //    "availableBalance" : "availableBalance"
 //  },
-//  "meta" : { },
+//  "meta" : " ",
 //  "links" : {
 //    "self" : "self"
 //  }
@@ -419,7 +419,7 @@ Some general notes that apply to all end points that retrieve transactions:
 //    "currency" : "currency",
 //    "availableBalance" : "availableBalance"
 //  },
-//  "meta" : { },
+//  "meta" : " ",
 //  "links" : {
 //    "self" : "self"
 //  }
@@ -557,7 +557,7 @@ Some general notes that apply to all end points that retrieve transactions:
   "data" : {
     "accountIds" : [ "accountIds", "accountIds" ]
   },
-  "meta" : { }
+    "meta" : " ",
 }"""),
        json.parse("""{
   "data" : {

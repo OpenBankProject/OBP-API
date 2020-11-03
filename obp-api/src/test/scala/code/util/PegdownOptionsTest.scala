@@ -269,6 +269,70 @@ Authentication is Mandatory""".stripMargin
     descriptionHtml2 contains("<li><a href=\"/glossary#Bank.bank_id\">BANK_ID</a>:gh.29.uk</li>") should be (true)
     
   }
+
+
+  "description string" should " Authentication is Mandatory should have more space " taggedAs FunctionsTag in {
+
+    // This string is from Foobar Property List: format
+    val descriptionString = """Update exists Foo Bar33.
+
+Description of this entity, can be markdown text.
+
+
+**Property List:**
+
+* name: * description of **name** field, can be markdown text.
+* number: * description of **number** field, can be markdown text.
+
+
+
+Authentication is Mandatory""".stripMargin
+    val descriptionHtml= convertPegdownToHtmlTweaked(descriptionString)
+    val descriptionApiExplorer = stringToNodeSeq(descriptionHtml)
+
+    descriptionHtml contains("<li>name: * description of <strong>name</strong> field, can be markdown text.</li>") should be (true)
+
+
+    //This string is from obp JSON response body fields: format
+    val descriptionString2 ="""See [FPML](http://www.fpml.org/) for more examples.
+                              |
+                              |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+                              |
+                              |Authentication is Mandatory
+                              |
+                              |**URL Parameters:**
+                              |
+                              |
+                              |
+                              |* [ACCOUNT_ID](/glossary#Account.account_id): 8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0
+                              |""".stripMargin
+    val descriptionHtml2= convertPegdownToHtmlTweaked(descriptionString2)
+
+    descriptionHtml2 contains("<p>Authentication is Mandatory</p>") should be (true)
+
+    
+    val descriptionString3 ="""Returns information about:
+      |
+      |* The default bank_id
+      |* Akka configuration
+      |* Elastic Search configuration
+      |* Cached functions
+      |
+      |Authentication is Mandatory
+      |
+      |
+      |**JSON response body fields:**
+      |
+      |
+      |
+      |* [akka](/glossary#Adapter.Akka.Intro): no-example-provided
+      |""".stripMargin
+
+    val descriptionHtml3= convertPegdownToHtmlTweaked(descriptionString3)
+
+    descriptionHtml3 contains("<p>Authentication is Mandatory</p>") should be (true)
+
+  }
   
   
   
