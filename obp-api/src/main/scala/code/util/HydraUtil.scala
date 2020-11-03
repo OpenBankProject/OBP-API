@@ -70,7 +70,7 @@ object HydraUtil {
     oAuth2Client.setScope(allConsents.mkString(" "))
 
     oAuth2Client.setGrantTypes(("authorization_code" :: "client_credentials" :: "refresh_token" :: "implicit" :: Nil).asJava)
-    oAuth2Client.setResponseTypes(("code" :: "id_token" :: "token" :: "code token" :: "code id_token" :: "code token id_token" :: Nil).asJava)
+    oAuth2Client.setResponseTypes(("code" :: "id_token" :: "token" :: "code id_token" :: Nil).asJava)
     oAuth2Client.setPostLogoutRedirectUris(List(redirectUrl).asJava)
 
     oAuth2Client.setRedirectUris(List(redirectUrl).asJava)
