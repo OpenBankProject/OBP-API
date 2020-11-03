@@ -395,7 +395,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
       ""
     } else {
       val parametersDescription: List[String] = urlParameters.map(prepareDescription)
-      parametersDescription.mkString("\n**URL Parameters:**", "", "\n")
+      parametersDescription.mkString("\n\n\n**URL Parameters:**", "", "\n")
     }
   }
 

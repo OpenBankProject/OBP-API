@@ -59,7 +59,7 @@ object APIMethods_BankingApi extends RestHelper {
        emptyObjectJson,
        json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -76,7 +76,7 @@ object APIMethods_BankingApi extends RestHelper {
              } yield {
             (json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -99,7 +99,7 @@ object APIMethods_BankingApi extends RestHelper {
        emptyObjectJson,
        json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -116,7 +116,7 @@ object APIMethods_BankingApi extends RestHelper {
              } yield {
             (json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -139,7 +139,7 @@ object APIMethods_BankingApi extends RestHelper {
        emptyObjectJson,
        json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -156,7 +156,7 @@ object APIMethods_BankingApi extends RestHelper {
              } yield {
             (json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -179,7 +179,7 @@ object APIMethods_BankingApi extends RestHelper {
        emptyObjectJson,
        json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -196,7 +196,7 @@ object APIMethods_BankingApi extends RestHelper {
              } yield {
             (json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -446,7 +446,7 @@ Some general notes that apply to all end points that retrieve transactions:
     "currency" : "currency",
     "availableBalance" : "availableBalance"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -596,7 +596,7 @@ Some general notes that apply to all end points that retrieve transactions:
   "data" : {
     "accountIds" : [ "accountIds", "accountIds" ]
   },
-  "meta" : { }
+    "meta" : " ",
 }"""),
        json.parse("""{
   "data" : {
@@ -919,7 +919,7 @@ Some general notes that apply to all end points that retrieve transactions:
   "data" : {
     "accountIds" : [ "accountIds", "accountIds" ]
   },
-  "meta" : { }
+    "meta" : " ",
 }"""),
        json.parse("""{
   "data" : {
@@ -2520,7 +2520,7 @@ In addition, the concept of effective date and time has also been included. This
   "data" : {
     "accountIds" : [ "accountIds", "accountIds" ]
   },
-  "meta" : { }
+    "meta" : " ",
 }"""),
        json.parse("""{
   "data" : {
