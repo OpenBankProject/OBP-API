@@ -67,6 +67,7 @@ import code.views.Views
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.alibaba.ttl.internal.javassist.CannotCompileException
 import com.github.dwickern.macros.NameOf.{nameOf, nameOfType}
+import com.openbankproject.adapter.akka.commons.utils.APIUtil
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{Customer, _}

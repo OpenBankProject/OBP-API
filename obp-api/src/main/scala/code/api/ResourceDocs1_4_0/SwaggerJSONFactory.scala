@@ -15,6 +15,13 @@ import scala.reflect.runtime.universe._
 import java.lang.{Boolean => XBoolean, Double => XDouble, Float => XFloat, Integer => XInt, Long => XLong, String => XString}
 import java.math.{BigDecimal => JBigDecimal}
 
+import code.api.AUOpenBanking.v1_0_0.ApiCollector
+import code.api.Polish.v2_1_1_1.OBP_PAPI_2_1_1_1
+import code.api.STET.v1_4.OBP_STET_1_4
+import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
+import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
+import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
+import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import com.openbankproject.commons.model.JsonFieldReName
 import net.liftweb.util.StringHelpers
 
@@ -265,11 +272,27 @@ object SwaggerJSONFactory extends MdcLoggable {
 
     val (infoTitle, infoDescription) = 
       requestedApiVersion match {
-          case obpStandardVersion  if(ApiVersion.standardVersions.contains(requestedApiVersion)) =>("Open Bank Project API", s"An Open Source API for Banks. (c) TESOBE GmbH. 2011 - ${APIUtil.currentYear}. Licensed under the AGPL and commercial licences.")
-          case _  =>(
-            s"${requestedApiVersion.asInstanceOf[ScannedApiVersion].apiStandard} ${requestedApiVersion.asInstanceOf[ScannedApiVersion].urlPrefix.split("-").map(_.capitalize).mkString(" ")}",
-            s"License: Unknown"
-          )
+          case obpStandardVersion if(ApiVersion.standardVersions.contains(obpStandardVersion)) =>("Open Bank Project API", s"An Open Source API for Banks. (c) TESOBE GmbH. 2011 - ${APIUtil.currentYear}. Licensed under the AGPL and commercial licences.")
+          case otherStandardVersion  =>
+            val apiVersion = otherStandardVersion.asInstanceOf[ScannedApiVersion]
+            val standard= apiVersion.apiStandard
+            val urlPrefix= apiVersion.urlPrefix
+            (
+              s"${standard} ${urlPrefix.split("-").map(_.capitalize).mkString(" ")}",
+              if (apiVersion == OBP_STET_1_4.apiVersion 
+                || apiVersion == OBP_UKOpenBanking_200.apiVersion 
+                || OBP_UKOpenBanking_310.apiVersion == OBP_UKOpenBanking_200.apiVersion
+              )  s"custom, proprietary license: personal use is allowed and free, modifications or re-publishing is not allowed" 
+              else if (apiVersion == OBP_PAPI_2_1_1_1.apiVersion)
+                "Creative Commons Attribution 3.0 Unported Poland (CC BY 3.0 PL)"
+              else if (apiVersion == ApiCollector.apiVersion) 
+                "Creative Commons Attribution 3.0 Australia (CC BY 3.0 AU)"
+              else if (apiVersion == OBP_BERLIN_GROUP_1_3.apiVersion  
+                || apiVersion == OBP_BERLIN_GROUP_1.apiVersion
+              ) "Creative Commons Attribution-NoDerivatives 4.0 International (CC BY-ND)"
+              else 
+                s"License: Unknown"
+            )
       }
     
     val infoContact = InfoContactJson("TESOBE GmbH. / Open Bank Project", "https://openbankproject.com" ,"contact@tesobe.com")
