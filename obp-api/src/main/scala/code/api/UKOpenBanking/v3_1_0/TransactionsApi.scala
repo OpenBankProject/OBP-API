@@ -744,7 +744,7 @@ object APIMethods_TransactionsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       ApiTag("Transactions") :: apiTagMockedData :: Nil
+       ApiTag("Transactions") :: Nil
      )
 
      lazy val getAccountsAccountIdTransactions : OBPEndpoint = {
@@ -1010,7 +1010,7 @@ object APIMethods_TransactionsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       ApiTag("Transactions") :: apiTagMockedData :: Nil
+       ApiTag("Transactions") :: Nil
      )
 
      lazy val getTransactions : OBPEndpoint = {

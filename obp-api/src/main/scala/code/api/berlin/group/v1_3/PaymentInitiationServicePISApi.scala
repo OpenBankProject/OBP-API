@@ -85,7 +85,7 @@ or * access method is generally applicable, but further authorisation processes 
          )
        ),
        List(UserNotLoggedIn, UnknownError),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: Nil
      )
 
      lazy val cancelPayment : OBPEndpoint = {

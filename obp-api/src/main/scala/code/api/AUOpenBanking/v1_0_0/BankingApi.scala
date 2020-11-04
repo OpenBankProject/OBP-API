@@ -402,7 +402,7 @@ Some general notes that apply to all end points that retrieve transactions:
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
+       ApiTag("Banking") ::ApiTag("Accounts") :: Nil
      )
 
      lazy val listAccounts : OBPEndpoint = {
@@ -452,7 +452,7 @@ Some general notes that apply to all end points that retrieve transactions:
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
+       ApiTag("Banking") ::ApiTag("Accounts") :: Nil
      )
 
      lazy val listBalance : OBPEndpoint = {

@@ -80,7 +80,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       ApiTag("Account Access") :: apiTagMockedData :: Nil
+       ApiTag("Account Access") :: Nil
      )
 
      lazy val createAccountAccessConsents : OBPEndpoint = {
@@ -150,7 +150,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
        emptyObjectJson,
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       ApiTag("Account Access") :: apiTagMockedData :: Nil
+       ApiTag("Account Access") :: Nil
      )
 
      lazy val deleteAccountAccessConsentsConsentId : OBPEndpoint = {
@@ -207,7 +207,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       ApiTag("Account Access") :: apiTagMockedData :: Nil
+       ApiTag("Account Access") :: Nil
      )
 
      lazy val getAccountAccessConsentsConsentId : OBPEndpoint = {
