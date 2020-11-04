@@ -1002,11 +1002,17 @@ There are the following request types on this access path:
                AccountId(existingTransactionRequest.from.account_id), 
                callContext
              )
-              _ <- if(challenge.scaStatus == Some(StrongCustomerAuthenticationStatus.finalised)) 
+             _ <- challenge.scaStatus match {
+               case Some(status) if status == StrongCustomerAuthenticationStatus.finalised => // finalised
                  NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
-              else //If it is not `finalised`, just return the `authorisation` back, without any payments
-                Future{true}
-             
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, COMPLETED.toString))
+               case Some(status) if status == StrongCustomerAuthenticationStatus.started => // started
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
+               case Some(status) if status == StrongCustomerAuthenticationStatus.failed => // failed
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, REJECTED.toString))
+               case _ => // All other cases
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
+             }
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), callContext)
            }
