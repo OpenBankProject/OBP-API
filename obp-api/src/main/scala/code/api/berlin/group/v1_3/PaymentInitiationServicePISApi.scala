@@ -889,6 +889,27 @@ There are the following request types on this access path:
                updatePaymentPsuDataJson.scaAuthenticationData,
                callContext
              )
+             //Map obp transaction request id with BerlinGroup PaymentId
+             transactionRequestId = TransactionRequestId(paymentId)
+
+             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
+
+             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(
+               BankId(existingTransactionRequest.from.bank_id),
+               AccountId(existingTransactionRequest.from.account_id),
+               callContext
+             )
+             _ <- challenge.scaStatus match {
+               case Some(status) if status == StrongCustomerAuthenticationStatus.finalised => // finalised
+                 NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, COMPLETED.toString))
+               case Some(status) if status == StrongCustomerAuthenticationStatus.started => // started
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
+               case Some(status) if status == StrongCustomerAuthenticationStatus.failed => // failed
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, REJECTED.toString))
+               case _ => // All other cases
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
+             }
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentCancellationAuthorisationJson(
                challenge,
