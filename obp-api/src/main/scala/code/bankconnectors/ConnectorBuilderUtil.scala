@@ -363,6 +363,7 @@ object ConnectorBuilderUtil {
     "createChallengesC2",
     "getChallenge",
     "getChallengesByTransactionRequestId",
+    "validateAndCheckIbanNumber",
     "validateChallengeAnswerC2"
   ).distinct
 

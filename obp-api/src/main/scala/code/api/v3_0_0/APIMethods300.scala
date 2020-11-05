@@ -2035,7 +2035,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getApiGlossary,
       implementedInApiVersion,
-      "glossary",
+      nameOf(getApiGlossary),
       "GET",
       "/api/glossary",
       "Get API Glossary",
@@ -2044,7 +2044,7 @@ trait APIMethods300 {
       emptyObjectJson,
       glossaryItemsJsonV300,
       List(UnknownError),
-      apiTagDocumentation :: Nil)
+      apiTagDocumentation :: apiTagNewStyle :: Nil)
 
     lazy val getApiGlossary : OBPEndpoint = {
       case "api" :: "glossary" ::  Nil JsonGet req => {

@@ -181,7 +181,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              (challenge, callContext) <- NewStyle.function.getChallenge(cancellationId, callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(challenge.scaStatus.map(_.toString).getOrElse("received")), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(challenge.scaStatus.map(_.toString).getOrElse("None")), HttpCode.`200`(callContext))
            }
          }
        }
@@ -364,9 +364,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
              
            } yield {
              (json.parse(
-               s"""{
-                "scaStatus" : "${challenge.scaStatus.getOrElse("received")}"
-              }"""), callContext)
+               s"""{"scaStatus" : "${challenge.scaStatus.getOrElse("None")}"}"""), callContext)
            }
          }
        }
@@ -891,6 +889,27 @@ There are the following request types on this access path:
                updatePaymentPsuDataJson.scaAuthenticationData,
                callContext
              )
+             //Map obp transaction request id with BerlinGroup PaymentId
+             transactionRequestId = TransactionRequestId(paymentId)
+
+             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
+
+             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(
+               BankId(existingTransactionRequest.from.bank_id),
+               AccountId(existingTransactionRequest.from.account_id),
+               callContext
+             )
+             _ <- challenge.scaStatus match {
+               case Some(status) if status == StrongCustomerAuthenticationStatus.finalised => // finalised
+                 NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, COMPLETED.toString))
+               case Some(status) if status == StrongCustomerAuthenticationStatus.started => // started
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
+               case Some(status) if status == StrongCustomerAuthenticationStatus.failed => // failed
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, REJECTED.toString))
+               case _ => // All other cases
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
+             }
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentCancellationAuthorisationJson(
                challenge,
@@ -1004,11 +1023,17 @@ There are the following request types on this access path:
                AccountId(existingTransactionRequest.from.account_id), 
                callContext
              )
-              _ <- if(challenge.scaStatus == Some(StrongCustomerAuthenticationStatus.finalised)) 
+             _ <- challenge.scaStatus match {
+               case Some(status) if status == StrongCustomerAuthenticationStatus.finalised => // finalised
                  NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
-              else //If it is not `finalised`, just return the `authorisation` back, without any payments
-                Future{true}
-             
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, COMPLETED.toString))
+               case Some(status) if status == StrongCustomerAuthenticationStatus.started => // started
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
+               case Some(status) if status == StrongCustomerAuthenticationStatus.failed => // failed
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, REJECTED.toString))
+               case _ => // All other cases
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
+             }
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), callContext)
            }

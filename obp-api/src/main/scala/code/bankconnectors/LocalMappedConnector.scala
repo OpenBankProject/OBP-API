@@ -116,6 +116,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       git_commit = APIUtil.gitCommit,
       date = DateWithMsFormat.format(new Date())
     ), callContext))
+  
+  override def validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[IbanChecker]] = Future {
+    // TODO Implement IBAN Checker
+    (Full(IbanChecker(true, None)), callContext)
+  }
 
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(bankId: String,

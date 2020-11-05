@@ -178,6 +178,9 @@ case class AccountTagsJSON(
 case class PostAccountTagJSON(
                                value : String
                              )
+
+case class UpdateAccountJsonV400(label : String)
+
 case class PostCustomerPhoneNumberJsonV400(mobile_phone_number: String)
 case class PostDirectDebitJsonV400(customer_id: String,
                                    user_id: String,

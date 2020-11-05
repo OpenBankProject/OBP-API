@@ -1,24 +1,29 @@
 package code.api.v2_1_0
 
-import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateTransactionType
 import code.api.util.{ApiRole, ErrorMessages}
-import com.openbankproject.commons.model.AmountOfMoneyJsonV121
-import code.api.v2_0_0.TransactionTypeJsonV200
+import code.api.v2_0_0.{TransactionTypeJsonV200, TransactionTypesJsonV200}
+import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_0_0
 import code.setup.DefaultUsers
 import code.transaction_types.MappedTransactionType
-import com.openbankproject.commons.model.TransactionTypeId
+import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage, TransactionTypeId}
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization._
+import org.scalatest.Tag
 
 /**
   * Created by zhanghongwei on 17/11/16.
   */
 class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
 
+  object VersionOfApi extends Tag(ApiVersion.v2_0_0.toString)
+  object ApiEndpoint1 extends Tag(nameOf(Implementations2_0_0.getTransactionTypes))
+
   lazy val transactionTypeJSON = TransactionTypeJsonV200(
     TransactionTypeId("1"), //mockTransactionTypeId,
-    "1", //mockBankId.value,
+    testBankId1.value,
     "1", //short_code
     "This is for test ", //summary,
     "Many data here", //description,
@@ -45,7 +50,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       responsePut.body.extract[ErrorMessage].message should equal (ErrorMessages.InsufficientAuthorisationToCreateTransactionType)
     }
 
-    scenario("We try to get all roles with Authentication - Create Transaction Type...") {
+    scenario("We try to get all roles with Authentication - Create Transaction Type...", VersionOfApi, ApiEndpoint1) {
       Given("The Authentication")
       setCanCreateTransactionType
 
@@ -55,6 +60,14 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
 
       And("We should get a 200")
       responsePut.code should equal(200)
+
+      When("We make the request")
+      val requestGet = (v2_1Request / "banks" / testBankId1.value / "transaction-types").GET <@ (user1)
+      val responseGet = makeGetRequest(requestGet)
+
+      And("We should get a 200")
+      responseGet.code should equal(200)
+      responseGet.body.extract[TransactionTypesJsonV200].transaction_types.size should equal(1)
     }
   }
 
@@ -74,7 +87,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       Then("update input value and We make the request")
       lazy val transactionTypeJSON2 = TransactionTypeJsonV200(
         TransactionTypeId("1"), //mockTransactionTypeId,
-        "1", //mockBankId.value,
+        testBankId1.value,
         "1", //short_code
         "change here  ", //summary,
         "Many data here", //description,
@@ -101,7 +114,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       Then("insert new data and We make the request")
       lazy val transactionTypeJSON1 = TransactionTypeJsonV200(
         TransactionTypeId("3"), //mockTransactionTypeId,
-        "1", //mockBankId.value,
+        testBankId1.value,
         "1", //short_code
         "1  ", //summary,
         "1", //description,
