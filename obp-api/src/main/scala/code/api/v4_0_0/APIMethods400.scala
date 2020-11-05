@@ -1898,6 +1898,44 @@ trait APIMethods400 {
 
 
     staticResourceDocs += ResourceDoc(
+      updateAccountLabel,
+      implementedInApiVersion,
+      "updateAccountLabel",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID",
+      "Update Account Label",
+      s"""Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account'
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+       """.stripMargin,
+      updateAccountJsonV400,
+      successMessage,
+      List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound, "user does not have access to owner view on account"),
+      List(apiTagAccount, apiTagNewStyle)
+    )
+
+    lazy val updateAccountLabel : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $InvalidJsonFormat "
+            json <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[UpdateAccountJsonV400]
+            }
+          } yield {
+            account.updateLabel(u, json.label)
+            (Extraction.decompose(successMessage), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
       lockUser,
       implementedInApiVersion,
       nameOf(lockUser),
