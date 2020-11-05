@@ -1318,6 +1318,12 @@ case class OutBoundValidateChallengeAnswerC2(
 
 case class InBoundValidateChallengeAnswerC2(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
 
+case class OutBoundValidateAndCheckIbanNumber(
+  outboundAdapterCallContext: OutboundAdapterCallContext,
+  iban: String
+) extends TopicTrait
+case class InBoundValidateAndCheckIbanNumber(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: IbanChecker) extends InBoundTrait[IbanChecker]
+
 
 case class OutBoundGetChallenge(outboundAdapterCallContext: OutboundAdapterCallContext, challengeId: String) extends TopicTrait
 case class InBoundGetChallenge(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
