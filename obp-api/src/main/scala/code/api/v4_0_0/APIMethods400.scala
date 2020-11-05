@@ -429,7 +429,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodyJsonV200,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -465,7 +465,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodyJsonV200,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -503,7 +503,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodyCounterpartyJSON,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -545,7 +545,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodySEPAJsonV400,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -589,7 +589,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodyRefundJsonV400,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -621,7 +621,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodyFreeFormJSON,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -983,7 +983,7 @@ trait APIMethods400 {
         |
       """.stripMargin,
       challengeAnswerJson400,
-      transactionRequestWithChargeJson,
+      transactionRequestWithChargeJSON210,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
