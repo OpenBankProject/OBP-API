@@ -67,6 +67,7 @@ object ApiTag {
   val apiTagConsent = ResourceDocTag("Consent")
   val apiTagMethodRouting = ResourceDocTag("Method-Routing")
   val apiTagWebUiProps = ResourceDocTag("WebUi-Props")
+  val apiTagDynamicEndpoints = ResourceDocTag("Dynamic-Endpoints")
   val apiTagDynamicEntity = ResourceDocTag("Dynamic-Entity")
   val apiTagDynamicEndpoint = ResourceDocTag("Dynamic-Endpoints-(Manage)")
 
