@@ -7,7 +7,7 @@ import code.accountholders.AccountHolders
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{bankJSON, banksJSON, branchJsonV300, _}
-import code.api.util.APIUtil._
+import code.api.util.APIUtil.{getGlossaryItems, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -43,6 +43,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 import code.api.v2_0_0.AccountsHelper._
+import code.api.v4_0_0.JSONFactory400
 import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonAST.JField
@@ -2069,7 +2070,6 @@ trait APIMethods300 {
     }
 
 
-
     resourceDocs += ResourceDoc(
       getApiGlossary,
       implementedInApiVersion,
@@ -2086,9 +2086,23 @@ trait APIMethods300 {
       apiTagDocumentation :: Nil)
 
     lazy val getApiGlossary : OBPEndpoint = {
-      case "api" :: "glossary" :: Nil JsonGet req => _ => {
-        val json = JSONFactory300.createGlossaryItemsJsonV300(getGlossaryItems)
-        Full(successJsonResponse(Extraction.decompose(json)))
+      case "api" :: "glossary" ::  Nil JsonGet req => {
+        cc =>
+          for{
+          _ <- if (glossaryDocsRequireRole){
+              for {
+                (Full(u), callContext) <- authenticatedAccess(cc)
+                hasCanReadGlossaryRole <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadGlossary, callContext)
+                } yield {
+                  hasCanReadGlossaryRole
+                }
+            } else {
+              Future{Full()}
+            }
+            json = JSONFactory300.createGlossaryItemsJsonV300(getGlossaryItems)
+          } yield {
+            (json, HttpCode.`200`(cc))
+          }
       }
     }
   
@@ -2419,13 +2433,12 @@ trait APIMethods300 {
         |* Logo URL
         |* Website""",
       emptyObjectJson,
-      bankJSON,
+      bankJson400,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, PSD2, OBWG),
       apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
     )
 
-    //The Json Body is totally the same as V121, just use new style endpoint.
     lazy val bankById : OBPEndpoint = {
       //get bank by id
       case "banks" :: BankId(bankId) :: Nil JsonGet _ => {
@@ -2433,7 +2446,7 @@ trait APIMethods300 {
           for {
             (bank, callContext) <- NewStyle.function.getBank(bankId, Option(cc))
           } yield
-            (JSONFactory.createBankJSON(bank), HttpCode.`200`(callContext))
+            (JSONFactory400.createBankJSON400(bank), HttpCode.`200`(callContext))
       }
     }
 

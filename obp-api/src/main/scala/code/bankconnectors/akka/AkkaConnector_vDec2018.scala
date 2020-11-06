@@ -740,6 +740,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       data= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -783,6 +784,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       data= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -826,6 +828,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       data= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -871,6 +874,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       data=List( CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -2450,6 +2454,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       toCounterparty= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -2535,6 +2540,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       toCounterparty= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -2648,6 +2654,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      OutBoundCreateCounterparty(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       name="string",
       description="string",
+      currency=currencyExample.value,
       createdByUserId="string",
       thisBankId="string",
       thisAccountId="string",
@@ -2670,6 +2677,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       data= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -2689,9 +2697,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createCounterparty(name: String, description: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, bespoke: List[CounterpartyBespoke], callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])] = {
+  override def createCounterparty(name: String, description: String, currency: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, bespoke: List[CounterpartyBespoke], callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundCreateCounterparty => OutBound, InBoundCreateCounterparty => InBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, name, description, createdByUserId, thisBankId, thisAccountId, thisViewId, otherAccountRoutingScheme, otherAccountRoutingAddress, otherAccountSecondaryRoutingScheme, otherAccountSecondaryRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress, otherBranchRoutingScheme, otherBranchRoutingAddress, isBeneficiary, bespoke)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, name, description, currency, createdByUserId, thisBankId, thisAccountId, thisViewId, otherAccountRoutingScheme, otherAccountRoutingAddress, otherAccountSecondaryRoutingScheme, otherAccountSecondaryRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress, otherBranchRoutingScheme, otherBranchRoutingAddress, isBeneficiary, bespoke)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CounterpartyTraitCommons](callContext))        
   }
@@ -5105,6 +5113,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       posted=new Date(),
       completed=new Date(),
       amount=BigDecimal("123.321"),
+      currency=currencyExample.value,
       description="string",
       transactionRequestType=transactionRequestTypeExample.value,
       chargePolicy="string")
@@ -5117,9 +5126,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def makeHistoricalPayment(fromAccount: BankAccount, toAccount: BankAccount, posted: Date, completed: Date, amount: BigDecimal, description: String, transactionRequestType: String, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
+  override def makeHistoricalPayment(fromAccount: BankAccount, toAccount: BankAccount, posted: Date, completed: Date, amount: BigDecimal, currency: String, description: String, transactionRequestType: String, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
         import com.openbankproject.commons.dto.{OutBoundMakeHistoricalPayment => OutBound, InBoundMakeHistoricalPayment => InBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccount, toAccount, posted, completed, amount, description, transactionRequestType, chargePolicy)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccount, toAccount, posted, completed, amount, currency, description, transactionRequestType, chargePolicy)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[TransactionId](callContext))        
   }

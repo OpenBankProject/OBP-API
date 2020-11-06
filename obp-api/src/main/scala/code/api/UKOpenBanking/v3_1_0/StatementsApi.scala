@@ -39,7 +39,7 @@ object APIMethods_StatementsApi extends RestHelper {
        "Get Statements",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -448,7 +448,7 @@ object APIMethods_StatementsApi extends RestHelper {
        "Get Statements",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -857,8 +857,8 @@ object APIMethods_StatementsApi extends RestHelper {
        "Get Statements",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
-       json.parse(""""""),
+       emptyObjectJson,
+       emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Statements") :: apiTagMockedData :: Nil
@@ -884,7 +884,7 @@ object APIMethods_StatementsApi extends RestHelper {
        "Get Transactions",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -1357,7 +1357,7 @@ object APIMethods_StatementsApi extends RestHelper {
        "Get Statements",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },

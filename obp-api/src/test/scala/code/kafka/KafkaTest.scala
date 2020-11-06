@@ -355,7 +355,8 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         val box = Connector.connector.vend.createCounterparty(
           outBound.counterparty.name,
           outBound.counterparty.description,                       
-          outBound.counterparty.createdByUserId,                    
+          outBound.counterparty.currency,
+          outBound.counterparty.createdByUserId,
           outBound.counterparty.thisBankId,                
           outBound.counterparty.thisAccountId,             
           outBound.counterparty.thisViewId,                

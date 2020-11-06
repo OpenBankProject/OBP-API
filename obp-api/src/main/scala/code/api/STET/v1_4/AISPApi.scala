@@ -74,7 +74,7 @@ The ASPSP answers by providing a list of balances on this account.
 
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
                     |  "balances": [
                     |    {
@@ -148,7 +148,7 @@ This call returns all payment accounts that are relevant the PSU on behalf of wh
 The TPP sends a request to the ASPSP for retrieving the list of the PSU payment accounts. The ASPSP computes the relevant PSU accounts and builds the answer as an accounts list. The result may be subject to pagination in order to avoid an excessive result set. Each payment account will be provided with its characteristics.
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
                     |  "accounts": [
                     |    {
@@ -248,7 +248,7 @@ The result may be subject to pagination (i.e. retrieving a partial result in cas
 The AISP requests the ASPSP on one of the PSU's accounts. It may specify some selection criteria. The ASPSP answers by a set of transactions that matches the query. The result may be subject to pagination in order to avoid an excessive result set.
 
             """,
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
                     |  "transactions": [
                     |    {
@@ -359,7 +359,7 @@ The PSU specifies to the AISP which of his/her accounts will be accessible and w
   "trustedBeneficiaries" : true,
   "psuIdentity" : true
 }"""),
-       json.parse(""""""),
+       emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AISP") :: apiTagMockedData :: Nil
@@ -401,8 +401,8 @@ This call returns the identity of the PSU (end-user).
 The AISP asks for the identity of the PSU. The ASPSP answers with the identity, i.e. first and last names of the end-user.
 
             """,
-       json.parse(""""""),
-       json.parse(""""""),
+       emptyObjectJson,
+       emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AISP") :: apiTagMockedData :: Nil
@@ -444,8 +444,8 @@ This call returns all trusted beneficiaries that have been set by the PSU. Those
 The AISP asks for the trusted beneficiaries list. The ASPSP answers with a list of beneficiary details structure.
 
             """,
-       json.parse(""""""),
-       json.parse(""""""),
+       emptyObjectJson,
+       emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AISP") :: apiTagMockedData :: Nil

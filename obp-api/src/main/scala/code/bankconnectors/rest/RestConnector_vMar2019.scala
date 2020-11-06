@@ -1663,6 +1663,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       data= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -1739,6 +1740,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       data= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -1815,6 +1817,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       data= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -1891,6 +1894,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       data= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -1969,6 +1973,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       data=List( CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -2047,6 +2052,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       data=List( CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -4724,6 +4730,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       toCounterparty= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -4842,6 +4849,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       toCounterparty= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -4988,6 +4996,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       name=usernameExample.value))))))))),
       name="string",
       description="string",
+      currency=currencyExample.value,
       createdByUserId="string",
       thisBankId="string",
       thisAccountId="string",
@@ -5017,6 +5026,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       data= CounterpartyTraitCommons(createdByUserId="string",
       name="string",
       description="string",
+      currency=currencyExample.value,
       thisBankId="string",
       thisAccountId="string",
       thisViewId="string",
@@ -5036,10 +5046,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /createCounterparty
-  override def createCounterparty(name: String, description: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, bespoke: List[CounterpartyBespoke], callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])] = {
+  override def createCounterparty(name: String, description: String, currency: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, bespoke: List[CounterpartyBespoke], callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{OutBoundCreateCounterparty => OutBound, InBoundCreateCounterparty => InBound}
         val url = getUrl(callContext, "createCounterparty")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , name, description, createdByUserId, thisBankId, thisAccountId, thisViewId, otherAccountRoutingScheme, otherAccountRoutingAddress, otherAccountSecondaryRoutingScheme, otherAccountSecondaryRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress, otherBranchRoutingScheme, otherBranchRoutingAddress, isBeneficiary, bespoke)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , name, description, currency, createdByUserId, thisBankId, thisAccountId, thisViewId, otherAccountRoutingScheme, otherAccountRoutingAddress, otherAccountSecondaryRoutingScheme, otherAccountSecondaryRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress, otherBranchRoutingScheme, otherBranchRoutingAddress, isBeneficiary, bespoke)
         val result: OBPReturnType[Box[CounterpartyTraitCommons]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }
@@ -9034,6 +9044,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       posted=new Date(),
       completed=new Date(),
       amount=BigDecimal("123.321"),
+      currency=currencyExample.value,
       description="string",
       transactionRequestType=transactionRequestTypeExample.value,
       chargePolicy="string")
@@ -9053,10 +9064,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /makeHistoricalPayment
-  override def makeHistoricalPayment(fromAccount: BankAccount, toAccount: BankAccount, posted: Date, completed: Date, amount: BigDecimal, description: String, transactionRequestType: String, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
+  override def makeHistoricalPayment(fromAccount: BankAccount, toAccount: BankAccount, posted: Date, completed: Date, amount: BigDecimal, currency: String, description: String, transactionRequestType: String, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
         import com.openbankproject.commons.dto.{OutBoundMakeHistoricalPayment => OutBound, InBoundMakeHistoricalPayment => InBound}
         val url = getUrl(callContext, "makeHistoricalPayment")
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , fromAccount, toAccount, posted, completed, amount, description, transactionRequestType, chargePolicy)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , fromAccount, toAccount, posted, completed, amount, currency, description, transactionRequestType, chargePolicy)
         val result: OBPReturnType[Box[TransactionId]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
         result
   }

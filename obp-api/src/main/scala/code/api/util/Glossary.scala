@@ -1540,9 +1540,11 @@ object Glossary {
         |
         |$oauth2EnabledMessage
         |
-        |OAuth 2 is an authorization framework that enables applications to obtain limited access to user accounts on an HTTP service, in this case any OBP REST call. It works by delegating user authentication to the service that hosts the user account, and authorizing third-party applications to access the user account. OAuth 2 provides authorization flows for web and desktop applications, and mobile devices.
+        |OAuth2 is an authorization framework that enables applications to obtain limited access to user accounts on an HTTP service, in this case any OBP REST call. It works by delegating user authentication to the service that hosts the user account, and authorizing third-party applications to access the user account. OAuth 2 provides authorization flows for web and desktop applications, and mobile devices.
         |
-        |### OAuth 2 Roles
+        |### OAuth2 Roles
+        |
+        |The following is a general introduction to a so called "3 legged OAuth2" flow:
         |
         |* Resource Owner
         |* Client
@@ -1588,79 +1590,36 @@ object Glossary {
         |Copy and paste the CONSUMER_KEY, CONSUMER_SECRET and REDIRECT_URL for the subsequent steps below.
         |
         |
-        |### Step 2: Authorization Code Link
+        |### Step 2: Initiate the OAuth 2.0 / OpenID Connect Flow
         |
-        |Using your favorite web browser request a URL like this one
-				|
-        |    $getOAuth2ServerUrl/authorize?response_type=code&client_id=CONSUMER_KEY&redirect_uri=REDIRECT_URL&scope=openid
         |
-        |This assumes that that you are already logged in at the OAuth2 authentication server [$getOAuth2ServerUrl]($getOAuth2ServerUrl). Otherwise, you will be redirected to [$getOAuth2ServerUrl/login]($getOAuth2ServerUrl/login).
-        |Please note that you use the same credentials as the sandbox [$getServerUrl]($getServerUrl) to login to the OAuth2 authentication server.
+        |Once you have registered your App you should initiate the OAuth2 / OIDC flow using the following URL
         |
-        |Here is an explanation of the link components:
+        |https://oauth2.ofpilot.com/hydra-public/oauth2/auth
         |
-        |* $getOAuth2ServerUrl/authorize: the API authorization endpoint
+        |WITH THE following parameters:
         |
-        |* client_id=CONSUMER_KEY: the application's client ID (how the API identifies the application)
+        |https://oauth2.ofpilot.com/hydra-public/oauth2/auth?client_id=YOUR-CLIENT-ID&response_type=code&state=GENERATED_BY_YOUR_APP&scope=openid+offline+ReadAccountsBasic+ReadAccountsDetail+ReadBalances+ReadTransactionsBasic+ReadTransactionsDebits+ReadTransactionsDetail&redirect_uri=https%3A%2F%2FYOUR-APP.com%2Fmain.html
         |
-        |* redirect_uri=REDIRECT_URL: where the service redirects the user-agent after an authorization code is granted
         |
-        |* response_type=code: specifies that your application is requesting an authorization code grant
+        |For further information please see [here](https://www.ory.sh/hydra/docs/concepts/login#initiating-the-oauth-20--openid-connect-flow)
         |
-        |* scope=openid: specifies the level of access that the application is requesting
+        |In this sandbox, this will cause the following flow:
         |
-        |### Step 3: User Authorizes Application
+        |1) The User is authorised using OAuth2 / OpenID Connect against the banks authentication system
+        |2) The User grants consent to the App on the bank's Consent page.
+        |3) The User grants access to one or more accounts that they own on the bank's Account Selection page
+        |4) The User is redirected back to the App where they can now see the Accounts they have selected.
         |
-        |Please authorize the application on the OAuth2 server web interface by clicking on "Authorize".
         |
-        |<img src="https://static.openbankproject.com/images/sandbox/oauth2-authorize.png" width="885" height="402.75"></img>
         |
-        |### Step 4: Application Receives Authorization Code
+        |<img src="https://static.openbankproject.com/images/sandbox/oauth2-authorize.png"></img>
         |
-        |If the user clicks "Authorize", the service redirects the user-agent to the application redirect URI, which was specified during the client registration, along with an authorization code.
         |
-        |    REDIRECT_URL/&scope=openid/?code=AUTHORIZATION_CODE
         |
-        |The redirect would look something like this: https://YOUR-APPLICATION.com/&scope=openid/?code=h7jSgP
+        |An example App using this flow can be found [here](https://github.com/OpenBankProject/OBP-Hydra-OAuth2)
         |
-        |### Step 5: Application Requests Access Token
         |
-        |The application requests an access token from the API, by passing the authorization code along with authentication details, including the client secret, to the API token endpoint.
-        |
-        |    POST $getOAuth2ServerUrl/token?client_id=CONSUMER_KEY&client_secret=CONSUMER_SECRET&grant_type=authorization_code&code=AUTHORIZATION_CODE&redirect_uri=REDIRECT_URL
-        |
-        |### Step 6: Application Receives Access Token
-        |
-        |If the authorization is valid, the API will send a response containing the access token to the application. The entire response will look something like this:
-        |
-        |    {
-        |    "access_token": "eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw",
-        |    "token_type": "Bearer",
-        |    "expires_in": 3599,
-        |    "scope": "openid"
-        |    }
-        |
-        |### Step 7: Try a REST call using the header
-        |
-        |Using your favorite http client:
-        |
-        |    GET $getServerUrl/obp/v3.0.0/users/current
-        |
-        |Body
-        |
-        |    Leave Empty!
-        |
-        |Headers:
-        |
-        |    Authorization: Bearer ACCESS_TOKEN
-        |
-        |Here is it all together:
-        |
-        |    GET /obp/v3.0.0/users/current HTTP/1.1 Host: $getServerUrl User-Agent: curl/7.47.0 Accept: / Authorization: Bearer "eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw"
-        |
-        |CURL example:
-        |
-        |    curl -v -H 'Authorization: Bearer eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw' $getServerUrl/obp/v3.0.0/users/current
         |
 			""")
 

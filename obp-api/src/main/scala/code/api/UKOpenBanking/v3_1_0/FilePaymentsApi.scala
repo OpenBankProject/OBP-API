@@ -41,7 +41,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        "Create File Payment Consents",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -184,8 +184,8 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        "Create File Payment Consents",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
-       json.parse(""""""),
+       emptyObjectJson,
+       emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("File Payments") :: apiTagMockedData :: Nil
@@ -211,7 +211,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        "Create File Payments",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -360,7 +360,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        "Get File Payment Consents",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -503,8 +503,8 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        "Get File Payment Consents",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
-       json.parse(""""""),
+       emptyObjectJson,
+       emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("File Payments") :: apiTagMockedData :: Nil
@@ -530,7 +530,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        "Get File Payments",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
+       emptyObjectJson,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -679,8 +679,8 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        "Get File Payments",
        s"""${mockedDataText(true)}
 """, 
-       json.parse(""""""),
-       json.parse(""""""),
+       emptyObjectJson,
+       emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("File Payments") :: apiTagMockedData :: Nil

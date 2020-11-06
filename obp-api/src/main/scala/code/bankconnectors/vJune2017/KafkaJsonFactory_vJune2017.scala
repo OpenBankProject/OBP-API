@@ -266,6 +266,7 @@ case class InternalCounterparty(
                                  otherBranchRoutingAddress: String,
                                  isBeneficiary: Boolean,
                                  description: String,
+                                 currency: String,
                                  otherAccountSecondaryRoutingScheme: String,
                                  otherAccountSecondaryRoutingAddress: String,
                                  bespoke: List[CounterpartyBespoke]) extends CounterpartyTrait
