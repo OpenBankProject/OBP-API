@@ -1,6 +1,6 @@
 package com.openbankproject.commons.util
 
-import java.util.Objects
+import java.util.{Date, Objects}
 
 import net.liftweb.json
 import net.liftweb.json.JsonAST._
@@ -592,4 +592,25 @@ object JsonUtils {
     }
     deleteFunc(jValue)
   }
+
+  /**
+   * return the name and path pairs:
+   * eg:  case class When(frequency: String, detail: String) 
+   *  JsonUtils.collectFieldNames(decompose(When("1","2"))) --> (frequency,""),(detail,"")
+   *  also see the JsonUtilsTest.scala test
+   * @param jValue
+   * @return
+   */
+  def collectFieldNames(jValue: JValue): Map[String, String] = {
+    val buffer = scala.collection.mutable.Map[String, String]()
+    transformField(jValue){
+      case (jField, path) =>
+        buffer += (jField.name -> jField.value.toString)
+        jField
+    }
+
+    buffer -= "$outer" // removed the nest class references
+    buffer.toMap
+  }
+  
 }

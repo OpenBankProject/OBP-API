@@ -271,7 +271,6 @@ object APIMethods_TransactionsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Statements") ::ApiTag("Transactions") :: apiTagMockedData :: Nil
      )
 
@@ -745,8 +744,7 @@ object APIMethods_TransactionsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       ApiTag("Transactions") :: apiTagMockedData :: Nil
+       ApiTag("Transactions") :: Nil
      )
 
      lazy val getAccountsAccountIdTransactions : OBPEndpoint = {
@@ -1012,8 +1010,7 @@ object APIMethods_TransactionsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       ApiTag("Transactions") :: apiTagMockedData :: Nil
+       ApiTag("Transactions") :: Nil
      )
 
      lazy val getTransactions : OBPEndpoint = {

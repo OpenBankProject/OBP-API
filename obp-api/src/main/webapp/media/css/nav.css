@@ -1,0 +1,211 @@
+nav {
+    margin-bottom: 0 !important;
+    border-radius: 0;
+}
+.navbar-nav {
+    margin: 0;
+}
+nav .navbar-collapse.collapse {
+    display: block !important;
+    height: auto !important;
+    margin-left: 80px;
+    margin-right: 100px;
+    padding: 0;
+}
+.navbar-default .navbar-nav > li #navitem-logo {
+    padding-top: 24px;
+    padding-bottom: 24px;
+    margin-right: 16px;
+    height: 88px;
+    margin-left: 0;
+}
+.navbar-default .navbar-nav > li #navitem-logo img{
+    width:140px;
+    height: 40px;
+}
+.navbar-default .navbar-nav > li > a {
+    background-color: white;
+    font-family: Roboto-Light;
+    font-size: 18px;
+    color: #333333;
+    line-height: 31px;
+    padding-top: 27px;
+    padding-bottom: 30px;
+    padding-left: 0px;
+    padding-right: 0px;
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
+
+/*.navbar-default .navbar-nav > li > a:active{*/
+/*    border-bottom: 4px #53C4EF solid;*/
+/*    padding-bottom: 26px;;*/
+/*}*/
+
+.navbar-default .navbar-nav #navitem-logo:hover,
+.navbar-default .navbar-nav #navitem-logo:active{
+    border-bottom: 0;
+}
+
+.navbar-default .navbar-right {
+    margin-top: 22px;
+    margin-right: 0;
+}
+.navbar-default .navbar-right .navitem p #register-link {
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    color: #333333;
+    line-height: 24px;
+    margin-right: 24px;
+    margin-top: 32px;
+    margin-bottom: 32px;
+}
+.navbar-default .navbar-right .navbar-btn{
+    margin-top: 0;
+}
+
+.navbar-default .navbar-right .navbar-btn .login {
+    margin-right: 25px;
+}
+
+.navbar-default .navbar-right .navbar-btn .login:hover {
+    background-color: #1f97ef;
+}
+
+.navbar-default .navbar-right .navbar-btn .login:active {
+    background-color: #0b3aef;
+}
+
+.navbar-default .navbar-right .navbar-btn #loggedIn-username {
+    margin-right: 24px;
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    color: #333333;
+    line-height: 24px;
+}
+
+#small-screen-navbar{
+    text-align:center;
+    display: none;
+    height: 70px;
+}
+#small-screen-navbar div{
+    display: inline-block;
+    text-align:center
+}
+#small-screen-navbar #small-nav-collapse{
+    width: 24px;
+    height: 18px;
+    margin-top: 26px;
+    margin-bottom: 26px;
+    margin-left: 16px;
+    float: left;
+    background-image: url(/media/images/Path.png);
+    background-repeat:no-repeat;
+    background-size: 18px 18px;
+    border:0;
+    background-color: #FFFFFF;
+}
+#small-screen-navbar #small-nav-logo{
+    width: 74px;
+    height: 20px;
+    background-image: url(/media/images/logo.png);
+    background-repeat:no-repeat;
+    background-size: 74px 20px;
+    margin: 25px 0;
+}
+#small-screen-navbar #small-nav-logo a{
+    width: 74px;
+    height: 20px;
+    display: inline-block;
+}
+#small-screen-navbar #small-nav-log-on-button{
+    width: 63px;
+    height: 32px;
+    margin-top: 19px;
+    margin-bottom: 19px;
+    margin-right: 16px;
+    float: right;
+}
+
+#small-screen-navbar #small-nav-log-on-button .login{
+    font-family: Roboto-Regular;
+    font-size: 12px;
+    color: #FFFFFF;
+    letter-spacing: 0;
+    text-align: center;
+    line-height: 18px;
+    border-radius: 0;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    padding-left: 12px;
+    padding-right: 12px;
+    height: 32px;
+}
+.sidebar {
+    height: 500px;
+    width: 0;
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    background-color: #ffffff;
+    overflow-x: hidden;
+    transition: 0.5s;
+}
+
+.sidebar a {
+    text-decoration: none;
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    color: #333333;
+    line-height: 24px;
+}
+
+
+#obp-sideba{
+    display: none;
+}
+#small-nav-cross{
+    width: 18px;
+    height: 18px;
+    margin-top: 26px;
+    margin-bottom: 26px;
+    margin-left: 16px;
+    float: left;
+    background-image: url(/media/images/cross-icon.jpg);
+    background-repeat:no-repeat;
+    background-size: 18px 18px;
+    border:0;
+    background-color: #FFFFFF;
+}
+
+#obp-sidebar{
+    width:100%;
+    height:100%;
+    display: none;
+}
+#obp-sidebar ul,
+#obp-sidebar li{
+    margin: 0;
+    padding: 0;
+}
+#obp-sidebar .navitem{
+    padding: 13px 16px;
+    border-top:1px solid #D7D8D6;
+    height: 50px;
+}
+
+#obp-sidebar #register-link-nav{
+    position: absolute;
+    background: #F3F3F3;
+    padding: 13px 16px;
+    border-top:1px solid #D7D8D6;
+    border-bottom:1px solid #D7D8D6;
+    bottom: 0;
+    width: 100%;
+}
+#obp-sidebar #technical-faqs-anchor-nav{
+    border-bottom:1px solid #D7D8D6;
+}

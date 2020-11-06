@@ -90,7 +90,6 @@ trait APIMethods220 {
         BankAccountNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagView, apiTagAccount, apiTagNewStyle))
 
     lazy val getViewsForBankAccount : OBPEndpoint = {
@@ -143,7 +142,6 @@ trait APIMethods220 {
         BankAccountNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
     lazy val createViewForBankAccount : OBPEndpoint = {
@@ -195,7 +193,6 @@ trait APIMethods220 {
         BankAccountNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
 
@@ -256,7 +253,6 @@ trait APIMethods220 {
       emptyObjectJson,
       fXRateJSON,
       List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagFx, apiTagNewStyle))
 
     val getCurrentFxRateIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getCurrentFxRateIsPublic", false)
@@ -307,8 +303,7 @@ trait APIMethods220 {
         UserNoPermissionAccessView,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagAccount))
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagAccount, apiTagPsd2, apiTagNewStyle))
 
     lazy val getExplictCounterpartiesForAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
@@ -357,8 +352,7 @@ trait APIMethods220 {
       emptyObjectJson,
       counterpartyWithMetadataJson,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData)
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData, apiTagPsd2, apiTagNewStyle)
     )
   
     lazy val getExplictCounterpartyById : OBPEndpoint = {
@@ -397,8 +391,7 @@ trait APIMethods220 {
       emptyObjectJson,
       messageDocsJson,
       List(UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
-      List(apiTagDocumentation, apiTagApi)
+      List(apiTagDocumentation, apiTagApi, apiTagNewStyle)
     )
 
     lazy val getMessageDocs: OBPEndpoint = {
@@ -406,11 +399,13 @@ trait APIMethods220 {
         cc => {
           for {
             //kafka_vJune2017 --> vJune2017 : get the valid version for search the connector object.
-            connectorObject <- tryo{Connector.getConnectorInstance(connector)} ?~! s"$InvalidConnector Current Input is $connector. It should be eg: kafka_vJune2017, kafka_vSept2018..."
-            messageDocs <- Full{connectorObject.messageDocs.toList} 
+            connectorObject <- Future(tryo{Connector.getConnectorInstance(connector)}) map { i =>
+              val msg = "$InvalidConnector Current Input is $connector. It should be eg: kafka_vJune2017, kafka_vSept2018..."
+              unboxFullOrFail(i, cc.callContext, msg)
+            }
           } yield {
-            val json = JSONFactory220.createMessageDocsJson(messageDocs)
-            successJsonResponse(Extraction.decompose(json)(CustomJsonFormats.formats))
+            val json = JSONFactory220.createMessageDocsJson(connectorObject.messageDocs.toList)
+            (json, HttpCode.`200`(cc.callContext))
           }
         }
       }
@@ -435,7 +430,6 @@ trait APIMethods220 {
         InsufficientAuthorisationToCreateBank,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank),
       Some(List(canCreateBank))
     )
@@ -498,7 +492,6 @@ trait APIMethods220 {
         InsufficientAuthorisationToCreateBranch,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBranch, apiTagOpenData),
       Some(List(canCreateBranch,canCreateBranchAtAnyBank))
     )
@@ -549,7 +542,6 @@ trait APIMethods220 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagATM),
       Some(List(canCreateAtm,canCreateAtmAtAnyBank))
     )
@@ -603,7 +595,6 @@ trait APIMethods220 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagProduct),
       Some(List(canCreateProduct, canCreateProductAtAnyBank))
     )
@@ -681,7 +672,6 @@ trait APIMethods220 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagFx),
       Some(List(canCreateFxRate, canCreateFxRateAtAnyBank))
     )
@@ -754,8 +744,7 @@ trait APIMethods220 {
         AccountIdAlreadyExists,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount,apiTagOnboarding),
+      List(apiTagAccount,apiTagOnboarding, apiTagNewStyle),
       Some(List(canCreateAccount))
     )
 
@@ -851,7 +840,6 @@ trait APIMethods220 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, OBWG),
       apiTagApi :: apiTagNewStyle :: Nil,
       Some(List(canGetConfig)))
 
@@ -910,24 +898,23 @@ trait APIMethods220 {
         InvalidDateFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMetric, apiTagApi),
+      List(apiTagMetric, apiTagApi, apiTagNewStyle),
       Some(List(canGetConnectorMetrics)))
 
     lazy val getConnectorMetrics : OBPEndpoint = {
       case "management" :: "connector" :: "metrics" :: Nil JsonGet _ => {
-        cc => {
+        cc => 
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canGetConnectorMetrics), s"$UserHasMissingRoles+$CanGetConnectorMetrics entitlement required")
-            httpParams <- createHttpParamsByUrl(cc.url)
-            obpQueryParams <- createQueriesByHttpParams(httpParams)
-            metrics <- Full(ConnectorMetricsProvider.metrics.vend.getAllConnectorMetrics(obpQueryParams))
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetConnectorMetrics, callContext)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
+            }
+            metrics <- Future(ConnectorMetricsProvider.metrics.vend.getAllConnectorMetrics(obpQueryParams))
           } yield {
-            val json = JSONFactory220.createConnectorMetricsJson(metrics)
-            successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
+            (JSONFactory220.createConnectorMetricsJson(metrics), HttpCode.`200`(callContext))
           }
-        }
       }
     }
 
@@ -968,7 +955,6 @@ trait APIMethods220 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer),
       Some(List(canCreateConsumer)))
 
@@ -1097,7 +1083,6 @@ trait APIMethods220 {
         CounterpartyAlreadyExists,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterparty, apiTagAccount))
   
   
@@ -1191,7 +1176,7 @@ trait APIMethods220 {
           |* User: username, user_id, email
           |* View: view_id
           |
-         |${authenticationRequiredMessage(true)}""",
+         |${authenticationRequiredMessage(true)}""".stripMargin,
       emptyObjectJson,
       customerViewsJsonV220,
       List(
@@ -1200,7 +1185,6 @@ trait APIMethods220 {
         AccountNotFound,
         ViewNotFound
       ),
-      Catalogs(Core, notPSD2, OBWG),
       List(apiTagAccount, apiTagCustomer, apiTagView)
     )
 

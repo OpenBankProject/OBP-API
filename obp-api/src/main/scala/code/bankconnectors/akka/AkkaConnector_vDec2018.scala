@@ -15,7 +15,7 @@ import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelp
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, CustomerAttributeType, ProductAttributeType, StrongCustomerAuthentication, TransactionAttributeType}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, CustomerAttributeType, ProductAttributeType, StrongCustomerAuthentication, TransactionAttributeType, TransactionRequestStatus}
 import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.parse
@@ -1360,7 +1360,10 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
 
   override def makePaymentv210(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestId: TransactionRequestId, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amount: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
         import com.openbankproject.commons.dto.{OutBoundMakePaymentv210 => OutBound, InBoundMakePaymentv210 => InBound}
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccount, toAccount, transactionRequestId, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy)
+        val fromAccountCommons: BankAccountCommons = fromAccount
+        val toAccountCommons: BankAccountCommons = toAccount
+        val transactionRequestCommonBodyJSONCommons: TransactionRequestCommonBodyJSONCommons = transactionRequestCommonBody
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccountCommons, toAccountCommons, transactionRequestId, transactionRequestCommonBodyJSONCommons, amount, description, transactionRequestType, chargePolicy)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _)
         response.map(convertToTuple[TransactionId](callContext))        
   }
@@ -1499,8 +1502,129 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[TransactionRequest](callContext))        
   }
-          
-          
+
+  messageDocs += notifyTransactionRequestDoc
+  def notifyTransactionRequestDoc = MessageDoc(
+    process = "obp.notifyTransactionRequest",
+    messageFormat = messageFormat,
+    description = "Notify Transaction Request",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = OutBoundNotifyTransactionRequest(outboundAdapterCallContext = MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      fromAccount = BankAccountCommons(accountId = AccountId(accountIdExample.value),
+        accountType = accountTypeExample.value,
+        balance = BigDecimal(balanceAmountExample.value),
+        currency = currencyExample.value,
+        name = bankAccountNameExample.value,
+        label = labelExample.value,
+        number = bankAccountNumberExample.value,
+        bankId = BankId(bankIdExample.value),
+        lastUpdate = parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+        branchId = branchIdExample.value,
+        accountRoutings = List(AccountRouting(scheme = accountRoutingSchemeExample.value,
+          address = accountRoutingAddressExample.value)),
+        accountRules = List(AccountRule(scheme = accountRuleSchemeExample.value,
+          value = accountRuleValueExample.value)),
+        accountHolder = bankAccountAccountHolderExample.value),
+      toAccount = BankAccountCommons(accountId = AccountId(accountIdExample.value),
+        accountType = accountTypeExample.value,
+        balance = BigDecimal(balanceAmountExample.value),
+        currency = currencyExample.value,
+        name = bankAccountNameExample.value,
+        label = labelExample.value,
+        number = bankAccountNumberExample.value,
+        bankId = BankId(bankIdExample.value),
+        lastUpdate = parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+        branchId = branchIdExample.value,
+        accountRoutings = List(AccountRouting(scheme = accountRoutingSchemeExample.value,
+          address = accountRoutingAddressExample.value)),
+        accountRules = List(AccountRule(scheme = accountRuleSchemeExample.value,
+          value = accountRuleValueExample.value)),
+        accountHolder = bankAccountAccountHolderExample.value),
+      transactionRequest = TransactionRequest(id = TransactionRequestId("string"),
+        `type` = transactionRequestTypeExample.value,
+        from = TransactionRequestAccount(bank_id = "string",
+          account_id = "string"),
+        body = TransactionRequestBodyAllTypes(to_sandbox_tan = Some(TransactionRequestAccount(bank_id = "string",
+          account_id = "string")),
+          to_sepa = Some(TransactionRequestIban("string")),
+          to_counterparty = Some(TransactionRequestCounterpartyId("string")),
+          to_transfer_to_phone = Some(TransactionRequestTransferToPhone(value = AmountOfMoneyJsonV121(currency = currencyExample.value,
+            amount = "string"),
+            description = "string",
+            message = "string",
+            from = FromAccountTransfer(mobile_phone_number = "string",
+              nickname = "string"),
+            to = ToAccountTransferToPhone("string"))),
+          to_transfer_to_atm = Some(TransactionRequestTransferToAtm(value = AmountOfMoneyJsonV121(currency = currencyExample.value,
+            amount = "string"),
+            description = "string",
+            message = "string",
+            from = FromAccountTransfer(mobile_phone_number = "string",
+              nickname = "string"),
+            to = ToAccountTransferToAtm(legal_name = "string",
+              date_of_birth = "string",
+              mobile_phone_number = "string",
+              kyc_document = ToAccountTransferToAtmKycDocument(`type` = "string",
+                number = "string")))),
+          to_transfer_to_account = Some(TransactionRequestTransferToAccount(value = AmountOfMoneyJsonV121(currency = currencyExample.value,
+            amount = "string"),
+            description = "string",
+            transfer_type = "string",
+            future_date = "string",
+            to = ToAccountTransferToAccount(name = "string",
+              bank_code = "string",
+              branch_number = "string",
+              account = ToAccountTransferToAccountAccount(number = accountNumberExample.value,
+                iban = ibanExample.value)))),
+          to_sepa_credit_transfers = Some(SepaCreditTransfers(debtorAccount = PaymentAccount("string"),
+            instructedAmount = AmountOfMoneyJsonV121(currency = currencyExample.value,
+              amount = "string"),
+            creditorAccount = PaymentAccount("string"),
+            creditorName = "string")),
+          value = AmountOfMoney(currency = currencyExample.value,
+            amount = "string"),
+          description = "string"),
+        transaction_ids = "string",
+        status = "string",
+        start_date = new Date(),
+        end_date = new Date(),
+        challenge = TransactionRequestChallenge(id = "string",
+          allowed_attempts = 123,
+          challenge_type = "string"),
+        charge = TransactionRequestCharge(summary = "string",
+          value = AmountOfMoney(currency = currencyExample.value,
+            amount = "string")),
+        charge_policy = "string",
+        counterparty_id = CounterpartyId(counterpartyIdExample.value),
+        name = "string",
+        this_bank_id = BankId(bankIdExample.value),
+        this_account_id = AccountId(accountIdExample.value),
+        this_view_id = ViewId(viewIdExample.value),
+        other_account_routing_scheme = "string",
+        other_account_routing_address = "string",
+        other_bank_routing_scheme = "string",
+        other_bank_routing_address = "string",
+        is_beneficiary = true,
+        future_date = Some("string"))
+    ),
+    exampleInboundMessage = InBoundNotifyTransactionRequest(
+      inboundAdapterCallContext = MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status = MessageDocsSwaggerDefinitions.inboundStatus,
+      data = TransactionRequestStatusValue(TransactionRequestStatus.FORWARDED.toString)
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestStatusValue]] = {
+    import com.openbankproject.commons.dto.{OutBoundNotifyTransactionRequest => OutBound, InBoundNotifyTransactionRequest => InBound}
+    val fromAccountCommons: BankAccountCommons = fromAccount
+    val toAccountCommons: BankAccountCommons = toAccount
+    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccountCommons, toAccountCommons, transactionRequest)
+    val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _)
+    response.map(convertToTuple[TransactionRequestStatusValue](callContext))
+  }
+
   messageDocs += getTransactionRequests210Doc
   def getTransactionRequests210Doc = MessageDoc(
     process = "obp.getTransactionRequests210",
@@ -2490,7 +2614,103 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[TransactionId](callContext))        
   }
-          
+
+  messageDocs += makePaymentV400Doc
+  def makePaymentV400Doc = MessageDoc(
+    process = "obp.makePaymentV400",
+    messageFormat = messageFormat,
+    description = "Make Payment V400",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundMakePaymentV400(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+        transactionRequest= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
+          `type`=transactionRequestTypeExample.value,
+          from= TransactionRequestAccount(bank_id=bank_idExample.value,
+            account_id=account_idExample.value),
+          body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+            account_id=account_idExample.value)),
+            to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
+            to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+            to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
+              amount=amountExample.value),
+              description=descriptionExample.value,
+              message=messageExample.value,
+              from= FromAccountTransfer(mobile_phone_number="string",
+                nickname=nicknameExample.value),
+              to=ToAccountTransferToPhone(toExample.value))),
+            to_transfer_to_atm=Some( TransactionRequestTransferToAtm(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
+              amount=amountExample.value),
+              description=descriptionExample.value,
+              message=messageExample.value,
+              from= FromAccountTransfer(mobile_phone_number="string",
+                nickname=nicknameExample.value),
+              to= ToAccountTransferToAtm(legal_name="string",
+                date_of_birth="string",
+                mobile_phone_number="string",
+                kyc_document= ToAccountTransferToAtmKycDocument(`type`=typeExample.value,
+                  number=numberExample.value)))),
+            to_transfer_to_account=Some( TransactionRequestTransferToAccount(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
+              amount=amountExample.value),
+              description=descriptionExample.value,
+              transfer_type="string",
+              future_date="string",
+              to= ToAccountTransferToAccount(name=nameExample.value,
+                bank_code="string",
+                branch_number="string",
+                account= ToAccountTransferToAccountAccount(number=accountNumberExample.value,
+                  iban=ibanExample.value)))),
+            to_sepa_credit_transfers=Some( SepaCreditTransfers(debtorAccount=PaymentAccount("string"),
+              instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
+                amount=amountExample.value),
+              creditorAccount=PaymentAccount("string"),
+              creditorName="string")),
+            value= AmountOfMoney(currency=currencyExample.value,
+              amount=amountExample.value),
+            description=descriptionExample.value),
+          transaction_ids="string",
+          status=statusExample.value,
+          start_date=toDate(transactionRequestStartDateExample),
+          end_date=toDate(transactionRequestEndDateExample),
+          challenge= TransactionRequestChallenge(id=challengeIdExample.value,
+            allowed_attempts=123,
+            challenge_type="string"),
+          charge= TransactionRequestCharge(summary=summaryExample.value,
+            value= AmountOfMoney(currency=currencyExample.value,
+              amount=amountExample.value)),
+          charge_policy="string",
+          counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
+          name=nameExample.value,
+          this_bank_id=BankId(bankIdExample.value),
+          this_account_id=AccountId(accountIdExample.value),
+          this_view_id=ViewId(viewIdExample.value),
+          other_account_routing_scheme="string",
+          other_account_routing_address="string",
+          other_bank_routing_scheme="string",
+          other_bank_routing_address="string",
+          is_beneficiary=true,
+          future_date=Some("string")),
+        reasons=Some(List( TransactionRequestReason(code=codeExample.value,
+          documentNumber=Some(documentNumberExample.value),
+          amount=Some(amountExample.value),
+          currency=Some(currencyExample.value),
+          description=Some(descriptionExample.value)))))
+      ),
+    exampleInboundMessage = (
+      InBoundMakePaymentV400(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+        status=MessageDocsSwaggerDefinitions.inboundStatus,
+        data=TransactionId(transactionIdExample.value))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def makePaymentV400(transactionRequest: TransactionRequest, reasons: Option[List[TransactionRequestReason]], callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = {
+    import com.openbankproject.commons.dto.{InBoundMakePaymentV400 => InBound, OutBoundMakePaymentV400 => OutBound}
+    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionRequest, reasons)
+    val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _)
+    response.map(convertToTuple[TransactionId](callContext))
+  }
+
   messageDocs += createTransactionRequestv300Doc
   def createTransactionRequestv300Doc = MessageDoc(
     process = "obp.createTransactionRequestv300",

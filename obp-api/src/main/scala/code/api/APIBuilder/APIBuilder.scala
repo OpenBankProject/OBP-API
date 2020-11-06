@@ -76,7 +76,7 @@ object APIBuilder
   val deleteSingleApiDescription: String = (deleteSingleApiJValue \ "description").asInstanceOf[JString].values 
   val getApiDescriptionFromJsonFile: String = getApiDescription + "(From Json File)"
   
-  //TODO, for now this is only in description, could be a single filed later.
+  //TODO, for now this is only in description, could be a single field later.
   val getMultipleApiAuthentication:Boolean = getApiDescriptionFromJsonFile.contains("Authentication is Mandatory")
   val getSingleApiAuthentication:Boolean = getSingleApiDescription.contains("Authentication is Mandatory")
   val createSingleApiAuthentication:Boolean = createSingleApiDescription.contains("Authentication is Mandatory")
@@ -139,7 +139,6 @@ object APIBuilder
       emptyObjectJson, 
       templatesJson, 
       List(UserNotLoggedIn, UnknownError), 
-      Catalogs(notCore, notPSD2, notOBWG), 
       apiTagApiBuilder :: Nil
     )"""
   val getTemplatesResourceCode: Term.ApplyInfix =q"""
@@ -154,7 +153,6 @@ object APIBuilder
       emptyObjectJson,
       templatesJson,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       apiTagApiBuilder :: Nil
     )"""
   val getTemplateResourceCode: Term.ApplyInfix =q"""
@@ -169,7 +167,6 @@ object APIBuilder
       emptyObjectJson, 
       templateJson,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG), 
       apiTagApiBuilder :: Nil
     )"""
   val createTemplateResourceCode: Term.ApplyInfix =q"""
@@ -184,7 +181,6 @@ object APIBuilder
       createTemplateJson, 
       templateJson,
       List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG), 
       apiTagApiBuilder :: Nil
     )"""
   val deleteTemplateResourceCode: Term.ApplyInfix = q"""
@@ -199,7 +195,6 @@ object APIBuilder
       emptyObjectJson, 
       emptyObjectJson.copy("true"),
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG), 
       apiTagApiBuilder :: Nil
     )"""
     

@@ -3,6 +3,10 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+20/09/2020    609d4e77      Added props: entitlement_list_1 and new_user_entitlement_list . default is empty.
+                            we can grant the default roles to the new validated user, eg:
+                            entitlement_list_1=[CanGetConfig, CanUseAccountFirehoseAtAnyBank]
+                            new_user_entitlement_list=entitlement_list_1
 10/09/2020    95cd5329      Added props: glossary_requires_role. default is false. If set it as `true`, then OBP will 
                             check the authentication and CanReadGlossary Role for the endpoint: `Get API Glossary`.
 12/08/2020    51621aa1      Added props: webui_legal_notice_html_text. If we set the props, the content will be showed as the legal notice on the registration page 
@@ -17,8 +21,8 @@ Date          Commit        Action
 13/07/2020    d42dda90      Added props: webui_header_content_url. If we set the props, it will override the id ="table-header" content in default.html
 19/06/2020    ea819aab      Added props: refresh_user.interval. default is 30 minutes.
                             This props will set the interval for the internal refresh user process.
-29/04/2020    75925d8c      Added props: allow_pre_filled_password. in Sign Up page the default password form filed is ****
-                            This props can set the filed to empty .
+29/04/2020    75925d8c      Added props: allow_pre_filled_password. in Sign Up page the default password form field is ****
+                            This props can set the field to empty .
 29/04/2020    1ba4f3aa      Added props: webui_signup_form_submit_button_value. this will overwrite the submit button value 
                             in the sign up page.
 28/04/2020    9b180f2b      Added props: webui_post_consumer_registration_submit_button_value. this will overwrite the submit button value 

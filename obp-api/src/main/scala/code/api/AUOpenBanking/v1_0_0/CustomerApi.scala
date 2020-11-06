@@ -68,13 +68,12 @@ object APIMethods_CustomerApi extends RestHelper {
     },
     "customerUType" : "person"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Common") ::ApiTag("Customer") :: apiTagMockedData :: Nil
      )
 
@@ -113,7 +112,7 @@ object APIMethods_CustomerApi extends RestHelper {
     },
     "customerUType" : "person"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -140,13 +139,12 @@ object APIMethods_CustomerApi extends RestHelper {
     "organisation" : "",
     "customerUType" : "person"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Common") ::ApiTag("Customer") :: apiTagMockedData :: Nil
      )
 
@@ -162,7 +160,7 @@ object APIMethods_CustomerApi extends RestHelper {
     "organisation" : "",
     "customerUType" : "person"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }

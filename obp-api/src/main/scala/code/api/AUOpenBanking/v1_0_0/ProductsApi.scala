@@ -41,13 +41,12 @@ object APIMethods_ProductsApi extends RestHelper {
        emptyObjectJson,
        json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Products") :: apiTagMockedData :: Nil
      )
 
@@ -59,7 +58,7 @@ object APIMethods_ProductsApi extends RestHelper {
              } yield {
             (json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -177,7 +176,6 @@ In addition, the concept of effective date and time has also been included. This
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Products") :: apiTagMockedData :: Nil
      )
 

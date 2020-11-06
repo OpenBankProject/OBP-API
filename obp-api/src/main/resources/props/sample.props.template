@@ -674,7 +674,7 @@ featured_apis=elasticSearchWarehouseV300
 # new_style_only=false
 # ----------------------------------------------
 
-# -- Calls Limit --------------------------------------
+# -- Rate Limiting -----------------------------------
 # Define how many calls per hour a consumer can make
 # In case isn't defined default value is "false"
 # use_consumer_limits=false
@@ -801,9 +801,20 @@ database_messages_scheduler_interval=3600
 # When you set this props, need to make sure this port is available.  
 # grpc.server.port = 50051
 
-# Create System Views At Boot
+# Create System Views At Boot -----------------------------------------------
 # In case is not defined default value is true
-#create_system_views_at_boot=true
+# create_system_views_at_boot=true
+# additional_system_views=
+# Possible values for additional_system_views are: ReadAccountsBasic,\
+                                                    ReadAccountsDetail,\
+                                                    ReadBalances,\
+                                                    ReadTransactionsBasic,\
+                                                    ReadTransactionsDebits,\
+                                                    ReadTransactionsDetail
+# -----------------------------------------------------------------------------
+                      
+
+
 
 # Stored procedure related JDBC settings
 stored_procedure_connector.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver
@@ -870,3 +881,13 @@ outboundAdapterCallContext.generalContext
 #hydra_client_id=auth-code-client
 #hydra_client_scope=openid,offline
 # ------------------------------ Hydra oauth2 props end ------------------------------
+
+# ------------------------------ default entitlements ------------------------------
+## the default entitlements list, you can added the roles here.
+#entitlement_list_1=[] 
+# when new User is validated, grant the following role list to that user.
+#new_user_entitlement_list=entitlement_list_1
+# ------------------------------ default entitlements end ------------------------------
+
+## Mirror request headers to response
+# mirror_request_headers_to_response=x-fapi-interaction-id,x-jws-signature

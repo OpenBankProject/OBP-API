@@ -78,6 +78,10 @@ object RemotedataTransactionRequests extends ObpActorInit with TransactionReques
     (actor ? cc.saveTransactionRequestStatusImpl(transactionRequestId, status)).mapTo[Box[Boolean]]
   )
 
+  def saveTransactionRequestDescriptionImpl(transactionRequestId: TransactionRequestId, description: String): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.saveTransactionRequestDescriptionImpl(transactionRequestId, description)).mapTo[Box[Boolean]]
+  )
+
   def bulkDeleteTransactionRequests(): Boolean = getValueFromFuture(
     (actor ? cc.bulkDeleteTransactionRequests()).mapTo[Boolean]
   )

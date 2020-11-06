@@ -102,7 +102,6 @@ object APIMethods_FilePaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -187,7 +186,6 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        emptyObjectJson,
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -275,7 +273,6 @@ object APIMethods_FilePaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -421,7 +418,6 @@ object APIMethods_FilePaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -506,7 +502,6 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        emptyObjectJson,
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -594,7 +589,6 @@ object APIMethods_FilePaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -682,7 +676,6 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        emptyObjectJson,
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 

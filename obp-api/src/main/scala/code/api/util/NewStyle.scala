@@ -91,10 +91,15 @@ object NewStyle {
     (nameOf(Implementations2_0_0.addKycMedia), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.addKycStatus), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.addKycCheck), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.deleteEntitlement), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.getTransactionTypes), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.getPermissionsForBankAccount), ApiVersion.v2_0_0.toString),
-    (nameOf(Implementations2_1_0.getRoles), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations2_1_0.getCustomersForCurrentUserAtBank), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations2_1_0.getEntitlementsByBankAndUser), ApiVersion.v2_1_0.toString),
+    (nameOf(Implementations2_1_0.getRoles), ApiVersion.v2_1_0.toString),
+    (nameOf(Implementations2_1_0.getCustomersForCurrentUserAtBank), ApiVersion.v2_1_0.toString),
+    (nameOf(Implementations2_1_0.getMetrics), ApiVersion.v2_1_0.toString),
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
+    (nameOf(Implementations2_2_0.getMessageDocs), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getViewsForBankAccount), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getCurrentFxRate), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getExplictCounterpartiesForAccount), ApiVersion.v2_2_0.toString),
@@ -787,6 +792,12 @@ object NewStyle {
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400), i._2)
       }
     }
+
+    def notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[TransactionRequestStatusValue] = {
+      Connector.connector.vend.notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$TransactionRequestStatusNotInitiated Can't notify TransactionRequestId(${transactionRequest.id}) ", 400), i._2)
+      }
+    }
     
     def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = 
     {
@@ -815,6 +826,20 @@ object NewStyle {
         
       }
     }
+
+    def getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) : OBPReturnType[CounterpartyTrait] =
+    {
+      Connector.connector.vend.getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(
+          i._1,
+          callContext,
+          s"$CounterpartyNotFoundByIban. Please check how do you create Counterparty, " +
+            s"set the proper Iban value to `other_account_secondary_routing_address`. Current Iban = $iban. " +
+            s"Check also the bankId and the accountId, Current BankId = ${bankId.value}, Current AccountId = ${accountId.value}",
+          404),
+          i._2)
+      }
+    }
     
     def getTransactionRequestImpl(transactionRequestId: TransactionRequestId, callContext: Option[CallContext]): OBPReturnType[TransactionRequest] = 
     {
@@ -830,7 +855,7 @@ object NewStyle {
        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
       }
 
-    def validateChallenge(
+    def validateChallengeAnswerC2(
       challengeType: ChallengeType.Value,
       transactionRequestId: Option[String], 
       consentId: Option[String], 
@@ -843,7 +868,7 @@ object NewStyle {
       }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && consentId.isEmpty ){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId) ")}
       }else{
-        Connector.connector.vend.validateChallenge(
+        Connector.connector.vend.validateChallengeAnswerC2(
           transactionRequestId: Option[String],
           consentId: Option[String],
           challengeId: String,
@@ -2020,13 +2045,13 @@ object NewStyle {
         entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(dynamicEntityId)
         deleteEntityResult <- DynamicEntityProvider.connectorMethodProvider.vend.delete(entity)
         deleteEntitleMentResult <- if(deleteEntityResult) {
-          Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName)
+          Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName, entity.bankId)
         } else {
           Box !! false
         }
       } yield {
         if(deleteEntitleMentResult) {
-          DynamicEntityInfo.roleNames(entity.entityName).foreach(ApiRole.removeDynamicApiRole(_))
+          DynamicEntityInfo.roleNames(entity.entityName, entity.bankId).foreach(ApiRole.removeDynamicApiRole(_))
         }
         deleteEntitleMentResult
       }
@@ -2054,6 +2079,28 @@ object NewStyle {
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL second) {
           DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities()
+        }
+      }
+    }
+    
+    def getDynamicEntitiesByBankId(bankId: String): List[DynamicEntityT] = {
+      import scala.concurrent.duration._
+
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL second) {
+          DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntitiesByBankId(bankId)
+        }
+      }
+    }
+
+    def getDynamicEntitiesByUserId(userId: String): List[DynamicEntityT] = {
+      import scala.concurrent.duration._
+
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL second) {
+          DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntitiesByUserId(userId: String)
         }
       }
     }
@@ -2089,6 +2136,7 @@ object NewStyle {
                                entityName: String,
                                requestBody: Option[JObject],
                                entityId: Option[String],
+                               bankId: Option[String],
                                callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
       import DynamicEntityOperation._
       val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
@@ -2127,11 +2175,11 @@ object NewStyle {
       }
 
       dynamicInstance match {
-        case empty @None => Connector.connector.vend.dynamicEntityProcess(operation, entityName, empty, entityId, callContext)
+        case empty @None => Connector.connector.vend.dynamicEntityProcess(operation, entityName, empty, entityId, bankId, callContext)
         case v @Some(body) =>
           val dynamicEntity: DynamicEntityT = dynamicEntityBox.openOrThrowException(DynamicEntityNotExists)
           dynamicEntity.validateEntityJson(body, callContext).flatMap {
-            case None => Connector.connector.vend.dynamicEntityProcess(operation, entityName, v, entityId, callContext)
+            case None => Connector.connector.vend.dynamicEntityProcess(operation, entityName, v, entityId, bankId, callContext)
             case Some(errorMsg) => Helper.booleanToFuture(s"$DynamicEntityInstanceValidateFail details: $errorMsg")(false)
               .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
           }
@@ -2224,8 +2272,8 @@ object NewStyle {
       getConnectorByName(connectorName).flatMap(_.implementedMethods.get(methodName))
     }
 
-    def createDynamicEndpoint(swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
-      (DynamicEndpointProvider.connectorMethodProvider.vend.create(swaggerString), callContext)
+    def createDynamicEndpoint(userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
+      (DynamicEndpointProvider.connectorMethodProvider.vend.create(userId, swaggerString), callContext)
     } map {
       i => (connectorEmptyResponse(i._1, callContext), i._2)
     }
@@ -2241,6 +2289,10 @@ object NewStyle {
     def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
       (DynamicEndpointProvider.connectorMethodProvider.vend.getAll(), callContext)
     }
+
+    def getDynamicEndpointsByUserId(userId: String, callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
+      (DynamicEndpointProvider.connectorMethodProvider.vend.getDynamicEndpointsByUserId(userId), callContext)
+    }
     /**
      * delete one DynamicEndpoint and corresponding entitlement and dynamic entitlement
      * @param dynamicEndpointId
@@ -2251,18 +2303,19 @@ object NewStyle {
       val dynamicEndpoint: OBPReturnType[DynamicEndpointT] = this.getDynamicEndpoint(dynamicEndpointId, callContext)
         for {
           (entity, _) <- dynamicEndpoint
-          deleteSuccess = DynamicEndpointProvider.connectorMethodProvider.vend.delete(dynamicEndpointId)
-
-          deleteEndpointResult: Box[Boolean] = if(deleteSuccess) {
+          deleteEndpointResult: Box[Boolean] = {
             val roles = DynamicEndpointHelper.getRoles(dynamicEndpointId).map(_.toString())
+            roles.foreach(ApiRole.removeDynamicApiRole(_))
             val rolesDeleteResult: Box[Boolean] = Entitlement.entitlement.vend.deleteEntitlements(roles)
-
               Box !! (rolesDeleteResult == Full(true))
-          } else {
-            Box !! false
+            } 
+          deleteSuccess = if(deleteEndpointResult.isDefined && deleteEndpointResult.head) {
+            tryo {DynamicEndpointProvider.connectorMethodProvider.vend.delete(dynamicEndpointId)}
+          }else{
+            Full(false)
           }
         } yield {
-          deleteEndpointResult
+          deleteSuccess
         }
     }
 

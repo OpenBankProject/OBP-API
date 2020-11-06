@@ -1,0 +1,73 @@
+#main-get-started {
+    padding: 72px 0 0 0;
+    margin-left: 100px;
+    margin-right: 100px;
+    background-color: #ffffff;
+}
+
+#main-get-started h2 {
+    line-height: 42px;
+    text-align: center;
+    margin-bottom: 48px;
+    margin-top: 72px;
+}
+
+#main-get-started .main-get-started-icon, #main-get-started .main-get-started-item {
+    text-align: left;
+    padding: 0;
+}
+#main-get-started .main-get-started-item {
+    margin-bottom: -6px;
+    text-align: center;
+}
+#main-get-started .main-get-started-text {
+    text-align: left;
+    padding: 0;
+}
+#main-get-started .main-get-started-text h3 {
+    margin-bottom: 17px;
+}
+#main-get-started .main-get-started-text p{
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    color: #333333;
+    line-height: 24px;
+}
+#main-get-started .main-get-started-text p a{
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    color: #333333;
+    line-height: 24px;
+    text-decoration:underline;
+}
+#main-get-started .btn-primary{
+    border: 0;
+    margin: auto;
+    background-color: #000000;
+    border-radius: 0;
+    height: 44px;
+    padding-top: 9px;
+    padding-bottom: 11px;
+    padding-left: 20px;
+    padding-right: 20px;
+    margin-top: 48px;
+    display: block;
+    width: 129px;
+}
+
+#main-get-started .btn-primary:hover{
+    background-color: #404040;
+}
+
+#main-get-started .btn-primary:active{
+    background-color: #767676;
+}
+
+#main-get-started .btn-primary a{
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    color: #FFFFFF;
+    text-align: center;
+    line-height: 24px;
+    text-decoration: none;
+}

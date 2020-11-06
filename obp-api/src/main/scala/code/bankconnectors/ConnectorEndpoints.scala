@@ -66,7 +66,7 @@ object ConnectorEndpoints extends RestHelper{
           inboundAdapterCallContextKey = StringUtils.uncapitalize(inboundAdapterCallContext)
           inboundAdapterCallContextValue = InboundAdapterCallContext(cc.correlationId)
         } yield {
-          // NOTE: if any filed type is BigDecimal, it is can't be serialized by lift json
+          // NOTE: if any field type is BigDecimal, it is can't be serialized by lift json
           val json = Map((inboundAdapterCallContextKey, inboundAdapterCallContextValue),("status", Status("",List(InboundStatusMessage("","","","")))),("data", toValueObject(data)))
           (json, HttpCode.`200`(cc))
         }

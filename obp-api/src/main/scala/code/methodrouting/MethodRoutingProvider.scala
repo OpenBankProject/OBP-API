@@ -46,7 +46,7 @@ case class MethodRoutingCommons(methodName: String,
                                 methodRoutingId: Option[String] = None,
                                ) extends MethodRoutingT with JsonFieldReName {
   /**
-    * when serialized to json, the  Option filed will be not shown, this method just generate a full fields json, include all None value fields
+    * when serialized to json, the  Option field will be not shown, this method just generate a full fields json, include all None value fields
     * @return JObject include all fields
     */
   def toJson(implicit format: Formats) = {
