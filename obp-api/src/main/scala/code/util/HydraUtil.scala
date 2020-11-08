@@ -5,11 +5,10 @@ import java.util.UUID
 import code.api.util.APIUtil
 import code.model.Consumer
 import code.model.Consumer.redirectURLRegex
-import com.nimbusds.jose.{Algorithm, JWSAlgorithm}
+import com.nimbusds.jose.Algorithm
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator
 import com.nimbusds.jose.jwk.{Curve, ECKey, KeyUse}
 import org.apache.commons.lang3.StringUtils
-import org.codehaus.jackson.map.ObjectMapper
 import sh.ory.hydra.api.{AdminApi, PublicApi}
 import sh.ory.hydra.model.OAuth2Client
 import sh.ory.hydra.{ApiClient, Configuration}
@@ -58,7 +57,7 @@ object HydraUtil {
    * @param consumer
    * @return created Hydra client or None
    */
-  def createHydraClient(consumer: Consumer, jwkPublicKey: String = null, requestUri: String = null): Option[OAuth2Client] = {
+  def createHydraClient(consumer: Consumer, fun: OAuth2Client => OAuth2Client = identity): Option[OAuth2Client] = {
     val redirectUrl = consumer.redirectURL.get
     if (StringUtils.isBlank(redirectUrl) || redirectURLRegex.findFirstIn(redirectUrl).isEmpty) {
       return None
@@ -79,32 +78,23 @@ object HydraUtil {
       val clientMeta = Map("client_certificate" -> consumer.clientCertificate.get).asJava
       oAuth2Client.setMetadata(clientMeta)
     }
-    if(StringUtils.isBlank(jwkPublicKey)) {
-      oAuth2Client.setTokenEndpointAuthMethod("client_secret_post")
-    } else {
-      oAuth2Client.setTokenEndpointAuthMethod("private_key_jwt")
-      val jwks = s"""{"keys": [$jwkPublicKey]}"""
-      val jwksMap = new ObjectMapper().readValue(jwks, classOf[java.util.Map[String, _]])
-      oAuth2Client.setJwks(jwksMap)
-      oAuth2Client.setTokenEndpointAuthSigningAlg(JWSAlgorithm.ES256.getName)
-      oAuth2Client.setRequestObjectSigningAlg(JWSAlgorithm.ES256.getName)
-    }
-    if(StringUtils.isNotBlank(requestUri)) {
-      oAuth2Client.setRequestUris(List(requestUri).asJava)
-    }
-    Some(hydraAdmin.createOAuth2Client(oAuth2Client))
+    oAuth2Client.setTokenEndpointAuthMethod("client_secret_post")
+
+    val decoratedClient = fun(oAuth2Client)
+    Some(hydraAdmin.createOAuth2Client(decoratedClient))
   }
 
 
   /**
    * create jwk
+   * @param signingAlg signing algorithm name
    * @return private key json string to public key
    */
-  def createJwk: (String, String) = {
+  def createJwk(signingAlg: String): (String, String) = {
     val jwk:ECKey = new ECKeyGenerator(Curve.P_256)
       .keyUse(KeyUse.SIGNATURE) // indicate the intended use of the key
       .keyID(UUID.randomUUID().toString()) // give the key a unique ID
-      .algorithm(new Algorithm("ES256"))
+      .algorithm(new Algorithm(signingAlg))
       .generate()
 
     jwk.toJSONString -> jwk.toPublicJWK().toJSONString

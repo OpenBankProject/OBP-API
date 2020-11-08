@@ -557,9 +557,16 @@ footer #copyright {
 
 
 
-#register-consumer #appDesc {
-	height: 250px;
+#register-consumer textarea {
+	height: 253px;
 }
+#register-consumer #app-jwks {
+	height: 180px;
+}
+#register-consumer .list-group-item, #register-consumer .well  {
+	background-color: #2db6eb;
+}
+
 #register-consumer #register-consumer-errors {
 	margin-bottom: 20px;
 }

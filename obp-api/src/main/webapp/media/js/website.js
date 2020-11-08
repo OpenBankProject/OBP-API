@@ -138,8 +138,8 @@ $(document).ready(function() {
 		consumerRegistrationAppDescError.parent().addClass('hide');
 	}
 
-	var consumerRegistrationAppClientCertificateError = $('#register-consumer-input #consumer-registration-app-client-certificate-error');
-	var consumerRegistrationAppClientCertificateForm = $('#register-consumer-input #appClientCertificate');
+	var consumerRegistrationAppClientCertificateError = $('#register-consumer-input #consumer-registration-app-client_certificate-error');
+	var consumerRegistrationAppClientCertificateForm = $('#register-consumer-input #app-client_certificate');
 	if (consumerRegistrationAppClientCertificateError.length > 0 && consumerRegistrationAppClientCertificateError.html().length > 0) {
 		consumerRegistrationAppClientCertificateError.parent().removeClass('hide');
 		consumerRegistrationAppClientCertificateForm.addClass("error-border")
@@ -148,12 +148,21 @@ $(document).ready(function() {
 	}
 
 	var consumerRegistrationAppRequestUriError = $('#register-consumer-input #consumer-registration-app-request_uri-error');
-	var consumerRegistrationAppRequestUriForm = $('#register-consumer-input #request_uri');
 	if (consumerRegistrationAppRequestUriError.length > 0 && consumerRegistrationAppRequestUriError.html().length > 0) {
 		consumerRegistrationAppRequestUriError.parent().removeClass('hide');
-		consumerRegistrationAppRequestUriForm.addClass("error-border")
+		$('#register-consumer-input #app-request_uri').addClass("error-border")
 	} else{
 		consumerRegistrationAppRequestUriError.parent().addClass('hide');
+	}
+
+	{
+		var consumerRegistrationJwksError = $('#register-consumer-input #consumer-registration-app-signing_jwks-error');
+		if (consumerRegistrationJwksError.length > 0 && consumerRegistrationJwksError.html().length > 0) {
+			consumerRegistrationJwksError.parent().removeClass('hide');
+			$('#register-consumer-input #app-jwks').addClass("error-border")
+		} else{
+			consumerRegistrationJwksError.parent().addClass('hide');
+		}
 	}
 
 	var consumerRegistrationAppRedirectUrlError = $('#register-consumer-input #consumer-registration-app-description-error');
