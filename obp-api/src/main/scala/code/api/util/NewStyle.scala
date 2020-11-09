@@ -267,6 +267,20 @@ object NewStyle {
         (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFoundByIban Current IBAN is $iban", 404 ), i._2)
       }
     }
+    def getToBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
+      Connector.connector.vend.getBankAccountByIban(iban : String, callContext: Option[CallContext]) map { i =>
+        i._1 match {
+          case Full(account) => (account, i._2)
+          case _ =>
+            val account = BankAccountInMemory(
+              accountRoutings = List(
+                AccountRouting(scheme = AccountRoutingScheme.IBAN.toString, address = iban)
+              )
+            )
+            (account, i._2)
+        }
+      }
+    }
 
     def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map { i =>
