@@ -575,6 +575,7 @@ $additionalInstructions
              toAccountIban = transDetailsJson.creditorAccount.iban
 
              (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
+             (_, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
              (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
 
              _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {

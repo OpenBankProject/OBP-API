@@ -869,6 +869,11 @@ object NewStyle {
      Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) map { i =>
        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
       }
+    
+    def validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]): OBPReturnType[IbanChecker] = 
+     Connector.connector.vend.validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]) map { i =>
+       (unboxFullOrFail(i._1, callContext, s"$invalidIbanEror "), i._2)
+      }
 
     def validateChallengeAnswerC2(
       challengeType: ChallengeType.Value,
