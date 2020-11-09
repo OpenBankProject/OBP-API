@@ -209,9 +209,19 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     // so if you want the new generated endpoints shown timely, set this value to a small number, or set to a big number
     val getResourceDocsTTL : Int = APIUtil.getPropsValue(s"resourceDocsObp.cache.ttl.seconds", "5").toInt
 
+    /**
+     * 
+     * @param requestedApiVersion
+     * @param resourceDocTags
+     * @param partialFunctionNames
+     * @param showDynamicOrStatic if this is Some(`true`), only show dynamic endpoints, if Some(`false`), only show static. If it is None,  we will show all.  default is None
+     * @return
+     */
     private def getResourceDocsObpCached(requestedApiVersion : ApiVersion,
                                          resourceDocTags: Option[List[ResourceDocTag]],
-                                         partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
+                                         partialFunctionNames: Option[List[String]],
+                                         showDynamicOrStatic: Option[Boolean]= None
+    ) : Box[JsonResponse] = {
       /**
        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
        * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -226,7 +236,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             resourceDocs <- getResourceDocsList(requestedApiVersion)
           } yield {
             // Filter
-            val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, resourceDocTags, partialFunctionNames)
+            val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, resourceDocTags, partialFunctionNames, showDynamicOrStatic)
             // Format the data as json
             val innerJson = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
             // Return
@@ -348,9 +358,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |
          | For possible function values, see implemented_by.function in the JSON returned by this endpoint or the OBP source code or the footer of the API Explorer which produces a comma separated list of functions that reflect the server or filtering by API Explorer based on tags etc.
          |
-         | You may filter this endpoint using the 'Catalogs' url parameter e.g. ?core=&psd2=true&obwg=
-         |
-         | You may need some other language resource docs, now we support en and zh
+         | You may filter this endpoint using the 'showDynamicOrStatic' url parameter, e.g. ?showDynamicOrStatic=true. 
+         | if set showDynamicOrStatic=true, only show dynamic endpoints, if set it false, only show the static endpoints. if omit this parameter, we will show all the endpoints.
+         | 
+         | You may need some other language resource docs, now we support en and zh , e.g. ?language=zh
          |
          |See the Resource Doc endpoint for more information.
          |
@@ -359,7 +370,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?psd2=true
          |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?tags=Account,Bank
          |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?functions=getBanks,bankById
-         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?psd2=true&tags=Account,Bank&functions=getBanks,bankById
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?showDynamicOrStatic=true
          |${getObpApiRoot}/v3.1.0/resource-docs/v4.0.0/obp?language=zh
          |
          |<ul>
@@ -395,12 +406,12 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             else 
               Full()//If set resource_docs_requires_role=false, just return the response directly..
 
-            (tags, partialFunctions, languageParam) <- Full(ResourceDocsAPIMethodsUtil.getParams())
+            (tags, partialFunctions, languageParam, showDynamicOrStatic) <- Full(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- tryo {ApiVersionUtils.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
             json <- languageParam match {
               case Some(ZH) => getChineseVersionResourceDocs
-              case _ => getResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
+              case _ => getResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, showDynamicOrStatic)
             }
           } yield {
             json
@@ -452,7 +463,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "swagger" :: Nil JsonGet _ => {
         cc =>{
           for {
-            (resourceDocTags, partialFunctions, languageParam) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
+            (resourceDocTags, partialFunctions, languageParam, showDynamicOrStatic) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- tryo(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported Current Version is $requestedApiVersionString")
             json <- getResourceDocsSwaggerCached(requestedApiVersionString, resourceDocTags, partialFunctions)
@@ -638,7 +649,7 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
     case _ => Empty
   }
 
-  def getParams() : (Option[List[ResourceDocTag]], Option[List[String]], Option[LanguageParam] ) = {
+  def getParams() : (Option[List[ResourceDocTag]], Option[List[String]], Option[LanguageParam], Option[Boolean]) = {
 
     val rawTagsParam = S.param("tags")
 
@@ -693,7 +704,14 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
     } yield y
     logger.info(s"languageParam is $languageParam")
 
-    (tags, partialFunctionNames, languageParam)
+    // So we can produce a reduced list of resource docs to prevent manual editing of swagger files.
+    val showDynamicOrStatic = for {
+      x <- S.param("showDynamicOrStatic")
+      y <- stringToOptBoolean(x)
+    } yield y
+    logger.info(s"showDynamicOrStatic is $showDynamicOrStatic")
+
+    (tags, partialFunctionNames, languageParam, showDynamicOrStatic)
   }
 
 
@@ -702,12 +720,17 @@ Filter Resource Docs based on the query parameters, else return the full list.
 We don't assume a default catalog (as API Explorer does)
 so the caller must specify any required filtering by catalog explicitly.
  */
-  def filterResourceDocs(allResources: List[ResourceDoc], resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : List[ResourceDoc] = {
+  def filterResourceDocs(
+    allResources: List[ResourceDoc], 
+    resourceDocTags: Option[List[ResourceDocTag]], 
+    partialFunctionNames: Option[List[String]],
+    showDynamicOrStatic:Option[Boolean]= None
+  ) : List[ResourceDoc] = {
 
     // Filter (include, exclude or ignore)
     val filteredResources1 : List[ResourceDoc] =  allResources
 
-    // Check if we have partialFunctionNames as the paramters, and if so filter by them
+    // Check if we have partialFunctionNames as the parameters, and if so filter by them
     val filteredResources2 : List[ResourceDoc] = partialFunctionNames match {
       case Some(pfNames) => {
         // This can create duplicates to use toSet below
@@ -745,7 +768,12 @@ so the caller must specify any required filtering by catalog explicitly.
 
 
     //Because the PDS2 will only use one Tag, so it should be the last tag ifwe support the multiple filter parameters.
-    val filteredResources5: List[ResourceDoc] = filteredResources4
+    val filteredResources5: List[ResourceDoc] = showDynamicOrStatic match {
+      case Some(true) => filteredResources4.filter(_.tags.contains(apiTagDynamicEndpoints))
+      case Some(false) => filteredResources4.filterNot(_.tags.contains(apiTagDynamicEndpoints))
+      case _ => filteredResources4
+    }
+    
 
     val resourcesToUse = filteredResources5.toSet.toList
 
