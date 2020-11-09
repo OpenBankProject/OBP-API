@@ -2,7 +2,7 @@ package code.api.v4_0_0
 
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, authenticationRequiredMessage, generateUUID}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
-import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoints}
+import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ApiTag, ExampleValue, NewStyle}
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
@@ -140,7 +140,7 @@ object DynamicEntityHelper {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoints),
+      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole))
     )
     resourceDocs += ResourceDoc(
@@ -166,7 +166,7 @@ object DynamicEntityHelper {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoints),
+      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole))
     )
 
@@ -195,7 +195,7 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoints),
+      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canCreateRole))
       )
 
@@ -224,7 +224,7 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoints),
+      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canUpdateRole))
     )
 
@@ -250,7 +250,7 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoints),
+      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canDeleteRole))
     )
 

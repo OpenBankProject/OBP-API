@@ -16,7 +16,7 @@ import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
 import code.api.OBPRestHelper
 import code.api.util.ApiRole.{CanReadResourceDoc, canCreateAnyTransactionRequest}
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.enums.LanguageParam
+import com.openbankproject.commons.model.enums.{ContentParam, LanguageParam}
 import com.openbankproject.commons.model.enums.LanguageParam._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
@@ -29,6 +29,7 @@ import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ListResult
+import com.openbankproject.commons.model.enums.ContentParam.{ALL, DYNAMIC, STATIC}
 
 import scala.collection.immutable.{List, Nil}
 
@@ -214,13 +215,13 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
      * @param requestedApiVersion
      * @param resourceDocTags
      * @param partialFunctionNames
-     * @param showDynamicOrStatic if this is Some(`true`), only show dynamic endpoints, if Some(`false`), only show static. If it is None,  we will show all.  default is None
+     * @param contentParam if this is Some(`true`), only show dynamic endpoints, if Some(`false`), only show static. If it is None,  we will show all.  default is None
      * @return
      */
     private def getResourceDocsObpCached(requestedApiVersion : ApiVersion,
                                          resourceDocTags: Option[List[ResourceDocTag]],
                                          partialFunctionNames: Option[List[String]],
-                                         showDynamicOrStatic: Option[Boolean]= None
+                                         contentParam: Option[ContentParam]= None
     ) : Box[JsonResponse] = {
       /**
        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -236,7 +237,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             resourceDocs <- getResourceDocsList(requestedApiVersion)
           } yield {
             // Filter
-            val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, resourceDocTags, partialFunctionNames, showDynamicOrStatic)
+            val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, resourceDocTags, partialFunctionNames, contentParam)
             // Format the data as json
             val innerJson = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
             // Return
@@ -358,8 +359,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |
          | For possible function values, see implemented_by.function in the JSON returned by this endpoint or the OBP source code or the footer of the API Explorer which produces a comma separated list of functions that reflect the server or filtering by API Explorer based on tags etc.
          |
-         | You may filter this endpoint using the 'showDynamicOrStatic' url parameter, e.g. ?showDynamicOrStatic=true. 
-         | if set showDynamicOrStatic=true, only show dynamic endpoints, if set it false, only show the static endpoints. if omit this parameter, we will show all the endpoints.
+         | You may filter this endpoint using the 'content' url parameter, e.g. ?content=dynamic 
+         | if set content=dynamic, only show dynamic endpoints, if content=static, only show the static endpoints. if omit this parameter, we will show all the endpoints.
          | 
          | You may need some other language resource docs, now we support en and zh , e.g. ?language=zh
          |
@@ -367,11 +368,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |
          |Following are more examples:
          |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp
-         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?psd2=true
          |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?tags=Account,Bank
          |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?functions=getBanks,bankById
-         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?showDynamicOrStatic=true
          |${getObpApiRoot}/v3.1.0/resource-docs/v4.0.0/obp?language=zh
+         |${getObpApiRoot}/v3.1.0/resource-docs/v4.0.0/obp?content=static,dynamic,all
          |
          |<ul>
          |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
@@ -406,12 +406,12 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             else 
               Full()//If set resource_docs_requires_role=false, just return the response directly..
 
-            (tags, partialFunctions, languageParam, showDynamicOrStatic) <- Full(ResourceDocsAPIMethodsUtil.getParams())
+            (tags, partialFunctions, languageParam, contentParam) <- Full(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- tryo {ApiVersionUtils.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
             json <- languageParam match {
               case Some(ZH) => getChineseVersionResourceDocs
-              case _ => getResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, showDynamicOrStatic)
+              case _ => getResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, contentParam)
             }
           } yield {
             json
@@ -440,16 +440,13 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |
          |(Each endpoint is implemented in the OBP Scala code by a 'function')
          |
-         |You may filter this endpoint using the 'Catalogs' url parameter e.g. ?core=&psd2=true&obwg=
-         |
          |See the Resource Doc endpoint for more information.
          |
          |Following are more examples:
          |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger
-         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?psd2=true
          |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?tags=Account,Bank
          |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?functions=getBanks,bankById
-         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?psd2=true&tags=Account,Bank&functions=getBanks,bankById
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?tags=Account,Bank,PSD2&functions=getBanks,bankById
          |
       """,
       emptyObjectJson,
@@ -463,7 +460,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "swagger" :: Nil JsonGet _ => {
         cc =>{
           for {
-            (resourceDocTags, partialFunctions, languageParam, showDynamicOrStatic) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
+            (resourceDocTags, partialFunctions, languageParam, contentParam) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- tryo(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported Current Version is $requestedApiVersionString")
             json <- getResourceDocsSwaggerCached(requestedApiVersionString, resourceDocTags, partialFunctions)
@@ -649,7 +646,14 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
     case _ => Empty
   }
 
-  def getParams() : (Option[List[ResourceDocTag]], Option[List[String]], Option[LanguageParam], Option[Boolean]) = {
+  def stringToContentParam (x: String) : Option[ContentParam] = x.toLowerCase match {
+    case "dynamic"  => Some(DYNAMIC)
+    case "static"  => Some(STATIC)
+    case "all"  => Some(ALL)
+    case _ => None
+  }
+
+  def getParams() : (Option[List[ResourceDocTag]], Option[List[String]], Option[LanguageParam], Option[ContentParam]) = {
 
     val rawTagsParam = S.param("tags")
 
@@ -705,13 +709,13 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
     logger.info(s"languageParam is $languageParam")
 
     // So we can produce a reduced list of resource docs to prevent manual editing of swagger files.
-    val showDynamicOrStatic = for {
-      x <- S.param("showDynamicOrStatic")
-      y <- stringToOptBoolean(x)
+    val contentParam = for {
+      x <- S.param("content")
+      y <- stringToContentParam(x)
     } yield y
-    logger.info(s"showDynamicOrStatic is $showDynamicOrStatic")
+    logger.info(s"content is $contentParam")
 
-    (tags, partialFunctionNames, languageParam, showDynamicOrStatic)
+    (tags, partialFunctionNames, languageParam, contentParam)
   }
 
 
@@ -724,7 +728,7 @@ so the caller must specify any required filtering by catalog explicitly.
     allResources: List[ResourceDoc], 
     resourceDocTags: Option[List[ResourceDocTag]], 
     partialFunctionNames: Option[List[String]],
-    showDynamicOrStatic:Option[Boolean]= None
+    contentParam:Option[ContentParam]= None
   ) : List[ResourceDoc] = {
 
     // Filter (include, exclude or ignore)
@@ -767,10 +771,9 @@ so the caller must specify any required filtering by catalog explicitly.
     }
 
 
-    //Because the PDS2 will only use one Tag, so it should be the last tag ifwe support the multiple filter parameters.
-    val filteredResources5: List[ResourceDoc] = showDynamicOrStatic match {
-      case Some(true) => filteredResources4.filter(_.tags.contains(apiTagDynamicEndpoints))
-      case Some(false) => filteredResources4.filterNot(_.tags.contains(apiTagDynamicEndpoints))
+    val filteredResources5: List[ResourceDoc] = contentParam match {
+      case Some(DYNAMIC) => filteredResources4.filter(_.tags.contains(apiTagDynamic))
+      case Some(STATIC) => filteredResources4.filterNot(_.tags.contains(apiTagDynamic))
       case _ => filteredResources4
     }
     

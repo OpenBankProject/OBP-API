@@ -9,7 +9,7 @@ import java.util.{Date, UUID}
 import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, DoubleBody, EmptyBody, FloatBody, IntBody, JArrayBody, LongBody, OBPEndpoint, PrimaryDataBody, ResourceDoc, StringBody}
-import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoints}
+import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic}
 import code.api.util.ErrorMessages.{UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ApiTag, CustomJsonFormats}
 import com.openbankproject.commons.util.ApiVersion
@@ -168,7 +168,7 @@ object DynamicEndpointHelper extends RestHelper {
     }
 
   private def buildDynamicEndpointInfo(openAPI: OpenAPI, id: String): DynamicEndpointInfo = {
-    val tags: List[ResourceDocTag] = List(ApiTag(openAPI.getInfo.getTitle), apiTagApi, apiTagNewStyle, apiTagDynamicEndpoints)
+    val tags: List[ResourceDocTag] = List(ApiTag(openAPI.getInfo.getTitle), apiTagApi, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic)
 
     val serverUrl = {
       val servers = openAPI.getServers
