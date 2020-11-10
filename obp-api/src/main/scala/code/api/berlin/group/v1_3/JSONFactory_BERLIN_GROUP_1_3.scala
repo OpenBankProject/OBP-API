@@ -4,18 +4,16 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.api.util.APIUtil._
-import code.api.util.{APIUtil, CustomJsonFormats, NewStyle}
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.bankconnectors.Connector
 import code.consent.Consent
 import code.database.authorisation.Authorisation
 import code.model.ModeratedTransaction
-import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
-import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User}
+import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User, _}
 import net.liftweb.common.Full
 import net.liftweb.json.JValue
 
-import scala.collection.immutable
 import scala.collection.immutable.List
 
 case class JvalueCaseClass(jvalueToCaseclass: JValue)

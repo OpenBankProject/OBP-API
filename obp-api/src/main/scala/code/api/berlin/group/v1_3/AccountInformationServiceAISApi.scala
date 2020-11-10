@@ -18,7 +18,8 @@ import code.model._
 import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, TransactionId, ViewId}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model._
 import net.liftweb.common.Full
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
@@ -27,8 +28,6 @@ import net.liftweb.json._
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-
 import scala.concurrent.Future
 
 object APIMethods_AccountInformationServiceAISApi extends RestHelper {
