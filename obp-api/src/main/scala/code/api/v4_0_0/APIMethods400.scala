@@ -1154,7 +1154,7 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEntities))
     )
 
@@ -1190,7 +1190,7 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canGetBankLevelDynamicEntities))
     )
 
@@ -1243,7 +1243,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canCreateDynamicEntity)))
 
     lazy val createDynamicEntity: OBPEndpoint = {
@@ -1301,7 +1301,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canUpdateDynamicEntity)))
 
     lazy val updateDynamicEntity: OBPEndpoint = {
@@ -1343,7 +1343,7 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteDynamicEntity)))
 
     lazy val deleteDynamicEntity: OBPEndpoint = {
@@ -1381,7 +1381,7 @@ trait APIMethods400 {
         $UserNotLoggedIn,
         UnknownError
       ),
-      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle)
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle)
     )
 
     lazy val getMyDynamicEntities: OBPEndpoint = {
@@ -1429,7 +1429,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle)
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle)
     )
 
     lazy val updateMyDynamicEntity: OBPEndpoint = {
@@ -1472,7 +1472,7 @@ trait APIMethods400 {
         $UserNotLoggedIn,
         UnknownError
       ),
-      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle)
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle)
     )
 
     lazy val deleteMyDynamicEntity: OBPEndpoint = {
@@ -3591,7 +3591,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canCreateDynamicEndpoint)))
 
     lazy val createDynamicEndpoint: OBPEndpoint = {
@@ -3642,7 +3642,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEndpoint)))
 
     lazy val getDynamicEndpoint: OBPEndpoint = {
@@ -3681,7 +3681,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEndpoints)))
 
     lazy val getDynamicEndpoints: OBPEndpoint = {
@@ -3714,7 +3714,7 @@ trait APIMethods400 {
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteDynamicEndpoint)))
 
     lazy val deleteDynamicEndpoint : OBPEndpoint = {
@@ -3746,7 +3746,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle)
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle)
     )
 
     lazy val getMyDynamicEndpoints: OBPEndpoint = {
@@ -3779,7 +3779,7 @@ trait APIMethods400 {
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
     )
 
     lazy val deleteMyDynamicEndpoint : OBPEndpoint = {
