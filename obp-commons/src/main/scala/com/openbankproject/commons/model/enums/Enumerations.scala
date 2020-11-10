@@ -170,6 +170,12 @@ object LanguageParam extends OBPEnumeration[LanguageParam] {
   object ZH extends Value
 }
 
+sealed trait ContentParam extends EnumValue
+object ContentParam extends OBPEnumeration[ContentParam] {
+  object DYNAMIC extends Value
+  object STATIC extends Value
+  object ALL extends Value
+}
 
 sealed trait AttributeType extends EnumValue
 object AttributeType extends OBPEnumeration[AttributeType]{
