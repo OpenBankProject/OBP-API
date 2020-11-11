@@ -3595,12 +3595,10 @@ object SwaggerDefinitionsJSON {
     bank_id= bankIdExample.value,
     label= labelExample.value,
     number= accountNumberExample.value,
-    owners =  List(userJSONV121),
     product_code= accountTypeExample.value,
     balance = amountOfMoneyJsonV121,
     account_routings = List(accountRoutingJsonV121),
-    views_basic = List(viewBasicV300),
-    tags = List(accountTagJSON)
+    views_basic = List(viewIdExample.value)
   )
 
   val moderatedAccountJSON400 = ModeratedAccountJSON400(

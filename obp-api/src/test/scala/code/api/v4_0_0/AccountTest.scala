@@ -1,19 +1,18 @@
 package code.api.v4_0_0
 
-import code.api.Constant
-import com.openbankproject.commons.model.{AccountRouting, AccountRoutingJsonV121, AmountOfMoneyJsonV121, ErrorMessage}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountAttributeJson
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ApiRole.CanCreateAccountAttributeAtOneBank
 import code.api.util.ErrorMessages.{BankAccountNotFoundByAccountRouting, UserHasMissingRoles, UserNotLoggedIn}
-import code.api.v2_0_0.{BasicAccountJSON, BasicAccountsJSON}
-import code.api.v3_1_0.{AccountAttributeResponseJson, CreateAccountResponseJsonV310, PostPutProductJsonV310, ProductJsonV310}
+import code.api.util.{APIUtil, ApiRole}
+import code.api.v2_0_0.BasicAccountJSON
+import code.api.v3_1_0.{CreateAccountResponseJsonV310, PostPutProductJsonV310, ProductJsonV310}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
 import net.liftweb.json.Serialization.write

@@ -115,12 +115,10 @@ case class ModeratedCoreAccountJsonV400(
                                          bank_id: String,
                                          label: String,
                                          number: String,
-                                         owners: List[UserJSONV121],
                                          product_code: String,
                                          balance: AmountOfMoneyJsonV121,
                                          account_routings: List[AccountRoutingJsonV121],
-                                         views_basic: List[ViewBasicV300],
-                                         tags: List[AccountTagJSON]
+                                         views_basic: List[String]
                                        )
 
 case class ModeratedFirehoseAccountJsonV400(
@@ -583,19 +581,16 @@ object JSONFactory400 {
 
   
   def createNewCoreBankAccountJson(account : ModeratedBankAccountCore, 
-                                   availableViews: List[View],
-                                   tags: List[TransactionTag]) : ModeratedCoreAccountJsonV400 =  {
+                                   availableViews: List[View]) : ModeratedCoreAccountJsonV400 =  {
     ModeratedCoreAccountJsonV400 (
       account.accountId.value,
       stringOrNull(account.bankId.value),
       stringOptionOrNull(account.label),
       stringOptionOrNull(account.number),
-      createOwnersJSON(account.owners.getOrElse(Set()),""),
       stringOptionOrNull(account.accountType),
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       createAccountRoutingsJSON(account.accountRoutings),
-      views_basic = availableViews.map(view => code.api.v3_0_0.ViewBasicV300(id = view.viewId.value, short_name = view.name, description = view.description, is_public = view.isPublic)),
-      tags.map(createAccountTagJSON)
+      views_basic = availableViews.map(view => view.viewId.value)
     )
   }
 
