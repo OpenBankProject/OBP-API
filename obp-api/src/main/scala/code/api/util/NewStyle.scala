@@ -91,6 +91,7 @@ object NewStyle {
     (nameOf(Implementations2_0_0.addKycMedia), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.addKycStatus), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.addKycCheck), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.addEntitlement), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.deleteEntitlement), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.getTransactionTypes), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.getPermissionsForBankAccount), ApiVersion.v2_0_0.toString),
@@ -264,6 +265,20 @@ object NewStyle {
     def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Connector.connector.vend.getBankAccountByIban(iban : String, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFoundByIban Current IBAN is $iban", 404 ), i._2)
+      }
+    }
+    def getToBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
+      Connector.connector.vend.getBankAccountByIban(iban : String, callContext: Option[CallContext]) map { i =>
+        i._1 match {
+          case Full(account) => (account, i._2)
+          case _ =>
+            val account = BankAccountInMemory(
+              accountRoutings = List(
+                AccountRouting(scheme = AccountRoutingScheme.IBAN.toString, address = iban)
+              )
+            )
+            (account, i._2)
+        }
       }
     }
 
@@ -853,6 +868,11 @@ object NewStyle {
     def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = 
      Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) map { i =>
        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
+      }
+    
+    def validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]): OBPReturnType[IbanChecker] = 
+     Connector.connector.vend.validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]) map { i =>
+       (unboxFullOrFail(i._1, callContext, s"$invalidIban "), i._2)
       }
 
     def validateChallengeAnswerC2(

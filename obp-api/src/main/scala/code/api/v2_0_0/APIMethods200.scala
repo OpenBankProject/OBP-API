@@ -1935,7 +1935,7 @@ trait APIMethods200 {
         EntitlementAlreadyExists,
         UnknownError
       ),
-      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canCreateEntitlementAtOneBank,canCreateEntitlementAtAnyBank)))
 
     lazy val addEntitlement : OBPEndpoint = {
@@ -1943,24 +1943,33 @@ trait APIMethods200 {
       case "users" :: userId :: "entitlements" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- UserX.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
-            postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~! s"$InvalidJsonFormat The Json body should be the $CreateEntitlementJSON "
-            role <- tryo{valueOf(postedData.role_name)} ?~! {IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")}
-            _ <- booleanToBox(ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty) ?~!
-              {if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole}
-            allowedEntitlements = canCreateEntitlementAtOneBank ::
-                                  canCreateEntitlementAtAnyBank ::
-                                  Nil
-            _ <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~! {
-              UserNotSuperAdmin +" or" + UserHasMissingRoles + canCreateEntitlementAtOneBank + s" BankId(${postedData.bank_id})." + " or" + UserHasMissingRoles + canCreateEntitlementAtAnyBank
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CreateEntitlementJSON "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CreateEntitlementJSON]
             }
-            _ <- booleanToBox(postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), Some(cc)).map(_._1).isEmpty == false) ?~! BankNotFound
-            _ <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, EntitlementAlreadyExists )
-            addedEntitlement <- Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
+            role <- Future { tryo{valueOf(postedData.role_name)} } map {
+              val msg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")
+              x => unboxFullOrFail(x, callContext, msg)
+            }
+            _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole) {
+              ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty
+            }
+            allowedEntitlements = canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil
+            allowedEntitlementsTxt = UserNotSuperAdmin +" or" + UserHasMissingRoles + canCreateEntitlementAtOneBank + s" BankId(${postedData.bank_id})." + " or" + UserHasMissingRoles + canCreateEntitlementAtAnyBank
+            _ <- Helper.booleanToFuture(failMsg = allowedEntitlementsTxt) {
+              isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true
+            }
+            _ <- Helper.booleanToFuture(failMsg = BankNotFound) {
+              postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), callContext).map(_._1).isEmpty == false
+            }
+            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists) {
+              hasEntitlement(postedData.bank_id, userId, role) == false
+            }
+            addedEntitlement <- Future(Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)) map { unboxFull(_) }
           } yield {
-            val viewJson = JSONFactory200.createEntitlementJSON(addedEntitlement)
-            successJsonResponse(Extraction.decompose(viewJson), 201)
+            (JSONFactory200.createEntitlementJSON(addedEntitlement), HttpCode.`201`(callContext))
           }
       }
     }
