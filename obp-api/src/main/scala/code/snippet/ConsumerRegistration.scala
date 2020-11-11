@@ -82,20 +82,9 @@ class ConsumerRegistration extends MdcLoggable {
 
     val appTypes = List((AppType.Web.toString, AppType.Web.toString), (AppType.Mobile.toString, AppType.Mobile.toString))
     val signingAlgs = List(
-      "ES256",
-      "ES256K",
-      "ES512",
-      "ES384",
-      "EdDSA",
-      "RS256",
-      "RS512",
-      "RS38",
-      "HS256",
-      "HS384",
-      "HS512",
-      "PS256",
-      "PS384",
-      "PS512"
+      "ES256", "ES384", "ES512",
+      //Hydra support alg: RS256, RS384, RS512, PS256, PS384, PS512, ES256, ES384 and ES512
+      "RS256", "RS384", "RS512", "PS256", "PS384", "PS512"
       ).map(it => it -> it)
 
     def submitButtonDefense: Unit = {
@@ -137,6 +126,7 @@ class ConsumerRegistration extends MdcLoggable {
       val urlDirectLoginEndpoint = APIUtil.getPropsValue("hostname", "") + "/my/logins/direct"
       val jwksUri = jwksUriVar.is
       val jwks = jwksVar.is
+      val jwsAlg = signingAlgVar.is
       var jwkPrivateKey: String = s"Please change this value to ${if(StringUtils.isNotBlank(jwksUri)) "jwks_uri" else "jwks"} corresponding private key"
       if(HydraUtil.mirrorConsumerInHydra) {
         HydraUtil.createHydraClient(consumer, oAuth2Client => {
@@ -216,6 +206,7 @@ class ConsumerRegistration extends MdcLoggable {
                   }
               }
             } &
+            "#client_jws_alg" #> Unparsed(jwsAlg) &
             "#jwk_private_key" #> Unparsed(jwkPrivateKey)
         } else {
           "#hydra-client-info-title *" #> "" &

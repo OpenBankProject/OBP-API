@@ -5,9 +5,9 @@ import java.util.UUID
 import code.api.util.APIUtil
 import code.model.Consumer
 import code.model.Consumer.redirectURLRegex
-import com.nimbusds.jose.Algorithm
-import com.nimbusds.jose.jwk.gen.ECKeyGenerator
-import com.nimbusds.jose.jwk.{Curve, ECKey, KeyUse}
+import com.nimbusds.jose.jwk.gen.{ECKeyGenerator, JWKGenerator, RSAKeyGenerator}
+import com.nimbusds.jose.jwk.{AsymmetricJWK, Curve, ECKey, JWK, KeyUse, RSAKey}
+import com.nimbusds.jose.{Algorithm, JWSAlgorithm}
 import org.apache.commons.lang3.StringUtils
 import sh.ory.hydra.api.{AdminApi, PublicApi}
 import sh.ory.hydra.model.OAuth2Client
@@ -91,8 +91,14 @@ object HydraUtil {
    * @return private key json string to public key
    */
   def createJwk(signingAlg: String): (String, String) = {
-    val jwk:ECKey = new ECKeyGenerator(Curve.P_256)
-      .keyUse(KeyUse.SIGNATURE) // indicate the intended use of the key
+    val keyGenerator = if(signingAlg.startsWith("ES")) {
+      val curves = Curve.forJWSAlgorithm(JWSAlgorithm.parse(signingAlg))
+      val curve:Curve = curves.iterator().next()
+      new ECKeyGenerator(curve)
+    } else {
+      new RSAKeyGenerator(RSAKeyGenerator.MIN_KEY_SIZE_BITS)
+    }
+    val jwk: JWK = keyGenerator.keyUse(KeyUse.SIGNATURE) // indicate the intended use of the key
       .keyID(UUID.randomUUID().toString()) // give the key a unique ID
       .algorithm(new Algorithm(signingAlg))
       .generate()
