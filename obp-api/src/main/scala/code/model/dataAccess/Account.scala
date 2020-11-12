@@ -36,6 +36,7 @@ import code.util.Helper.MdcLoggable
 import com.mongodb.QueryBuilder
 import com.openbankproject.commons.model._
 import net.liftweb.common._
+import net.liftweb.mapper.By
 import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk, ObjectIdRefField}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
@@ -188,7 +189,17 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
         Nil
     }
   }
-  override def accountRoutings: List[AccountRouting] = List(AccountRouting(mAccountRoutingScheme.get, mAccountRoutingAddress.get))
+  override def accountRoutings: List[AccountRouting] = {
+    BankAccountRouting.findAll(
+      By(BankAccountRouting.BankId, this.bankId.value),
+      By(BankAccountRouting.AccountId, this.accountId.value)
+    ).map(_.accountRouting) match {
+      case Nil => // This is the fallback if the BankAccountRouting failed
+        List(AccountRouting(mAccountRoutingScheme.get, mAccountRoutingAddress.get))
+      case everythingElseJustForward => 
+        everythingElseJustForward
+    }
+  }
   override def accountRules: List[AccountRule] = createAccountRule(mAccountRuleScheme1.get, mAccountRuleValue1.get.toLong) :::
                                                   createAccountRule(mAccountRuleScheme2.get, mAccountRuleValue2.get.toLong)
 }
