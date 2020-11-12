@@ -34,21 +34,21 @@ import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
 import code.api.util.RateLimitingPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitingPeriod}
 import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
-import code.api.v1_2_1.{BankJSON, RateLimiting, UserJSONV121, ViewJSONV121}
+import code.api.v1_2_1.{RateLimiting, UserJSONV121, ViewJSONV121}
 import code.api.v1_3_0.JSONFactory1_3_0._
 import code.api.v1_3_0.{PinResetJSON, ReplacementJSON}
-import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140, TransactionRequestAccountJsonV140}
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
 import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
 import code.api.v2_1_0.JSONFactory210.createLicenseJson
-import code.api.v2_1_0.{CounterpartyIdJson, CustomerCreditRatingJSON, ResourceUserJSON}
+import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
-import code.api.v3_0_0.{AccountRuleJsonV300, CustomerAttributeResponseJsonV300, JSONFactory300, ViewBasicV300, ViewJsonV300}
-import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
+import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
+import code.api.v3_0_0.{AccountRuleJsonV300, CustomerAttributeResponseJsonV300, JSONFactory300, ViewJsonV300}
 import code.consent.MappedConsent
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
-import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore, UserX}
+import code.model.{Consumer, ModeratedBankAccountCore, UserX}
 import code.obp.grpc.HelloWorldServer
 import code.ratelimiting
 import code.webhook.AccountWebhook
@@ -56,7 +56,6 @@ import com.openbankproject.commons.model.{AccountApplication, AmountOfMoneyJsonV
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
-import scala.reflect.runtime.universe._
 
 case class CreditCardOrderStatusResponseJson(
   cards: List[CardObjectJson] ,
@@ -748,23 +747,22 @@ case class PostHistoricalTransactionResponseJson(
   charge_policy: String
 )
 
-case class AccountsBalancesV310Json(
-  accounts:List[AccountBalanceV310],
-  overall_balance: AmountOfMoney,
-  overall_balance_date: Date
-)
-case class AccountBalanceV310(
-  id: String,
-  label: String,
-  bank_id: String,
-  account_routings: List[AccountRouting],
-  balance: AmountOfMoney
-)
+case class AccountsBalancesJsonV310(accounts:List[AccountBalanceJsonV310])
+
+case class BalanceJsonV310(`type`: String, currency: String, amount: String)
+
+case class AccountBalanceJsonV310(
+                               account_id: String,
+                               bank_id: String,
+                               account_routings: List[AccountRouting],
+                               label: String,
+                               balances: List[BalanceJsonV310]
+                             )
 
 case class AccountBalancesJson(
-  accounts: List[AccountBalanceV310],
-  overall_balance: AmountOfMoney,
-  overall_balance_date: Date
+                                accounts: List[AccountBalanceJsonV310],
+                                overall_balance: AmountOfMoney,
+                                overall_balance_date: Date
 )
 
 
@@ -1406,16 +1404,18 @@ object JSONFactory310{
   }
 
   def createBalancesJson(accountsBalances: AccountsBalances) = {
-    AccountsBalancesV310Json(
-      accounts = accountsBalances.accounts.map(account => AccountBalanceV310(
-        account.id,
-        account.label,
-        account.bankId,
-        account.accountRoutings, 
-        account.balance)
-      ),
-      overall_balance = accountsBalances.overallBalance,
-      overall_balance_date = accountsBalances.overallBalanceDate
+    AccountsBalancesJsonV310(
+      accounts = accountsBalances.accounts.map(
+        account => AccountBalanceJsonV310(
+          account_id = account.id,
+          bank_id = account.bankId,
+          account_routings = account.accountRoutings,
+          label = account.label,
+          balances = List(
+            BalanceJsonV310(`type` = "", currency = account.balance.currency, amount = account.balance.amount)
+          )
+        )
+      )
     )
   }
 
