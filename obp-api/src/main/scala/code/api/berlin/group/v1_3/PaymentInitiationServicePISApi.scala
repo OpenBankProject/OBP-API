@@ -104,7 +104,8 @@ or * access method is generally applicable, but further authorisation processes 
              fromAccountIban = transactionRequestBody.debtorAccount.iban
              toAccountIban = transactionRequestBody.creditorAccount.iban
              (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
-             (toAccount, callContext) <- NewStyle.function.getBankAccountByIban(toAccountIban, callContext)
+             (_, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
+             (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
              negativeAmount = - transactionRequest.body.value.amount.toDouble
              currency = transactionRequest.body.value.currency
              (createdTransactionRequest,callContext) <- transactionRequestTypes match {
