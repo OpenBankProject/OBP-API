@@ -179,6 +179,18 @@ case class PostAccountTagJSON(
 
 case class UpdateAccountJsonV400(label : String)
 
+case class AccountsBalancesJsonV400(accounts:List[AccountBalanceJsonV400])
+
+case class BalanceJsonV400(`type`: String, currency: String, amount: String)
+
+case class AccountBalanceJsonV400(
+                                   account_id: String,
+                                   bank_id: String,
+                                   account_routings: List[AccountRouting],
+                                   label: String,
+                                   balances: List[BalanceJsonV400]
+                                 )
+
 case class PostCustomerPhoneNumberJsonV400(mobile_phone_number: String)
 case class PostDirectDebitJsonV400(customer_id: String,
                                    user_id: String,
@@ -842,6 +854,22 @@ object JSONFactory400 {
 
   def createCounterpartiesJson400(counterparties: List[CounterpartyTrait]): CounterpartiesJson400 =
     CounterpartiesJson400(counterparties.map(createCounterpartyJson400))
+
+  def createBalancesJson(accountsBalances: AccountsBalances) = {
+    AccountsBalancesJsonV400(
+      accounts = accountsBalances.accounts.map(
+        account => AccountBalanceJsonV400(
+          account_id = account.id,
+          bank_id = account.bankId,
+          account_routings = account.accountRoutings,
+          label = account.label,
+          balances = List(
+            BalanceJsonV400(`type` = "", currency = account.balance.currency, amount = account.balance.amount)
+          )
+        )
+      )
+    )
+  }
   
 }
 

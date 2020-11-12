@@ -319,5 +319,16 @@ class AccountTest extends V400ServerSetup {
 
     }
   }
+
+  feature(s"test ${ApiEndpoint3.name}") {
+    scenario("We will test ${ApiEndpoint3.name}", ApiEndpoint3, VersionOfApi) {
+      Given("The test bank and test accounts")
+      val requestGet = (v4_0_0_Request / "banks" / testBankId.value / "balances").GET <@ (user1)
+
+      val responseGet = makeGetRequest(requestGet)
+      responseGet.code should equal(200)
+      responseGet.body.extract[AccountsBalancesJsonV400].accounts.size > 0 should be (true)
+    }
+  }
   
 }

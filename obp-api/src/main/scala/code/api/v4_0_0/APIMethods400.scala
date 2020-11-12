@@ -29,7 +29,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.{CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310}
 import com.openbankproject.commons.model.ListResult
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
-import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
+import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson, createBalancesJson}
 import code.bankconnectors.Connector
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.entitlement.Entitlement
@@ -2315,6 +2315,34 @@ trait APIMethods400 {
             val viewsAvailable = availableViews.map(JSONFactory.createViewJSON).sortBy(_.short_name)
             val tags = Tags.tags.vend.getTagsOnAccount(account.bankId, account.accountId)(view.viewId)
             (createBankAccountJSON(moderatedAccount, viewsAvailable, accountAttributes, tags), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankAccountsBalances,
+      implementedInApiVersion,
+      nameOf(getBankAccountsBalances),
+      "GET",
+      "/banks/BANK_ID/balances",
+      "Get Accounts Balances",
+      """Get the Balances for the Accounts of the current User at one bank.""",
+      emptyObjectJson,
+      accountBalancesV400Json,
+      List(UnknownError),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
+    )
+
+    lazy val getBankAccountsBalances : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "balances" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
+            (accountsBalances, callContext)<- NewStyle.function.getBankAccountsBalances(availablePrivateAccounts, callContext)
+          } yield{
+            (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
           }
       }
     }
