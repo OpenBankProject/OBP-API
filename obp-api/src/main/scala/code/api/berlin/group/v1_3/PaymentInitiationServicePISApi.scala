@@ -120,7 +120,7 @@ or * access method is generally applicable, but further authorisation processes 
                          toAccount,
                          TransactionRequestType(transactionRequestTypes.toString),
                          TransactionRequestCommonBodyJSONCommons(
-                           AmountOfMoneyJsonV121(negativeAmount.toString, currency),
+                           AmountOfMoneyJsonV121(amount = negativeAmount.toString, currency = currency),
                            ""
                          ),
                          "",
