@@ -224,7 +224,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       val requestGetApiEndpoint3 = (v3_1_0_Request / "banks" / testBankId.value / "balances").GET <@ (user1)
       val responseGetApiEndpoint3 = makeGetRequest(requestGetApiEndpoint3)
       responseGetApiEndpoint3.code should equal(200)
-      responseGetApiEndpoint3.body.extract[AccountsBalancesV310Json].accounts.toList.toString() contains(account.account_id) should be (true)
+      responseGetApiEndpoint3.body.extract[AccountsBalancesJsonV310].accounts.toList.toString() contains(account.account_id) should be (true)
       
       
       Then("We make a request v3.1.0 but with other user")
@@ -350,11 +350,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       
       val responseGet = makeGetRequest(requestGet)
       responseGet.code should equal(200)
-      responseGet.body.extract[AccountsBalancesV310Json].accounts.size > 0 should be (true)
-      responseGet.body.extract[AccountsBalancesV310Json].overall_balance.currency.nonEmpty should be (true) 
-      responseGet.body.extract[AccountsBalancesV310Json].overall_balance.amount.nonEmpty should be (true)
-      responseGet.body.extract[AccountsBalancesV310Json].overall_balance_date.getTime >0 should be (true) 
-
+      responseGet.body.extract[AccountsBalancesJsonV310].accounts.size > 0 should be (true)
     }
   }
 
