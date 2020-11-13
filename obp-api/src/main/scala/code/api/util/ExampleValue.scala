@@ -750,6 +750,24 @@ object ExampleValue {
 
   lazy val phoneExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("phone", phoneExample)
+  
+  lazy val sepaCreditTransferExample = ConnectorField("yes","no-description-provided")
+  glossaryItems += makeGlossaryItem("sepaCreditTransfer", sepaCreditTransferExample)  
+  
+  lazy val sepaSddCoreExample = ConnectorField("yes","no-description-provided")
+  glossaryItems += makeGlossaryItem("sepaSddCore", sepaSddCoreExample) 
+  
+  lazy val sepaB2bExample = ConnectorField("yes","no-description-provided")
+  glossaryItems += makeGlossaryItem("sepaB2b", sepaB2bExample) 
+  
+  lazy val sepaCardClearingExample = ConnectorField("no","no-description-provided")
+  glossaryItems += makeGlossaryItem("sepaCardClearing", sepaCardClearingExample) 
+  
+  lazy val bicExample = ConnectorField("BUKBGB22","The Business Identifier Code")
+  glossaryItems += makeGlossaryItem("bic", bicExample) 
+  
+  lazy val sepaDirectDebitExample = ConnectorField("yes","no-description-provided")
+  glossaryItems += makeGlossaryItem("sepaDirectDebit", sepaDirectDebitExample)
 
   lazy val canSeeTransactionOtherBankAccountExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_see_transaction_other_bank_account", canSeeTransactionOtherBankAccountExample)

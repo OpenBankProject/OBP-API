@@ -40,7 +40,7 @@ import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.views.system.AccountAccess
-import com.openbankproject.commons.model.{AccountId, AccountRouting, Attribute, Bank, BankAccount, BankAccountCommons, BankAccountInMemory, BankId, BankIdAccountId, Counterparty, CounterpartyId, CounterpartyTrait, CreateViewJson, Customer, Permission, TransactionId, UpdateViewJSON, User, UserPrimaryKey, View, ViewId, ViewIdBankIdAccountId}
+import com.openbankproject.commons.model.{AccountId, AccountRouting, Attribute, Bank, BankAccount, BankAccountCommons, BankId, BankIdAccountId, Counterparty, CounterpartyId, CounterpartyTrait, CreateViewJson, Customer, Permission, TransactionId, UpdateViewJSON, User, UserPrimaryKey, View, ViewId, ViewIdBankIdAccountId}
 import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JArray, JObject}

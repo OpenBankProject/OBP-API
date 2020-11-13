@@ -781,7 +781,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canGetEntitlementsForAnyUserAtOneBank, canGetEntitlementsForAnyUserAtAnyBank)))
 
 
@@ -789,29 +789,28 @@ trait APIMethods210 {
       case "banks" :: BankId(bankId) :: "users" :: userId :: "entitlements" :: Nil JsonGet _ => {
         cc =>
           for {
-            u <- cc.user ?~ UserNotLoggedIn
-            (bank, callContext ) <- BankX(bankId, Some(cc)) ?~ {BankNotFound}
-            _ <- UserX.findByUserId(userId) ?~! UserNotFoundById
+            (Full(loggedInUser), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
             allowedEntitlements = canGetEntitlementsForAnyUserAtOneBank ::
                                   canGetEntitlementsForAnyUserAtAnyBank::
                                   Nil
-            allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
-            _ <- booleanToBox(hasAtLeastOneEntitlement(bankId.value, u.userId, allowedEntitlements), UserHasMissingRoles+allowedEntitlementsTxt)
-            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
-            filteredEntitlements <- tryo{entitlements.filter(_.bankId == bankId.value)}
+            allowedEntitlementsTxt = UserHasMissingRoles + allowedEntitlements.mkString(" or ")
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)(bankId.value, loggedInUser.userId, allowedEntitlements)
+            entitlements <- NewStyle.function.getEntitlementsByUserId(userId, callContext)
           }
           yield {
-            var json = EntitlementJSONs(Nil)
+            val filteredEntitlements = entitlements.filter(_.bankId == bankId.value)
             // Format the data as V2.1.0 json
             if (isSuperAdmin(userId)) {
               // If the user is SuperAdmin add it to the list
-              json = JSONFactory200.addedSuperAdminEntitlementJson(filteredEntitlements)
+              val json = JSONFactory200.addedSuperAdminEntitlementJson(filteredEntitlements)
               successJsonResponse(Extraction.decompose(json))
+              (json, HttpCode.`200`(callContext))
             } else {
-              json = JSONFactory200.createEntitlementJSONs(filteredEntitlements)
+              val json = JSONFactory200.createEntitlementJSONs(filteredEntitlements)
+              (json, HttpCode.`200`(callContext))
             }
-            // Return
-            successJsonResponse(Extraction.decompose(json))
           }
       }
     }

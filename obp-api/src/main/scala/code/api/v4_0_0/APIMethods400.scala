@@ -29,7 +29,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.{CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310}
 import com.openbankproject.commons.model.ListResult
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
-import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
+import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson, createBalancesJson}
 import code.bankconnectors.Connector
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.entitlement.Entitlement
@@ -429,7 +429,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodyJsonV200,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -465,7 +465,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodyJsonV200,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -503,7 +503,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodyCounterpartyJSON,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -545,7 +545,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodySEPAJsonV400,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -589,7 +589,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodyRefundJsonV400,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -621,7 +621,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodyFreeFormJSON,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -983,7 +983,7 @@ trait APIMethods400 {
         |
       """.stripMargin,
       challengeAnswerJson400,
-      transactionRequestWithChargeJson,
+      transactionRequestWithChargeJSON210,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -1898,6 +1898,44 @@ trait APIMethods400 {
 
 
     staticResourceDocs += ResourceDoc(
+      updateAccountLabel,
+      implementedInApiVersion,
+      "updateAccountLabel",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID",
+      "Update Account Label",
+      s"""Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account'
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+       """.stripMargin,
+      updateAccountJsonV400,
+      successMessage,
+      List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound, "user does not have access to owner view on account"),
+      List(apiTagAccount, apiTagNewStyle)
+    )
+
+    lazy val updateAccountLabel : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $InvalidJsonFormat "
+            json <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[UpdateAccountJsonV400]
+            }
+          } yield {
+            account.updateLabel(u, json.label)
+            (Extraction.decompose(successMessage), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
       lockUser,
       implementedInApiVersion,
       nameOf(lockUser),
@@ -2166,10 +2204,9 @@ trait APIMethods400 {
             (user @Full(u), account) <- SS.userAccount
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), cc.callContext)
             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, cc.callContext)
-            tags <- Future(Tags.tags.vend.getTagsOnAccount(bankId, account.accountId)(view.viewId))
           } yield {
             val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
-            (createNewCoreBankAccountJson(moderatedAccount, availableViews, tags), HttpCode.`200`(cc.callContext))
+            (createNewCoreBankAccountJson(moderatedAccount, availableViews), HttpCode.`200`(cc.callContext))
           }
       }
     }
@@ -2278,6 +2315,34 @@ trait APIMethods400 {
             val viewsAvailable = availableViews.map(JSONFactory.createViewJSON).sortBy(_.short_name)
             val tags = Tags.tags.vend.getTagsOnAccount(account.bankId, account.accountId)(view.viewId)
             (createBankAccountJSON(moderatedAccount, viewsAvailable, accountAttributes, tags), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankAccountsBalances,
+      implementedInApiVersion,
+      nameOf(getBankAccountsBalances),
+      "GET",
+      "/banks/BANK_ID/balances",
+      "Get Accounts Balances",
+      """Get the Balances for the Accounts of the current User at one bank.""",
+      emptyObjectJson,
+      accountBalancesV400Json,
+      List(UnknownError),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
+    )
+
+    lazy val getBankAccountsBalances : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "balances" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
+            (accountsBalances, callContext)<- NewStyle.function.getBankAccountsBalances(availablePrivateAccounts, callContext)
+          } yield{
+            (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
           }
       }
     }

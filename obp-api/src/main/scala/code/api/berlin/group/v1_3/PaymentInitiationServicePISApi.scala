@@ -1,7 +1,6 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
-import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, CancelPaymentResponseLinks, LinkHrefJson, PostConsentJson, UpdatePaymentPsuDataJson}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, CancelPaymentResponseLinks, LinkHrefJson, UpdatePaymentPsuDataJson}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -9,15 +8,16 @@ import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{ApiRole, ApiTag, NewStyle}
 import code.bankconnectors.Connector
-import code.consent.ConsentStatus
-import code.database.authorisation.Authorisations
 import code.fx.fx
 import code.model._
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{SEPA_CREDIT_TRANSFERS, TRANSFER_TO_ACCOUNT, TRANSFER_TO_ATM, TRANSFER_TO_PHONE}
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes.SEPA_CREDIT_TRANSFERS
 import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.TransactionRequestStatus._
+import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
@@ -26,10 +26,6 @@ import net.liftweb.json._
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus}
-import com.openbankproject.commons.model.enums.TransactionRequestStatus._
-
 import scala.concurrent.Future
 
 object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
@@ -108,7 +104,8 @@ or * access method is generally applicable, but further authorisation processes 
              fromAccountIban = transactionRequestBody.debtorAccount.iban
              toAccountIban = transactionRequestBody.creditorAccount.iban
              (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
-             (toAccount, callContext) <- NewStyle.function.getBankAccountByIban(toAccountIban, callContext)
+             (_, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
+             (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
              negativeAmount = - transactionRequest.body.value.amount.toDouble
              currency = transactionRequest.body.value.currency
              (createdTransactionRequest,callContext) <- transactionRequestTypes match {
@@ -123,7 +120,7 @@ or * access method is generally applicable, but further authorisation processes 
                          toAccount,
                          TransactionRequestType(transactionRequestTypes.toString),
                          TransactionRequestCommonBodyJSONCommons(
-                           AmountOfMoneyJsonV121(negativeAmount.toString, currency),
+                           AmountOfMoneyJsonV121(amount = negativeAmount.toString, currency = currency),
                            ""
                          ),
                          "",
@@ -181,7 +178,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              (challenge, callContext) <- NewStyle.function.getChallenge(cancellationId, callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(challenge.scaStatus.map(_.toString).getOrElse("received")), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(challenge.scaStatus.map(_.toString).getOrElse("None")), HttpCode.`200`(callContext))
            }
          }
        }
@@ -364,9 +361,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
              
            } yield {
              (json.parse(
-               s"""{
-                "scaStatus" : "${challenge.scaStatus.getOrElse("received")}"
-              }"""), callContext)
+               s"""{"scaStatus" : "${challenge.scaStatus.getOrElse("None")}"}"""), callContext)
            }
          }
        }
@@ -577,7 +572,8 @@ $additionalInstructions
              toAccountIban = transDetailsJson.creditorAccount.iban
 
              (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
-             (toAccount, callContext) <- NewStyle.function.getBankAccountByIban(toAccountIban, callContext)
+             (_, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
+             (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
 
              _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
                
@@ -891,6 +887,27 @@ There are the following request types on this access path:
                updatePaymentPsuDataJson.scaAuthenticationData,
                callContext
              )
+             //Map obp transaction request id with BerlinGroup PaymentId
+             transactionRequestId = TransactionRequestId(paymentId)
+
+             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
+
+             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(
+               BankId(existingTransactionRequest.from.bank_id),
+               AccountId(existingTransactionRequest.from.account_id),
+               callContext
+             )
+             _ <- challenge.scaStatus match {
+               case Some(status) if status == StrongCustomerAuthenticationStatus.finalised => // finalised
+                 NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, COMPLETED.toString))
+               case Some(status) if status == StrongCustomerAuthenticationStatus.started => // started
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
+               case Some(status) if status == StrongCustomerAuthenticationStatus.failed => // failed
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, REJECTED.toString))
+               case _ => // All other cases
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
+             }
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentCancellationAuthorisationJson(
                challenge,
@@ -1004,11 +1021,17 @@ There are the following request types on this access path:
                AccountId(existingTransactionRequest.from.account_id), 
                callContext
              )
-              _ <- if(challenge.scaStatus == Some(StrongCustomerAuthenticationStatus.finalised)) 
+             _ <- challenge.scaStatus match {
+               case Some(status) if status == StrongCustomerAuthenticationStatus.finalised => // finalised
                  NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
-              else //If it is not `finalised`, just return the `authorisation` back, without any payments
-                Future{true}
-             
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, COMPLETED.toString))
+               case Some(status) if status == StrongCustomerAuthenticationStatus.started => // started
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
+               case Some(status) if status == StrongCustomerAuthenticationStatus.failed => // failed
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, REJECTED.toString))
+               case _ => // All other cases
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
+             }
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), callContext)
            }

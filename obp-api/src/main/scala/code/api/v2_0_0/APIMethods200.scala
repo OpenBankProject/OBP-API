@@ -4,7 +4,7 @@ import java.util.{Calendar, Date}
 
 import code.api.Constant._
 import code.TransactionTypes.TransactionType
-import code.api.APIFailure
+import code.api.{APIFailure, APIFailureNewStyle}
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -42,6 +42,8 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.ApiVersion
+
+import scala.concurrent.Future
 // Makes JValue assignment to Nil work
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
@@ -1169,25 +1171,22 @@ trait APIMethods200 {
       emptyObjectJson,
       transactionTypesJsonV200,
       List(BankNotFound, UnknownError),
-      List(apiTagBank, apiTagPSD2AIS, apiTagPsd2)
+      List(apiTagBank, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle)
     )
 
     lazy val getTransactionTypes : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "transaction-types" :: Nil JsonGet _ => {
         cc => {
           for {
-          // Get Transaction Types from the active provider
-            _ <- if(getTransactionTypesIsPublic)
-              Box(Some(1))
-            else
-              cc.user ?~! "User must be logged in to retrieve Transaction Types data"
-            (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            transactionTypes <- TransactionType.TransactionTypeProvider.vend.getTransactionTypesForBank(bank.bankId) // ~> APIFailure("No transation types available. License may not be set.", 204)
+            // Get Transaction Types from the active provider
+            (_, callContext) <- getTransactionTypesIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            transactionTypes <- Future(TransactionType.TransactionTypeProvider.vend.getTransactionTypesForBank(bank.bankId)) map { connectorEmptyResponse(_, callContext) } // ~> APIFailure("No transation types available. License may not be set.", 204)
           } yield {
-            // Format the data as json
-            val json = JSONFactory200.createTransactionTypeJSON(transactionTypes)
-            // Return
-            successJsonResponse(Extraction.decompose(json))
+            (JSONFactory200.createTransactionTypeJSON(transactionTypes), HttpCode.`200`(callContext))
           }
         }
       }
@@ -1936,7 +1935,7 @@ trait APIMethods200 {
         EntitlementAlreadyExists,
         UnknownError
       ),
-      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canCreateEntitlementAtOneBank,canCreateEntitlementAtAnyBank)))
 
     lazy val addEntitlement : OBPEndpoint = {
@@ -1944,24 +1943,33 @@ trait APIMethods200 {
       case "users" :: userId :: "entitlements" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- UserX.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
-            postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~! s"$InvalidJsonFormat The Json body should be the $CreateEntitlementJSON "
-            role <- tryo{valueOf(postedData.role_name)} ?~! {IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")}
-            _ <- booleanToBox(ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty) ?~!
-              {if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole}
-            allowedEntitlements = canCreateEntitlementAtOneBank ::
-                                  canCreateEntitlementAtAnyBank ::
-                                  Nil
-            _ <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~! {
-              UserNotSuperAdmin +" or" + UserHasMissingRoles + canCreateEntitlementAtOneBank + s" BankId(${postedData.bank_id})." + " or" + UserHasMissingRoles + canCreateEntitlementAtAnyBank
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CreateEntitlementJSON "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CreateEntitlementJSON]
             }
-            _ <- booleanToBox(postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), Some(cc)).map(_._1).isEmpty == false) ?~! BankNotFound
-            _ <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, EntitlementAlreadyExists )
-            addedEntitlement <- Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
+            role <- Future { tryo{valueOf(postedData.role_name)} } map {
+              val msg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")
+              x => unboxFullOrFail(x, callContext, msg)
+            }
+            _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole) {
+              ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty
+            }
+            allowedEntitlements = canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil
+            allowedEntitlementsTxt = UserNotSuperAdmin +" or" + UserHasMissingRoles + canCreateEntitlementAtOneBank + s" BankId(${postedData.bank_id})." + " or" + UserHasMissingRoles + canCreateEntitlementAtAnyBank
+            _ <- Helper.booleanToFuture(failMsg = allowedEntitlementsTxt) {
+              isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true
+            }
+            _ <- Helper.booleanToFuture(failMsg = BankNotFound) {
+              postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), callContext).map(_._1).isEmpty == false
+            }
+            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists) {
+              hasEntitlement(postedData.bank_id, userId, role) == false
+            }
+            addedEntitlement <- Future(Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)) map { unboxFull(_) }
           } yield {
-            val viewJson = JSONFactory200.createEntitlementJSON(addedEntitlement)
-            successJsonResponse(Extraction.decompose(viewJson), 201)
+            (JSONFactory200.createEntitlementJSON(addedEntitlement), HttpCode.`201`(callContext))
           }
       }
     }
@@ -2027,20 +2035,25 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       List(UserNotLoggedIn, UserHasMissingRoles, EntitlementNotFound, UnknownError),
-      List(apiTagRole, apiTagUser, apiTagEntitlement))
+      List(apiTagRole, apiTagUser, apiTagEntitlement, apiTagNewStyle))
 
 
     lazy val deleteEntitlement: OBPEndpoint = {
       case "users" :: userId :: "entitlement" :: entitlementId :: Nil JsonDelete _ => {
         cc =>
             for {
-              u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
-              _ <- booleanToBox(hasEntitlement("", u.userId, canDeleteEntitlementAtAnyBank), UserHasMissingRoles + CanDeleteEntitlementAtAnyBank)
-              entitlement <- tryo{Entitlement.entitlement.vend.getEntitlementById(entitlementId)} ?~ EntitlementNotFound
-              _ <- entitlement.filter(_.userId == userId) ?~ UserDoesNotHaveEntitlement
-              _ <- Entitlement.entitlement.vend.deleteEntitlement(entitlement)
-            }
-            yield noContentJsonResponse
+              (Full(u), callContext) <- authenticatedAccess(cc)
+              _ <- Helper.booleanToFuture(s"$UserHasMissingRoles $canDeleteEntitlementAtAnyBank") {
+                hasEntitlement("", u.userId, canDeleteEntitlementAtAnyBank)
+              }
+              entitlement <- Future(Entitlement.entitlement.vend.getEntitlementById(entitlementId)) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementNotFound, 404, callContext.map(_.toLight)))
+              } map { unboxFull(_) }
+              _ <- Helper.booleanToFuture(UserDoesNotHaveEntitlement) { entitlement.userId == userId }
+              deleted <- Future(Entitlement.entitlement.vend.deleteEntitlement(Some(entitlement))) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementCannotBeDeleted, 404, callContext.map(_.toLight)))
+              } map { unboxFull(_) }
+            } yield (deleted, HttpCode.`204`(cc.callContext))
       }
     }
 

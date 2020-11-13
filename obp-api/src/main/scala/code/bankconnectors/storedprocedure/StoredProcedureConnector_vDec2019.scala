@@ -75,7 +75,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-10-29T08:56:39Z
+// ---------- created on 2020-11-05T12:59:27Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -108,6 +108,46 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_adapter_info", req, callContext)
         response.map(convertToTuple[InboundAdapterInfoInternal](callContext))        
+  }
+          
+  messageDocs += validateAndCheckIbanNumberDoc
+  def validateAndCheckIbanNumberDoc = MessageDoc(
+    process = "obp.validateAndCheckIbanNumber",
+    messageFormat = messageFormat,
+    description = "Validate And Check Iban Number",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundValidateAndCheckIbanNumber(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      iban=ibanExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundValidateAndCheckIbanNumber(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= IbanChecker(isValid=true,
+      details=Some( IbanDetails(bic=bicExample.value,
+      bank=bankExample.value,
+      branch="string",
+      address=addressExample.value,
+      city=cityExample.value,
+      zip="string",
+      phone=phoneExample.value,
+      country="string",
+      countryIso="string",
+      sepaCreditTransfer=sepaCreditTransferExample.value,
+      sepaDirectDebit=sepaDirectDebitExample.value,
+      sepaSddCore=sepaSddCoreExample.value,
+      sepaB2b=sepaB2bExample.value,
+      sepaCardClearing=sepaCardClearingExample.value))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[IbanChecker]] = {
+        import com.openbankproject.commons.dto.{InBoundValidateAndCheckIbanNumber => InBound, OutBoundValidateAndCheckIbanNumber => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, iban)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_validate_and_check_iban_number", req, callContext)
+        response.map(convertToTuple[IbanChecker](callContext))        
   }
           
   messageDocs += getChallengeThresholdDoc
@@ -6081,8 +6121,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-10-29T08:56:39Z
-//---------------- dynamic end ---------------------please don't modify this line         
+// ---------- created on 2020-11-05T12:59:27Z
+//---------------- dynamic end ---------------------please don't modify this line               
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

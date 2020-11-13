@@ -9,6 +9,7 @@ import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.accountapplication.AccountApplicationX
 import code.accountattribute.AccountAttributeX
 import code.accountholders.{AccountHolders, MapperAccountHolders}
+import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
 import code.api.Constant.{INCOMING_ACCOUNT_ID, OUTGOING_ACCOUNT_ID}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionDI}
@@ -29,6 +30,7 @@ import code.context.{UserAuthContextProvider, UserAuthContextUpdateProvider}
 import code.customer._
 import code.customeraddress.CustomerAddressX
 import code.customerattribute.CustomerAttributeX
+import code.database.authorisation.Authorisations
 import code.directdebit.DirectDebits
 import code.fx.fx.TTL
 import code.fx.{MappedFXRate, fx}
@@ -116,6 +118,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       git_commit = APIUtil.gitCommit,
       date = DateWithMsFormat.format(new Date())
     ), callContext))
+  
+  override def validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[IbanChecker]] = Future {
+    // TODO Implement IBAN Checker
+    (Full(IbanChecker(true, None)), callContext)
+  }
 
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(bankId: String,
@@ -231,6 +238,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
       challengeId.toList
     }
+
+    Authorisations.authorisationProvider.vend.createAuthorization(
+      transactionRequestId.getOrElse(""),
+      consentId.getOrElse(""),
+      AuthenticationType.SMS_OTP.toString,
+      "",
+      ScaStatus.received.toString,
+      "12345" // TODO Implement SMS sending
+    )
+    
     (Full(challenges.flatten), callContext)
   }
 

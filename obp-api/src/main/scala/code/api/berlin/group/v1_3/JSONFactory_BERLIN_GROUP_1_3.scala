@@ -4,18 +4,16 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.api.util.APIUtil._
-import code.api.util.{APIUtil, CustomJsonFormats, NewStyle}
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.bankconnectors.Connector
 import code.consent.Consent
 import code.database.authorisation.Authorisation
 import code.model.ModeratedTransaction
-import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
-import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User}
+import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User, _}
 import net.liftweb.common.Full
 import net.liftweb.json.JValue
 
-import scala.collection.immutable
 import scala.collection.immutable.List
 
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
@@ -537,11 +535,11 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  def createStartConsentAuthorisationJson(consent: Consent, authorization: Authorisation) : StartConsentAuthorisationJson = {
+  def createStartConsentAuthorisationJson(consent: Consent, challenge: ChallengeTrait) : StartConsentAuthorisationJson = {
     StartConsentAuthorisationJson(
-      scaStatus = consent.status.toLowerCase(),
-      pushMessage = "started", //TODO Not implment how to fill this.
-      _links =  ScaStatusJsonV13(s"/v1.3/consents/${consent.consentId}/authorisations/${authorization.authorisationId}")//TODO, Not sure, what is this for??
+      scaStatus = challenge.scaStatus.map(_.toString).getOrElse("None"),
+      pushMessage = "started", //TODO Not implement how to fill this.
+      _links =  ScaStatusJsonV13(s"/v1.3/consents/${consent.consentId}/authorisations/${challenge.challengeId}")//TODO, Not sure, what is this for??
     )
   }
 
