@@ -115,12 +115,10 @@ case class ModeratedCoreAccountJsonV400(
                                          bank_id: String,
                                          label: String,
                                          number: String,
-                                         owners: List[UserJSONV121],
                                          product_code: String,
                                          balance: AmountOfMoneyJsonV121,
                                          account_routings: List[AccountRoutingJsonV121],
-                                         views_basic: List[ViewBasicV300],
-                                         tags: List[AccountTagJSON]
+                                         views_basic: List[String]
                                        )
 
 case class ModeratedFirehoseAccountJsonV400(
@@ -180,6 +178,18 @@ case class PostAccountTagJSON(
                              )
 
 case class UpdateAccountJsonV400(label : String)
+
+case class AccountsBalancesJsonV400(accounts:List[AccountBalanceJsonV400])
+
+case class BalanceJsonV400(`type`: String, currency: String, amount: String)
+
+case class AccountBalanceJsonV400(
+                                   account_id: String,
+                                   bank_id: String,
+                                   account_routings: List[AccountRouting],
+                                   label: String,
+                                   balances: List[BalanceJsonV400]
+                                 )
 
 case class PostCustomerPhoneNumberJsonV400(mobile_phone_number: String)
 case class PostDirectDebitJsonV400(customer_id: String,
@@ -583,19 +593,16 @@ object JSONFactory400 {
 
   
   def createNewCoreBankAccountJson(account : ModeratedBankAccountCore, 
-                                   availableViews: List[View],
-                                   tags: List[TransactionTag]) : ModeratedCoreAccountJsonV400 =  {
+                                   availableViews: List[View]) : ModeratedCoreAccountJsonV400 =  {
     ModeratedCoreAccountJsonV400 (
       account.accountId.value,
       stringOrNull(account.bankId.value),
       stringOptionOrNull(account.label),
       stringOptionOrNull(account.number),
-      createOwnersJSON(account.owners.getOrElse(Set()),""),
       stringOptionOrNull(account.accountType),
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       createAccountRoutingsJSON(account.accountRoutings),
-      views_basic = availableViews.map(view => code.api.v3_0_0.ViewBasicV300(id = view.viewId.value, short_name = view.name, description = view.description, is_public = view.isPublic)),
-      tags.map(createAccountTagJSON)
+      views_basic = availableViews.map(view => view.viewId.value)
     )
   }
 
@@ -847,6 +854,22 @@ object JSONFactory400 {
 
   def createCounterpartiesJson400(counterparties: List[CounterpartyTrait]): CounterpartiesJson400 =
     CounterpartiesJson400(counterparties.map(createCounterpartyJson400))
+
+  def createBalancesJson(accountsBalances: AccountsBalances) = {
+    AccountsBalancesJsonV400(
+      accounts = accountsBalances.accounts.map(
+        account => AccountBalanceJsonV400(
+          account_id = account.id,
+          bank_id = account.bankId,
+          account_routings = account.accountRoutings,
+          label = account.label,
+          balances = List(
+            BalanceJsonV400(`type` = "", currency = account.balance.currency, amount = account.balance.amount)
+          )
+        )
+      )
+    )
+  }
   
 }
 
