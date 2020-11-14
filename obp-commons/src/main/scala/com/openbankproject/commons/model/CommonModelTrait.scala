@@ -454,6 +454,15 @@ trait TransactionRequestReasonsTrait {
   def description: String
 }
 
+trait TransactionRequestAttribute {
+  def bankId: BankId
+  def transactionRequestId: TransactionRequestId
+  def transactionRequestAttributeId: String
+  def attributeType: TransactionRequestAttributeType.Value
+  def name: String
+  def value: String
+}
+
 trait DirectDebitTrait {
   def directDebitId: String
   def bankId: String
