@@ -528,6 +528,21 @@ object ApiRole {
   case class CanGetTransactionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetTransactionAttributeAtOneBank = CanGetTransactionAttributeAtOneBank()
 
+  case class CanCreateTransactionRequestAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateTransactionRequestAttributeAtOneBank = CanCreateTransactionRequestAttributeAtOneBank()
+
+  case class CanUpdateTransactionRequestAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateTransactionRequestAttributeAtOneBank = CanUpdateTransactionRequestAttributeAtOneBank()
+
+  case class CanDeleteTransactionRequestAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteTransactionRequestAttributeAtOneBank = CanDeleteTransactionRequestAttributeAtOneBank()
+
+  case class CanGetTransactionRequestAttributesAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetTransactionRequestAttributesAtOneBank = CanGetTransactionRequestAttributesAtOneBank()
+
+  case class CanGetTransactionRequestAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetTransactionRequestAttributeAtOneBank = CanGetTransactionRequestAttributeAtOneBank()
+
   case class CanReadResourceDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadResourceDoc = CanReadResourceDoc()
   

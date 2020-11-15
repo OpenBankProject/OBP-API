@@ -1136,6 +1136,203 @@ trait APIMethods400 {
       }
     }
 
+
+    staticResourceDocs += ResourceDoc(
+      createTransactionRequestAttribute,
+      implementedInApiVersion,
+      nameOf(createTransactionRequestAttribute),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/transaction-requests/TRANSACTION_REQUEST_ID/attribute",
+      "Create Transaction Request Attribute",
+      s""" Create Transaction Request Attribute
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      transactionRequestAttributeJsonV400,
+      transactionRequestAttributeResponseJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagTransactionRequest, apiTagNewStyle),
+      Some(List(canCreateTransactionRequestAttributeAtOneBank))
+    )
+
+    lazy val createTransactionRequestAttribute : OBPEndpoint = {
+      case "banks" ::  BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transaction-requests" :: TransactionRequestId(transactionRequestId) :: "attribute" :: Nil JsonPost json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $transactionRequestAttributeJsonV400 "
+          for {
+            (_, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, cc.callContext)
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[TransactionRequestAttributeJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${TransactionRequestAttributeType.DOUBLE}(12.1234), ${TransactionRequestAttributeType.STRING}(TAX_NUMBER), ${TransactionRequestAttributeType.INTEGER}(123) and ${TransactionRequestAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            transactionRequestAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              TransactionRequestAttributeType.withName(postedData.`type`)
+            }
+            (transactionRequestAttribute, callContext) <- NewStyle.function.createOrUpdateTransactionRequestAttribute(
+              bankId,
+              transactionRequestId,
+              None,
+              postedData.name,
+              transactionRequestAttributeType,
+              postedData.value,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createTransactionRequestAttributeJson(transactionRequestAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getTransactionRequestAttributeById,
+      implementedInApiVersion,
+      nameOf(getTransactionRequestAttributeById),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/transaction-requests/TRANSACTION_REQUEST_ID/attributes/ATTRIBUTE_ID",
+      "Get Transaction Request Attribute By Id",
+      s""" Get Transaction Request Attribute By Id
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      transactionRequestAttributeResponseJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagTransactionRequest, apiTagNewStyle),
+      Some(List(canGetTransactionRequestAttributeAtOneBank))
+    )
+
+    lazy val getTransactionRequestAttributeById : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) ::  "transaction-requests" :: TransactionRequestId(transactionRequestId) :: "attributes" :: transactionRequestAttributeId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, cc.callContext)
+            (transactionRequestAttribute, callContext) <- NewStyle.function.getTransactionRequestAttributeById(
+              transactionRequestAttributeId,
+              callContext
+            )
+          } yield {
+            (JSONFactory400.createTransactionRequestAttributeJson(transactionRequestAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getTransactionRequestAttributes,
+      implementedInApiVersion,
+      nameOf(getTransactionRequestAttributes),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/transaction-requests/TRANSACTION_REQUEST_ID/attributes",
+      "Get Transaction Request Attributes",
+      s""" Get Transaction Request Attributes
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      transactionRequestAttributesResponseJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagTransactionRequest, apiTagNewStyle),
+      Some(List(canGetTransactionRequestAttributesAtOneBank))
+    )
+
+    lazy val getTransactionRequestAttributes : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transaction-requests" :: TransactionRequestId(transactionRequestId) :: "attributes" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, cc.callContext)
+            (transactionRequestAttribute, callContext) <- NewStyle.function.getTransactionRequestAttributes(
+              bankId,
+              transactionRequestId,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createTransactionRequestAttributesJson(transactionRequestAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      updateTransactionRequestAttribute,
+      implementedInApiVersion,
+      nameOf(updateTransactionRequestAttribute),
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/transaction-requests/TRANSACTION_REQUEST_ID/attributes/ATTRIBUTE_ID",
+      "Update Transaction Request Attribute",
+      s""" Update Transaction Request Attribute
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      transactionRequestAttributeJsonV400,
+      transactionRequestAttributeResponseJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagTransactionRequest, apiTagNewStyle),
+      Some(List(canUpdateTransactionRequestAttributeAtOneBank))
+    )
+
+    lazy val updateTransactionRequestAttribute : OBPEndpoint = {
+      case "banks" ::  BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transaction-requests" :: TransactionRequestId(transactionRequestId) :: "attributes" :: transactionRequestAttributeId :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $TransactionRequestAttributeJsonV400"
+          for {
+            (_, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, cc.callContext)
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[TransactionRequestAttributeJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${TransactionRequestAttributeType.DOUBLE}(12.1234), ${TransactionRequestAttributeType.STRING}(TAX_NUMBER), ${TransactionRequestAttributeType.INTEGER}(123) and ${TransactionRequestAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            transactionRequestAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              TransactionRequestAttributeType.withName(postedData.`type`)
+            }
+            (_, callContext) <- NewStyle.function.getTransactionRequestAttributeById(transactionRequestAttributeId, cc.callContext)
+            (transactionRequestAttribute, callContext) <- NewStyle.function.createOrUpdateTransactionRequestAttribute(
+              bankId,
+              transactionRequestId,
+              Some(transactionRequestAttributeId),
+              postedData.name,
+              transactionRequestAttributeType,
+              postedData.value,
+              callContext
+            )
+          } yield {
+            (JSONFactory400.createTransactionRequestAttributeJson(transactionRequestAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
     staticResourceDocs += ResourceDoc(
       getDynamicEntities,
       implementedInApiVersion,

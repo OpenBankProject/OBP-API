@@ -315,6 +315,23 @@ case class TransactionAttributesResponseJson(
   transaction_attributes: List[TransactionAttributeResponseJson]
 )
 
+case class TransactionRequestAttributeJsonV400(
+  name: String,
+  `type`: String,
+  value: String,
+)
+
+case class TransactionRequestAttributeResponseJson(
+  transaction_request_attribute_id: String,
+  name: String,
+  `type`: String,
+  value: String
+)
+
+case class TransactionRequestAttributesResponseJson(
+  transaction_request_attributes: List[TransactionRequestAttributeResponseJson]
+)
+
 case class ConsumerJson(consumer_id: String,
                         key: String,
                         secret: String,
@@ -739,6 +756,24 @@ object JSONFactory400 {
       name = transactionAttribute.name,
       `type` = transactionAttribute.attributeType.toString,
       value = transactionAttribute.value
+    )))
+  }
+
+  def createTransactionRequestAttributeJson(transactionRequestAttribute: TransactionRequestAttribute) : TransactionRequestAttributeResponseJson = {
+    TransactionRequestAttributeResponseJson(
+      transaction_request_attribute_id = transactionRequestAttribute.transactionRequestAttributeId,
+      name = transactionRequestAttribute.name,
+      `type` = transactionRequestAttribute.attributeType.toString,
+      value = transactionRequestAttribute.value
+    )
+  }
+
+  def createTransactionRequestAttributesJson(transactionRequestAttributes: List[TransactionRequestAttribute]) : TransactionRequestAttributesResponseJson = {
+    TransactionRequestAttributesResponseJson (transactionRequestAttributes.map( transactionRequestAttribute => TransactionRequestAttributeResponseJson(
+      transaction_request_attribute_id = transactionRequestAttribute.transactionRequestAttributeId,
+      name = transactionRequestAttribute.name,
+      `type` = transactionRequestAttribute.attributeType.toString,
+      value = transactionRequestAttribute.value
     )))
   }
 
