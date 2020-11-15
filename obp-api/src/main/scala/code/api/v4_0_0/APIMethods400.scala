@@ -1334,6 +1334,144 @@ trait APIMethods400 {
 
 
     staticResourceDocs += ResourceDoc(
+      createOrUpdateTransactionRequestAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(createOrUpdateTransactionRequestAttributeDefinition),
+      "PUT",
+      "/banks/BANK_ID/attribute-definitions/transaction-request",
+      "Create or Update Transaction Request Attribute Definition",
+      s""" Create or Update Transaction Request Attribute Definition
+         |
+         |The category field must be ${AttributeCategory.TransactionRequest}
+         |
+         |The type field must be one of: ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      transactionRequestAttributeDefinitionJsonV400,
+      transactionRequestAttributeDefinitionResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagTransactionRequest, apiTagNewStyle),
+      Some(List(canCreateTransactionRequestAttributeDefinitionAtOneBank)))
+
+    lazy val createOrUpdateTransactionRequestAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "transaction-request" :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDefinitionJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER}(123) and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` field can only accept the following field: " +
+              s"${AttributeCategory.TransactionRequest}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDefinition, callContext) <- createOrUpdateAttributeDefinition(
+              bankId,
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.can_be_seen_on_views,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefinition), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getTransactionRequestAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(getTransactionRequestAttributeDefinition),
+      "GET",
+      "/banks/BANK_ID/attribute-definitions/transaction-request",
+      "Get Transaction Request Attribute Definition",
+      s""" Get Transaction Request Attribute Definition
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      transactionRequestAttributeDefinitionsResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagTransactionRequest, apiTagNewStyle),
+      Some(List(canGetTransactionRequestAttributeDefinitionAtOneBank)))
+
+    lazy val getTransactionRequestAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "transaction-request" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributeDefinitions, callContext) <- getAttributeDefinition(
+              AttributeCategory.withName(AttributeCategory.TransactionRequest.toString),
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionsJson(attributeDefinitions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      deleteTransactionRequestAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(deleteTransactionRequestAttributeDefinition),
+      "DELETE",
+      "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/transaction-request",
+      "Delete Transaction Request Attribute Definition",
+      s""" Delete Transaction Request Attribute Definition by ATTRIBUTE_DEFINITION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      Full(true),
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagTransactionRequest, apiTagNewStyle),
+      Some(List(canDeleteTransactionRequestAttributeDefinitionAtOneBank)))
+
+    lazy val deleteTransactionRequestAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "transaction-request" :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- deleteAttributeDefinition(
+              attributeDefinitionId,
+              AttributeCategory.withName(AttributeCategory.TransactionRequest.toString),
+              cc.callContext
+            )
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    
+    staticResourceDocs += ResourceDoc(
       getDynamicEntities,
       implementedInApiVersion,
       nameOf(getDynamicEntities),

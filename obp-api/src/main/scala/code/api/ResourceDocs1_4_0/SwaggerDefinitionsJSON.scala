@@ -3933,7 +3933,18 @@ object SwaggerDefinitionsJSON {
   )    
   val cardAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
     attributes = List(cardAttributeDefinitionResponseJsonV400)
-  )    
+  )
+
+  val transactionRequestAttributeDefinitionJsonV400 =
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.TransactionRequest.toString)
+
+  val transactionRequestAttributeDefinitionResponseJsonV400 =
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.TransactionRequest.toString)
+
+  val transactionRequestAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
+    attributes = List(transactionRequestAttributeDefinitionResponseJsonV400)
+  )
+  
   val accountAttributeDefinitionsResponseJsonV400 = AttributeDefinitionsResponseJsonV400(
     attributes = List(accountAttributeDefinitionResponseJsonV400)
   )    

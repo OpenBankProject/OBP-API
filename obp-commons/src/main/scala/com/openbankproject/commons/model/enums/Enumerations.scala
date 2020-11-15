@@ -200,6 +200,7 @@ object AttributeCategory extends OBPEnumeration[AttributeCategory]{
   object Account extends Value
   object Transaction extends Value
   object Card extends Value
+  object TransactionRequest extends Value
 }
 
 object TransactionRequestStatus extends Enumeration {
