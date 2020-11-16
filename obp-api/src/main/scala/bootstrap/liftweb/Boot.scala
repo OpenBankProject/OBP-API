@@ -27,8 +27,8 @@ TESOBE (http://www.tesobe.com/)
 package bootstrap.liftweb
 
 import java.io.{File, FileInputStream}
-import java.util.{Locale, TimeZone}
 import java.util.stream.Collectors
+import java.util.{Locale, TimeZone}
 
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
@@ -84,7 +84,7 @@ import code.metadata.wheretags.MappedWhereTag
 import code.methodrouting.MethodRouting
 import code.metrics.{MappedConnectorMetric, MappedMetric}
 import code.migration.MigrationScriptLog
-import code.model._
+import code.model.{Consumer, _}
 import code.model.dataAccess._
 import code.model.dataAccess.internalMapping.AccountIdMapping
 import code.obp.grpc.HelloWorldServer
@@ -109,8 +109,8 @@ import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
-import code.util.{Helper, HydraUtil}
 import code.util.Helper.MdcLoggable
+import code.util.{Helper, HydraUtil}
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
@@ -792,7 +792,7 @@ class Boot extends MdcLoggable {
 
 object ToSchemify {
   // The following tables will be accessed via Akka to the OBP Storage instance which in turn uses Mapper / JDBC
-  val modelsRemotedata = List(
+  val modelsRemotedata: List[MetaMapper[_]] = List(
     AccountAccess,
     ViewDefinition,
     ResourceUser,
@@ -837,7 +837,7 @@ object ToSchemify {
   )
 
   // The following tables are accessed directly via Mapper / JDBC
-  val models = List(
+  val models: List[MetaMapper[_]] = List(
     AuthUser,
     Admin,
     MappedBank,

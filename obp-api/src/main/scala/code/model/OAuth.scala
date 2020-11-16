@@ -49,6 +49,7 @@ import org.apache.commons.lang3.StringUtils
 import scala.collection.immutable.List
 import scala.concurrent.Future
 
+
 sealed trait AppType
 object AppType {
   case object Web extends AppType

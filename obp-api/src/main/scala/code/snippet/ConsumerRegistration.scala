@@ -31,12 +31,12 @@ import java.util
 import code.api.DirectLogin
 import code.api.util.{APIUtil, ErrorMessages, X509}
 import code.consumer.Consumers
-import code.model._
 import code.model.dataAccess.AuthUser
+import code.model.{Consumer, _}
 import code.util.Helper.MdcLoggable
 import code.util.HydraUtil
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
-import net.liftweb.common.{Empty, Failure, Full}
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, FieldError, Helpers}
@@ -46,7 +46,6 @@ import org.codehaus.jackson.map.ObjectMapper
 import scala.collection.immutable.{List, ListMap}
 import scala.jdk.CollectionConverters.seqAsJavaListConverter
 import scala.xml.{Text, Unparsed}
-
 
 class ConsumerRegistration extends MdcLoggable {
 
@@ -97,7 +96,7 @@ class ConsumerRegistration extends MdcLoggable {
 
     def register = {
       "form" #> {
-          "#appType" #> SHtml.select(appTypes, Empty, appType(_)) &
+          "#appType" #> SHtml.select(appTypes, Box!! appType.is, appType(_)) &
           "#appName" #> SHtml.text(nameVar.is, nameVar(_)) &
           "#redirect_url_label" #> {
             if (HydraUtil.mirrorConsumerInHydra) "Redirect URL" else "Redirect URL (Optional)"
@@ -109,7 +108,7 @@ class ConsumerRegistration extends MdcLoggable {
             if(HydraUtil.mirrorConsumerInHydra) {
               "#app-client_certificate" #> SHtml.textarea(clientCertificateVar, clientCertificateVar (_))&
               "#app-request_uri" #> SHtml.text(requestUriVar, requestUriVar(_)) &
-              "#app-signing_alg" #> SHtml.select(signingAlgs, Empty, signingAlgVar(_)) &
+              "#app-signing_alg" #> SHtml.select(signingAlgs, Box!! signingAlgVar.is, signingAlgVar(_)) &
               "#app-jwks_uri" #> SHtml.text(jwksUriVar, jwksUriVar(_)) &
               "#app-jwks" #> SHtml.textarea(jwksVar, jwksVar(_))
             } else {

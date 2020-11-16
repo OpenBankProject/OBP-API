@@ -2,6 +2,7 @@ package code.consent
 
 import java.util.Date
 
+
 import code.api.util.{APIUtil, Consent, ErrorMessages}
 import code.consent.ConsentStatus.ConsentStatus
 import code.util.MappedUUID
