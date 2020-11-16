@@ -169,6 +169,12 @@ case class OutBoundMakePaymentV400(outboundAdapterCallContext: OutboundAdapterCa
 
 case class InBoundMakePaymentV400(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionId) extends InBoundTrait[TransactionId]
 
+case class OutBoundCancelPaymentV400(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                     transactionId: TransactionId) extends TopicTrait
+case class InBoundCancelPaymentV400(inboundAdapterCallContext: 
+                                    InboundAdapterCallContext, 
+                                    status: Status, data: Boolean) extends InBoundTrait[Boolean]
+
 
 case class OutBoundCreateTransactionRequestv210(outboundAdapterCallContext: OutboundAdapterCallContext,
                                                 initiator: User, //TODO FIXME
