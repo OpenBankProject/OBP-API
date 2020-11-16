@@ -1,15 +1,16 @@
 package code.api.UKOpenBanking.v3_1_0
 
+import code.api.Constant
+import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_0_0_1.createReadAccountsBasicJsonMXOFV10
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
-import code.api.util.{ApiTag, NewStyle}
+import code.api.util.{APIUtil, ApiTag, CallContext, NewStyle}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.bankconnectors.Connector
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.AccountId
-import net.liftweb.common.Full
+import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankAccount, BankIdAccountId, View, ViewId}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json._
@@ -107,16 +108,34 @@ object APIMethods_AccountsApi extends RestHelper {
      lazy val getAccounts : OBPEndpoint = {
        case "accounts" :: Nil JsonGet _ => {
          cc =>
+           val detailViewId = ViewId(Constant.READ_ACCOUNTS_DETAIL_VIEW_ID)
+           val basicViewId = ViewId(Constant.READ_ACCOUNTS_BASIC_VIEW_ID)
            for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
-            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-            (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
-          } yield {
-            (JSONFactory_UKOpenBanking_310.createAccountsListJSON(accounts), callContext)
-          }
-           
-         }
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             _ <- NewStyle.function.checkUKConsent(u, callContext)
+             _ <- passesPsd2Aisp(callContext)
+             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
+             (accounts: List[BankAccount], callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
+             (moderatedAttributes: List[AccountAttribute], callContext) <- NewStyle.function.getModeratedAccountAttributesByAccounts(
+               accounts.map(a => BankIdAccountId(a.bankId, a.accountId)),
+               basicViewId,
+               callContext: Option[CallContext])
+           } yield {
+             val allAccounts: List[Box[(BankAccount, View)]] = for (account: BankAccount <- accounts) yield {
+               APIUtil.checkViewAccessAndReturnView(detailViewId, BankIdAccountId(account.bankId, account.accountId), Full(u)).or(
+                 APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(account.bankId, account.accountId), Full(u))
+               ) match {
+                 case Full(view) =>
+                   Full(account, view)
+                 case _ =>
+                   Empty
+               }
+             }
+             val accountsWithProperView: List[(BankAccount, View)] = allAccounts.filter(_.isDefined).map(_.openOrThrowException(attemptedToOpenAnEmptyBox))
+             (createReadAccountsBasicJsonMXOFV10(accountsWithProperView, moderatedAttributes), callContext)
+           }
        }
+     }
             
      resourceDocs += ResourceDoc(
        getAccountsAccountId, 
