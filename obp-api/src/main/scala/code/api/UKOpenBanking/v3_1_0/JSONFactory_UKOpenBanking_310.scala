@@ -180,7 +180,33 @@ object JSONFactory_UKOpenBanking_310 extends CustomJsonFormats {
     Links: LinksV310,
     Meta: MetaUKV310
   )
-  
+
+  case class DataConsentPostResponseUKV310(
+    ConsentId: String,
+    CreationDateTime: String,
+    Status: String,
+    StatusUpdateDateTime: String,
+    Permissions: List[String],
+    ExpirationDateTime: String,
+    TransactionFromDateTime: String,
+    TransactionToDateTime: String
+  )
+  case class ConsentPostResponseUKV310(
+    Data: DataConsentPostResponseUKV310,
+    Links: LinksV310,
+    Risk: String
+  )
+  case class ConsentPostBodyDataUKV310(
+    TransactionToDateTime: String,
+    ExpirationDateTime: String,
+    Permissions: List[String],
+    TransactionFromDateTime: String
+  )
+  case class ConsentPostBodyUKV310(
+    Data: ConsentPostBodyDataUKV310,
+    Risk: String
+  )
+
   def createAccountsListJSON(accounts: List[BankAccount]): AccountsUKV310 = {
     val list = accounts.map(
       x => AccountUKV310(
