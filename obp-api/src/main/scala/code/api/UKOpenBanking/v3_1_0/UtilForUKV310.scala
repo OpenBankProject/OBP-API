@@ -1,4 +1,4 @@
-package code.api.MxOpenFinace
+package code.api.UKOpenBanking.v3_1_0
 
 import code.api.util.APIUtil.{canGrantAccessToViewCommon, canRevokeAccessToViewCommon}
 import code.api.util.ErrorMessages.UserNoOwnerView
@@ -8,7 +8,7 @@ import net.liftweb.common.{Empty, Failure, Full}
 
 import scala.collection.immutable.List
 
-object MxOfUtil {
+object UtilForUKV310 {
   def grantAccessToViews(user: User, views: List[ViewIdBankIdAccountId]): Full[Boolean] = {
     val result =
       for {

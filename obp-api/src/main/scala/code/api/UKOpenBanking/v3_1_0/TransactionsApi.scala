@@ -1,7 +1,6 @@
 package code.api.UKOpenBanking.v3_1_0
 
 import code.api.{APIFailureNewStyle, Constant}
-import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_0_0_1
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil.{defaultBankId, _}
 import code.api.util.ApiTag._
@@ -774,7 +773,7 @@ object APIMethods_TransactionsApi extends RestHelper {
                view.viewId,
                callContext)
            } yield {
-             (JSONFactory_MX_OPEN_FINANCE_0_0_1.createGetTransactionsByAccountIdMXOFV10(account.bankId, transactions, moderatedAttributes, view), callContext)
+             (JSONFactory_UKOpenBanking_310.createTransactionsJsonNew(account.bankId, transactions, moderatedAttributes, view), callContext)
            }
        }
      }

@@ -1,7 +1,6 @@
 package code.api.UKOpenBanking.v3_1_0
 
 import code.api.Constant
-import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_0_0_1.createReadAccountsBasicJsonMXOFV10
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ApiTag, CallContext, NewStyle}
@@ -132,7 +131,7 @@ object APIMethods_AccountsApi extends RestHelper {
                }
              }
              val accountsWithProperView: List[(BankAccount, View)] = allAccounts.filter(_.isDefined).map(_.openOrThrowException(attemptedToOpenAnEmptyBox))
-             (createReadAccountsBasicJsonMXOFV10(accountsWithProperView, moderatedAttributes), callContext)
+             (JSONFactory_UKOpenBanking_310.createAccountsListJSON(accountsWithProperView, moderatedAttributes), callContext)
            }
        }
      }
@@ -215,6 +214,9 @@ object APIMethods_AccountsApi extends RestHelper {
 
      lazy val getAccountsAccountId : OBPEndpoint = {
        case "accounts" :: AccountId(accountId) :: Nil JsonGet _ => {
+         val detailViewId = ViewId(Constant.READ_ACCOUNTS_DETAIL_VIEW_ID)
+         val basicViewId = ViewId(Constant.READ_ACCOUNTS_BASIC_VIEW_ID)
+             
          cc =>
            for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -222,8 +224,24 @@ object APIMethods_AccountsApi extends RestHelper {
               _.filter(_.accountId.value == accountId.value)
             }
             (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
-          } yield {
-            (JSONFactory_UKOpenBanking_310.createAccountJSON(accounts), callContext)
+
+            (moderatedAttributes: List[AccountAttribute], callContext) <- NewStyle.function.getModeratedAccountAttributesByAccounts(
+              accounts.map(a => BankIdAccountId(a.bankId, a.accountId)),
+              basicViewId,
+              callContext: Option[CallContext])
+           } yield {
+             val allAccounts: List[Box[(BankAccount, View)]] = for (account: BankAccount <- accounts) yield {
+               APIUtil.checkViewAccessAndReturnView(detailViewId, BankIdAccountId(account.bankId, account.accountId), Full(u)).or(
+                 APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(account.bankId, account.accountId), Full(u))
+               ) match {
+                 case Full(view) =>
+                   Full(account, view)
+                 case _ =>
+                   Empty
+               }
+             }
+             val accountsWithProperView: List[(BankAccount, View)] = allAccounts.filter(_.isDefined).map(_.openOrThrowException(attemptedToOpenAnEmptyBox))
+            (JSONFactory_UKOpenBanking_310.createAccountsListJSON(accountsWithProperView, moderatedAttributes), callContext)
           }
          }
        }

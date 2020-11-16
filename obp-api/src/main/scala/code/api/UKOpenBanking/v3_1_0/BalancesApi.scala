@@ -1,6 +1,5 @@
 package code.api.UKOpenBanking.v3_1_0
 
-import code.api.MxOpenFinace.JSONFactory_MX_OPEN_FINANCE_0_0_1.createAccountBalanceJSON
 import code.api.Constant
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
@@ -122,7 +121,7 @@ object APIMethods_BalancesApi extends RestHelper {
              view: View <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, accountId), Full(user), callContext)
              moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), callContext)
            } yield {
-             (createAccountBalanceJSON(moderatedAccount), callContext)
+             (JSONFactory_UKOpenBanking_310.createAccountBalanceJSON(moderatedAccount), callContext)
            }
        }
      }

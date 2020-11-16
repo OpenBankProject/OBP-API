@@ -28,7 +28,7 @@ package code.snippet
 
 import java.util.Date
 
-import code.api.MxOpenFinace.MxOfUtil
+import code.api.UKOpenBanking.v3_1_0.UtilForUKV310
 import code.api.util.{APIUtil, NewStyle}
 import code.consent.{Consent, Consents}
 import code.consumer.Consumers
@@ -148,7 +148,7 @@ class ConsentConfirmation extends MdcLoggable {
           consent <- HydraUtil.hydraConsents
           bankIdAccountId <- bankIdAccountIds
         } yield ViewIdBankIdAccountId(ViewId(consent), bankIdAccountId.bankId, bankIdAccountId.accountId)
-        MxOfUtil.revokeAccessToViews(currentUser, revokeAccessIds)
+        UtilForUKV310.revokeAccessToViews(currentUser, revokeAccessIds)
       }
 
       { // grant checked consents
@@ -156,7 +156,7 @@ class ConsentConfirmation extends MdcLoggable {
           consent <- consents
           accountId <- accountIds
         } yield ViewIdBankIdAccountId(ViewId(consent), BankId(bankId.orNull), AccountId(accountId))
-        MxOfUtil.grantAccessToViews(currentUser, grantAccessIds)
+        UtilForUKV310.grantAccessToViews(currentUser, grantAccessIds)
       }
 
       // inform hydra
