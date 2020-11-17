@@ -470,6 +470,7 @@ object ErrorMessages {
   val InvalidConnectorResponseForMissingRequiredValues = "OBP-50214: Connector return the data, but the data has missing required values."
   val InvalidConnectorResponseForCreateChallenge = "OBP-50215: Connector did not return the set of challenge we requested."
   val InvalidConnectorResponseForSaveDoubleEntryBookTransaction = "OBP-50216: The Connector did not return a valid response for saving double-entry transaction."
+  val InvalidConnectorResponseForCancelPayment = "OBP-50217: Connector did not return the transaction we requested."
 
 
   // Adapter Exceptions (OBP-6XXXX)
