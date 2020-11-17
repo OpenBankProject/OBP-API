@@ -68,13 +68,18 @@ object ApiTag {
   val apiTagConsent = ResourceDocTag("Consent")
   val apiTagMethodRouting = ResourceDocTag("Method-Routing")
   val apiTagWebUiProps = ResourceDocTag("WebUi-Props")
+  val apiTagManageDynamicEntity = ResourceDocTag("Dynamic-Entity-(Manage)")
+  val apiTagManageDynamicEndpoint = ResourceDocTag("Dynamic-Endpoint-(Manage)")
+
+  val apiTagDynamic = ResourceDocTag("Dynamic")
   val apiTagDynamicEntity = ResourceDocTag("Dynamic-Entity")
-  val apiTagDynamicEndpoint = ResourceDocTag("Dynamic-Endpoints-(Manage)")
+  val apiTagDynamicEndpoint = ResourceDocTag("Dynamic-Endpoint")
 
   // To mark the Berlin Group APIs suggested order of implementation
   val apiTagBerlinGroupM = ResourceDocTag("Berlin-Group-M")
   
   //PSD2 Tags.
+  val apiTagPsd2 = ResourceDocTag("PSD2")
   val apiTagPSD2AIS=ResourceDocTag("Account Information Service (AIS)")
   val apiTagPSD2PIIS=ResourceDocTag("Confirmation of Funds Service (PIIS)")
   val apiTagPSD2PIS=ResourceDocTag("Payment Initiation Service (PIS)")

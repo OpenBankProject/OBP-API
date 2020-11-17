@@ -447,6 +447,9 @@ object ApiRole {
   case class CanDeleteDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteDynamicEntity = CanDeleteDynamicEntity()
 
+  case class CanGetBankLevelDynamicEntities(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetBankLevelDynamicEntities = CanGetBankLevelDynamicEntities()
+
   case class CanGetDynamicEndpoint(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetDynamicEndpoint = CanGetDynamicEndpoint()
   

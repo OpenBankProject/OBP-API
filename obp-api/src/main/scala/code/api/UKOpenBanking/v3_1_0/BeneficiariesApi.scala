@@ -108,7 +108,6 @@ object APIMethods_BeneficiariesApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Beneficiaries") :: apiTagMockedData :: Nil
      )
 
@@ -273,7 +272,6 @@ object APIMethods_BeneficiariesApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Beneficiaries") :: apiTagMockedData :: Nil
      )
 

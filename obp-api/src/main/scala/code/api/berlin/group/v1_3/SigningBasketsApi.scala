@@ -95,7 +95,6 @@ The resource identifications of these transactions are contained in the  payload
   "psuMessage" : { }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Signing Baskets") :: apiTagMockedData :: Nil
      )
 
@@ -165,7 +164,6 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
        emptyObjectJson,
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Signing Baskets") :: apiTagMockedData :: Nil
      )
 
@@ -196,7 +194,6 @@ Returns the content of an signing basket object.""",
   "consents" : ""
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Signing Baskets") :: apiTagMockedData :: Nil
      )
 
@@ -232,7 +229,6 @@ This function returns an array of hyperlinks to all generated authorisation sub-
   "authorisationIds" : ""
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Signing Baskets") :: apiTagMockedData :: Nil
      )
 
@@ -264,7 +260,6 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
   "scaStatus" : "psuAuthenticated"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Signing Baskets") :: apiTagMockedData :: Nil
      )
 
@@ -296,7 +291,6 @@ Returns the status of a signing basket object.
   "transactionStatus" : "RCVD"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Signing Baskets") :: apiTagMockedData :: Nil
      )
 
@@ -380,7 +374,6 @@ This applies in the following scenarios:
   "psuMessage" : { }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Signing Baskets") :: apiTagMockedData :: Nil
      )
 
@@ -470,7 +463,6 @@ There are the following request types on this access path:
        emptyObjectJson,
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Signing Baskets") :: apiTagMockedData :: Nil
      )
 

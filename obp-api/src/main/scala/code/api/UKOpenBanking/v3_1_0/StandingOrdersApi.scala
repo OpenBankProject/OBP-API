@@ -118,7 +118,6 @@ object APIMethods_StandingOrdersApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Standing Orders") :: apiTagMockedData :: Nil
      )
 
@@ -303,7 +302,6 @@ object APIMethods_StandingOrdersApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Standing Orders") :: apiTagMockedData :: Nil
      )
 

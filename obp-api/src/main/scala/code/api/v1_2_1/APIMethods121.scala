@@ -149,7 +149,6 @@ trait APIMethods121 {
       emptyObjectJson,
       apiInfoJSON,
       List(UnknownError, "no connector set"),
-      Catalogs(Core, notPSD2, OBWG),
       apiTagApi :: Nil)
 
     def root(apiVersion : ApiVersion, apiVersionStatus: String) : OBPEndpoint = {
@@ -175,8 +174,7 @@ trait APIMethods121 {
       emptyObjectJson,
       banksJSON,
       List(UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: Nil)
+      apiTagBank :: apiTagPsd2 :: Nil)
 
     lazy val getBanks : OBPEndpoint = {
       //get banks
@@ -211,8 +209,7 @@ trait APIMethods121 {
       emptyObjectJson,
       bankJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
-      Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: Nil)
+      apiTagBank :: apiTagPsd2 :: Nil)
 
 
     lazy val bankById : OBPEndpoint = {
@@ -244,8 +241,7 @@ trait APIMethods121 {
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: Nil)
+      apiTagAccount :: apiTagPsd2 :: Nil)
 
     //TODO double check with `lazy val privateAccountsAllBanks :`, they are the same now.
     lazy val getPrivateAccountsAllBanks : OBPEndpoint = {
@@ -278,8 +274,7 @@ trait APIMethods121 {
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: Nil)
+      apiTagAccount :: apiTagPsd2 :: Nil)
 
     lazy val privateAccountsAllBanks : OBPEndpoint = {
       //get private accounts for all banks
@@ -311,7 +306,6 @@ trait APIMethods121 {
       emptyObjectJson,
       accountJSON,
       List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
     lazy val publicAccountsAllBanks : OBPEndpoint = {
@@ -344,7 +338,6 @@ trait APIMethods121 {
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
-      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
     lazy val getPrivateAccountsAtOneBank : OBPEndpoint = {
@@ -378,8 +371,7 @@ trait APIMethods121 {
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount))
+      List(apiTagAccount, apiTagPsd2))
 
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for a single bank
@@ -411,7 +403,6 @@ trait APIMethods121 {
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
-      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccountPublic :: apiTagAccount :: apiTagPublicData ::  Nil)
 
     lazy val publicAccountsAtOneBank : OBPEndpoint = {
@@ -455,7 +446,6 @@ trait APIMethods121 {
       emptyObjectJson,
       moderatedAccountJSON,
       List(UserNotLoggedIn, UnknownError, BankAccountNotFound),
-      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
     lazy val accountById : OBPEndpoint = {
@@ -492,7 +482,6 @@ trait APIMethods121 {
       updateAccountJSON,
       successMessage,
       List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound, "user does not have access to owner view on account"),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount)
     )
 
@@ -546,7 +535,6 @@ trait APIMethods121 {
       emptyObjectJson,
       viewsJSONV121,
       List(UserNotLoggedIn, BankAccountNotFound, UnknownError, "user does not have owner access"),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagView, apiTagAccount))
 
     lazy val getViewsForBankAccount : OBPEndpoint = {
@@ -595,7 +583,6 @@ trait APIMethods121 {
         UnknownError,
         "user does not have owner access"
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
 
@@ -649,7 +636,6 @@ trait APIMethods121 {
         UnknownError,
         "user does not have owner access"
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView)
     )
   
@@ -698,8 +684,7 @@ trait APIMethods121 {
         UnknownError,
         "user does not have owner access"
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagView, apiTagAccount)
+      List(apiTagView, apiTagAccount, apiTagNewStyle)
     )
   
     lazy val deleteViewForBankAccount: OBPEndpoint = {
@@ -734,7 +719,6 @@ trait APIMethods121 {
       emptyObjectJson,
       permissionsJSON,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagView, apiTagAccount, apiTagEntitlement)
     )
   
@@ -772,7 +756,6 @@ trait APIMethods121 {
         UnknownError,
         "user does not have access to owner view on account"
     ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView, apiTagEntitlement)
     )
   
@@ -816,7 +799,6 @@ trait APIMethods121 {
         "could not save the privilege",
         "user does not have access to owner view on account"
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
 
     lazy val addPermissionForUserForBankAccountForMultipleViews : OBPEndpoint = {
@@ -859,8 +841,7 @@ trait APIMethods121 {
         "could not save the privilege",
         "user does not have access to owner view on account"
         ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
+      List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagNewStyle))
 
     lazy val addPermissionForUserForBankAccountForOneView : OBPEndpoint = {
       //add access for specific user to a specific view
@@ -920,7 +901,6 @@ trait APIMethods121 {
         "user does not have access to owner view on account",
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val removePermissionForUserForBankAccountForOneView : OBPEndpoint = {
@@ -958,7 +938,6 @@ trait APIMethods121 {
         UnknownError,
         "user does not have access to owner view on account"
         ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
 
     lazy val removePermissionForUserForBankAccountForAllViews : OBPEndpoint = {
@@ -992,8 +971,7 @@ trait APIMethods121 {
         BankAccountNotFound,
         UnknownError
       ),
-      Catalogs(notCore, PSD2, OBWG),
-      List(apiTagCounterparty, apiTagAccount))
+      List(apiTagCounterparty, apiTagAccount, apiTagPsd2))
 
     lazy val getOtherAccountsForBankAccount : OBPEndpoint = {
       //get other accounts for one account
@@ -1023,7 +1001,6 @@ trait APIMethods121 {
       emptyObjectJson,
       otherAccountJSON,
       List(BankAccountNotFound, UnknownError),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagCounterparty, apiTagAccount))
 
     lazy val getOtherAccountByIdForBankAccount : OBPEndpoint = {
@@ -1055,7 +1032,6 @@ trait APIMethods121 {
       emptyObjectJson,
       otherAccountMetadataJSON,
       List(UserNotLoggedIn, UnknownError, "the view does not allow metadata access"),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val getOtherAccountMetadata : OBPEndpoint = {
@@ -1092,7 +1068,6 @@ trait APIMethods121 {
         "the view does not allow metadata access",
         "the view does not allow public alias access"
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val getCounterpartyPublicAlias : OBPEndpoint = {
@@ -1139,7 +1114,6 @@ trait APIMethods121 {
         "Alias cannot be added",
         "public alias added"
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyPublicAlias : OBPEndpoint = {
@@ -1183,7 +1157,6 @@ trait APIMethods121 {
         "Alias cannot be updated",
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyPublicAlias : OBPEndpoint = {
@@ -1225,7 +1198,6 @@ trait APIMethods121 {
         "Alias cannot be deleted",
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyPublicAlias : OBPEndpoint = {
@@ -1264,7 +1236,6 @@ trait APIMethods121 {
         "the view does not allow private alias access",
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val getOtherAccountPrivateAlias : OBPEndpoint = {
@@ -1305,7 +1276,6 @@ trait APIMethods121 {
         "the view does not allow adding a private alias",
         "Alias cannot be added",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val addOtherAccountPrivateAlias : OBPEndpoint = {
@@ -1349,7 +1319,6 @@ trait APIMethods121 {
         "the view does not allow updating the private alias",
         "Alias cannot be updated",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyPrivateAlias : OBPEndpoint = {
@@ -1392,7 +1361,6 @@ trait APIMethods121 {
         "the view does not allow deleting the private alias",
         "Alias cannot be deleted",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyPrivateAlias : OBPEndpoint = {
@@ -1432,7 +1400,6 @@ trait APIMethods121 {
         "More Info cannot be added",
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyMoreInfo : OBPEndpoint = {
@@ -1473,7 +1440,6 @@ trait APIMethods121 {
         "the view does not allow updating more info",
         "More Info cannot be updated",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyMoreInfo : OBPEndpoint = {
@@ -1513,7 +1479,6 @@ trait APIMethods121 {
         "the view does not allow deleting more info",
         "More Info cannot be deleted",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyMoreInfo : OBPEndpoint = {
@@ -1552,7 +1517,6 @@ trait APIMethods121 {
         "the view does not allow adding a url",
         "URL cannot be added",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
 
@@ -1594,7 +1558,6 @@ trait APIMethods121 {
         ViewNotFound,
         "URL cannot be updated",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyUrl : OBPEndpoint = {
@@ -1634,7 +1597,6 @@ trait APIMethods121 {
         "the view does not allow deleting a url",
         "URL cannot be deleted",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyUrl : OBPEndpoint = {
@@ -1673,7 +1635,6 @@ trait APIMethods121 {
         "the view does not allow adding an image url",
         "URL cannot be added",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyImageUrl : OBPEndpoint = {
@@ -1713,7 +1674,6 @@ trait APIMethods121 {
         "the view does not allow updating an image url",
         "URL cannot be updated",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyImageUrl : OBPEndpoint = {
@@ -1747,7 +1707,6 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty)) // Tag general then specific for consistent sorting
 
     lazy val deleteCounterpartyImageUrl : OBPEndpoint = {
@@ -1785,7 +1744,6 @@ trait APIMethods121 {
         "the view does not allow adding an open corporate url",
         "URL cannot be added",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyOpenCorporatesUrl : OBPEndpoint = {
@@ -1826,7 +1784,6 @@ trait APIMethods121 {
         "the view does not allow updating an open corporate url",
         "URL cannot be updated",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyOpenCorporatesUrl : OBPEndpoint = {
@@ -1866,7 +1823,6 @@ trait APIMethods121 {
         "the view does not allow deleting an open corporate url",
         "URL cannot be deleted",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyOpenCorporatesUrl : OBPEndpoint = {
@@ -1905,7 +1861,6 @@ trait APIMethods121 {
         "Coordinates not possible",
         "Corporate Location cannot be deleted",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyCorporateLocation : OBPEndpoint = {
@@ -1949,7 +1904,6 @@ trait APIMethods121 {
         "Coordinates not possible",
         "Corporate Location cannot be updated",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyCorporateLocation : OBPEndpoint = {
@@ -1991,7 +1945,6 @@ trait APIMethods121 {
         "Corporate Location cannot be deleted",
         "Delete not completed",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyCorporateLocation : OBPEndpoint = {
@@ -2035,7 +1988,6 @@ trait APIMethods121 {
         "Coordinates not possible",
         "Physical Location cannot be added",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyPhysicalLocation : OBPEndpoint = {
@@ -2080,7 +2032,6 @@ trait APIMethods121 {
         "Coordinates not possible",
         "Physical Location cannot be updated",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyPhysicalLocation : OBPEndpoint = {
@@ -2123,7 +2074,6 @@ trait APIMethods121 {
         "Physical Location cannot be deleted",
         "Delete not completed",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyPhysicalLocation : OBPEndpoint = {
@@ -2163,8 +2113,7 @@ trait APIMethods121 {
       emptyObjectJson,
       transactionsJSON,
       List(BankAccountNotFound, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransaction, apiTagAccount))
+      List(apiTagTransaction, apiTagAccount, apiTagPsd2))
   
   
   
@@ -2230,8 +2179,7 @@ trait APIMethods121 {
       emptyObjectJson,
       transactionJSON,
       List(BankAccountNotFound, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransaction))
+      List(apiTagTransaction, apiTagPsd2))
 
     lazy val getTransactionByIdForBankAccount : OBPEndpoint = {
       //get transaction by id
@@ -2265,8 +2213,7 @@ trait APIMethods121 {
         NoViewPermission,
         ViewNotFound,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val getTransactionNarrative : OBPEndpoint = {
       //get narrative
@@ -2308,8 +2255,7 @@ trait APIMethods121 {
         NoViewPermission,
         ViewNotFound,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val addTransactionNarrative : OBPEndpoint = {
       //add narrative
@@ -2347,8 +2293,7 @@ trait APIMethods121 {
            NoViewPermission,
            ViewNotFound,
            UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val updateTransactionNarrative : OBPEndpoint = {
       //update narrative
@@ -2386,8 +2331,7 @@ trait APIMethods121 {
         BankAccountNotFound,
         NoViewPermission,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val deleteTransactionNarrative : OBPEndpoint = {
       //delete narrative
@@ -2425,8 +2369,7 @@ trait APIMethods121 {
         NoViewPermission,
         ViewNotFound,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val getCommentsForViewOnTransaction : OBPEndpoint = {
       //get comments
@@ -2466,8 +2409,7 @@ trait APIMethods121 {
         NoViewPermission,
         ViewNotFound,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val addCommentForViewOnTransaction : OBPEndpoint = {
       //add comment
@@ -2510,8 +2452,7 @@ trait APIMethods121 {
         ViewNotFound,
         UserNotLoggedIn,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val deleteCommentForViewOnTransaction : OBPEndpoint = {
       //delete comment
@@ -2548,8 +2489,7 @@ trait APIMethods121 {
         ViewNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val getTagsForViewOnTransaction : OBPEndpoint = {
       //get tags
@@ -2589,8 +2529,7 @@ trait APIMethods121 {
         NoViewPermission,
         ViewNotFound,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val addTagForViewOnTransaction : OBPEndpoint = {
       //add a tag
@@ -2631,8 +2570,7 @@ trait APIMethods121 {
       List(NoViewPermission,
            ViewNotFound,
            UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val deleteTagForViewOnTransaction : OBPEndpoint = {
       //delete a tag
@@ -2670,8 +2608,7 @@ trait APIMethods121 {
         NoViewPermission,
         ViewNotFound,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val getImagesForViewOnTransaction : OBPEndpoint = {
       //get images
@@ -2711,8 +2648,7 @@ trait APIMethods121 {
         ViewNotFound,
         InvalidUrl,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction)
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle)
     )
 
     lazy val addImageForViewOnTransaction : OBPEndpoint = {
@@ -2758,8 +2694,7 @@ trait APIMethods121 {
         "Deleting images not permitted for this view",
         "Deleting images not permitted for the current user",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val deleteImageForViewOnTransaction : OBPEndpoint = {
       //delete an image
@@ -2796,8 +2731,7 @@ trait APIMethods121 {
            NoViewPermission,
            ViewNotFound,
            UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val getWhereTagForViewOnTransaction : OBPEndpoint = {
       //get where tag
@@ -2839,8 +2773,7 @@ trait APIMethods121 {
         NoViewPermission,
         "Coordinates not possible",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val addWhereTagForViewOnTransaction : OBPEndpoint = {
       //add where tag
@@ -2886,8 +2819,7 @@ trait APIMethods121 {
         NoViewPermission,
         "Coordinates not possible",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val updateWhereTagForViewOnTransaction : OBPEndpoint = {
       //update where tag
@@ -2934,8 +2866,7 @@ trait APIMethods121 {
         "there is no tag to delete",
         "Delete not completed",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagTransactionMetaData, apiTagTransaction))
+      List(apiTagTransactionMetaData, apiTagTransaction, apiTagNewStyle))
 
     lazy val deleteWhereTagForViewOnTransaction : OBPEndpoint = {
       //delete where tag
@@ -2969,7 +2900,6 @@ trait APIMethods121 {
       emptyObjectJson,
       otherAccountJSON,
       List(BankAccountNotFound, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagCounterparty))
 
     lazy val getOtherAccountForTransaction : OBPEndpoint = {
@@ -3016,7 +2946,6 @@ trait APIMethods121 {
         "Can't send a payment with a value of 0 or less.",
         "Sorry, payments are not enabled in this API instance.",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionRequest))
 
 */

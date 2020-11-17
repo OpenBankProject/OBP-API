@@ -10,6 +10,7 @@ import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.model.Consumer
+import code.model.dataAccess.AuthUser
 import code.users.Users
 import code.util.HydraUtil
 import code.views.Views

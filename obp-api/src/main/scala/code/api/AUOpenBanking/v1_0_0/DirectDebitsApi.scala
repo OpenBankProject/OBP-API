@@ -79,7 +79,6 @@ object APIMethods_DirectDebitsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -182,7 +181,6 @@ object APIMethods_DirectDebitsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -249,7 +247,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
   "data" : {
     "accountIds" : [ "accountIds", "accountIds" ]
   },
-  "meta" : { }
+    "meta" : " ",
 }"""),
        json.parse("""{
   "data" : {
@@ -290,7 +288,6 @@ object APIMethods_DirectDebitsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 

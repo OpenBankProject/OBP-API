@@ -361,7 +361,10 @@ object ConnectorBuilderUtil {
     "checkExternalUserCredentials",
     "checkExternalUserExists",
     "createChallengesC2",
-    "validateChallenge"
+    "getChallenge",
+    "getChallengesByTransactionRequestId",
+    "validateAndCheckIbanNumber",
+    "validateChallengeAnswerC2"
   ).distinct
 
   /**

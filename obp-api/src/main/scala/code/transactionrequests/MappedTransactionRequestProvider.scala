@@ -173,6 +173,14 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
     }
   }
 
+  override def saveTransactionRequestDescriptionImpl(transactionRequestId: TransactionRequestId, description: String): Box[Boolean] = {
+    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
+    mappedTransactionRequest match {
+      case Full(tr: MappedTransactionRequest) => Full(tr.mBody_Description(description).save)
+      case _ => Failure(s"$SaveTransactionRequestDescriptionException Couldn't find transaction request ${transactionRequestId} to set description")
+    }
+  }
+
 }
 
 class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest] with IdPK with CreatedUpdated with CustomJsonFormats {

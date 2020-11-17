@@ -4,18 +4,16 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.api.util.APIUtil._
-import code.api.util.{APIUtil, CustomJsonFormats, NewStyle}
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.bankconnectors.Connector
 import code.consent.Consent
 import code.database.authorisation.Authorisation
 import code.model.ModeratedTransaction
-import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
-import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User}
+import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User, _}
 import net.liftweb.common.Full
 import net.liftweb.json.JValue
 
-import scala.collection.immutable
 import scala.collection.immutable.List
 
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
@@ -242,11 +240,20 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     self: LinkHrefJson,
     status: LinkHrefJson,
     scaStatus: LinkHrefJson
+  )  
+  case class CancelPaymentResponseLinks(
+                                         self: LinkHrefJson,
+                                         status: LinkHrefJson,
+                                         startAuthorisation: LinkHrefJson
   )
   case class InitiatePaymentResponseJson(
     transactionStatus: String,
     paymentId: String,
     _links: InitiatePaymentResponseLinks
+  )
+  case class CancelPaymentResponseJson(
+    transactionStatus: String,
+    _links: CancelPaymentResponseLinks
   )
   case class CheckAvailabilityOfFundsJson(
     instructedAmount: AmountOfMoneyJsonV121,
@@ -528,11 +535,11 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  def createStartConsentAuthorisationJson(consent: Consent, authorization: Authorisation) : StartConsentAuthorisationJson = {
+  def createStartConsentAuthorisationJson(consent: Consent, challenge: ChallengeTrait) : StartConsentAuthorisationJson = {
     StartConsentAuthorisationJson(
-      scaStatus = consent.status.toLowerCase(),
-      pushMessage = "started", //TODO Not implment how to fill this.
-      _links =  ScaStatusJsonV13(s"/v1.3/consents/${consent.consentId}/authorisations/${authorization.authorisationId}")//TODO, Not sure, what is this for??
+      scaStatus = challenge.scaStatus.map(_.toString).getOrElse("None"),
+      pushMessage = "started", //TODO Not implement how to fill this.
+      _links =  ScaStatusJsonV13(s"/v1.3/consents/${consent.consentId}/authorisations/${challenge.challengeId}")//TODO, Not sure, what is this for??
     )
   }
 
@@ -587,6 +594,17 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       )
     )
   }
+  def createCancellationTransactionRequestJson(transactionRequest : TransactionRequest) : CancelPaymentResponseJson = {
+    val paymentId = transactionRequest.id.value
+    CancelPaymentResponseJson(
+      "ACTC",
+      _links = CancelPaymentResponseLinks(
+        self = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/$paymentId"),
+        status = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/$paymentId/status"),
+        startAuthorisation = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/cancellation-authorisations/${paymentId}")
+      )
+    )
+  }
 
   def createStartPaymentAuthorisationsJson(challenges: List[ChallengeTrait]): List[StartPaymentAuthorisationJson] = {
     challenges.map(createStartPaymentAuthorisationJson)
@@ -601,22 +619,22 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       )
   }
 
-  def createStartPaymentCancellationAuthorisationsJson(authorizations: List[Authorisation],
+  def createStartPaymentCancellationAuthorisationsJson(challenges: List[ChallengeTrait],
                                                        paymentService: String,
                                                        paymentProduct: String,
                                                        paymentId: String): List[StartPaymentAuthorisationJson] = {
-    authorizations.map(createStartPaymentCancellationAuthorisationJson(_, paymentService, paymentProduct, paymentId))
+    challenges.map(createStartPaymentCancellationAuthorisationJson(_, paymentService, paymentProduct, paymentId))
   }
-  def createStartPaymentCancellationAuthorisationJson(authorization: Authorisation,
+  def createStartPaymentCancellationAuthorisationJson(challenge: ChallengeTrait,
                                                       paymentService: String,
                                                       paymentProduct: String,
                                                       paymentId: String
                                                      ) = {
       StartPaymentAuthorisationJson(
-        scaStatus = authorization.scaStatus,
-        authorisationId = authorization.authorisationId,
+        scaStatus = challenge.scaStatus.map(_.toString).getOrElse(""),
+        authorisationId = challenge.challengeId,
         psuMessage = "Please check your SMS at a mobile device.",
-        _links = ScaStatusJsonV13(s"/v1.3/${paymentService}/${paymentProduct}/${paymentId}/cancellation-authorisations/${authorization.authorisationId}")
+        _links = ScaStatusJsonV13(s"/v1.3/${paymentService}/${paymentProduct}/${paymentId}/cancellation-authorisations/${challenge.challengeId}")
       )
   }
 }

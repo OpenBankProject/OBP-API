@@ -52,6 +52,10 @@ object ErrorMessages {
 
   val DynamicEndpointExists = "OBP-09008: DynamicEndpoint already exists."
   val DynamicEndpointNotFoundByDynamicEndpointId = "OBP-09009: DynamicEndpoint not found. Please specify a valid value for DYNAMIC_ENDPOINT_ID."
+  val InvalidMyDynamicEntityUser = "OBP-09010: DynamicEntity can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Entity` endpoint"
+  val InvalidMyDynamicEndpointUser = "OBP-09011: DynamicEndpoint can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Endpoint` endpoint"
+  
+  val InvalidBankIdDynamicEntity = "OBP-09012: This is a bank level dynamic entity. Please specify a valid value for BANK_ID."
 
 
   // General messages (OBP-10XXX)
@@ -79,6 +83,7 @@ object ErrorMessages {
   val InvalidConnectorMethodName = "OBP-10022: Incorrect Connector method name."
   val InvalidOutBoundMapping = "OBP-10031: Incorrect outBoundMapping Format, it should be a json structure."
   val InvalidInBoundMapping = "OBP-10032: Incorrect inBoundMapping Format, it should be a json structure."
+  val invalidIban = "OBP-10033: Invalid IBAN."
   val InvalidUri = "OBP-10404: Request Not Found. The server has not found anything matching the Request-URI.Check your URL and the headers. " +
     "NOTE: when it is POST or PUT api, the Content-Type must be `application/json`. OBP only support the json format body."
   val ResourceDoesNotExist = "OBP-10405: Resource does not exist."
@@ -341,6 +346,8 @@ object ErrorMessages {
   val EntitlementRequestCannotBeAdded = "OBP-30217: Entitlement Request cannot be added."
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
   val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
+  val EntitlementCannotBeDeleted = "OBP-30219: EntitlementId cannot be deleted."
+  
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
   val SystemViewNotFound = "OBP-30252: System view not found. Please specify a valid value for VIEW_ID"
@@ -421,7 +428,7 @@ object ErrorMessages {
   val InvalidPhoneNumber = "OBP-40017: Invalid Phone Number. Please specify a valid value for PHONE_NUMBER. Eg:+9722398746 "
   val TransactionRequestsNotEnabled = "OBP-40018: Sorry, Transaction Requests are not enabled in this API instance."
   val NextChallengePending = s"OBP-40019: Cannot create transaction due to transaction request is in status: ${NEXT_CHALLENGE_PENDING}."
-  val TransactionRequestStatusNotInitiatedOrPending = s"OBP-40020: Transaction Request Status is not ${INITIATED} or ${NEXT_CHALLENGE_PENDING}."
+  val TransactionRequestStatusNotInitiatedOrPendingOrForwarded = s"OBP-40020: Transaction Request Status is not ${INITIATED} or ${NEXT_CHALLENGE_PENDING} or ${FORWARDED}."
   val InvalidChallengeTransactionRequestId = "OBP-40021: Invalid Challenge PaymentId or TRANSACTION_REQUEST_ID. "
   val InvalidChallengeChallengeId = "OBP-40022: Invalid ChallengeId. "
 
@@ -485,6 +492,7 @@ object ErrorMessages {
   val AdapterUnknownError = "OBP-60013: Adapter Unknown Error. "
   val AdapterTimeOurError = "OBP-60014: Adapter Timeout Error. "
   val AdapterFunctionNotImplemented = "OBP-60015: Adapter Function Not Implemented."
+  val SaveTransactionRequestDescriptionException = "OBP-60016: Save Transaction Request Description Exception. "
 
   // MethodRouting Exceptions (OBP-7XXXX)
   val InvalidBankIdRegex = "OBP-70001: Incorrect regex for bankIdPattern."

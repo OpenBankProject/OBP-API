@@ -40,7 +40,7 @@ import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.views.system.AccountAccess
-import com.openbankproject.commons.model.{AccountId, AccountRouting, Attribute, Bank, BankAccount, BankAccountCommons, BankAccountInMemory, BankId, BankIdAccountId, Counterparty, CounterpartyId, CounterpartyTrait, CreateViewJson, Customer, Permission, TransactionId, UpdateViewJSON, User, UserPrimaryKey, View, ViewId, ViewIdBankIdAccountId}
+import com.openbankproject.commons.model.{AccountId, AccountRouting, Attribute, Bank, BankAccount, BankAccountCommons, BankId, BankIdAccountId, Counterparty, CounterpartyId, CounterpartyTrait, CreateViewJson, Customer, Permission, TransactionId, UpdateViewJSON, User, UserPrimaryKey, View, ViewId, ViewIdBankIdAccountId}
 import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JArray, JObject}
@@ -567,9 +567,10 @@ object BankAccountX {
       val counterpartyCurrency = if (counterparty.currency.nonEmpty) counterparty.currency else "EUR"
 
       Full(BankAccountCommons(
-        AccountId(""), "", 0,
-        currency = counterpartyCurrency
-        , "", "", "", BankId(""), new Date(), "",
+        AccountId(counterparty.otherAccountSecondaryRoutingAddress), "", 0,
+        currency = counterpartyCurrency,
+        name = counterparty.name,
+        "", "", BankId(counterparty.otherBankRoutingAddress), new Date(), "",
         accountRoutings = accountRouting1 ++ accountRouting2,
         List.empty, accountHolder = counterparty.name,
         Some(List(Attribute(

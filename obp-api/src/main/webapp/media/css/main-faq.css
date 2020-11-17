@@ -1,0 +1,88 @@
+#main-faq {
+    text-align: left;
+    background-color: white;
+}
+
+#main-faq .row .main-faq-left{
+    padding-right: 60px;
+}
+
+#main-faq .row .main-faq-right{
+    padding-left: 60px;
+}
+
+#main-faq h2 {
+    margin-top: 72px;
+    margin-bottom: 48px;
+}
+
+#main-faq h3 {
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    color: #333333;
+    line-height: 24px;
+    padding-right: 9px;
+}
+
+#main-faq hr {
+    margin-bottom: 9px;
+    margin-top: 10px;
+}
+#main-faq hr:last-child {
+    margin-top: 64px;
+    margin-bottom: 72px;
+    color: #D7D8D6;
+}
+#main-faq p, #main-faq ol{
+    margin-top: 18px;
+    font-family: Roboto-Light;
+    font-size: 16px;
+    color: #333333;
+    line-height: 24px;
+    margin-bottom: 15px;
+}
+
+#main-faq div a{
+    margin-top: 10px;
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    color: #333333;
+    line-height: 24px;
+    text-decoration:underline;
+}
+
+
+#main-faq button {
+    margin: 0;
+    padding: 0;
+    border: 1px solid transparent;
+    background-color: #FFFFFF;
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    color: #333333;
+    line-height: 24px;
+    padding-right: 30px;
+    text-align: left;
+}
+
+#main-faq .main-faq-button.collapsed img {
+    position: absolute;
+    top:37px;
+    right:69px;
+    width: 16px;
+    height: 16px;
+}
+#main-faq .main-faq-button img{
+    position: absolute;
+    top:37px;
+    right:69px;
+    width: 16px;
+    height: 16px;
+}
+
+#main-faq .main-faq-right .main-faq-button.collapsed img {
+    right:25px;
+}
+#main-faq .main-faq-right .main-faq-button img{
+    right:25px;
+}

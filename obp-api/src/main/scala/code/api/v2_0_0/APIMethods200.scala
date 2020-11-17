@@ -4,7 +4,7 @@ import java.util.{Calendar, Date}
 
 import code.api.Constant._
 import code.TransactionTypes.TransactionType
-import code.api.APIFailure
+import code.api.{APIFailure, APIFailureNewStyle}
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -42,6 +42,8 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.ApiVersion
+
+import scala.concurrent.Future
 // Makes JValue assignment to Nil work
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
@@ -143,7 +145,6 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
 
@@ -178,8 +179,7 @@ trait APIMethods200 {
       emptyObjectJson,
       coreAccountsJSON,
       List(UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPrivateData))
+      List(apiTagAccount, apiTagPrivateData, apiTagPsd2))
 
 
     apiRelations += ApiRelation(corePrivateAccountsAllBanks, getCoreAccountById, "detail")
@@ -222,7 +222,6 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(UserNotLoggedIn, CannotGetAccounts, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountPublic, apiTagAccount, apiTagPublicData))
 
 
@@ -263,7 +262,6 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(BankNotFound, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle)
     )
 
@@ -309,8 +307,7 @@ trait APIMethods200 {
       emptyObjectJson,
       coreAccountsJSON,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagNewStyle))
+      List(apiTagAccount, apiTagPrivateData, apiTagPsd2, apiTagNewStyle, apiTagNewStyle))
 
     apiRelations += ApiRelation(corePrivateAccountsAtOneBank, createAccount, "new")
     apiRelations += ApiRelation(corePrivateAccountsAtOneBank, corePrivateAccountsAtOneBank, "self")
@@ -382,8 +379,7 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagNewStyle)
+      List(apiTagAccount, apiTagNewStyle, apiTagPsd2)
     )
 
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
@@ -421,7 +417,6 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountPublic, apiTagAccount, apiTagPublicData, apiTagNewStyle))
 
     lazy val publicAccountsAtOneBank : OBPEndpoint = {
@@ -449,12 +444,11 @@ trait APIMethods200 {
       s"""Get KYC (know your customer) documents for a customer specified by CUSTOMER_ID
         |Get a list of documents that affirm the identity of the customer
         |Passport, driving licence etc.
-        |${authenticationRequiredMessage(false)}""",
+        |${authenticationRequiredMessage(false)}""".stripMargin,
       emptyObjectJson,
       kycDocumentsJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagKyc, apiTagCustomer),
+      List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
       Some(List(canGetAnyKycDocuments))
     )
 
@@ -486,12 +480,11 @@ trait APIMethods200 {
       "Get KYC Media for a customer",
       s"""Get KYC media (scans, pictures, videos) that affirms the identity of the customer.
         |
-        |${authenticationRequiredMessage(true)}""",
+        |${authenticationRequiredMessage(true)}""".stripMargin,
       emptyObjectJson,
       kycMediasJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
-    Catalogs(notCore, notPSD2, notOBWG),
-    List(apiTagKyc, apiTagCustomer),
+    List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
     Some(List(canGetAnyKycMedia)))
 
     lazy val getKycMedia  : OBPEndpoint = {
@@ -519,12 +512,11 @@ trait APIMethods200 {
       "Get Customer KYC Checks",
       s"""Get KYC checks for the Customer specified by CUSTOMER_ID.
         |
-        |${authenticationRequiredMessage(true)}""",
+        |${authenticationRequiredMessage(true)}""".stripMargin,
       emptyObjectJson,
       kycChecksJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagKyc, apiTagCustomer),
+      List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
       Some(List(canGetAnyKycChecks))
     )
 
@@ -552,12 +544,11 @@ trait APIMethods200 {
       "Get Customer KYC statuses",
       s"""Get the KYC statuses for a customer specified by CUSTOMER_ID over time.
         |
-        |${authenticationRequiredMessage(true)}""",
+        |${authenticationRequiredMessage(true)}""".stripMargin,
       emptyObjectJson,
       kycStatusesJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagKyc, apiTagCustomer),
+      List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
       Some(List(canGetAnyKycStatuses))
     )
 
@@ -586,11 +577,10 @@ trait APIMethods200 {
       "Get Customer Social Media Handles",
       s"""Get social media handles for a customer specified by CUSTOMER_ID.
         |
-        |${authenticationRequiredMessage(true)}""",
+        |${authenticationRequiredMessage(true)}""".stripMargin,
       emptyObjectJson,
       socialMediasJSON,
       List(UserNotLoggedIn, UserHasMissingRoles, CustomerNotFoundByCustomerId, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer),
       Some(List(canGetSocialMediaHandles)))
 
@@ -625,8 +615,7 @@ trait APIMethods200 {
       postKycDocumentJSON,
       kycDocumentJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId,"Server error: could not add KycDocument", UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagKyc, apiTagCustomer),
+      List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
       Some(List(canAddKycDocument))
     )
 
@@ -677,8 +666,7 @@ trait APIMethods200 {
       postKycMediaJSON,
       kycMediaJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagKyc, apiTagCustomer),
+      List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
       Some(List(canAddKycMedia))
     )
 
@@ -727,8 +715,7 @@ trait APIMethods200 {
       postKycCheckJSON,
       kycCheckJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagKyc, apiTagCustomer),
+      List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
       Some(List(canAddKycCheck))
     )
 
@@ -778,8 +765,7 @@ trait APIMethods200 {
       postKycStatusJSON,
       kycStatusJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat,UnknownError, BankNotFound ,ServerAddDataError ,CustomerNotFoundByCustomerId),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagKyc, apiTagCustomer),
+      List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
       Some(List(canAddKycStatus))
     )
 
@@ -828,7 +814,6 @@ trait APIMethods200 {
         UserHasMissingRoles,
         CustomerNotFoundByCustomerId,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer),
       Some(List(canAddSocialMediaHandle))
     )
@@ -883,8 +868,7 @@ trait APIMethods200 {
       emptyObjectJson,
       moderatedCoreAccountJSON,
       List(BankAccountNotFound,UnknownError),
-      Catalogs(Core, PSD2, notOBWG),
-      apiTagAccount ::  Nil)
+      apiTagAccount :: apiTagPsd2 ::  Nil)
 
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
@@ -926,8 +910,7 @@ trait APIMethods200 {
       emptyObjectJson,
       coreTransactionsJSON,
       List(BankAccountNotFound, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransaction, apiTagAccount))
+      List(apiTagTransaction, apiTagAccount, apiTagPsd2))
     
     //Note: we already have the method: getTransactionsForBankAccount in V121.
     //The only difference here is "Core implies 'owner' view" 
@@ -979,7 +962,6 @@ trait APIMethods200 {
       emptyObjectJson,
       moderatedAccountJSON,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
     lazy val accountById : OBPEndpoint = {
@@ -1017,8 +999,7 @@ trait APIMethods200 {
       emptyObjectJson,
       permissionsJSON,
       List(UserNotLoggedIn, BankNotFound, AccountNotFound ,UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagView, apiTagAccount, apiTagUser, apiTagEntitlement)
+      List(apiTagView, apiTagAccount, apiTagUser, apiTagEntitlement, apiTagNewStyle)
     )
 
     lazy val getPermissionsForBankAccount : OBPEndpoint = {
@@ -1052,7 +1033,6 @@ trait APIMethods200 {
       emptyObjectJson,
       viewsJSONV121,
       List(UserNotLoggedIn,BankNotFound, AccountNotFound,UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagView, apiTagAccount, apiTagUser))
 
     lazy val getPermissionForUserForBankAccount : OBPEndpoint = {
@@ -1108,7 +1088,6 @@ trait APIMethods200 {
         InvalidAccountBalanceCurrency,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount),
       Some(List(canCreateAccount))
     )
@@ -1188,30 +1167,26 @@ trait APIMethods200 {
           |  * description : A longer description
           |  * charge : The charge to the customer for each one of these
           |
-          |${authenticationRequiredMessage(!getTransactionTypesIsPublic)}""",
+          |${authenticationRequiredMessage(!getTransactionTypesIsPublic)}""".stripMargin,
       emptyObjectJson,
       transactionTypesJsonV200,
       List(BankNotFound, UnknownError),
-      Catalogs(Core, PSD2, notOBWG),
-      List(apiTagBank, apiTagPSD2AIS)
+      List(apiTagBank, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle)
     )
 
     lazy val getTransactionTypes : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "transaction-types" :: Nil JsonGet _ => {
         cc => {
           for {
-          // Get Transaction Types from the active provider
-            _ <- if(getTransactionTypesIsPublic)
-              Box(Some(1))
-            else
-              cc.user ?~! "User must be logged in to retrieve Transaction Types data"
-            (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            transactionTypes <- TransactionType.TransactionTypeProvider.vend.getTransactionTypesForBank(bank.bankId) // ~> APIFailure("No transation types available. License may not be set.", 204)
+            // Get Transaction Types from the active provider
+            (_, callContext) <- getTransactionTypesIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            transactionTypes <- Future(TransactionType.TransactionTypeProvider.vend.getTransactionTypesForBank(bank.bankId)) map { connectorEmptyResponse(_, callContext) } // ~> APIFailure("No transation types available. License may not be set.", 204)
           } yield {
-            // Format the data as json
-            val json = JSONFactory200.createTransactionTypeJSON(transactionTypes)
-            // Return
-            successJsonResponse(Extraction.decompose(json))
+            (JSONFactory200.createTransactionTypeJSON(transactionTypes), HttpCode.`200`(callContext))
           }
         }
       }
@@ -1283,8 +1258,7 @@ trait APIMethods200 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest),
+      List(apiTagTransactionRequest, apiTagPsd2),
       Some(List(canCreateAnyTransactionRequest)))
 
     lazy val createTransactionRequest: OBPEndpoint = {
@@ -1359,8 +1333,7 @@ trait APIMethods200 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPsd2))
 
     lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -1447,8 +1420,7 @@ trait APIMethods200 {
       emptyObjectJson,
       transactionRequestWithChargesJson,
       List(UserNotLoggedIn, BankNotFound, AccountNotFound, UserNoPermissionAccessView, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPsd2))
 
     lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
@@ -1495,7 +1467,6 @@ trait APIMethods200 {
       createUserJson,
       userJsonV200,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidStrongPasswordFormat ,"Error occurred during user creation.", "User with the same username already exists." , UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagOnboarding))
 
     lazy val createUser: OBPEndpoint = {
@@ -1520,6 +1491,7 @@ trait APIMethods200 {
               {
                 userCreated.saveMe()
                 if (userCreated.saved_?) {
+                  AuthUser.grantDefaultEntitlementsToAuthUser(userCreated)
                   val json = JSONFactory200.createUserJSONfromAuthUser(userCreated)
                   successJsonResponse(Extraction.decompose(json), 201)
                 }
@@ -1571,7 +1543,6 @@ trait APIMethods200 {
         MeetingsNotSupported,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
@@ -1629,7 +1600,6 @@ trait APIMethods200 {
         BankNotFound,
         MeetingsNotSupported,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
@@ -1687,7 +1657,6 @@ trait APIMethods200 {
         MeetingsNotSupported,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
@@ -1743,7 +1712,6 @@ trait APIMethods200 {
         CreateUserCustomerLinksError,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagPerson),
       Some(List(canCreateCustomer,canCreateUserCustomerLink)))
 
@@ -1816,7 +1784,6 @@ trait APIMethods200 {
       emptyObjectJson,
       userJsonV200,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser))
 
 
@@ -1851,7 +1818,6 @@ trait APIMethods200 {
       emptyObjectJson,
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser),
       Some(List(canGetAnyUser)))
 
@@ -1906,7 +1872,6 @@ trait APIMethods200 {
         CreateUserCustomerLinksError,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagUser),
       Some(List(canCreateUserCustomerLink,canCreateUserCustomerLinkAtAnyBank)))
 
@@ -1970,8 +1935,7 @@ trait APIMethods200 {
         EntitlementAlreadyExists,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canCreateEntitlementAtOneBank,canCreateEntitlementAtAnyBank)))
 
     lazy val addEntitlement : OBPEndpoint = {
@@ -1979,24 +1943,33 @@ trait APIMethods200 {
       case "users" :: userId :: "entitlements" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- UserX.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
-            postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~! s"$InvalidJsonFormat The Json body should be the $CreateEntitlementJSON "
-            role <- tryo{valueOf(postedData.role_name)} ?~! {IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")}
-            _ <- booleanToBox(ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty) ?~!
-              {if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole}
-            allowedEntitlements = canCreateEntitlementAtOneBank ::
-                                  canCreateEntitlementAtAnyBank ::
-                                  Nil
-            _ <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~! {
-              UserNotSuperAdmin +" or" + UserHasMissingRoles + canCreateEntitlementAtOneBank + s" BankId(${postedData.bank_id})." + " or" + UserHasMissingRoles + canCreateEntitlementAtAnyBank
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CreateEntitlementJSON "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CreateEntitlementJSON]
             }
-            _ <- booleanToBox(postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), Some(cc)).map(_._1).isEmpty == false) ?~! BankNotFound
-            _ <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, EntitlementAlreadyExists )
-            addedEntitlement <- Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
+            role <- Future { tryo{valueOf(postedData.role_name)} } map {
+              val msg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")
+              x => unboxFullOrFail(x, callContext, msg)
+            }
+            _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole) {
+              ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty
+            }
+            allowedEntitlements = canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil
+            allowedEntitlementsTxt = UserNotSuperAdmin +" or" + UserHasMissingRoles + canCreateEntitlementAtOneBank + s" BankId(${postedData.bank_id})." + " or" + UserHasMissingRoles + canCreateEntitlementAtAnyBank
+            _ <- Helper.booleanToFuture(failMsg = allowedEntitlementsTxt) {
+              isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true
+            }
+            _ <- Helper.booleanToFuture(failMsg = BankNotFound) {
+              postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), callContext).map(_._1).isEmpty == false
+            }
+            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists) {
+              hasEntitlement(postedData.bank_id, userId, role) == false
+            }
+            addedEntitlement <- Future(Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)) map { unboxFull(_) }
           } yield {
-            val viewJson = JSONFactory200.createEntitlementJSON(addedEntitlement)
-            successJsonResponse(Extraction.decompose(viewJson), 201)
+            (JSONFactory200.createEntitlementJSON(addedEntitlement), HttpCode.`201`(callContext))
           }
       }
     }
@@ -2017,7 +1990,6 @@ trait APIMethods200 {
       emptyObjectJson,
       entitlementJSONs,
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canGetEntitlementsForAnyUserAtAnyBank)))
 
@@ -2063,21 +2035,25 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       List(UserNotLoggedIn, UserHasMissingRoles, EntitlementNotFound, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagRole, apiTagUser, apiTagEntitlement))
+      List(apiTagRole, apiTagUser, apiTagEntitlement, apiTagNewStyle))
 
 
     lazy val deleteEntitlement: OBPEndpoint = {
       case "users" :: userId :: "entitlement" :: entitlementId :: Nil JsonDelete _ => {
         cc =>
             for {
-              u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
-              _ <- booleanToBox(hasEntitlement("", u.userId, canDeleteEntitlementAtAnyBank), UserHasMissingRoles + CanDeleteEntitlementAtAnyBank)
-              entitlement <- tryo{Entitlement.entitlement.vend.getEntitlementById(entitlementId)} ?~ EntitlementNotFound
-              _ <- entitlement.filter(_.userId == userId) ?~ UserDoesNotHaveEntitlement
-              _ <- Entitlement.entitlement.vend.deleteEntitlement(entitlement)
-            }
-            yield noContentJsonResponse
+              (Full(u), callContext) <- authenticatedAccess(cc)
+              _ <- Helper.booleanToFuture(s"$UserHasMissingRoles $canDeleteEntitlementAtAnyBank") {
+                hasEntitlement("", u.userId, canDeleteEntitlementAtAnyBank)
+              }
+              entitlement <- Future(Entitlement.entitlement.vend.getEntitlementById(entitlementId)) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementNotFound, 404, callContext.map(_.toLight)))
+              } map { unboxFull(_) }
+              _ <- Helper.booleanToFuture(UserDoesNotHaveEntitlement) { entitlement.userId == userId }
+              deleted <- Future(Entitlement.entitlement.vend.deleteEntitlement(Some(entitlement))) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementCannotBeDeleted, 404, callContext.map(_.toLight)))
+              } map { unboxFull(_) }
+            } yield (deleted, HttpCode.`204`(cc.callContext))
       }
     }
 
@@ -2098,7 +2074,6 @@ trait APIMethods200 {
       emptyObjectJson,
       entitlementJSONs,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagNewStyle))
 
 
@@ -2194,7 +2169,6 @@ trait APIMethods200 {
         emptyObjectJson,
         emptyObjectJson, //TODO what is output here?
         List(UserNotLoggedIn, BankNotFound, UserHasMissingRoles, UnknownError),
-        Catalogs(notCore, notPSD2, notOBWG),
         List(apiTagSearchWarehouse),
         Some(List(canSearchWarehouse)))
 
@@ -2281,7 +2255,6 @@ trait APIMethods200 {
         emptyObjectJson,
         emptyObjectJson,
         List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-        Catalogs(notCore, notPSD2, notOBWG),
         List(apiTagMetric, apiTagApi),
         Some(List(canSearchMetrics)))
 
@@ -2312,7 +2285,6 @@ trait APIMethods200 {
       emptyObjectJson,
       customersJsonV140,
       List(UserNotLoggedIn, UserCustomerLinksNotFoundForUser, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
     lazy val getCustomers : OBPEndpoint = {

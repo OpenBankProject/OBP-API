@@ -46,12 +46,13 @@ import net.liftweb.util.Mailer.{BCC, From, Subject, To}
 import net.liftweb.util._
 
 import scala.collection.immutable.List
-import scala.xml.{NodeSeq, Text}
+import scala.xml.{Elem, NodeSeq, Text}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import org.apache.commons.lang3.StringUtils
 import code.util.HydraUtil._
 import sh.ory.hydra.model.AcceptLoginRequest
+import net.liftweb.http.S.fmapFunc
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -93,6 +94,16 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
     override def displayName = fieldOwner.firstNameDisplayName
     override val fieldId = Some(Text("txtFirstName"))
     override def validations = isEmpty(Helper.i18n("Please.enter.your.first.name")) _ :: super.validations
+
+    override def _toForm: Box[Elem] =
+      fmapFunc({s: List[String] => this.setFromAny(s)}){name =>
+        Full(appendFieldId(<input type={formInputType} 
+                                  maxlength={maxLen.toString}
+                                  aria-labelledby={displayName} 
+                                  aria-describedby={uniqueFieldId.getOrElse("")}
+                                  name={name}
+                                  value={get match {case null => "" case s => s.toString}}/>))
+      }
   }
   
   override lazy val lastName = new MyLastName
@@ -108,6 +119,17 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
     override def displayName = fieldOwner.lastNameDisplayName
     override val fieldId = Some(Text("txtLastName"))
     override def validations = isEmpty(Helper.i18n("Please.enter.your.last.name")) _ :: super.validations
+
+    override def _toForm: Box[Elem] =
+      fmapFunc({s: List[String] => this.setFromAny(s)}){name =>
+        Full(appendFieldId(<input type={formInputType}
+                                  maxlength={maxLen.toString}
+                                  aria-labelledby={displayName}
+                                  aria-describedby={uniqueFieldId.getOrElse("")}
+                                  name={name}
+                                  value={get match {case null => "" case s => s.toString}}/>))
+      }
+    
   }
   
   /**
@@ -154,6 +176,16 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
                                super.validations
     override val fieldId = Some(Text("txtUsername"))
 
+    override def _toForm: Box[Elem] =
+      fmapFunc({s: List[String] => this.setFromAny(s)}){name =>
+        Full(appendFieldId(<input type={formInputType}
+                                  maxlength={maxLen.toString}
+                                  aria-labelledby={displayName}
+                                  aria-describedby={uniqueFieldId.getOrElse("")}
+                                  name={name}
+                                  value={get match {case null => "" case s => s.toString}}/>))
+      }
+    
     /**
      * Make sure that the field is unique in the CBS
      */
@@ -189,12 +221,12 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
       S.fmapFunc({s: List[String] => this.setFromAny(s)}){funcName =>
         Full(
           <span>
-            {appendFieldId(<input id="textPassword" type={formInputType} name={funcName} value={preFilledPassword}/>)}
+            {appendFieldId(<input id="textPassword" aria-labelledby="Password" aria-describedby={uniqueFieldId.getOrElse("")} type={formInputType} name={funcName} value={preFilledPassword}/> ) }
             <div id="signup-error" class="alert alert-danger hide">
               <span data-lift={s"Msg?id=${uniqueFieldId.getOrElse("")}&errorClass=error"}/>
             </div>
             <div id ="repeat-password">{signupPasswordRepeatText}</div>
-            <input id="textPasswordRepeat" type={formInputType} name={funcName} value={preFilledPassword}/>
+            <input id="textPasswordRepeat" aria-labelledby="Password Repeat" aria-describedby={uniqueFieldId.getOrElse("")}  type={formInputType} name={funcName} value={preFilledPassword}/>
             <div id="signup-error" class="alert alert-danger hide">
               <span data-lift={s"Msg?id=${uniqueFieldId.getOrElse("")}_repeat&errorClass=error"}/>
             </div>
@@ -357,6 +389,15 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
       case e if (!isEmailValid(e))  => List(FieldError(this, Text(S.?("invalid.email.address"))))
       case _                     => Nil
     }
+    override def _toForm: Box[Elem] =
+      fmapFunc({s: List[String] => this.setFromAny(s)}){name =>
+        Full(appendFieldId(<input type={formInputType}
+                                  maxlength={maxLen.toString}
+                                  aria-labelledby={displayName}
+                                  aria-describedby={uniqueFieldId.getOrElse("")}
+                                  name={name}
+                                  value={get match {case null => "" case s => s.toString}}/>))
+      }
   }
 }
 
@@ -497,7 +538,7 @@ import net.liftweb.util.Helpers._
   }
 
   override def lostPasswordXhtml = {
-    <div id="recover-password">
+    <div id="recover-password" tabindex="-1">
           <h1>Recover Password</h1>
           <div id="recover-password-explanation">Enter your email address or username and we'll email you a link to reset your password</div>
           <form action={S.uri} method="post">
@@ -537,7 +578,41 @@ import net.liftweb.util.Helpers._
         generateValidationEmailBodies(user, resetLink) :::
         (bccEmail.toList.map(BCC(_))) :_* )
   }
+  
+   def grantDefaultEntitlementsToAuthUser(user: TheUserType) = {
+     tryo{getResourceUserByUsername(user.username.get).head.userId} match {
+       case Full(userId)=>APIUtil.grantDefaultEntitlementsToNewUser(userId)
+       case _ => logger.error("Can not getResourceUserByUsername here, so it breaks the grantDefaultEntitlementsToNewUser process.")
+     }
+   }
+  
+  override def validateUser(id: String): NodeSeq = findUserByUniqueId(id) match {
+    case Full(user) if !user.validated_? =>
+      user.setValidated(true).resetUniqueId().save
+      grantDefaultEntitlementsToAuthUser(user)
+      logUserIn(user, () => {
+        S.notice(S.?("account.validated"))
+        S.redirectTo(homePage)
+      })
 
+    case _ => S.error(S.?("invalid.validation.link")); S.redirectTo(homePage)
+  }
+  
+  override def actionsAfterSignup(theUser: TheUserType, func: () => Nothing): Nothing = {
+    theUser.setValidated(skipEmailValidation).resetUniqueId()
+    theUser.save
+    if (!skipEmailValidation) {
+      sendValidationEmail(theUser)
+      S.notice(S.?("sign.up.message"))
+      func()
+    } else {
+      grantDefaultEntitlementsToAuthUser(theUser)
+      logUserIn(theUser, () => {
+        S.notice(S.?("welcome"))
+        func()
+      })
+    }
+  }
   /**
    * Set this to redirect to a certain page after a failed login
    */
@@ -568,7 +643,7 @@ import net.liftweb.util.Helpers._
       scala.xml.Unparsed(s"""$agreeTermsHtml""")
     }
   }
-
+  
   def agreePrivacyPolicy = {
     val url = getWebUiPropsValue("webui_agree_privacy_policy_url", "")
     val text = getWebUiPropsValue("webui_agree_privacy_policy_html_text", s"""<div id="signup-agree-privacy-policy"><label>By submitting this information you consent to processing your data by TESOBE GmbH according to our <a href="$url" title="Privacy Policy">Privacy Policy</a>. TESOBE shall use this information to send you emails and provide customer support.</label></div>""")
@@ -582,7 +657,7 @@ import net.liftweb.util.Helpers._
   def signupFormTitle = getWebUiPropsValue("webui_signup_form_title_text", S.?("sign.up"))
   
   override def signupXhtml (user:AuthUser) =  {
-    <div id="signup">
+    <div id="signup" tabindex="-1">
       <form method="post" action={S.uri}>
           <h1>{signupFormTitle}</h1>
           {legalNoticeDiv}

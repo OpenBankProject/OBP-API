@@ -29,7 +29,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.{ConsentChallengeJsonV310, ConsentJsonV310, CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310, PostConsentChallengeJsonV310}
 import com.openbankproject.commons.model.ListResult
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
-import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson}
+import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson, createBalancesJson}
 import code.bankconnectors.Connector
 import code.consent.ConsentStatus.ConsentStatus
 import code.consent.{ConsentStatus, Consents}
@@ -67,6 +67,8 @@ import net.liftweb.json.{compactRender, _}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json._
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.{List, Nil}
@@ -84,7 +86,7 @@ trait APIMethods400 {
 
     private val staticResourceDocs = ArrayBuffer[ResourceDoc]()
     // createDynamicEntityDoc and updateDynamicEntityDoc are dynamic, So here dynamic create resourceDocs
-    def resourceDocs = staticResourceDocs ++ ArrayBuffer[ResourceDoc](createDynamicEntityDoc, updateDynamicEntityDoc)
+    def resourceDocs = staticResourceDocs ++ ArrayBuffer[ResourceDoc](createDynamicEntityDoc, updateDynamicEntityDoc, updateMyDynamicEntityDoc)
 
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(staticResourceDocs, apiRelations)
@@ -105,7 +107,6 @@ trait APIMethods400 {
       emptyObjectJson,
       adapterInfoJsonV300,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
       List(apiTagApi, apiTagNewStyle),
       Some(List(canGetDatabaseInfo)))
 
@@ -136,7 +137,6 @@ trait APIMethods400 {
       emptyObjectJson,
       logoutLinkV400,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle))
 
     lazy val getLogoutLink: OBPEndpoint = {
@@ -171,8 +171,7 @@ trait APIMethods400 {
       emptyObjectJson,
       banksJSON400,
       List(UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
     )
 
     lazy val getBanks: OBPEndpoint = {
@@ -215,7 +214,7 @@ trait APIMethods400 {
          |If the POST body USER_ID is *not* specified, the account will be owned by the logged in User.
          |
          |Note: The Amount MUST be zero.
-         |""",
+         |""".stripMargin,
       settlementAccountRequestJson,
       settlementAccountResponseJson,
       List(
@@ -228,8 +227,7 @@ trait APIMethods400 {
         InvalidISOCurrencyCode,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBank),
+      List(apiTagBank, apiTagNewStyle),
       Some(List(canCreateSettlementAccountAtOneBank))
     )
 
@@ -328,8 +326,7 @@ trait APIMethods400 {
         BankNotFound,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagBank),
+      List(apiTagBank, apiTagPsd2, apiTagNewStyle),
       Some(List(canGetSettlementAccountAtOneBank))
     )
 
@@ -434,7 +431,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodyJsonV200,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -452,8 +449,7 @@ trait APIMethods400 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     // ACCOUNT_OTP. (we no longer create a resource doc for the general case)
     staticResourceDocs += ResourceDoc(
@@ -471,7 +467,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodyJsonV200,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -489,8 +485,7 @@ trait APIMethods400 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     // COUNTERPARTY
     staticResourceDocs += ResourceDoc(
@@ -510,7 +505,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodyCounterpartyJSON,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -528,8 +523,7 @@ trait APIMethods400 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
 
     val lowAmount = AmountOfMoneyJsonV121("EUR", "12.50")
@@ -553,7 +547,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodySEPAJsonV400,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -571,8 +565,7 @@ trait APIMethods400 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     staticResourceDocs += ResourceDoc(
       createTransactionRequestRefund,
@@ -583,11 +576,22 @@ trait APIMethods400 {
       "Create Transaction Request (REFUND)",
       s"""
          |
+         |Either the `from` or the `to` field must be filled. Those fields refers to the information about the party that will be refunded.
+         |
+         |In case the `from` object is used, it means that the refund comes from the part that sent you a transaction.
+         |In the `from` object, you have two choices :
+         |- Use `bank_id` and `account_id` fields if the other account is registered on the OBP-API
+         |- Use the `counterparty_id` field in case the counterparty account is out of the OBP-API
+         |
+         |In case the `to` object is used, it means you send a request to a counterparty to ask for a refund on a previous transaction you sent.
+         |(This case is not managed by the OBP-API and require an external adapter)
+         |
+         |
          |$transactionRequestGeneralText
          |
        """.stripMargin,
       transactionRequestBodyRefundJsonV400,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -605,8 +609,7 @@ trait APIMethods400 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     // FREE_FORM.
     staticResourceDocs += ResourceDoc(
@@ -620,7 +623,7 @@ trait APIMethods400 {
          |
        """.stripMargin,
       transactionRequestBodyFreeFormJSON,
-      transactionRequestWithChargeJSON210,
+      transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -638,7 +641,6 @@ trait APIMethods400 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle),
       Some(List(canCreateAnyTransactionRequest)))
 
@@ -707,11 +709,43 @@ trait APIMethods400 {
                     json.extract[TransactionRequestBodyRefundJsonV400]
                   }
 
+                  // TODO : create transaction request attributes to store those data somewhere else than in the description
                   transactionId = TransactionId(transactionRequestBodyRefundJson.refund.transaction_id)
-                  toBankId = BankId(transactionRequestBodyRefundJson.to.bank_id)
-                  toAccountId = AccountId(transactionRequestBodyRefundJson.to.account_id)
-                  (transaction, callContext) <- NewStyle.function.getTransaction(fromAccount.bankId, fromAccount.accountId, transactionId, cc.callContext)
-                  (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(toBankId, toAccountId, cc.callContext)
+                  refundReasonCode = transactionRequestBodyRefundJson.refund.reason_code
+
+                  (fromAccount, toAccount, transaction, callContext) <- transactionRequestBodyRefundJson.to match {
+                    case Some(refundRequestTo) if refundRequestTo.account_id.isDefined && refundRequestTo.bank_id.isDefined =>
+                      val toBankId = BankId(refundRequestTo.bank_id.get)
+                      val toAccountId = AccountId(refundRequestTo.account_id.get)
+                      for {
+                        (transaction, callContext) <- NewStyle.function.getTransaction(fromAccount.bankId, fromAccount.accountId, transactionId, cc.callContext)
+                        (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(toBankId, toAccountId, cc.callContext)
+                      } yield (fromAccount, toAccount, transaction, callContext)
+
+                    case Some(refundRequestTo) if refundRequestTo.counterparty_id.isDefined =>
+                      val toCounterpartyId = CounterpartyId(refundRequestTo.counterparty_id.get)
+                      for {
+                        (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(toCounterpartyId, cc.callContext)
+                        toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, isOutgoingAccount = true, callContext)
+                        _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
+                          toCounterparty.isBeneficiary
+                        }
+                        (transaction, callContext) <- NewStyle.function.getTransaction(fromAccount.bankId, fromAccount.accountId, transactionId, cc.callContext)
+                      } yield (fromAccount, toAccount, transaction, callContext)
+
+                    case None if transactionRequestBodyRefundJson.from.isDefined =>
+                      val fromCounterpartyId = CounterpartyId(transactionRequestBodyRefundJson.from.get.counterparty_id)
+                      val toAccount = fromAccount
+                      for {
+                        (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(fromCounterpartyId, cc.callContext)
+                        fromAccount <- NewStyle.function.getBankAccountFromCounterparty(fromCounterparty, isOutgoingAccount = false, callContext)
+                        _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
+                          fromCounterparty.isBeneficiary
+                        }
+                        (transaction, callContext) <- NewStyle.function.getTransaction(toAccount.bankId, toAccount.accountId, transactionId, cc.callContext)
+                      } yield (fromAccount, toAccount, transaction, callContext)
+                  }
+
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
                     write(transactionRequestBodyRefundJson)(Serialization.formats(NoTypeHints))
                   }
@@ -724,8 +758,8 @@ trait APIMethods400 {
 //                    !((transaction.description.toString contains(" Refund to ")) && (transaction.description.toString contains(" and transaction_id(")))
 //                  }
 
-                  //we add the extro info (counterparty name + transaction_id) for this special Refund endpoint.
-                  newDescription = s"${transactionRequestBodyRefundJson.description} - Refund for transaction_id: (${transactionId.value}) to ${transaction.otherAccount.counterpartyName}"
+                  //we add the extra info (counterparty name + transaction_id + reason_code) for this special Refund endpoint.
+                  newDescription = s"${transactionRequestBodyRefundJson.description} - Refund for transaction_id: (${transactionId.value}) to ${transaction.otherAccount.counterpartyName} - Reason code : ${refundReasonCode}"
 
                   //This is the refund endpoint, the original fromAccount is the `toAccount` which will receive money.
                   refundToAccount = fromAccount
@@ -844,7 +878,7 @@ trait APIMethods400 {
                     json.extract[TransactionRequestBodySEPAJsonV400]
                   }
                   toIban = transDetailsSEPAJson.to.iban
-                  (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIban(toIban, cc.callContext)
+                  (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIbanAndBankAccountId(toIban, fromAccount.bankId, fromAccount.accountId, cc.callContext)
                   toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
                   _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
                     toCounterparty.isBeneficiary
@@ -950,8 +984,8 @@ trait APIMethods400 {
         |In case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute default value is 1.
         |
       """.stripMargin,
-      challengeAnswerJSON,
-      transactionRequestWithChargeJson,
+      challengeAnswerJson400,
+      transactionRequestWithChargeJSON210,
       List(
         $UserNotLoggedIn,
         InvalidBankIdFormat,
@@ -965,8 +999,7 @@ trait APIMethods400 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -981,8 +1014,8 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(InvalidBankIdFormat) {
               isValidID(bankId.value)
             }
-            challengeAnswerJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ChallengeAnswerJSON ", 400, cc.callContext) {
-              json.extract[ChallengeAnswerJSON]
+            challengeAnswerJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ChallengeAnswerJson400", 400, cc.callContext) {
+              json.extract[ChallengeAnswerJson400]
             }
 
             account = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
@@ -991,10 +1024,11 @@ trait APIMethods400 {
             // Check transReqId is valid
             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transReqId, cc.callContext)
 
-            // Check the Transaction Request is still INITIATED or NEXT_CHALLENGE_PENDING
-            _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiatedOrPending) {
+            // Check the Transaction Request is still INITIATED or NEXT_CHALLENGE_PENDING or FORWARDED
+            _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiatedOrPendingOrForwarded) {
               existingTransactionRequest.status.equals(TransactionRequestStatus.INITIATED.toString) ||
-              existingTransactionRequest.status.equals(TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
+              existingTransactionRequest.status.equals(TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString) ||
+              existingTransactionRequest.status.equals(TransactionRequestStatus.FORWARDED.toString)
             }
 
             // Check the input transactionRequestType is the same as when the user created the TransactionRequest
@@ -1016,54 +1050,87 @@ trait APIMethods400 {
               ).exists(_ == existingTransactionRequest.challenge.challenge_type)
             }
 
-
-            // Check the challengeId is valid for this existingTransactionRequest
-            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
-              if (APIUtil.isDataFromOBPSide("validateChallengeAnswer")) {
-                MappedExpectedChallengeAnswer
-                  .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
-                  .exists(_.challengeId == challengeAnswerJson.id)
-              }else{
-                existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
-              }
-            }
-
-            (challengeAnswerIsValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
-
-            _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ") {
-              challengeAnswerIsValidated
-            }
-
-            
-            //TODO, this is a temporary solution, we only checked single challenge Id for remote connectors. here is only for the localMapped Connector logic
-            _ <- if (APIUtil.isDataFromOBPSide("validateChallengeAnswer")){
-              for{
-                accountAttributes <- Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None)
-                _ <- Helper.booleanToFuture(s"$NextChallengePending") {
-                  val quorum = accountAttributes._1.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
-                  MappedExpectedChallengeAnswer
-                    .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
-                    .count(_.successful == true) match {
-                    case number if number >= quorum => true
-                    case _ =>
-                      MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
-                      false
+            (transactionRequest, callContext) <- challengeAnswerJson.answer match {
+              // If the challenge answer is `REJECT` - Currently only to Reject a SEPA transaction request REFUND
+              case "REJECT" =>
+                val transactionRequest = existingTransactionRequest.copy(status = TransactionRequestStatus.REJECTED.toString,
+                  body = existingTransactionRequest.body.copy(description =
+                    s"${existingTransactionRequest.body.description} - Reject reason code : ${challengeAnswerJson.reason_code.getOrElse("")} - Reject additional information : ${challengeAnswerJson.additional_information.getOrElse("")}"))
+                for {
+                  (fromAccount, toAccount, callContext) <- {
+                    // If the transaction request comes from the account to debit
+                    if (fromAccount.accountId.value == transactionRequest.from.account_id) {
+                      val toCounterpartyIban = transactionRequest.other_account_routing_address
+                      for {
+                        (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIbanAndBankAccountId(toCounterpartyIban, fromAccount.bankId, fromAccount.accountId, callContext)
+                        toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+                      } yield (fromAccount, toAccount, callContext)
+                    } else {
+                      // Else, the transaction request debit a counterparty (Iban)
+                      val fromCounterpartyIban = transactionRequest.from.account_id
+                      // and the creditor is the obp account owner
+                      val toAccount = fromAccount
+                      for {
+                        (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByIbanAndBankAccountId(fromCounterpartyIban, toAccount.bankId, toAccount.accountId, callContext)
+                        fromAccount <- NewStyle.function.getBankAccountFromCounterparty(fromCounterparty, false, callContext)
+                      } yield (fromAccount, toAccount, callContext)
+                    }
                   }
-                }
-              } yield {
-                true
-              }
-            } else{
-            Future{true}
-          } 
-            
-          // All Good, proceed with the Transaction creation...
-          (transactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
-            case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT =>
-              NewStyle.function.createTransactionAfterChallengeV300(u, fromAccount, transReqId, transactionRequestType, callContext)
-            case _ =>
-              NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
-          }
+                  _ <- NewStyle.function.notifyTransactionRequest(fromAccount, toAccount, transactionRequest, callContext)
+                  _ <- Future(Connector.connector.vend.saveTransactionRequestStatusImpl(transactionRequest.id, transactionRequest.status))
+                  _ <- Future(Connector.connector.vend.saveTransactionRequestDescriptionImpl(transactionRequest.id, transactionRequest.body.description))
+                } yield (transactionRequest, callContext)
+              case _ =>
+                for {
+                  // Check the challengeId is valid for this existingTransactionRequest
+                  _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
+                    if (APIUtil.isDataFromOBPSide("validateChallengeAnswer")) {
+                      MappedExpectedChallengeAnswer
+                        .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
+                        .exists(_.challengeId == challengeAnswerJson.id)
+                    }else{
+                      existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
+                    }
+                  }
+
+                  (challengeAnswerIsValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
+
+                  _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ") {
+                    challengeAnswerIsValidated
+                  }
+
+
+                  //TODO, this is a temporary solution, we only checked single challenge Id for remote connectors. here is only for the localMapped Connector logic
+                  _ <- if (APIUtil.isDataFromOBPSide("validateChallengeAnswer")){
+                    for{
+                      accountAttributes <- Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None)
+                      _ <- Helper.booleanToFuture(s"$NextChallengePending") {
+                        val quorum = accountAttributes._1.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
+                        MappedExpectedChallengeAnswer
+                          .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
+                          .count(_.successful == true) match {
+                          case number if number >= quorum => true
+                          case _ =>
+                            MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
+                            false
+                        }
+                      }
+                    } yield {
+                      true
+                    }
+                  } else{
+                    Future{true}
+                  }
+
+                  // All Good, proceed with the Transaction creation...
+                  (transactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+                    case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT =>
+                      NewStyle.function.createTransactionAfterChallengeV300(u, fromAccount, transReqId, transactionRequestType, callContext)
+                    case _ =>
+                      NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
+                  }
+                } yield (transactionRequest, callContext)
+            }
           } yield {
 
             (JSONFactory210.createTransactionRequestWithChargeJSON(transactionRequest), HttpCode.`202`(callContext))
@@ -1089,8 +1156,7 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEntities))
     )
 
@@ -1100,6 +1166,41 @@ trait APIMethods400 {
         cc =>
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities())
+          } yield {
+            val listCommons: List[DynamicEntityCommons] = dynamicEntities
+            val jObjects = listCommons.map(_.jValue)
+            (ListResult("dynamic_entities", jObjects), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankLevelDynamicEntities,
+      implementedInApiVersion,
+      nameOf(getBankLevelDynamicEntities),
+      "GET",
+      "/management/banks/BANK_ID/dynamic-entities",
+      "Get Bank Level Dynamic Entities",
+      s"""Get all the bank level Dynamic Entities.""",
+      EmptyBody,
+      ListResult(
+        "dynamic_entities",
+        List(dynamicEntityResponseBodyExample)
+      ),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
+      Some(List(canGetBankLevelDynamicEntities))
+    )
+
+    lazy val getBankLevelDynamicEntities: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-entities" :: Nil JsonGet req => {
+        cc =>
+          for {
+            dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByBankId(bankId))
           } yield {
             val listCommons: List[DynamicEntityCommons] = dynamicEntities
             val jObjects = listCommons.map(_.jValue)
@@ -1132,6 +1233,9 @@ trait APIMethods400 {
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
+         | Note: BankId filed is optional, 
+         |          if you add it, the entity will be the Bank level.
+         |          if you omit it, the entity will be the System level.  
          |""",
       dynamicEntityRequestBodyExample,
       dynamicEntityResponseBodyExample,
@@ -1141,17 +1245,24 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canCreateDynamicEntity)))
 
     lazy val createDynamicEntity: OBPEndpoint = {
       case "management" :: "dynamic-entities" :: Nil JsonPost json -> _ => {
         cc =>
-          val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None)
+          val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None, cc.userId)
           for {
             Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, cc.callContext)
+            //granted the CRUD roles to the loggedIn User
+            curdRoles = List(
+              DynamicEntityInfo.canCreateRole(result.entityName, dynamicEntity.bankId), 
+              DynamicEntityInfo.canUpdateRole(result.entityName, dynamicEntity.bankId), 
+              DynamicEntityInfo.canGetRole(result.entityName, dynamicEntity.bankId),
+              DynamicEntityInfo.canDeleteRole(result.entityName, dynamicEntity.bankId)
+            )     
           } yield {
+            curdRoles.map(role => Entitlement.entitlement.vend.addEntitlement(dynamicEntity.bankId.getOrElse(""), cc.userId, role.toString()))
             val commonsData: DynamicEntityCommons = result
             (commonsData.jValue, HttpCode.`201`(cc.callContext))
           }
@@ -1192,8 +1303,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canUpdateDynamicEntity)))
 
     lazy val updateDynamicEntity: OBPEndpoint = {
@@ -1202,14 +1312,14 @@ trait APIMethods400 {
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
               resultList.arr.isEmpty
             }
 
             jsonObject = json.asInstanceOf[JObject]
-            dynamicEntity = DynamicEntityCommons(jsonObject, Some(dynamicEntityId))
+            dynamicEntity = DynamicEntityCommons(jsonObject, Some(dynamicEntityId), cc.userId)
             Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, cc.callContext)
           } yield {
             val commonsData: DynamicEntityCommons = result
@@ -1235,8 +1345,7 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagDynamicEntity, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteDynamicEntity)))
 
     lazy val deleteDynamicEntity: OBPEndpoint = {
@@ -1245,7 +1354,139 @@ trait APIMethods400 {
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
+            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
+            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
+              resultList.arr.isEmpty
+            }
+            deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
+          } yield {
+            (deleted, HttpCode.`204`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMyDynamicEntities,
+      implementedInApiVersion,
+      nameOf(getMyDynamicEntities),
+      "GET",
+      "/my/dynamic-entities",
+      "Get My Dynamic Entities",
+      s"""Get all my Dynamic Entities.""",
+      EmptyBody,
+      ListResult(
+        "dynamic_entities",
+        List(dynamicEntityResponseBodyExample)
+      ),
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle)
+    )
+
+    lazy val getMyDynamicEntities: OBPEndpoint = {
+      case "my" :: "dynamic-entities" :: Nil JsonGet req => {
+        cc =>
+          for {
+            dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByUserId(cc.userId))
+          } yield {
+            val listCommons: List[DynamicEntityCommons] = dynamicEntities
+            val jObjects = listCommons.map(_.jValue)
+            (ListResult("dynamic_entities", jObjects), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    private def updateMyDynamicEntityDoc = ResourceDoc(
+      updateMyDynamicEntity,
+      implementedInApiVersion,
+      nameOf(updateMyDynamicEntity),
+      "PUT",
+      "/my/dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Update My Dynamic Entity",
+      s"""Update my DynamicEntity.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Update one of my DynamicEntity, after update finished, the corresponding CRUD endpoints will be changed.
+         |
+         |Current support filed types as follow:
+         |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
+         |
+         |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
+         |
+         |Value of reference type is corresponding ids, please look at the following examples.
+         |Current supporting reference types and corresponding examples as follow:
+         |```
+         |${ReferenceType.referenceTypeAndExample.mkString("\n")}
+         |```
+         |""",
+      dynamicEntityRequestBodyExample,
+      dynamicEntityResponseBodyExample,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle)
+    )
+
+    lazy val updateMyDynamicEntity: OBPEndpoint = {
+      case "my" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
+            (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
+            _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser) {
+              entity.userId.equals(cc.userId)
+            }
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
+            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
+            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
+              resultList.arr.isEmpty
+            }
+            jsonObject = json.asInstanceOf[JObject]
+            dynamicEntity = DynamicEntityCommons(jsonObject, Some(dynamicEntityId), cc.userId)
+            Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, cc.callContext)
+          } yield {
+            val commonsData: DynamicEntityCommons = result
+            (commonsData.jValue, HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteMyDynamicEntity,
+      implementedInApiVersion,
+      nameOf(deleteMyDynamicEntity),
+      "DELETE",
+      "/my/dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Delete My Dynamic Entity",
+      s"""Delete my DynamicEntity specified by DYNAMIC_ENTITY_ID.
+         |
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle)
+    )
+
+    lazy val deleteMyDynamicEntity: OBPEndpoint = {
+      case "my" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
+            (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
+            _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser) {
+              entity.userId.equals(cc.userId)
+            }
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
               resultList.arr.isEmpty
@@ -1287,69 +1528,150 @@ trait APIMethods400 {
     }
 
     lazy val genericEndpoint: OBPEndpoint = {
-      case EntityName(entityName) :: Nil JsonGet req => { cc =>
+      case EntityName(bankId, entityName, id, dynamicEntityInfo) JsonGet req => { cc =>
         val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
+        val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
-          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
-          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, Some(cc))
-          resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
+          _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
+            if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
+              bankId.equals(dynamicEntityInfo.bankId.get)
+            else //If it is the system entity, we just return true.
+              true
+          }
+          (_, callContext ) <- 
+            if(dynamicEntityInfo.bankId.isDefined) { //if it is the bank level entity, we need to check the bankId
+              NewStyle.function.getBank(BankId(bankId), callContext) 
+            } else { 
+              Future{("", callContext)}
+            }
+          
+          _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, dynamicEntityInfo.bankId), callContext)
+          (box, _) <- if(id==""){
+              NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, dynamicEntityInfo.bankId, Some(cc))
+            } else{
+              NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), dynamicEntityInfo.bankId, Some(cc))
+            }
+          
+          _<- if(id==""){
+            Future{""}
+          } else{
+            Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {box.isDefined}
+          }
         } yield {
-          import net.liftweb.json.JsonDSL._
-
-          val jValue: JObject = listName -> filterDynamicObjects(resultList, req)
+          val jValue = if(id=="") {
+            val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
+            if (dynamicEntityInfo.bankId.isDefined){
+              val bankIdJobject: JObject = ("bank_id" -> dynamicEntityInfo.bankId.getOrElse(""))
+              val result: JObject = (listName -> filterDynamicObjects(resultList, req))
+              bankIdJobject merge result
+            } else{
+              val result: JObject = (listName -> filterDynamicObjects(resultList, req))
+              result
+            }
+          }else{
+              val sigleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
+              if (dynamicEntityInfo.bankId.isDefined) {
+                val bankIdJobject: JObject = ("bank_id" -> dynamicEntityInfo.bankId.getOrElse(""))
+                val result: JObject = (singleName -> sigleObject)
+                bankIdJobject merge result
+              }else{
+                val result: JObject = (singleName -> sigleObject)
+                result
+              }
+          }
           (jValue, HttpCode.`200`(Some(cc)))
         }
       }
-      case EntityName(entityName, id) JsonGet req => {cc =>
+        
+      case EntityName(bankId, entityName, _, dynamicEntityInfo) JsonPost json -> _ => {cc =>
+        val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
-          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canGetRole(entityName), callContext)
-          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
-          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
-            box.isDefined
+          _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
+            if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
+              bankId.equals(dynamicEntityInfo.bankId.get)
+            else //If it is the system entity, we just return true.
+              true
           }
-          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
+          (_, callContext ) <-
+            if(dynamicEntityInfo.bankId.isDefined) { //if it is the bank level entity, we need to check the bankId
+              NewStyle.function.getBank(BankId(bankId), callContext)
+            } else {
+              Future{("", callContext)}
+            }
+          _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canCreateRole(entityName, dynamicEntityInfo.bankId), callContext)
+          (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, dynamicEntityInfo.bankId, Some(cc))
+          singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
-          (entity, HttpCode.`200`(Some(cc)))
-        }
-      }
-      case EntityName(entityName) :: Nil JsonPost json -> _ => {cc =>
-        for {
-          (Full(u), callContext) <- authenticatedAccess(cc)
-          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canCreateRole(entityName), callContext)
-          (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, Some(cc))
-          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-        } yield {
+          val result: JObject = (singleName -> singleObject)
+          val entity = if (dynamicEntityInfo.bankId.isDefined) {
+            val bankIdJobject: JObject = ("bank_id" -> dynamicEntityInfo.bankId.getOrElse(""))
+            bankIdJobject merge result
+          } else {
+            result
+          }  
           (entity, HttpCode.`201`(Some(cc)))
         }
       }
-      case EntityName(entityName, id) JsonPut json -> _ => { cc =>
+      case EntityName(bankId, entityName, id, dynamicEntityInfo) JsonPut json -> _ => { cc =>
+        val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
-          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canUpdateRole(entityName), callContext)
-          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
+          _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
+            if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
+              bankId.equals(dynamicEntityInfo.bankId.get)
+            else //If it is the system entity, we just return true.
+              true
+          }
+          (_, callContext ) <-
+            if(dynamicEntityInfo.bankId.isDefined) { //if it is the bank level entity, we need to check the bankId
+              NewStyle.function.getBank(BankId(bankId), callContext)
+            } else {
+              Future{("", callContext)}
+            }
+          _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canUpdateRole(entityName, dynamicEntityInfo.bankId), callContext)
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), dynamicEntityInfo.bankId, Some(cc))
           _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
             box.isDefined
           }
-          (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), Some(cc))
-          entity: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
+          (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), dynamicEntityInfo.bankId, Some(cc))
+          singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
+          val result: JObject = (singleName -> singleObject)
+          val entity = if (dynamicEntityInfo.bankId.isDefined) {
+            val bankIdJobject: JObject = ("bank_id" -> dynamicEntityInfo.bankId.getOrElse(""))
+            bankIdJobject merge result
+          } else {
+            result
+          }
           (entity, HttpCode.`200`(Some(cc)))
         }
       }
-      case EntityName(entityName, id) JsonDelete req => { cc =>
+      case EntityName(bankId, entityName, id, dynamicEntityInfo) JsonDelete req => { cc =>
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
-          _ <- NewStyle.function.hasEntitlement("", u.userId, DynamicEntityInfo.canDeleteRole(entityName), callContext)
-          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), Some(cc))
+          _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
+            if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
+              bankId.equals(dynamicEntityInfo.bankId.get)
+            else //If it is the system entity, we just return true.
+              true
+          }
+          (_, callContext ) <-
+            if(dynamicEntityInfo.bankId.isDefined) { //if it is the bank level entity, we need to check the bankId
+              NewStyle.function.getBank(BankId(bankId), callContext)
+            } else {
+              Future{("", callContext)}
+            }
+          _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canDeleteRole(entityName, dynamicEntityInfo.bankId), callContext)
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), dynamicEntityInfo.bankId, Some(cc))
           _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
             box.isDefined
           }
-          (box, _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), Some(cc))
+          (box, _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id),dynamicEntityInfo.bankId, Some(cc))
           deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
         } yield {
-          (deleteResult, HttpCode.`200`(Some(cc)))
+          (deleteResult, HttpCode.`204`(Some(cc)))
         }
       }
     }
@@ -1374,7 +1696,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagApi, apiTagNewStyle),
       Some(List(canCreateResetPasswordUrl)))
 
@@ -1427,8 +1748,7 @@ trait APIMethods400 {
         InvalidAccountBalanceCurrency,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount,apiTagOnboarding),
+      List(apiTagAccount,apiTagOnboarding, apiTagNewStyle),
       Some(List(canCreateAccount))
     ).disableAutoValidateRoles()  // this means disabled auto roles validation, will manually do the roles validation .
 
@@ -1543,7 +1863,6 @@ trait APIMethods400 {
       emptyObjectJson,
       apiInfoJson400,
       List(UnknownError, "no connector set"),
-      Catalogs(Core, notPSD2, OBWG),
       apiTagApi :: apiTagNewStyle :: Nil)
 
     lazy val root : OBPEndpoint = {
@@ -1568,7 +1887,6 @@ trait APIMethods400 {
       emptyObjectJson,
       emptyObjectJson,
       List($UserNotLoggedIn, UnknownError),
-      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagApi, apiTagNewStyle),
       Some(List(canGetCallContext)))
 
@@ -1578,6 +1896,44 @@ trait APIMethods400 {
             (cc.callContext, HttpCode.`200`(cc.callContext))
           }
         }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      updateAccountLabel,
+      implementedInApiVersion,
+      "updateAccountLabel",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID",
+      "Update Account Label",
+      s"""Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account'
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+       """.stripMargin,
+      updateAccountJsonV400,
+      successMessage,
+      List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound, "user does not have access to owner view on account"),
+      List(apiTagAccount, apiTagNewStyle)
+    )
+
+    lazy val updateAccountLabel : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $InvalidJsonFormat "
+            json <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[UpdateAccountJsonV400]
+            }
+          } yield {
+            account.updateLabel(u, json.label)
+            (Extraction.decompose(successMessage), HttpCode.`200`(callContext))
+          }
+      }
     }
 
 
@@ -1597,7 +1953,6 @@ trait APIMethods400 {
       EmptyBody,
       userLockStatusJson,
       List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canLockUser)))
 
@@ -1631,7 +1986,6 @@ trait APIMethods400 {
       emptyObjectJson,
       entitlementJSONs,
       List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canGetEntitlementsForAnyUserAtAnyBank)))
 
@@ -1669,7 +2023,6 @@ trait APIMethods400 {
       emptyObjectJson,
       entitlementJSONs,
       List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canGetEntitlementsForOneBank,canGetEntitlementsForAnyBank)))
 
@@ -1710,8 +2063,7 @@ trait APIMethods400 {
         NoViewPermission,
         $UserNoPermissionAccessView,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccountMetadata, apiTagAccount))
+      List(apiTagAccountMetadata, apiTagAccount, apiTagNewStyle))
 
     lazy val addTagForViewOnAccount : OBPEndpoint = {
       //add a tag
@@ -1755,8 +2107,7 @@ trait APIMethods400 {
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccountMetadata, apiTagAccount))
+      List(apiTagAccountMetadata, apiTagAccount, apiTagNewStyle))
 
     lazy val deleteTagForViewOnAccount : OBPEndpoint = {
       //delete a tag
@@ -1798,8 +2149,7 @@ trait APIMethods400 {
         $UserNoPermissionAccessView,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccountMetadata, apiTagAccount))
+      List(apiTagAccountMetadata, apiTagAccount, apiTagNewStyle))
 
     lazy val getTagsForViewOnAccount : OBPEndpoint = {
       //get tags
@@ -1846,8 +2196,7 @@ trait APIMethods400 {
       emptyObjectJson,
       moderatedCoreAccountJsonV400,
       List($UserNotLoggedIn, $BankAccountNotFound,UnknownError),
-      Catalogs(Core, PSD2, notOBWG),
-      apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: Nil
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 ::  apiTagNewStyle :: Nil
     )
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
@@ -1857,10 +2206,9 @@ trait APIMethods400 {
             (user @Full(u), account) <- SS.userAccount
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), cc.callContext)
             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, cc.callContext)
-            tags <- Future(Tags.tags.vend.getTagsOnAccount(bankId, account.accountId)(view.viewId))
           } yield {
             val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
-            (createNewCoreBankAccountJson(moderatedAccount, availableViews, tags), HttpCode.`200`(cc.callContext))
+            (createNewCoreBankAccountJson(moderatedAccount, availableViews), HttpCode.`200`(cc.callContext))
           }
       }
     }
@@ -1897,7 +2245,6 @@ trait APIMethods400 {
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  apiTagNewStyle :: Nil
     )
     lazy val getPrivateAccountByIdFull : OBPEndpoint = {
@@ -1915,6 +2262,184 @@ trait APIMethods400 {
             val viewsAvailable = availableViews.map(JSONFactory.createViewJSON).sortBy(_.short_name)
             val tags = Tags.tags.vend.getTagsOnAccount(bankId, accountId)(viewId)
             (createBankAccountJSON(moderatedAccount, viewsAvailable, accountAttributes, tags), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getAccountByAccountRouting,
+      implementedInApiVersion,
+      nameOf(getAccountByAccountRouting),
+      "POST",
+      "/management/accounts/account-routing-query",
+      "Get Account by Account Routing",
+      """This endpoint returns the account (if it exists) linked with the provided scheme and address.
+        |
+        |The `bank_id` field is optional, but if it's not provided, we don't guarantee that the returned account is unique across all the banks.
+        |
+        |Example of account routing scheme: `IBAN`, "OBP", "AccountNumber", ...
+        |Example of account routing address: `DE17500105178275645584`, "321774cc-fccd-11ea-adc1-0242ac120002", "55897106215", ...
+        |
+        |""".stripMargin,
+      bankAccountRoutingJson,
+      moderatedAccountJSON400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        UnknownError),
+      List(apiTagAccount, apiTagNewStyle),
+    )
+    lazy val getAccountByAccountRouting : OBPEndpoint = {
+      case "management" :: "accounts" :: "account-routing-query" :: Nil JsonPost json -> _ => {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $accountRoutingJsonV121"
+          for {
+            postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[BankAccountRoutingJson]
+            }
+
+            (account, callContext) <- NewStyle.function.getBankAccountByRouting(postJson.bank_id.map(BankId(_)),
+              postJson.account_routing.scheme, postJson.account_routing.address, cc.callContext)
+
+            user @Full(u) = cc.user
+            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), cc.callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, cc.callContext)
+
+            (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
+              account.bankId,
+              account.accountId,
+              cc.callContext: Option[CallContext])
+          } yield {
+            val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(cc.user.openOrThrowException("Exception user"), BankIdAccountId(account.bankId, account.accountId))
+            val viewsAvailable = availableViews.map(JSONFactory.createViewJSON).sortBy(_.short_name)
+            val tags = Tags.tags.vend.getTagsOnAccount(account.bankId, account.accountId)(view.viewId)
+            (createBankAccountJSON(moderatedAccount, viewsAvailable, accountAttributes, tags), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankAccountsBalances,
+      implementedInApiVersion,
+      nameOf(getBankAccountsBalances),
+      "GET",
+      "/banks/BANK_ID/balances",
+      "Get Accounts Balances",
+      """Get the Balances for the Accounts of the current User at one bank.""",
+      emptyObjectJson,
+      accountBalancesV400Json,
+      List(UnknownError),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
+    )
+
+    lazy val getBankAccountsBalances : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "balances" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
+            (accountsBalances, callContext)<- NewStyle.function.getBankAccountsBalances(availablePrivateAccounts, callContext)
+          } yield{
+            (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getFirehoseAccountsAtOneBank,
+      implementedInApiVersion,
+      nameOf(getFirehoseAccountsAtOneBank),
+      "GET",
+      "/banks/BANK_ID/firehose/accounts/views/VIEW_ID",
+      "Get Firehose Accounts at Bank",
+      s"""
+         |Get Accounts which have a firehose view assigned to them.
+         |
+         |This endpoint allows bulk access to accounts.
+         |
+         |Requires the CanUseFirehoseAtAnyBank Role
+         |
+         |To be shown on the list, each Account must have a firehose View linked to it.
+         |
+         |A firehose view has is_firehose = true
+         |
+         |For VIEW_ID try 'owner'
+         |
+         |optional request parameters for filter with attributes
+         |URL params example:
+         |  /banks/some-bank-id/firehose/accounts/views/owner?manager=John&count=8
+         |
+         |to invalid Browser cache, add timestamp query parameter as follow, the parameter name must be `_timestamp_`
+         |URL params example:
+         |  `/banks/some-bank-id/firehose/accounts/views/owner?manager=John&count=8&_timestamp_=1596762180358`
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      emptyObjectJson,
+      moderatedFirehoseAccountsJsonV400,
+      List(UserNotLoggedIn,UnknownError),
+      List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
+      Some(List(canUseAccountFirehoseAtAnyBank))
+    )
+
+    lazy val getFirehoseAccountsAtOneBank : OBPEndpoint = {
+      //get private accounts for all banks
+      case "banks" :: BankId(bankId):: "firehose" :: "accounts"  :: "views" :: ViewId(viewId):: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  ) {
+              canUseAccountFirehose(u)
+            }
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(BankId(""), AccountId("")), Some(u), callContext)
+            availableBankIdAccountIdList <- Future {
+              Views.views.vend.getAllFirehoseAccounts(bank.bankId).map(a => BankIdAccountId(a.bankId,a.accountId))
+            }
+            params = req.params.filterNot(_._1 == "_timestamp_") // ignore `_timestamp_` parameter, it is for invalid Browser caching
+            availableBankIdAccountIdList2 <- if(params.isEmpty) {
+              Future.successful(availableBankIdAccountIdList)
+            } else {
+              AccountAttributeX.accountAttributeProvider.vend
+                .getAccountIdsByParams(bankId, params)
+                .map { boxedAccountIds =>
+                  val accountIds = boxedAccountIds.getOrElse(Nil)
+                  availableBankIdAccountIdList.filter(availableBankIdAccountId => accountIds.contains(availableBankIdAccountId.accountId.value))
+                }
+            }
+            moderatedAccounts: List[ModeratedBankAccount] = for {
+              //Here is a new for-loop to get the moderated accouts for the firehose user, according to the viewId.
+              //1 each accountId-> find a proper bankAccount object.
+              //2 each bankAccount object find the proper view.
+              //3 use view and user to moderate the bankaccount object.
+              bankIdAccountId <- availableBankIdAccountIdList2
+              bankAccount <- Connector.connector.vend.getBankAccountOld(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
+              moderatedAccount <- bankAccount.moderatedBankAccount(view, bankIdAccountId, Full(u), callContext) //Error handling is in lower method
+            } yield {
+              moderatedAccount
+            }
+            // if there are accountAttribute query parameter, link to corresponding accountAttributes.
+            (accountAttributes: Option[List[AccountAttribute]], callContext) <- if(moderatedAccounts.nonEmpty && params.nonEmpty) {
+              val futures: List[OBPReturnType[List[AccountAttribute]]] = availableBankIdAccountIdList2.map { bankIdAccount =>
+                val BankIdAccountId(bId, accountId) = bankIdAccount
+                NewStyle.function.getAccountAttributesByAccount(
+                  bId,
+                  accountId,
+                  callContext: Option[CallContext])
+              }
+              Future.reduceLeft(futures){ (r, t) => // combine to one future
+                r.copy(_1 = t._1 ::: t._1)
+              } map (it => (Some(it._1), it._2)) // convert list to Option[List[AccountAttribute]]
+            } else {
+              Future.successful(None, callContext)
+            }
+          } yield {
+            (JSONFactory400.createFirehoseCoreBankAccountJSON(moderatedAccounts, accountAttributes), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1942,7 +2467,6 @@ trait APIMethods400 {
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc ,apiTagNewStyle))
 
     lazy val getCustomersByCustomerPhoneNumber : OBPEndpoint = {
@@ -1983,8 +2507,7 @@ trait APIMethods400 {
         InsufficientAuthorisationToCreateBank,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBank),
+      List(apiTagBank, apiTagNewStyle),
       Some(List(canCreateBank))
     )
 
@@ -2061,7 +2584,6 @@ trait APIMethods400 {
         CounterpartyNotFoundByCounterpartyId,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDirectDebit, apiTagAccount, apiTagNewStyle))
 
     lazy val createDirectDebit : OBPEndpoint = {
@@ -2120,7 +2642,6 @@ trait APIMethods400 {
         CounterpartyNotFoundByCounterpartyId,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagDirectDebit, apiTagAccount, apiTagNewStyle),
       Some(List(canCreateDirectDebitAtOneBank))
     )
@@ -2182,7 +2703,6 @@ trait APIMethods400 {
         $UserNoPermissionAccessView,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagStandingOrder, apiTagAccount, apiTagNewStyle))
 
     lazy val createStandingOrder : OBPEndpoint = {
@@ -2256,7 +2776,6 @@ trait APIMethods400 {
         UserNotFoundByUserId,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagStandingOrder, apiTagAccount, apiTagNewStyle),
       Some(List(canCreateStandingOrderAtOneBank))
     )
@@ -2326,8 +2845,7 @@ trait APIMethods400 {
         CannotGrantAccountAccess,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
+      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagNewStyle))
 
     lazy val grantUserAccessToView : OBPEndpoint = {
       //add access for specific user to a specific system view
@@ -2381,8 +2899,7 @@ trait APIMethods400 {
         CannotFindAccountAccess,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
+      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagNewStyle))
 
     lazy val revokeUserAccessToView : OBPEndpoint = {
       //add access for specific user to a specific system view
@@ -2484,7 +3001,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canCreateCustomerAttributeAtOneBank)))
 
@@ -2539,7 +3055,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canUpdateCustomerAttributeAtOneBank))
     )
@@ -2598,7 +3113,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetCustomerAttributesAtOneBank))
     )
@@ -2640,7 +3154,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetCustomerAttributeAtOneBank))
     )
@@ -2686,7 +3199,6 @@ trait APIMethods400 {
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetCustomer))
     )
@@ -2739,7 +3251,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
       Some(List(canCreateTransactionAttributeAtOneBank)))
 
@@ -2794,7 +3305,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
       Some(List(canUpdateTransactionAttributeAtOneBank))
     )
@@ -2850,7 +3360,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
       Some(List(canGetTransactionAttributesAtOneBank))
     )
@@ -2892,7 +3401,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
       Some(List(canGetTransactionAttributeAtOneBank))
     )
@@ -2952,8 +3460,7 @@ trait APIMethods400 {
         GetTransactionRequestsException,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     lazy val getTransactionRequest: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: TransactionRequestId(requestId) :: Nil JsonGet _ => {
@@ -2997,7 +3504,6 @@ trait APIMethods400 {
       emptyObjectJson,
       basicAccountsJSON,
       List($UserNotLoggedIn, $BankNotFound, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle)
     )
 
@@ -3069,8 +3575,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagConsumer),
+      List(apiTagConsumer, apiTagNewStyle),
       Some(List(canCreateConsumer)))
 
 
@@ -3134,7 +3639,6 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canDeleteCustomerAttributeAtOneBank)))
 
@@ -3175,8 +3679,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canCreateDynamicEndpoint)))
 
     lazy val createDynamicEndpoint: OBPEndpoint = {
@@ -3193,10 +3696,12 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(errorMsg) {
               duplicatedUrl.isEmpty
             }
-            (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(postedJson.swaggerString, cc.callContext)
+            (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(cc.userId, postedJson.swaggerString, cc.callContext)
           } yield {
+            val roles = DynamicEndpointHelper.getRoles(dynamicEndpoint.dynamicEndpointId.getOrElse(""))
+            roles.map(role => Entitlement.entitlement.vend.addEntitlement("", cc.userId, role.toString()))
             val swaggerJson = parse(dynamicEndpoint.swaggerString)
-            val responseJson: JObject = ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+            val responseJson: JObject = ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
             (responseJson, HttpCode.`201`(callContext))
           }
       }
@@ -3225,8 +3730,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEndpoint)))
 
     lazy val getDynamicEndpoint: OBPEndpoint = {
@@ -3236,7 +3740,7 @@ trait APIMethods400 {
             (dynamicEndpoint, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
           } yield {
             val swaggerJson = parse(dynamicEndpoint.swaggerString)
-            val responseJson: JObject = ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+            val responseJson: JObject = ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
             (responseJson, HttpCode.`200`(callContext))
           }
       }
@@ -3265,8 +3769,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEndpoints)))
 
     lazy val getDynamicEndpoints: OBPEndpoint = {
@@ -3277,7 +3780,7 @@ trait APIMethods400 {
           } yield {
             val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint=>
               val swaggerJson = parse(dynamicEndpoint.swaggerString)
-               ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+              ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
             }
             (ListResult("dynamic_endpoints", resultList), HttpCode.`200`(cc.callContext))
           }
@@ -3291,19 +3794,15 @@ trait APIMethods400 {
       "DELETE",
       "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
       " Delete Dynamic Endpoint",
-      s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.
-         |
-         |""",
+      s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.""".stripMargin,
       EmptyBody,
       EmptyBody,
       List(
         $UserNotLoggedIn,
-        UserHasMissingRoles,
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteDynamicEndpoint)))
 
     lazy val deleteDynamicEndpoint : OBPEndpoint = {
@@ -3317,6 +3816,75 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getMyDynamicEndpoints,
+      implementedInApiVersion,
+      nameOf(getMyDynamicEndpoints),
+      "GET",
+      "/my/dynamic-endpoints",
+      "Get My Dynamic Endpoints",
+      s"""Get My Dynamic Endpoints.""".stripMargin,
+      EmptyBody,
+      ListResult(
+        "dynamic_endpoints",
+        List(dynamicEndpointResponseBodyExample)
+      ),
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle)
+    )
+
+    lazy val getMyDynamicEndpoints: OBPEndpoint = {
+      case "my" :: "dynamic-endpoints" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (dynamicEndpoints, _) <- NewStyle.function.getDynamicEndpointsByUserId(cc.userId, cc.callContext)
+          } yield {
+            val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint=>
+              val swaggerJson = parse(dynamicEndpoint.swaggerString)
+              ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+            }
+            (ListResult("dynamic_endpoints", resultList), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteMyDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(deleteMyDynamicEndpoint),
+      "DELETE",
+      "/my/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
+      "Delete My Dynamic Endpoint",
+      s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+    )
+
+    lazy val deleteMyDynamicEndpoint : OBPEndpoint = {
+      case "my" :: "dynamic-endpoints" :: dynamicEndpointId ::  Nil JsonDelete _ => {
+        cc =>
+          for {
+            (dynamicEndpoint, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
+            _ <- Helper.booleanToFuture(InvalidMyDynamicEndpointUser) {
+              dynamicEndpoint.userId.equals(cc.userId)
+            }
+            deleted <- NewStyle.function.deleteDynamicEndpoint(dynamicEndpointId, cc.callContext)
+            
+          } yield {
+            (deleted, HttpCode.`204`(cc.callContext))
+          }
+      }
+    }
 
     lazy val dynamicEndpoint: OBPEndpoint = {
       case DynamicReq(url, json, method, params, pathParams, role, mockResponse) => { cc =>
@@ -3367,7 +3935,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canCreateCustomerAttributeDefinitionAtOneBank)))
 
@@ -3432,7 +3999,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagNewStyle),
       Some(List(canCreateAccountAttributeDefinitionAtOneBank)))
 
@@ -3496,7 +4062,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagNewStyle),
       Some(List(canCreateProductAttributeDefinitionAtOneBank)))
 
@@ -3559,7 +4124,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
       Some(List(canCreateTransactionAttributeDefinitionAtOneBank)))
 
@@ -3624,7 +4188,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCard, apiTagNewStyle),
       Some(List(canCreateCardAttributeDefinitionAtOneBank)))
 
@@ -3684,7 +4247,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
       Some(List(canDeleteTransactionAttributeDefinitionAtOneBank)))
 
@@ -3723,7 +4285,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canDeleteCustomerAttributeDefinitionAtOneBank)))
 
@@ -3762,7 +4323,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagNewStyle),
       Some(List(canDeleteAccountAttributeDefinitionAtOneBank)))
 
@@ -3801,7 +4361,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagNewStyle),
       Some(List(canDeleteProductAttributeDefinitionAtOneBank)))
 
@@ -3840,7 +4399,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCard, apiTagNewStyle),
       Some(List(canDeleteCardAttributeDefinitionAtOneBank)))
 
@@ -3879,7 +4437,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagNewStyle),
       Some(List(canGetProductAttributeDefinitionAtOneBank)))
 
@@ -3917,7 +4474,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetCustomerAttributeDefinitionAtOneBank)))
 
@@ -3955,7 +4511,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagNewStyle),
       Some(List(canGetAccountAttributeDefinitionAtOneBank)))
 
@@ -3993,7 +4548,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagNewStyle),
       Some(List(canGetTransactionAttributeDefinitionAtOneBank)))
 
@@ -4032,7 +4586,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCard, apiTagNewStyle),
       Some(List(canGetCardAttributeDefinitionAtOneBank)))
 
@@ -4071,7 +4624,6 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canDeleteUserCustomerLink)))
 
@@ -4109,7 +4661,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetUserCustomerLink)))
 
@@ -4146,7 +4697,6 @@ trait APIMethods400 {
         $BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetUserCustomerLink)))
 
@@ -4186,7 +4736,6 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteTransactionCascade)))
 
@@ -4225,7 +4774,6 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteAccountCascade)))
 
@@ -4262,7 +4810,6 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteProductCascade)))
 
@@ -4381,8 +4928,7 @@ trait APIMethods400 {
         CounterpartyAlreadyExists,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCounterparty, apiTagAccount))
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle))
 
 
     lazy val createCounterparty: OBPEndpoint = {
@@ -4566,8 +5112,7 @@ trait APIMethods400 {
         CounterpartyAlreadyExists,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCounterparty, apiTagAccount),
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle),
       Some(List(canCreateCounterparty, canCreateCounterpartyAtAnyBank)))
 
 
@@ -4663,8 +5208,7 @@ trait APIMethods400 {
         UserNoPermissionAccessView,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagAccount))
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount, apiTagNewStyle))
 
     lazy val getExplictCounterpartiesForAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
@@ -4712,8 +5256,7 @@ trait APIMethods400 {
       emptyObjectJson,
       counterpartyWithMetadataJson400,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData)
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagCounterpartyMetaData, apiTagNewStyle)
     )
 
     lazy val getExplictCounterpartyById : OBPEndpoint = {
@@ -4759,8 +5302,7 @@ trait APIMethods400 {
         ViewNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCounterparty, apiTagAccount),
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle),
       Some(List(canGetCounterpartyAtAnyBank, canGetCounterparty)))
 
     lazy val getCounterpartyByNameForAnyAccount: OBPEndpoint = {

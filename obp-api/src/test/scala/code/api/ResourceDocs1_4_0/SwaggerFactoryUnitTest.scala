@@ -6,6 +6,7 @@ import code.api.v2_1_0.OBPAPI2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
+import code.api.v4_0_0.OBPAPI4_0_0
 import code.util.Helper.MdcLoggable
 
 import scala.collection.mutable.ArrayBuffer

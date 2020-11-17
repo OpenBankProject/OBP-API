@@ -92,8 +92,8 @@ object MappedEntitlementsProvider extends EntitlementProvider {
       }
   }
 
-  override def deleteDynamicEntityEntitlement(entityName: String): Box[Boolean] = {
-    val roleNames = DynamicEntityInfo.roleNames(entityName)
+  override def deleteDynamicEntityEntitlement(entityName: String, bankId:Option[String]): Box[Boolean] = {
+    val roleNames = DynamicEntityInfo.roleNames(entityName,bankId)
     deleteEntitlements(roleNames)
   }
 

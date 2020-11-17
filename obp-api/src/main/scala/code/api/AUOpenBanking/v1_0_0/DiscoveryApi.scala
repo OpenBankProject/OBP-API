@@ -53,13 +53,12 @@ object APIMethods_DiscoveryApi extends RestHelper {
       "explanation" : "explanation"
     } ]
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Common") ::ApiTag("Discovery") :: apiTagMockedData :: Nil
      )
 
@@ -83,7 +82,7 @@ object APIMethods_DiscoveryApi extends RestHelper {
       "explanation" : "explanation"
     } ]
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -112,13 +111,12 @@ object APIMethods_DiscoveryApi extends RestHelper {
     "detectionTime" : "detectionTime",
     "status" : "OK"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Common") ::ApiTag("Discovery") :: apiTagMockedData :: Nil
      )
 
@@ -136,7 +134,7 @@ object APIMethods_DiscoveryApi extends RestHelper {
     "detectionTime" : "detectionTime",
     "status" : "OK"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }

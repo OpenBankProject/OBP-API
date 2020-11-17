@@ -173,7 +173,7 @@ object OAuthAuthorisation {
       val allInputFields = (AuthUser.login \\ "input")
       val submitFields = allInputFields.filter(e => e.\@("type").equalsIgnoreCase("submit"))
       val extractToken = submitFields.map(e => e.\@("name"))
-      val submitElem = s"""<input class="submit" type="submit" value="${APIUtil.loginButtonText}" tabindex="4" name="submitButton"/>""".replace("submitButton", extractToken.headOption.getOrElse(""))
+      val submitElem = s"""<input class="submit" type="submit" value="${APIUtil.loginButtonText}" tabindex="0" name="submitButton"/>""".replace("submitButton", extractToken.headOption.getOrElse(""))
       scala.xml.XML.loadString(submitElem)
     }
 

@@ -337,7 +337,6 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -956,7 +955,6 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -1281,7 +1279,7 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
   "data" : {
     "accountIds" : [ "accountIds", "accountIds" ]
   },
-  "meta" : { }
+    "meta" : " ",
 }"""),
        json.parse("""{
   "data" : {
@@ -1580,7 +1578,6 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Scheduled Payments") :: apiTagMockedData :: Nil
      )
 

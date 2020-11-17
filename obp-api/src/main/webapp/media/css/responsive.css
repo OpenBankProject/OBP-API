@@ -1,0 +1,454 @@
+/*clean the bootstrap default format*/
+@media (min-width: 0px){
+    .container {
+        width: 100%;
+        padding: 0;
+        margin:0;
+    }
+}
+
+@media only screen and (max-width: 383px) {
+    #cookies-consent-font,
+    #cookies-consent-button {
+        left: 16px;
+        text-align: left;
+    }
+    #cookies-consent {
+        height: 180px
+    }
+    #cookies-consent-button {
+        top: 104px;
+    }
+}
+
+@media only screen and (max-width: 400px) {
+    .main-showcases-item {
+        width: 120px;
+    }
+}
+@media only screen and (max-width: 415px) {
+    #main-support #main-support_place_holder{
+        display: block;
+    }
+    #main-support .col-xs-1{
+        display: none;
+    }
+}
+@media only screen and (max-width: 759px){
+    #cookies-consent-font,
+    #cookies-consent-button {
+        left: 16px;
+    }
+    #navbar .navbar-nav .navitem .api-explorer-link{
+        display: none;
+    }
+    #navbar #technical-faqs-anchor{
+        display: none;
+    }
+    #toast-container>.toast-error {
+        width: 320px;
+    }
+    #toast-container>.toast-success {
+        width: 320px;
+    }
+    #small-screen-navbar{
+        display: block;
+    }
+    h1 {
+        font-family: Roboto-Light;
+        font-size: 33px;
+        line-height: 40px;
+        color: #333333;
+        letter-spacing: 0;
+        font-weight: lighter;
+    }
+    h2 {
+        font-size: 28px;
+        font-family: Roboto-Light;
+        line-height: 36px;
+        color: #333333;
+        font-weight: lighter;
+        text-align: center;
+    }
+    h3 {
+        font-family: Roboto-Light;
+        font-size: 23px;
+        color: #333333;
+        line-height: 30px;
+        font-weight: lighter;
+    }
+    h4 {
+        font-family: Roboto-Light;
+        font-size: 19px;
+        color: #333333;
+        line-height: 27px;
+        font-weight: lighter;
+    }
+    .container #main-apis-hr,
+    .container #main-get-started,
+    .container #main-apis,
+    .container #main-faq,
+    .container #main-about-row,
+    .container #main-start-row,
+    .container #main-support,
+    .container #main-showcases-div,
+    .container #api_documentation_content,
+    #footer-div{
+        width: auto;
+        margin: 0 16px;
+        padding: 0;
+    }
+    #main-about {
+        background-image: url("/media/images/about-background-768.png");
+    }
+    #main-about-box {
+        width: 100%;
+    }
+    #main-apis #api-roles-metrics-documentation h3 img {
+        margin-left: 7.2px;
+    }
+    #main-faq .row .main-faq-right {
+        padding-left: 0px;
+        padding-right: 0px;
+    }
+    #main-faq .row .main-faq-left {
+        padding-right: 0px;
+        padding-left: 0px;
+    }
+    #for-banks .api-manager-link {
+        margin-top: 0;
+    }
+    #main-apis .main-apis-text {
+        margin-top: 30px;
+    }
+    .container .navbar{
+        display: none;
+    }
+    #main-about h1 {
+        text-align: left;
+        padding-top: 24px;
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+    #main-about p {
+        padding: 16px 16px 32px;
+        font-size: 22px;
+        color: #333333;
+        line-height: 31px;
+        margin: 0;
+    }
+    #main-about #main-about-buttons .api-explorer-link {
+        display:block;
+        margin-right: 16px;
+    }
+    #main-about #main-about-buttons #sandbox-introduction-link{
+        display: block;
+        margin-right: 16px;
+        margin-top: 8px;
+    }
+    #main-about #main-about-buttons {
+        margin: 0px 0 0 16px;
+    }
+    #main-about #main-about-box {
+        margin-top: 32px;
+        padding-bottom: 16px;
+    }
+    #main-start .btn-default {
+        display: block;
+        width: 100%;
+        margin-top: 8px;
+    }
+    #main-start #main-start_building {
+        padding: 0 0 48px 0;
+    }
+    #main-start h2 {
+        text-align: left;
+        font-size: 28px;
+        letter-spacing: 0;
+        margin-bottom: 24px;
+        margin-top: 32px;
+    }
+    #main-start #for-banks {
+        padding: 0 0 40px 0;
+    }
+    #main-start #for-banks h2{
+        margin-bottom: 24px;
+        margin-top: 0px; 
+    }
+    #main-get-started .main-get-started-item{
+        display: none;
+    }
+    #main-get-started .main-get-started-icon{
+        display: none;
+    }
+    #main-get-started .btn-primary,
+    #main-apis .btn-secondary {
+        width: 100%;
+    }
+    #main-faq .main-faq-right .main-faq-button.collapsed img {
+        right: 10px;
+    }
+    #main-faq .main-faq-right .main-faq-button img {
+        right: 10px;
+    }
+    #main-faq .main-faq-left .main-faq-button.collapsed img {
+        right: 10px;
+    }
+    #main-faq .main-faq-left .main-faq-button img {
+        right: 10px;
+    }
+    #main-faq button {
+        padding-right: 20px;
+    }
+}
+
+@media only screen and (min-width: 760px) and (max-width: 959px) {
+    h1 {
+        font-family: Roboto-Light;
+        font-size: 33px;
+        line-height: 40px;
+        color: #333333;
+        letter-spacing: 0;
+        font-weight: lighter;
+    }
+    h2 {
+        font-size: 28px;
+        font-family: Roboto-Light;
+        line-height: 36px;
+        color: #333333;
+        font-weight: lighter;
+        text-align: center;
+    }
+    h3 {
+        font-family: Roboto-Light;
+        font-size: 23px;
+        color: #333333;
+        line-height: 15px;
+        font-weight: lighter;
+    }
+    h4 {
+        font-family: Roboto-Light;
+        font-size: 19px;
+        color: #333333;
+        line-height: 27px;
+        font-weight: lighter;
+    }
+    .container #main-apis-hr,
+    .container #main-get-started,
+    .container #main-apis,
+    .container #main-faq,
+    .container #main-about-row,
+    .container #main-start-row,
+    .container #main-support,
+    .container #main-showcases-div,
+    .container #api_documentation_content,
+    #footer-div{
+        width: auto;
+        margin: 0 16px;
+        padding: 0;
+    }
+    #main-about {
+        background-image: url("/media/images/about-background-768.png");
+        height: 100%;
+        height: 420px;
+    }
+    #main-about-box {
+        width: 100%;
+    }
+    #main-apis #api-roles-metrics-documentation h3 img {
+        margin-left: 7.2px;
+    }
+    #main-get-started .btn-primary {
+        margin-left: 0;
+    }
+    .navbar-default .navbar-right .navitem p #register-link {
+        margin-right: 10px;
+    }
+    .navbar-default .navbar-nav > li > a {
+        margin-left: 4px; 
+        margin-right: 10px;
+    }
+    .main-showcases-item {
+        width: 150px;
+        margin: 30px 40px;
+    }
+    .main-showcases-item #main-showcases-item-java{
+        font-size: 18px;
+    }
+    .main-showcases-item #main-showcases-item-scala{
+        font-size: 22px;
+    }
+    #main-faq .row .main-faq-left{
+        padding-right: 30px;
+    }
+    #main-faq .row .main-faq-right{
+        padding-left: 30px;
+    }
+    #for-banks .btn-default {
+        margin-right: 20px;
+        background-color: #F3F3F3;
+        clear: both;
+        margin-top: 16px;
+    }
+    #for-banks .api-manager-link {
+        margin-top: 0;
+    }
+    #main-apis .btn-secondary {
+        margin-left: 0;
+    }
+
+    #main-get-started .main-get-started-item{
+        display: none;
+    }
+    #main-get-started .main-get-started-icon{
+        display: none;
+    }
+    #main-faq .main-faq-button.collapsed img {
+        right: 39px;
+    }
+    #main-faq .main-faq-button img {
+        right: 39px;
+    }
+    .container .navbar{
+        display: none;
+    }
+    #small-screen-navbar {
+        display: block;
+    }
+}
+
+@media only screen and (min-width: 960px) and (max-width: 1279px) {
+    h1 {
+        font-family: Roboto-Light;
+        font-size: 44px;
+        color: #333333;
+        letter-spacing: 0;
+        line-height: 50px;
+    }
+
+    h2 {
+        font-family: Roboto-Light;
+        font-size: 35px;
+        color: #333333;
+        text-align: center;
+        line-height: 42px;
+    }
+
+    h3 {
+        font-family: Roboto-Light;
+        font-size: 28px;
+        color: #333333;
+        line-height: 36px;
+    }
+    .container #navbar,
+    .container #main-apis-hr,
+    .container #main-get-started,
+    .container #main-apis,
+    .container #main-faq,
+    .container #main-about-row,
+    .container #main-start-row,
+    .container #main-support,
+    .container #api_documentation_div,
+    #footer-div{
+        width: auto;
+        margin: 0 20px;
+        padding: 0;
+    }
+    .container #api_documentation_content{
+        width: 83.33%;
+        padding: 0;
+    }
+    #main-about {
+        background-image: url("/media/images/about-background-992.png");
+        height: 450px;
+    }
+    #main-about-box {
+        width: 50%;
+    }
+    #main-apis #api-roles-metrics-documentation h3 img {
+        margin-left: 7.2px;
+    }
+    .main-showcases-item {
+        width: 188px;
+        margin: 30px 50px;
+    }
+    #small-screen-navbar{
+        display: none;
+    }
+}
+
+/*Just can not use on design between 960 to 1279, so we introduce the following here.*/
+@media only screen and (min-width: 1129px) and (max-width: 1279px) {
+    .main-showcases-item {
+        width: 230px;
+        margin: 30px 50px;
+    }
+}
+
+@media only screen and (min-width: 1280px) {
+    h1 {
+        font-family: Roboto-Light;
+        font-size: 44px;
+        color: #333333;
+        letter-spacing: 0;
+        line-height: 50px;
+    }
+
+    h2 {
+        font-family: Roboto-Light;
+        font-size: 35px;
+        color: #333333;
+        text-align: center;
+        line-height: 42px;
+    }
+
+    h3 {
+        font-family: Roboto-Light;
+        font-size: 28px;
+        color: #333333;
+        line-height: 36px;
+    }
+    .container #navbar,
+    .container #main-apis-hr,
+    .container #main-get-started,
+    .container #main-apis,
+    .container #main-faq,
+    .container #main-about-row,
+    .container #main-start-row,
+    .container #main-support,
+    .container #main-showcases-div,
+    .container #api_documentation_div,
+    #footer-div{
+        width: 1240px;
+        margin: 0 Auto;
+        padding: 0;
+    }
+    .container #api_documentation_content{
+        width: 66.67%;
+        margin-left: 20px;
+        padding: 0;
+    }
+    #main-about {
+        background-image: url("/media/images/about-background.jpg");
+        height: 420px;
+    }
+    #main-about-box {
+        width: 50%;
+    }
+    #small-screen-navbar{
+        display: none;
+    }
+}
+
+/*when micro-soft black-on-white mode */
+@media screen and (-ms-high-contrast: active), (-ms-high-contrast: black-on-white) {
+    #main-faq img{
+        background-color: #000000;
+    }
+}
+/*when micro-soft white-on-black mode。*/
+@media screen and (-ms-high-contrast: white-on-black) {
+    #main-faq img {
+        background-color: #FFFFFF;
+    }
+}

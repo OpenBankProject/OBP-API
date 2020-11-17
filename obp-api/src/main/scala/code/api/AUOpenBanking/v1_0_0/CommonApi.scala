@@ -70,13 +70,12 @@ object APIMethods_CommonApi extends RestHelper {
     },
     "customerUType" : "person"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Common") ::ApiTag("Customer") :: apiTagMockedData :: Nil
      )
 
@@ -115,7 +114,7 @@ object APIMethods_CommonApi extends RestHelper {
     },
     "customerUType" : "person"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -142,13 +141,12 @@ object APIMethods_CommonApi extends RestHelper {
     "organisation" : "",
     "customerUType" : "person"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Common") ::ApiTag("Customer") :: apiTagMockedData :: Nil
      )
 
@@ -164,7 +162,7 @@ object APIMethods_CommonApi extends RestHelper {
     "organisation" : "",
     "customerUType" : "person"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -199,13 +197,12 @@ object APIMethods_CommonApi extends RestHelper {
       "explanation" : "explanation"
     } ]
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Common") ::ApiTag("Discovery") :: apiTagMockedData :: Nil
      )
 
@@ -229,7 +226,7 @@ object APIMethods_CommonApi extends RestHelper {
       "explanation" : "explanation"
     } ]
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -258,13 +255,12 @@ object APIMethods_CommonApi extends RestHelper {
     "detectionTime" : "detectionTime",
     "status" : "OK"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Common") ::ApiTag("Discovery") :: apiTagMockedData :: Nil
      )
 
@@ -282,7 +278,7 @@ object APIMethods_CommonApi extends RestHelper {
     "detectionTime" : "detectionTime",
     "status" : "OK"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }

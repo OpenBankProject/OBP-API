@@ -5,7 +5,7 @@ import code.api.util.APIUtil.parseDate
 import net.liftweb.json.JsonDSL._
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
 import code.dynamicEntity.{DynamicEntityDefinition, DynamicEntityFooBar, DynamicEntityFullBarFields, DynamicEntityIntTypeExample, DynamicEntityStringTypeExample}
-import com.openbankproject.commons.model.enums.DynamicEntityFieldType
+import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType}
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json
 import net.liftweb.json.JObject
@@ -55,20 +55,20 @@ object ExampleValue {
   lazy val customerIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer and is used in URLs. This SHOULD NOT be the customer number. The combination of customerId and bankId MUST be unique on an OBP instance. customerId SHOULD be unique on an OBP instance. Ideally customerId is a UUID. A mapping between customer number and customer id is kept in OBP.")
   glossaryItems += makeGlossaryItem("Customer.customerId", customerIdExample)
 
-  lazy val customerAttributeId = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer and is used in URLs. This SHOULD NOT be the customer number. The combination of customerId and bankId MUST be unique on an OBP instance. customerId SHOULD be unique on an OBP instance. Ideally customerId is a UUID. A mapping between customer number and customer id is kept in OBP.")
+  lazy val customerAttributeId = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer attribute and is used in URLs.")
   glossaryItems += makeGlossaryItem("Customer.customerAttributeId", customerAttributeId)
 
-  lazy val customerAttributeName = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer and is used in URLs. This SHOULD NOT be the customer number. The combination of customerId and bankId MUST be unique on an OBP instance. customerId SHOULD be unique on an OBP instance. Ideally customerId is a UUID. A mapping between customer number and customer id is kept in OBP.")
-  glossaryItems += makeGlossaryItem("Customer.customerId", customerAttributeName)
+  lazy val customerAttributeName = ConnectorField("SPECIAL_TAX_NUMBER", s"The Customer Attribute name, eg: SPECIAL_TAX_NUMBER")
+  glossaryItems += makeGlossaryItem("Customer.customerAttributeName", customerAttributeName)
 
-  lazy val customerAttributeType = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer and is used in URLs. This SHOULD NOT be the customer number. The combination of customerId and bankId MUST be unique on an OBP instance. customerId SHOULD be unique on an OBP instance. Ideally customerId is a UUID. A mapping between customer number and customer id is kept in OBP.")
-  glossaryItems += makeGlossaryItem("Customer.customerId", customerAttributeType)
+  lazy val customerAttributeType = ConnectorField("STRING", s"It can be ${CustomerAttributeType.STRING}, ${CustomerAttributeType.INTEGER}, ${CustomerAttributeType.DOUBLE}, ${CustomerAttributeType.DATE_WITH_DAY}")
+  glossaryItems += makeGlossaryItem("Customer.customerAttributeType", customerAttributeType)
 
-  lazy val customerAttributeValue = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer and is used in URLs. This SHOULD NOT be the customer number. The combination of customerId and bankId MUST be unique on an OBP instance. customerId SHOULD be unique on an OBP instance. Ideally customerId is a UUID. A mapping between customer number and customer id is kept in OBP.")
-  glossaryItems += makeGlossaryItem("Customer.customerId", customerAttributeValue)
+  lazy val customerAttributeValue = ConnectorField("123456789", s"The Customer Attribute value of the current attribute type, eg: 123456789.")
+  glossaryItems += makeGlossaryItem("Customer.customerAttributeValue", customerAttributeValue)
 
   lazy val consumerIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the consumer. It is the app which calls the apis")
-  glossaryItems += makeGlossaryItem("Customer.customerId", consumerIdExample)
+  glossaryItems += makeGlossaryItem("Customer.consumerId", consumerIdExample)
   
   lazy val nameSuffixExample = ConnectorField("Sr", s"suffix of the name")
   glossaryItems += makeGlossaryItem("Customer.nameSuffix", nameSuffixExample)
@@ -188,8 +188,8 @@ object ExampleValue {
 
   lazy val hashOfSuppliedAnswerExample = ConnectorField(HashUtil.Sha256Hash("123"), s"Sha256 hash value of the ChallengeAnswer.challengeId")
   glossaryItems += makeGlossaryItem("ChallengeAnswer.hashOfSuppliedAnswer", hashOfSuppliedAnswerExample)
-  
-  
+
+
   lazy val gitCommitExample = ConnectorField("59623811dd8a41f6ffe67be46954eee11913dc28", "Identifies the code running on the OBP-API (Connector) or Adapter.")
 
   lazy val subExample = ConnectorField(s"${userNameExample.value}","An identifier for the user, unique among all OBP-API users and never reused")
@@ -247,7 +247,10 @@ object ExampleValue {
   glossaryItems += makeGlossaryItem("Transaction Requests.id", transactionRequestIdExample)
   
   lazy val transactionRequestCounterpartyIdExample = counterpartyIdExample
-  
+
+  lazy val transactionRequestRefundReasonCodeExample = ConnectorField("CUST", "Defines the reason code of a transaction refund request (e.g. a SEPA Credit Transfer Scheme reason code).")
+  glossaryItems += makeGlossaryItem("Transaction Requests.Transaction Request Refund Reason Code", transactionRequestRefundReasonCodeExample)
+
   lazy val currencyExample = balanceCurrencyExample
 
   lazy val paymentSystemExample = ConnectorField("SEPA", "A payment system can be SEPA, CARD, SWIFT ....")
@@ -337,6 +340,1589 @@ object ExampleValue {
 
   lazy val attributeValueExample = ConnectorField("closed", s"Transaction attribute value.")
   glossaryItems += makeGlossaryItem("Attribute.value", attributeValueExample)
+
+  lazy val htmlExample = ConnectorField("html format content","the content is displayed in HTML format")
+  glossaryItems += makeGlossaryItem("html", htmlExample)
+
+  lazy val canSeeImagesExample = ConnectorField("true","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_images", canSeeImagesExample)
+
+  lazy val topConsumersExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("top_consumers", topConsumersExample)
+
+  lazy val smsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("sms", smsExample)
+
+  lazy val maximumResponseTimeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("maximum_response_time", maximumResponseTimeExample)
+
+  lazy val cancelledExample = ConnectorField("true","no-description-provided")
+  glossaryItems += makeGlossaryItem("cancelled", cancelledExample)
+
+  lazy val entitlementRequestsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("entitlement_requests", entitlementRequestsExample)
+
+  lazy val newBalanceExample = ConnectorField("20","no-description-provided")
+  glossaryItems += makeGlossaryItem("new_balance", newBalanceExample)
+
+  lazy val nExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("n", nExample)
+
+  lazy val scopesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("scopes", scopesExample)
+
+  lazy val effectiveDateExample = ConnectorField("2020-01-27","no-description-provided")
+  glossaryItems += makeGlossaryItem("effective_date", effectiveDateExample)
+
+  lazy val dateOfApplicationExample = ConnectorField("2020-01-27","no-description-provided")
+  glossaryItems += makeGlossaryItem("date_of_application", dateOfApplicationExample)
+
+  lazy val useTypeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("use_type", useTypeExample)
+
+  lazy val cardsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("cards", cardsExample)
+
+  lazy val orderDateExample = ConnectorField("2020-01-27","no-description-provided")
+  glossaryItems += makeGlossaryItem("order_date", orderDateExample)
+
+  lazy val canAddCommentExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_add_comment", canAddCommentExample)
+
+  lazy val frequencyExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("frequency", frequencyExample)
+
+  lazy val ordersExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("orders", ordersExample)
+
+  lazy val typeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("type", typeExample)
+
+  lazy val imageIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("image_id", imageIdExample)
+
+  lazy val canSeeOtherAccountRoutingSchemeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_other_account_routing_scheme", canSeeOtherAccountRoutingSchemeExample)
+
+  lazy val canDeleteCorporateLocationExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_delete_corporate_location", canDeleteCorporateLocationExample)
+
+  lazy val fromExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("from", fromExample)
+
+  lazy val httpMethodExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("http_method", httpMethodExample)
+
+  lazy val developerEmailExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("developer_email", developerEmailExample)
+
+  lazy val logLevelExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("log_level", logLevelExample)
+
+  lazy val otherAccountExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("other_account", otherAccountExample)
+
+  lazy val balanceExample = ConnectorField("10","no-description-provided")
+  glossaryItems += makeGlossaryItem("balance", balanceExample)
+
+  lazy val portsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("ports", portsExample)
+
+  lazy val perSecondExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("per_second", perSecondExample)
+
+  lazy val challengeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("challenge", challengeExample)
+
+  lazy val appNameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("app_name", appNameExample)
+
+  lazy val executionDateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("execution_date", executionDateExample)
+
+  lazy val technologyExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("technology", technologyExample)
+
+  lazy val connectorNameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("connector_name", connectorNameExample)
+
+  lazy val ownersExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("owners", ownersExample)
+
+  lazy val exampleInboundMessageExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("example_inbound_message", exampleInboundMessageExample)
+
+  lazy val nationalIdentifierExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("national_identifier", nationalIdentifierExample)
+
+  lazy val temporaryRequestedCurrentAmountExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("temporary_requested_current_amount", temporaryRequestedCurrentAmountExample)
+
+  lazy val countExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("count", countExample)
+
+  lazy val canSeeOtherAccountBankNameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_other_account_bank_name", canSeeOtherAccountBankNameExample)
+
+  lazy val handleExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("handle", handleExample)
+
+  lazy val customerTokenExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("customer_token", customerTokenExample)
+
+  lazy val sandboxTanExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("sandbox_tan", sandboxTanExample)
+
+  lazy val corporateLocationExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("corporate_location", corporateLocationExample)
+
+  lazy val enabledExample = ConnectorField("true","no-description-provided")
+  glossaryItems += makeGlossaryItem("enabled", enabledExample)
+
+  lazy val durationExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("duration", durationExample)
+
+  lazy val canSeeBankAccountTypeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_bank_account_type", canSeeBankAccountTypeExample)
+
+  lazy val toSepaExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("to_sepa", toSepaExample)
+
+  lazy val whichAliasToUseExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("which_alias_to_use", whichAliasToUseExample)
+
+  lazy val canAddImageExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_add_image", canAddImageExample)
+
+  lazy val accountAttributeIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("account_attribute_id", accountAttributeIdExample)
+
+  lazy val closingTimeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("closing_time", closingTimeExample)
+
+  lazy val lastFailureDateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("last_failure_date", lastFailureDateExample)
+
+  lazy val whereExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("where", whereExample)
+
+  lazy val nominalInterest2Example = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("nominal_interest2", nominalInterest2Example)
+
+  lazy val statusExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("status", statusExample)
+
+  lazy val canSeeTransactionBalanceExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_transaction_balance", canSeeTransactionBalanceExample)
+
+  lazy val atmsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("atms", atmsExample)
+
+  lazy val overallBalanceDateExample = ConnectorField("2020-01-27","no-description-provided")
+  glossaryItems += makeGlossaryItem("overall_balance_date", overallBalanceDateExample)
+
+  lazy val canDeletePhysicalLocationExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_delete_physical_location", canDeletePhysicalLocationExample)
+
+  lazy val canAddWhereTagExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_add_where_tag", canAddWhereTagExample)
+
+  lazy val pinResetExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("pin_reset", pinResetExample)
+
+  lazy val sepaExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("sepa", sepaExample)
+
+  lazy val shortNameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("short_name", shortNameExample)
+
+  lazy val attributeDefinitionIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("attribute_definition_id", attributeDefinitionIdExample)
+
+  lazy val accountRulesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("account_rules", accountRulesExample)
+
+  lazy val transactionsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("transactions", transactionsExample)
+
+  lazy val channelExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("channel", channelExample)
+
+  lazy val creatorExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("creator", creatorExample)
+
+  lazy val activeExample = ConnectorField("true","no-description-provided")
+  glossaryItems += makeGlossaryItem("active", activeExample)
+
+  lazy val canSeeOtherAccountMetadataExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_other_account_metadata", canSeeOtherAccountMetadataExample)
+
+  lazy val canSeeBankAccountIbanExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_bank_account_iban", canSeeBankAccountIbanExample)
+
+  lazy val lobbyExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("lobby", lobbyExample)
+
+  lazy val conversionValueExample = ConnectorField("100","no-description-provided")
+  glossaryItems += makeGlossaryItem("conversion_value", conversionValueExample)
+
+  lazy val transactionRequestsWithChargesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("transaction_requests_with_charges", transactionRequestsWithChargesExample)
+
+  lazy val customerUserIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("customer_user_id", customerUserIdExample)
+
+  lazy val bankCodeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("bank_code", bankCodeExample)
+
+  lazy val averageResponseTimeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("average_response_time", averageResponseTimeExample)
+
+  lazy val phoneNumberExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("phone_number", phoneNumberExample)
+
+  lazy val viewsBasicExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("views_basic", viewsBasicExample)
+
+  lazy val functionNameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("function_name", functionNameExample)
+
+  lazy val canSeeBankRoutingSchemeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_bank_routing_scheme", canSeeBankRoutingSchemeExample)
+
+  lazy val line1Example = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("line1", line1Example)
+
+  lazy val fromDateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("from_date", fromDateExample)
+
+  lazy val creditLimitExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("credit_limit", creditLimitExample)
+
+  lazy val otherBankRoutingAddressExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("other_bank_routing_address", otherBankRoutingAddressExample)
+
+  lazy val bankExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("bank", bankExample)
+
+  lazy val counterpartiesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("counterparties", counterpartiesExample)
+
+  lazy val canSeeMoreInfoExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_more_info", canSeeMoreInfoExample)
+
+  lazy val transactionAttributesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("transaction_attributes", transactionAttributesExample)
+
+  lazy val viewsAvailableExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("views_available", viewsAvailableExample)
+
+  lazy val useExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("use", useExample)
+
+  lazy val requestedTemporaryValidEndDateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("requested_temporary_valid_end_date", requestedTemporaryValidEndDateExample)
+
+  lazy val imagesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("images", imagesExample)
+
+  lazy val canSeeBankAccountBalanceExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_bank_account_balance", canSeeBankAccountBalanceExample)
+
+  lazy val parametersExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("parameters", parametersExample)
+
+  lazy val canAddTransactionRequestToAnyAccountExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_add_transaction_request_to_any_account", canAddTransactionRequestToAnyAccountExample)
+
+  lazy val websiteExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("website", websiteExample)
+
+  lazy val atmIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("atm_id", atmIdExample)
+
+  lazy val canSeeOtherBankRoutingSchemeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_other_bank_routing_scheme", canSeeOtherBankRoutingSchemeExample)
+
+  lazy val physicalLocationExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("physical_location", physicalLocationExample)
+
+  lazy val canSeeBankAccountRoutingSchemeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_bank_account_routing_scheme", canSeeBankAccountRoutingSchemeExample)
+
+  lazy val rankAmount2Example = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("rank_amount2", rankAmount2Example)
+
+  lazy val relatesToKycCheckIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("relates_to_kyc_check_id", relatesToKycCheckIdExample)
+
+  lazy val productCodeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("product_code", productCodeExample)
+
+  lazy val imageUrlExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("image_url", imageUrlExample)
+
+  lazy val canSeeTransactionMetadataExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_transaction_metadata", canSeeTransactionMetadataExample)
+
+  lazy val documentsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("documents", documentsExample)
+
+  lazy val relatesToKycDocumentIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("relates_to_kyc_document_id", relatesToKycDocumentIdExample)
+
+  lazy val hostedAtExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("hosted_at", hostedAtExample)
+
+  lazy val holderExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("holder", holderExample)
+
+  lazy val kindExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("kind", kindExample)
+
+  lazy val shortCodeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("short_code", shortCodeExample)
+
+  lazy val driveupExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("driveup", driveupExample)
+
+  lazy val keysExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("keys", keysExample)
+
+  lazy val otherAccountsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("other_accounts", otherAccountsExample)
+
+  lazy val canSeeTransactionFinishDateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_transaction_finish_date", canSeeTransactionFinishDateExample)
+
+  lazy val satisfiedExample = ConnectorField("true","no-description-provided")
+  glossaryItems += makeGlossaryItem("satisfied", satisfiedExample)
+
+  lazy val canSeeOtherAccountIbanExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_other_account_iban", canSeeOtherAccountIbanExample)
+
+  lazy val attributeIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("attribute_id", attributeIdExample)
+
+  lazy val accountExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("account", accountExample)
+
+  lazy val idExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("id", idExample)
+
+  lazy val canAddCorporateLocationExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_add_corporate_location", canAddCorporateLocationExample)
+
+  lazy val crmEventsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("crm_events", crmEventsExample)
+
+  lazy val shortReferenceExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("short_reference", shortReferenceExample)
+
+  lazy val requiresBankIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("requires_bank_id", requiresBankIdExample)
+
+  lazy val numberExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("number", numberExample)
+
+  lazy val cityExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("city", cityExample)
+
+  lazy val toTransferToAtmExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("to_transfer_to_atm", toTransferToAtmExample)
+
+  lazy val jwtExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("jwt", jwtExample)
+
+  lazy val requestedCurrentValidEndDateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("requested_current_valid_end_date", requestedCurrentValidEndDateExample)
+
+  lazy val canSeeOtherBankRoutingAddressExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_other_bank_routing_address", canSeeOtherBankRoutingAddressExample)
+
+  lazy val thursdayExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("thursday", thursdayExample)
+
+  lazy val userAuthContextsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("user_auth_contexts", userAuthContextsExample)
+
+  lazy val phoneExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("phone", phoneExample)
+  
+  lazy val sepaCreditTransferExample = ConnectorField("yes","no-description-provided")
+  glossaryItems += makeGlossaryItem("sepaCreditTransfer", sepaCreditTransferExample)  
+  
+  lazy val sepaSddCoreExample = ConnectorField("yes","no-description-provided")
+  glossaryItems += makeGlossaryItem("sepaSddCore", sepaSddCoreExample) 
+  
+  lazy val sepaB2bExample = ConnectorField("yes","no-description-provided")
+  glossaryItems += makeGlossaryItem("sepaB2b", sepaB2bExample) 
+  
+  lazy val sepaCardClearingExample = ConnectorField("no","no-description-provided")
+  glossaryItems += makeGlossaryItem("sepaCardClearing", sepaCardClearingExample) 
+  
+  lazy val bicExample = ConnectorField("BUKBGB22","The Business Identifier Code")
+  glossaryItems += makeGlossaryItem("bic", bicExample) 
+  
+  lazy val sepaDirectDebitExample = ConnectorField("yes","no-description-provided")
+  glossaryItems += makeGlossaryItem("sepaDirectDebit", sepaDirectDebitExample)
+
+  lazy val canSeeTransactionOtherBankAccountExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_transaction_other_bank_account", canSeeTransactionOtherBankAccountExample)
+
+  lazy val itemsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("items", itemsExample)
+
+  lazy val toDateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("to_date", toDateExample)
+
+  lazy val bankRoutingsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("bank_routings", bankRoutingsExample)
+
+  lazy val canSeeOpenCorporatesUrlExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_open_corporates_url", canSeeOpenCorporatesUrlExample)
+
+  lazy val branchesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("branches", branchesExample)
+
+  lazy val overallBalanceExample = ConnectorField("10","no-description-provided")
+  glossaryItems += makeGlossaryItem("overall_balance", overallBalanceExample)
+
+  lazy val ttlInSecondsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("ttl_in_seconds", ttlInSecondsExample)
+
+  lazy val authContextUpdateIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("auth_context_update_id", authContextUpdateIdExample)
+
+  lazy val scopeIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("scope_id", scopeIdExample)
+
+  lazy val organisationWebsiteExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("organisation_website", organisationWebsiteExample)
+
+  lazy val howExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("how", howExample)
+
+  lazy val holdersExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("holders", holdersExample)
+
+  lazy val consumersExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("consumers", consumersExample)
+
+  lazy val nicknameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("nickname", nicknameExample)
+
+  lazy val mediasExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("medias", mediasExample)
+
+  lazy val perMonthCallLimitExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("per_month_call_limit", perMonthCallLimitExample)
+
+  lazy val rolesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("roles", rolesExample)
+
+  lazy val categoryExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("category", categoryExample)
+
+  lazy val onHotListExample = ConnectorField("false","no-description-provided")
+  glossaryItems += makeGlossaryItem("on_hot_list", onHotListExample)
+
+  lazy val temporaryCreditDocumentationExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("temporary_credit_documentation", temporaryCreditDocumentationExample)
+
+  lazy val dependantsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("dependants", dependantsExample)
+
+  lazy val locationExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("location", locationExample)
+
+  lazy val otherBankRoutingSchemeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("other_bank_routing_scheme", otherBankRoutingSchemeExample)
+
+  lazy val groupExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("group", groupExample)
+
+  lazy val taxResidenceIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("tax_residence_id", taxResidenceIdExample)
+
+  lazy val accountAttributesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("account_attributes", accountAttributesExample)
+
+  lazy val listExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("list", listExample)
+
+  lazy val branchNumberExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("branch_number", branchNumberExample)
+
+  lazy val accountsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("accounts", accountsExample)
+
+  lazy val consentsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("consents", consentsExample)
+
+  lazy val entitlementsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("entitlements", entitlementsExample)
+
+  lazy val commentIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("comment_id", commentIdExample)
+
+  lazy val canSeeBankAccountNationalIdentifierExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_bank_account_national_identifier", canSeeBankAccountNationalIdentifierExample)
+
+  lazy val perMinuteExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("per_minute", perMinuteExample)
+
+  lazy val resultExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("result", resultExample)
+
+  lazy val entitlementRequestIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("entitlement_request_id", entitlementRequestIdExample)
+
+  lazy val minimumResponseTimeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("minimum_response_time", minimumResponseTimeExample)
+
+  lazy val locatedAtExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("located_at", locatedAtExample)
+
+  lazy val requireScopesForAllRolesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("require_scopes_for_all_roles", requireScopesForAllRolesExample)
+
+  lazy val creditRatingExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("credit_rating", creditRatingExample)
+
+  lazy val firstCheckNumberExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("first_check_number", firstCheckNumberExample)
+
+  lazy val addressesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("addresses", addressesExample)
+
+  lazy val thisViewIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("this_view_id", thisViewIdExample)
+
+  lazy val canSeeTransactionCurrencyExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_transaction_currency", canSeeTransactionCurrencyExample)
+
+  lazy val accountOtpExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("account_otp", accountOtpExample)
+
+  lazy val hideMetadataIfAliasUsedExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("hide_metadata_if_alias_used", hideMetadataIfAliasUsedExample)
+
+  lazy val canSeeBankAccountCurrencyExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_bank_account_currency", canSeeBankAccountCurrencyExample)
+
+  lazy val generateAuditorsViewExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("generate_auditors_view", generateAuditorsViewExample)
+
+  lazy val longitudeExample = ConnectorField("-77.0364","no-description-provided")
+  glossaryItems += makeGlossaryItem("longitude", longitudeExample)
+
+  lazy val familyExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("family", familyExample)
+
+  lazy val reasonsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("reasons", reasonsExample)
+
+  lazy val replacementExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("replacement", replacementExample)
+
+  lazy val customerExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("customer", customerExample)
+
+  lazy val nominalInterest1Example = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("nominal_interest1", nominalInterest1Example)
+
+  lazy val memberProductCodeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("member_product_code", memberProductCodeExample)
+
+  lazy val scaMethodExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("sca_method", scaMethodExample)
+
+  lazy val accountWebhookIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("account_webhook_id", accountWebhookIdExample)
+
+  lazy val messageExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("message", messageExample)
+
+  lazy val canSeePrivateAliasExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_private_alias", canSeePrivateAliasExample)
+
+  lazy val typeOfLockExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("type_of_lock", typeOfLockExample)
+
+  lazy val canSeeOtherAccountKindExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_other_account_kind", canSeeOtherAccountKindExample)
+
+  lazy val canAddOpenCorporatesUrlExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_add_open_corporates_url", canAddOpenCorporatesUrlExample)
+
+  lazy val metadataViewExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("metadata_view", metadataViewExample)
+
+  lazy val aliasExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("alias", aliasExample)
+
+  lazy val canSeeTransactionThisBankAccountExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_transaction_this_bank_account", canSeeTransactionThisBankAccountExample)
+
+  lazy val triggerNameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("trigger_name", triggerNameExample)
+
+  lazy val otherAccountIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("other_account_id", otherAccountIdExample)
+
+  lazy val resetInSecondsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("reset_in_seconds", resetInSecondsExample)
+
+  lazy val answerExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("answer", answerExample)
+
+  lazy val executionTimeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("execution_time", executionTimeExample)
+
+  lazy val timeToLiveExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("time_to_live", timeToLiveExample)
+
+  lazy val akkaExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("akka", akkaExample)
+
+  lazy val meetingIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("meeting_id", meetingIdExample)
+
+  lazy val tagIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("tag_id", tagIdExample)
+
+  lazy val addressExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("address", addressExample)
+
+  lazy val canAddPrivateAliasExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_add_private_alias", canAddPrivateAliasExample)
+
+  lazy val postcodeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("postcode", postcodeExample)
+
+  lazy val fromCurrencyCodeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("from_currency_code", fromCurrencyCodeExample)
+
+  lazy val wednesdayExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("wednesday", wednesdayExample)
+
+  lazy val lastOkDateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("last_ok_date", lastOkDateExample)
+
+  lazy val transactionTypesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("transaction_types", transactionTypesExample)
+
+  lazy val resetPasswordUrlExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("reset_password_url", resetPasswordUrlExample)
+
+  lazy val canSeeBankAccountSwiftBicExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_bank_account_swift_bic", canSeeBankAccountSwiftBicExample)
+
+  lazy val jsonstringExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("jsonstring", jsonstringExample)
+
+  lazy val inviteesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("invitees", inviteesExample)
+
+  lazy val appTypeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("app_type", appTypeExample)
+
+  lazy val productAttributeIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("product_attribute_id", productAttributeIdExample)
+
+  lazy val isSystemExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("is_system", isSystemExample)
+
+  lazy val detailsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("details", detailsExample)
+
+  lazy val canSeeOwnerCommentExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_owner_comment", canSeeOwnerCommentExample)
+
+  lazy val canSeeTagsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_tags", canSeeTagsExample)
+
+  lazy val moreInfoUrlExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("more_info_url", moreInfoUrlExample)
+
+  lazy val kycMediaIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("kyc_media_id", kycMediaIdExample)
+
+  lazy val outboundavroschemaExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("outboundavroschema", outboundavroschemaExample)
+
+  lazy val isAliasExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("is_alias", isAliasExample)
+
+  lazy val roleNameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("role_name", roleNameExample)
+
+  lazy val refundExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("refund", refundExample)
+
+  lazy val canAddUrlExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_add_url", canAddUrlExample)
+
+  lazy val viewExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("view", viewExample)
+
+  lazy val displayNameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("display_name", displayNameExample)
+
+  lazy val canDeleteTagExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_delete_tag", canDeleteTagExample)
+
+  lazy val hoursExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("hours", hoursExample)
+
+  lazy val customerAttributesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("customer_attributes", customerAttributesExample)
+
+  lazy val perHourCallLimitExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("per_hour_call_limit", perHourCallLimitExample)
+
+  lazy val distributionChannelExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("distribution_channel", distributionChannelExample)
+
+  lazy val otherAccountRoutingSchemeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("other_account_routing_scheme", otherAccountRoutingSchemeExample)
+
+  lazy val generateAccountantsViewExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("generate_accountants_view", generateAccountantsViewExample)
+
+  lazy val counterpartyExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("counterparty", counterpartyExample)
+
+  lazy val tagsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("tags", tagsExample)
+
+  lazy val perHourExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("per_hour", perHourExample)
+
+  lazy val cardDescriptionExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("card_description", cardDescriptionExample)
+
+  lazy val moreInfoExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("more_info", moreInfoExample)
+
+  lazy val fieldExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("field", fieldExample)
+
+  lazy val creditornameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("creditorname", creditornameExample)
+
+  lazy val dateActivatedExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("date_activated", dateActivatedExample)
+
+  lazy val webuiPropsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("webui_props", webuiPropsExample)
+
+  lazy val userCustomerLinksExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("user_customer_links", userCustomerLinksExample)
+
+  lazy val inboundavroschemaExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("inboundavroschema", inboundavroschemaExample)
+
+  lazy val matchAllExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("match_all", matchAllExample)
+
+  lazy val chargeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("charge", chargeExample)
+
+  lazy val connectorExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("connector", connectorExample)
+
+  lazy val kycDocumentIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("kyc_document_id", kycDocumentIdExample)
+
+  lazy val canSeePublicAliasExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_public_alias", canSeePublicAliasExample)
+
+  lazy val webUiPropsIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("web_ui_props_id", webUiPropsIdExample)
+
+  lazy val providerExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("provider", providerExample)
+
+  lazy val canSeePhysicalLocationExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_physical_location", canSeePhysicalLocationExample)
+
+  lazy val accountRoutingsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("account_routings", accountRoutingsExample)
+
+  lazy val purposeIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("purpose_id", purposeIdExample)
+
+  lazy val perDayCallLimitExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("per_day_call_limit", perDayCallLimitExample)
+
+  lazy val kycCheckIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("kyc_check_id", kycCheckIdExample)
+
+  lazy val perWeekCallLimitExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("per_week_call_limit", perWeekCallLimitExample)
+
+  lazy val bankIdPatternExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("bank_id_pattern", bankIdPatternExample)
+
+  lazy val cardAttributesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("card_attributes", cardAttributesExample)
+
+  lazy val verbExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("verb", verbExample)
+
+  lazy val freeFormExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("free_form", freeFormExample)
+
+  lazy val transferTypeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("transfer_type", transferTypeExample)
+
+  lazy val challengeTypeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("challenge_type", challengeTypeExample)
+
+  lazy val messageDocsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("message_docs", messageDocsExample)
+
+  lazy val licenseExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("license", licenseExample)
+
+  lazy val requestIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("request_id", requestIdExample)
+
+  lazy val userAuthContextIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("user_auth_context_id", userAuthContextIdExample)
+
+  lazy val perMinuteCallLimitExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("per_minute_call_limit", perMinuteCallLimitExample)
+
+  lazy val countyExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("county", countyExample)
+
+  lazy val publicAliasExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("public_alias", publicAliasExample)
+
+  lazy val parentProductCodeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("parent_product_code", parentProductCodeExample)
+
+  lazy val numberOfCheckbooksExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("number_of_checkbooks", numberOfCheckbooksExample)
+
+  lazy val directDebitIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("direct_debit_id", directDebitIdExample)
+
+  lazy val consentIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("consent_id", consentIdExample)
+
+  lazy val line2Example = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("line2", line2Example)
+
+  lazy val everythingExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("everything", everythingExample)
+
+  lazy val networksExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("networks", networksExample)
+
+  lazy val `data.bankIdExample` = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("data.bankid", `data.bankIdExample` )
+
+  lazy val customerNameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("customer_name", customerNameExample)
+
+  lazy val fridayExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("friday", fridayExample)
+
+  lazy val productCollectionExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("product_collection", productCollectionExample)
+
+  lazy val methodNameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("method_name", methodNameExample)
+
+  lazy val staffTokenExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("staff_token", staffTokenExample)
+
+  lazy val dateAddedExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("date_added", dateAddedExample)
+
+  lazy val connectorVersionExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("connector_version", connectorVersionExample)
+
+  lazy val accountApplicationsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("account_applications", accountApplicationsExample)
+
+  lazy val endDateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("end_date", endDateExample)
+
+  lazy val canAddTransactionRequestToOwnAccountExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_add_transaction_request_to_own_account", canAddTransactionRequestToOwnAccountExample)
+
+  lazy val otherAccountRoutingAddressExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("other_account_routing_address", otherAccountRoutingAddressExample)
+
+  lazy val isFirehoseExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("is_firehose", isFirehoseExample)
+
+  lazy val okExample = ConnectorField("true","no-description-provided")
+  glossaryItems += makeGlossaryItem("ok", okExample)
+
+  lazy val bankRoutingExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("bank_routing", bankRoutingExample)
+
+  lazy val shippingCodeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("shipping_code", shippingCodeExample)
+
+  lazy val line3Example = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("line3", line3Example)
+
+  lazy val swiftBicExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("swift_bic", swiftBicExample)
+
+  lazy val debtoraccountExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("debtoraccount", debtoraccountExample)
+
+  lazy val latitudeExample = ConnectorField("38.8951","no-description-provided")
+  glossaryItems += makeGlossaryItem("latitude", latitudeExample)
+
+  lazy val dependentEndpointsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("dependent_endpoints", dependentEndpointsExample)
+
+  lazy val hasDepositCapabilityExample = ConnectorField("true","no-description-provided")
+  glossaryItems += makeGlossaryItem("has_deposit_capability", hasDepositCapabilityExample)
+
+  lazy val toCounterpartyExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("to_counterparty", toCounterpartyExample)
+
+  lazy val dateInsertedExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("date_inserted", dateInsertedExample)
+
+  lazy val schemeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("scheme", schemeExample)
+
+  lazy val customerAddressIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("customer_address_id", customerAddressIdExample)
+
+  lazy val generatePublicViewExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("generate_public_view", generatePublicViewExample)
+
+  lazy val canSeeBankAccountRoutingAddressExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_bank_account_routing_address", canSeeBankAccountRoutingAddressExample)
+
+  lazy val canSeeCommentsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_comments", canSeeCommentsExample)
+
+  lazy val canEditOwnerCommentExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_edit_owner_comment", canEditOwnerCommentExample)
+
+  lazy val canAddCounterpartyExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_add_counterparty", canAddCounterpartyExample)
+
+  lazy val markdownExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("markdown", markdownExample)
+
+  lazy val standingOrderIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("standing_order_id", standingOrderIdExample)
+
+  lazy val parentProductExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("parent_product", parentProductExample)
+
+  lazy val mobilePhoneExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("mobile_phone", mobilePhoneExample)
+
+  lazy val sundayExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("sunday", sundayExample)
+
+  lazy val propertyExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("property", propertyExample)
+
+  lazy val tokenExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("token", tokenExample)
+
+  lazy val accountRoutingExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("account_routing", accountRoutingExample)
+
+  lazy val requestedCurrentRateAmount2Example = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("requested_current_rate_amount2", requestedCurrentRateAmount2Example)
+
+  lazy val narrativeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("narrative", narrativeExample)
+
+  lazy val canSeeOtherAccountRoutingAddressExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_other_account_routing_address", canSeeOtherAccountRoutingAddressExample)
+
+  lazy val statusesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("statuses", statusesExample)
+
+  lazy val callsMadeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("calls_made", callsMadeExample)
+
+  lazy val currentStateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("current_state", currentStateExample)
+
+  lazy val chargePolicyExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("charge_policy", chargePolicyExample)
+
+  lazy val customersExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("customers", customersExample)
+
+  lazy val scheduledDateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("scheduled_date", scheduledDateExample)
+
+  lazy val allowedAttemptsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("allowed_attempts", allowedAttemptsExample)
+
+  lazy val hostedByExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("hosted_by", hostedByExample)
+
+  lazy val whenExample = ConnectorField("2020-01-27","no-description-provided")
+  glossaryItems += makeGlossaryItem("when", whenExample)
+
+  lazy val userAuthContextUpdateIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("user_auth_context_update_id", userAuthContextUpdateIdExample)
+
+  lazy val accessiblefeaturesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("accessiblefeatures", accessiblefeaturesExample)
+
+  lazy val tuesdayExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("tuesday", tuesdayExample)
+
+  lazy val canQueryAvailableFundsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_query_available_funds", canQueryAvailableFundsExample)
+
+  lazy val otherAccountSecondaryRoutingSchemeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("other_account_secondary_routing_scheme", otherAccountSecondaryRoutingSchemeExample)
+
+  lazy val processExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("process", processExample)
+
+  lazy val otherBranchRoutingSchemeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("other_branch_routing_scheme", otherBranchRoutingSchemeExample)
+
+  lazy val openingTimeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("opening_time", openingTimeExample)
+
+  lazy val httpProtocolExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("http_protocol", httpProtocolExample)
+
+  lazy val thisAccountIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("this_account_id", thisAccountIdExample)
+
+  lazy val queryExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("query", queryExample)
+
+  lazy val badAttemptsSinceLastSuccessOrResetExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("bad_attempts_since_last_success_or_reset", badAttemptsSinceLastSuccessOrResetExample)
+
+  lazy val webHooksExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("web_hooks", webHooksExample)
+
+  lazy val providerIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("provider_id", providerIdExample)
+
+  lazy val meetingsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("meetings", meetingsExample)
+
+  lazy val cardNumberExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("card_number", cardNumberExample)
+
+  lazy val instructedamountExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("instructedamount", instructedamountExample)
+
+  lazy val userCustomerLinkIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("user_customer_link_id", userCustomerLinkIdExample)
+
+  lazy val outboundTopicExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("outbound_topic", outboundTopicExample)
+
+  lazy val postCodeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("post_code", postCodeExample)
+
+  lazy val superFamilyExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("super_family", superFamilyExample)
+
+  lazy val nameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("name", nameExample)
+
+  lazy val emailAddressExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("email_address", emailAddressExample)
+
+  lazy val availableFundsRequestIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("available_funds_request_id", availableFundsRequestIdExample)
+
+  lazy val lastNameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("last_name", lastNameExample)
+
+  lazy val redirectUrlExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("redirect_url", redirectUrlExample)
+
+  lazy val roleExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("role", roleExample)
+
+  lazy val requireScopesForListedRolesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("require_scopes_for_listed_roles", requireScopesForListedRolesExample)
+
+  lazy val branchTypeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("branch_type", branchTypeExample)
+
+  lazy val fullNameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("full_name", fullNameExample)
+
+  lazy val canCreateDirectDebitExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_create_direct_debit", canCreateDirectDebitExample)
+
+  lazy val futureDateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("future_date", futureDateExample)
+
+  lazy val toTransferToAccountExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("to_transfer_to_account", toTransferToAccountExample)
+
+  lazy val thisAccountExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("this_account", thisAccountExample)
+
+  lazy val accountApplicationIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("account_application_id", accountApplicationIdExample)
+
+  lazy val documentNumberExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("document_number", documentNumberExample)
+
+  lazy val canSeeOtherAccountNationalIdentifierExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_other_account_national_identifier", canSeeOtherAccountNationalIdentifierExample)
+
+  lazy val canSeeTransactionStartDateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_transaction_start_date", canSeeTransactionStartDateExample)
+
+  lazy val canAddPhysicalLocationExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_add_physical_location", canAddPhysicalLocationExample)
+
+  lazy val cacheExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("cache", cacheExample)
+
+  lazy val canSeeBankRoutingAddressExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_bank_routing_address", canSeeBankRoutingAddressExample)
+
+  lazy val usersExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("users", usersExample)
+
+  lazy val staffNameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("staff_name", staffNameExample)
+
+  lazy val ktyExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("kty", ktyExample)
+
+  lazy val canBeSeenOnViewsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_be_seen_on_views", canBeSeenOnViewsExample)
+
+  lazy val fromPersonExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("from_person", fromPersonExample)
+
+  lazy val kidExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("kid", kidExample)
+
+  lazy val createdByUserExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("created_by_user", createdByUserExample)
+
+  lazy val taxNumberExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("tax_number", taxNumberExample)
+
+  lazy val presentExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("present", presentExample)
+
+  lazy val metadataExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("metadata", metadataExample)
+
+  lazy val canSeeTransactionAmountExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_transaction_amount", canSeeTransactionAmountExample)
+
+  lazy val methodRoutingIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("method_routing_id", methodRoutingIdExample)
+
+  lazy val thisBankIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("this_bank_id", thisBankIdExample)
+
+  lazy val permissionsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("permissions", permissionsExample)
+
+  lazy val otherBranchRoutingAddressExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("other_branch_routing_address", otherBranchRoutingAddressExample)
+
+  lazy val bespokeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("bespoke", bespokeExample)
+
+  lazy val codeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("code", codeExample)
+
+  lazy val countryCodeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("country_code", countryCodeExample)
+
+  lazy val canSeeBankAccountCreditLimitExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_bank_account_credit_limit", canSeeBankAccountCreditLimitExample)
+
+  lazy val canSeeOtherAccountNumberExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_other_account_number", canSeeOtherAccountNumberExample)
+
+  lazy val orderExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("order", orderExample)
+
+  lazy val postedExample = ConnectorField("2020-01-27","no-description-provided")
+  glossaryItems += makeGlossaryItem("posted", postedExample)
+
+  lazy val logoExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("logo", logoExample)
+
+  lazy val topApisExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("top_apis", topApisExample)
+
+  lazy val taxResidenceExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("tax_residence", taxResidenceExample)
+
+  lazy val isActiveExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("is_active", isActiveExample)
+
+  lazy val canSeeBankAccountBankNameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_bank_account_bank_name", canSeeBankAccountBankNameExample)
+
+  lazy val firstNameExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("first_name", firstNameExample)
+
+  lazy val contactDetailsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("contact_details", contactDetailsExample)
+
+  lazy val jwksUriExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("jwks_uri", jwksUriExample)
+
+  lazy val transactionIdsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("transaction_ids", transactionIdsExample)
+
+  lazy val canSeeBankAccountOwnersExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_bank_account_owners", canSeeBankAccountOwnersExample)
+
+  lazy val actualDateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("actual_date", actualDateExample)
+
+  lazy val exampleOutboundMessageExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("example_outbound_message", exampleOutboundMessageExample)
+
+  lazy val canDeleteWhereTagExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_delete_where_tag", canDeleteWhereTagExample)
+
+  lazy val canSeeUrlExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_url", canSeeUrlExample)
+
+  lazy val versionExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("version", versionExample)
+
+  lazy val collectedExample = ConnectorField("2020-01-27","no-description-provided")
+  glossaryItems += makeGlossaryItem("collected", collectedExample)
+
+  lazy val canAddPublicAliasExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_add_public_alias", canAddPublicAliasExample)
+
+  lazy val allowedActionsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("allowed_actions", allowedActionsExample)
+
+  lazy val rankAmount1Example = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("rank_amount1", rankAmount1Example)
+
+  lazy val durationTimeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("duration_time", durationTimeExample)
+
+  lazy val noneExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("none", noneExample)
+
+  lazy val implementedInVersionExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("implemented_in_version", implementedInVersionExample)
+
+  lazy val canSeeImageUrlExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_image_url", canSeeImageUrlExample)
+
+  lazy val toTransferToPhoneExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("to_transfer_to_phone", toTransferToPhoneExample)
+
+  lazy val perDayExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("per_day", perDayExample)
+
+  lazy val elasticSearchExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("elastic_search", elasticSearchExample)
+
+  lazy val reasonRequestedExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("reason_requested", reasonRequestedExample)
+
+  lazy val perWeekExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("per_week", perWeekExample)
+
+  lazy val productsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("products", productsExample)
+
+  lazy val organisationExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("organisation", organisationExample)
+
+  lazy val branchRoutingExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("branch_routing", branchRoutingExample)
+
+  lazy val versionStatusExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("version_status", versionStatusExample)
+
+  lazy val apiVersionExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("api_version", apiVersionExample)
+
+  lazy val perSecondCallLimitExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("per_second_call_limit", perSecondCallLimitExample)
+
+  lazy val messagesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("messages", messagesExample)
+
+  lazy val metaExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("meta", metaExample)
+
+  lazy val eExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("e", eExample)
+
+  lazy val canSeeCorporateLocationExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_corporate_location", canSeeCorporateLocationExample)
+
+  lazy val userExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("user", userExample)
+
+  lazy val lastLockDateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("last_lock_date", lastLockDateExample)
+
+  lazy val requestedCurrentRateAmount1Example = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("requested_current_rate_amount1", requestedCurrentRateAmount1Example)
+
+  lazy val toCurrencyCodeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("to_currency_code", toCurrencyCodeExample)
+
+  lazy val dobOfDependantsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("dob_of_dependants", dobOfDependantsExample)
+
+  lazy val settlementAccountsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("settlement_accounts", settlementAccountsExample)
+
+  lazy val collectionCodeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("collection_code", collectionCodeExample)
+
+  lazy val energySourceExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("energy_source", energySourceExample)
+
+  lazy val openCorporatesUrlExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("open_corporates_url", openCorporatesUrlExample)
+
+  lazy val inverseConversionValueExample = ConnectorField("50","no-description-provided")
+  glossaryItems += makeGlossaryItem("inverse_conversion_value", inverseConversionValueExample)
+
+  lazy val methodRoutingsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("method_routings", methodRoutingsExample)
+
+  lazy val orderIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("order_id", orderIdExample)
+
+  lazy val checksExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("checks", checksExample)
+
+  lazy val mondayExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("monday", mondayExample)
+
+  lazy val requiredfieldinfoExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("requiredfieldinfo", requiredfieldinfoExample)
+
+  lazy val canSeeWhereTagExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_where_tag", canSeeWhereTagExample)
+
+  lazy val fromDepartmentExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("from_department", fromDepartmentExample)
+
+  lazy val bankidExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("bankid", bankidExample)
+
+  lazy val otherAccountSecondaryRoutingAddressExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("other_account_secondary_routing_address", otherAccountSecondaryRoutingAddressExample)
+
+  lazy val perMonthExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("per_month", perMonthExample)
+
+  lazy val inboundTopicExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("inbound_topic", inboundTopicExample)
+
+  lazy val creditoraccountExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("creditoraccount", creditoraccountExample)
+
+  lazy val warehouseExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("warehouse", warehouseExample)
+
+  lazy val metricsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("metrics", metricsExample)
+
+  lazy val kycDocumentExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("kyc_document", kycDocumentExample)
+
+  lazy val privateAliasExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("private_alias", privateAliasExample)
+
+  lazy val toSepaCreditTransfersExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("to_sepa_credit_transfers", toSepaCreditTransfersExample)
+
+  lazy val stateExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("state", stateExample)
+
+  lazy val createdByUserIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("created_by_user_id", createdByUserIdExample)
+
+  lazy val attributesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("attributes", attributesExample)
+
+  lazy val revokedExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("revoked", revokedExample)
+
+  lazy val allowsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("allows", allowsExample)
+
+  lazy val currentCreditDocumentationExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("current_credit_documentation", currentCreditDocumentationExample)
+
+  lazy val mobilePhoneNumberExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("mobile_phone_number", mobilePhoneNumberExample)
+
+  lazy val saturdayExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("saturday", saturdayExample)
+
+  lazy val completedExample = ConnectorField("2020-01-27","no-description-provided")
+  glossaryItems += makeGlossaryItem("completed", completedExample)
+
+  lazy val domainExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("domain", domainExample)
+
+  lazy val toSandboxTanExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("to_sandbox_tan", toSandboxTanExample)
+
+  lazy val canAddTagExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_add_tag", canAddTagExample)
+
+  lazy val canSeeBankAccountLabelExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_bank_account_label", canSeeBankAccountLabelExample)
+
+  lazy val serviceAvailableExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("service_available", serviceAvailableExample)
+
+  lazy val suggestedOrderExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("suggested_order", suggestedOrderExample)
+
+  lazy val shortcodeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("shortcode", shortcodeExample)
+
+  lazy val linkExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("link", linkExample)
+
+  lazy val canSeeTransactionTypeExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_transaction_type", canSeeTransactionTypeExample)
+
+  lazy val implementedByPartialFunctionExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("implemented_by_partial_function", implementedByPartialFunctionExample)
+
+  lazy val driveUpExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("drive_up", driveUpExample)
+
+  lazy val canAddMoreInfoExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_add_more_info", canAddMoreInfoExample)
+
+  lazy val detailExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("detail", detailExample)
+
+  lazy val viewsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("views", viewsExample)
+
+  lazy val transactionRequestTypesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("transaction_request_types", transactionRequestTypesExample)
+
+  lazy val canAddImageUrlExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_add_image_url", canAddImageUrlExample)
+
+  lazy val jwksUrisExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("jwks_uris", jwksUrisExample)
+
+  lazy val canSeeOtherAccountSwiftBicExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_other_account_swift_bic", canSeeOtherAccountSwiftBicExample)
+
+  lazy val staffUserIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("staff_user_id", staffUserIdExample)
+
+  lazy val branchRoutingsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("branch_routings", branchRoutingsExample)
+
+  lazy val validFromExample = ConnectorField("2020-01-27","no-description-provided")
+  glossaryItems += makeGlossaryItem("valid_from", validFromExample)
+
+  lazy val canDeleteImageExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_delete_image", canDeleteImageExample)
+
+  lazy val toExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("to", toExample)
+
+  lazy val messageFormatExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("message_format", messageFormatExample)
+
+  lazy val productAttributesExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("product_attributes", productAttributesExample)
+
+  lazy val canSeeTransactionDescriptionExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_transaction_description", canSeeTransactionDescriptionExample)
+
+  lazy val faceImageExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("face_image", faceImageExample)
+
+  lazy val canSeeBankAccountNumberExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_see_bank_account_number", canSeeBankAccountNumberExample)
+
+  lazy val glossaryItemsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("glossary_items", glossaryItemsExample)
+
+  lazy val isBankIdExactMatchExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("is_bank_id_exact_match", isBankIdExactMatchExample)
+
+  lazy val isPublicExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("is_public", isPublicExample)
+
+  lazy val isAccessibleExample = ConnectorField("true","no-description-provided")
+  glossaryItems += makeGlossaryItem("is_accessible", isAccessibleExample)
+
+  lazy val entitlementIdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("entitlement_id", entitlementIdExample)
+
+  lazy val indexExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("index", indexExample)
+
+  lazy val descriptionExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("description", descriptionExample)
+
+  lazy val canDeleteCommentExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_delete_comment", canDeleteCommentExample)
+
+  lazy val remoteDataSecretMatchedExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("remote_data_secret_matched", remoteDataSecretMatchedExample)
+
+  lazy val commentsExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("comments", commentsExample)
+
+  lazy val banksExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("banks", banksExample)
+
+  lazy val canCreateStandingOrderExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("can_create_standing_order", canCreateStandingOrderExample)
+
+  lazy val adapterImplementationExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("adapter_implementation", adapterImplementationExample)
+
+  lazy val successExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("success", successExample)
+
+  lazy val createdExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("created", createdExample)
+
+  lazy val issuePlaceExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("issue_place", issuePlaceExample)
+
+  lazy val summaryExample = ConnectorField("no-example-provided","no-description-provided")
+  glossaryItems += makeGlossaryItem("summary", summaryExample)
+
+
 
   //------------------------------------------------------------
   // TODO @Simon please fix the follow example values to reasonable values
@@ -440,6 +2026,7 @@ object ExampleValue {
     |""".stripMargin
 
   lazy val dynamicEntityRequestBodyExample = DynamicEntityFooBar(
+    Some(ExampleValue.bankIdExample.value),
     DynamicEntityDefinition(
       "description of this entity, can be markdown text.",
       List("name"),
@@ -450,7 +2037,7 @@ object ExampleValue {
     )
   )
 
-  lazy val dynamicEntityResponseBodyExample = dynamicEntityRequestBodyExample.copy(dynamicEntityId = Some("dynamic-entity-id"))
+  lazy val dynamicEntityResponseBodyExample = dynamicEntityRequestBodyExample.copy(dynamicEntityId = Some("dynamic-entity-id"), userId =Some(ExampleValue.userIdExample.value))
 
   private val dynamicEndpointSwagger =
     """{
@@ -1508,7 +3095,7 @@ object ExampleValue {
       |  }
       |}""".stripMargin
   lazy val dynamicEndpointRequestBodyExample: JObject = json.parse(dynamicEndpointSwagger).asInstanceOf[JObject]
-  lazy val dynamicEndpointResponseBodyExample: JObject = ("dynamic_endpoint_id", "dynamic-endpoint-id") ~ ("swagger_string", dynamicEndpointRequestBodyExample)
+  lazy val dynamicEndpointResponseBodyExample: JObject = ("user_id", ExampleValue.userIdExample.value) ~ ("dynamic_endpoint_id", "dynamic-endpoint-id") ~ ("swagger_string", dynamicEndpointRequestBodyExample)
 
   lazy val dynamicEndpointRequestBodyEmptyExample: JObject = "swagger" -> "2.0"
   lazy val dynamicEndpointResponseBodyEmptyExample: JObject = dynamicEndpointResponseBodyExample.transformField {

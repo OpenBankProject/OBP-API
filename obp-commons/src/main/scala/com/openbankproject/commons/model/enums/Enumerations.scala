@@ -170,6 +170,12 @@ object LanguageParam extends OBPEnumeration[LanguageParam] {
   object ZH extends Value
 }
 
+sealed trait ContentParam extends EnumValue
+object ContentParam extends OBPEnumeration[ContentParam] {
+  object DYNAMIC extends Value
+  object STATIC extends Value
+  object ALL extends Value
+}
 
 sealed trait AttributeType extends EnumValue
 object AttributeType extends OBPEnumeration[AttributeType]{
@@ -190,7 +196,7 @@ object AttributeCategory extends OBPEnumeration[AttributeCategory]{
 
 object TransactionRequestStatus extends Enumeration {
   type TransactionRequestStatus = Value
-  val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED = Value
+  val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED, CANCELLED = Value
 }
 
 object AccountRoutingScheme extends Enumeration {

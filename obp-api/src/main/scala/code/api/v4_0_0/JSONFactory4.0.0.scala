@@ -37,17 +37,16 @@ import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.api.v2_1_0.{IbanJson, JSONFactory210, PostCounterpartyBespokeJson, ResourceUserJSON}
 import code.api.v2_2_0.CounterpartyMetadataJson
-import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
-import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, ViewBasicV300}
+import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
+import code.api.v3_0_0.{AccountRuleJsonV300, CustomerAttributeResponseJsonV300, ViewBasicV300}
 import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
-import com.openbankproject.commons.model.DirectDebitTrait
 import code.entitlement.Entitlement
-import code.model.{Consumer, ModeratedBankAccountCore}
+import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
-import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.{DirectDebitTrait, _}
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
@@ -116,13 +115,28 @@ case class ModeratedCoreAccountJsonV400(
                                          bank_id: String,
                                          label: String,
                                          number: String,
-                                         owners: List[UserJSONV121],
                                          product_code: String,
                                          balance: AmountOfMoneyJsonV121,
                                          account_routings: List[AccountRoutingJsonV121],
-                                         views_basic: List[ViewBasicV300],
-                                         tags: List[AccountTagJSON]
+                                         views_basic: List[String]
                                        )
+
+case class ModeratedFirehoseAccountJsonV400(
+                                             id: String,
+                                             bank_id: String,
+                                             label: String,
+                                             number: String,
+                                             owners: List[UserJSONV121],
+                                             product_code: String,
+                                             balance: AmountOfMoneyJsonV121,
+                                             account_routings: List[AccountRoutingJsonV121],
+                                             account_rules: List[AccountRuleJsonV300],
+                                             account_attributes: Option[List[AccountAttributeResponseJson]] = None
+                                           )
+
+case class ModeratedFirehoseAccountsJsonV400(
+                                              accounts: List[ModeratedFirehoseAccountJsonV400]
+                                            )
 
 case class ModeratedAccountJSON400(
                                     id : String,
@@ -162,6 +176,21 @@ case class AccountTagsJSON(
 case class PostAccountTagJSON(
                                value : String
                              )
+
+case class UpdateAccountJsonV400(label : String)
+
+case class AccountsBalancesJsonV400(accounts:List[AccountBalanceJsonV400])
+
+case class BalanceJsonV400(`type`: String, currency: String, amount: String)
+
+case class AccountBalanceJsonV400(
+                                   account_id: String,
+                                   bank_id: String,
+                                   account_routings: List[AccountRouting],
+                                   label: String,
+                                   balances: List[BalanceJsonV400]
+                                 )
+
 case class PostCustomerPhoneNumberJsonV400(mobile_phone_number: String)
 case class PostDirectDebitJsonV400(customer_id: String,
                                    user_id: String,
@@ -239,15 +268,28 @@ case class TransactionRequestReasonJsonV400(
 }
 // the data from endpoint, extract as valid JSON
 case class TransactionRequestBodyRefundJsonV400(
-  to: TransactionRequestAccountJsonV140,
+  to: Option[TransactionRequestRefundTo],
+  from: Option[TransactionRequestRefundFrom],
   value: AmountOfMoneyJsonV121,
   description: String,
-  refund:RefundJson
+  refund: RefundJson
 ) extends TransactionRequestCommonBodyJSON
 
+case class TransactionRequestRefundTo(
+                                       bank_id: Option[String],
+                                       account_id : Option[String],
+                                       counterparty_id: Option[String]
+                                     )
+
+case class TransactionRequestRefundFrom(
+                                         counterparty_id: String
+                                       )
+
 case class RefundJson(
-  transaction_id: String
+  transaction_id: String,
+  reason_code: String
 )
+
 case class CustomerAttributeJsonV400(
   name: String,
   `type`: String,
@@ -428,6 +470,17 @@ case class CounterpartiesJson400(
 
 case class PutConsentStatusJsonV400(status: String)
 case class PutConsentUserJsonV400(user_id: String)
+case class BankAccountRoutingJson(
+                                 bank_id: Option[String],
+                                 account_routing: AccountRoutingJsonV121
+                                 )
+
+case class ChallengeAnswerJson400 (
+                                 id: String,
+                                 answer: String,
+                                 reason_code: Option[String] = None,
+                                 additional_information: Option[String] = None
+                               )
 
 
 object JSONFactory400 {
@@ -544,19 +597,16 @@ object JSONFactory400 {
 
   
   def createNewCoreBankAccountJson(account : ModeratedBankAccountCore, 
-                                   availableViews: List[View],
-                                   tags: List[TransactionTag]) : ModeratedCoreAccountJsonV400 =  {
+                                   availableViews: List[View]) : ModeratedCoreAccountJsonV400 =  {
     ModeratedCoreAccountJsonV400 (
       account.accountId.value,
       stringOrNull(account.bankId.value),
       stringOptionOrNull(account.label),
       stringOptionOrNull(account.number),
-      createOwnersJSON(account.owners.getOrElse(Set()),""),
       stringOptionOrNull(account.accountType),
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       createAccountRoutingsJSON(account.accountRoutings),
-      views_basic = availableViews.map(view => code.api.v3_0_0.ViewBasicV300(id = view.viewId.value, short_name = view.name, description = view.description, is_public = view.isPublic)),
-      tags.map(createAccountTagJSON)
+      views_basic = availableViews.map(view => view.viewId.value)
     )
   }
 
@@ -592,6 +642,36 @@ object JSONFactory400 {
       user = JSONFactory.createUserJSON(tag.postedBy)
     )
   }
+
+  def createFirehoseCoreBankAccountJSON(accounts : List[ModeratedBankAccount], accountAttributes: Option[List[AccountAttribute]] = None) : ModeratedFirehoseAccountsJsonV400 =  {
+    def getAttributes(bankId: BankId, accountId: AccountId): Option[List[AccountAttributeResponseJson]] = accountAttributes match {
+      case Some(v) =>
+        val attributes: List[AccountAttributeResponseJson] =
+          v.filter(attr => attr.bankId == bankId && attr.accountId == accountId)
+            .map(createAccountAttributeJson)
+        Some(attributes)
+      case None => None
+    }
+    ModeratedFirehoseAccountsJsonV400(
+      accounts.map(
+        account =>
+          ModeratedFirehoseAccountJsonV400 (
+            account.accountId.value,
+            stringOrNull(account.bankId.value),
+            stringOptionOrNull(account.label),
+            stringOptionOrNull(account.number),
+            createOwnersJSON(account.owners.getOrElse(Set()), account.bankName.getOrElse("")),
+            stringOptionOrNull(account.accountType),
+            createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+            createAccountRoutingsJSON(account.accountRoutings),
+            createAccountRulesJSON(account.accountRules),
+            account_attributes = getAttributes(account.bankId, account.accountId)
+          )
+      )
+    )
+  }
+
+
   def createEntitlementJSONs(entitlements: List[Entitlement]): EntitlementsJsonV400 = {
     EntitlementsJsonV400(entitlements.map(entitlement => EntitlementJsonV400(
       entitlement_id = entitlement.entitlementId,
@@ -779,6 +859,22 @@ object JSONFactory400 {
 
   def createCounterpartiesJson400(counterparties: List[CounterpartyTrait]): CounterpartiesJson400 =
     CounterpartiesJson400(counterparties.map(createCounterpartyJson400))
+
+  def createBalancesJson(accountsBalances: AccountsBalances) = {
+    AccountsBalancesJsonV400(
+      accounts = accountsBalances.accounts.map(
+        account => AccountBalanceJsonV400(
+          account_id = account.id,
+          bank_id = account.bankId,
+          account_routings = account.accountRoutings,
+          label = account.label,
+          balances = List(
+            BalanceJsonV400(`type` = "", currency = account.balance.currency, amount = account.balance.amount)
+          )
+        )
+      )
+    )
+  }
   
 }
 

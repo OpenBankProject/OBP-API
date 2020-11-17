@@ -4,9 +4,10 @@ import code.api.berlin.group.v1_3.{JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
 import code.api.builder.SigningBasketsApi.APIMethods_SigningBasketsApi
-import net.liftweb.json._
 import code.api.util.APIUtil._
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json._
+
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 

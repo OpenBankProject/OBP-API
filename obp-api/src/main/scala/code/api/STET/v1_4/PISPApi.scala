@@ -66,7 +66,6 @@ In REDIRECT and DECOUPLED approach, this confirmation is not a prerequisite to t
 }"""),
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PISP") :: apiTagMockedData :: Nil
      )
 
@@ -217,7 +216,6 @@ Since the modification request needs a PSU authentication before committing, the
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PISP") :: apiTagMockedData :: Nil
      )
 
@@ -283,7 +281,6 @@ The status information must be available during at least 30 calendar days after 
        emptyObjectJson,
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PISP") :: apiTagMockedData :: Nil
      )
 
@@ -526,7 +523,6 @@ When the chosen authentication approach within the ASPSP answers is set to "EMBE
 }"""),
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("PISP") :: apiTagMockedData :: Nil
      )
 

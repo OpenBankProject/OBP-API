@@ -46,7 +46,6 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
       emptyObjectJson,
       SwaggerDefinitionsJSON.accountsJsonUKOpenBanking_v200,
       List(ErrorMessages.UserNotLoggedIn,ErrorMessages.UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
 
     apiRelations += ApiRelation(getAccountList, getAccountList, "self")
@@ -81,8 +80,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
       emptyObjectJson,
       SwaggerDefinitionsJSON.transactionsJsonUKV200,
       List(UserNotLoggedIn,UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagUKOpenBanking, apiTagTransaction, apiTagPrivateData))
+      List(apiTagUKOpenBanking, apiTagTransaction, apiTagPrivateData, apiTagPsd2))
   
     lazy val getAccountTransactions : OBPEndpoint = {
       //get private accounts for all banks
@@ -132,7 +130,6 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
       emptyObjectJson,
       SwaggerDefinitionsJSON.accountsJsonUKOpenBanking_v200,
       List(ErrorMessages.UserNotLoggedIn,ErrorMessages.UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
 
     apiRelations += ApiRelation(getAccount, getAccount, "self")
@@ -171,7 +168,6 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
       emptyObjectJson,
       SwaggerDefinitionsJSON.accountBalancesUKV200,
       List(ErrorMessages.UserNotLoggedIn,ErrorMessages.UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
   
     lazy val getAccountBalances : OBPEndpoint = {
@@ -217,7 +213,6 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
       emptyObjectJson,
       SwaggerDefinitionsJSON.accountBalancesUKV200,
       List(ErrorMessages.UserNotLoggedIn,ErrorMessages.UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
   
     lazy val getBalances : OBPEndpoint = {

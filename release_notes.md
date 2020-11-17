@@ -3,6 +3,10 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+20/09/2020    609d4e77      Added props: entitlement_list_1 and new_user_entitlement_list . default is empty.
+                            we can grant the default roles to the new validated user, eg:
+                            entitlement_list_1=[CanGetConfig, CanUseAccountFirehoseAtAnyBank]
+                            new_user_entitlement_list=entitlement_list_1
 10/09/2020    95cd5329      Added props: glossary_requires_role. default is false. If set it as `true`, then OBP will 
                             check the authentication and CanReadGlossary Role for the endpoint: `Get API Glossary`.
 12/08/2020    51621aa1      Added props: webui_legal_notice_html_text. If we set the props, the content will be showed as the legal notice on the registration page 

@@ -6,7 +6,6 @@ import net.liftweb.util.SimpleInjector
 import java.util.Date
 
 import code.consent.ConsentStatus.ConsentStatus
-
 import scala.collection.immutable.List
 
 object Consents extends SimpleInjector {
@@ -132,10 +131,9 @@ trait Consent {
    * @return
    */
   def lastActionDate: Date
-  
 
    // The following creationDateTime, statusUpdateDateTime, expirationDateTime, transactionFromDateTime and transactionToDateTime are added for UKOpenBanking
-  //  in the standard it also contains the Permissions. but we will put it into the jsonWebToken.views     
+  //  in the standard it also contains the Permissions. but we will put it into the jsonWebToken.views
   //  the Permissions are the following system views:   
   //  
   //  final val READ_ACCOUNTS_BASIC_VIEW_ID = "ReadAccountsBasic"
@@ -169,8 +167,6 @@ trait Consent {
    * Specified end date and time for the transaction query period. If the field does not contain information or if it is not sent in the request, the end date will be 90 calendar days prior to the creation of the consent.
    */
   def transactionToDateTime: Date
-  
-
 }
 
 object ConsentStatus extends Enumeration {

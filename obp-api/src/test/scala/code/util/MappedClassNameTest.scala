@@ -3,6 +3,7 @@ package code.util
 import java.util.regex.Pattern
 
 import net.liftweb.mapper.Mapper
+import org.apache.commons.lang3.StringUtils
 import org.scalatest.Matchers._
 import org.scalatest.{FeatureSpec, Tag}
 
@@ -115,40 +116,30 @@ class MappedClassNameTest extends FeatureSpec {
       "code.DynamicEndpoint.DynamicEndpoint",
       "code.CustomerDependants.MappedCustomerDependant")
 
+  val newMappedTypes = ClassScanUtils.findTypes{ info =>
+    val typeName = info.name
+    !typeName.endsWith("$") &&
+      !oldMappedTypeNames.contains(typeName) &&
+      mapperClazz.isAssignableFrom(Class.forName(typeName, false, mapperClazz.getClassLoader))
+  }.toSet
   feature("Validate New Entity name and column name") {
 
     scenario(s"new entity names start with Mapped should be empty", ClassTag) {
 
       // the new entity names those name start with Mapped
-      val newMappedTypes = ClassScanUtils.findTypes{ info =>
-        val typeName = info.name
-        !typeName.endsWith("$") &&
-        !oldMappedTypeNames.contains(typeName) &&
-          mapperClazz.isAssignableFrom(Class.forName(typeName, false, mapperClazz.getClassLoader)) &&
-          typeName.matches(""".+\.Mapped[A-Z][^.]+$""")
-      }.toSet
-
-      newMappedTypes should equal(Set.empty[String])
+      val wrongTypes = newMappedTypes.filter(it => StringUtils.substringAfterLast(it, ".").startsWith("Mapped"))
+      wrongTypes should equal(Set.empty[String])
     }
 
     scenario(s"new entity column names should not start with m", ClassTag) {
-      // the new entity names those name start with Mapped
-      val newMappedTypes = ClassScanUtils.findTypes{ info =>
-        val typeName = info.name
-        !typeName.endsWith("$") &&
-        !oldMappedTypeNames.contains(typeName) &&
-          mapperClazz.isAssignableFrom(Class.forName(typeName, false, mapperClazz.getClassLoader))
-      }.toSet
-
       val wrongFileNamePattern = Pattern.compile("m[^a-z].*\\$module")
 
       val typeNameMapWrongFields: Map[String, Array[String]] =
         newMappedTypes.map(Class.forName(_, false, mapperClazz.getClassLoader))
           .map { clazz =>
               val wrongFileNames = clazz.getDeclaredFields.map(_.getName)
-                .filter(wrongFileNamePattern.matcher(_).matches())
-                .map(_.replace("$module", ""))
-
+                .filter(it => it.endsWith("$module") && it.charAt(0) == 'm' && it.charAt(1).isUpper)
+                .map(StringUtils.substringBeforeLast(_, "$module"))
               clazz.getName -> wrongFileNames
           }.toMap.filter(_._2.nonEmpty)
 

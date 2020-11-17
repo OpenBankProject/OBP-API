@@ -109,13 +109,13 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
       // prepare for Answer Transaction Request Challenge endpoint
       var challengeId = ""
       var transRequestId = ""
-      var answerJson = ChallengeAnswerJSON(id = challengeId, answer = "123")
+      var answerJson = ChallengeAnswerJson400(id = challengeId, answer = "123")
 
       //prepare for counterparty and SEPA stuff
       //For SEPA, otherAccountRoutingScheme must be 'IBAN'
-      val counterpartySEPA = createCounterparty(bankId.value, accountId2.value, true, UUID.randomUUID.toString);
+      val counterpartySEPA = createCounterparty(bankId.value, accountId1.value, accountId2.value, true, UUID.randomUUID.toString);
       //For Counterpart local mapper, the  mOtherAccountRoutingScheme='OBP' and  mOtherBankRoutingScheme = 'OBP'
-      val counterpartyCounterparty = createCounterparty(bankId.value, accountId2.value, true, UUID.randomUUID.toString);
+      val counterpartyCounterparty = createCounterparty(bankId.value, accountId1.value, accountId2.value, true, UUID.randomUUID.toString);
 
       var transactionRequestBodySEPA = TransactionRequestBodySEPAJSON(bodyValue, IbanJson(counterpartySEPA.otherAccountSecondaryRoutingAddress), description, sharedChargePolicy)
 
@@ -124,7 +124,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
       def setAnswerTransactionRequest(challengeId: String = this.challengeId, transRequestId: String = this.transRequestId, consumerAndToken: Option[(Consumer, Token)] = user1) = {
         this.challengeId = challengeId
         this.transRequestId = transRequestId
-        answerJson = ChallengeAnswerJSON(id = challengeId, answer = "123")
+        answerJson = ChallengeAnswerJson400(id = challengeId, answer = "123")
         val answerRequestNew = (v4_0_0_Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           CUSTOM_OWNER_VIEW_ID / "transaction-request-types" / transactionRequestType / "transaction-requests" / transRequestId / "challenge").POST <@ (consumerAndToken)
         answerRequest = answerRequestNew

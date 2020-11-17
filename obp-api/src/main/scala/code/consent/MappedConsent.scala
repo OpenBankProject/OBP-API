@@ -2,7 +2,6 @@ package code.consent
 
 import java.util.Date
 
-
 import code.api.util.{APIUtil, Consent, ErrorMessages}
 import code.consent.ConsentStatus.ConsentStatus
 import code.util.MappedUUID
@@ -153,7 +152,6 @@ object MappedConsentProvider extends ConsentProvider {
       setJsonWebToken(consent.consentId, jwt).head
     }
   }
-
   override def setJsonWebToken(consentId: String, jwt: String): Box[MappedConsent] = {
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
       case Full(consent) =>
@@ -267,7 +265,7 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   override def combinedServiceIndicator = mCombinedServiceIndicator.get
   override def lastActionDate = mLastActionDate.get
 
-  override def expirationDateTime = mExpirationDateTime.get    
+  override def expirationDateTime = mExpirationDateTime.get
   override def transactionFromDateTime= mTransactionFromDateTime.get    
   override def transactionToDateTime= mTransactionToDateTime.get    
   override def creationDateTime= createdAt.get    

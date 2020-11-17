@@ -38,7 +38,6 @@ object APIMethods_ProductsApi extends RestHelper {
        emptyObjectJson,
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Products") :: apiTagMockedData :: Nil
      )
 
@@ -65,7 +64,6 @@ object APIMethods_ProductsApi extends RestHelper {
        emptyObjectJson,
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Products") :: apiTagMockedData :: Nil
      )
 

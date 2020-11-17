@@ -41,13 +41,12 @@ object APIMethods_PayeesApi extends RestHelper {
        emptyObjectJson,
        json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Payees") :: apiTagMockedData :: Nil
      )
 
@@ -59,7 +58,7 @@ object APIMethods_PayeesApi extends RestHelper {
              } yield {
             (json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -109,7 +108,6 @@ object APIMethods_PayeesApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Payees") :: apiTagMockedData :: Nil
      )
 

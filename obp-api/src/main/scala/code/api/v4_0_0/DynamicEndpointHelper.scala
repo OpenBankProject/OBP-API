@@ -8,8 +8,8 @@ import java.util.{Date, UUID}
 
 import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
-import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, Catalogs, DoubleBody, EmptyBody, FloatBody, IntBody, JArrayBody, LongBody, OBPEndpoint, PrimaryDataBody, ResourceDoc, StringBody, notCore, notOBWG, notPSD2}
-import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
+import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, DoubleBody, EmptyBody, FloatBody, IntBody, JArrayBody, LongBody, OBPEndpoint, PrimaryDataBody, ResourceDoc, StringBody}
+import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic}
 import code.api.util.ErrorMessages.{UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ApiTag, CustomJsonFormats}
 import com.openbankproject.commons.util.ApiVersion
@@ -168,7 +168,7 @@ object DynamicEndpointHelper extends RestHelper {
     }
 
   private def buildDynamicEndpointInfo(openAPI: OpenAPI, id: String): DynamicEndpointInfo = {
-    val tags: List[ResourceDocTag] = List(ApiTag(openAPI.getInfo.getTitle), apiTagApi, apiTagNewStyle)
+    val tags: List[ResourceDocTag] = List(ApiTag(openAPI.getInfo.getTitle), apiTagApi, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic)
 
     val serverUrl = {
       val servers = openAPI.getServers
@@ -230,7 +230,6 @@ object DynamicEndpointHelper extends RestHelper {
         UserHasMissingRoles,
         UnknownError
       )
-      val catalogs: Catalogs = Catalogs(notCore, notPSD2, notOBWG)
 
       val roles: Option[List[ApiRole]] = {
         val entityName = getEntityName(openAPI, op)
@@ -274,7 +273,6 @@ object DynamicEndpointHelper extends RestHelper {
         exampleRequestBody,
         successResponseBody,
         errorResponseBodies,
-        catalogs,
         tags,
         roles
       )

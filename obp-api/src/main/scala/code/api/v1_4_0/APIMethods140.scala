@@ -71,7 +71,6 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       customerJsonV140,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
     lazy val getCustomer : OBPEndpoint = {
@@ -107,7 +106,6 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       customerMessagesJson,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMessage, apiTagCustomer))
 
     lazy val getCustomerMessages  : OBPEndpoint = {
@@ -139,7 +137,6 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       addCustomerMessageJson,
       successMessage,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMessage, apiTagCustomer, apiTagPerson)
     )
 
@@ -188,7 +185,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |
         |You can use the url query parameters *limit* and *offset* for pagination
         |
-        |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
+        |${authenticationRequiredMessage(!getBranchesIsPublic)}""".stripMargin,
       emptyObjectJson,
       branchesJson,
       List(
@@ -196,7 +193,6 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         BankNotFound,
         "No branches available. License may not be set.",
         UnknownError),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBranch)
     )
 
@@ -241,7 +237,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
          |
          |${urlParametersDocument(false,false)}         
          |
-         |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
+         |${authenticationRequiredMessage(!getAtmsIsPublic)}""".stripMargin,
       emptyObjectJson,
       atmsJson,
       List(
@@ -249,7 +245,6 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         BankNotFound,
         "No ATMs available. License may not be set.",
         UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
 
@@ -300,7 +295,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |* Description
         |* Terms and Conditions
         |* License the data under this endpoint is released under
-        |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+        |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       emptyObjectJson,
       productsJson,
       List(
@@ -309,7 +304,6 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "No products available.",
         "License may not be set.",
         UnknownError),
-      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
     )
 
@@ -350,7 +344,6 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         BankNotFound,
         "No CRM Events available.",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer)
     )
 
@@ -413,8 +406,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "user does not have access to owner view",
         TransactionRequestsNotEnabled,
         UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest, apiTagPSD2PIS))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
     lazy val getTransactionRequestTypes: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -459,8 +451,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "account not found at bank",
         "user does not have access to owner view",
         UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPsd2))
 
     lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
@@ -524,8 +515,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "Can't send a payment with a value of 0 or less.",
         TransactionRequestsNotEnabled,
         UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPsd2))
 
     lazy val createTransactionRequest: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -592,8 +582,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "Transaction Request not found",
         "Couldn't create Transaction",
         UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPsd2))
 
     lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -649,8 +638,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "Could not create customer",
         "Could not create user_customer_links",
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer),
+      List(apiTagCustomer, apiTagNewStyle),
       Some(List(canCreateCustomer, canCreateUserCustomerLink)))
 
     lazy val addCustomer : OBPEndpoint = {
@@ -734,7 +722,6 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         emptyObjectJson,
         apiInfoJSON,
         List(UserNotLoggedIn, UnknownError),
-        Catalogs(notCore, notPSD2, notOBWG),
         List(apiTagDocumentation))
       }
 

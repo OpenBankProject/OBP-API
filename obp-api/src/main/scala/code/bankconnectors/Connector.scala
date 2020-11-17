@@ -314,6 +314,8 @@ trait Connector extends MdcLoggable {
   }
 
   def getAdapterInfo(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future{Failure(setUnimplementedError)}
+  
+  def validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[IbanChecker]] = Future{(Failure(setUnimplementedError), callContext)}
 
   // Gets current challenge level for transaction request
   // Transaction request challenge threshold. Level at which challenge is created and needs to be answered
@@ -392,7 +394,7 @@ trait Connector extends MdcLoggable {
   // Validates an answer for a challenge and returns if the answer is correct or not
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Full(true), callContext)}
   
-  def validateChallenge(
+  def validateChallengeAnswerC2(
     transactionRequestId: Option[String],
     consentId: Option[String],
     challengeId: String,
@@ -540,6 +542,8 @@ trait Connector extends MdcLoggable {
     * This is a helper method that assumes OtherAccountRoutingScheme=IBAN
     */
   def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) : OBPReturnType[Box[CounterpartyTrait]] = Future {(Failure(setUnimplementedError), callContext)}
+
+  def getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[CounterpartyTrait]] = Future {(Failure(setUnimplementedError), callContext)}
 
   def getCounterpartiesLegacy(thisBankId: BankId, thisAccountId: AccountId, viewId :ViewId, callContext: Option[CallContext] = None): Box[(List[CounterpartyTrait], Option[CallContext])]= Failure(setUnimplementedError)
 
@@ -1040,6 +1044,9 @@ trait Connector extends MdcLoggable {
                                                 charge: TransactionRequestCharge,
                                                 chargePolicy: String): Box[TransactionRequest] = Failure(setUnimplementedError)
 
+  def notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestStatusValue]] =
+    Future{(Failure(setUnimplementedError), callContext)}
+
   def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
     //put connector agnostic logic here if necessary
     saveTransactionRequestTransactionImpl(transactionRequestId, transactionId)
@@ -1054,7 +1061,9 @@ trait Connector extends MdcLoggable {
 
   protected def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestChallengeImpl(transactionRequestId, challenge)
 
-  protected def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestStatusImpl(transactionRequestId, status)
+  def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestStatusImpl(transactionRequestId, status)
+
+  def saveTransactionRequestDescriptionImpl(transactionRequestId: TransactionRequestId, description: String): Box[Boolean] = TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestDescriptionImpl(transactionRequestId, description)
 
   def getTransactionRequests(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     val transactionRequests =
@@ -2239,6 +2248,7 @@ trait Connector extends MdcLoggable {
    * @param entityName DynamicEntity's entity name
    * @param requestBody content of request
    * @param entityId    id of given DynamicEntity
+   * @param bankId    bank id of the Entity
    * @param callContext
    * @return result DynamicEntity process
    */
@@ -2246,6 +2256,7 @@ trait Connector extends MdcLoggable {
                              entityName: String,
                              requestBody: Option[JObject],
                              entityId: Option[String],
+                             bankId: Option[String],
                              callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def dynamicEndpointProcess(url: String, jValue: JValue, method: HttpMethod, params: Map[String, List[String]], pathParams: Map[String, String],

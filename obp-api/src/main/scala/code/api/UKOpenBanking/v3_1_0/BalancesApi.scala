@@ -105,8 +105,7 @@ object APIMethods_BalancesApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       ApiTag("Balances") :: apiTagMockedData :: Nil
+       ApiTag("Balances") :: Nil
      )
 
      lazy val getAccountsAccountIdBalances : OBPEndpoint = {
@@ -200,8 +199,7 @@ object APIMethods_BalancesApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       ApiTag("Balances") :: apiTagMockedData :: Nil
+       ApiTag("Balances") :: Nil
      )
 
      lazy val getBalances : OBPEndpoint = {

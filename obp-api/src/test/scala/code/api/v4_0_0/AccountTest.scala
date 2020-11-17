@@ -1,19 +1,18 @@
 package code.api.v4_0_0
 
-import code.api.Constant
-import com.openbankproject.commons.model.{AccountRouting, AccountRoutingJsonV121, AmountOfMoneyJsonV121, ErrorMessage}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountAttributeJson
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ApiRole.CanCreateAccountAttributeAtOneBank
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
-import code.api.v2_0_0.{BasicAccountJSON, BasicAccountsJSON}
-import code.api.v3_1_0.{AccountAttributeResponseJson, CreateAccountResponseJsonV310, PostPutProductJsonV310, ProductJsonV310}
+import code.api.util.ErrorMessages.{BankAccountNotFoundByAccountRouting, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.{APIUtil, ApiRole}
+import code.api.v2_0_0.BasicAccountJSON
+import code.api.v3_1_0.{CreateAccountResponseJsonV310, PostPutProductJsonV310, ProductJsonV310}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
 import net.liftweb.json.Serialization.write
@@ -35,12 +34,14 @@ class AccountTest extends V400ServerSetup {
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getPrivateAccountByIdFull))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.addAccount))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getPrivateAccountsAtOneBank))
+  object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getAccountByAccountRouting))
 
   lazy val testBankId = testBankId1
   lazy val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
   lazy val addAccountJsonOtherUser = SwaggerDefinitionsJSON.createAccountRequestJsonV310
     .copy(user_id = resourceUser2.userId, balance = AmountOfMoneyJsonV121("EUR","0"),
       account_routings = List(AccountRoutingJsonV121(Random.nextString(4), Random.nextString(4))))
+  lazy val getAccountByRoutingJson = SwaggerDefinitionsJSON.bankAccountRoutingJson
   
   
   feature(s"test $ApiEndpoint1") {
@@ -238,6 +239,95 @@ class AccountTest extends V400ServerSetup {
       response2.code should equal(200)
       response2.body.extract[List[BasicAccountJSON]].length should be (0)
 
+    }
+  }
+
+  feature(s"test $ApiEndpoint5 - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint5, VersionOfApi) {
+      When("We make a request v4.0.0")
+      val request400 = (v4_0_0_Request / "management" / "accounts" / "account-routing-query").POST
+      val response400 = makePostRequest(request400, write(getAccountByRoutingJson))
+      Then("We should get a 401")
+      response400.code should equal(401)
+      And("error should be " + UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+    }
+  }
+
+  feature(s"test $ApiEndpoint5 - Authorized access") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
+      Given("We create an account with account routings")
+
+      val accountRoutingSchemeTest = "AccountNumber"
+      val accountRoutingAddressTest = "1567564589535564"
+
+      val createdAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310
+        .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR", "0"),
+          account_routings = List(
+            AccountRoutingJsonV121(accountRoutingSchemeTest, accountRoutingAddressTest)
+          ))
+
+      createAccountViaEndpoint(testBankId.value, createdAccountJson, user1)
+
+
+      When("We make a request to get the account with an existing account routing without specifying bankId")
+      val getAccountByRoutingWithNoBankJson = getAccountByRoutingJson.copy(bank_id = None, AccountRoutingJsonV121(accountRoutingSchemeTest, accountRoutingAddressTest))
+
+      val requestNoBank = (v4_0_0_Request / "management" / "accounts" / "account-routing-query").POST <@ (user1)
+      val responseNoBank = makePostRequest(requestNoBank, write(getAccountByRoutingWithNoBankJson))
+
+      Then("We should get a 200 and check the response body")
+      responseNoBank.code should equal(200)
+      val account1 = responseNoBank.body.extract[ModeratedAccountJSON400]
+      account1.account_routings.find(_.scheme == getAccountByRoutingWithNoBankJson.account_routing.scheme)
+        .map(_.address) shouldBe Some(getAccountByRoutingWithNoBankJson.account_routing.address)
+
+
+      When("We make a request to get the account with an existing account routing with specifying correct bankId")
+      val getAccountByRoutingWithBankJson = getAccountByRoutingJson.copy(Some(testBankId.value), AccountRoutingJsonV121(accountRoutingSchemeTest, accountRoutingAddressTest))
+
+      val requestWithBank = (v4_0_0_Request / "management" / "accounts" / "account-routing-query").POST <@ (user1)
+      val responseWithBank = makePostRequest(requestWithBank, write(getAccountByRoutingWithBankJson))
+
+      Then("We should get a 200 and check the response body")
+      responseWithBank.code should equal(200)
+      val account2 = responseWithBank.body.extract[ModeratedAccountJSON400]
+      account2.account_routings.find(_.scheme == getAccountByRoutingWithNoBankJson.account_routing.scheme)
+        .map(_.address) shouldBe Some(getAccountByRoutingWithNoBankJson.account_routing.address)
+
+
+      When("We make a request to get the account with an existing account routing with specifying incorrect bankId")
+      val getAccountByRoutingIncorrectBankJson = getAccountByRoutingJson.copy(Some(testBankId2.value), AccountRoutingJsonV121(accountRoutingSchemeTest, accountRoutingAddressTest))
+
+      val requestIncorrectBank = (v4_0_0_Request / "management" / "accounts" / "account-routing-query").POST <@ (user1)
+      val responseIncorrectBank = makePostRequest(requestIncorrectBank, write(getAccountByRoutingIncorrectBankJson))
+
+      Then("We should get a 404 with an error message")
+      responseIncorrectBank.code should equal(404)
+      responseIncorrectBank.body.extract[ErrorMessage].message contains BankAccountNotFoundByAccountRouting should be (true)
+
+
+      When("We make a request to get the account with an non-existing account routing")
+      val getAccountByRoutingIncorrectRouting = getAccountByRoutingJson.copy(bank_id = None, account_routing = AccountRoutingJsonV121("UnknownScheme", "UnknownAddress"))
+
+      val requestIncorrectRouting = (v4_0_0_Request / "management" / "accounts" / "account-routing-query").POST <@ (user1)
+      val responseIncorrectRouting = makePostRequest(requestIncorrectRouting, write(getAccountByRoutingIncorrectRouting))
+
+      Then("We should get a 404 with an error message")
+      responseIncorrectBank.code should equal(404)
+      responseIncorrectBank.body.extract[ErrorMessage].message contains BankAccountNotFoundByAccountRouting should be (true)
+
+    }
+  }
+
+  feature(s"test ${ApiEndpoint3.name}") {
+    scenario("We will test ${ApiEndpoint3.name}", ApiEndpoint3, VersionOfApi) {
+      Given("The test bank and test accounts")
+      val requestGet = (v4_0_0_Request / "banks" / testBankId.value / "balances").GET <@ (user1)
+
+      val responseGet = makeGetRequest(requestGet)
+      responseGet.code should equal(200)
+      responseGet.body.extract[AccountsBalancesJsonV400].accounts.size > 0 should be (true)
     }
   }
   
