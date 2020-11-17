@@ -303,7 +303,7 @@ object JSONFactory_UKOpenBanking_310 extends CustomJsonFormats {
     transactionAttributeOptValue(name, bankId, transactionId, list).getOrElse(null)
 
   def createTransactionsJson(transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest]) : TransactionsJsonUKV310 = {
-    val accountId = transactions.head.bankAccount.get.accountId.value
+    val accountId = transactions.headOption.map(_.bankAccount.get.accountId.value).orNull
     val transactionsInnerJson = transactions.map(
       transaction=>TransactionInnerJson(
         accountId,
@@ -360,7 +360,7 @@ object JSONFactory_UKOpenBanking_310 extends CustomJsonFormats {
     attributes: List[TransactionAttribute],
     view: View
   ) : TransactionsJsonUKV310 = {
-    val accountId = moderatedTransactions.head.bankAccount.get.accountId.value
+    val accountId = moderatedTransactions.headOption.map(_.bankAccount.get.accountId.value).orNull
 
     def getMerchantDetails(moderatedTransaction: ModeratedTransaction) = {
       view.viewId.value match {
