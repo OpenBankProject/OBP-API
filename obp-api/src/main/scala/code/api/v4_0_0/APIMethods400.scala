@@ -2951,7 +2951,6 @@ trait APIMethods400 {
         CannotFindAccountAccess,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
 
     lazy val revokeGrantUserAccessToViews : OBPEndpoint = {
@@ -5359,7 +5358,6 @@ trait APIMethods400 {
         ConsentNotFound,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
       apiTagConsent :: apiTagPSD2AIS :: apiTagNewStyle :: Nil)
 
     lazy val addConsentUser : OBPEndpoint = {
@@ -5418,7 +5416,6 @@ trait APIMethods400 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
       apiTagConsent :: apiTagPSD2AIS :: apiTagNewStyle :: Nil)
 
     lazy val updateConsentStatus : OBPEndpoint = {

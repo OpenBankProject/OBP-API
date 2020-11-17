@@ -111,7 +111,7 @@ object APIMethods_BalancesApi extends RestHelper {
      lazy val getAccountsAccountIdBalances : OBPEndpoint = {
        case "accounts" :: AccountId(accountId):: "balances" :: Nil JsonGet _ => {
          cc =>
-           val viewId = ViewId(Constant.READ_BALANCES_VIEW_ID)
+           val viewId = ViewId(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
            for {
              (Full(user), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              _ <- NewStyle.function.checkUKConsent(user, callContext)

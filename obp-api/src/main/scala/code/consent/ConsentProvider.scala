@@ -132,16 +132,6 @@ trait Consent {
    */
   def lastActionDate: Date
 
-   // The following creationDateTime, statusUpdateDateTime, expirationDateTime, transactionFromDateTime and transactionToDateTime are added for UKOpenBanking
-  //  in the standard it also contains the Permissions. but we will put it into the jsonWebToken.views
-  //  the Permissions are the following system views:   
-  //  
-  //  final val READ_ACCOUNTS_BASIC_VIEW_ID = "ReadAccountsBasic"
-  //  final val READ_ACCOUNTS_DETAIL_VIEW_ID = "ReadAccountsDetail"
-  //  final val READ_BALANCES_VIEW_ID = "ReadBalances"
-  //  final val READ_TRANSACTIONS_BASIC_VIEW_ID = "ReadTransactionsBasic"
-  //  final val READ_TRANSACTIONS_DEBITS_VIEW_ID = "ReadTransactionsDebits"
-  //  final val READ_TRANSACTIONS_DETAIL_VIEW_ID = "ReadTransactionsDetail" 
   /**
    * CreationDateTime*	CreationDateTimestring($date-time)
    * Date and time in which the consent was created.

@@ -106,8 +106,8 @@ object APIMethods_AccountsApi extends RestHelper {
      lazy val getAccounts : OBPEndpoint = {
        case "accounts" :: Nil JsonGet _ => {
          cc =>
-           val detailViewId = ViewId(Constant.READ_ACCOUNTS_DETAIL_VIEW_ID)
-           val basicViewId = ViewId(Constant.READ_ACCOUNTS_BASIC_VIEW_ID)
+           val detailViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID)
+           val basicViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID)
            for {
              (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              _ <- NewStyle.function.checkUKConsent(u, callContext)
@@ -212,8 +212,8 @@ object APIMethods_AccountsApi extends RestHelper {
 
      lazy val getAccountsAccountId : OBPEndpoint = {
        case "accounts" :: AccountId(accountId) :: Nil JsonGet _ => {
-         val detailViewId = ViewId(Constant.READ_ACCOUNTS_DETAIL_VIEW_ID)
-         val basicViewId = ViewId(Constant.READ_ACCOUNTS_BASIC_VIEW_ID)
+         val detailViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID)
+         val basicViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID)
              
          cc =>
            for {

@@ -1,4 +1,4 @@
--- auto generated MS sql server procedures script, create on 2020-11-16T19:21:20Z
+-- auto generated MS sql server procedures script, create on 2020-11-17T22:48:24Z
 
 -- drop procedure obp_get_adapter_info
 DROP PROCEDURE IF EXISTS obp_get_adapter_info;
@@ -2981,6 +2981,7 @@ this is example of parameter @outbound_json
        "data":[
          {
            "id":"no-example-provided",
+           "label":"My Account",
            "bankId":"gh.29.uk",
            "number":"no-example-provided",
            "accountRoutings":[
