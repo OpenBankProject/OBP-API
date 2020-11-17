@@ -107,6 +107,9 @@ object RunMTLSWebApp extends App {
   val basePath = this.getClass.getResource("/").toString .replaceFirst("target[/\\\\].*$", "")
   context.setWar(s"${basePath}src/main/webapp")
 
+  // rename JSESSIONID, avoid conflict with other project when start two project at local
+  context.getSessionHandler.getSessionCookieConfig.setName("JSESSIONID_OBP")
+
   server.setHandler(context)
 
   try {
