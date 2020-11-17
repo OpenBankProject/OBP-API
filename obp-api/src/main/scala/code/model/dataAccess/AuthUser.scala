@@ -859,22 +859,7 @@ def restoreSomeSessions(): Unit = {
     // val currentUrl = S.uriAndQueryString.getOrElse("/")
     // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
     def checkInternalRedirectAndLogUseIn(preLoginState: () => Unit, redirect: String, user: AuthUser) = {
-      val loginChallengeBox = S.param("login_challenge")
-        .filter(StringUtils.isNotBlank(_))
-      if(loginWithHydra && loginChallengeBox.isDefined) {
-        val challenge = loginChallengeBox.orNull
-        val acceptLoginRequest = new AcceptLoginRequest()
-        acceptLoginRequest.setSubject(user.username.get)
-        acceptLoginRequest.remember(false)
-        acceptLoginRequest.rememberFor(3600)
-        val response = hydraAdmin.acceptLoginRequest(challenge, acceptLoginRequest)
-        val redirectTo = response.getRedirectTo
-        logUserIn(user, () => {
-          S.notice(S.?("logged.in"))
-          preLoginState()
-          S.redirectTo(redirectTo)
-        })
-      } else if (Helper.isValidInternalRedirectUrl(redirect)) {
+      if (Helper.isValidInternalRedirectUrl(redirect)) {
         logUserIn(user, () => {
           S.notice(S.?("logged.in"))
           preLoginState()

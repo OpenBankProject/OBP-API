@@ -865,8 +865,8 @@ outboundAdapterCallContext.generalContext
 # ------------------------------------------------------------------------------------------
 
 # ------------------------------ Hydra oauth2 props ------------------------------
-## if login_with_hydra set to true, all other props must not be empty
-#login_with_hydra=true
+## if integrate_with_hydra set to true, all other props must not be empty
+#integrate_with_hydra=true
 #hydra_public_url=http://127.0.0.1:4444
 #hydra_admin_url=http://127.0.0.1:4445
 #hydra_consents=ReadAccountsBasic,ReadAccountsDetail,ReadBalances,ReadTransactionsBasic,ReadTransactionsDebits,ReadTransactionsDetail

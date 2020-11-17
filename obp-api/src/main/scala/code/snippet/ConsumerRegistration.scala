@@ -99,13 +99,13 @@ class ConsumerRegistration extends MdcLoggable {
           "#appType" #> SHtml.select(appTypes, Box!! appType.is, appType(_)) &
           "#appName" #> SHtml.text(nameVar.is, nameVar(_)) &
           "#redirect_url_label" #> {
-            if (HydraUtil.mirrorConsumerInHydra) "Redirect URL" else "Redirect URL (Optional)"
+            if (HydraUtil.integrateWithHydra) "Redirect URL" else "Redirect URL (Optional)"
           } &
           "#appRedirectUrl" #> SHtml.text(redirectionURLVar, redirectionURLVar(_)) &
           "#appDev" #> SHtml.text(devEmailVar, devEmailVar(_)) &
           "#appDesc" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
           "#appUserAuthenticationUrl" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_)) & {
-            if(HydraUtil.mirrorConsumerInHydra) {
+            if(HydraUtil.integrateWithHydra) {
               "#app-client_certificate" #> SHtml.textarea(clientCertificateVar, clientCertificateVar (_))&
               "#app-request_uri" #> SHtml.text(requestUriVar, requestUriVar(_)) &
               "#app-signing_alg" #> SHtml.select(signingAlgs, Box!! signingAlgVar.is, signingAlgVar(_)) &
@@ -127,7 +127,7 @@ class ConsumerRegistration extends MdcLoggable {
       val jwks = jwksVar.is
       val jwsAlg = signingAlgVar.is
       var jwkPrivateKey: String = s"Please change this value to ${if(StringUtils.isNotBlank(jwksUri)) "jwks_uri" else "jwks"} corresponding private key"
-      if(HydraUtil.mirrorConsumerInHydra) {
+      if(HydraUtil.integrateWithHydra) {
         HydraUtil.createHydraClient(consumer, oAuth2Client => {
           val signingAlg = signingAlgVar.is
 
@@ -182,7 +182,7 @@ class ConsumerRegistration extends MdcLoggable {
       "#directlogin-endpoint a [href]" #> urlDirectLoginEndpoint &
       "#post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
       "#post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl & {
-        if(HydraUtil.mirrorConsumerInHydra) {
+        if(HydraUtil.integrateWithHydra) {
           "#hydra-client-info-title *" #>"OAuth2" &
           "#admin_url *" #> HydraUtil.hydraAdminUrl &
             "#client_id *" #> {consumer.key.get} &
@@ -314,17 +314,15 @@ class ConsumerRegistration extends MdcLoggable {
       jwksUriVar.set(jwksUri)
       jwksVar.set(jwks)
 
-      val oauth2ParamError: CssSel = if(HydraUtil.mirrorConsumerInHydra) {
+      val oauth2ParamError: CssSel = if(HydraUtil.integrateWithHydra) {
         if(StringUtils.isBlank(redirectionURLVar.is) || Consumer.redirectURLRegex.findFirstIn(redirectionURLVar.is).isEmpty) {
           showErrorsForDescription("The 'Redirect URL' should be a valid url !")
         } else if(StringUtils.isNotBlank(requestUri) && !requestUri.matches("""^https?://(www.)?\S+?(:\d{2,6})?\S*$""")) {
           showErrorsForDescription("The 'request_uri' should be a valid url !")
         } else if(StringUtils.isNotBlank(jwksUri) && !jwksUri.matches("""^https?://(www.)?\S+?(:\d{2,6})?\S*$""")) {
           showErrorsForDescription("The 'jwks_uri' should be a valid url !")
-        } else if(StringUtils.isNotBlank(jwksUri) && StringUtils.isBlank(signingAlg)) {
-          showErrorsForDescription("The 'signing_alg' should not be empty when request_uri have value!")
-        } else if(!StringUtils.isAllBlank(jwksUri, jwks) && StringUtils.isBlank(signingAlg)) {
-          showErrorsForDescription("The 'signing_alg' must have value when 'jwks_uri' or 'jwks' have value!")
+        } else if(StringUtils.isBlank(signingAlg)) {
+          showErrorsForDescription("The 'signing_alg' should not be empty!")
         } else if(StringUtils.isNoneBlank(jwksUri, jwks)) {
           showErrorsForDescription("The 'jwks_uri' and 'jwks' should not have value at the same time!")
         } else if (StringUtils.isNotBlank(clientCertificate) && X509.validate(clientCertificate) != Full(true)) {

@@ -18,25 +18,32 @@ import scala.jdk.CollectionConverters.{mapAsJavaMapConverter, seqAsJavaListConve
 
 object HydraUtil {
 
-  val loginWithHydra = APIUtil.getPropsAsBoolValue("login_with_hydra", false)
+  private val INTEGRATE_WITH_HYDRA = "integrate_with_hydra"
+
+  val integrateWithHydra = APIUtil.getPropsAsBoolValue(INTEGRATE_WITH_HYDRA, false)
 
   val mirrorConsumerInHydra = APIUtil.getPropsAsBoolValue("mirror_consumer_in_hydra", false)
 
   lazy val hydraPublicUrl = APIUtil.getPropsValue("hydra_public_url")
-    .openOrThrowException("If props login_with_hydra is true, hydra_public_url value should not be blank")
+    .openOrThrowException(s"If props $INTEGRATE_WITH_HYDRA is true, hydra_public_url value should not be blank")
     .replaceFirst("/$", "")
 
   lazy val hydraAdminUrl = APIUtil.getPropsValue("hydra_admin_url")
-    .openOrThrowException("If props login_with_hydra is true, hydra_admin_url value should not be blank")
+    .openOrThrowException(s"If props $INTEGRATE_WITH_HYDRA is true, hydra_admin_url value should not be blank")
     .replaceFirst("/$", "")
 
   lazy val hydraConsents = APIUtil.getPropsValue("hydra_consents")
-    .openOrThrowException("If props login_with_hydra is true, hydra_client_scope value should not be blank")
+    .openOrThrowException(s"If props $INTEGRATE_WITH_HYDRA is true, hydra_client_scope value should not be blank")
     .trim.split("""\s*,\s*""").toList
+
+  private val allConsents = hydraConsents.mkString("openid offline ", " ","")
+
+
+  val grantTypes = ("authorization_code" :: "client_credentials" :: "refresh_token" :: "implicit" :: Nil).asJava
 
   lazy val hydraAdmin = {
     val hydraAdminUrl = APIUtil.getPropsValue("hydra_admin_url")
-      .openOrThrowException("If props login_with_hydra is true, hydra_admin_url value should not be blank")
+      .openOrThrowException(s"If props $INTEGRATE_WITH_HYDRA is true, hydra_admin_url value should not be blank")
     val defaultClient = Configuration.getDefaultApiClient
     defaultClient.setBasePath(hydraAdminUrl)
     new AdminApi(defaultClient)
@@ -44,7 +51,7 @@ object HydraUtil {
 
   lazy val hydraPublic = {
     val hydraPublicUrl = APIUtil.getPropsValue("hydra_public_url")
-      .openOrThrowException("If props login_with_hydra is true, hydra_public_url value should not be blank")
+      .openOrThrowException(s"If props $INTEGRATE_WITH_HYDRA is true, hydra_public_url value should not be blank")
     val apiClient = new ApiClient
     apiClient.setBasePath(hydraPublicUrl)
     new PublicApi(apiClient)
@@ -65,10 +72,10 @@ object HydraUtil {
     val oAuth2Client = new OAuth2Client()
     oAuth2Client.setClientId(consumer.key.get)
     oAuth2Client.setClientSecret(consumer.secret.get)
-    val allConsents = "openid" :: "offline" :: hydraConsents
-    oAuth2Client.setScope(allConsents.mkString(" "))
 
-    oAuth2Client.setGrantTypes(("authorization_code" :: "client_credentials" :: "refresh_token" :: "implicit" :: Nil).asJava)
+    oAuth2Client.setScope(allConsents)
+
+    oAuth2Client.setGrantTypes(grantTypes)
     oAuth2Client.setResponseTypes(("code" :: "id_token" :: "token" :: "code id_token" :: Nil).asJava)
     oAuth2Client.setPostLogoutRedirectUris(List(redirectUrl).asJava)
 

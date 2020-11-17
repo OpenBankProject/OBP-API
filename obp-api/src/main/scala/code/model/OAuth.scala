@@ -25,7 +25,7 @@ TESOBE (http://www.tesobe.com/)
 
   */
 package code.model
-import java.util.Date
+import java.util.{Collections, Date}
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.DbFunction
@@ -36,6 +36,7 @@ import code.nonce.NoncesProvider
 import code.token.TokensProvider
 import code.users.Users
 import code.util.Helper.MdcLoggable
+import code.util.HydraUtil
 import code.util.HydraUtil._
 import com.github.dwickern.macros.NameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -186,7 +187,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
   }
 
   def deleteConsumer(consumer: Consumer): Boolean = {
-    if(mirrorConsumerInHydra) hydraAdmin.deleteOAuth2Client(consumer.key.get)
+    if(integrateWithHydra) hydraAdmin.deleteOAuth2Client(consumer.key.get)
     Consumer.delete_!(consumer)
   }
 
@@ -245,10 +246,28 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
         }
         val updatedConsumer = c.saveMe()
 
-        if(mirrorConsumerInHydra && Option(originIsActive) != isActive) {
+        if(integrateWithHydra && Option(originIsActive) != isActive && isActive.isDefined) {
+          val clientId = c.key.get
+          val existsOAuth2Client = Box.tryo(hydraAdmin.getOAuth2Client(clientId))
+            .filter(null !=)
           // if disable consumer, delete hydra client, else if enable consumer, create hydra client
+          // note: hydra update client endpoint have bug, can't update any client, So here delete and create new one
           if (isActive == Some(false)) {
-            hydraAdmin.deleteOAuth2Client(c.key.get)
+              existsOAuth2Client
+              .map { oAuth2Client =>
+                  hydraAdmin.deleteOAuth2Client(clientId)
+                  // set grantTypes to empty to disable the client
+                  oAuth2Client.setGrantTypes(Collections.emptyList())
+                  hydraAdmin.createOAuth2Client(oAuth2Client)
+              }
+          } else if(isActive == Some(true) && existsOAuth2Client.isDefined) {
+            existsOAuth2Client
+              .map { oAuth2Client =>
+                hydraAdmin.deleteOAuth2Client(clientId)
+                // set grantTypes to correct value to enable the client
+                oAuth2Client.setGrantTypes(HydraUtil.grantTypes)
+                hydraAdmin.createOAuth2Client(oAuth2Client)
+              }
           } else if(isActive == Some(true)) {
             createHydraClient(updatedConsumer)
           }
@@ -402,7 +421,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
             case None =>
           }
           val createdConsumer = c.saveMe()
-          if(mirrorConsumerInHydra) createHydraClient(createdConsumer)
+          if(integrateWithHydra) createHydraClient(createdConsumer)
           createdConsumer
         }
     }
