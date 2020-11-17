@@ -28,10 +28,13 @@ Berlin 13359, Germany
 -->
 <div id="register-consumer" data-lift="surround?with=default;at=content" tabindex="-1">
 	<div data-lift="ConsumerRegistration.registerForm">
-		<h1>Register your consumer</h1>
 
-		<div id="register-consumer-input">
-			<div id="register-consumer-explanation">Please complete the information about your application below, so we can create your OAuth consumer key and secret.</div>
+		<div id="register-consumer-input" tabindex="-1">
+			<div id="register-consumer-explanation">
+				<h1>Register your consumer</h1>
+				<p>Please complete the information about your application below, so we can create your OAuth consumer key and secret.</p>
+				<p>All fields are required unless marked as 'optional'</p>
+			</div>
 
 <!--			<div id="register-consumer-errors" class="alert alert-danger">-->
 <!--				<div class="error">-->
@@ -41,45 +44,44 @@ Berlin 13359, Germany
 
 			<form method="post">
 				<div class="row">
-					<div class="col-xs-12 col-sm-6">
+					<div class="col-xs-12 col-sm-12">
 						<div class="form-group">
-							<label for="appType">Application type</label>
-							<select name="app-type" id="appType" class="form-control">
+							<label for="appType" id="appTypeLabel">Application type</label>
+							<select name="app-type" id="appType" class="form-control js-example-basic-single">
 								<option class="app-type-option"></option>
 							</select>
 						</div>
 						<div class="form-group">
 							<label for="appName">Application name</label>
-							<input type="text" name="app-name" id="appName" class="form-control">
-							<div id = "consumer-registration-app-name-error-div" class="hide alert alert-danger">
+							<input type="text" name="app-name" id="appName" class="form-control" aria-describedby="consumer-registration-app-name-error">
+							<div id = "consumer-registration-app-name-error-div" class="hide">
 								<span data-lift="Msg?id=consumer-registration-app-name-error"/>
 							</div>
 						</div>
 						<div class="form-group">
-							<label for="appRedirectUrl" id="redirect_url_label">Redirect URL (Optional)</label>
-							<input type="text" name="app-redirect-url" id="appRedirectUrl" class="form-control">
+							<label for="appDesc">Description of the application</label>
+							<textarea rows="4" name="app-description" id="appDesc" class="form-control" aria-describedby="consumer-registration-app-description-error"></textarea>
+							<div id = "consumer-registration-app-description-error-div" class="hide">
+								<span data-lift="Msg?id=consumer-registration-app-description-error"/>
+							</div>
+						</div>
+						<div class="form-group">
+							<label for="appRedirectUrl">Redirect URL (Optional)</label>
+							<input type="text" name="app-redirect-url" id="appRedirectUrl" class="form-control" aria-describedby="consumer-registration-app-redirect-url-error">
 							<div id = "consumer-registration-app-redirect-url-error-div" class="hide">
 								<span data-lift="Msg?id=consumer-registration-app-redirect-url-error"/>
 							</div>
 						</div>
 						<div class="form-group">
 							<label for="appDev">Developer email</label>
-							<input type="text" name="app-developer" id="appDev" class="form-control">
-							<div id = "consumer-registration-app-developer-error-div" class="hide alert alert-danger">
+							<input type="text" name="app-developer" id="appDev" class="form-control" aria-describedby="consumer-registration-app-developer-error">
+							<div id = "consumer-registration-app-developer-error-div" class="hide">
 								<span data-lift="Msg?id=consumer-registration-app-developer-error"/>
 							</div>
 						</div>
 					</div>
-					<div class="col-xs-12 col-sm-6">
-						<div class="form-group">
-							<label for="appDesc">Description of the application</label>
-							<textarea rows="4" name="app-description" id="appDesc" class="form-control"></textarea>
-							<div id = "consumer-registration-app-description-error-div" class="hide alert alert-danger">
-								<span data-lift="Msg?id=consumer-registration-app-description-error"/>
-							</div>
-						</div>
-					</div>
 				</div>
+				
 				<div class="row oauth2_fields">
 					<hr>
 					<h2 style="text-align: center">OAuth2 related:</h2>
@@ -148,15 +150,20 @@ Berlin 13359, Germany
 						</div>
 					</div>
 				</div>
-				<input type="submit" value="Register consumer" class="btn btn-default" />
-				<div id = "register-consumer-errors-div" class="hide alert alert-danger">
+				<input type="submit" value="Submit" class="btn btn-danger" aria-describedby="register-consumer-errors"/>
+				<div id = "register-consumer-errors-div" class="hide">
 					<span data-lift="Msg?id=register-consumer-errors"/>
 				</div>
 			</form>
 		</div>
-
-		<div id="register-consumer-success">
-			<p id="register-consumer-success-message">Thanks for registering your consumer with the Open Bank API! Here is your developer information. Please save it in a secure location.</p>
+		<div id="register-consumer-success" tabindex="-1">
+			<h1>Register your consumer</h1>
+			<div id="register-consumer-success-message">
+				<p>Thanks for registering your consumer with the Open Bank API! Here is your developer information. Please save it in a secure location.</p>
+			</div>
+			<br>
+			<p>Please save it in a secure location.</p>
+			
 			<div class="row">
 				<div class="col-xs-12 col-sm-4">Consumer ID</div>
 				<div class="col-xs-12 col-sm-8"><span id="app-consumer_id">123</span></div>
@@ -173,12 +180,6 @@ Berlin 13359, Germany
 				<div class="col-xs-12 col-sm-4">User redirect URL</div>
 				<div class="col-xs-12 col-sm-8"><span id="app-redirect-url">ABC</span></div>
 			</div>
-			<!--
-			<div class="row">
-				<div class="col-xs-12 col-sm-4">User authentication URL</div>
-				<div class="col-xs-12 col-sm-8"><span id="app-user-authentication-url">ABC</span></div>
-			</div>
-			-->
 			<div class="row">
 				<div class="col-xs-12 col-sm-4">Developer Email</div>
 				<div class="col-xs-12 col-sm-8"><span id="app-developer">abc@example.com</span></div>
