@@ -407,11 +407,15 @@ object JSONFactory1_4_0 extends MdcLoggable{
   def prepareDescription(parameter: String): String = {
     val glossaryItemTitle = getGlossaryItemTitle(parameter)
     val exampleFieldValue = getExampleFieldValue(parameter)
-    s"""
-       |
-       |* [${parameter}](/glossary#$glossaryItemTitle): $exampleFieldValue
-       |
-       |""".stripMargin
+    if(exampleFieldValue.contains(ExampleValue.NoExampleProvided)){
+      "" 
+    } else {
+      s"""
+         |
+         |* [${parameter}](/glossary#$glossaryItemTitle): $exampleFieldValue
+         |
+         |""".stripMargin
+    }
   }
 
   def prepareJsonFieldDescription(jsonBody: scala.Product, jsonType: String): String = {

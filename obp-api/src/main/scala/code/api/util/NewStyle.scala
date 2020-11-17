@@ -1027,6 +1027,12 @@ object NewStyle {
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForSaveDoubleEntryBookTransaction ", 400), i._2)
       }
 
+    def cancelPaymentV400(transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.cancelPaymentV400(transactionId: TransactionId, callContext) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCancelPayment ",400), i._2)
+      }
+    }
+
     def createOrUpdateProductAttribute(
       bankId: BankId,
       productCode: ProductCode,

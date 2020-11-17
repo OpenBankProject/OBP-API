@@ -75,7 +75,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-11-05T12:59:27Z
+// ---------- created on 2020-11-16T20:19:48Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -3508,6 +3508,32 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[TransactionId](callContext))        
   }
           
+  messageDocs += cancelPaymentV400Doc
+  def cancelPaymentV400Doc = MessageDoc(
+    process = "obp.cancelPaymentV400",
+    messageFormat = messageFormat,
+    description = "Cancel Payment V400",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundCancelPaymentV400(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      transactionId=TransactionId(transactionIdExample.value))
+    ),
+    exampleInboundMessage = (
+     InBoundCancelPaymentV400(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=true)
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def cancelPaymentV400(transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
+        import com.openbankproject.commons.dto.{InBoundCancelPaymentV400 => InBound, OutBoundCancelPaymentV400 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionId)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_cancel_payment_v400", req, callContext)
+        response.map(convertToTuple[Boolean](callContext))        
+  }
+          
   messageDocs += createCounterpartyDoc
   def createCounterpartyDoc = MessageDoc(
     process = "obp.createCounterparty",
@@ -6121,8 +6147,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-11-05T12:59:27Z
-//---------------- dynamic end ---------------------please don't modify this line               
+// ---------- created on 2020-11-16T20:19:48Z
+//---------------- dynamic end ---------------------please don't modify this line                
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

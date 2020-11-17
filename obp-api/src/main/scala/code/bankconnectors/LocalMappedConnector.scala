@@ -1496,6 +1496,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       mappedTransaction.theTransactionId
     }
   }
+  
+  override def cancelPaymentV400(transactionId: TransactionId,
+                                 callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future {
+    (Full(false), callContext)
+  }
 
   /*
     Transaction Requests

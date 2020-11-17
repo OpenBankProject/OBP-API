@@ -1708,6 +1708,11 @@ trait Connector extends MdcLoggable {
                       callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = Future {
     Failure(setUnimplementedError)
   }
+  
+  def cancelPaymentV400(transactionId: TransactionId,
+                        callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future {
+    (Failure(setUnimplementedError), callContext)
+  }
 
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
