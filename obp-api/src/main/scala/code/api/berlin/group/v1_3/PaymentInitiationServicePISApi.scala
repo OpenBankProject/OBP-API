@@ -18,7 +18,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus}
-import net.liftweb.common.Full
+import net.liftweb.common.{Box, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json.Serialization.write
@@ -103,44 +103,33 @@ or * access method is generally applicable, but further authorisation processes 
              }
              fromAccountIban = transactionRequestBody.debtorAccount.iban
              toAccountIban = transactionRequestBody.creditorAccount.iban
-             (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
+             (_, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
              (_, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
-             (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
-             negativeAmount = - transactionRequest.body.value.amount.toDouble
-             currency = transactionRequest.body.value.currency
-             (createdTransactionRequest,callContext) <- transactionRequestTypes match {
+             (_, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
+             (_, _) <- transactionRequestTypes match {
                case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
                  transactionRequest.status.toUpperCase() match {
                    case "COMPLETED" =>
-                     for {
-                       (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(
-                         u,
-                         ViewId("Owner"),//This is the default 
-                         fromAccount,
-                         toAccount,
-                         TransactionRequestType(transactionRequestTypes.toString),
-                         TransactionRequestCommonBodyJSONCommons(
-                           AmountOfMoneyJsonV121(amount = negativeAmount.toString, currency = currency),
-                           ""
-                         ),
-                         "",
-                         "",
-                         None,
-                         None,
-                         None,
-                         callContext
-                       )
-                     } yield (createdTransactionRequest, callContext)
-                   case "INITIATED" =>
+                     NewStyle.function.cancelPaymentV400(TransactionId(transactionRequest.transaction_ids), callContext) map {
+                       x => x._1 match {
+                         case true => 
+                           Connector.connector.vend.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString)
+                           (true, x._2)
+                         case false =>
+                           (false, x._2)
+                       }
+                     }
+                   case "INITIATED" => 
                      Connector.connector.vend.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString)
-                     NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-                   case "CANCELLED" =>
-                     NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+                     Future(true, callContext)
+                   case "CANCELLED" => 
+                     Future(false, callContext)
                  }
                }
              }
+             (updatedTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createCancellationTransactionRequestJson(createdTransactionRequest), HttpCode.`202`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.createCancellationTransactionRequestJson(updatedTransactionRequest), HttpCode.`202`(callContext))
            }
          }
        }
