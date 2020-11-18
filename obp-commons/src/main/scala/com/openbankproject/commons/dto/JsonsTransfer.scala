@@ -173,7 +173,7 @@ case class OutBoundCancelPaymentV400(outboundAdapterCallContext: OutboundAdapter
                                      transactionId: TransactionId) extends TopicTrait
 case class InBoundCancelPaymentV400(inboundAdapterCallContext: 
                                     InboundAdapterCallContext, 
-                                    status: Status, data: Boolean) extends InBoundTrait[Boolean]
+                                    status: Status, data: CancelPayment) extends InBoundTrait[CancelPayment]
 
 
 case class OutBoundCreateTransactionRequestv210(outboundAdapterCallContext: OutboundAdapterCallContext,
