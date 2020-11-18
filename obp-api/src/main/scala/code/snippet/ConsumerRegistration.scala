@@ -98,7 +98,7 @@ class ConsumerRegistration extends MdcLoggable {
       "form" #> {
           "#appType" #> SHtml.select(appTypes, Box!! appType.is, appType(_)) &
           "#appName" #> SHtml.text(nameVar.is, nameVar(_)) &
-          "#redirect_url_label" #> {
+          "#redirect_url_label *" #> {
             if (HydraUtil.integrateWithHydra) "Redirect URL" else "Redirect URL (Optional)"
           } &
           "#appRedirectUrl" #> SHtml.text(redirectionURLVar, redirectionURLVar(_)) &

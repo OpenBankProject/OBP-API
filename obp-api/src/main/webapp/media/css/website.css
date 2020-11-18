@@ -373,16 +373,6 @@ header #header-decoration,
 	outline: 0;
 }
 
-#register-consumer textarea {
-	height: 253px;
-}
-#register-consumer #app-jwks {
-	height: 180px;
-}
-#register-consumer .list-group-item, #register-consumer .well  {
-	background-color: #2db6eb;
-}
-
 .btn-danger.focus,
 .btn-danger:focus,
 .btn-danger.active.focus,

@@ -59,14 +59,7 @@ Berlin 13359, Germany
 							</div>
 						</div>
 						<div class="form-group">
-							<label for="appDesc">Description of the application</label>
-							<textarea rows="4" name="app-description" id="appDesc" class="form-control" aria-describedby="consumer-registration-app-description-error"></textarea>
-							<div id = "consumer-registration-app-description-error-div" class="hide">
-								<span data-lift="Msg?id=consumer-registration-app-description-error"/>
-							</div>
-						</div>
-						<div class="form-group">
-							<label for="appRedirectUrl">Redirect URL (Optional)</label>
+							<label for="appRedirectUrl" id="redirect_url_label">Redirect URL (Optional)</label>
 							<input type="text" name="app-redirect-url" id="appRedirectUrl" class="form-control" aria-describedby="consumer-registration-app-redirect-url-error">
 							<div id = "consumer-registration-app-redirect-url-error-div" class="hide">
 								<span data-lift="Msg?id=consumer-registration-app-redirect-url-error"/>
@@ -79,6 +72,13 @@ Berlin 13359, Germany
 								<span data-lift="Msg?id=consumer-registration-app-developer-error"/>
 							</div>
 						</div>
+						<div class="form-group">
+							<label for="appDesc">Description of the application</label>
+							<textarea rows="4" name="app-description" id="appDesc" class="form-control" aria-describedby="consumer-registration-app-description-error"></textarea>
+							<div id = "consumer-registration-app-description-error-div" class="hide">
+								<span data-lift="Msg?id=consumer-registration-app-description-error"/>
+							</div>
+						</div>
 					</div>
 				</div>
 				
@@ -86,30 +86,11 @@ Berlin 13359, Germany
 					<hr>
 					<h2 style="text-align: center">OAuth2 related:</h2>
 
-					<div class="col-xs-12 col-sm-6">
+					<div class="col-xs-12 col-sm-12">
 						<div class="form-group">
-							<label for="app-request_uri" id="request_uri_label">
-								request_uri (Optional) <a href="https://openid.net/specs/openid-connect-core-1_0.html#RequestUriParameter" target="_blank">reference</a>
-							</label>
-							<input type="url" name="app-request_uri" id="app-request_uri" class="form-control">
-							<div id = "consumer-registration-app-request_uri-error-div" class="hide">
-								<span data-lift="Msg?id=consumer-registration-app-request_uri-error"/>
-							</div>
-						</div>
-						<div class="form-group">
-							<label for="app-client_certificate">MTLS Client certificate (Optional)</label>
-							<textarea rows="4" name="app-client_certificate" id="app-client_certificate" class="form-control" placeholder="Whole content of crt file"></textarea>
-							<div id = "consumer-registration-app-client_certificate-error-div" class="hide alert alert-danger">
-								<span data-lift="Msg?id=consumer-registration-app-client_certificate-error"/>
-							</div>
-						</div>
-					</div>
-					<div class="col-xs-12 col-sm-6">
-						<div class="form-group">
-							<label for="app-signing_alg" id="request_signing_alg">
-								signing_alg
+							<label for="app-signing_alg" id="request_signing_alg">signing_alg,
 								<a role="button" data-toggle="collapse" href="#collapse_signing_alg" aria-expanded="false" aria-controls="collapse_signing_alg">
-									<span class="glyphicon glyphicon-menu-hamburger" aria-hidden="true"></span>
+									 help
 								</a>
 							</label>
 							<div class="collapse" id="collapse_signing_alg">
@@ -119,22 +100,31 @@ Berlin 13359, Germany
 									and <a target="_blank" href="https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication">9.  Client Authentication</a>
 								</div>
 							</div>
-							<select name="app-signing_alg" id="app-signing_alg" class="form-control">
+							<select name="app-signing_alg" id="app-signing_alg" class="form-control js-example-basic-single">
 								<option value="">none</option>
 								<option value="RS256">RS256</option>
 								<option value="ES256">ES256</option>
 							</select>
 						</div>
 						<div class="form-group">
+							<label for="app-request_uri" id="request_uri_label">
+								request_uri (Optional), <a href="https://openid.net/specs/openid-connect-core-1_0.html#RequestUriParameter" target="_blank">reference</a>
+							</label>
+							<input type="url" name="app-request_uri" id="app-request_uri" class="form-control">
+							<div id = "consumer-registration-app-request_uri-error-div" class="hide">
+								<span data-lift="Msg?id=consumer-registration-app-request_uri-error"/>
+							</div>
+						</div>
+						<div class="form-group">
 							<label for="app-jwks_uri" id="request_jwks_uri">
-								jwks_uri (Optional) <a href="https://openid.net/specs/openid-connect-core-1_0.html#RotateSigKeys" target="_blank">reference</a>
+								jwks_uri (Optional), <a href="https://openid.net/specs/openid-connect-core-1_0.html#RotateSigKeys" target="_blank">reference</a>
 							</label>
 							<input type="url" name="app-jwks_uri" id="app-jwks_uri" class="form-control">
 						</div>
 						<div class="form-group">
-							<label for="app-jwks">jwks (Optional)
+							<label for="app-jwks">jwks (Optional),
 								<a role="button" data-toggle="collapse" href="#collapse_jwks" aria-expanded="false" aria-controls="collapse_jwks">
-									<span class="glyphicon glyphicon-menu-hamburger" aria-hidden="true"></span>
+									 help
 								</a>
 							</label>
 							<div class="collapse" id="collapse_jwks">
@@ -146,6 +136,13 @@ Berlin 13359, Germany
 							<textarea rows="4" name="app-jwks" id="app-jwks" class="form-control" placeholder="Content of jwks"></textarea>
 							<div id = "consumer-registration-app-signing_jwks-div" class="hide alert alert-danger">
 								<span data-lift="Msg?id=consumer-registration-app-signing_jwks-error"/>
+							</div>
+						</div>
+						<div class="form-group">
+							<label for="app-client_certificate">MTLS Client certificate (Optional)</label>
+							<textarea rows="4" name="app-client_certificate" id="app-client_certificate" class="form-control" placeholder="Whole content of crt file"></textarea>
+							<div id = "consumer-registration-app-client_certificate-error-div" class="hide alert alert-danger">
+								<span data-lift="Msg?id=consumer-registration-app-client_certificate-error"/>
 							</div>
 						</div>
 					</div>
