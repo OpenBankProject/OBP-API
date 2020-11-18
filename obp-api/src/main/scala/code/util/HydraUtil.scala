@@ -36,7 +36,7 @@ object HydraUtil {
     .openOrThrowException(s"If props $INTEGRATE_WITH_HYDRA is true, hydra_client_scope value should not be blank")
     .trim.split("""\s*,\s*""").toList
 
-  private val allConsents = hydraConsents.mkString("openid offline ", " ","")
+  private lazy val allConsents = hydraConsents.mkString("openid offline ", " ","")
 
 
   val grantTypes = ("authorization_code" :: "client_credentials" :: "refresh_token" :: "implicit" :: Nil).asJava
