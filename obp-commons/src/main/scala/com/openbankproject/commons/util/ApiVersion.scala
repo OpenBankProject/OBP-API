@@ -1,6 +1,8 @@
 package com.openbankproject.commons.util
 
-import java.io.{ObjectInputStream, ObjectOutputStream}
+import java.util.concurrent.ConcurrentHashMap
+
+import net.liftweb.json.{Formats, JField, JObject, JString, JsonAST}
 
 object ApiStandards extends Enumeration {
   type ApiStandards = Value
@@ -40,7 +42,9 @@ sealed trait ApiVersion {
  * @param apiShortVersion eg: `v1.2.1` or `v2.0`
  */
 @SerialVersionUID(2319477438367593617L)
-case class ScannedApiVersion(urlPrefix: String, apiStandard: String, apiShortVersion: String) extends ApiVersion  {
+case class ScannedApiVersion(urlPrefix: String, apiStandard: String, apiShortVersion: String) extends ApiVersion with JsonAble {
+  // record all scanned api versions
+  ApiVersion.allScannedApiVersion.add(this)
 
   val fullyQualifiedVersion = s"${apiStandard.toUpperCase}$apiShortVersion"
 
@@ -63,6 +67,15 @@ case class ScannedApiVersion(urlPrefix: String, apiStandard: String, apiShortVer
     state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
 
+  override def toJValue(implicit format: Formats): JsonAST.JValue = {
+    val jFields = JField("urlPrefix", JString(urlPrefix)) ::
+      JField("apiStandard", JString(apiStandard)) ::
+      JField("apiShortVersion", JString(apiShortVersion)) ::
+      JField("API_VERSION", JString(this.vDottedApiVersion)) ::
+      Nil
+
+    JObject(jFields)
+  }
 }
 
 object ApiVersion {
@@ -78,6 +91,8 @@ object ApiVersion {
   lazy val openIdConnect1 = OpenIdConnect1()
   case class Sandbox() extends ApiVersion
   lazy val sandbox = Sandbox()
+
+  val allScannedApiVersion = ConcurrentHashMap.newKeySet[ScannedApiVersion]()
 
   /**
    * this version is for OBPRequired, match any ApiVersion

@@ -20,18 +20,16 @@ import code.api.util.newstyle.AttributeDefinition._
 import code.api.util.newstyle.Consumer._
 import code.api.util.newstyle.UserCustomerLinkNewStyle
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
+import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
-import code.api.v2_2_0.{BankJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_1_0.{ConsentChallengeJsonV310, ConsentJsonV310, CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310, PostConsentChallengeJsonV310}
+import code.api.v3_1_0.{ConsentChallengeJsonV310, ConsentJsonV310, CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310}
 import com.openbankproject.commons.model.ListResult
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
-import code.api.v4_0_0.JSONFactory400.{createBankAccountJSON, createNewCoreBankAccountJson, createBalancesJson}
+import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON, createNewCoreBankAccountJson}
 import code.bankconnectors.Connector
-import code.consent.ConsentStatus.ConsentStatus
 import code.consent.{ConsentStatus, Consents}
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.entitlement.Entitlement
@@ -48,20 +46,18 @@ import code.userlocks.UserLocksProvider
 import code.users.Users
 import code.util.Helper
 import code.util.Helper.booleanToFuture
-import com.openbankproject.commons.util.JsonUtils
+import com.openbankproject.commons.util.{ApiVersion, JsonUtils, ScannedApiVersion}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
-import com.openbankproject.commons.util.ApiVersion
 import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCascade}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{compactRender, _}
 import net.liftweb.mapper.By
@@ -74,6 +70,7 @@ import org.apache.commons.lang3.StringUtils
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
 
 trait APIMethods400 {
   self: RestHelper =>
@@ -5781,9 +5778,38 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getScanneApiVersions,
+      implementedInApiVersion,
+      nameOf(getScanneApiVersions),
+      "GET",
+      "/api/versions",
+      "Get scanned API Versions",
+      s"""Get all the scanned API Versions.""",
+      EmptyBody,
+      ListResult(
+        "scanned_api_versions",
+        List(ApiVersion.v3_1_0)
+      ),
+      List(
+        UnknownError
+      ),
+      List(apiTagDocumentation, apiTagApi),
+      Some(Nil)
+    )
+
+    lazy val getScanneApiVersions: OBPEndpoint = {
+      case "api" :: "versions" :: Nil JsonGet _ => {
+        cc =>
+          Future {
+            val versions: List[ScannedApiVersion] = ApiVersion.allScannedApiVersion.asScala.toList
+            (ListResult("scanned_api_versions", versions), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
 
   }
-
 }
 
 object APIMethods400 extends RestHelper with APIMethods400 {
