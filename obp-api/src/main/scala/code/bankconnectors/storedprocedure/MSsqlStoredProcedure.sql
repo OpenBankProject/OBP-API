@@ -1,4 +1,4 @@
--- auto generated MS sql server procedures script, create on 2020-11-17T22:48:24Z
+-- auto generated MS sql server procedures script, create on 2020-11-18T11:10:59Z
 
 -- drop procedure obp_get_adapter_info
 DROP PROCEDURE IF EXISTS obp_get_adapter_info;
@@ -8973,7 +8973,10 @@ this is example of parameter @outbound_json
            }
          ]
        },
-       "data":true
+       "data":{
+         "canBeCancelled":true,
+         "startSca":true
+       }
      }'
 	);
 GO

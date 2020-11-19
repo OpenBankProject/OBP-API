@@ -39,7 +39,7 @@ import code.users.Users
 import code.util.Helper._
 import com.openbankproject.commons.util.JsonUtils
 import code.views.Views
-import com.openbankproject.commons.model.enums.{AccountAttributeType, AttributeCategory, AttributeType, CardAttributeType, ChallengeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType, TransactionRequestStatus}
+import com.openbankproject.commons.model.enums.{AccountAttributeType, AttributeCategory, AttributeType, CardAttributeType, ChallengeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType, TransactionRequestAttributeType, TransactionRequestStatus}
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full, ParamFailure}
@@ -1710,7 +1710,7 @@ trait Connector extends MdcLoggable {
   }
   
   def cancelPaymentV400(transactionId: TransactionId,
-                        callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future {
+                        callContext: Option[CallContext]): OBPReturnType[Box[CancelPayment]] = Future {
     (Failure(setUnimplementedError), callContext)
   }
 
@@ -2103,6 +2103,40 @@ trait Connector extends MdcLoggable {
   def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]): OBPReturnType[Box[CardAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
   
   def getCardAttributesFromProvider(cardId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CardAttribute]]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getTransactionRequestAttributesFromProvider(transactionRequestId: TransactionRequestId,
+                                                  callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getTransactionRequestAttributes(bankId: BankId,
+                                      transactionRequestId: TransactionRequestId,
+                                      callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getTransactionRequestAttributesCanBeSeenOnView(bankId: BankId,
+                                                     transactionRequestId: TransactionRequestId,
+                                                     viewId: ViewId,
+                                                     callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getTransactionRequestAttributeById(transactionRequestAttributeId: String,
+                                         callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getTransactionRequestIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]],
+                                                    callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createOrUpdateTransactionRequestAttribute(bankId: BankId,
+                                                transactionRequestId: TransactionRequestId,
+                                                transactionRequestAttributeId: Option[String],
+                                                name: String,
+                                                attributeType: TransactionRequestAttributeType.Value,
+                                                value: String,
+                                                callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createTransactionRequestAttributes(bankId: BankId,
+                                         transactionRequestId: TransactionRequestId,
+                                         transactionRequestAttributes: List[TransactionRequestAttribute],
+                                         callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def deleteTransactionRequestAttribute(transactionRequestAttributeId: String,
+                                        callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def createAccountApplication(
                                 productCode: ProductCode,

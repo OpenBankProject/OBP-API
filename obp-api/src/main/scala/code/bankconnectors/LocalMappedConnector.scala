@@ -57,6 +57,7 @@ import code.standingorders.{StandingOrderTrait, StandingOrders}
 import code.taxresidence.TaxResidenceX
 import code.transaction.MappedTransaction
 import code.transactionChallenge.{Challenges, MappedExpectedChallengeAnswer}
+import code.transactionRequestAttribute.TransactionRequestAttributeX
 import code.transactionattribute.TransactionAttributeX
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
@@ -1095,6 +1096,83 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  override def getTransactionRequestAttributesFromProvider(transactionRequestId: TransactionRequestId,
+                                                           callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.getTransactionRequestAttributesFromProvider(
+      transactionRequestId: TransactionRequestId
+    ).map((_, callContext))
+  }
+
+  override def getTransactionRequestAttributes(bankId: BankId,
+                                               transactionRequestId: TransactionRequestId,
+                                               callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.getTransactionRequestAttributes(
+      bankId: BankId,
+      transactionRequestId: TransactionRequestId
+    ).map((_, callContext))
+  }
+
+  override def getTransactionRequestAttributesCanBeSeenOnView(bankId: BankId,
+                                                              transactionRequestId: TransactionRequestId,
+                                                              viewId: ViewId,
+                                                              callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.getTransactionRequestAttributesCanBeSeenOnView(
+      bankId: BankId,
+      transactionRequestId: TransactionRequestId,
+      viewId: ViewId
+    ).map((_, callContext))
+  }
+
+  override def getTransactionRequestAttributeById(transactionRequestAttributeId: String,
+                                                  callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttribute]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.getTransactionRequestAttributeById(
+      transactionRequestAttributeId: String
+    ).map((_, callContext))
+  }
+
+  override def getTransactionRequestIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]],
+                                                             callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.getTransactionRequestIdsByAttributeNameValues(
+      bankId: BankId,
+      params: Map[String, List[String]]
+    ).map((_, callContext))
+  }
+
+  override def createOrUpdateTransactionRequestAttribute(bankId: BankId,
+                                                         transactionRequestId: TransactionRequestId,
+                                                         transactionRequestAttributeId: Option[String],
+                                                         name: String,
+                                                         attributeType: TransactionRequestAttributeType.Value,
+                                                         value: String,
+                                                         callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttribute]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.createOrUpdateTransactionRequestAttribute(
+      bankId: BankId,
+      transactionRequestId: TransactionRequestId,
+      transactionRequestAttributeId: Option[String],
+      name: String,
+      attributeType: TransactionRequestAttributeType.Value,
+      value: String
+    ).map((_, callContext))
+  }
+
+  override def createTransactionRequestAttributes(bankId: BankId,
+                                                  transactionRequestId: TransactionRequestId,
+                                                  transactionRequestAttributes: List[TransactionRequestAttribute],
+                                                  callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.createTransactionRequestAttributes(
+      bankId: BankId,
+      transactionRequestId: TransactionRequestId,
+      transactionRequestAttributes: List[TransactionRequestAttribute]
+    ).map((_, callContext))
+  }
+
+  override def deleteTransactionRequestAttribute(transactionRequestAttributeId: String,
+                                                 callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.deleteTransactionRequestAttribute(
+      transactionRequestAttributeId: String
+    ).map((_, callContext))
+  }
+
   /**
     * Perform a payment (in the sandbox) Store one or more transactions
     */
@@ -1498,8 +1576,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   override def cancelPaymentV400(transactionId: TransactionId,
-                                 callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future {
-    (Full(false), callContext)
+                                 callContext: Option[CallContext]): OBPReturnType[Box[CancelPayment]] = Future {
+    (Full(CancelPayment(true, Some(false))), callContext)
   }
 
   /*

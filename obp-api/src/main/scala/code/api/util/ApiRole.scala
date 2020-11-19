@@ -528,6 +528,21 @@ object ApiRole {
   case class CanGetTransactionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetTransactionAttributeAtOneBank = CanGetTransactionAttributeAtOneBank()
 
+  case class CanCreateTransactionRequestAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateTransactionRequestAttributeAtOneBank = CanCreateTransactionRequestAttributeAtOneBank()
+
+  case class CanUpdateTransactionRequestAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateTransactionRequestAttributeAtOneBank = CanUpdateTransactionRequestAttributeAtOneBank()
+
+  case class CanDeleteTransactionRequestAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteTransactionRequestAttributeAtOneBank = CanDeleteTransactionRequestAttributeAtOneBank()
+
+  case class CanGetTransactionRequestAttributesAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetTransactionRequestAttributesAtOneBank = CanGetTransactionRequestAttributesAtOneBank()
+
+  case class CanGetTransactionRequestAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetTransactionRequestAttributeAtOneBank = CanGetTransactionRequestAttributeAtOneBank()
+
   case class CanReadResourceDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadResourceDoc = CanReadResourceDoc()
   
@@ -570,6 +585,15 @@ object ApiRole {
   case class CanGetTransactionAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetTransactionAttributeDefinitionAtOneBank = CanGetTransactionAttributeDefinitionAtOneBank() 
   
+  case class CanCreateTransactionRequestAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateTransactionRequestAttributeDefinitionAtOneBank = CanCreateTransactionRequestAttributeDefinitionAtOneBank()
+
+  case class CanDeleteTransactionRequestAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteTransactionRequestAttributeDefinitionAtOneBank = CanDeleteTransactionRequestAttributeDefinitionAtOneBank()
+
+  case class CanGetTransactionRequestAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetTransactionRequestAttributeDefinitionAtOneBank = CanGetTransactionRequestAttributeDefinitionAtOneBank()
+
   case class CanGetCardAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCardAttributeDefinitionAtOneBank = CanGetCardAttributeDefinitionAtOneBank()
 

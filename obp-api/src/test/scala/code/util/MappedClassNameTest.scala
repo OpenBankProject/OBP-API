@@ -98,6 +98,7 @@ class MappedClassNameTest extends FeatureSpec {
       "code.token.OpenIDConnectToken",
       "code.transactionattribute.MappedTransactionAttribute",
       "code.customerattribute.MappedCustomerAttribute",
+      "code.transactionRequestAttribute.MappedTransactionRequestAttribute",
       "code.cards.MappedPhysicalCard",
       "code.cardattribute.MappedCardAttribute",
       "code.model.dataAccess.ResourceUser",
