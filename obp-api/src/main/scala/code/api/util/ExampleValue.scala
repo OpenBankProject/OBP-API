@@ -164,6 +164,18 @@ object ExampleValue {
   lazy val transactionAttributeValueExample = ConnectorField("123456789", s"Transaction attribute value.")
   glossaryItems += makeGlossaryItem("Transaction.attributeValue", transactionAttributeValueExample)
 
+  lazy val transactionRequestAttributeIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"Transaction Request attribute id")
+  glossaryItems += makeGlossaryItem("Transaction Requests.attributeId", transactionRequestAttributeIdExample)
+
+  lazy val transactionRequestAttributeNameExample = ConnectorField("HOUSE_RENT", s"Transaction Request attribute name")
+  glossaryItems += makeGlossaryItem("Transaction Requests.attributeName", transactionRequestAttributeNameExample)
+
+  lazy val transactionRequestAttributeTypeExample = ConnectorField("DATE_WITH_DAY", s"Transaction Request attribute type.")
+  glossaryItems += makeGlossaryItem("Transaction Requests.attributeType", transactionRequestAttributeTypeExample)
+
+  lazy val transactionRequestAttributeValueExample = ConnectorField("123456789", s"Transaction Request attribute value.")
+  glossaryItems += makeGlossaryItem("Transaction Requests.attributeValue", transactionRequestAttributeValueExample)
+
   lazy val transactionDescriptionExample = ConnectorField("For the piano lesson in June 2018 - Invoice No: 68", s"A description or reference for the transaction")
   glossaryItems += makeGlossaryItem("Transaction.transactionDescription", transactionDescriptionExample)
 

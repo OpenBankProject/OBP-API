@@ -1987,6 +1987,108 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
+
+    def getTransactionRequestAttributesFromProvider(transactionRequestId: TransactionRequestId,
+                                                    callContext: Option[CallContext]): OBPReturnType[List[TransactionRequestAttribute]] = {
+      Connector.connector.vend.getTransactionRequestAttributesFromProvider(
+        transactionRequestId: TransactionRequestId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def getTransactionRequestAttributes(bankId: BankId,
+                                        transactionRequestId: TransactionRequestId,
+                                        callContext: Option[CallContext]): OBPReturnType[List[TransactionRequestAttribute]] = {
+      Connector.connector.vend.getTransactionRequestAttributes(
+        bankId: BankId,
+        transactionRequestId: TransactionRequestId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def getTransactionRequestAttributesCanBeSeenOnView(bankId: BankId,
+                                                       transactionRequestId: TransactionRequestId,
+                                                       viewId: ViewId,
+                                                       callContext: Option[CallContext]): OBPReturnType[List[TransactionRequestAttribute]] = {
+      Connector.connector.vend.getTransactionRequestAttributesCanBeSeenOnView(
+        bankId: BankId,
+        transactionRequestId: TransactionRequestId,
+        viewId: ViewId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def getTransactionRequestAttributeById(transactionRequestAttributeId: String,
+                                           callContext: Option[CallContext]): OBPReturnType[TransactionRequestAttribute] = {
+      Connector.connector.vend.getTransactionRequestAttributeById(
+        transactionRequestAttributeId: String,
+        callContext: Option[CallContext]
+      ) map {
+        x => (unboxFullOrFail(x._1, callContext, TransactionRequestAttributeNotFound, 400), x._2)
+      }
+    }
+
+    def getTransactionRequestIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]],
+                                                      callContext: Option[CallContext]): OBPReturnType[List[String]] = {
+      Connector.connector.vend.getTransactionRequestIdsByAttributeNameValues(
+        bankId: BankId,
+        params: Map[String, List[String]],
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def createOrUpdateTransactionRequestAttribute(bankId: BankId,
+                                                  transactionRequestId: TransactionRequestId,
+                                                  transactionRequestAttributeId: Option[String],
+                                                  name: String,
+                                                  attributeType: TransactionRequestAttributeType.Value,
+                                                  value: String,
+                                                  callContext: Option[CallContext]): OBPReturnType[TransactionRequestAttribute] = {
+      Connector.connector.vend.createOrUpdateTransactionRequestAttribute(
+        bankId: BankId,
+        transactionRequestId: TransactionRequestId,
+        transactionRequestAttributeId: Option[String],
+        name: String,
+        attributeType: TransactionRequestAttributeType.Value,
+        value: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def createTransactionRequestAttributes(bankId: BankId,
+                                           transactionRequestId: TransactionRequestId,
+                                           transactionRequestAttributes: List[TransactionRequestAttribute],
+                                           callContext: Option[CallContext]): OBPReturnType[List[TransactionRequestAttribute]] = {
+      Connector.connector.vend.createTransactionRequestAttributes(
+        bankId: BankId,
+        transactionRequestId: TransactionRequestId,
+        transactionRequestAttributes: List[TransactionRequestAttribute],
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def deleteTransactionRequestAttribute(transactionRequestAttributeId: String,
+                                          callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteTransactionRequestAttribute(
+        transactionRequestAttributeId: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
     def createOrUpdateMethodRouting(methodRouting: MethodRoutingT) = Future {
       MethodRoutingProvider.connectorMethodProvider.vend.createOrUpdate(methodRouting)
      }

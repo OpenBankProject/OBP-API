@@ -190,6 +190,15 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     responseWithRole.body.extract[TransactionAttributeResponseJson].transaction_attribute_id
   }
 
+  def createTransactionRequestAttributeEndpoint(bankId:String, accountId:String, transactionRequestId:String, consumerAndToken: Option[(Consumer, Token)]) = {
+    lazy val postTransactionRequestAttributeJsonV400 = SwaggerDefinitionsJSON.transactionRequestAttributeJsonV400
+    val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId /"transaction-requests" / transactionRequestId / "attribute").POST <@ (user1)
+    Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canCreateTransactionRequestAttributeAtOneBank.toString())
+    val responseWithRole = makePostRequest(request400, write(postTransactionRequestAttributeJsonV400))
+    responseWithRole.code should equal(201)
+    responseWithRole.body.extract[TransactionRequestAttributeResponseJson].transaction_request_attribute_id
+  }
+
   def grantUserAccessToViewViaEndpoint(bankId: String,
                                        accountId: String,
                                        userId: String,

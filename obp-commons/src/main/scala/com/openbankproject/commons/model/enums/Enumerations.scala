@@ -47,6 +47,14 @@ object TransactionAttributeType extends  OBPEnumeration[TransactionAttributeType
   object DATE_WITH_DAY extends Value
 }
 
+sealed trait TransactionRequestAttributeType extends EnumValue
+object TransactionRequestAttributeType extends  OBPEnumeration[TransactionRequestAttributeType]{
+  object STRING        extends Value
+  object INTEGER       extends Value
+  object DOUBLE        extends Value
+  object DATE_WITH_DAY extends Value
+}
+
 //------api enumerations ----
 sealed trait StrongCustomerAuthentication extends EnumValue
 object StrongCustomerAuthentication extends OBPEnumeration[StrongCustomerAuthentication] {
@@ -192,6 +200,7 @@ object AttributeCategory extends OBPEnumeration[AttributeCategory]{
   object Account extends Value
   object Transaction extends Value
   object Card extends Value
+  object TransactionRequest extends Value
 }
 
 object TransactionRequestStatus extends Enumeration {
