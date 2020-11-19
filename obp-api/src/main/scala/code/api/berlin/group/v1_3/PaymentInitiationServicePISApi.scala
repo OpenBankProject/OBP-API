@@ -107,27 +107,31 @@ or * access method is generally applicable, but further authorisation processes 
              (_, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
              (_, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
              (_, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
-             (_, _, startSca) <- transactionRequestTypes match {
+             (canBeCancelled, _, startSca) <- transactionRequestTypes match {
                case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
                  transactionRequest.status.toUpperCase() match {
                    case "COMPLETED" =>
                      NewStyle.function.cancelPaymentV400(TransactionId(transactionRequest.transaction_ids), callContext) map {
                        x => x._1 match {
-                         case CancelPayment(true, startSca) => 
+                         case CancelPayment(true, Some(startSca)) if startSca == true => 
+                           Connector.connector.vend.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLATION_PENDING.toString)
+                           (true, x._2, Some(startSca))
+                         case CancelPayment(true, Some(startSca)) if startSca == false =>
                            Connector.connector.vend.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString)
-                           (true, x._2, startSca)
-                         case CancelPayment(false, startSca) =>
-                           (false, x._2, startSca)
+                           (true, x._2, Some(startSca))
+                         case CancelPayment(false, _) =>
+                           (false, x._2, Some(false))
                        }
                      }
                    case "INITIATED" => 
                      Connector.connector.vend.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString)
-                     Future(true, callContext, None)
+                     Future(true, callContext, Some(false))
                    case "CANCELLED" => 
-                     Future(false, callContext, None)
+                     Future(true, callContext, Some(false))
                  }
                }
              }
+             _ <- Helper.booleanToFuture(failMsg= TransactionRequestCannotBeCancelled) { canBeCancelled == true }
              (updatedTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
            } yield {
              startSca.getOrElse(false) match {
