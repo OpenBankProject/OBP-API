@@ -1,6 +1,6 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, CancelPaymentResponseLinks, LinkHrefJson, UpdatePaymentPsuDataJson}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{createCancellationTransactionRequestJson, CancelPaymentResponseJson, CancelPaymentResponseLinks, LinkHrefJson, UpdatePaymentPsuDataJson}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -19,6 +19,7 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus}
 import net.liftweb.common.{Box, Full}
+import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json.Serialization.write
@@ -106,30 +107,37 @@ or * access method is generally applicable, but further authorisation processes 
              (_, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
              (_, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
              (_, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
-             (_, _) <- transactionRequestTypes match {
+             (canBeCancelled, _, startSca) <- transactionRequestTypes match {
                case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
                  transactionRequest.status.toUpperCase() match {
                    case "COMPLETED" =>
                      NewStyle.function.cancelPaymentV400(TransactionId(transactionRequest.transaction_ids), callContext) map {
                        x => x._1 match {
-                         case true => 
+                         case CancelPayment(true, Some(startSca)) if startSca == true => 
+                           Connector.connector.vend.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLATION_PENDING.toString)
+                           (true, x._2, Some(startSca))
+                         case CancelPayment(true, Some(startSca)) if startSca == false =>
                            Connector.connector.vend.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString)
-                           (true, x._2)
-                         case false =>
-                           (false, x._2)
+                           (true, x._2, Some(startSca))
+                         case CancelPayment(false, _) =>
+                           (false, x._2, Some(false))
                        }
                      }
                    case "INITIATED" => 
                      Connector.connector.vend.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString)
-                     Future(true, callContext)
+                     Future(true, callContext, Some(false))
                    case "CANCELLED" => 
-                     Future(false, callContext)
+                     Future(true, callContext, Some(false))
                  }
                }
              }
+             _ <- Helper.booleanToFuture(failMsg= TransactionRequestCannotBeCancelled) { canBeCancelled == true }
              (updatedTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createCancellationTransactionRequestJson(updatedTransactionRequest), HttpCode.`202`(callContext))
+             startSca.getOrElse(false) match {
+               case true => (createCancellationTransactionRequestJson(updatedTransactionRequest), HttpCode.`202`(callContext))
+               case false => (JsRaw(""), HttpCode.`204`(callContext))
+             }
            }
          }
        }

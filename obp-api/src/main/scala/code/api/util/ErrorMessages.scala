@@ -431,6 +431,7 @@ object ErrorMessages {
   val TransactionRequestStatusNotInitiatedOrPendingOrForwarded = s"OBP-40020: Transaction Request Status is not ${INITIATED} or ${NEXT_CHALLENGE_PENDING} or ${FORWARDED}."
   val InvalidChallengeTransactionRequestId = "OBP-40021: Invalid Challenge PaymentId or TRANSACTION_REQUEST_ID. "
   val InvalidChallengeChallengeId = "OBP-40022: Invalid ChallengeId. "
+  val TransactionRequestCannotBeCancelled = "OBP-40023: Transaction Request cannot be cancelled. "
 
 
   // Exceptions (OBP-50XXX)

@@ -205,7 +205,7 @@ object AttributeCategory extends OBPEnumeration[AttributeCategory]{
 
 object TransactionRequestStatus extends Enumeration {
   type TransactionRequestStatus = Value
-  val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED, CANCELLED = Value
+  val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED, CANCELLED, CANCELLATION_PENDING = Value
 }
 
 object AccountRoutingScheme extends Enumeration {
