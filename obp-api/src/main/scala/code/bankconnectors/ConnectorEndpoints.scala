@@ -13,7 +13,7 @@ import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JValue
+import net.liftweb.json.{JValue}
 import net.liftweb.json.JsonAST.JNothing
 import org.apache.commons.lang3.StringUtils
 
@@ -48,8 +48,22 @@ object ConnectorEndpoints extends RestHelper{
         val mf = ManifestFactory.classType[TopicTrait](outBoundType)
         val formats = CustomJsonFormats.nullTolerateFormats
         val outBound = json.extract[TopicTrait](formats, mf)
-        val optionCC = Option(cc)
-
+        //for some tests, we need the username in the callContext.
+        val username = (json \\ "username" \"username").values.toString
+        val dummyUser = if (username =="None") {
+          None
+        } else{
+          Some(
+            UserCommons(
+              UserPrimaryKey(-1),
+              userId="",
+              idGivenByProvider="",
+              provider="",
+              emailAddress="",
+              name=username)
+          )
+        }
+        val optionCC = Option(cc.copy(user = dummyUser))
         // TODO need wait for confirm the rule, after that do refactor
         val paramValues: Seq[Any] = getParamValues(outBound, methodSymbol, optionCC)
 
