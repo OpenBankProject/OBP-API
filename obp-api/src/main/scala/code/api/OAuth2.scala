@@ -148,7 +148,9 @@ object OAuth2Login extends RestHelper with MdcLoggable {
             } else {
               clientMeta.put("client_certificate", cert)
             }
-            hydraAdmin.updateOAuth2Client(clientId, oAuth2Client)
+            // hydra update client endpoint have bug, So here delete and create to do update
+            hydraAdmin.deleteOAuth2Client(clientId)
+            hydraAdmin.createOAuth2Client(oAuth2Client)
           } else if(stringNotEq(certInConsumer, cert)) {
             return (Failure(Oauth2TokenMatchCertificateFail), Some(cc.copy(consumer = Failure(Oauth2TokenMatchCertificateFail))))
           }
