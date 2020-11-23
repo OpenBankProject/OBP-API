@@ -75,7 +75,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-11-18T12:10:18Z
+// ---------- created on 2020-11-23T13:24:38Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -1111,6 +1111,52 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{InBoundGetCounterpartyByIban => InBound, OutBoundGetCounterpartyByIban => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, iban)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_counterparty_by_iban", req, callContext)
+        response.map(convertToTuple[CounterpartyTraitCommons](callContext))        
+  }
+          
+  messageDocs += getCounterpartyByIbanAndBankAccountIdDoc
+  def getCounterpartyByIbanAndBankAccountIdDoc = MessageDoc(
+    process = "obp.getCounterpartyByIbanAndBankAccountId",
+    messageFormat = messageFormat,
+    description = "Get Counterparty By Iban And Bank Account Id",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetCounterpartyByIbanAndBankAccountId(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      iban=ibanExample.value,
+      bankId=BankId(bankIdExample.value),
+      accountId=AccountId(accountIdExample.value))
+    ),
+    exampleInboundMessage = (
+     InBoundGetCounterpartyByIbanAndBankAccountId(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= CounterpartyTraitCommons(createdByUserId=createdByUserIdExample.value,
+      name=nameExample.value,
+      description=descriptionExample.value,
+      currency=currencyExample.value,
+      thisBankId=thisBankIdExample.value,
+      thisAccountId=thisAccountIdExample.value,
+      thisViewId=thisViewIdExample.value,
+      counterpartyId=counterpartyIdExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value,
+      otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      isBeneficiary=isBeneficiaryExample.value.toBoolean,
+      bespoke=List( CounterpartyBespoke(key=keyExample.value,
+      value=valueExample.value))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
+        import com.openbankproject.commons.dto.{InBoundGetCounterpartyByIbanAndBankAccountId => InBound, OutBoundGetCounterpartyByIbanAndBankAccountId => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, iban, bankId, accountId)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_counterparty_by_iban_and_bank_account_id", req, callContext)
         response.map(convertToTuple[CounterpartyTraitCommons](callContext))        
   }
           
@@ -6148,8 +6194,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-11-18T12:10:18Z
-//---------------- dynamic end ---------------------please don't modify this line                 
+// ---------- created on 2020-11-23T13:24:38Z
+//---------------- dynamic end ---------------------please don't modify this line                  
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 
