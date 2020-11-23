@@ -1,6 +1,6 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{createCancellationTransactionRequestJson, CancelPaymentResponseJson, CancelPaymentResponseLinks, LinkHrefJson, UpdatePaymentPsuDataJson}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, CancelPaymentResponseLinks, LinkHrefJson, UpdatePaymentPsuDataJson, createCancellationTransactionRequestJson}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -17,7 +17,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
-import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus}
+import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, TransactionRequestStatus}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
@@ -875,6 +875,12 @@ There are the following request types on this access path:
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
+             //Map obp transaction request id with BerlinGroup PaymentId
+             transactionRequestId = TransactionRequestId(paymentId)
+             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
+             _ <- Helper.booleanToFuture(failMsg= CannotUpdatePSUDataCancellation) { 
+               existingTransactionRequest.status == TransactionRequestStatus.INITIATED.toString
+             }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
                ChallengeType.BERLINGROUP_PAYMENT,
@@ -884,10 +890,6 @@ There are the following request types on this access path:
                updatePaymentPsuDataJson.scaAuthenticationData,
                callContext
              )
-             //Map obp transaction request id with BerlinGroup PaymentId
-             transactionRequestId = TransactionRequestId(paymentId)
-
-             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
 
              (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(
                BankId(existingTransactionRequest.from.bank_id),
@@ -898,12 +900,10 @@ There are the following request types on this access path:
                case Some(status) if status == StrongCustomerAuthenticationStatus.finalised => // finalised
                  NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
                  Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, COMPLETED.toString))
-               case Some(status) if status == StrongCustomerAuthenticationStatus.started => // started
-                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
                case Some(status) if status == StrongCustomerAuthenticationStatus.failed => // failed
                  Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, REJECTED.toString))
-               case _ => // All other cases
-                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
+               case _ => // started and all other cases
+                 Future(Full(true))
              }
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentCancellationAuthorisationJson(
@@ -997,8 +997,12 @@ There are the following request types on this access path:
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
-             (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-
+             //Map obp transaction request id with BerlinGroup PaymentId
+             transactionRequestId = TransactionRequestId(paymentId)
+             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
+             _ <- Helper.booleanToFuture(failMsg= CannotUpdatePSUData) {
+               existingTransactionRequest.status == TransactionRequestStatus.INITIATED.toString
+             }
              (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
                ChallengeType.BERLINGROUP_PAYMENT,
                Some(paymentId),
@@ -1007,11 +1011,6 @@ There are the following request types on this access path:
                updatePaymentPsuDataJson.scaAuthenticationData,
                callContext
              )
-             
-             //Map obp transaction request id with BerlinGroup PaymentId
-             transactionRequestId = TransactionRequestId(paymentId)
-             
-             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
              
              (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(
                BankId(existingTransactionRequest.from.bank_id), 
@@ -1022,12 +1021,10 @@ There are the following request types on this access path:
                case Some(status) if status == StrongCustomerAuthenticationStatus.finalised => // finalised
                  NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
                  Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, COMPLETED.toString))
-               case Some(status) if status == StrongCustomerAuthenticationStatus.started => // started
-                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
                case Some(status) if status == StrongCustomerAuthenticationStatus.failed => // failed
                  Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, REJECTED.toString))
-               case _ => // All other cases
-                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, INITIATED.toString))
+               case _ => // started and all other cases
+                 Future(Full(true))
              }
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), callContext)
