@@ -1328,7 +1328,7 @@ trait Connector extends MdcLoggable {
             body.to_sepa_credit_transfers.get
           }
           toAccountIban = toSepaCreditTransfers.creditorAccount.iban
-          (toAccount, callContext) <- NewStyle.function.getBankAccountByIban(toAccountIban, callContext)
+          (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
           (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
             fromAccount,
             toAccount,
