@@ -421,3 +421,81 @@ from
 	bankaccountrouting
 where
 	1 = 0;
+
+
+create view v_transaction_request as
+SELECT
+	id id,
+	updatedat updated_at,
+	createdat created_at,
+	mname name,
+	mthisbankid this_bank_id,
+	mthisaccountid this_accoun_tid,
+	mthisviewid this_view_id,
+	motheraccountroutingscheme other_account_routing_scheme,
+	motheraccountroutingaddress other_account_routing_address,
+	motherbankroutingscheme other_bank_routing_scheme,
+	motherbankroutingaddress other_bankrouting_address,
+	misbeneficiary is_beneficiary,
+	mtransactionrequestid transaction_request_id,
+	mtype type,
+	mtransactionids transaction_ids,
+	mstatus status,
+	mstartdate start_date,
+	menddate end_date,
+	mchallenge_id challenge_id,
+	mchallenge_allowedattempts challenge_allowed_attempts,
+	mchallenge_challengetype challenge_challenge_type,
+	mcharge_summary charge_summary,
+	mcharge_amount charge_amount,
+	mcharge_currency charge_currency,
+	mcharge_policy charge_policy,
+	mbody_value_currency body_value_currency,
+	mbody_value_amount body_value_amount,
+	mbody_description body_description,
+	mdetails details,
+	mfrom_bankid from_bank_id,
+	mfrom_accountid from_account_id,
+	mto_bankid to_bank_id,
+	mto_accountid to_account_id,
+	mcounterpartyid counterparty_id
+FROM
+	mappedtransactionrequest
+union
+SELECT
+	null id,
+	null updated_at,
+	null created_at,
+	null name,
+	null this_bank_id,
+	null this_accoun_tid,
+	null this_view_id,
+	null other_account_routing_scheme,
+	null other_account_routing_address,
+	null other_bank_routing_scheme,
+	null other_bankrouting_address,
+	null is_beneficiary,
+	null transaction_request_id,
+	null type,
+	null transaction_ids,
+	null status,
+	null start_date,
+	null end_date,
+	null challenge_id,
+	null challenge_allowed_attempts,
+	null challenge_challenge_type,
+	null charge_summary,
+	null charge_amount,
+	null charge_currency,
+	null charge_policy,
+	null body_value_currency,
+	null body_value_amount,
+	null body_description,
+	null details,
+	null from_bank_id,
+	null from_account_id,
+	null to_bank_id,
+	null to_account_id,
+	null counterparty_id
+where
+	1 = 0
