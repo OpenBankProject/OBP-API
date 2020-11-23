@@ -463,7 +463,7 @@ FROM
 	mappedtransactionrequest
 union
 SELECT
-	null id,
+	null transaction_request_id,
 	null updated_at,
 	null created_at,
 	null name,
