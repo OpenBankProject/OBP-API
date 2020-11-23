@@ -425,7 +425,7 @@ where
 
 create view v_transaction_request as
 SELECT
-	id id,
+	id transaction_request_id,
 	updatedat updated_at,
 	createdat created_at,
 	mname name,
