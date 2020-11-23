@@ -19,6 +19,10 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
     case cc.addPermissions(views : List[ViewIdBankIdAccountId], user : User) =>
       logger.debug("addPermissions(" + views +"," + user +")")
       sender ! (mapper.grantAccessToMultipleViews(views, user))
+      
+    case cc.revokePermissions(views : List[ViewIdBankIdAccountId], user : User) =>
+      logger.debug("revokePermissions(" + views +"," + user +")")
+      sender ! (mapper.revokeAccessToMultipleViews(views, user))
 
     case cc.addPermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) =>
       logger.debug("addPermission(" + viewIdBankIdAccountId +"," + user +")")
@@ -47,6 +51,10 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
     case cc.revokeAllAccountAccesses(bankId : BankId, accountId : AccountId, user : User) =>
       logger.debug("revokeAllAccountAccesses(" + bankId +"," + accountId +","+ user +")")
       sender ! (mapper.revokeAllAccountAccesses(bankId, accountId, user))
+      
+    case cc.revokeAccountAccessesByUser(bankId : BankId, accountId : AccountId, user : User) =>
+      logger.debug("revokeAccountAccessesByUser(" + bankId +"," + accountId +","+ user +")")
+      sender ! (mapper.revokeAccountAccessesByUser(bankId, accountId, user))
 
     case cc.customView(viewId: ViewId, bankAccountId: BankIdAccountId) =>
       logger.debug("customView(" + viewId +", "+ bankAccountId + ")")

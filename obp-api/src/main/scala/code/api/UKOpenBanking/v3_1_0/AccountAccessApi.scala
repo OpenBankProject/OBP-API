@@ -4,14 +4,13 @@ import code.api.Constant
 import code.api.UKOpenBanking.v3_1_0.JSONFactory_UKOpenBanking_310.ConsentPostBodyUKV310
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
-import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{ApiTag, ConsentJWT, JwtUtil, NewStyle}
 import code.consent.Consents
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{User}
+import com.openbankproject.commons.model.User
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
@@ -87,7 +86,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
        case "account-access-consents" :: Nil JsonPost postJson -> _  => {
          cc =>
            for {
-             (_, callContext) <- authenticatedAccess(cc)
+             (_, callContext) <- applicationAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              createdByUser: Option[User] <- callContext.map(_.user).getOrElse(Empty) match {
                case Full(user) => Future(Some(user))

@@ -237,6 +237,7 @@ case class StandingOrderJsonV400(standing_order_id: String,
                                  active: Boolean)
 case class PostViewJsonV400(view_id: String, is_system: Boolean)
 case class PostAccountAccessJsonV400(user_id: String, view: PostViewJsonV400)
+case class PostRevokeGrantAccountAccessJsonV400(views: List[String])
 case class RevokedJsonV400(revoked: Boolean)
 
 case class TransactionRequestBodySEPAJsonV400(
@@ -338,6 +339,7 @@ case class ConsumerJson(consumer_id: String,
                         app_name: String,
                         app_type: String,
                         description: String,
+                        client_certificate: String,
                         developer_email: String,
                         redirect_url: String,
                         created_by_user_id: String,
@@ -483,6 +485,8 @@ case class CounterpartiesJson400(
                                    counterparties: List[CounterpartyJson400]
                                  )
 
+case class PutConsentStatusJsonV400(status: String)
+case class PutConsentUserJsonV400(user_id: String)
 case class BankAccountRoutingJson(
                                  bank_id: Option[String],
                                  account_routing: AccountRoutingJsonV121
@@ -801,7 +805,8 @@ object JSONFactory400 {
       created_by_user_id =c.createdByUserId.get,
       created_by_user =resourceUserJSON,
       enabled=c.isActive.get,
-      created=c.createdAt.get
+      created=c.createdAt.get,
+      client_certificate=c.clientCertificate.get
     )
   }
 

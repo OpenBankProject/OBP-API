@@ -1,17 +1,15 @@
 package code.api.UKOpenBanking.v3_1_0
 
-import code.api.APIFailureNewStyle
+import code.api.Constant
 import code.api.berlin.group.v1_3.JvalueCaseClass
-import code.api.util.APIUtil.{defaultBankId, _}
+import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiTag, NewStyle}
-import code.bankconnectors.Connector
-import code.model._
-import code.util.Helper
+
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
+import com.openbankproject.commons.model.{AccountId, BankIdAccountId, View, ViewId}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
@@ -20,7 +18,6 @@ import net.liftweb.json._
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 object APIMethods_BalancesApi extends RestHelper {
     val apiVersion = OBP_UKOpenBanking_310.apiVersion
@@ -114,24 +111,19 @@ object APIMethods_BalancesApi extends RestHelper {
      lazy val getAccountsAccountIdBalances : OBPEndpoint = {
        case "accounts" :: AccountId(accountId):: "balances" :: Nil JsonGet _ => {
          cc =>
+           val viewId = ViewId(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
            for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
-
-            (account, callContext) <- Future { BankAccountX(BankId(defaultBankId), accountId, callContext) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
-
-            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
-        
-            moderatedAccount <- Future {account.moderatedBankAccount(view, BankIdAccountId(account.bankId, accountId), Full(u), callContext)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
-        
-          } yield {
-            (JSONFactory_UKOpenBanking_310.createAccountBalanceJSON(moderatedAccount), callContext)
-          }
-         }
+             (Full(user), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             _ <- NewStyle.function.checkUKConsent(user, callContext)
+             _ <- passesPsd2Aisp(callContext)
+             (account, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
+             view: View <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, accountId), Full(user), callContext)
+             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), callContext)
+           } yield {
+             (JSONFactory_UKOpenBanking_310.createAccountBalanceJSON(moderatedAccount), callContext)
+           }
        }
+     }
             
      resourceDocs += ResourceDoc(
        getBalances, 

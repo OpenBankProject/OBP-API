@@ -749,6 +749,8 @@ database_messages_scheduler_interval=3600
 # consents.allowed=true
 # consumer_validation_method_for_consent=CONSUMER_KEY_VALUE
 # consents.max_time_to_live=3600
+# In case isn't defined default value is "false"
+# consents.sca.enabled=true
 # ---------------------------------------------------------
 
 # -- SCA (Strong Customer Authentication) -------
@@ -874,12 +876,15 @@ outboundAdapterCallContext.generalContext
 # ------------------------------------------------------------------------------------------
 
 # ------------------------------ Hydra oauth2 props ------------------------------
-## if login_with_hydra set to true, all other props must not be empty
-#login_with_hydra=true
+## if integrate_with_hydra set to true, all other props must not be empty
+#integrate_with_hydra=true
 #hydra_public_url=http://127.0.0.1:4444
 #hydra_admin_url=http://127.0.0.1:4445
-#hydra_client_id=auth-code-client
-#hydra_client_scope=openid,offline
+#hydra_consents=ReadAccountsBasic,ReadAccountsDetail,ReadBalances,ReadTransactionsBasic,ReadTransactionsDebits,ReadTransactionsDetail
+## check the oauth2.jwk_set.url props, it must contains jwks.json that locate in ${hydra_public_url}/.well-known/jwks.json
+##oauth2.jwk_set.url=http://localhost:4444/.well-known/jwks.json,https://www.googleapis.com/oauth2/v3/certs
+## whether create hydra client when create consumer, default is false
+#mirror_consumer_in_hydra=true
 # ------------------------------ Hydra oauth2 props end ------------------------------
 
 # ------------------------------ default entitlements ------------------------------
@@ -891,3 +896,4 @@ outboundAdapterCallContext.generalContext
 
 ## Mirror request headers to response
 # mirror_request_headers_to_response=x-fapi-interaction-id,x-jws-signature
+

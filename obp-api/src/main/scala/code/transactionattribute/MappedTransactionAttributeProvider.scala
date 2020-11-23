@@ -39,7 +39,7 @@ object MappedTransactionAttributeProvider extends TransactionAttributeProvider {
     Future {
       val attributeDefinitions = AttributeDefinition.findAll(
         By(AttributeDefinition.BankId, bankId.value),
-        By(AttributeDefinition.Category, AttributeCategory.Account.toString)
+        By(AttributeDefinition.Category, AttributeCategory.Transaction.toString)
       ).filter(_.canBeSeenOnViews.exists(_ == viewId.value)) // Filter by view_id
       val transactionAttributes = MappedTransactionAttribute.findAll(
         By(MappedTransactionAttribute.mBankId, bankId.value),
@@ -48,6 +48,32 @@ object MappedTransactionAttributeProvider extends TransactionAttributeProvider {
       val filteredTransactionAttributes = for {
         definition <- attributeDefinitions
         attribute <- transactionAttributes
+        if definition.bankId.value == attribute.bankId.value && definition.name == attribute.name
+      } yield {
+        attribute
+      }
+      Full(filteredTransactionAttributes)
+    }
+  }
+
+  override def getTransactionsAttributesCanBeSeenOnView(bankId: BankId,
+                                                        transactionIds: List[TransactionId],
+                                                        viewId: ViewId): Future[Box[List[TransactionAttribute]]] = {
+    Future {
+      val attributeDefinitions = AttributeDefinition.findAll(
+        By(AttributeDefinition.BankId, bankId.value),
+        By(AttributeDefinition.Category, AttributeCategory.Transaction.toString)
+      ).filter(_.canBeSeenOnViews.exists(_ == viewId.value)) // Filter by view_id
+      val transactionsAttributes = MappedTransactionAttribute.findAll(
+        ByList(MappedTransactionAttribute.mTransactionId, transactionIds.map(_.value))
+      ).filter( item =>
+        transactionIds.exists( acc =>
+          (bankId.value, acc.value) == (item.bankId.value, item.transactionId.value)
+        )
+      )
+      val filteredTransactionAttributes = for {
+        definition <- attributeDefinitions
+        attribute <- transactionsAttributes
         if definition.bankId.value == attribute.bankId.value && definition.name == attribute.name
       } yield {
         attribute
