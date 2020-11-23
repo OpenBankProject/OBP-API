@@ -26,6 +26,11 @@ object RemotedataTransactionAttribute extends ObpActorInit with TransactionAttri
                                                        transactionId: TransactionId, 
                                                        viewId: ViewId): Future[Box[List[TransactionAttribute]]] = 
     (actor ? cc.getTransactionAttributesCanBeSeenOnView(bankId, transactionId, viewId)).mapTo[Box[List[TransactionAttribute]]]
+  
+  override def getTransactionsAttributesCanBeSeenOnView(bankId: BankId,
+                                                        transactionIds: List[TransactionId], 
+                                                        viewId: ViewId): Future[Box[List[TransactionAttribute]]] = 
+    (actor ? cc.getTransactionsAttributesCanBeSeenOnView(bankId, transactionIds, viewId)).mapTo[Box[List[TransactionAttribute]]]
 
   override def getTransactionAttributeById(transactionAttributeId: String): Future[Box[TransactionAttribute]] = 
     (actor ? cc.getTransactionAttributeById(transactionAttributeId)).mapTo[Box[TransactionAttribute]]

@@ -28,9 +28,11 @@ TESOBE (http://www.tesobe.com/)
 import bootstrap.liftweb.Boot
 import code.api.util.APIUtil
 import java.lang.reflect.{Proxy => JProxy}
+
 import net.liftweb.http.LiftRules
 import net.liftweb.http.provider.HTTPContext
 import org.eclipse.jetty.server.Server
+import org.eclipse.jetty.server.session.SessionHandler
 import org.eclipse.jetty.webapp.WebAppContext
 
 object RunWebApp extends App {
@@ -65,7 +67,8 @@ object RunWebApp extends App {
   // current project absolute path
   val basePath = this.getClass.getResource("/").toString .replaceFirst("target[/\\\\].*$", "")
   context.setWar(s"${basePath}src/main/webapp")
-
+  // rename JSESSIONID, avoid conflict with other project when start two project at local
+  context.getSessionHandler.getSessionCookieConfig.setName("JSESSIONID_OBP")
   server.setHandler(context)
 
   try {

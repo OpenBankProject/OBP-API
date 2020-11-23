@@ -145,7 +145,7 @@ $(document).ready(function() {
 		$('#lost-password-page').css("display","none");
 		$('#sign-up-page').css("display","block");
 	}else{
-		;
+
 	}
 	
     $('.js-example-basic-single').select2();
@@ -298,6 +298,33 @@ $(document).ready(function() {
 	}else{
 		consumerRegistrationAppDescError.parent().addClass('hide');
 		consumerRegistrationAppDescForm.css("border","").css("background","")
+	}
+
+	var consumerRegistrationAppClientCertificateError = $('#register-consumer-input #consumer-registration-app-client_certificate-error');
+	var consumerRegistrationAppClientCertificateForm = $('#register-consumer-input #app-client_certificate');
+	if (consumerRegistrationAppClientCertificateError.length > 0 && consumerRegistrationAppClientCertificateError.html().length > 0) {
+		consumerRegistrationAppClientCertificateError.parent().removeClass('hide');
+		consumerRegistrationAppClientCertificateForm.addClass("error-border")
+	} else{
+		consumerRegistrationAppClientCertificateError.parent().addClass('hide');
+	}
+
+	var consumerRegistrationAppRequestUriError = $('#register-consumer-input #consumer-registration-app-request_uri-error');
+	if (consumerRegistrationAppRequestUriError.length > 0 && consumerRegistrationAppRequestUriError.html().length > 0) {
+		consumerRegistrationAppRequestUriError.parent().removeClass('hide');
+		$('#register-consumer-input #app-request_uri').addClass("error-border")
+	} else{
+		consumerRegistrationAppRequestUriError.parent().addClass('hide');
+	}
+
+	{
+		var consumerRegistrationJwksError = $('#register-consumer-input #consumer-registration-app-signing_jwks-error');
+		if (consumerRegistrationJwksError.length > 0 && consumerRegistrationJwksError.html().length > 0) {
+			consumerRegistrationJwksError.parent().removeClass('hide');
+			$('#register-consumer-input #app-jwks').addClass("error-border")
+		} else{
+			consumerRegistrationJwksError.parent().addClass('hide');
+		}
 	}
 
 	var consumerRegistrationAppRedirectUrlError = $('#register-consumer-input #consumer-registration-app-description-error');

@@ -71,7 +71,7 @@
     padding: 0 15px;
 }
 
-#register-consumer #appDesc {
+#register-consumer textarea {
     height: 96px;
     border: 1px solid #767676;
     border-radius: 0px;

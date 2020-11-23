@@ -8,7 +8,7 @@
     <groupId>com.tesobe</groupId>
     <artifactId>obp-parent</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>1.7.1</version>
+    <version>1.8.1</version>
   </parent>
   <artifactId>obp-api</artifactId>
   <packaging>war</packaging>
@@ -87,7 +87,7 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpg-jdk15on</artifactId>
-      <version>1.47</version>
+      <version>1.62</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
@@ -565,6 +565,11 @@
           <configuration>
             <nosuffix>true</nosuffix>
             <encoding>${project.build.sourceEncoding}</encoding>
+            <excludes>
+              <!-- yuicompressor fails to compile patterns library, hence stopping full build -->
+              <!-- We won't be modifying this library so will exclude it for now -->
+              <exclude>**/*.min.*</exclude>
+            </excludes>
           </configuration>
         </plugin>
         <plugin>

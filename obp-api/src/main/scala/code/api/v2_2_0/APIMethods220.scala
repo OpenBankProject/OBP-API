@@ -937,7 +937,10 @@ trait APIMethods220 {
         "redirecturl",
         "createdby",
         true,
-        new Date()
+        new Date(),
+        """-----BEGIN CERTIFICATE-----
+          |client_certificate_content
+          |-----END CERTIFICATE-----""".stripMargin
       ),
       ConsumerPostJSON(
         "Some app name",
@@ -947,7 +950,10 @@ trait APIMethods220 {
         "Some redirect url",
         "Created by UUID",
         true,
-        new Date()
+        new Date(),
+        """-----BEGIN CERTIFICATE-----
+          |client_certificate_content
+          |-----END CERTIFICATE-----""".stripMargin
       ),
       List(
         UserNotLoggedIn,
@@ -974,7 +980,8 @@ trait APIMethods220 {
                                                                 Some(postedJson.description),
                                                                 Some(postedJson.developer_email),
                                                                 Some(postedJson.redirect_url),
-                                                                Some(u.userId)
+                                                                Some(u.userId),
+                                                                Some(postedJson.clientCertificate)
                                                                )
           } yield {
             // Format the data as json

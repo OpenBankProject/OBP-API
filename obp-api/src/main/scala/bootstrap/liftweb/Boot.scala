@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package bootstrap.liftweb
 
 import java.io.{File, FileInputStream}
+import java.util.stream.Collectors
 import java.util.{Locale, TimeZone}
 
 import code.CustomerDependants.MappedCustomerDependant
@@ -47,12 +48,13 @@ import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.atms.MappedAtm
-import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.bankconnectors.storedprocedure.StoredProceduresMockedData
+import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.branches.MappedBranch
 import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.MappedConsent
+import code.consumer.Consumers
 import code.context.{MappedUserAuthContext, MappedUserAuthContextUpdate}
 import code.crm.MappedCrmEvent
 import code.customer.internalMapping.MappedCustomerIdMapping
@@ -82,7 +84,7 @@ import code.metadata.wheretags.MappedWhereTag
 import code.methodrouting.MethodRouting
 import code.metrics.{MappedConnectorMetric, MappedMetric}
 import code.migration.MigrationScriptLog
-import code.model._
+import code.model.{Consumer, _}
 import code.model.dataAccess._
 import code.model.dataAccess.internalMapping.AccountIdMapping
 import code.obp.grpc.HelloWorldServer
@@ -108,15 +110,15 @@ import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
-import code.util.Helper
 import code.util.Helper.MdcLoggable
+import code.util.{Helper, HydraUtil}
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
 import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
-import com.openbankproject.commons.util.{ApiVersion, Functions}
 import com.openbankproject.commons.util.Functions.Implicits._
+import com.openbankproject.commons.util.{ApiVersion, Functions}
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
@@ -666,8 +668,27 @@ class Boot extends MdcLoggable {
       
     }
 
+    ApiWarnings.logWarningsRegardingProperties()
+
     //see the notes for this method:
     createDefaultBankAndDefaultAccountsIfNotExisting()
+
+    if(HydraUtil.mirrorConsumerInHydra) {
+      createHydraClients()
+    }
+  }
+  // create Hydra client if exists active consumer but missing Hydra client
+  def createHydraClients() = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    // exists hydra clients id
+    val oAuth2ClientIds = HydraUtil.hydraAdmin.listOAuth2Clients(Long.MaxValue, 0L).stream()
+      .map[String](_.getClientId)
+      .collect(Collectors.toSet())
+
+    Consumers.consumers.vend.getConsumersFuture().foreach{ consumers =>
+      consumers.filter(consumer => consumer.isActive.get && !oAuth2ClientIds.contains(consumer.key.get))
+        .foreach(HydraUtil.createHydraClient(_))
+    }
   }
 
   def schemifyAll() = {
@@ -780,7 +801,7 @@ class Boot extends MdcLoggable {
 
 object ToSchemify {
   // The following tables will be accessed via Akka to the OBP Storage instance which in turn uses Mapper / JDBC
-  val modelsRemotedata = List(
+  val modelsRemotedata: List[MetaMapper[_]] = List(
     AccountAccess,
     ViewDefinition,
     ResourceUser,
@@ -826,7 +847,7 @@ object ToSchemify {
   )
 
   // The following tables are accessed directly via Mapper / JDBC
-  val models = List(
+  val models: List[MetaMapper[_]] = List(
     AuthUser,
     Admin,
     MappedBank,

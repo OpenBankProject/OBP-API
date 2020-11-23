@@ -8,6 +8,7 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.enums.TransactionAttributeType
 import com.openbankproject.commons.model.{BankId, ProductAttribute, ProductCode, TransactionAttribute, TransactionId, ViewId}
 
+import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class RemotedataTransactionAttributeActor extends Actor with ObpActorHelper with MdcLoggable {
@@ -27,7 +28,11 @@ class RemotedataTransactionAttributeActor extends Actor with ObpActorHelper with
       
     case cc.getTransactionAttributesCanBeSeenOnView(bankId: BankId, transactionId: TransactionId, viewId: ViewId) =>
       logger.debug(s"getTransactionAttributesCanBeSeenOnView(${bankId}, ${transactionId}, ${viewId})")
-      mapper.getTransactionAttributesCanBeSeenOnView(bankId, transactionId, viewId) pipeTo sender
+      mapper.getTransactionAttributesCanBeSeenOnView(bankId, transactionId, viewId) pipeTo sender 
+      
+    case cc.getTransactionsAttributesCanBeSeenOnView(bankId: BankId, transactionIds: List[TransactionId], viewId: ViewId) =>
+      logger.debug(s"getTransactionsAttributesCanBeSeenOnView(${bankId}, ${transactionIds}, ${viewId})")
+      mapper.getTransactionsAttributesCanBeSeenOnView(bankId, transactionIds, viewId) pipeTo sender
 
     case cc.getTransactionAttributeById(transactionAttributeId: String) =>
       logger.debug(s"getTransactionAttributeById(${transactionAttributeId})")

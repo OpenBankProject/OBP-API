@@ -921,6 +921,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
      InBoundGetBankAccountsHeld(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data=List( AccountHeld(id=idExample.value,
+      label=labelExample.value,
       bankId=bankIdExample.value,
       number=numberExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
@@ -6147,7 +6148,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_delete_customer_attribute", req, callContext)
         response.map(convertToTuple[Boolean](callContext))        
   }
-          
+
 // ---------- created on 2020-11-18T12:10:18Z
 //---------------- dynamic end ---------------------please don't modify this line                 
 

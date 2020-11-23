@@ -2981,6 +2981,7 @@ this is example of parameter @outbound_json
        "data":[
          {
            "id":"no-example-provided",
+           "label":"My Account",
            "bankId":"gh.29.uk",
            "number":"no-example-provided",
            "accountRoutings":[

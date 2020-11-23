@@ -110,13 +110,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val DateWithSeconds = "yyyy-MM-dd'T'HH:mm:ss'Z'"
   val DateWithMs = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
   val DateWithMsRollback = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
-  
+
   val DateWithDayFormat = new SimpleDateFormat(DateWithDay)
   val DateWithSecondsFormat = new SimpleDateFormat(DateWithSeconds)
   val DateWithMsFormat = new SimpleDateFormat(DateWithMs)
   val DateWithMsRollbackFormat = new SimpleDateFormat(DateWithMsRollback)
-  
-  
+
   val DateWithDayExampleString: String = "2017-09-19"
   val DateWithSecondsExampleString: String = "2017-09-19T02:31:05Z"
   val DateWithMsExampleString: String = "2017-09-19T02:31:05.000Z"
@@ -675,7 +674,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   
     //This is for V1.0 V1.1 and V1.2.0 and V1.2.1 
     lazy val fallBackParsedDate = tryo{DateWithMsRollbackFormat.parse(date)}
-  
+
     if (parsedDate.isDefined)
     {
       Full(parsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
@@ -2656,6 +2655,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
           case _ => RateLimitingUtil.underCallLimits(result)
         }
+    }
+  }
+
+  def applicationAccess(cc: CallContext): Future[(Box[Consumer], Option[CallContext])] = {
+    getUserAndSessionContextFuture(cc) map { result =>
+      val consumer = if (result._2.isDefined) result._2.map(_.consumer).get else Empty
+      (
+        fullBoxOrException(consumer ~> APIFailureNewStyle(ApplicationNotIdentified, 401, Some(cc.toLight))),
+        result._2
+      )
     }
   }
 

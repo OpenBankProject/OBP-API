@@ -74,6 +74,7 @@ object Migration extends MdcLoggable {
       populateAzpAndSubFieldsAtConsumerTable()
       populateTableBankAccountRouting()
       populateSettlementBankAccounts()
+      alterColumnStatusAtTableMappedConsent()
     }
     
     private def dummyScript(): Boolean = {
@@ -209,6 +210,12 @@ object Migration extends MdcLoggable {
       val name = nameOf(populateSettlementBankAccounts)
       runOnce(name) {
         MigrationOfSettlementAccounts.populate(name)
+      }
+    }
+    private def alterColumnStatusAtTableMappedConsent(): Boolean = {
+      val name = nameOf(alterColumnStatusAtTableMappedConsent)
+      runOnce(name) {
+        MigrationOfMappedConsent.alterColumnStatus(name)
       }
     }
     

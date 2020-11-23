@@ -1,7 +1,6 @@
 package code.api.UKOpenBanking.v3_1_0
 
-import code.api.APIFailureNewStyle
-import code.api.Constant._
+import code.api.{APIFailureNewStyle, Constant}
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil.{defaultBankId, _}
 import code.api.util.ApiTag._
@@ -11,7 +10,7 @@ import code.bankconnectors.Connector
 import code.model._
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, TransactionAttribute, ViewId}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
@@ -20,6 +19,7 @@ import net.liftweb.json._
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 import scala.concurrent.Future
 
 object APIMethods_TransactionsApi extends RestHelper {
@@ -750,30 +750,31 @@ object APIMethods_TransactionsApi extends RestHelper {
      lazy val getAccountsAccountIdTransactions : OBPEndpoint = {
        case "accounts" :: AccountId(accountId):: "transactions" :: Nil JsonGet _ => {
          cc =>
+           val detailViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID)
+           val basicViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID)
            for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
-            (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
-            (bankAccount, callContext) <- Future { BankAccountX(BankId(defaultBankId), accountId, callContext) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
-            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
-            params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
-          
-            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
-          
-            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(BankId(defaultBankId), accountId), callContext, params)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
-          
-          } yield {
-            (JSONFactory_UKOpenBanking_310.createTransactionsJson(transactions, transactionRequests), callContext)
-          }
-         }
+             (Full(u), callContext) <- authenticatedAccess(cc)
+             _ <- NewStyle.function.checkUKConsent(u, callContext)
+             _ <- passesPsd2Aisp(callContext)
+             (account, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
+             (bank, callContext) <- NewStyle.function.getBank(account.bankId, callContext)
+             view <- NewStyle.function.checkViewsAccessAndReturnView(detailViewId, basicViewId, BankIdAccountId(account.bankId, accountId), Full(u), callContext)
+             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
+               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+             } map { unboxFull(_) }
+             (transactions, callContext) <- account.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(account.bankId,account.accountId), callContext, params) map {
+               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+             } map { unboxFull(_) }
+             (moderatedAttributes: List[TransactionAttribute], callContext) <- NewStyle.function.getModeratedAttributesByTransactions(
+               account.bankId,
+               transactions.map(_.id),
+               view.viewId,
+               callContext)
+           } yield {
+             (JSONFactory_UKOpenBanking_310.createTransactionsJsonNew(account.bankId, transactions, moderatedAttributes, view), callContext)
+           }
        }
+     }
             
      resourceDocs += ResourceDoc(
        getTransactions, 
