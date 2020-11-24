@@ -40,7 +40,7 @@ class AccountTest extends V400ServerSetup {
   lazy val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
   lazy val addAccountJsonOtherUser = SwaggerDefinitionsJSON.createAccountRequestJsonV310
     .copy(user_id = resourceUser2.userId, balance = AmountOfMoneyJsonV121("EUR","0"),
-      account_routings = List(AccountRoutingJsonV121(Random.nextString(4), Random.nextString(4))))
+      account_routings = List(AccountRoutingJsonV121(Random.nextString(10), Random.nextString(10))))
   lazy val getAccountByRoutingJson = SwaggerDefinitionsJSON.bankAccountRoutingJson
   
   

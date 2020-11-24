@@ -117,7 +117,7 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       Then("We test login user create account for other users with no role first")
       val requestPutNewAccountId = (v2_2Request / "banks" / testBank.value / "accounts" / mockAccountId2).PUT <@ (user1)
       val accountPutJSON2 = accountPutJSON.copy(user_id = resourceUser2.userId,
-        account_routing = AccountRoutingJsonV121(Random.nextString(4), Random.nextString(10)))
+        account_routing = AccountRoutingJsonV121(Random.nextString(10), Random.nextString(10)))
       val responseWithNoRole = makePutRequest(requestPutNewAccountId, write(accountPutJSON2))
 
       responseWithNoRole.code should equal(403)
