@@ -425,7 +425,7 @@ where
 
 create view v_transaction_request as
 SELECT
-	id transaction_request_id,
+	id primary_key,
 	updatedat updated_at,
 	createdat created_at,
 	mname name,
@@ -463,7 +463,7 @@ FROM
 	mappedtransactionrequest
 union
 SELECT
-	null transaction_request_id,
+	null primary_key,
 	null updated_at,
 	null created_at,
 	null name,
