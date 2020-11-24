@@ -6,7 +6,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{ApiRole, ApiTag, NewStyle}
+import code.api.util.{ApiRole, ApiTag, CallContext, NewStyle}
 import code.bankconnectors.Connector
 import code.fx.fx
 import code.model._
@@ -898,8 +898,10 @@ There are the following request types on this access path:
              )
              _ <- challenge.scaStatus match {
                case Some(status) if status == StrongCustomerAuthenticationStatus.finalised => // finalised
-                 NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
-                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, COMPLETED.toString))
+                 NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext) map {
+                   response =>
+                     Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, COMPLETED.toString)
+                 }
                case Some(status) if status == StrongCustomerAuthenticationStatus.failed => // failed
                  Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, REJECTED.toString))
                case _ => // started and all other cases
@@ -1019,8 +1021,10 @@ There are the following request types on this access path:
              )
              _ <- challenge.scaStatus match {
                case Some(status) if status == StrongCustomerAuthenticationStatus.finalised => // finalised
-                 NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
-                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, COMPLETED.toString))
+                 NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext) map {
+                   response => 
+                     Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, COMPLETED.toString)
+                 }
                case Some(status) if status == StrongCustomerAuthenticationStatus.failed => // failed
                  Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, REJECTED.toString))
                case _ => // started and all other cases
