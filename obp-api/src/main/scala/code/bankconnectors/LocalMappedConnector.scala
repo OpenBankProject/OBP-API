@@ -1097,7 +1097,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getTransactionRequestAttributesFromProvider(transactionRequestId: TransactionRequestId,
-                                                           callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = {
+                                                           callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = {
     TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.getTransactionRequestAttributesFromProvider(
       transactionRequestId: TransactionRequestId
     ).map((_, callContext))
@@ -1105,7 +1105,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getTransactionRequestAttributes(bankId: BankId,
                                                transactionRequestId: TransactionRequestId,
-                                               callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = {
+                                               callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = {
     TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.getTransactionRequestAttributes(
       bankId: BankId,
       transactionRequestId: TransactionRequestId
@@ -1115,7 +1115,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getTransactionRequestAttributesCanBeSeenOnView(bankId: BankId,
                                                               transactionRequestId: TransactionRequestId,
                                                               viewId: ViewId,
-                                                              callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = {
+                                                              callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = {
     TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.getTransactionRequestAttributesCanBeSeenOnView(
       bankId: BankId,
       transactionRequestId: TransactionRequestId,
@@ -1124,7 +1124,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getTransactionRequestAttributeById(transactionRequestAttributeId: String,
-                                                  callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttribute]] = {
+                                                  callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttributeTrait]] = {
     TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.getTransactionRequestAttributeById(
       transactionRequestAttributeId: String
     ).map((_, callContext))
@@ -1144,7 +1144,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                          name: String,
                                                          attributeType: TransactionRequestAttributeType.Value,
                                                          value: String,
-                                                         callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttribute]] = {
+                                                         callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttributeTrait]] = {
     TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.createOrUpdateTransactionRequestAttribute(
       bankId: BankId,
       transactionRequestId: TransactionRequestId,
@@ -1157,12 +1157,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def createTransactionRequestAttributes(bankId: BankId,
                                                   transactionRequestId: TransactionRequestId,
-                                                  transactionRequestAttributes: List[TransactionRequestAttribute],
-                                                  callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = {
+                                                  transactionRequestAttributes: List[TransactionRequestAttributeTrait],
+                                                  callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = {
     TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.createTransactionRequestAttributes(
       bankId: BankId,
       transactionRequestId: TransactionRequestId,
-      transactionRequestAttributes: List[TransactionRequestAttribute]
+      transactionRequestAttributes: List[TransactionRequestAttributeTrait]
     ).map((_, callContext))
   }
 

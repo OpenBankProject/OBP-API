@@ -103,7 +103,7 @@ import code.taxresidence.MappedTaxResidence
 import code.token.OpenIDConnectToken
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
-import code.transactionRequestAttribute.MappedTransactionRequestAttribute
+import code.transactionRequestAttribute.TransactionRequestAttribute
 import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.transaction_types.MappedTransactionType
 import code.transactionattribute.MappedTransactionAttribute
@@ -821,7 +821,7 @@ object ToSchemify {
     MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag,
     MappedTransactionRequest,
-    MappedTransactionRequestAttribute,
+    TransactionRequestAttribute,
     MappedMetric,
     MapperAccountHolders,
     MappedEntitlement,

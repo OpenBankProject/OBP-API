@@ -2,7 +2,7 @@ package code.transactionRequestAttribute
 
 import code.api.attributedefinition.AttributeDefinition
 import com.openbankproject.commons.model.enums.{AttributeCategory, TransactionRequestAttributeType}
-import com.openbankproject.commons.model.{BankId, TransactionRequestAttribute, TransactionRequestId, ViewId}
+import com.openbankproject.commons.model.{BankId, TransactionRequestAttributeTrait, TransactionRequestId, ViewId}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper.{By, BySql, IHaveValidatedThisSQL}
 import net.liftweb.util.Helpers.tryo
@@ -15,8 +15,8 @@ object MappedTransactionRequestAttributeProvider extends TransactionRequestAttri
 
   override def getTransactionRequestAttributesFromProvider(transactionRequestId: TransactionRequestId): Future[Box[List[TransactionRequestAttribute]]] =
     Future {
-      Box !! MappedTransactionRequestAttribute.findAll(
-        By(MappedTransactionRequestAttribute.mTransactionRequestId, transactionRequestId.value)
+      Box !! TransactionRequestAttribute.findAll(
+        By(TransactionRequestAttribute.TransactionRequestId, transactionRequestId.value)
       )
     }
 
@@ -25,9 +25,9 @@ object MappedTransactionRequestAttributeProvider extends TransactionRequestAttri
                                                 transactionRequestId: TransactionRequestId
                                               ): Future[Box[List[TransactionRequestAttribute]]] = {
     Future {
-      Box !! MappedTransactionRequestAttribute.findAll(
-        By(MappedTransactionRequestAttribute.mBankId, bankId.value),
-        By(MappedTransactionRequestAttribute.mTransactionRequestId, transactionRequestId.value)
+      Box !! TransactionRequestAttribute.findAll(
+        By(TransactionRequestAttribute.BankId, bankId.value),
+        By(TransactionRequestAttribute.TransactionRequestId, transactionRequestId.value)
       )
     }
   }
@@ -40,9 +40,9 @@ object MappedTransactionRequestAttributeProvider extends TransactionRequestAttri
         By(AttributeDefinition.BankId, bankId.value),
         By(AttributeDefinition.Category, AttributeCategory.Account.toString)
       ).filter(_.canBeSeenOnViews.exists(_ == viewId.value)) // Filter by view_id
-      val transactionRequestAttributes = MappedTransactionRequestAttribute.findAll(
-        By(MappedTransactionRequestAttribute.mBankId, bankId.value),
-        By(MappedTransactionRequestAttribute.mTransactionRequestId, transactionRequestId.value)
+      val transactionRequestAttributes = TransactionRequestAttribute.findAll(
+        By(TransactionRequestAttribute.BankId, bankId.value),
+        By(TransactionRequestAttribute.TransactionRequestId, transactionRequestId.value)
       )
       val filteredTransactionRequestAttributes = for {
         definition <- attributeDefinitions
@@ -56,26 +56,26 @@ object MappedTransactionRequestAttributeProvider extends TransactionRequestAttri
   }
 
   override def getTransactionRequestAttributeById(transactionRequestAttributeId: String): Future[Box[TransactionRequestAttribute]] = Future {
-    MappedTransactionRequestAttribute.find(By(MappedTransactionRequestAttribute.mTransactionRequestAttributeId, transactionRequestAttributeId))
+    TransactionRequestAttribute.find(By(TransactionRequestAttribute.TransactionRequestAttributeId, transactionRequestAttributeId))
   }
 
   override def getTransactionRequestIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]] =
     Future {
       Box !! {
         if (params.isEmpty) {
-          MappedTransactionRequestAttribute.findAll(By(MappedTransactionRequestAttribute.mBankId, bankId.value)).map(_.transactionRequestId.value)
+          TransactionRequestAttribute.findAll(By(TransactionRequestAttribute.BankId, bankId.value)).map(_.transactionRequestId.value)
         } else {
           val paramList = params.toList
-          val parameters: List[String] = MappedTransactionRequestAttribute.getParameters(paramList)
-          val sqlParametersFilter = MappedTransactionRequestAttribute.getSqlParametersFilter(paramList)
+          val parameters: List[String] = TransactionRequestAttribute.getParameters(paramList)
+          val sqlParametersFilter = TransactionRequestAttribute.getSqlParametersFilter(paramList)
           val transactionRequestIdList = paramList.isEmpty match {
             case true =>
-              MappedTransactionRequestAttribute.findAll(
-                By(MappedTransactionRequestAttribute.mBankId, bankId.value)
+              TransactionRequestAttribute.findAll(
+                By(TransactionRequestAttribute.BankId, bankId.value)
               ).map(_.transactionRequestId.value)
             case false =>
-              MappedTransactionRequestAttribute.findAll(
-                By(MappedTransactionRequestAttribute.mBankId, bankId.value),
+              TransactionRequestAttribute.findAll(
+                By(TransactionRequestAttribute.BankId, bankId.value),
                 BySql(sqlParametersFilter, IHaveValidatedThisSQL("developer", "2020-06-28"), parameters: _*)
               ).map(_.transactionRequestId.value)
           }
@@ -92,14 +92,14 @@ object MappedTransactionRequestAttributeProvider extends TransactionRequestAttri
                                                          value: String): Future[Box[TransactionRequestAttribute]] = {
     transactionRequestAttributeId match {
       case Some(id) => Future {
-        MappedTransactionRequestAttribute.find(By(MappedTransactionRequestAttribute.mTransactionRequestAttributeId, id)) match {
+        TransactionRequestAttribute.find(By(TransactionRequestAttribute.TransactionRequestAttributeId, id)) match {
           case Full(attribute) => tryo {
             attribute
-              .mBankId(bankId.value)
-              .mTransactionRequestId(transactionRequestId.value)
-              .mName(name)
-              .mType(attributeType.toString)
-              .mValue(value)
+              .BankId(bankId.value)
+              .TransactionRequestId(transactionRequestId.value)
+              .Name(name)
+              .Type(attributeType.toString)
+              .Value(value)
               .saveMe()
           }
           case _ => Empty
@@ -107,12 +107,12 @@ object MappedTransactionRequestAttributeProvider extends TransactionRequestAttri
       }
       case None => Future {
         Full {
-          MappedTransactionRequestAttribute.create
-            .mBankId(bankId.value)
-            .mTransactionRequestId(transactionRequestId.value)
-            .mName(name)
-            .mType(attributeType.toString())
-            .mValue(value)
+          TransactionRequestAttribute.create
+            .BankId(bankId.value)
+            .TransactionRequestId(transactionRequestId.value)
+            .Name(name)
+            .Type(attributeType.toString())
+            .Value(value)
             .saveMe()
         }
       }
@@ -121,17 +121,17 @@ object MappedTransactionRequestAttributeProvider extends TransactionRequestAttri
 
   override def createTransactionRequestAttributes(bankId: BankId,
                                                   transactionRequestId: TransactionRequestId,
-                                                  transactionRequestAttributes: List[TransactionRequestAttribute]): Future[Box[List[TransactionRequestAttribute]]] = {
+                                                  transactionRequestAttributes: List[TransactionRequestAttributeTrait]): Future[Box[List[TransactionRequestAttributeTrait]]] = {
     Future {
       tryo {
         for {
           transactionRequestAttribute <- transactionRequestAttributes
         } yield {
-          MappedTransactionRequestAttribute.create.mTransactionRequestId(transactionRequestId.value)
-            .mBankId(bankId.value)
-            .mName(transactionRequestAttribute.name)
-            .mType(transactionRequestAttribute.attributeType.toString())
-            .mValue(transactionRequestAttribute.value)
+          TransactionRequestAttribute.create.TransactionRequestId(transactionRequestId.value)
+            .BankId(bankId.value)
+            .Name(transactionRequestAttribute.name)
+            .Type(transactionRequestAttribute.attributeType.toString())
+            .Value(transactionRequestAttribute.value)
             .saveMe()
         }
       }
@@ -140,7 +140,7 @@ object MappedTransactionRequestAttributeProvider extends TransactionRequestAttri
 
   override def deleteTransactionRequestAttribute(transactionRequestAttributeId: String): Future[Box[Boolean]] = Future {
     Some(
-      MappedTransactionRequestAttribute.bulkDelete_!!(By(MappedTransactionRequestAttribute.mTransactionRequestAttributeId, transactionRequestAttributeId))
+      TransactionRequestAttribute.bulkDelete_!!(By(TransactionRequestAttribute.TransactionRequestAttributeId, transactionRequestAttributeId))
     )
   }
 }

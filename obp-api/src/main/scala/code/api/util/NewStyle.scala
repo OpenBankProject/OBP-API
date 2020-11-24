@@ -2021,7 +2021,7 @@ object NewStyle {
     }
 
     def getTransactionRequestAttributesFromProvider(transactionRequestId: TransactionRequestId,
-                                                    callContext: Option[CallContext]): OBPReturnType[List[TransactionRequestAttribute]] = {
+                                                    callContext: Option[CallContext]): OBPReturnType[List[TransactionRequestAttributeTrait]] = {
       Connector.connector.vend.getTransactionRequestAttributesFromProvider(
         transactionRequestId: TransactionRequestId,
         callContext: Option[CallContext]
@@ -2032,7 +2032,7 @@ object NewStyle {
 
     def getTransactionRequestAttributes(bankId: BankId,
                                         transactionRequestId: TransactionRequestId,
-                                        callContext: Option[CallContext]): OBPReturnType[List[TransactionRequestAttribute]] = {
+                                        callContext: Option[CallContext]): OBPReturnType[List[TransactionRequestAttributeTrait]] = {
       Connector.connector.vend.getTransactionRequestAttributes(
         bankId: BankId,
         transactionRequestId: TransactionRequestId,
@@ -2045,7 +2045,7 @@ object NewStyle {
     def getTransactionRequestAttributesCanBeSeenOnView(bankId: BankId,
                                                        transactionRequestId: TransactionRequestId,
                                                        viewId: ViewId,
-                                                       callContext: Option[CallContext]): OBPReturnType[List[TransactionRequestAttribute]] = {
+                                                       callContext: Option[CallContext]): OBPReturnType[List[TransactionRequestAttributeTrait]] = {
       Connector.connector.vend.getTransactionRequestAttributesCanBeSeenOnView(
         bankId: BankId,
         transactionRequestId: TransactionRequestId,
@@ -2057,7 +2057,7 @@ object NewStyle {
     }
 
     def getTransactionRequestAttributeById(transactionRequestAttributeId: String,
-                                           callContext: Option[CallContext]): OBPReturnType[TransactionRequestAttribute] = {
+                                           callContext: Option[CallContext]): OBPReturnType[TransactionRequestAttributeTrait] = {
       Connector.connector.vend.getTransactionRequestAttributeById(
         transactionRequestAttributeId: String,
         callContext: Option[CallContext]
@@ -2083,7 +2083,7 @@ object NewStyle {
                                                   name: String,
                                                   attributeType: TransactionRequestAttributeType.Value,
                                                   value: String,
-                                                  callContext: Option[CallContext]): OBPReturnType[TransactionRequestAttribute] = {
+                                                  callContext: Option[CallContext]): OBPReturnType[TransactionRequestAttributeTrait] = {
       Connector.connector.vend.createOrUpdateTransactionRequestAttribute(
         bankId: BankId,
         transactionRequestId: TransactionRequestId,
@@ -2099,12 +2099,12 @@ object NewStyle {
 
     def createTransactionRequestAttributes(bankId: BankId,
                                            transactionRequestId: TransactionRequestId,
-                                           transactionRequestAttributes: List[TransactionRequestAttribute],
-                                           callContext: Option[CallContext]): OBPReturnType[List[TransactionRequestAttribute]] = {
+                                           transactionRequestAttributes: List[TransactionRequestAttributeTrait],
+                                           callContext: Option[CallContext]): OBPReturnType[List[TransactionRequestAttributeTrait]] = {
       Connector.connector.vend.createTransactionRequestAttributes(
         bankId: BankId,
         transactionRequestId: TransactionRequestId,
-        transactionRequestAttributes: List[TransactionRequestAttribute],
+        transactionRequestAttributes: List[TransactionRequestAttributeTrait],
         callContext: Option[CallContext]
       ) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)

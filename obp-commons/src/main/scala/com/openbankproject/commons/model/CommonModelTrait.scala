@@ -454,7 +454,7 @@ trait TransactionRequestReasonsTrait {
   def description: String
 }
 
-trait TransactionRequestAttribute {
+trait TransactionRequestAttributeTrait {
   def bankId: BankId
   def transactionRequestId: TransactionRequestId
   def transactionRequestAttributeId: String

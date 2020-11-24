@@ -15,20 +15,20 @@ object RemotedataTransactionRequestAttribute extends ObpActorInit with Transacti
 
   val cc: RemotedataTransactionRequestAttributeCaseClasses.type = RemotedataTransactionRequestAttributeCaseClasses
 
-  override def getTransactionRequestAttributesFromProvider(transactionRequestId: TransactionRequestId): Future[Box[List[TransactionRequestAttribute]]] =
-    (actor ? cc.getTransactionRequestAttributesFromProvider(transactionRequestId)).mapTo[Box[List[TransactionRequestAttribute]]]
+  override def getTransactionRequestAttributesFromProvider(transactionRequestId: TransactionRequestId): Future[Box[List[TransactionRequestAttributeTrait]]] =
+    (actor ? cc.getTransactionRequestAttributesFromProvider(transactionRequestId)).mapTo[Box[List[TransactionRequestAttributeTrait]]]
 
   override def getTransactionRequestAttributes(bankId: BankId,
-                                               transactionRequestId: TransactionRequestId): Future[Box[List[TransactionRequestAttribute]]] =
-    (actor ? cc.getTransactionRequestAttributes(bankId, transactionRequestId)).mapTo[Box[List[TransactionRequestAttribute]]]
+                                               transactionRequestId: TransactionRequestId): Future[Box[List[TransactionRequestAttributeTrait]]] =
+    (actor ? cc.getTransactionRequestAttributes(bankId, transactionRequestId)).mapTo[Box[List[TransactionRequestAttributeTrait]]]
 
   override def getTransactionRequestAttributesCanBeSeenOnView(bankId: BankId,
                                                               transactionRequestId: TransactionRequestId,
-                                                              viewId: ViewId): Future[Box[List[TransactionRequestAttribute]]] =
-    (actor ? cc.getTransactionRequestAttributesCanBeSeenOnView(bankId, transactionRequestId, viewId)).mapTo[Box[List[TransactionRequestAttribute]]]
+                                                              viewId: ViewId): Future[Box[List[TransactionRequestAttributeTrait]]] =
+    (actor ? cc.getTransactionRequestAttributesCanBeSeenOnView(bankId, transactionRequestId, viewId)).mapTo[Box[List[TransactionRequestAttributeTrait]]]
 
-  override def getTransactionRequestAttributeById(transactionRequestAttributeId: String): Future[Box[TransactionRequestAttribute]] =
-    (actor ? cc.getTransactionRequestAttributeById(transactionRequestAttributeId)).mapTo[Box[TransactionRequestAttribute]]
+  override def getTransactionRequestAttributeById(transactionRequestAttributeId: String): Future[Box[TransactionRequestAttributeTrait]] =
+    (actor ? cc.getTransactionRequestAttributeById(transactionRequestAttributeId)).mapTo[Box[TransactionRequestAttributeTrait]]
 
   override def getTransactionRequestIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]] =
     (actor ? cc.getTransactionRequestIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]])).mapTo[Box[List[String]]]
@@ -38,13 +38,13 @@ object RemotedataTransactionRequestAttribute extends ObpActorInit with Transacti
                                                          transactionRequestAttributeId: Option[String],
                                                          name: String,
                                                          attributeType: TransactionRequestAttributeType.Value,
-                                                         value: String): Future[Box[TransactionRequestAttribute]] =
-    (actor ? cc.createOrUpdateTransactionRequestAttribute(bankId, transactionRequestId, transactionRequestAttributeId, name, attributeType, value)).mapTo[Box[TransactionRequestAttribute]]
+                                                         value: String): Future[Box[TransactionRequestAttributeTrait]] =
+    (actor ? cc.createOrUpdateTransactionRequestAttribute(bankId, transactionRequestId, transactionRequestAttributeId, name, attributeType, value)).mapTo[Box[TransactionRequestAttributeTrait]]
 
   override def createTransactionRequestAttributes(bankId: BankId,
                                                   transactionRequestId: TransactionRequestId,
-                                                  transactionRequestAttributes: List[TransactionRequestAttribute]): Future[Box[List[TransactionRequestAttribute]]] =
-    (actor ? cc.createTransactionRequestAttributes(bankId, transactionRequestId, transactionRequestAttributes)).mapTo[Box[List[TransactionRequestAttribute]]]
+                                                  transactionRequestAttributes: List[TransactionRequestAttributeTrait]): Future[Box[List[TransactionRequestAttributeTrait]]] =
+    (actor ? cc.createTransactionRequestAttributes(bankId, transactionRequestId, transactionRequestAttributes)).mapTo[Box[List[TransactionRequestAttributeTrait]]]
 
   override def deleteTransactionRequestAttribute(transactionRequestAttributeId: String): Future[Box[Boolean]] =
     (actor ? cc.deleteTransactionRequestAttribute(transactionRequestAttributeId)).mapTo[Box[Boolean]]

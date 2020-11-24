@@ -2105,19 +2105,19 @@ trait Connector extends MdcLoggable {
   def getCardAttributesFromProvider(cardId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CardAttribute]]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getTransactionRequestAttributesFromProvider(transactionRequestId: TransactionRequestId,
-                                                  callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = Future{(Failure(setUnimplementedError), callContext)}
+                                                  callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getTransactionRequestAttributes(bankId: BankId,
                                       transactionRequestId: TransactionRequestId,
-                                      callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = Future{(Failure(setUnimplementedError), callContext)}
+                                      callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getTransactionRequestAttributesCanBeSeenOnView(bankId: BankId,
                                                      transactionRequestId: TransactionRequestId,
                                                      viewId: ViewId,
-                                                     callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = Future{(Failure(setUnimplementedError), callContext)}
+                                                     callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getTransactionRequestAttributeById(transactionRequestAttributeId: String,
-                                         callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+                                         callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttributeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getTransactionRequestIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]],
                                                     callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = Future{(Failure(setUnimplementedError), callContext)}
@@ -2128,12 +2128,12 @@ trait Connector extends MdcLoggable {
                                                 name: String,
                                                 attributeType: TransactionRequestAttributeType.Value,
                                                 value: String,
-                                                callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+                                                callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttributeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def createTransactionRequestAttributes(bankId: BankId,
                                          transactionRequestId: TransactionRequestId,
-                                         transactionRequestAttributes: List[TransactionRequestAttribute],
-                                         callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttribute]]] = Future{(Failure(setUnimplementedError), callContext)}
+                                         transactionRequestAttributes: List[TransactionRequestAttributeTrait],
+                                         callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def deleteTransactionRequestAttribute(transactionRequestAttributeId: String,
                                         callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
