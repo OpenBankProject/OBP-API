@@ -70,12 +70,9 @@ class WebUI extends MdcLoggable{
   def cookieConsent = {
     val toDisplay = APIUtil.getPropsAsBoolValue("display_accept_cookies_question",false)
     if (toDisplay) {
-      var onclick = "removeByIdAndSaveIndicatorCookie('cookies-consent'); "
-      val buttonString = """<input id="clickMe" class="btn btn-default" type="button" value="Accept and close" onclick="%s"/> <script>showIndicatorCookiePage('cookies-consent'); </script>""".format(onclick)
-      val button  = scala.xml.Unparsed(s"""$buttonString""")
-      "#clickMe" #> button
+      "#no-exiting-id" #> "" //here we do nothing, just show all the cookie div
     } else {
-      "*" #> NodeSeq.Empty
+      "*" #> NodeSeq.Empty // here we totally hide the cookie div
     }
   }
 
