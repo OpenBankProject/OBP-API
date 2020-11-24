@@ -45,9 +45,9 @@ class RemotedataConsumersActor extends Actor with ObpActorHelper with MdcLoggabl
       logger.debug(s"getConsumersFuture()")
       sender ! (mapper.getConsumers())
 
-    case cc.createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]) =>
-      logger.debug(s"createConsumer(*****, *****, ${isActive.getOrElse("None")}, ${name.getOrElse("None")}, ${appType.getOrElse("None")}, ${description.getOrElse("None")}, ${developerEmail.getOrElse("None")}, ${redirectURL.getOrElse("None")}, ${createdByUserId.getOrElse("None")})")
-      sender ! (mapper.createConsumer(key, secret, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId))
+    case cc.createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String], clientCertificate: Option[String]) =>
+      logger.debug(s"createConsumer(*****, *****, ${isActive.getOrElse("None")}, ${name.getOrElse("None")}, ${appType.getOrElse("None")}, ${description.getOrElse("None")}, ${developerEmail.getOrElse("None")}, ${redirectURL.getOrElse("None")}, ${createdByUserId.getOrElse("None")}, ${clientCertificate.getOrElse("None")})")
+      sender ! (mapper.createConsumer(key, secret, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId, clientCertificate))
 
     case cc.updateConsumer(id: Long, key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]) =>
       logger.debug(s"updateConsumer($id, *****, *****, ${isActive.getOrElse("None")}, ${name.getOrElse("None")}, ${appType.getOrElse("None")}, ${description.getOrElse("None")}, ${developerEmail.getOrElse("None")}, ${redirectURL.getOrElse("None")}, ${createdByUserId.getOrElse("None")})")

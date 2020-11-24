@@ -27,11 +27,10 @@ TESOBE (http://www.tesobe.com/)
 
 package code.setup
 
-import code.api.Constant._
 import _root_.net.liftweb.json.JsonAST.JObject
 import code.TestServer
-import code.api.util.{APIUtil, CustomJsonFormats}
 import code.api.util.APIUtil._
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{AccountId, BankId}
 import dispatch._
@@ -81,6 +80,7 @@ trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup
 
   override def beforeEach() = {
     super.beforeEach()
+    wipeTestData()
     //create fake data for the tests
     //fake banks
     val banks = createBanks()

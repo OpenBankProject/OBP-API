@@ -25,27 +25,31 @@ TESOBE (http://www.tesobe.com/)
 
   */
 package code.model
-import java.util.{Date, UUID}
+import java.util.{Collections, Date}
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.DbFunction
-import code.token.TokensProvider
 import code.consumer.{Consumers, ConsumersProvider}
 import code.model.AppType.{Mobile, Web}
-import code.model.TokenType.{Access, Request}
 import code.model.dataAccess.ResourceUser
 import code.nonce.NoncesProvider
+import code.token.TokensProvider
 import code.users.Users
+import code.util.Helper.MdcLoggable
+import code.util.HydraUtil
+import code.util.HydraUtil._
+import com.github.dwickern.macros.NameOf
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.common._
 import net.liftweb.http.S
 import net.liftweb.mapper.{LongKeyedMetaMapper, _}
 import net.liftweb.util.Helpers.{now, _}
-import net.liftweb.util.{FieldError, Helpers, Props}
-import code.util.Helper.MdcLoggable
-import com.github.dwickern.macros.NameOf
+import net.liftweb.util.{FieldError, Helpers}
+import org.apache.commons.lang3.StringUtils
 
+import scala.collection.immutable.List
 import scala.concurrent.Future
-import com.openbankproject.commons.ExecutionContext.Implicits.global
+
 
 sealed trait AppType
 object AppType {
@@ -123,7 +127,8 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
                               description: Option[String],
                               developerEmail: Option[String],
                               redirectURL: Option[String],
-                              createdByUserId: Option[String]): Box[Consumer] = {
+                              createdByUserId: Option[String],
+                              clientCertificate: Option[String] = None): Box[Consumer] = {
     tryo {
       val c = Consumer.create
       key match {
@@ -170,11 +175,20 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
         case Some(v) => c.createdByUserId(v)
         case None =>
       }
-      if(c.validate.isEmpty) 
-        c.saveMe() 
+
+      clientCertificate.filter(StringUtils.isNotBlank).foreach(c.clientCertificate(_))
+
+      if(c.validate.isEmpty) {
+        c.saveMe()
+      }
       else
         throw new Error(c.validate.map(_.msg.toString()).mkString(";"))
     }
+  }
+
+  def deleteConsumer(consumer: Consumer): Boolean = {
+    if(integrateWithHydra) hydraAdmin.deleteOAuth2Client(consumer.key.get)
+    Consumer.delete_!(consumer)
   }
 
   override def updateConsumer(id: Long,
@@ -190,6 +204,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
     val consumer = Consumer.find(By(Consumer.id, id))
     consumer match {
       case Full(c) => tryo {
+        val originIsActive = c.isActive.get
         key match {
           case Some(v) => c.key(v)
           case None =>
@@ -229,7 +244,36 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
           case Some(v) => c.createdByUserId(v)
           case None =>
         }
-        c.saveMe()
+        val updatedConsumer = c.saveMe()
+
+        if(integrateWithHydra && Option(originIsActive) != isActive && isActive.isDefined) {
+          val clientId = c.key.get
+          val existsOAuth2Client = Box.tryo(hydraAdmin.getOAuth2Client(clientId))
+            .filter(null !=)
+          // if disable consumer, delete hydra client, else if enable consumer, create hydra client
+          // note: hydra update client endpoint have bug, can't update any client, So here delete and create new one
+          if (isActive == Some(false)) {
+              existsOAuth2Client
+              .map { oAuth2Client =>
+                  hydraAdmin.deleteOAuth2Client(clientId)
+                  // set grantTypes to empty to disable the client
+                  oAuth2Client.setGrantTypes(Collections.emptyList())
+                  hydraAdmin.createOAuth2Client(oAuth2Client)
+              }
+          } else if(isActive == Some(true) && existsOAuth2Client.isDefined) {
+            existsOAuth2Client
+              .map { oAuth2Client =>
+                hydraAdmin.deleteOAuth2Client(clientId)
+                // set grantTypes to correct value to enable the client
+                oAuth2Client.setGrantTypes(HydraUtil.grantTypes)
+                hydraAdmin.createOAuth2Client(oAuth2Client)
+              }
+          } else if(isActive == Some(true)) {
+            createHydraClient(updatedConsumer)
+          }
+        }
+
+        updatedConsumer
       }
       case _ => consumer
     }
@@ -302,11 +346,13 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
                                    redirectURL: Option[String],
                                    createdByUserId: Option[String]): Box[Consumer] = {
 
-    val consumer = 
+    val consumer: Box[Consumer] =
       // 1st try represent GatewayLogin usage of this function
       Consumer.find(By(Consumer.consumerId, consumerId.getOrElse("None"))) or {
         // 2nd try represent OAuth2 usage of this function
         Consumer.find(By(Consumer.azp, azp.getOrElse("None")), By(Consumer.sub, sub.getOrElse("None")))
+      } or {
+        aud.flatMap(consumerKey => Consumer.find(By(Consumer.key, consumerKey)))
       }
     consumer match {
       case Full(c) => Full(c)
@@ -374,7 +420,9 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
             case Some(v) => c.consumerId(v)
             case None =>
           }
-          c.saveMe()
+          val createdConsumer = c.saveMe()
+          if(integrateWithHydra) createHydraClient(createdConsumer)
+          createdConsumer
         }
     }
   }
@@ -519,7 +567,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   object perMonthCallLimit extends MappedLong(this) {
     override def defaultValue = -1
   }
-
+  object clientCertificate extends MappedString(this, 4000)
 }
 
 /**
@@ -527,20 +575,23 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
  * their urls are not persistent. So if you copy paste a url and email it to someone, don't count on it
  * working for long.
  */
-object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consumer] with CRUDify[Long, Consumer]{
+object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consumer] with CRUDify[Long, Consumer] {
 
   override def dbIndexes = UniqueIndex(key) :: UniqueIndex(azp, sub) :: super.dbIndexes
 
   //list all path : /admin/consumer/list
-  override def calcPrefix = List("admin",_dbTableNameLC)
+  override def calcPrefix = List("admin", _dbTableNameLC)
 
   //obscure primary key to avoid revealing information about, e.g. how many consumers are registered
   // (by incrementing ids until receiving a "log in first" page instead of 404)
   val obfuscator = new KeyObfuscator()
+
   override def obscurePrimaryKey(in: TheCrudType): String = obfuscator(Consumer, in.id.get)
+
   //I've disabled this method as it only looked to be called by the original implementation of obscurePrimaryKey(in: TheCrudType)
   //and I don't want it affecting anything else
   override def obscurePrimaryKey(in: String): String = ""
+
   //Since we override obscurePrimaryKey, we also need to override findForParam to be able to get a Consumer from its obfuscated id
   override def findForParam(in: String): Box[TheCrudType] = Consumer.find(obfuscator.recover(Consumer, in))
 
@@ -558,7 +609,7 @@ object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consu
   def getRedirectURLByConsumerKey(consumerKey: String): String = {
     logger.debug("hello from getRedirectURLByConsumerKey")
     val consumer: Consumer = Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey).openOrThrowException(s"OBP Consumer not found by consumerKey. You looked for $consumerKey Please check the database")
-    logger.debug(s"getRedirectURLByConsumerKey found consumer with id: ${consumer.id}, name is: ${consumer.name}, isActive is ${consumer.isActive}" )
+    logger.debug(s"getRedirectURLByConsumerKey found consumer with id: ${consumer.id}, name is: ${consumer.name}, isActive is ${consumer.isActive}")
     consumer.redirectURL.toString()
   }
 
@@ -567,43 +618,89 @@ object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consu
 
   val numUniqueAppNames = s"SELECT COUNT(DISTINCT ${Consumer.name.dbColumnName}) FROM ${Consumer.dbName};"
 
-  private val recordsWithUniqueEmails = tryo {Consumer.countByInsecureSql(numUniqueEmailsQuery, IHaveValidatedThisSQL("everett", "2014-04-29")) }
-  private val recordsWithUniqueAppNames = tryo {Consumer.countByInsecureSql(numUniqueAppNames, IHaveValidatedThisSQL("everett", "2014-04-29"))}
+  private val recordsWithUniqueEmails = tryo {
+    Consumer.countByInsecureSql(numUniqueEmailsQuery, IHaveValidatedThisSQL("everett", "2014-04-29"))
+  }
+  private val recordsWithUniqueAppNames = tryo {
+    Consumer.countByInsecureSql(numUniqueAppNames, IHaveValidatedThisSQL("everett", "2014-04-29"))
+  }
 
   //overridden to display extra stats above the table
   override def _showAllTemplate =
-  <lift:crud.all>
-    <p id="admin-consumer-summary">
+    <lift:crud.all>
+      <p id="admin-consumer-summary">
       Total of {Consumer.count} applications from {recordsWithUniqueEmails.getOrElse("ERROR")} unique email addresses. <br />
       {recordsWithUniqueAppNames.getOrElse("ERROR")} unique app names.
-    </p>
-    <table id={showAllId} class={showAllClass}>
-      <thead>
-        <tr>
-          <crud:header_item><th><crud:name/></th></crud:header_item>
-          <th>&nbsp;</th>
-          <th>&nbsp;</th>
-          <th>&nbsp;</th>
-        </tr>
-      </thead>
-      <tbody>
-        <crud:row>
+      </p>
+      <table id={showAllId} class={showAllClass}>
+        <thead>
           <tr>
-            <crud:row_item><td><crud:value/></td></crud:row_item>
-            <td><a crud:view_href="">{S.?("View")}</a></td>
-            <td><a crud:edit_href="">{S.?("Edit")}</a></td>
-            <td><a crud:delete_href="">{S.?("Delete")}</a></td>
+            <crud:header_item>
+              <th>
+                <crud:name/>
+              </th>
+            </crud:header_item>
+            <th>
+              &nbsp;
+            </th>
+            <th>
+              &nbsp;
+            </th>
+            <th>
+              &nbsp;
+            </th>
           </tr>
-        </crud:row>
-      </tbody>
-      <tfoot>
-        <tr>
-          <td colspan="3"><crud:prev>{previousWord}</crud:prev></td>
-          <td colspan="3"><crud:next>{nextWord}</crud:next></td>
-        </tr>
-      </tfoot>
-    </table>
-  </lift:crud.all>
+        </thead>
+        <tbody>
+          <crud:row>
+            <tr>
+              <crud:row_item>
+                <td>
+                  <crud:value/>
+                </td>
+              </crud:row_item>
+              <td>
+                <a crud:view_href="">
+                  {S.?("View")}
+                </a>
+              </td>
+              <td>
+                <a crud:edit_href="">
+                  {S.?("Edit")}
+                </a>
+              </td>
+              <td>
+                <a crud:delete_href="">
+                  {S.?("Delete")}
+                </a>
+              </td>
+            </tr>
+          </crud:row>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3">
+              <crud:prev>
+                {previousWord}
+              </crud:prev>
+            </td>
+            <td colspan="3">
+              <crud:next>
+                {nextWord}
+              </crud:next>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </lift:crud.all>
+
+  /**
+   * match the flow style, it can be http, https, or Private-Use URI Scheme Redirection for app:
+   * http://some.domain.com/path
+   * https://some.domain.com/path
+   * com.example.app:/oauth2redirect/example-provider
+   */
+  val redirectURLRegex = """^([.\w]+:|(http|https):/)/(www.)?\S+?(:\d{2,6})?\S*$""".r
 }
 
 object MappedNonceProvider extends NoncesProvider {

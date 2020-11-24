@@ -172,6 +172,7 @@ object ErrorMessages {
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
 
   // OAuth 2
+  val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
   val Oauth2IsNotAllowed = "OBP-20201: OAuth2 is not allowed at this instance."
   val Oauth2IJwtCannotBeVerified = "OBP-20202: OAuth2's Access Token cannot be verified."
   val Oauth2ThereIsNoUrlOfJwkSet = "OBP-20203: There is no an URL of OAuth 2.0 server's JWK set, published at a well-known URL."
@@ -180,7 +181,8 @@ object ErrorMessages {
   val Oauth2BadJOSEException = "OBP-20206: Bad JSON Object Signing and Encryption (JOSE) exception. The ID token is invalid or expired. "
   val Oauth2JOSEException = "OBP-20207: Bad JSON Object Signing and Encryption (JOSE) exception. An internal JOSE exception was encountered. "
   val Oauth2CannotMatchIssuerAndJwksUriException = "OBP-20208: Cannot match the issuer and JWKS URI at this server instance. "
-  val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
+  val Oauth2TokenHaveNoConsumer = "OBP-20209: The token have no linked consumer. "
+  val Oauth2TokenMatchCertificateFail = "OBP-20210: The token linked with a different client certificate. "
 
   // X.509
   val X509GeneralError = "OBP-20300: PEM Encoded Certificate issue."
@@ -432,6 +434,8 @@ object ErrorMessages {
   val InvalidChallengeTransactionRequestId = "OBP-40021: Invalid Challenge PaymentId or TRANSACTION_REQUEST_ID. "
   val InvalidChallengeChallengeId = "OBP-40022: Invalid ChallengeId. "
   val TransactionRequestCannotBeCancelled = "OBP-40023: Transaction Request cannot be cancelled. "
+  val CannotUpdatePSUData = s"OBP-40024: Cannot Update PSU Data for payment initiation due to transaction request is not in status: ${INITIATED}."
+  val CannotUpdatePSUDataCancellation = s"OBP-40025: Cannot Update PSU Data for payment initiation cancellation due to transaction request is not in status: ${INITIATED}."
 
 
   // Exceptions (OBP-50XXX)

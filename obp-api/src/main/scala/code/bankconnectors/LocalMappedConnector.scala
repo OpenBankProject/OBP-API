@@ -739,6 +739,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         .map(account =>
           AccountHeld(
             account.accountId.value,
+            account.label,
             account.bankId.value,
             stringOrNull(account.number),
             account.accountRoutings))
@@ -3208,6 +3209,28 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
   }
+  override def getAccountAttributesByAccountsCanBeSeenOnView(accounts: List[BankIdAccountId],
+                                                             viewId: ViewId,
+                                                             callContext: Option[CallContext]
+                                                            ): OBPReturnType[Box[List[AccountAttribute]]] = {
+    AccountAttributeX.accountAttributeProvider.vend.getAccountAttributesByAccountsCanBeSeenOnView(
+      accounts,
+      viewId) map {
+      (_, callContext)
+    }
+  }
+  override def getTransactionAttributesByTransactionsCanBeSeenOnView(bankId: BankId,
+                                                                     transactionIds: List[TransactionId],
+                                                                     viewId: ViewId,
+                                                                     callContext: Option[CallContext]
+                                                                    ): OBPReturnType[Box[List[TransactionAttribute]]] = {
+    TransactionAttributeX.transactionAttributeProvider.vend.getTransactionsAttributesCanBeSeenOnView(
+      bankId,
+      transactionIds,
+      viewId) map {
+      (_, callContext)
+    }
+  }
 
   override def createOrUpdateCustomerAttribute(
                                                 bankId: BankId,
@@ -4548,7 +4571,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             body.to_sepa_credit_transfers.get
           }
           toAccountIban = toSepaCreditTransfers.creditorAccount.iban
-          (toAccount, callContext) <- NewStyle.function.getBankAccountByIban(toAccountIban, callContext)
+          (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
           (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
             fromAccount,
             toAccount,

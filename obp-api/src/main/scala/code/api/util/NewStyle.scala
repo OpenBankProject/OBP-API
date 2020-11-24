@@ -363,6 +363,15 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView")
       }
     }
+    def checkViewsAccessAndReturnView(firstView : ViewId, secondView : ViewId, bankAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]) : Future[View] = {
+      Future{
+        APIUtil.checkViewAccessAndReturnView(firstView, bankAccountId, user).or(
+          APIUtil.checkViewAccessAndReturnView(secondView, bankAccountId, user)
+        )
+      } map {
+        unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView")
+      }
+    }
     
     def checkAuthorisationToCreateTransactionRequest(viewId : ViewId, bankAccountId: BankIdAccountId, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
       Future{
@@ -1201,7 +1210,30 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
-
+    def getModeratedAccountAttributesByAccounts(accounts: List[BankIdAccountId],
+                                                viewId: ViewId, 
+                                                callContext: Option[CallContext]): OBPReturnType[List[AccountAttribute]] = {
+      Connector.connector.vend.getAccountAttributesByAccountsCanBeSeenOnView(
+        accounts,
+        viewId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    def getModeratedAttributesByTransactions(bankId: BankId,
+                                             transactionIds: List[TransactionId],
+                                             viewId: ViewId,
+                                             callContext: Option[CallContext]): OBPReturnType[List[TransactionAttribute]] = {
+      Connector.connector.vend.getTransactionAttributesByTransactionsCanBeSeenOnView(
+        bankId,
+        transactionIds,
+        viewId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
     def getCustomerAttributes(bankId: BankId,
       customerId: CustomerId,
       callContext: Option[CallContext]): OBPReturnType[List[CustomerAttribute]] = {
@@ -2514,6 +2546,10 @@ object NewStyle {
         i => (unboxFullOrFail(i, callContext, CardNotFound), callContext)
       }
     }
+
+    def checkUKConsent(user: User, callContext: Option[CallContext]) = Future {
+      Consent.checkUKConsent(user, callContext)
+    } map { fullBoxOrException(_) }
 
   }
 }

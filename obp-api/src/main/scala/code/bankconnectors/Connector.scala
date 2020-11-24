@@ -1328,7 +1328,7 @@ trait Connector extends MdcLoggable {
             body.to_sepa_credit_transfers.get
           }
           toAccountIban = toSepaCreditTransfers.creditorAccount.iban
-          (toAccount, callContext) <- NewStyle.function.getBankAccountByIban(toAccountIban, callContext)
+          (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
           (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
             fromAccount,
             toAccount,
@@ -2024,6 +2024,19 @@ trait Connector extends MdcLoggable {
                                                    viewId: ViewId,
                                                    callContext: Option[CallContext]
                                                   ): OBPReturnType[Box[List[AccountAttribute]]] = 
+    Future{(Failure(setUnimplementedError), callContext)}
+
+  def getAccountAttributesByAccountsCanBeSeenOnView(accounts: List[BankIdAccountId],
+                                                    viewId: ViewId,
+                                                    callContext: Option[CallContext]
+                                                   ): OBPReturnType[Box[List[AccountAttribute]]] =
+    Future{(Failure(setUnimplementedError), callContext)}
+  
+  def getTransactionAttributesByTransactionsCanBeSeenOnView(bankId: BankId,
+                                                            transactionIds: List[TransactionId],
+                                                            viewId: ViewId,
+                                                            callContext: Option[CallContext]
+                                                           ): OBPReturnType[Box[List[TransactionAttribute]]] =
     Future{(Failure(setUnimplementedError), callContext)}
 
   def getCustomerAttributes(
