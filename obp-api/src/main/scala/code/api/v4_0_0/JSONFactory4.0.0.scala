@@ -763,7 +763,7 @@ object JSONFactory400 {
     )))
   }
 
-  def createTransactionRequestAttributeJson(transactionRequestAttribute: TransactionRequestAttribute) : TransactionRequestAttributeResponseJson = {
+  def createTransactionRequestAttributeJson(transactionRequestAttribute: TransactionRequestAttributeTrait) : TransactionRequestAttributeResponseJson = {
     TransactionRequestAttributeResponseJson(
       transaction_request_attribute_id = transactionRequestAttribute.transactionRequestAttributeId,
       name = transactionRequestAttribute.name,
@@ -772,7 +772,7 @@ object JSONFactory400 {
     )
   }
 
-  def createTransactionRequestAttributesJson(transactionRequestAttributes: List[TransactionRequestAttribute]) : TransactionRequestAttributesResponseJson = {
+  def createTransactionRequestAttributesJson(transactionRequestAttributes: List[TransactionRequestAttributeTrait]) : TransactionRequestAttributesResponseJson = {
     TransactionRequestAttributesResponseJson (transactionRequestAttributes.map( transactionRequestAttribute => TransactionRequestAttributeResponseJson(
       transaction_request_attribute_id = transactionRequestAttribute.transactionRequestAttributeId,
       name = transactionRequestAttribute.name,

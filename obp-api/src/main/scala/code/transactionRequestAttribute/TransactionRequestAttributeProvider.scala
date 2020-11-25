@@ -1,7 +1,7 @@
 package code.transactionRequestAttribute
 
 import com.openbankproject.commons.model.enums.TransactionRequestAttributeType
-import com.openbankproject.commons.model.{BankId, TransactionRequestAttribute, TransactionRequestId, ViewId}
+import com.openbankproject.commons.model.{BankId, TransactionRequestAttributeTrait, TransactionRequestId, ViewId}
 import net.liftweb.common.{Box, Logger}
 
 import scala.collection.immutable.List
@@ -11,16 +11,16 @@ trait TransactionRequestAttributeProvider {
 
   private val logger = Logger(classOf[TransactionRequestAttributeProvider])
 
-  def getTransactionRequestAttributesFromProvider(transactionRequestId: TransactionRequestId): Future[Box[List[TransactionRequestAttribute]]]
+  def getTransactionRequestAttributesFromProvider(transactionRequestId: TransactionRequestId): Future[Box[List[TransactionRequestAttributeTrait]]]
 
   def getTransactionRequestAttributes(bankId: BankId,
-                                      transactionRequestId: TransactionRequestId): Future[Box[List[TransactionRequestAttribute]]]
+                                      transactionRequestId: TransactionRequestId): Future[Box[List[TransactionRequestAttributeTrait]]]
 
   def getTransactionRequestAttributesCanBeSeenOnView(bankId: BankId,
                                                      transactionRequestId: TransactionRequestId,
-                                                     viewId: ViewId): Future[Box[List[TransactionRequestAttribute]]]
+                                                     viewId: ViewId): Future[Box[List[TransactionRequestAttributeTrait]]]
 
-  def getTransactionRequestAttributeById(transactionRequestAttributeId: String): Future[Box[TransactionRequestAttribute]]
+  def getTransactionRequestAttributeById(transactionRequestAttributeId: String): Future[Box[TransactionRequestAttributeTrait]]
 
   def getTransactionRequestIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]]
 
@@ -29,11 +29,11 @@ trait TransactionRequestAttributeProvider {
                                                 transactionRequestAttributeId: Option[String],
                                                 name: String,
                                                 attributeType: TransactionRequestAttributeType.Value,
-                                                value: String): Future[Box[TransactionRequestAttribute]]
+                                                value: String): Future[Box[TransactionRequestAttributeTrait]]
 
   def createTransactionRequestAttributes(bankId: BankId,
                                          transactionRequestId: TransactionRequestId,
-                                         transactionRequestAttributes: List[TransactionRequestAttribute]): Future[Box[List[TransactionRequestAttribute]]]
+                                         transactionRequestAttributes: List[TransactionRequestAttributeTrait]): Future[Box[List[TransactionRequestAttributeTrait]]]
 
   def deleteTransactionRequestAttribute(transactionRequestAttributeId: String): Future[Box[Boolean]]
 

@@ -1,7 +1,7 @@
 package code.transactionRequestAttribute
 
 import com.openbankproject.commons.model.enums.TransactionRequestAttributeType
-import com.openbankproject.commons.model.{BankId, TransactionRequestAttribute, TransactionRequestId, ViewId}
+import com.openbankproject.commons.model.{BankId, TransactionRequestAttributeTrait, TransactionRequestId, ViewId}
 
 import scala.collection.immutable.List
 
@@ -29,7 +29,7 @@ class RemotedataTransactionRequestAttributeCaseClasses {
 
   case class createTransactionRequestAttributes(bankId: BankId,
                                                 transactionRequestId: TransactionRequestId,
-                                                transactionRequestAttributes: List[TransactionRequestAttribute])
+                                                transactionRequestAttributes: List[TransactionRequestAttributeTrait])
 
   case class deleteTransactionRequestAttribute(transactionRequestAttributeId: String)
 
