@@ -27,7 +27,9 @@ trait ConsentProvider {
     recurringIndicator: Boolean,
     validUntil: Date,
     frequencyPerDay: Int,
-    combinedServiceIndicator: Boolean): Box[Consent]  
+    combinedServiceIndicator: Boolean,
+    apiStandard: Option[String],
+    apiVersion: Option[String]): Box[Consent]  
   def updateBerlinGroupConsent(
     consentId: String,
     user: User,
