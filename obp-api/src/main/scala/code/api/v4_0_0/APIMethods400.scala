@@ -182,6 +182,33 @@ trait APIMethods400 {
 
       }
     }
+    
+    staticResourceDocs += ResourceDoc(
+      ibanChecker,
+      implementedInApiVersion,
+      nameOf(ibanChecker),
+      "GET",
+      "/iban/IBAN_NUMBER",
+      "Validate and check IBAN number",
+      """Validate and check IBAN number for errors
+        |
+        |""",
+      emptyObjectJson,
+      ibanCheckerJsonV400,
+      List(UnknownError),
+      apiTagBank :: apiTagNewStyle :: Nil
+    )
+
+    lazy val ibanChecker: OBPEndpoint = {
+      case "iban" :: iban :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(iban, cc.callContext)
+          } yield {
+            (ibanChecker, HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       createSettlementAccount,

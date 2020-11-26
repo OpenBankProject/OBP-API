@@ -832,6 +832,27 @@ object SwaggerDefinitionsJSON {
   val banksJSON400 = BanksJson400(
     banks = List(bankJson400)
   )
+  val ibanCheckerJsonV400 = IbanChecker(
+    true, 
+    Some(
+      IbanDetails(
+        bic = "SOGEDEFF",
+        bank = "Societe Generale",
+        branch = "",
+        address = "Neue mainzer strasse 46-50",
+        city = "Frankfurt am Main",
+        zip = "60311",
+        phone = "",
+        country = "Germany",
+        countryIso = "",
+        sepaCreditTransfer = "YES",
+        sepaDirectDebit = "YES",
+        sepaSddCore = "YES",
+        sepaB2b = "YES",
+        sepaCardClearing = "YES"
+      )
+    )
+  )
 
   val accountHolderJSON = AccountHolderJSON(
     name = "OBP",
