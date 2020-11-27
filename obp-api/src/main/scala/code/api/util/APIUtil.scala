@@ -1504,12 +1504,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         _bank.doWith(bank) {
           _bankAccount.doWith(bankAccount) {
             _view.doWith(view) {
-              f
+                f
+              }
             }
           }
         }
       }
-    }
 
     private def bank: Bank = _bank.box.openOrThrowException(buildErrorMsg(nameOf($BankNotFound)))
     private def bankAccount: BankAccount = _bankAccount.box.openOrThrowException(buildErrorMsg(nameOf($BankAccountNotFound)))
@@ -2804,8 +2804,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       false
     }
   }
-
-  
+  // match expression:
+  //example: abc${def}hij, abc${de${fgh}ij}kl
+  private[this] val interpolateRegex = """(.*?)\Q${\E([^{}]+?)\Q}\E(.*)""".r
   /**
     * This function is implemented in order to support encrypted values in props file.
     * Please note that some value is considered as encrypted if has an encryption mark property in addition to regular props value in props file e.g
@@ -2828,22 +2829,22 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     // Append "OBP_" because all Open Bank Project environment vars are namespaced with OBP
     val sysEnvironmentPropertyName = sysEnvironmentPropertyNamePrefix.concat(brandSpecificPropertyName.replace('.', '_').toUpperCase())
     val sysEnvironmentPropertyValue: Box[String] =  sys.env.get(sysEnvironmentPropertyName)
-    sysEnvironmentPropertyValue match {
+    val directPropsValue = sysEnvironmentPropertyValue match {
       case Full(_) =>
         logger.debug("System environment property value found for: " + sysEnvironmentPropertyName)
         sysEnvironmentPropertyValue
-      case _  =>
-        (Props.get(brandSpecificPropertyName), Props.get(brandSpecificPropertyName + ".is_encrypted"), Props.get(brandSpecificPropertyName + ".is_obfuscated") ) match {
-          case (Full(base64PropsValue), Full(isEncrypted), Empty)  if isEncrypted == "true" =>
+      case _ =>
+        (Props.get(brandSpecificPropertyName), Props.get(brandSpecificPropertyName + ".is_encrypted"), Props.get(brandSpecificPropertyName + ".is_obfuscated")) match {
+          case (Full(base64PropsValue), Full(isEncrypted), Empty) if isEncrypted == "true" =>
             val decryptedValueAsString = RSAUtil.decrypt(base64PropsValue)
             Full(decryptedValueAsString)
-          case (Full(property), Full(isEncrypted), Empty)  if isEncrypted == "false" =>
+          case (Full(property), Full(isEncrypted), Empty) if isEncrypted == "false" =>
             Full(property)
-          case (Full(property),Empty, Full(isObfuscated)) if isObfuscated == "true" =>
+          case (Full(property), Empty, Full(isObfuscated)) if isObfuscated == "true" =>
             Full(org.eclipse.jetty.util.security.Password.deobfuscate(property))
-          case (Full(property),Empty, Full(isObfuscated)) if isObfuscated == "false" =>
+          case (Full(property), Empty, Full(isObfuscated)) if isObfuscated == "false" =>
             Full(property)
-          case (Full(property), Empty,Empty) =>
+          case (Full(property), Empty, Empty) =>
             Full(property)
           case (Empty, Empty, Empty) =>
             Empty
@@ -2851,6 +2852,26 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             logger.error(cannotDecryptValueOfProperty + brandSpecificPropertyName)
             Failure(cannotDecryptValueOfProperty + brandSpecificPropertyName)
         }
+    }
+
+    def parsExp(exp: String): String = exp match {
+      case interpolateRegex(prefix, key, suffix) =>
+        val expressionValue = getPropsValue(key).openOrThrowException(s"Props key '$nameOfProperty' have expression value, but the expression contains not exists key '$key'")
+        prefix + expressionValue + suffix
+      case _ => exp
+    }
+
+    // if value contains expression: abc${def}hij, abc${de${fgh}ij}kl
+    // parse def to exists Props value in the first expression. parse fgh to exists Props value, after that parse outer expression def___
+    directPropsValue.map { it =>
+      val expressionCount = StringUtils.countMatches(it, "${")
+      if(expressionCount == 0) {
+        it
+      } else {
+        val parseFuncs: List[String => String] = List.fill(expressionCount)(parsExp)
+        val composedFunc: String => String = parseFuncs.reduce(_.andThen(_))
+        composedFunc(it)
+      }
     }
   } 
   def getPropsValue(nameOfProperty: String, defaultValue: String): String = {
