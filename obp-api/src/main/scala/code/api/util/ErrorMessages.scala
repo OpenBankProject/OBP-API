@@ -56,6 +56,7 @@ object ErrorMessages {
   val InvalidMyDynamicEndpointUser = "OBP-09011: DynamicEndpoint can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Endpoint` endpoint"
   
   val InvalidBankIdDynamicEntity = "OBP-09012: This is a bank level dynamic entity. Please specify a valid value for BANK_ID."
+  val InvalidRequestPayload = "OBP-09013: Request body is invalid json structure."
 
 
   // General messages (OBP-10XXX)
