@@ -612,6 +612,9 @@ object ApiRole {
   case class CanDeleteProductCascade(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteProductCascade = CanDeleteProductCascade()
 
+  case class CanGetConnectorEndpoint(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetConnectorEndpoint = CanGetConnectorEndpoint()
+
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 
   private case class DynamicApiRole(role: String, requiresBankId: Boolean = false) extends ApiRole{
