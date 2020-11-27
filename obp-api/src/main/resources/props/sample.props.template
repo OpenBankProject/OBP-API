@@ -872,7 +872,7 @@ outboundAdapterCallContext.generalContext
 ## (1) if: connector=star, the connector should match props value of 'starConnector_supported_types'
 ## (2) else: connector name should be the same as props value of connector, e.g: connector=rest_vMar2019, then the connector should must also be rest_vMar2019
 ## example:
-#connector.name.export.as.endpoint=stored_procedure_vDec2019
+#connector.name.export.as.endpoints=stored_procedure_vDec2019
 # ------------------------------------------------------------------------------------------
 
 # ------------------------------ Hydra oauth2 props ------------------------------
