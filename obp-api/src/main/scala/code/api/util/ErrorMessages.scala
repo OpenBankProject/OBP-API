@@ -435,7 +435,7 @@ object ErrorMessages {
   val InvalidChallengeChallengeId = "OBP-40022: Invalid ChallengeId. "
   val TransactionRequestCannotBeCancelled = "OBP-40023: Transaction Request cannot be cancelled. "
   val CannotUpdatePSUData = s"OBP-40024: Cannot Update PSU Data for payment initiation due to transaction request is not in status: ${INITIATED}."
-  val CannotUpdatePSUDataCancellation = s"OBP-40025: Cannot Update PSU Data for payment initiation cancellation due to transaction request is not in status: ${INITIATED}."
+  val CannotUpdatePSUDataCancellation = s"OBP-40025: Cannot Update PSU Data for payment initiation cancellation due to transaction request is not in status: ${INITIATED}, ${CANCELLATION_PENDING} or ${COMPLETED}."
 
 
   // Exceptions (OBP-50XXX)

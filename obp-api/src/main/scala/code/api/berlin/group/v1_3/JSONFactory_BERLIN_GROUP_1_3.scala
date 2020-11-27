@@ -4,15 +4,16 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.api.util.APIUtil._
-import code.api.util.{APIUtil, CustomJsonFormats}
+import code.api.util.{APIUtil, ConsentJWT, CustomJsonFormats, JwtUtil}
 import code.bankconnectors.Connector
 import code.consent.Consent
 import code.database.authorisation.Authorisation
 import code.model.ModeratedTransaction
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User, _}
-import net.liftweb.common.Full
-import net.liftweb.json.JValue
+import net.liftweb.common.{Box, Full}
+import net.liftweb.json
+import net.liftweb.json.{JValue, parse}
 
 import scala.collection.immutable.List
 
@@ -524,8 +525,12 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   }
 
   def createGetConsentResponseJson(createdConsent: Consent) : GetConsentResponseJson = {
+    val jsonWebTokenAsJValue: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(createdConsent.jsonWebToken)
+      .map(parse(_).extract[ConsentJWT])
+    val access: ConsentAccessJson = jsonWebTokenAsJValue
+      .flatMap(_.access).getOrElse(ConsentAccessJson())
     GetConsentResponseJson(
-      access = ConsentAccessJson(),
+      access = access,
       recurringIndicator = createdConsent.recurringIndicator,
       validUntil = new SimpleDateFormat(DateWithDay).format(createdConsent.validUntil), 
       frequencyPerDay = createdConsent.frequencyPerDay,

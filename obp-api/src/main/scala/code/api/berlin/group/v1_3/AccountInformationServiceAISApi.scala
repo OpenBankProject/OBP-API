@@ -138,7 +138,9 @@ As a last option, an ASPSP might in addition accept a command with access rights
                recurringIndicator = consentJson.recurringIndicator,
                validUntil = validUntil,
                frequencyPerDay = consentJson.frequencyPerDay,
-               combinedServiceIndicator = consentJson.combinedServiceIndicator
+               combinedServiceIndicator = consentJson.combinedServiceIndicator,
+               apiStandard = Some(apiVersion.apiStandard),
+               apiVersion = Some(apiVersion.apiShortVersion)
              )) map {
                i => connectorEmptyResponse(i, callContext)
              }
