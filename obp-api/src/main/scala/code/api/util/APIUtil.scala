@@ -1234,6 +1234,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
              |"""
       }
     }
+
+    val operationId = s"${implementedInApiVersion.fullyQualifiedVersion}-$partialFunctionName"
+
     // set dependent connector methods
     var connectorMethods: List[String] = getDependentConnectorMethods(partialFunction)
       .map("obp."+) // add prefix "obp.", as MessageDoc#process
