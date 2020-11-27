@@ -879,7 +879,9 @@ There are the following request types on this access path:
              transactionRequestId = TransactionRequestId(paymentId)
              (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
              _ <- Helper.booleanToFuture(failMsg= CannotUpdatePSUDataCancellation) { 
-               existingTransactionRequest.status == TransactionRequestStatus.CANCELLATION_PENDING.toString
+               existingTransactionRequest.status == TransactionRequestStatus.INITIATED.toString ||
+               existingTransactionRequest.status == TransactionRequestStatus.CANCELLATION_PENDING.toString ||
+               existingTransactionRequest.status == TransactionRequestStatus.COMPLETED.toString
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
