@@ -68,6 +68,19 @@ case class OutBoundGetChargeLevel(outboundAdapterCallContext: OutboundAdapterCal
                                   currency: String) extends TopicTrait
 case class InBoundGetChargeLevel(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AmountOfMoney) extends InBoundTrait[AmountOfMoney]
 
+case class OutBoundGetChargeLevelC2(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                    bankId: BankId,
+                                    accountId: AccountId,
+                                    viewId: ViewId,
+                                    userId: String,
+                                    username: String,
+                                    transactionRequestType: String,
+                                    currency: String,
+                                    amount: String,
+                                    toAccountRoutings: List[AccountRouting],
+                                    customAttributes: List[CustomAttribute]) extends TopicTrait
+case class InBoundGetChargeLevelC2(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AmountOfMoney) extends InBoundTrait[AmountOfMoney]
+
 
 case class OutBoundGetBank(outboundAdapterCallContext: OutboundAdapterCallContext,
                            bankId: BankId) extends TopicTrait

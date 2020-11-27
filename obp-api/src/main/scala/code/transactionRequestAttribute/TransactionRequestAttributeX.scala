@@ -2,7 +2,7 @@ package code.transactionRequestAttribute
 
 import code.api.util.APIUtil
 import code.remotedata.RemotedataTransactionRequestAttribute
-import com.openbankproject.commons.model.TransactionRequestAttribute
+import com.openbankproject.commons.model.TransactionRequestAttributeTrait
 import net.liftweb.util.SimpleInjector
 
 import scala.collection.immutable.List
@@ -19,7 +19,7 @@ object TransactionRequestAttributeX extends SimpleInjector {
     }
 
   // Helper to get the count out of an option
-  def countOfTransactionRequestAttribute(listOpt: Option[List[TransactionRequestAttribute]]): Int = {
+  def countOfTransactionRequestAttribute(listOpt: Option[List[TransactionRequestAttributeTrait]]): Int = {
     val count = listOpt match {
       case Some(list) => list.size
       case None => 0

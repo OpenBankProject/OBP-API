@@ -75,7 +75,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-11-23T13:24:38Z
+// ---------- created on 2020-11-25T10:01:38Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -213,6 +213,45 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{InBoundGetChargeLevel => InBound, OutBoundGetChargeLevel => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, viewId, userId, username, transactionRequestType, currency)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_charge_level", req, callContext)
+        response.map(convertToTuple[AmountOfMoney](callContext))        
+  }
+          
+  messageDocs += getChargeLevelC2Doc
+  def getChargeLevelC2Doc = MessageDoc(
+    process = "obp.getChargeLevelC2",
+    messageFormat = messageFormat,
+    description = "Get Charge Level C2",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetChargeLevelC2(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      bankId=BankId(bankIdExample.value),
+      accountId=AccountId(accountIdExample.value),
+      viewId=ViewId(viewIdExample.value),
+      userId=userIdExample.value,
+      username=usernameExample.value,
+      transactionRequestType=transactionRequestTypeExample.value,
+      currency=currencyExample.value,
+      amount=amountExample.value,
+      toAccountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)),
+      customAttributes=List( CustomAttribute(name=nameExample.value,
+      attributeType=com.openbankproject.commons.model.enums.AttributeType.example,
+      value=valueExample.value)))
+    ),
+    exampleInboundMessage = (
+     InBoundGetChargeLevelC2(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= AmountOfMoney(currency=currencyExample.value,
+      amount=amountExample.value))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getChargeLevelC2(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, username: String, transactionRequestType: String, currency: String, amount: String, toAccountRoutings: List[AccountRouting], customAttributes: List[CustomAttribute], callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
+        import com.openbankproject.commons.dto.{InBoundGetChargeLevelC2 => InBound, OutBoundGetChargeLevelC2 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, viewId, userId, username, transactionRequestType, currency, amount, toAccountRoutings, customAttributes)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_charge_level_c2", req, callContext)
         response.map(convertToTuple[AmountOfMoney](callContext))        
   }
           
@@ -6195,7 +6234,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-11-23T13:24:38Z
+// ---------- created on 2020-11-25T10:01:38Z
 //---------------- dynamic end ---------------------please don't modify this line                  
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")

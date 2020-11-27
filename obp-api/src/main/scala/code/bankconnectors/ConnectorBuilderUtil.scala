@@ -225,6 +225,7 @@ object ConnectorBuilderUtil {
     "getAdapterInfo",
     "getChallengeThreshold",
     "getChargeLevel",
+    "getChargeLevelC2",
     "createChallenge",
     "getBank",
     "getBanks",
