@@ -70,7 +70,7 @@ class WebUI extends MdcLoggable{
   def cookieConsent = {
     val toDisplay = APIUtil.getPropsAsBoolValue("display_accept_cookies_question",false)
     if (toDisplay) {
-      "#no-exiting-id" #> "" //here we do nothing, just show all the cookie div
+      "#no-existing-id" #> "" //here we do nothing, just show all the cookie div
     } else {
       "*" #> NodeSeq.Empty // here we totally hide the cookie div
     }

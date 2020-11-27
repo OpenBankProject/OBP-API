@@ -80,7 +80,7 @@ class CounterpartyTest extends V400ServerSetup {
       val viewId =ViewId(SYSTEM_OWNER_VIEW_ID)
 
 
-      //This will use a non exiting obp account, and it should also work 
+      //This will use a non existing obp account, and it should also work 
       val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJson400.copy(other_bank_routing_scheme = "xx")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAtAnyBank.toString)
 
