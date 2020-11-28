@@ -43,8 +43,9 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.userlocks.UserLocksProvider
 import code.users.Users
-import code.util.Helper
+import code.util.{Helper, JsonSchemaUtil}
 import code.util.Helper.booleanToFuture
+import code.validation.JsonValidation
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils, ScannedApiVersion}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
@@ -64,6 +65,7 @@ import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
+import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.{List, Nil}
@@ -5780,6 +5782,206 @@ trait APIMethods400 {
           Future {
             val versions: List[ScannedApiVersion] = ApiVersion.allScannedApiVersion.asScala.toList
             (ListResult("scanned_api_versions", versions), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createValidation,
+      implementedInApiVersion,
+      "createValidation",
+      "POST",
+      "/management/validations/OPERATION_ID",
+      "Create a Validation",
+      s"""Create a Validation.
+         |
+         |Please supply a json-schema as request body.
+         |""",
+      postOrPutJsonSchemaV400,
+      responseJsonSchema,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagValidation, apiTagNewStyle),
+      Some(List(canCreateValidation)))
+
+
+    lazy val createValidation: OBPEndpoint = {
+      case "management" :: "validations" :: operationId :: Nil JsonPost _ -> _ => {
+        cc =>
+          val Some(httpBody): Option[String] = cc.httpBody
+          for {
+            (Full(u), callContext) <- SS.user
+
+            schemaErrors = JsonSchemaUtil.validateSchema(httpBody)
+            _ <- Helper.booleanToFuture(failMsg = s"$ValidationJsonSchemaIllegal${StringUtils.join(schemaErrors, "; ")}") {
+              CollectionUtils.isEmpty(schemaErrors)
+            }
+
+            (isExists, callContext) <- NewStyle.function.isValidationExists(operationId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = ValidationOperationIdExistsError) {
+              !isExists
+            }
+            (validation, callContext) <- NewStyle.function.createValidation(JsonValidation(operationId, httpBody), callContext)
+          } yield {
+            (validation, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateValidation,
+      implementedInApiVersion,
+      "updateValidation",
+      "PUT",
+      "/management/validations/OPERATION_ID",
+      "Update a Validation",
+      s"""Update a Validation.
+         |
+         |Please supply a json-schema as request body
+         |""",
+      postOrPutJsonSchemaV400,
+      responseJsonSchema,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagValidation, apiTagNewStyle),
+      Some(List(canUpdateValidation)))
+
+
+    lazy val updateValidation: OBPEndpoint = {
+      case "management" :: "validations" :: operationId :: Nil JsonPut _ -> _ => {
+        cc =>
+          val Some(httpBody): Option[String] = cc.httpBody
+          for {
+            (Full(u), callContext) <- SS.user
+
+            schemaErrors = JsonSchemaUtil.validateSchema(httpBody)
+            _ <- Helper.booleanToFuture(failMsg = s"$ValidationJsonSchemaIllegal${StringUtils.join(schemaErrors, "; ")}") {
+              CollectionUtils.isEmpty(schemaErrors)
+            }
+
+            (isExists, callContext) <- NewStyle.function.isValidationExists(operationId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = ValidationNotFound) {
+              isExists
+            }
+            (validation, callContext) <- NewStyle.function.updateValidation(operationId, httpBody, callContext)
+          } yield {
+            (validation, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteValidation,
+      implementedInApiVersion,
+      "deleteValidation",
+      "DELETE",
+      "/management/validations/OPERATION_ID",
+      "Delete a Validation",
+      s"""Delete a Validation by operation_id.
+         |
+         |""",
+      EmptyBody,
+      BooleanBody(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagValidation, apiTagNewStyle),
+      Some(List(canDeleteValidation)))
+
+
+    lazy val deleteValidation: OBPEndpoint = {
+      case "management" :: "validations" :: operationId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+
+            (isExists, callContext) <- NewStyle.function.isValidationExists(operationId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = ValidationNotFound) {
+              isExists
+            }
+
+            (deleteResult, callContext) <- NewStyle.function.deleteValidation(operationId, callContext)
+          } yield {
+            (deleteResult, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getValidation,
+      implementedInApiVersion,
+      "getValidation",
+      "GET",
+      "/management/validations/OPERATION_ID",
+      "Get a Validation",
+      s"""Get a Validation by operation_id.
+         |
+         |""",
+      EmptyBody,
+      responseJsonSchema,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagValidation, apiTagNewStyle),
+      Some(List(canGetValidation)))
+
+
+    lazy val getValidation: OBPEndpoint = {
+      case "management" :: "validations" :: operationId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+            (validation, callContext) <- NewStyle.function.getValidationByOperationId(operationId, callContext)
+          } yield {
+            (validation, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAllValidation,
+      implementedInApiVersion,
+      "getAllValidation",
+      "GET",
+      "/management/validations",
+      "Get all Validations",
+      s"""Get all Validations.
+         |
+         |""",
+      EmptyBody,
+      responseJsonSchema::Nil,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagValidation, apiTagNewStyle),
+      Some(List(canGetValidation)))
+
+
+    lazy val getAllValidation: OBPEndpoint = {
+      case "management" :: "validations" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+            (validations, callContext) <- NewStyle.function.getValidations(callContext)
+          } yield {
+            (validations, HttpCode.`200`(callContext))
           }
       }
     }

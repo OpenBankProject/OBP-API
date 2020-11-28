@@ -184,7 +184,7 @@ object DynamicEndpointHelper extends RestHelper {
     } yield {
       val implementedInApiVersion = ApiVersion.v4_0_0
 
-      val partialFunctionName: String = s"$method-$path".replaceAll("\\W", "_")
+      val partialFunctionName: String = s"dynamicEndpoint_${method}_$path".replaceAll("\\W", "_")
       val requestVerb: String = method.name()
       val requestUrl: String = buildRequestUrl(path)
       val summary: String = Option(pathItem.getSummary)

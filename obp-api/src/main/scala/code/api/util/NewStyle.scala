@@ -55,6 +55,7 @@ import scala.collection.immutable.List
 import scala.concurrent.Future
 import scala.math.BigDecimal
 import scala.reflect.runtime.universe.MethodSymbol
+import code.validation.{JsonValidation, ValidationProvider}
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -120,6 +121,9 @@ object NewStyle {
     }
     def `204`(callContext: Option[CallContext]): Option[CallContext] = {
       callContext.map(_.copy(httpCode = Some(204)))
+    }
+    def `401`(callContext: Option[CallContext]): Option[CallContext] = {
+      callContext.map(_.copy(httpCode = Some(401)))
     }
     def `200`(callContext: CallContext): Option[CallContext] = {
       Some(callContext.copy(httpCode = Some(200)))
@@ -2550,6 +2554,45 @@ object NewStyle {
     def checkUKConsent(user: User, callContext: Option[CallContext]) = Future {
       Consent.checkUKConsent(user, callContext)
     } map { fullBoxOrException(_) }
+
+
+    def createValidation(validation: JsonValidation, callContext: Option[CallContext]): OBPReturnType[JsonValidation] =
+      Future {
+        val newValidation = ValidationProvider.validationProvider.vend.create(validation)
+        val errorMsg = s"$InvalidValidation Can not create Validation in the backend. "
+        (unboxFullOrFail(newValidation, callContext, errorMsg, 400), callContext)
+      }
+
+    def updateValidation(operationId: String, jsonschema: String, callContext: Option[CallContext]): OBPReturnType[JsonValidation] =
+      Future {
+        val updatedValidation = ValidationProvider.validationProvider.vend.update(JsonValidation(operationId, jsonschema))
+        val errorMsg = s"$InvalidValidation Can not update Validation in the backend. "
+        (unboxFullOrFail(updatedValidation, callContext, errorMsg, 400), callContext)
+      }
+
+    def getValidations(callContext: Option[CallContext]): OBPReturnType[List[JsonValidation]] =
+      Future {
+        val validations: List[JsonValidation] = ValidationProvider.validationProvider.vend.getAll()
+        validations -> callContext
+      }
+
+    def getValidationByOperationId(operationId: String, callContext: Option[CallContext]): OBPReturnType[JsonValidation] =
+      Future {
+        val validation = ValidationProvider.validationProvider.vend.getByOperationId(operationId)
+        (unboxFullOrFail(validation, callContext, ValidationNotFound, 400), callContext)
+      }
+
+    def deleteValidation(operationId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val result = ValidationProvider.validationProvider.vend.deleteByOperationId(operationId)
+        (unboxFullOrFail(result, callContext, ValidationDeleteError, 400), callContext)
+      }
+
+    def isValidationExists(operationId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val result = ValidationProvider.validationProvider.vend.getByOperationId(operationId)
+        (result.isDefined, callContext)
+      }
 
   }
 }

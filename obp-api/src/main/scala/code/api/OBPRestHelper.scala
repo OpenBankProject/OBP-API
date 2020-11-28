@@ -23,7 +23,7 @@ Berlin 13359, Germany
 This product includes software developed at
 TESOBE (http://www.tesobe.com/)
 
-  */
+ */
 
 package code.api
 
@@ -41,21 +41,17 @@ import code.api.v4_0_0.APIMethods400
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
 import com.alibaba.ttl.TransmittableThreadLocal
-import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
-import com.networknt.schema.{JsonSchema, JsonSchemaFactory, SpecVersionDetector, ValidationMessage}
 import com.openbankproject.commons.model.ErrorMessage
-import com.openbankproject.commons.util.{ApiVersion, Functions, ReflectUtils, ScannedApiVersion}
+import com.openbankproject.commons.util.{ApiVersion, ReflectUtils, ScannedApiVersion}
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{BadRequestResponse, JsonResponse, LiftResponse, Req, S}
+import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
-import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
-import scala.jdk.CollectionConverters.iterableAsScalaIterableConverter
 import scala.math.Ordering
 
 trait APIFailure{
@@ -123,7 +119,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     case ScannedApiVersion(urlPrefix, _, _) =>
       (urlPrefix / version.vDottedApiVersion).oPrefix(_)
     case _ =>
-    (ApiPathZero / version.vDottedApiVersion).oPrefix(_)
+      (ApiPathZero / version.vDottedApiVersion).oPrefix(_)
   }
 
   /*
@@ -196,10 +192,10 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
 
 
   /**
-    * Function which inspect does an Endpoint use Akka's Future in non-blocking way i.e. without using Await.result
-    * @param rd Resource Document which contains all description of an Endpoint
-    * @return true if some endpoint can get User from Authorization Header
-    */
+   * Function which inspect does an Endpoint use Akka's Future in non-blocking way i.e. without using Await.result
+   * @param rd Resource Document which contains all description of an Endpoint
+   * @return true if some endpoint can get User from Authorization Header
+   */
   def newStyleEndpoints(rd: Option[ResourceDoc]) : Boolean = {
     rd match {
       // Versions that precede the 3.0.0 are mostly written as Old Style endpoint.
@@ -230,11 +226,11 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       } =>
         true
       case Some(e) if List(
-        ApiVersion.v1_2_1.toString, 
-        ApiVersion.v1_3_0.toString, 
-        ApiVersion.v1_4_0.toString, 
-        ApiVersion.v2_0_0.toString, 
-        ApiVersion.v2_1_0.toString, 
+        ApiVersion.v1_2_1.toString,
+        ApiVersion.v1_3_0.toString,
+        ApiVersion.v1_4_0.toString,
+        ApiVersion.v2_0_0.toString,
+        ApiVersion.v2_1_0.toString,
         ApiVersion.v2_2_0.toString,
         ApiVersion.apiBuilder.toString, //apiBuilder is the old style.
       ).exists(_ == e.implementedInApiVersion.toString()) =>
@@ -356,9 +352,9 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     val listLen = list.length
 
     /**
-      * Normally we would use ListServeMagic's prefix function, but it works with PartialFunction[Req, () => Box[LiftResponse]]
-      * instead of the PartialFunction[Req, Box[User] => Box[JsonResponse]] that we need. This function does the same thing, really.
-      */
+     * Normally we would use ListServeMagic's prefix function, but it works with PartialFunction[Req, () => Box[LiftResponse]]
+     * instead of the PartialFunction[Req, Box[User] => Box[JsonResponse]] that we need. This function does the same thing, really.
+     */
     def oPrefix(pf: OBPEndpoint): OBPEndpoint =
       new OBPEndpoint {
         def isDefinedAt(req: Req): Boolean =
@@ -404,8 +400,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           //if request has correct oauth headers
           val startTime = Helpers.now
           val response = failIfBadAuthorizationHeader(rd) {
-                          failIfBadJSON(r, handler)
-                        }
+            failIfBadJSON(r, handler)
+          }
           val endTime = Helpers.now
           logAPICall(startTime, endTime.getTime - startTime.getTime, rd)
           response
@@ -428,98 +424,12 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     serve(obpHandler)
   }
 
-  case class JsonSchemaValidator(methods: Array[String], url: String, schema: String) {
-    import JsonSchemaValidator._
-
-    private val methodSet: Set[String] = methods.map(_.trim.toUpperCase)
-        .filter(requestMethods.contains(_))
-        .toSet
-
-    assert(methodSet.nonEmpty, s"json schema validation rules contains illegal methods: ${methods.mkString("|")}:$url")
-
-    private val jsonSchema: JsonSchema = {
-      val schemaJson: JsonNode = mapper.readTree(schema)
-      val factory = JsonSchemaFactory.getInstance(SpecVersionDetector.detect(schemaJson))
-      factory.getSchema(schemaJson)
-    }
-
-    private val urlPartMatchers: Array[String => Boolean] = {
-      StringUtils.split(url, '/').map {
-        case v if v.contains('|') => // or style: v3.1.0|v4.0.0
-          val parts = StringUtils.split(v, "|")
-          parts.contains(_:String)
-        case v if v.forall(it => it < 'a' || it > 'z' ) => // placeholder style: BANK_ID
-          Functions.truePredicate[String]
-        case v =>
-          v == _
-      }
-    }
-
-    def isRequestMatches(method: String, requestUrl: List[String]): Boolean = {
-      methodSet.contains(method) &&
-        requestUrl.size == urlPartMatchers.size && {
-        urlPartMatchers.zip(requestUrl).forall(it => {
-          val (fun, v) = it
-          fun(v)
-        })
-      }
-    }
-
-    def validatePayload(jsonContent: Array[Byte]): java.util.Set[ValidationMessage] = {
-      val zson = mapper.readTree(jsonContent)
-       jsonSchema.validate(zson)
-    }
-
-  }
-
-  object JsonSchemaValidator {
-    private val mapper = new ObjectMapper
-    // regex, match this format string: "GET|POST|PUTV:/obp/v4.0.0|v3.1.0/banks/BANK_ID/fx"
-    // group 1 is http method names, group 2 is url
-    private val regex = """([|a-zA-Z]+?):([^,]+)""".r
-    private val requestMethods = Set(
-      "POST","PUT","DELETE","GET","HEAD","PATCH","TRACE","OPTIONS","CONNECT"
-    )
-
-    // create JsonSchemaValidator with structured string, style like:
-    // PUT|POST:/obp/v4.0.0|v3.1.0/banks/BANK_ID/fx
-    def apply(toParseRule: String): JsonSchemaValidator = toParseRule match {
-      case regex(methods , url) =>
-        val schemaStr = APIUtil.getPropsValue(url).openOrThrowException(s"key '$url' is not found in props file, it is mandatory for 'json.schema.validation.rules'")
-        JsonSchemaValidator(StringUtils.split(methods, "|"), url, schemaStr)
-      case v => throw new RuntimeException(s"props 'json.schema.validation.rules' value contains illegal part: $v")
-    }
-  }
-
-  private val jsonSchemaRuleMatchers: Array[JsonSchemaValidator] = {
-    APIUtil.getPropsValue("json.schema.validation.rules") match {
-      case Full(v) =>
-        StringUtils.split(v,",").map(JsonSchemaValidator(_))
-      case _ => Array.empty[JsonSchemaValidator]
-    }
-  }
-
   override protected def serve(handler: PartialFunction[Req, () => Box[LiftResponse]]) : Unit = {
     val obpHandler : PartialFunction[Req, () => Box[LiftResponse]] = {
       new PartialFunction[Req, () => Box[LiftResponse]] {
-        def apply(r : Req): () => Box[LiftResponse] = {
-
-          val validationError: Box[String] = for {
-            body <- r.body
-            validator <- jsonSchemaRuleMatchers.find(_.isRequestMatches(r.requestType.method, r.path.partPath))
-            errors: Iterable[ValidationMessage] = validator.validatePayload(body).asScala
-            if errors.nonEmpty
-          } yield errors.mkString("; ")
-
-          validationError match {
-            case Full(errorInfo) =>
-              val errorResponse = s"""{"code":400,"message":"${ErrorMessages.InvalidRequestPayload} $errorInfo"}"""
-              () =>  Full(BadRequestResponse(errorResponse))
-            case _ =>
-              //Wraps the partial function with some logging
-              handler(r)
-          }
-
+        def apply(r : Req) = {
+          //Wraps the partial function with some logging
+          handler(r)
         }
         def isDefinedAt(r : Req) = handler.isDefinedAt(r)
       }

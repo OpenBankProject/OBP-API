@@ -897,3 +897,5 @@ outboundAdapterCallContext.generalContext
 ## Mirror request headers to response
 # mirror_request_headers_to_response=x-fapi-interaction-id,x-jws-signature
 
+## get Validation by operationId cache time, default is 10
+validation.cache.ttl.seconds=30

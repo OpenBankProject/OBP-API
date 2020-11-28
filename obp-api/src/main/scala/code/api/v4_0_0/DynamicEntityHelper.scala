@@ -116,7 +116,7 @@ object DynamicEntityHelper {
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"get${entityName}List",
+      s"dynamicEntity_get${entityName}List",
       "GET",
       s"$resourceDocUrl",
       s"Get $splitName List",
@@ -146,7 +146,7 @@ object DynamicEntityHelper {
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"getSingle$entityName",
+      s"dynamicEntity_getSingle$entityName",
       "GET",
       s"$resourceDocUrl/$idNameInUrl",
       s"Get $splitName by id",
@@ -173,7 +173,7 @@ object DynamicEntityHelper {
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"create$entityName",
+      s"dynamicEntity_create$entityName",
       "POST",
       s"$resourceDocUrl",
       s"Create new $splitName",
@@ -202,7 +202,7 @@ object DynamicEntityHelper {
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"update$entityName",
+      s"dynamicEntity_update$entityName",
       "PUT",
       s"$resourceDocUrl/$idNameInUrl",
       s"Update $splitName",
@@ -231,7 +231,7 @@ object DynamicEntityHelper {
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"delete$entityName",
+      s"dynamicEntity_delete$entityName",
       "DELETE",
       s"$resourceDocUrl/$idNameInUrl",
       s"Delete $splitName by id",

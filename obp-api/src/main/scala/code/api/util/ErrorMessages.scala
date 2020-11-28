@@ -437,6 +437,11 @@ object ErrorMessages {
   val TransactionRequestCannotBeCancelled = "OBP-40023: Transaction Request cannot be cancelled. "
   val CannotUpdatePSUData = s"OBP-40024: Cannot Update PSU Data for payment initiation due to transaction request is not in status: ${INITIATED}."
   val CannotUpdatePSUDataCancellation = s"OBP-40025: Cannot Update PSU Data for payment initiation cancellation due to transaction request is not in status: ${INITIATED}, ${CANCELLATION_PENDING} or ${COMPLETED}."
+  val InvalidValidation = "OBP-40026: Invalid json schema. "
+  val ValidationNotFound = "OBP-40027: Validation not found, please specify valid query parameter. "
+  val ValidationDeleteError = "OBP-40028: Could not delete the Validation. "
+  val ValidationOperationIdExistsError = "OBP-40029: OPERATION_ID already exists. Please specify different values for OPERATION_ID. "
+  val ValidationJsonSchemaIllegal = "OBP-40030: The json_schema is illegally structure. "
 
 
   // Exceptions (OBP-50XXX)

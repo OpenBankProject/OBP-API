@@ -499,6 +499,25 @@ case class ChallengeAnswerJson400 (
                                  additional_information: Option[String] = None
                                )
 
+// Validation related START
+case class JsonSchemaV400(
+    $schema: String,
+    description: String,
+    title: String,
+    required: List[String],
+    `type`: String,
+    properties: Properties,
+    additionalProperties: Boolean
+  )
+  case class Properties (xxx_id: XxxId)
+  case class XxxId (
+    `type`: String,
+    minLength: Int,
+    maxLength: Int,
+    examples: List[String]
+  )
+case class JsonValidationV400(operationId: String, jsonSchema: JsonSchemaV400)
+// Validation related END
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {

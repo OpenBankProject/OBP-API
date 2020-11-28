@@ -41,9 +41,9 @@ import code.api.builder.OBP_APIBuilder
 import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.sandbox.SandboxApiCalls
-import code.api.util.ApiRole.valueOf
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
+import code.api.util.NewStyle.HttpCode
 import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, _}
@@ -51,23 +51,20 @@ import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.customer.CustomerX
 import code.entitlement.Entitlement
-import code.methodrouting.MethodRoutingProvider
 import code.metrics._
 import code.model._
 import code.model.dataAccess.AuthUser
-import code.model.dataAccess.AuthUser.{getResourceUserByUsername, logger}
 import code.ratelimiting.{RateLimiting, RateLimitingDI}
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
-import code.util.ClassScanUtils.findTypes
-import code.util.Helper
+import code.util.{Helper, JsonSchemaUtil}
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
+import code.validation.{JsonValidation, ValidationProvider}
 import code.views.Views
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.alibaba.ttl.internal.javassist.CannotCompileException
 import com.github.dwickern.macros.NameOf.{nameOf, nameOfType}
-import com.openbankproject.adapter.akka.commons.utils.APIUtil
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{Customer, _}
@@ -1472,16 +1469,32 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
               view <- checkView(viewId, bankId, accountId, boxUser, callContext)
             } yield {
               val newCallContext = if(boxUser.isDefined) callContext.map(_.copy(user=boxUser)) else callContext
-              //pass session and request to endpoint body
-              val boxResponse = S.init(request, session.orNull) {
-                // pass user, bank, account and view to endpoint body
-                SS.init(boxUser, bank, account, view, newCallContext) {
-                  originFn(newCallContext.orNull)
-                }
-              }
-              (boxResponse, callContext)
-            }
 
+              // validate request payload with json-schema
+              val validationMsg: Option[String] =
+                for {
+                  _ <- callContext.filter(it => it.verb == "POST" || it.verb == "PUT")
+                  requestBody <- callContext.flatMap(_.httpBody)
+                  JsonValidation(_, jsonSchema) <- ValidationProvider.validationProvider.vend.getByOperationId(operationId)
+                  errorSet = JsonSchemaUtil.validateJson(jsonSchema, requestBody)
+                  errorInfo = StringUtils.join(errorSet, "; ")
+                } yield errorInfo
+
+              validationMsg match {
+                case Some(errorMsg) =>
+                  val errorResponse = ErrorMessage(401, s"${ErrorMessages.InvalidRequestPayload} $errorMsg")
+                  (errorResponse, HttpCode.`401`(newCallContext))
+                case _ =>
+                  //pass session and request to endpoint body
+                  val boxResponse: Box[JsonResponse] = S.init(request, session.orNull) {
+                    // pass user, bank, account and view to endpoint body
+                    SS.init(boxUser, bank, account, view, newCallContext) {
+                      originFn(newCallContext.orNull)
+                    }
+                  }
+                  (boxResponse, newCallContext)
+              }
+            }
           }
         }
       }
