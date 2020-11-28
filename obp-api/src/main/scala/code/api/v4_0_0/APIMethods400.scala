@@ -1927,6 +1927,13 @@ trait APIMethods400 {
               Future{("", callContext)}
             }
           _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canCreateRole(entityName, dynamicEntityInfo.bankId), callContext)
+
+          // validate request json payload
+          errorMsg = JsonSchemaUtil.validateRequest(cc.callContext)(DynamicEntityHelper.buildOperationId("POST", entityName))
+          _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.InvalidRequestPayload} ${errorMsg.orNull}") {
+            errorMsg.isEmpty
+          }
+
           (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, dynamicEntityInfo.bankId, Some(cc))
           singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
@@ -1957,6 +1964,13 @@ trait APIMethods400 {
               Future{("", callContext)}
             }
           _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canUpdateRole(entityName, dynamicEntityInfo.bankId), callContext)
+
+          // validate request json payload
+          errorMsg = JsonSchemaUtil.validateRequest(cc.callContext)(DynamicEntityHelper.buildOperationId("POST", entityName))
+          _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.InvalidRequestPayload} ${errorMsg.orNull}") {
+            errorMsg.isEmpty
+          }
+
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), dynamicEntityInfo.bankId, Some(cc))
           _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
             box.isDefined
@@ -2001,8 +2015,6 @@ trait APIMethods400 {
         }
       }
     }
-
-
 
     staticResourceDocs += ResourceDoc(
       resetPasswordUrl,
@@ -4208,6 +4220,14 @@ trait APIMethods400 {
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
+
+          // validate request json payload
+          httpRequestMethod = cc.verb
+          path = StringUtils.substringAfter(cc.url, DynamicEndpointHelper.urlPrefix)
+          errorMsg:Option[String] = JsonSchemaUtil.validateRequest(cc.callContext)(DynamicEndpointHelper.buildOperationId(httpRequestMethod, path))
+          _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.InvalidRequestPayload} ${errorMsg.orNull}") {
+            errorMsg.isEmpty
+          }
 
           (box, _) <- MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread
             NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)

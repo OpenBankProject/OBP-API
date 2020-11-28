@@ -3,9 +3,13 @@ package code.util
 import java.nio.charset.Charset
 import java.util.{Set => JSet}
 
+import code.api.util.CallContext
+import code.validation.{JsonValidation, ValidationProvider}
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.google.common.hash.Hashing
 import com.networknt.schema.{JsonSchema, JsonSchemaFactory, SpecVersionDetector, ValidationMessage}
+import org.apache.commons.collections4.CollectionUtils
+import org.apache.commons.lang3.StringUtils
 
 object JsonSchemaUtil {
   private val mapper = new ObjectMapper
@@ -34,6 +38,18 @@ object JsonSchemaUtil {
     })
 
     schema.validate(mapper.readTree(jsonContent))
+  }
+
+  def validateRequest(callContext: Option[CallContext])(operationIdBuilder: => String): Option[String] = {
+    // validate request payload with json-schema
+    for {
+      _ <- callContext.filter(it => it.verb == "POST" || it.verb == "PUT")
+      requestBody <- callContext.flatMap(_.httpBody)
+      JsonValidation(_, jsonSchema) <- ValidationProvider.validationProvider.vend.getByOperationId(operationIdBuilder)
+      errorSet = JsonSchemaUtil.validateJson(jsonSchema, requestBody)
+      if CollectionUtils.isNotEmpty(errorSet)
+      errorInfo = StringUtils.join(errorSet, "; ")
+    } yield errorInfo
   }
 
   /**

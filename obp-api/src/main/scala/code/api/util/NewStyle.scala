@@ -2234,7 +2234,7 @@ object NewStyle {
       (boxedDynamicEntity, callContext)
     }
 
-    private[this] val dynamicEntityTTL = APIUtil.getPropsValue(s"dynamicEntity.cache.ttl.seconds", "0").toInt
+    private[this] val dynamicEntityTTL = APIUtil.getPropsValue(s"dynamicEntity.cache.ttl.seconds", "30").toInt
 
     def getDynamicEntities(): List[DynamicEntityT] = {
       import scala.concurrent.duration._

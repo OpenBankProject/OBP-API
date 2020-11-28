@@ -8,8 +8,8 @@ import java.util.{Date, UUID}
 
 import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
-import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, DoubleBody, EmptyBody, FloatBody, IntBody, JArrayBody, LongBody, OBPEndpoint, PrimaryDataBody, ResourceDoc, StringBody}
-import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic}
+import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, DoubleBody, EmptyBody, FloatBody, IntBody, JArrayBody, LongBody, PrimaryDataBody, ResourceDoc, StringBody}
+import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ApiTag, CustomJsonFormats}
 import com.openbankproject.commons.util.ApiVersion
@@ -24,8 +24,8 @@ import net.liftweb.common.{Box, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
-import net.liftweb.json.{Formats, JValue}
 import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JObject}
+import net.liftweb.json.{Formats, JValue}
 import net.liftweb.util.{StringHelpers, ThreadGlobal}
 import org.apache.commons.collections4.MapUtils
 import org.apache.commons.io.FileUtils
@@ -44,6 +44,7 @@ object DynamicEndpointHelper extends RestHelper {
    * dynamic endpoints url prefix
    */
   val urlPrefix = APIUtil.getPropsValue("dynamic_endpoints_url_prefix", "dynamic")
+  private val implementedInApiVersion = ApiVersion.v4_0_0
 
   private def dynamicEndpointInfos: List[DynamicEndpointInfo] = {
     val dynamicEndpoints: List[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.getAll()
@@ -182,9 +183,7 @@ object DynamicEndpointHelper extends RestHelper {
       (path, pathItem) <- paths
       (method: HttpMethod, op: Operation) <- pathItem.readOperationsMap.asScala
     } yield {
-      val implementedInApiVersion = ApiVersion.v4_0_0
-
-      val partialFunctionName: String = s"dynamicEndpoint_${method}_$path".replaceAll("\\W", "_")
+      val partialFunctionName: String = buildPartialFunctionName(method.name(), path)
       val requestVerb: String = method.name()
       val requestUrl: String = buildRequestUrl(path)
       val summary: String = Option(pathItem.getSummary)
@@ -302,6 +301,13 @@ object DynamicEndpointHelper extends RestHelper {
       tempSwaggerFile.deleteOnExit()
     }
     openAPI
+  }
+
+  def buildPartialFunctionName(httpMethod: String, path: String) = s"dynamicEndpoint_${httpMethod}_$path".replaceAll("\\W", "_")
+
+  def buildOperationId(httpMethod: String, path: String): String = {
+    val partialFunctionName = buildPartialFunctionName(httpMethod, path)
+    APIUtil.buildOperationId(implementedInApiVersion, partialFunctionName)
   }
 
   def doc: ArrayBuffer[ResourceDoc] = {

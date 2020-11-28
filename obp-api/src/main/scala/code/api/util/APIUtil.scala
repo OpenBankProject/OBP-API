@@ -91,6 +91,7 @@ import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.Functions.Memo
 import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
+import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.mutable
@@ -1232,7 +1233,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
     }
 
-    val operationId = s"${implementedInApiVersion.fullyQualifiedVersion}-$partialFunctionName"
+    val operationId = buildOperationId(implementedInApiVersion, partialFunctionName)
 
     // set dependent connector methods
     var connectorMethods: List[String] = getDependentConnectorMethods(partialFunction)
@@ -1471,14 +1472,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
               val newCallContext = if(boxUser.isDefined) callContext.map(_.copy(user=boxUser)) else callContext
 
               // validate request payload with json-schema
-              val validationMsg: Option[String] =
-                for {
-                  _ <- callContext.filter(it => it.verb == "POST" || it.verb == "PUT")
-                  requestBody <- callContext.flatMap(_.httpBody)
-                  JsonValidation(_, jsonSchema) <- ValidationProvider.validationProvider.vend.getByOperationId(operationId)
-                  errorSet = JsonSchemaUtil.validateJson(jsonSchema, requestBody)
-                  errorInfo = StringUtils.join(errorSet, "; ")
-                } yield errorInfo
+              val validationMsg: Option[String] = JsonSchemaUtil.validateRequest(callContext)(operationId)
 
               validationMsg match {
                 case Some(errorMsg) =>
@@ -1501,6 +1495,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     }
   }
+
+  def buildOperationId(apiVersion: ScannedApiVersion, partialFunctionName: String) =
+    s"${apiVersion.fullyQualifiedVersion}-$partialFunctionName"
 
   /**
    * Simulate S pass request and session, this object pass bank, account and view.
