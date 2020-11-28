@@ -185,7 +185,7 @@ object DynamicEndpointHelper extends RestHelper {
     } yield {
       val partialFunctionName: String = buildPartialFunctionName(method.name(), path)
       val requestVerb: String = method.name()
-      val requestUrl: String = buildRequestUrl(path)
+      val requestUrl: String = buildRequestUrl(path, urlPrefix)
       val summary: String = Option(pathItem.getSummary)
         .filter(StringUtils.isNotBlank)
         .getOrElse(buildSummary(openAPI, method, op, path))
@@ -284,14 +284,6 @@ object DynamicEndpointHelper extends RestHelper {
   private val PathParamRegx = """\{(.+?)\}""".r
   private val WordBoundPattern = Pattern.compile("(?<=[a-z0-9])(?=[A-Z])|-")
 
-  private def buildRequestUrl(path: String): String = {
-    val url = StringUtils.split(s"$urlPrefix/$path", "/")
-    url.map {
-      case PathParamRegx(param) => WordBoundPattern.matcher(param).replaceAll("_").toUpperCase()
-      case v => v
-    }.mkString("/", "/", "")
-  }
-
   def parseSwaggerContent(content: String): OpenAPI = {
     val tempSwaggerFile = File.createTempFile("temp", ".swagger")
     FileUtils.write(tempSwaggerFile, content, Charset.forName("utf-8"))
@@ -303,7 +295,25 @@ object DynamicEndpointHelper extends RestHelper {
     openAPI
   }
 
-  def buildPartialFunctionName(httpMethod: String, path: String) = s"dynamicEndpoint_${httpMethod}_$path".replaceAll("\\W", "_")
+  private def buildRequestUrl(path: String, prefix: String = ""): String = {
+    val url = StringUtils.split(s"$prefix/$path", "/")
+    url.map {
+      case PathParamRegx(param) => WordBoundPattern.matcher(param).replaceAll("_").toUpperCase()
+      case v => v
+    }.mkString("/", "/", "")
+  }
+
+  private def buildPartialFunctionName(httpMethod: String, path: String) = {
+    val noQueryParamPath = path match {
+      case p if path.contains("/?") => StringUtils.substringBefore(p, "/?")
+      case p if path.contains("?") => StringUtils.substringBefore(p, "?")
+      case p => p
+    }
+    val noExpressionPath = buildRequestUrl(noQueryParamPath) // replace expression to upper case, e.g: /abc/{helloWorld}/good -> /abc/{HELLO_WORLD}/good
+                            .substring(1)        // remove the started character '/'
+
+    s"dynamicEndpoint_${httpMethod}_$noExpressionPath".replaceAll("\\W", "_")
+  }
 
   def buildOperationId(httpMethod: String, path: String): String = {
     val partialFunctionName = buildPartialFunctionName(httpMethod, path)
