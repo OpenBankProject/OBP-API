@@ -1214,9 +1214,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
 
-            _ <- Helper.booleanToFuture(failMsg =  UserHasMissingRoles + canCreateCustomer + " or " + canCreateCustomerAtAnyBank) {
-              hasAtLeastOneEntitlement(bankId.value, u.userId,  canCreateCustomer :: canCreateCustomerAtAnyBank :: Nil)
-            }
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(bankId.value, u.userId, canCreateCustomer :: canCreateCustomerAtAnyBank :: Nil)
 
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerJsonV310 "

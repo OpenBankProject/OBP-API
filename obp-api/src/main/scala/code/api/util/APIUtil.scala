@@ -1235,6 +1235,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     val operationId = buildOperationId(implementedInApiVersion, partialFunctionName)
 
+    private var _isEndpointAuthCheck = false
+
+    def isNotEndpointAuthCheck = !_isEndpointAuthCheck
+
     // set dependent connector methods
     var connectorMethods: List[String] = getDependentConnectorMethods(partialFunction)
       .map("obp."+) // add prefix "obp.", as MessageDoc#process
@@ -1329,6 +1333,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
      * @return wrapped endpoint
      */
     def wrappedWithAuthCheck(obpEndpoint: OBPEndpoint): OBPEndpoint = {
+      _isEndpointAuthCheck = true
 
       def getIds(url: List[String]): (Option[BankId], Option[AccountId], Option[ViewId]) = {
         val apiPrefixLength = url.size - requestUrlPartPath.size
@@ -2659,6 +2664,22 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       x =>
         refreshUserIfRequired(x._1,x._2)
         x
+    } map {
+      it =>
+      val callContext = it._2
+
+        val validationResult: Option[String] = callContext.flatMap(_.resourceDocument)
+          .filter(v => v.isNotEndpointAuthCheck)                           // endpoint not do auth check automatic
+          .filter(v => !v.roles.exists(_.nonEmpty))                        // no roles required, this endpoint only do authentication
+          .flatMap(v => JsonSchemaUtil.validateRequest(callContext)(v.operationId)) // request payload validation error message
+
+        validationResult match {
+          case Some(errorMsg) =>
+            val apiFailure = APIFailureNewStyle(errorMsg, 401, callContext.map(_.toLight))
+            val failure = ParamFailure(errorMsg, apiFailure)
+            (fullBoxOrException(failure), callContext)
+          case _ => it
+        }
     }
   }
 

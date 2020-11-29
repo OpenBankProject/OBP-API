@@ -1958,9 +1958,10 @@ trait APIMethods200 {
             }
             allowedEntitlements = canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil
             allowedEntitlementsTxt = UserNotSuperAdmin +" or" + UserHasMissingRoles + canCreateEntitlementAtOneBank + s" BankId(${postedData.bank_id})." + " or" + UserHasMissingRoles + canCreateEntitlementAtAnyBank
-            _ <- Helper.booleanToFuture(failMsg = allowedEntitlementsTxt) {
-              isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true
-            }
+            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
+                  else NewStyle.function.hasAtLeastOneEntitlement(allowedEntitlementsTxt)(postedData.bank_id, u.userId, allowedEntitlements)
+
+
             _ <- Helper.booleanToFuture(failMsg = BankNotFound) {
               postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), callContext).map(_._1).isEmpty == false
             }
