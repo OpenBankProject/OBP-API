@@ -2,7 +2,7 @@ package code.api.v2_1_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateTransactionType
-import code.api.util.{ApiRole, ErrorMessages}
+import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v2_0_0.{TransactionTypeJsonV200, TransactionTypesJsonV200}
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_0_0
 import code.setup.DefaultUsers
@@ -153,7 +153,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
   def setCanCreateTransactionType: Unit = {
     addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateTransactionType.toString)
     Then("We add entitlement to user1")
-    val hasEntitlement = code.api.util.APIUtil.hasEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canCreateTransactionType)
+    val hasEntitlement = APIUtil.hasEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canCreateTransactionType)
     hasEntitlement should equal(true)
   }
 }

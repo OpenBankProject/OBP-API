@@ -233,9 +233,10 @@ trait APIMethods400 {
             loggedInUserId = cc.userId
             userIdAccountOwner = if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id else loggedInUserId
             (postedOrLoggedInUser,callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, cc.callContext)
-            _ <- Helper.booleanToFuture(s"$UserHasMissingRoles $canCreateSettlementAccountAtOneBank") {
-              hasEntitlement(bankId.value, loggedInUserId, canCreateSettlementAccountAtOneBank) || userIdAccountOwner == loggedInUserId
-            }
+
+            _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(Unit))
+                 else NewStyle.function.hasEntitlement(bankId.value, loggedInUserId, canCreateSettlementAccountAtOneBank, callContext)
+
             initialBalanceAsString = createAccountJson.balance.amount
             accountLabel = createAccountJson.label
             initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
@@ -325,9 +326,8 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "settlement-accounts" :: Nil JsonGet _ => {
         cc =>
           for {
-            _ <- Helper.booleanToFuture(s"$UserHasMissingRoles $canGetSettlementAccountAtOneBank") {
-              hasEntitlement(bankId.value, cc.userId, canGetSettlementAccountAtOneBank)
-            }
+            _ <- NewStyle.function.hasEntitlement(bankId.value, cc.userId, canGetSettlementAccountAtOneBank, cc.callContext)
+
             (accounts, callContext) <- NewStyle.function.getBankSettlementAccounts(bankId, cc.callContext)
             settlementAccounts <- Future.sequence(accounts.map(account => {
               NewStyle.function.getAccountAttributesByAccount(bankId, account.accountId, callContext).map(accountAttributes =>
@@ -662,10 +662,8 @@ trait APIMethods400 {
             account = BankIdAccountId(bankId, accountId)
             _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, u, callContext)
 
-            _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
-              u.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) ||
-                hasEntitlement(bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest)
-            }
+            _ <- if (u.hasOwnerViewAccess(BankIdAccountId(bankId, accountId))) Future.successful(Full(Unit))
+            else NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest, callContext, InsufficientAuthorisationToCreateTransactionRequest)
 
             _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'") {
               APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value)
@@ -2103,9 +2101,10 @@ trait APIMethods400 {
             loggedInUserId = cc.userId
             userIdAccountOwner = if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id else loggedInUserId
             (postedOrLoggedInUser,callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, cc.callContext)
-            _ <- Helper.booleanToFuture(s"${UserHasMissingRoles} $canCreateAccount or create account for self") {
-              hasEntitlement(bankId.value, loggedInUserId, canCreateAccount) || userIdAccountOwner == loggedInUserId
-            }
+
+            _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(Unit))
+              else NewStyle.function.hasEntitlement(bankId.value, loggedInUserId, canCreateAccount, callContext, s"${UserHasMissingRoles} $canCreateAccount or create account for self")
+
             initialBalanceAsString = createAccountJson.balance.amount
             //Note: here we map the product_code to account_type
             accountType = createAccountJson.product_code

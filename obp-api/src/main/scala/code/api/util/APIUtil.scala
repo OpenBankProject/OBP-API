@@ -3441,7 +3441,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     case x => anonymousAccess(x)
   }
   private val checkRolesFun: PartialFunction[String, (String, List[ApiRole]) => Future[Box[Unit]]] = {
-    case x => NewStyle.function.hasAtLeastOneEntitlement(x, _, _)
+    case x => NewStyle.function.hasAtLeastOneEntitlement(x, _, _, None)
   }
   private val checkBankFun: PartialFunction[BankId, Option[CallContext] => OBPReturnType[Bank]] = {
     case x => NewStyle.function.getBank(x, _)

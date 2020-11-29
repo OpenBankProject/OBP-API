@@ -91,7 +91,7 @@ When naming variables use strict camel case e.g. use myUrl not myURL. This is so
             // 1. makes sure the user which attempts to use the endpoint is authorized
             (Full(u), callContext) <- authorizedAccess(cc)
             // 2. makes sure the user which attempts to use the endpoint is allowed to consume it 
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements, callContext)
             // 3. checks the endpoint constraints
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostPutProductJsonV310 "
@@ -106,7 +106,7 @@ Please note that that checks at an endpoint should be applied only in case an us
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostPutProductJsonV310 "      
             (Full(u), callContext) <- authorizedAccess(cc)
             // 2. makes sure the user which attempts to use the endpoint is allowed to consume it 
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements)   
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements, callContext)   
 ```
 the user which cannot consume the endpoint still can check does some bank exist or not at that instance. It's not the issue if banks are public data at the instance but it wouldn't be the only business case all the time.
 
