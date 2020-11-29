@@ -13,7 +13,7 @@ import net.liftweb.util.Helpers.tryo
 import scala.concurrent.duration.DurationInt
 
 object MappedDynamicEndpointProvider extends DynamicEndpointProvider with CustomJsonFormats{
-  val dynamicEndpointTTL : Int = APIUtil.getPropsValue(s"dynamicEndpoint.cache.ttl.seconds", "30").toInt
+  val dynamicEndpointTTL : Int = APIUtil.getPropsValue(s"dynamicEndpoint.cache.ttl.seconds", "0").toInt
 
   override def create(userId: String, swaggerString: String): Box[DynamicEndpointT] = {
     tryo{DynamicEndpoint.create.UserId(userId).SwaggerString(swaggerString).saveMe()}

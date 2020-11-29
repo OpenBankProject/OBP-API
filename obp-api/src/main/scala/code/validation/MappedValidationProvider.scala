@@ -12,7 +12,7 @@ import net.liftweb.util.Helpers.tryo
 import scala.concurrent.duration.DurationInt
 
 object MappedValidationProvider extends ValidationProvider {
-  val getValidationByOperationIdTTL : Int = APIUtil.getPropsValue(s"validation.cache.ttl.seconds", "30").toInt
+  val getValidationByOperationIdTTL : Int = APIUtil.getPropsValue(s"validation.cache.ttl.seconds", "0").toInt
 
   override def getByOperationId(operationId: String): Box[JsonValidation] = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
