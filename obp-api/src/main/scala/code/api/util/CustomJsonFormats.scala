@@ -1,5 +1,6 @@
 package code.api.util
 
+import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, JArrayBody, LongBody, PrimaryDataBody, StringBody}
 import code.api.util.ApiRole.rolesMappedToClasses
 import com.openbankproject.commons.dto.InBoundTrait
 import com.openbankproject.commons.model.TopicTrait
@@ -20,7 +21,7 @@ trait CustomJsonFormats {
 
 object CustomJsonFormats {
 
-  val formats: Formats = JsonSerializers.commonFormats
+  val formats: Formats = JsonSerializers.commonFormats + JsonAbleSerializer
 
   val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless ++ JsonSerializers.serializers
 
@@ -123,3 +124,21 @@ object OptionalFieldSerializer extends Serializer[AnyRef] {
   }
 }
 
+
+object JsonAbleSerializer extends Serializer[PrimaryDataBody[_]] {
+  private val IntervalClass = classOf[Product]
+
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = Functions.doNothing
+
+  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, json.JValue), PrimaryDataBody[_]] = {
+    case (TypeInfo(IntervalClass, _), json) if !json.isInstanceOf[JObject] => json match {
+      case JNothing => EmptyBody
+      case JString(v) => StringBody(v)
+      case JBool(v) => BooleanBody(v)
+      case JInt(v) => LongBody(v.toLong)
+      case JDouble(v) => DoubleBody(v)
+      case v: JArray => JArrayBody(v)
+      case x => throw new MappingException("Can't convert " + x + " to PrimaryDataBody")
+    }
+  }
+}
