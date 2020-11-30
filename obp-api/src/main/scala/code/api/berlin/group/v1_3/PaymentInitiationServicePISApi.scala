@@ -897,10 +897,7 @@ There are the following request types on this access path:
              )
              _ <- challenge.scaStatus match {
                case Some(status) if status == StrongCustomerAuthenticationStatus.finalised => // finalised
-                 NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext) map {
-                   response =>
-                     Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, CANCELLED.toString)
-                 }
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, CANCELLED.toString))
                case Some(status) if status == StrongCustomerAuthenticationStatus.failed => // failed
                  Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, REJECTED.toString))
                case _ => // all other cases
