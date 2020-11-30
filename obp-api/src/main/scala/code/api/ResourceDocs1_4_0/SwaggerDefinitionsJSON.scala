@@ -832,6 +832,9 @@ object SwaggerDefinitionsJSON {
   val banksJSON400 = BanksJson400(
     banks = List(bankJson400)
   )
+  
+  val ibanCheckerPostJsonV400 = Iban("DE75512108001245126199")
+  
   val ibanCheckerJsonV400 = IbanChecker(
     true, 
     Some(
