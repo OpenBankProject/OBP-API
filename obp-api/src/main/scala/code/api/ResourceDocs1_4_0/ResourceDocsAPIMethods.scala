@@ -2,24 +2,26 @@ package code.api.ResourceDocs1_4_0
 
 import java.util.UUID.randomUUID
 
+import code.api.OBPRestHelper
 import code.api.builder.OBP_APIBuilder
-import code.api.util.{APIUtil, _}
 import code.api.cache.Caching
-import code.api.util.APIUtil.{hasEntitlement, _}
+import code.api.util.APIUtil._
 import code.api.util.ApiTag._
-import com.openbankproject.commons.util.ApiStandards._
+import code.api.util.{APIUtil, _}
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
 import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
-import code.api.OBPRestHelper
-import code.api.util.ApiRole.{CanReadResourceDoc, canCreateAnyTransactionRequest}
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.enums.{ContentParam, LanguageParam}
+import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.ListResult
+import com.openbankproject.commons.model.enums.ContentParam.{ALL, DYNAMIC, STATIC}
 import com.openbankproject.commons.model.enums.LanguageParam._
+import com.openbankproject.commons.model.enums.{ContentParam, LanguageParam}
+import com.openbankproject.commons.util.ApiStandards._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
+import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.{JsonResponse, LiftRules, S}
 import net.liftweb.json
@@ -27,9 +29,6 @@ import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
-import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.ListResult
-import com.openbankproject.commons.model.enums.ContentParam.{ALL, DYNAMIC, STATIC}
 
 import scala.collection.immutable.{List, Nil}
 
@@ -42,8 +41,6 @@ import code.api.v2_1_0.{APIMethods210, OBPAPI2_1_0}
 import scala.collection.mutable.ArrayBuffer
 
 // So we can include resource docs from future versions
-import java.text.SimpleDateFormat
-
 import code.api.util.ErrorMessages._
 import code.util.Helper.booleanToBox
 
@@ -399,7 +396,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             _ <- if (resourceDocsRequireRole)//If set resource_docs_requires_role=true, we need check the authentication and the roles
               for{
                 u <- cc.user ?~  UserNotLoggedIn
-                hasCanReadResourceDocRole <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadResourceDoc), UserHasMissingRoles + CanReadResourceDoc)
+                hasCanReadResourceDocRole <- NewStyle.function.ownEntitlement("", u.userId, ApiRole.canReadResourceDoc, cc.callContext)
               } yield{
                 hasCanReadResourceDocRole
               }

@@ -2,7 +2,7 @@ package code.api.v2_1_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.postPhysicalCardJSON
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole
+import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ApiRole.CanCreateCardsForBank
 import code.api.v1_3_0.PhysicalCardJSON
 import code.setup.DefaultUsers
@@ -21,7 +21,7 @@ class CreateCreditCardTest extends V210ServerSetup with DefaultUsers {
 
       Then("We add entitlement to user1")
       addEntitlement(bankId.value, resourceUser1.userId, CanCreateCardsForBank.toString)
-      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canCreateCardsForBank)
+      val hasEntitlement = APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canCreateCardsForBank)
       hasEntitlement should equal(true)
 
       When("We make the request Create Credit Card")
