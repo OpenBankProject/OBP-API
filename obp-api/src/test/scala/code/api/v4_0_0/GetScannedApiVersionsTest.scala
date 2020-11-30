@@ -44,7 +44,7 @@ class GetScannedApiVersionsTest extends V400ServerSetup {
    *  This is made possible by the scalatest maven plugin
    */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
-  object ApiEndpoint extends Tag(nameOf(Implementations4_0_0.getScanneApiVersions))
+  object ApiEndpoint extends Tag(nameOf(Implementations4_0_0.getScannedApiVersions))
 
 
   feature("Get all scanned API versions should works") {

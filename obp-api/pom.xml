@@ -462,6 +462,13 @@
       <version>1.7.0</version>
     </dependency>
 
+    <!--json schema validation start-->
+    <dependency>
+      <groupId>com.networknt</groupId>
+      <artifactId>json-schema-validator</artifactId>
+      <version>1.0.45</version>
+    </dependency>
+    <!--json schema validation end-->
   </dependencies>
 
   <build>

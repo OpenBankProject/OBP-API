@@ -62,8 +62,12 @@ connector=mapped
 ## webui props cache time-to-live in seconds
 #webui.props.cache.ttl.seconds=20
 
-## DynamicEntity cache time-to-live in seconds
-#dynamicEntity.cache.ttl.seconds=20
+## DynamicEntity cache time-to-live in seconds, default is 30
+dynamicEntity.cache.ttl.seconds=30
+## DynamicEndpoint cache time-to-live in seconds, default is 30
+dynamicEndpoint.cache.ttl.seconds=30
+## Validation cache time-to-live in seconds, default is 30
+validation.cache.ttl.seconds=30
 
 ## swagger file should not generated for every request, this is a time-to-live in seconds for the generated swagger of OBP api,
 ## this value also represent how many seconds before the new endpoints will be shown after upload a new DynamicEntity.
@@ -872,7 +876,7 @@ outboundAdapterCallContext.generalContext
 ## (1) if: connector=star, the connector should match props value of 'starConnector_supported_types'
 ## (2) else: connector name should be the same as props value of connector, e.g: connector=rest_vMar2019, then the connector should must also be rest_vMar2019
 ## example:
-#connector.name.export.as.endpoint=stored_procedure_vDec2019
+#connector.name.export.as.endpoints=stored_procedure_vDec2019
 # ------------------------------------------------------------------------------------------
 
 # ------------------------------ Hydra oauth2 props ------------------------------

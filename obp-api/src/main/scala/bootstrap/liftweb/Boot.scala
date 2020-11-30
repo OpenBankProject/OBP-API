@@ -112,6 +112,7 @@ import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
 import code.util.Helper.MdcLoggable
 import code.util.{Helper, HydraUtil}
+import code.validation.Validation
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
@@ -605,8 +606,8 @@ class Boot extends MdcLoggable {
     Migration.database.executeScripts()
 
     // export one Connector's methods as endpoints, it is just for develop
-    APIUtil.getPropsValue("connector.name.export.as.endpoint").foreach { connectorName =>
-      // validate whether "connector.name.export.as.endpoint" have set a correct value
+    APIUtil.getPropsValue("connector.name.export.as.endpoints").foreach { connectorName =>
+      // validate whether "connector.name.export.as.endpoints" have set a correct value
       APIUtil.getPropsValue("connector") match {
         case Full("star") =>
           val starConnectorTypes = APIUtil.getPropsValue("starConnector_supported_types","mapped")
@@ -616,13 +617,13 @@ class Boot extends MdcLoggable {
           val allSupportedConnectors: List[String] = Connector.nameToConnector.keys.toList
             .filter(it => starConnectorTypes.exists(it.startsWith(_)))
 
-          assert(allSupportedConnectors.contains(connectorName), s"connector.name.export.as.endpoint=$connectorName, this value should be one of ${allSupportedConnectors.mkString(",")}")
+          assert(allSupportedConnectors.contains(connectorName), s"connector.name.export.as.endpoints=$connectorName, this value should be one of ${allSupportedConnectors.mkString(",")}")
 
         case _ if connectorName == "mapped" =>
           Functions.doNothing
 
         case Full(connector) =>
-          assert(connector == connectorName, s"When 'connector=$connector', this props must be: connector.name.export.as.endpoint=$connector, but current it is $connectorName")
+          assert(connector == connectorName, s"When 'connector=$connector', this props must be: connector.name.export.as.endpoints=$connector, but current it is $connectorName")
       }
 
       ConnectorEndpoints.registerConnectorEndpoints
@@ -891,7 +892,8 @@ object ToSchemify {
     AccountIdMapping,
     DirectDebit,
     StandingOrder,
-    MappedUserRefreshes
+    MappedUserRefreshes,
+    Validation
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server

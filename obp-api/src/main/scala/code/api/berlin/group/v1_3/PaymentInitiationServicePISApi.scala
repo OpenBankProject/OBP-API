@@ -6,7 +6,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{ApiRole, ApiTag, CallContext, NewStyle}
+import code.api.util.{ApiRole, ApiTag, NewStyle}
 import code.bankconnectors.Connector
 import code.fx.fx
 import code.model._
@@ -18,7 +18,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, TransactionRequestStatus}
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.Full
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
@@ -572,13 +572,10 @@ $additionalInstructions
              (_, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
              (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
 
-             _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
-               
-               u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
-                 hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest) == true
-             }
+             _ <- if (u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId))) Future.successful(Full(Unit))
+                  else NewStyle.function.hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest, callContext, InsufficientAuthorisationToCreateTransactionRequest)
 
-             // Prevent default value for transaction request type (at least).
+               // Prevent default value for transaction request type (at least).
              _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.instructedAmount.currency}") {
                transDetailsJson.instructedAmount.currency == fromAccount.currency
              }
@@ -879,7 +876,9 @@ There are the following request types on this access path:
              transactionRequestId = TransactionRequestId(paymentId)
              (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
              _ <- Helper.booleanToFuture(failMsg= CannotUpdatePSUDataCancellation) { 
-               existingTransactionRequest.status == TransactionRequestStatus.INITIATED.toString
+               existingTransactionRequest.status == TransactionRequestStatus.INITIATED.toString ||
+               existingTransactionRequest.status == TransactionRequestStatus.CANCELLATION_PENDING.toString ||
+               existingTransactionRequest.status == TransactionRequestStatus.COMPLETED.toString
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
@@ -898,13 +897,10 @@ There are the following request types on this access path:
              )
              _ <- challenge.scaStatus match {
                case Some(status) if status == StrongCustomerAuthenticationStatus.finalised => // finalised
-                 NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext) map {
-                   response =>
-                     Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, COMPLETED.toString)
-                 }
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, CANCELLED.toString))
                case Some(status) if status == StrongCustomerAuthenticationStatus.failed => // failed
                  Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, REJECTED.toString))
-               case _ => // started and all other cases
+               case _ => // all other cases
                  Future(Full(true))
              }
            } yield {
