@@ -442,6 +442,8 @@ object ErrorMessages {
   val ValidationDeleteError = "OBP-40028: Could not delete the Validation. "
   val ValidationOperationIdExistsError = "OBP-40029: OPERATION_ID already exists. Please specify different values for OPERATION_ID. "
   val ValidationJsonSchemaIllegal = "OBP-40030: Incorrect json-schema Format. "
+  val CannotStartTheAuthorisationProcessForTheCancellation = s"OBP-40031: Cannot start the authorisation process for the cancellation of the addressed payment due to transaction request is not in status: ${CANCELLATION_PENDING}."
+
 
 
   // Exceptions (OBP-50XXX)

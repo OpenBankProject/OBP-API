@@ -767,7 +767,10 @@ This applies in the following scenarios:
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
-             (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+             _ <- Helper.booleanToFuture(failMsg= CannotStartTheAuthorisationProcessForTheCancellation) {
+               transactionRequest.status == TransactionRequestStatus.CANCELLATION_PENDING.toString
+             }
              (challenges, callContext) <- NewStyle.function.createChallengesC2(
                List(u.userId),
                ChallengeType.BERLINGROUP_PAYMENT,
