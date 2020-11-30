@@ -2675,7 +2675,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
         validationResult match {
           case Some(errorMsg) =>
-            val apiFailure = APIFailureNewStyle(errorMsg, 401, callContext.map(_.toLight))
+            val apiFailure = APIFailureNewStyle(s"${ErrorMessages.InvalidRequestPayload} $errorMsg", 401, callContext.map(_.toLight))
             val failure = ParamFailure(errorMsg, apiFailure)
             (fullBoxOrException(failure), callContext)
           case _ => it

@@ -707,7 +707,16 @@ object NewStyle {
       }
     }
 
-    private def validateRequestPayload[T](callContext: Option[CallContext])(boxResult: Box[T]): Box[T] = {
+    /**
+     * as check entitlement methods return map parameter,
+     * do request payload validation with json-schema
+     * @param callContext callContext
+     * @param checkFull whether check result is Full, for hasXXEntitlement that return Future[Box[Unit]], the value should be true
+     * @param boxResult hasXXEntitlement method return value, if validation fail, return fail box or throw exception for Future type
+     * @tparam T
+     * @return
+     */
+    private def validateRequestPayload[T](callContext: Option[CallContext], checkFull: Boolean = false)(boxResult: Box[T]): Box[T] = {
       val validationResult: Option[String] = callContext.flatMap(_.resourceDocument)
         .filter(v => v.isNotEndpointAuthCheck)                           // endpoint not do auth check automatic
         .flatMap(v => JsonSchemaUtil.validateRequest(callContext)(v.operationId)) // request payload validation error message
@@ -716,9 +725,13 @@ object NewStyle {
         boxResult
       } else {
         val Some(errorMsg) = validationResult
-        val apiFailure = APIFailureNewStyle(errorMsg, 401, callContext.map(_.toLight))
-        val failure = ParamFailure(errorMsg, apiFailure)
-        fullBoxOrException(failure)
+        val errorInfo = s"${ErrorMessages.InvalidRequestPayload} $errorMsg"
+        val apiFailure = APIFailureNewStyle(errorInfo, 401, callContext.map(_.toLight))
+
+        checkFull match {
+          case true => fullBoxOrException(ParamFailure(errorInfo, apiFailure))
+          case _ => ParamFailure(errorInfo, apiFailure)
+        }
       }
     }
 
@@ -728,7 +741,7 @@ object NewStyle {
 
       Helper.booleanToFuture(errorInfo) {
         APIUtil.hasEntitlement(bankId, userId, role)
-      } map validateRequestPayload(callContext)
+      } map validateRequestPayload(callContext, true)
     }
     // scala not allow overload method both have default parameter, so this method name is just in order avoid the same name with hasEntitlement
     def ownEntitlement(bankId: String, userId: String, role: ApiRole,callContext: Option[CallContext], errorMsg: String = ""): Box[Unit] = {
@@ -741,7 +754,7 @@ object NewStyle {
     def hasAtLeastOneEntitlement(failMsg: => String)(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
       Helper.booleanToFuture(failMsg) {
         APIUtil.hasAtLeastOneEntitlement(bankId, userId, roles)
-      } map validateRequestPayload(callContext)
+      } map validateRequestPayload(callContext, true)
 
     def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
       hasAtLeastOneEntitlement(UserHasMissingRoles + roles.mkString(" or "))(bankId, userId, roles, callContext)
