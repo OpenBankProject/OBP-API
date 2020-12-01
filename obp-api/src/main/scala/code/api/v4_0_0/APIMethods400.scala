@@ -182,7 +182,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(ibanChecker),
       "POST",
-      "/iban-check",
+      "/check/scheme/IBAN",
       "Validate and check IBAN number",
       """Validate and check IBAN number for errors
         |
@@ -194,16 +194,16 @@ trait APIMethods400 {
     )
 
     lazy val ibanChecker: OBPEndpoint = {
-      case "iban-check" :: Nil JsonPost json -> _ => {
+      case "check" :: "scheme" :: "IBAN" :: Nil JsonPost json -> _ => {
         cc =>
           val failMsg = s"$InvalidJsonFormat The Json body should be the ${prettyRender(Extraction.decompose(ibanCheckerPostJsonV400))}"
           for {
             ibanJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
-              json.extract[Iban]
+              json.extract[IbanAddress]
             }
-            (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(ibanJson.iban, cc.callContext)
+            (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(ibanJson.address, cc.callContext)
           } yield {
-            (ibanChecker, HttpCode.`200`(callContext))
+            (JSONFactory400.createIbanCheckerJson(ibanChecker), HttpCode.`200`(callContext))
           }
       }
     }
