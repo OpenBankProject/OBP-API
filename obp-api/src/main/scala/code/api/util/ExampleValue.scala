@@ -220,6 +220,12 @@ object ExampleValue {
   lazy val branchIdExample = ConnectorField("DERBY6", "Uniquely identifies the Branch in combination with the bankId.")
   glossaryItems += makeGlossaryItem("Branch.branch_id", branchIdExample)
 
+  lazy val selectionNameExample = ConnectorField("Favourites", "Name of the selection")
+  glossaryItems += makeGlossaryItem("Selection.selection_name", selectionNameExample)
+
+  lazy val selectionIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", "A string that MUST uniquely identify the session on this OBP instance, can be used in all cache.")
+  glossaryItems += makeGlossaryItem("Selection.selection_id", selectionIdExample)
+  
   lazy val accountTypeExample = ConnectorField("AC","A short code that represents the type of the account as provided by the bank.")
 
   lazy val balanceAmountExample = ConnectorField("50.89", "The balance on the account.")

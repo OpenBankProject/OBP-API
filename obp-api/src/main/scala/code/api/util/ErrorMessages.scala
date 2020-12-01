@@ -305,6 +305,10 @@ object ErrorMessages {
 
   val TransactionRequestAttributeNotFound = "OBP-30078: Transaction Request Attribute not found. Please specify a valid value for TRANSACTION_REQUEST_ATTRIBUTE_ID."
 
+  val SelectionNotFound = "OBP-30079:Selection not found. Please specify a valid value for SELECTION_ID."
+  val CreateSelectionError = "OBP-30079:Could not create Selection."
+  val DeleteSelectionError = "OBP-30079:Could not delete Selection."
+
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."

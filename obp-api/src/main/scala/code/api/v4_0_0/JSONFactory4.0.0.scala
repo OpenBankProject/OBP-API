@@ -43,6 +43,7 @@ import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
+import code.selections.SelectionsTrait
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
@@ -499,6 +500,19 @@ case class ChallengeAnswerJson400 (
                                  additional_information: Option[String] = None
                                )
 
+case class SelectionJson400 (
+  selection_id: String,
+  user_id: String,
+  selection_name: String,
+  is_favourites: Boolean,
+  is_sharable: Boolean
+)
+
+case class PostSelectionJson400(
+  selection_name: String,
+  is_favourites: Boolean,
+  is_sharable: Boolean
+)
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
@@ -909,6 +923,20 @@ object JSONFactory400 {
         )
       )
     )
+  }
+
+  def createSelectionJsonV400(selection: SelectionsTrait) = {
+      SelectionJson400(
+        selection.selectionId,
+        selection.userId,
+        selection.selectionName,
+        selection.isFavourites,
+        selection.isSharable,
+      )
+  }
+  
+  def createSelectionsJsonV400(selections: List[SelectionsTrait]) = {
+    selections.map(selection => createSelectionJsonV400(selection))
   }
   
 }

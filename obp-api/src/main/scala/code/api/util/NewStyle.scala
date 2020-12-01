@@ -30,8 +30,10 @@ import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
 import code.model.dataAccess.{BankAccountRouting, DoubleEntryBookTransaction}
+import code.selections.{MappedSelectionsProvider, SelectionsTrait}
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
+import code.users.Users
 import code.util.Helper
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import code.views.Views
@@ -2550,6 +2552,45 @@ object NewStyle {
     def checkUKConsent(user: User, callContext: Option[CallContext]) = Future {
       Consent.checkUKConsent(user, callContext)
     } map { fullBoxOrException(_) }
+
+
+    def getSelectionById(selectionId : String, callContext: Option[CallContext]) : OBPReturnType[SelectionsTrait] = {
+      Future(MappedSelectionsProvider.getSelectionById(selectionId)) map {
+        i => (unboxFullOrFail(i, callContext, s"SelectionNotFound Current selectionId($selectionId)"), callContext)
+      }
+    }
+
+    def getSelectionsByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[List[SelectionsTrait]] = {
+      Future(MappedSelectionsProvider.getSelectionsByUserId(userId), callContext) 
+    }
+    
+    def createSelection(userId: String,
+      selectionName: String,
+      isFavourites: Boolean,
+      isSharable: Boolean,
+      callContext: Option[CallContext]
+    ) : OBPReturnType[SelectionsTrait] = {
+      Future(MappedSelectionsProvider.createSelection(
+        userId: String,
+        selectionName: String,
+        isFavourites: Boolean,
+        isSharable: Boolean)
+      ) map {
+        i => (unboxFullOrFail(i, callContext, CreateSelectionError), callContext)
+      }
+    }
+
+    def getUserByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[User] = {
+      Users.users.vend.getUserByUserIdFuture(userId) map {
+        x => (unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId($userId)"),callContext)
+      }
+    }
+
+    def deleteSelectionById(selectionId : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
+      Future(MappedSelectionsProvider.deleteSelectionById(selectionId)) map {
+        i => (unboxFullOrFail(i, callContext, s"DeleteSelectionError Current selectionId($selectionId)"), callContext)
+      }
+    }
 
   }
 }
