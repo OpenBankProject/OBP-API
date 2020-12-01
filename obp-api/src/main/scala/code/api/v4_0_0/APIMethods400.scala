@@ -176,6 +176,37 @@ trait APIMethods400 {
 
       }
     }
+    
+    staticResourceDocs += ResourceDoc(
+      ibanChecker,
+      implementedInApiVersion,
+      nameOf(ibanChecker),
+      "POST",
+      "/check/scheme/IBAN",
+      "Validate and check IBAN number",
+      """Validate and check IBAN number for errors
+        |
+        |""",
+      ibanCheckerPostJsonV400,
+      ibanCheckerJsonV400,
+      List(UnknownError),
+      apiTagBank :: apiTagNewStyle :: Nil
+    )
+
+    lazy val ibanChecker: OBPEndpoint = {
+      case "check" :: "scheme" :: "IBAN" :: Nil JsonPost json -> _ => {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the ${prettyRender(Extraction.decompose(ibanCheckerPostJsonV400))}"
+          for {
+            ibanJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[IbanAddress]
+            }
+            (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(ibanJson.address, cc.callContext)
+          } yield {
+            (JSONFactory400.createIbanCheckerJson(ibanChecker), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       createSettlementAccount,

@@ -297,6 +297,9 @@ object AmountOfMoney extends Converter[AmountOfMoneyTrait, AmountOfMoney]
 case class Iban(
   iban: String
 )
+case class IbanAddress(
+  address: String
+)
 case class IbanChecker(
                  isValid: Boolean,
                  details: Option[IbanDetails]
